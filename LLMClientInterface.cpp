@@ -25,6 +25,7 @@
 
 #include <texteditor/textdocument.h>
 
+#include "DocumentContextReader.hpp"
 #include "LLMProvidersManager.hpp"
 #include "PromptTemplateManager.hpp"
 #include "QodeAssistSettings.hpp"
@@ -98,38 +99,18 @@ QString LLMClientInterface::сontextBefore(TextEditor::TextEditorWidget *widget,
         return QString();
 
     QTextDocument *doc = widget->document();
-    int totalLines = doc->blockCount();
-    QTextBlock currentBlock = doc->findBlockByLineNumber(lineNumber);
+    DocumentContextReader reader(doc);
 
-    QString beforeCursor;
-
-    if (settings().readFullFile() && totalLines < settings().maxFileThreshold()) {
-        // Read all content from the beginning of the file to the cursor
-        QTextBlock block = doc->begin();
-        while (block.isValid() && block.blockNumber() <= lineNumber) {
-            if (block.blockNumber() == lineNumber) {
-                beforeCursor += block.text().left(cursorPosition);
-                break;
-            } else {
-                beforeCursor += block.text() + "\n";
-            }
-            block = block.next();
-        }
+    QString contextBefore;
+    if (settings().readFullFile()) {
+        contextBefore = reader.readWholeFileBefore(lineNumber, cursorPosition);
     } else {
-        // Read only the specified number of lines before the cursor
-        int contextLinesBefore = settings().readStringsBeforeCursor();
-        QTextBlock block = currentBlock;
-        for (int i = 0; i < contextLinesBefore && block.isValid(); ++i) {
-            if (block.blockNumber() == lineNumber) {
-                beforeCursor = block.text().left(cursorPosition) + beforeCursor;
-            } else {
-                beforeCursor = block.text() + "\n" + beforeCursor;
-            }
-            block = block.previous();
-        }
+        contextBefore = reader.getContextBefore(lineNumber,
+                                                cursorPosition,
+                                                settings().readStringsBeforeCursor());
     }
 
-    return beforeCursor;
+    return contextBefore;
 }
 
 QString LLMClientInterface::сontextAfter(TextEditor::TextEditorWidget *widget,
@@ -140,40 +121,18 @@ QString LLMClientInterface::сontextAfter(TextEditor::TextEditorWidget *widget,
         return QString();
 
     QTextDocument *doc = widget->document();
-    int totalLines = doc->blockCount();
-    QTextBlock currentBlock = doc->findBlockByLineNumber(lineNumber);
+    DocumentContextReader reader(doc);
 
-    QString afterCursor;
-
-    if (settings().readFullFile() && totalLines < settings().maxFileThreshold()) {
-        // Read all content from the cursor to the end of the file
-        QTextBlock block = currentBlock;
-        bool isFirstBlock = true;
-        while (block.isValid()) {
-            if (isFirstBlock) {
-                afterCursor += block.text().mid(cursorPosition) + "\n";
-                isFirstBlock = false;
-            } else {
-                afterCursor += block.text() + "\n";
-            }
-            block = block.next();
-        }
+    QString contextAfter;
+    if (settings().readFullFile()) {
+        contextAfter = reader.readWholeFileAfter(lineNumber, cursorPosition);
     } else {
-        // Read only the specified number of lines after the cursor
-        int contextLinesAfter = settings().readStringsAfterCursor();
-        QTextBlock block = currentBlock;
-        for (int i = 0; i < contextLinesAfter && block.isValid(); ++i) {
-            if (block.blockNumber() == lineNumber) {
-                afterCursor += block.text().mid(cursorPosition);
-            } else {
-                afterCursor += block.text();
-            }
-            afterCursor += "\n";
-            block = block.next();
-        }
+        contextAfter = reader.getContextAfter(lineNumber,
+                                              cursorPosition,
+                                              settings().readStringsAfterCursor());
     }
 
-    return afterCursor;
+    return contextAfter;
 }
 
 void LLMClientInterface::handleInitialize(const QJsonObject &request)
