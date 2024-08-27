@@ -1,0 +1,6 @@
+<RCC>
+    <qresource prefix="/">
+        <file>resources/images/qoderassist-icon@2x.png</file>
+        <file>resources/images/qoderassist-icon.png</file>
+    </qresource>
+</RCC>

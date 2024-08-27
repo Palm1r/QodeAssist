@@ -1,0 +1,16 @@
+{
+    "Name" : "QodeAssist",
+    "Version" : "0.0.1",
+    "CompatVersion" : "${IDE_VERSION_COMPAT}",
+    "Vendor" : "Petr Mironychev",
+    "Copyright" : "(C) ${IDE_COPYRIGHT_YEAR} Petr Mironychev, (C) ${IDE_COPYRIGHT_YEAR} The Qt Company Ltd",
+    "License" : "GNU General Public License Usage
+
+Alternatively, this file may be used under the terms of the GNU General Public License version 3 as published by the Free Software Foundation with exceptions as appearing in the file LICENSE.GPL3-EXCEPT included in the packaging of this file. Please review the following information to ensure the GNU General Public License requirements will be met: https://www.gnu.org/licenses/gpl-3.0.html.",
+    "Description" : ["QodeAssist is an AI-powered coding assistant for Qt Creator. It provides intelligent code completion and suggestions for your code",
+    "Prerequisites:",
+        "- One of the supported LLM providers installed (e.g., Ollama or LM Studio)",
+        "- A compatible large language model downloaded for your chosen provider (e.g., CodeLlama, StarCoder2)"],
+    "Url" : "https://github.com/Palm1r",
+    ${IDE_PLUGIN_DEPENDENCIES}
+}
