@@ -30,13 +30,14 @@ If you've successfully used a model that's not listed here, please let us know b
 
 ## Installation Plugin
 
-1. Install [Ollama](https://ollama.com). Make sure to review the system requirements before installation.
-2. Install a language model in Ollama. For example, you can run:
+1. Install QtCreator 14.0
+2. Install [Ollama](https://ollama.com). Make sure to review the system requirements before installation.
+3. Install a language model in Ollama. For example, you can run:
 ```
 ollama run starcoder2:7b
 ```
-3. Download the QodeAssist plugin.
-4. Launch Qt Creator and install the plugin:
+4. Download the QodeAssist plugin.
+5. Launch Qt Creator and install the plugin:
    - Go to About -> About Plugins
    - Click on "Install Plugin..."
    - Select the downloaded QodeAssist plugin archive file
