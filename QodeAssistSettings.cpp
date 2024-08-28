@@ -97,7 +97,7 @@ QodeAssistSettings::QodeAssistSettings()
 
     readFullFile.setSettingsKey(Constants::READ_FULL_FILE);
     readFullFile.setLabelText(Tr::tr("Read Full File"));
-    readFullFile.setDefaultValue(true);
+    readFullFile.setDefaultValue(false);
 
     maxFileThreshold.setSettingsKey(Constants::MAX_FILE_THRESHOLD);
     maxFileThreshold.setLabelText(Tr::tr("Max File Threshold:"));
@@ -106,11 +106,11 @@ QodeAssistSettings::QodeAssistSettings()
 
     readStringsBeforeCursor.setSettingsKey(Constants::READ_STRINGS_BEFORE_CURSOR);
     readStringsBeforeCursor.setLabelText(Tr::tr("Read Strings Before Cursor"));
-    readStringsBeforeCursor.setDefaultValue(60);
+    readStringsBeforeCursor.setDefaultValue(50);
 
     readStringsAfterCursor.setSettingsKey(Constants::READ_STRINGS_AFTER_CURSOR);
     readStringsAfterCursor.setLabelText(Tr::tr("Read Strings After Cursor"));
-    readStringsAfterCursor.setDefaultValue(40);
+    readStringsAfterCursor.setDefaultValue(30);
 
     maxTokens.setSettingsKey(Constants::MAX_TOKENS);
     maxTokens.setLabelText(Tr::tr("Max Tokens"));
@@ -156,6 +156,14 @@ QodeAssistSettings::QodeAssistSettings()
     startSuggestionTimer.setLabelText(Tr::tr("Start Suggestion Timer:"));
     startSuggestionTimer.setRange(10, 10000);
     startSuggestionTimer.setDefaultValue(500);
+
+    specificInstractions.setSettingsKey(Constants::SPECIFIC_INSTRUCTIONS);
+    specificInstractions.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
+    specificInstractions.setLabelText(
+        Tr::tr("Instructions: Please keep %1 for languge name, warning, it shouldn't too big"));
+    specificInstractions.setDefaultValue(
+        "You are an expert %1 code completion AI."
+        "CRITICAL: Please provide minimal the best possible code completion suggestions.\n");
 
     resetToDefaults.m_buttonText = Tr::tr("Reset to Defaults");
 
@@ -206,6 +214,7 @@ QodeAssistSettings::QodeAssistSettings()
                                         readFullFile,
                                         maxFileThreshold,
                                         ollamaLivetime,
+                                        specificInstractions,
                                         temperature,
                                         maxTokens,
                                         readStringsBeforeCursor,
@@ -349,6 +358,7 @@ void QodeAssistSettings::resetSettingsToDefaults()
         resetAspect(startSuggestionTimer);
         resetAspect(enableLogging);
         resetAspect(ollamaLivetime);
+        resetAspect(specificInstractions);
 
         updateProviderSettings();
         apply();

@@ -98,8 +98,8 @@ QString LLMClientInterface::сontextBefore(TextEditor::TextEditorWidget *widget,
     if (!widget)
         return QString();
 
-    QTextDocument *doc = widget->document();
-    DocumentContextReader reader(doc);
+    DocumentContextReader reader(widget->textDocument());
+    QString languageAndFileInfo = reader.getLanguageAndFileInfo();
 
     QString contextBefore;
     if (settings().readFullFile()) {
@@ -110,7 +110,10 @@ QString LLMClientInterface::сontextBefore(TextEditor::TextEditorWidget *widget,
                                                 settings().readStringsBeforeCursor());
     }
 
-    return contextBefore;
+    return QString("%1\n%2\n%3")
+        .arg(reader.getSpecificInstructions())
+        .arg(reader.getLanguageAndFileInfo())
+        .arg(contextBefore);
 }
 
 QString LLMClientInterface::сontextAfter(TextEditor::TextEditorWidget *widget,
@@ -120,8 +123,7 @@ QString LLMClientInterface::сontextAfter(TextEditor::TextEditorWidget *widget,
     if (!widget)
         return QString();
 
-    QTextDocument *doc = widget->document();
-    DocumentContextReader reader(doc);
+    DocumentContextReader reader(widget->textDocument());
 
     QString contextAfter;
     if (settings().readFullFile()) {

@@ -19,7 +19,11 @@
 
 #include "DocumentContextReader.hpp"
 
+#include <QFileInfo>
 #include <QTextBlock>
+#include <languageserverprotocol/lsptypes.h>
+
+#include "QodeAssistSettings.hpp"
 
 namespace QodeAssist {
 
@@ -121,6 +125,31 @@ QString DocumentContextReader::readWholeFileAfter(int lineNumber, int cursorPosi
     }
 
     return content.trimmed();
+}
+
+QString DocumentContextReader::getLanguageAndFileInfo() const
+{
+    if (!m_textDocument)
+        return QString();
+
+    QString language = LanguageServerProtocol::TextDocumentItem::mimeTypeToLanguageId(
+        m_textDocument->mimeType());
+    QString mimeType = m_textDocument->mimeType();
+    QString filePath = m_textDocument->filePath().toString();
+    QString fileExtension = QFileInfo(filePath).suffix();
+
+    return QString("//Language: %1 (MIME: %2) filepath: %3(%4)\n\n")
+        .arg(language)
+        .arg(mimeType)
+        .arg(filePath)
+        .arg(fileExtension);
+}
+
+QString DocumentContextReader::getSpecificInstructions() const
+{
+    QString specificInstruction = settings().specificInstractions().arg(
+        LanguageServerProtocol::TextDocumentItem::mimeTypeToLanguageId(m_textDocument->mimeType()));
+    return QString("//Instructions: %1").arg(specificInstruction);
 }
 
 } // namespace QodeAssist

@@ -20,14 +20,16 @@
 #pragma once
 
 #include <QTextDocument>
+#include <texteditor/textdocument.h>
 
 namespace QodeAssist {
 
 class DocumentContextReader
 {
 public:
-    DocumentContextReader(QTextDocument *doc)
-        : m_document(doc)
+    DocumentContextReader(TextEditor::TextDocument *textDocument)
+        : m_textDocument(textDocument)
+        , m_document(textDocument->document())
     {}
 
     QString getLineText(int lineNumber, int cursorPosition = -1) const;
@@ -35,8 +37,11 @@ public:
     QString getContextAfter(int lineNumber, int cursorPosition, int linesCount) const;
     QString readWholeFileBefore(int lineNumber, int cursorPosition) const;
     QString readWholeFileAfter(int lineNumber, int cursorPosition) const;
+    QString getLanguageAndFileInfo() const;
+    QString getSpecificInstructions() const;
 
 private:
+    TextEditor::TextDocument *m_textDocument;
     QTextDocument *m_document;
 };
 

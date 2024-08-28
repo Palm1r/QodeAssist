@@ -95,6 +95,7 @@ public:
     Utils::IntegerAspect maxFileThreshold{this};
 
     Utils::StringAspect ollamaLivetime{this};
+    Utils::StringAspect specificInstractions{this};
 
     ButtonAspect resetToDefaults{this};
 
