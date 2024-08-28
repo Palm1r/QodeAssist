@@ -1,4 +1,5 @@
 # QodeAssist
+[![Build plugin](https://github.com/Palm1r/QodeAssist/actions/workflows/build_cmake.yml/badge.svg?branch=main)](https://github.com/Palm1r/QodeAssist/actions/workflows/build_cmake.yml)
 
 QodeAssist is an AI-powered coding assistant plugin for Qt Creator. It provides intelligent code completion and suggestions for C++ and QML, leveraging large language models through local providers like Ollama. Enhance your coding productivity with context-aware AI assistance directly in your Qt development environment.
 
@@ -38,7 +39,8 @@ ollama run starcoder2:7b
 ```
 4. Download the QodeAssist plugin.
 5. Launch Qt Creator and install the plugin:
-   - Go to About -> About Plugins
+   - Go to MacOS: Qt Creator -> About Plugins...
+           Windows\Linux: Help -> About Plugins...
    - Click on "Install Plugin..."
    - Select the downloaded QodeAssist plugin archive file
 
