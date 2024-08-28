@@ -101,6 +101,9 @@ QString LLMClientInterface::сontextBefore(TextEditor::TextEditorWidget *widget,
     DocumentContextReader reader(widget->textDocument());
     QString languageAndFileInfo = reader.getLanguageAndFileInfo();
 
+    if (lineNumber < reader.findCopyright().endLine)
+        return QString();
+
     QString contextBefore;
     if (settings().readFullFile()) {
         contextBefore = reader.readWholeFileBefore(lineNumber, cursorPosition);
@@ -124,6 +127,8 @@ QString LLMClientInterface::сontextAfter(TextEditor::TextEditorWidget *widget,
         return QString();
 
     DocumentContextReader reader(widget->textDocument());
+    if (lineNumber < reader.findCopyright().endLine)
+        return QString();
 
     QString contextAfter;
     if (settings().readFullFile()) {

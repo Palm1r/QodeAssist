@@ -27,6 +27,13 @@
 
 namespace QodeAssist {
 
+DocumentContextReader::DocumentContextReader(TextEditor::TextDocument *textDocument)
+    : m_textDocument(textDocument)
+    , m_document(textDocument->document())
+{
+    m_copyrightInfo = findCopyright();
+}
+
 QString DocumentContextReader::getLineText(int lineNumber, int cursorPosition) const
 {
     if (!m_document || lineNumber < 0)
@@ -55,76 +62,41 @@ QString DocumentContextReader::getContextBefore(int lineNumber,
                                                 int cursorPosition,
                                                 int linesCount) const
 {
-    QString context;
-    for (int i = qMax(0, lineNumber - linesCount); i <= lineNumber; ++i) {
-        QString line = getLineText(i, i == lineNumber ? cursorPosition : -1);
-        context += line;
-        if (i < lineNumber)
-            context += "\n";
+    int effectiveStartLine;
+    if (m_copyrightInfo.found) {
+        effectiveStartLine = qMax(m_copyrightInfo.endLine + 1, lineNumber - linesCount);
+    } else {
+        effectiveStartLine = qMax(0, lineNumber - linesCount);
     }
-    return context;
+
+    return getContextBetween(effectiveStartLine, lineNumber, cursorPosition);
 }
 
 QString DocumentContextReader::getContextAfter(int lineNumber,
                                                int cursorPosition,
                                                int linesCount) const
 {
-    QString context;
-    int maxLine = lineNumber + linesCount;
-    for (int i = lineNumber; i <= maxLine; ++i) {
-        QString line = getLineText(i);
-        if (i == lineNumber && cursorPosition >= 0) {
-            line = line.mid(cursorPosition);
-        }
-        context += line;
-        if (i < maxLine && !line.isEmpty())
-            context += "\n";
-    }
-    return context;
+    int endLine = qMin(m_document->blockCount() - 1, lineNumber + linesCount);
+    return getContextBetween(lineNumber + 1, endLine, cursorPosition);
 }
 
 QString DocumentContextReader::readWholeFileBefore(int lineNumber, int cursorPosition) const
 {
-    QString content;
-    QTextBlock block = m_document->begin();
-    int currentLine = 0;
-
-    while (block.isValid() && currentLine <= lineNumber) {
-        if (currentLine == lineNumber) {
-            content += block.text().left(cursorPosition);
-            break;
-        } else {
-            content += block.text() + "\n";
-        }
-        block = block.next();
-        currentLine++;
+    int startLine = 0;
+    if (m_copyrightInfo.found) {
+        startLine = m_copyrightInfo.endLine + 1;
     }
 
-    return content;
+    startLine = qMin(startLine, lineNumber);
+
+    QString result = getContextBetween(startLine, lineNumber, cursorPosition);
+
+    return result;
 }
 
 QString DocumentContextReader::readWholeFileAfter(int lineNumber, int cursorPosition) const
 {
-    QString content;
-    QTextBlock block = m_document->begin();
-    int currentLine = 0;
-
-    while (block.isValid() && currentLine < lineNumber) {
-        block = block.next();
-        currentLine++;
-    }
-
-    while (block.isValid()) {
-        if (currentLine == lineNumber) {
-            content += block.text().mid(cursorPosition) + "\n";
-        } else {
-            content += block.text() + "\n";
-        }
-        block = block.next();
-        currentLine++;
-    }
-
-    return content.trimmed();
+    return getContextBetween(lineNumber, m_document->blockCount() - 1, cursorPosition);
 }
 
 QString DocumentContextReader::getLanguageAndFileInfo() const
@@ -139,10 +111,7 @@ QString DocumentContextReader::getLanguageAndFileInfo() const
     QString fileExtension = QFileInfo(filePath).suffix();
 
     return QString("//Language: %1 (MIME: %2) filepath: %3(%4)\n\n")
-        .arg(language)
-        .arg(mimeType)
-        .arg(filePath)
-        .arg(fileExtension);
+        .arg(language, mimeType, filePath, fileExtension);
 }
 
 QString DocumentContextReader::getSpecificInstructions() const
@@ -150,6 +119,71 @@ QString DocumentContextReader::getSpecificInstructions() const
     QString specificInstruction = settings().specificInstractions().arg(
         LanguageServerProtocol::TextDocumentItem::mimeTypeToLanguageId(m_textDocument->mimeType()));
     return QString("//Instructions: %1").arg(specificInstruction);
+}
+
+CopyrightInfo DocumentContextReader::findCopyright()
+{
+    CopyrightInfo result = {-1, -1, false};
+
+    QString text = m_document->toPlainText();
+    QRegularExpressionMatchIterator matchIterator = getCopyrightRegex().globalMatch(text);
+
+    QList<CopyrightInfo> copyrightBlocks;
+
+    while (matchIterator.hasNext()) {
+        QRegularExpressionMatch match = matchIterator.next();
+        int startPos = match.capturedStart();
+        int endPos = match.capturedEnd();
+
+        CopyrightInfo info;
+        info.startLine = m_document->findBlock(startPos).blockNumber();
+        info.endLine = m_document->findBlock(endPos).blockNumber();
+        info.found = true;
+
+        copyrightBlocks.append(info);
+    }
+
+    for (int i = 0; i < copyrightBlocks.size() - 1; ++i) {
+        if (copyrightBlocks[i].endLine + 1 >= copyrightBlocks[i + 1].startLine) {
+            copyrightBlocks[i].endLine = copyrightBlocks[i + 1].endLine;
+            copyrightBlocks.removeAt(i + 1);
+            --i;
+        }
+    }
+
+    if (!copyrightBlocks.isEmpty()) { // temproary solution, need cache
+        return copyrightBlocks.first();
+    }
+
+    return result;
+}
+
+QString DocumentContextReader::getContextBetween(int startLine,
+                                                 int endLine,
+                                                 int cursorPosition) const
+{
+    QString context;
+    for (int i = startLine; i <= endLine; ++i) {
+        QTextBlock block = m_document->findBlockByNumber(i);
+        if (!block.isValid()) {
+            break;
+        }
+        if (i == endLine) {
+            context += block.text().left(cursorPosition);
+        } else {
+            context += block.text() + "\n";
+        }
+    }
+
+    return context;
+}
+
+const QRegularExpression &DocumentContextReader::getCopyrightRegex()
+{
+    static const QRegularExpression copyrightRegex(
+        R"((?:/\*[\s\S]*?Copyright[\s\S]*?\*/|  // Copyright[\s\S]*?(?:\n\s*//.*)*|///.*Copyright[\s\S]*?(?:\n\s*///.*)*)|(?://))",
+        QRegularExpression::MultilineOption | QRegularExpression::CaseInsensitiveOption);
+    return copyrightRegex;
 }
 
 } // namespace QodeAssist
