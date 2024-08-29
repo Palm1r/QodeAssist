@@ -34,7 +34,7 @@ OpenAICompatProvider::OpenAICompatProvider() {}
 
 QString OpenAICompatProvider::name() const
 {
-    return "OpenAI Compatible";
+    return "OpenAI Compatible (experimental)";
 }
 
 QString OpenAICompatProvider::url() const

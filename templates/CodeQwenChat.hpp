@@ -26,7 +26,7 @@ namespace QodeAssist::Templates {
 class CodeQwenChatTemplate : public PromptTemplate
 {
 public:
-    QString name() const override { return "CodeQwenChat"; }
+    QString name() const override { return "CodeQwenChat (experimental)"; }
     QString promptTemplate() const override { return "\n### Instruction:%1%2 ### Response:\n"; }
     QStringList stopWords() const override
     {
