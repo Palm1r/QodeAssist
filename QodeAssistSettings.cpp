@@ -123,15 +123,15 @@ QodeAssistSettings::QodeAssistSettings()
     topP.setSettingsKey(Constants::TOP_P);
     topP.setLabelText(Tr::tr("top_p"));
     topP.setDefaultValue(0.9);
-    topP.setRange(0.0, 10.0);
+    topP.setRange(0.0, 1.0);
 
     useTopK.setSettingsKey(Constants::USE_TOP_K);
     useTopK.setDefaultValue(false);
 
     topK.setSettingsKey(Constants::TOP_K);
     topK.setLabelText(Tr::tr("top_k"));
-    topK.setDefaultValue(0.1);
-    topK.setRange(0, 10.0);
+    topK.setDefaultValue(50);
+    topK.setRange(1, 1000);
 
     usePresencePenalty.setSettingsKey(Constants::USE_PRESENCE_PENALTY);
     usePresencePenalty.setDefaultValue(false);
@@ -169,6 +169,11 @@ QodeAssistSettings::QodeAssistSettings()
     multiLineCompletion.setSettingsKey(Constants::MULTILINE_COMPLETION);
     multiLineCompletion.setDefaultValue(true);
     multiLineCompletion.setLabelText(Tr::tr("Enable Multiline Completion"));
+
+    apiKey.setSettingsKey(Constants::API_KEY);
+    apiKey.setLabelText(Tr::tr("API Key:"));
+    apiKey.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    apiKey.setPlaceHolderText(Tr::tr("Enter your API key here"));
 
     const auto &manager = LLMProvidersManager::instance();
     if (!manager.getProviderNames().isEmpty()) {
@@ -215,14 +220,15 @@ QodeAssistSettings::QodeAssistSettings()
                             Form{Column{Row{selectModels, modelName}}}},
                       Group{title(Tr::tr("FIM Prompt Settings")),
                             Form{Column{fimPrompts,
+                                        readFullFile,
                                         maxFileThreshold,
+                                        readStringsBeforeCursor,
+                                        readStringsAfterCursor,
                                         ollamaLivetime,
+                                        apiKey,
                                         specificInstractions,
                                         temperature,
                                         maxTokens,
-                                        readFullFile,
-                                        readStringsBeforeCursor,
-                                        readStringsAfterCursor,
                                         startSuggestionTimer,
                                         Row{useTopP, topP, Stretch{1}},
                                         Row{useTopK, topK, Stretch{1}},

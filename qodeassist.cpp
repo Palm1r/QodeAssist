@@ -43,6 +43,7 @@
 #include "QodeAssistClient.hpp"
 #include "providers/LMStudioProvider.hpp"
 #include "providers/OllamaProvider.hpp"
+#include "providers/OpenAICompatProvider.h"
 #include "templates/CodeLLamaTemplate.hpp"
 #include "templates/CodeQwenChat.hpp"
 #include "templates/StarCoder2Template.hpp"
@@ -73,6 +74,7 @@ public:
         auto &providerManager = LLMProvidersManager::instance();
         providerManager.registerProvider<Providers::OllamaProvider>();
         providerManager.registerProvider<Providers::LMStudioProvider>();
+        providerManager.registerProvider<Providers::OpenAICompatProvider>();
 
         auto &templateManager = PromptTemplateManager::instance();
         templateManager.registerTemplate<Templates::CodeLLamaTemplate>();
