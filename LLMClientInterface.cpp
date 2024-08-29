@@ -120,8 +120,10 @@ QString LLMClientInterface::сontextBefore(TextEditor::TextEditorWidget *widget,
         return QString();
 
     DocumentContextReader reader(widget->textDocument());
-    QString languageAndFileInfo = reader.getLanguageAndFileInfo();
+    const auto &copyright = reader.copyrightInfo();
 
+    logMessage(QString{"Line Number: %1"}.arg(lineNumber));
+    logMessage(QString("Copyright found %1 %2").arg(copyright.found).arg(copyright.endLine));
     if (lineNumber < reader.findCopyright().endLine)
         return QString();
 
@@ -135,9 +137,7 @@ QString LLMClientInterface::сontextBefore(TextEditor::TextEditorWidget *widget,
     }
 
     return QString("%1\n%2\n%3")
-        .arg(reader.getSpecificInstructions())
-        .arg(reader.getLanguageAndFileInfo())
-        .arg(contextBefore);
+        .arg(reader.getSpecificInstructions(), reader.getLanguageAndFileInfo(), contextBefore);
 }
 
 QString LLMClientInterface::сontextAfter(TextEditor::TextEditorWidget *widget,

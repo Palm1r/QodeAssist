@@ -25,6 +25,26 @@
 
 #include "QodeAssistSettings.hpp"
 
+const QRegularExpression &getYearRegex()
+{
+    static const QRegularExpression yearRegex("\\b(19|20)\\d{2}\\b");
+    return yearRegex;
+}
+
+const QRegularExpression &getNameRegex()
+{
+    static const QRegularExpression nameRegex("\\b[A-Z][a-z.]+ [A-Z][a-z.]+\\b");
+    return nameRegex;
+}
+
+const QRegularExpression &getCommentRegex()
+{
+    static const QRegularExpression
+        commentRegex(R"((/\*[\s\S]*?\*/|//.*$|#.*$|//{2,}[\s\S]*?//{2,}))",
+                     QRegularExpression::MultilineOption);
+    return commentRegex;
+}
+
 namespace QodeAssist {
 
 DocumentContextReader::DocumentContextReader(TextEditor::TextDocument *textDocument)
@@ -126,21 +146,27 @@ CopyrightInfo DocumentContextReader::findCopyright()
     CopyrightInfo result = {-1, -1, false};
 
     QString text = m_document->toPlainText();
-    QRegularExpressionMatchIterator matchIterator = getCopyrightRegex().globalMatch(text);
+    QRegularExpressionMatchIterator matchIterator = getCommentRegex().globalMatch(text);
 
     QList<CopyrightInfo> copyrightBlocks;
 
     while (matchIterator.hasNext()) {
         QRegularExpressionMatch match = matchIterator.next();
-        int startPos = match.capturedStart();
-        int endPos = match.capturedEnd();
+        QString matchedText = match.captured().toLower();
 
-        CopyrightInfo info;
-        info.startLine = m_document->findBlock(startPos).blockNumber();
-        info.endLine = m_document->findBlock(endPos).blockNumber();
-        info.found = true;
+        if (matchedText.contains("copyright") || matchedText.contains("(C)")
+            || matchedText.contains("(c)") || matchedText.contains("©")
+            || getYearRegex().match(text).hasMatch() || getNameRegex().match(text).hasMatch()) {
+            int startPos = match.capturedStart();
+            int endPos = match.capturedEnd();
 
-        copyrightBlocks.append(info);
+            CopyrightInfo info;
+            info.startLine = m_document->findBlock(startPos).blockNumber();
+            info.endLine = m_document->findBlock(endPos).blockNumber();
+            info.found = true;
+
+            copyrightBlocks.append(info);
+        }
     }
 
     for (int i = 0; i < copyrightBlocks.size() - 1; ++i) {
@@ -178,12 +204,9 @@ QString DocumentContextReader::getContextBetween(int startLine,
     return context;
 }
 
-const QRegularExpression &DocumentContextReader::getCopyrightRegex()
+CopyrightInfo DocumentContextReader::copyrightInfo() const
 {
-    static const QRegularExpression copyrightRegex(
-        R"((?:/\*[\s\S]*?Copyright[\s\S]*?\*/|  // Copyright[\s\S]*?(?:\n\s*//.*)*|///.*Copyright[\s\S]*?(?:\n\s*///.*)*)|(?://))",
-        QRegularExpression::MultilineOption | QRegularExpression::CaseInsensitiveOption);
-    return copyrightRegex;
+    return m_copyrightInfo;
 }
 
 } // namespace QodeAssist

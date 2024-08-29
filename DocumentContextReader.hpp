@@ -46,12 +46,12 @@ public:
     CopyrightInfo findCopyright();
     QString getContextBetween(int startLine, int endLine, int cursorPosition) const;
 
+    CopyrightInfo copyrightInfo() const;
+
 private:
     TextEditor::TextDocument *m_textDocument;
     QTextDocument *m_document;
     CopyrightInfo m_copyrightInfo;
-
-    static const QRegularExpression &getCopyrightRegex();
 };
 
 } // namespace QodeAssist
