@@ -41,7 +41,7 @@ inline void logMessage(const QString &message, bool silent = true)
     if (!loggingEnabled())
         return;
 
-    const QString prefixedMessage = QLatin1String("[QLLamaAssist] ") + message;
+    const QString prefixedMessage = QLatin1String("[Qode Assist] ") + message;
     if (silent) {
         Core::MessageManager::writeSilently(prefixedMessage);
     } else {
