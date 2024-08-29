@@ -82,9 +82,11 @@ public:
 
         ActionBuilder requestAction(this, Constants::QODE_ASSIST_REQUEST_SUGGESTION);
         requestAction.setToolTip(
-            Tr::tr("Request Ollama suggestion at the current editor's cursor position."));
+            Tr::tr("Generate Qode Assist suggestion at the current cursor position."));
         requestAction.setText(Tr::tr("Request Ollama Suggestion"));
         requestAction.setIcon(QCODEASSIST_ICON.icon());
+        const QKeySequence defaultShortcut = QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_Q);
+        requestAction.setDefaultKeySequence(defaultShortcut);
         requestAction.addOnTriggered(this, [this] {
             if (auto editor = TextEditor::TextEditorWidget::currentTextEditorWidget()) {
                 if (m_qodeAssistClient && m_qodeAssistClient->reachable()) {

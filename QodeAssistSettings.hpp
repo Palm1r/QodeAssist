@@ -96,6 +96,7 @@ public:
 
     Utils::StringAspect ollamaLivetime{this};
     Utils::StringAspect specificInstractions{this};
+    Utils::BoolAspect multiLineCompletion{this};
 
     ButtonAspect resetToDefaults{this};
 

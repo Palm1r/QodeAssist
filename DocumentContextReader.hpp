@@ -24,13 +24,17 @@
 
 namespace QodeAssist {
 
+struct CopyrightInfo
+{
+    int startLine;
+    int endLine;
+    bool found;
+};
+
 class DocumentContextReader
 {
 public:
-    DocumentContextReader(TextEditor::TextDocument *textDocument)
-        : m_textDocument(textDocument)
-        , m_document(textDocument->document())
-    {}
+    DocumentContextReader(TextEditor::TextDocument *textDocument);
 
     QString getLineText(int lineNumber, int cursorPosition = -1) const;
     QString getContextBefore(int lineNumber, int cursorPosition, int linesCount) const;
@@ -39,10 +43,15 @@ public:
     QString readWholeFileAfter(int lineNumber, int cursorPosition) const;
     QString getLanguageAndFileInfo() const;
     QString getSpecificInstructions() const;
+    CopyrightInfo findCopyright();
+    QString getContextBetween(int startLine, int endLine, int cursorPosition) const;
 
 private:
     TextEditor::TextDocument *m_textDocument;
     QTextDocument *m_document;
+    CopyrightInfo m_copyrightInfo;
+
+    static const QRegularExpression &getCopyrightRegex();
 };
 
 } // namespace QodeAssist

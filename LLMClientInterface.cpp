@@ -91,6 +91,27 @@ void LLMClientInterface::handleCancelRequest(const QJsonObject &request)
     }
 }
 
+bool LLMClientInterface::processSingleLineCompletion(QNetworkReply *reply,
+                                                     const QJsonObject &request,
+                                                     const QString &accumulatedCompletion)
+{
+    int newlinePos = accumulatedCompletion.indexOf('\n');
+
+    if (newlinePos != -1) {
+        QString singleLineCompletion = accumulatedCompletion.left(newlinePos).trimmed();
+        singleLineCompletion = removeStopWords(singleLineCompletion);
+
+        QJsonObject position = request["params"].toObject()["doc"].toObject()["position"].toObject();
+
+        sendCompletionToClient(singleLineCompletion, request, position, true);
+        m_accumulatedResponses.remove(reply);
+        reply->abort();
+
+        return true;
+    }
+    return false;
+}
+
 QString LLMClientInterface::сontextBefore(TextEditor::TextEditorWidget *widget,
                                           int lineNumber,
                                           int cursorPosition)
@@ -100,6 +121,9 @@ QString LLMClientInterface::сontextBefore(TextEditor::TextEditorWidget *widget,
 
     DocumentContextReader reader(widget->textDocument());
     QString languageAndFileInfo = reader.getLanguageAndFileInfo();
+
+    if (lineNumber < reader.findCopyright().endLine)
+        return QString();
 
     QString contextBefore;
     if (settings().readFullFile()) {
@@ -124,6 +148,8 @@ QString LLMClientInterface::сontextAfter(TextEditor::TextEditorWidget *widget,
         return QString();
 
     DocumentContextReader reader(widget->textDocument());
+    if (lineNumber < reader.findCopyright().endLine)
+        return QString();
 
     QString contextAfter;
     if (settings().readFullFile()) {
@@ -170,9 +196,7 @@ void LLMClientInterface::handleShutdown(const QJsonObject &request)
     emit messageReceived(LanguageServerProtocol::JsonRpcMessage(response));
 }
 
-void LLMClientInterface::handleTextDocumentDidOpen(const QJsonObject &request)
-{
-}
+void LLMClientInterface::handleTextDocumentDidOpen(const QJsonObject &request) {}
 
 void LLMClientInterface::handleInitialized(const QJsonObject &request)
 {
@@ -201,6 +225,11 @@ void LLMClientInterface::handleLLMResponse(QNetworkReply *reply, const QJsonObje
                                                                            accumulatedResponse);
 
     QJsonObject position = request["params"].toObject()["doc"].toObject()["position"].toObject();
+
+    if (!settings().multiLineCompletion()
+        && processSingleLineCompletion(reply, request, accumulatedResponse)) {
+        return;
+    }
 
     if (isComplete || reply->isFinished()) {
         if (isComplete) {
@@ -348,8 +377,6 @@ QString LLMClientInterface::removeStopWords(const QString &completion)
     return filteredCompletion;
 }
 
-void LLMClientInterface::parseCurrentMessage()
-{
-}
+void LLMClientInterface::parseCurrentMessage() {}
 
 } // namespace QodeAssist

@@ -1,6 +1,6 @@
 {
     "Name" : "QodeAssist",
-    "Version" : "0.0.3",
+    "Version" : "0.0.4",
     "CompatVersion" : "${IDE_VERSION_COMPAT}",
     "Vendor" : "Petr Mironychev",
     "Copyright" : "(C) ${IDE_COPYRIGHT_YEAR} Petr Mironychev, (C) ${IDE_COPYRIGHT_YEAR} The Qt Company Ltd",
@@ -11,6 +11,6 @@ Alternatively, this file may be used under the terms of the GNU General Public L
     "Prerequisites:",
         "- One of the supported LLM providers installed (e.g., Ollama or LM Studio)",
         "- A compatible large language model downloaded for your chosen provider (e.g., CodeLlama, StarCoder2)"],
-    "Url" : "https://github.com/Palm1r",
+    "Url" : "https://github.com/Palm1r/QodeAssist",
     ${IDE_PLUGIN_DEPENDENCIES}
 }

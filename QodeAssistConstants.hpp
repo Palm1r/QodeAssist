@@ -53,6 +53,7 @@ const char START_SUGGESTION_TIMER[] = "QodeAssist.startSuggestionTimer";
 const char MAX_FILE_THRESHOLD[] = "QodeAssist.maxFileThreshold";
 const char OLLAMA_LIVETIME[] = "QodeAssist.ollamaLivetime";
 const char SPECIFIC_INSTRUCTIONS[] = "QodeAssist.specificInstractions";
+const char MULTILINE_COMPLETION[] = "QodeAssist.multilineCompletion";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
 const char QODE_ASSIST_GENERAL_OPTIONS_CATEGORY[] = "QodeAssist.Category";
