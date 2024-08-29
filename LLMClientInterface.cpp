@@ -177,7 +177,7 @@ void LLMClientInterface::handleInitialize(const QJsonObject &request)
     result["capabilities"] = capabilities;
 
     QJsonObject serverInfo;
-    serverInfo["name"] = "Ollama LSP Server";
+    serverInfo["name"] = "QodeAssist LSP Server";
     serverInfo["version"] = "0.1";
     result["serverInfo"] = serverInfo;
 
@@ -324,22 +324,22 @@ void LLMClientInterface::sendCompletionToClient(const QString &completion,
 
 void LLMClientInterface::sendLLMRequest(const QJsonObject &request, const ContextPair &prompt)
 {
-    QJsonObject ollamaRequest = {{"model", settings().modelName.value()}, {"stream", true}};
+    QJsonObject qodeRequest = {{"model", settings().modelName.value()}, {"stream", true}};
 
     auto currentTemplate = PromptTemplateManager::instance().getCurrentTemplate();
-    currentTemplate->prepareRequest(ollamaRequest, prompt.prefix, prompt.suffix);
+    currentTemplate->prepareRequest(qodeRequest, prompt.prefix, prompt.suffix);
 
     auto &providerManager = LLMProvidersManager::instance();
-    providerManager.getCurrentProvider()->prepareRequest(ollamaRequest);
+    providerManager.getCurrentProvider()->prepareRequest(qodeRequest);
 
     logMessage(
         QString("Sending request to llm: \nurl: %1\nRequest body:\n%2")
             .arg(m_serverUrl.toString())
-            .arg(QString::fromUtf8(QJsonDocument(ollamaRequest).toJson(QJsonDocument::Indented))));
+            .arg(QString::fromUtf8(QJsonDocument(qodeRequest).toJson(QJsonDocument::Indented))));
 
     QNetworkRequest networkRequest(m_serverUrl);
     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    QNetworkReply *reply = m_manager->post(networkRequest, QJsonDocument(ollamaRequest).toJson());
+    QNetworkReply *reply = m_manager->post(networkRequest, QJsonDocument(qodeRequest).toJson());
     if (!reply) {
         logMessage("Error: Failed to create network reply");
         return;
@@ -356,7 +356,7 @@ void LLMClientInterface::sendLLMRequest(const QJsonObject &request, const Contex
         reply->deleteLater();
         m_activeRequests.remove(requestId);
         if (reply->error() != QNetworkReply::NoError) {
-            logMessage(QString("Error in Ollama request: %1").arg(reply->errorString()));
+            logMessage(QString("Error in QodeAssist request: %1").arg(reply->errorString()));
         } else {
             logMessage("Request finished successfully");
         }
