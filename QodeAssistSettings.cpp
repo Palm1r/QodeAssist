@@ -166,6 +166,9 @@ QodeAssistSettings::QodeAssistSettings()
         "CRITICAL: Please provide minimal the best possible code completion suggestions.\n");
 
     resetToDefaults.m_buttonText = Tr::tr("Reset to Defaults");
+    multiLineCompletion.setSettingsKey(Constants::MULTILINE_COMPLETION);
+    multiLineCompletion.setDefaultValue(true);
+    multiLineCompletion.setLabelText(Tr::tr("Enable Multiline Completion"));
 
     const auto &manager = LLMProvidersManager::instance();
     if (!manager.getProviderNames().isEmpty()) {
@@ -203,6 +206,7 @@ QodeAssistSettings::QodeAssistSettings()
         return Column{Group{title(Tr::tr("General Settings")),
                             Form{Column{enableQodeAssist,
                                         enableAutoComplete,
+                                        multiLineCompletion,
                                         enableLogging,
                                         Row{Stretch{1}, resetToDefaults}}}},
                       Group{title(Tr::tr("LLM Providers")),

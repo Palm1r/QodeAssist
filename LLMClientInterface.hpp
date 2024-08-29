@@ -69,6 +69,9 @@ private:
     void handleInitialized(const QJsonObject &request);
     void handleExit(const QJsonObject &request);
     void handleCancelRequest(const QJsonObject &request);
+    bool processSingleLineCompletion(QNetworkReply *reply,
+                                     const QJsonObject &request,
+                                     const QString &accumulatedCompletion);
 
     QString сontextBefore(TextEditor::TextEditorWidget *widget, int lineNumber, int cursorPosition);
     QString сontextAfter(TextEditor::TextEditorWidget *widget, int lineNumber, int cursorPosition);
