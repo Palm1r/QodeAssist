@@ -44,6 +44,7 @@
 #include "providers/LMStudioProvider.hpp"
 #include "providers/OllamaProvider.hpp"
 #include "templates/CodeLLamaTemplate.hpp"
+#include "templates/CodeQwenChat.hpp"
 #include "templates/StarCoder2Template.hpp"
 
 using namespace Utils;
@@ -76,6 +77,7 @@ public:
         auto &templateManager = PromptTemplateManager::instance();
         templateManager.registerTemplate<Templates::CodeLLamaTemplate>();
         templateManager.registerTemplate<Templates::StarCoder2Template>();
+        templateManager.registerTemplate<Templates::CodeQwenChatTemplate>();
 
         Utils::Icon QCODEASSIST_ICON(
             {{":/resources/images/qoderassist-icon.png", Utils::Theme::IconsBaseColor}});
