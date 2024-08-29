@@ -81,7 +81,7 @@ public:
     Utils::DoubleAspect topP{this};
 
     Utils::BoolAspect useTopK{this};
-    Utils::DoubleAspect topK{this};
+    Utils::IntegerAspect topK{this};
 
     Utils::BoolAspect usePresencePenalty{this};
     Utils::DoubleAspect presencePenalty{this};
@@ -97,6 +97,8 @@ public:
     Utils::StringAspect ollamaLivetime{this};
     Utils::StringAspect specificInstractions{this};
     Utils::BoolAspect multiLineCompletion{this};
+
+    Utils::StringAspect apiKey{this};
 
     ButtonAspect resetToDefaults{this};
 

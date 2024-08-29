@@ -43,7 +43,9 @@
 #include "QodeAssistClient.hpp"
 #include "providers/LMStudioProvider.hpp"
 #include "providers/OllamaProvider.hpp"
+#include "providers/OpenAICompatProvider.h"
 #include "templates/CodeLLamaTemplate.hpp"
+#include "templates/CodeQwenChat.hpp"
 #include "templates/StarCoder2Template.hpp"
 
 using namespace Utils;
@@ -72,10 +74,12 @@ public:
         auto &providerManager = LLMProvidersManager::instance();
         providerManager.registerProvider<Providers::OllamaProvider>();
         providerManager.registerProvider<Providers::LMStudioProvider>();
+        providerManager.registerProvider<Providers::OpenAICompatProvider>();
 
         auto &templateManager = PromptTemplateManager::instance();
         templateManager.registerTemplate<Templates::CodeLLamaTemplate>();
         templateManager.registerTemplate<Templates::StarCoder2Template>();
+        templateManager.registerTemplate<Templates::CodeQwenChatTemplate>();
 
         Utils::Icon QCODEASSIST_ICON(
             {{":/resources/images/qoderassist-icon.png", Utils::Theme::IconsBaseColor}});
@@ -83,7 +87,7 @@ public:
         ActionBuilder requestAction(this, Constants::QODE_ASSIST_REQUEST_SUGGESTION);
         requestAction.setToolTip(
             Tr::tr("Generate Qode Assist suggestion at the current cursor position."));
-        requestAction.setText(Tr::tr("Request Ollama Suggestion"));
+        requestAction.setText(Tr::tr("Request QodeAssist Suggestion"));
         requestAction.setIcon(QCODEASSIST_ICON.icon());
         const QKeySequence defaultShortcut = QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_Q);
         requestAction.setDefaultKeySequence(defaultShortcut);
