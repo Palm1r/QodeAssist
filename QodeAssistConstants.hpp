@@ -30,7 +30,6 @@ const char ENABLE_AUTO_COMPLETE[] = "QodeAssist.enableAutoComplete";
 const char ENABLE_LOGGING[] = "QodeAssist.enableLogging";
 const char LLM_PROVIDERS[] = "QodeAssist.llmProviders";
 const char URL[] = "QodeAssist.url";
-const char PORT[] = "QodeAssist.port";
 const char END_POINT[] = "QodeAssist.endPoint";
 const char MODEL_NAME[] = "QodeAssist.modelName";
 const char SELECT_MODELS[] = "QodeAssist.selectModels";

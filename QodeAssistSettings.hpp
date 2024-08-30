@@ -63,7 +63,6 @@ public:
 
     Utils::SelectionAspect llmProviders{this};
     Utils::StringAspect url{this};
-    Utils::IntegerAspect port{this};
     Utils::StringAspect endPoint{this};
 
     Utils::StringAspect modelName{this};

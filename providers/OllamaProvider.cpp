@@ -39,12 +39,7 @@ QString OllamaProvider::name() const
 
 QString OllamaProvider::url() const
 {
-    return "http://localhost";
-}
-
-int OllamaProvider::defaultPort() const
-{
-    return 11434;
+    return "http://localhost:11434";
 }
 
 QString OllamaProvider::completionEndpoint() const

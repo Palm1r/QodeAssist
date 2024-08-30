@@ -34,7 +34,6 @@ public:
 
     virtual QString name() const = 0;
     virtual QString url() const = 0;
-    virtual int defaultPort() const = 0;
     virtual QString completionEndpoint() const = 0;
 
     virtual void prepareRequest(QJsonObject &request) = 0;

@@ -68,10 +68,6 @@ QodeAssistSettings::QodeAssistSettings()
     endPoint.setLabelText(Tr::tr("Endpoint:"));
     endPoint.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
 
-    port.setSettingsKey(Constants::PORT);
-    port.setLabelText(Tr::tr("Port:"));
-    port.setRange(1, 65535);
-
     modelName.setSettingsKey(Constants::MODEL_NAME);
     modelName.setLabelText(Tr::tr("LLM Name:"));
     modelName.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
@@ -215,7 +211,7 @@ QodeAssistSettings::QodeAssistSettings()
                                         enableLogging,
                                         Row{Stretch{1}, resetToDefaults}}}},
                       Group{title(Tr::tr("LLM Providers")),
-                            Form{Column{llmProviders, Row{url, port, endPoint}, providerPaths}}},
+                            Form{Column{llmProviders, Row{url, endPoint}, providerPaths}}},
                       Group{title(Tr::tr("LLM Model Settings")),
                             Form{Column{Row{selectModels, modelName}}}},
                       Group{title(Tr::tr("FIM Prompt Settings")),
@@ -288,7 +284,6 @@ void QodeAssistSettings::updateProviderSettings()
     if (provider) {
         logMessage(QString("currentProvider %1").arg(provider->name()));
         url.setValue(provider->url());
-        port.setValue(provider->defaultPort());
         endPoint.setValue(provider->completionEndpoint());
         ollamaLivetime.setEnabled(provider->name() == "Ollama");
     }
@@ -347,7 +342,6 @@ void QodeAssistSettings::resetSettingsToDefaults()
         resetAspect(enableAutoComplete);
         resetAspect(llmProviders);
         resetAspect(url);
-        resetAspect(port);
         resetAspect(endPoint);
         resetAspect(modelName);
         resetAspect(fimPrompts);
