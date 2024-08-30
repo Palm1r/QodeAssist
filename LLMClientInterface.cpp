@@ -282,10 +282,7 @@ LLMClientInterface::ContextPair LLMClientInterface::prepareContext(
 
 void LLMClientInterface::updateProvider()
 {
-    m_serverUrl = QUrl(QString("%1:%2%3")
-                           .arg(settings().url.value())
-                           .arg(settings().port.value())
-                           .arg(settings().endPoint.value()));
+    m_serverUrl = QUrl(QString("%1%2").arg(settings().url(), settings().endPoint()));
 }
 
 void LLMClientInterface::sendCompletionToClient(const QString &completion,
@@ -324,22 +321,29 @@ void LLMClientInterface::sendCompletionToClient(const QString &completion,
 
 void LLMClientInterface::sendLLMRequest(const QJsonObject &request, const ContextPair &prompt)
 {
-    QJsonObject qodeRequest = {{"model", settings().modelName.value()}, {"stream", true}};
+    QJsonObject providerRequest = {{"model", settings().modelName.value()}, {"stream", true}};
 
     auto currentTemplate = PromptTemplateManager::instance().getCurrentTemplate();
-    currentTemplate->prepareRequest(qodeRequest, prompt.prefix, prompt.suffix);
+    currentTemplate->prepareRequest(providerRequest, prompt.prefix, prompt.suffix);
 
     auto &providerManager = LLMProvidersManager::instance();
-    providerManager.getCurrentProvider()->prepareRequest(qodeRequest);
+    providerManager.getCurrentProvider()->prepareRequest(providerRequest);
 
-    logMessage(
-        QString("Sending request to llm: \nurl: %1\nRequest body:\n%2")
-            .arg(m_serverUrl.toString())
-            .arg(QString::fromUtf8(QJsonDocument(qodeRequest).toJson(QJsonDocument::Indented))));
+    logMessage(QString("Sending request to llm: \nurl: %1\nRequest body:\n%2")
+                   .arg(m_serverUrl.toString(),
+                        QString::fromUtf8(
+                            QJsonDocument(providerRequest).toJson(QJsonDocument::Indented))));
 
     QNetworkRequest networkRequest(m_serverUrl);
     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    QNetworkReply *reply = m_manager->post(networkRequest, QJsonDocument(qodeRequest).toJson());
+
+    if (providerRequest.contains("api_key")) {
+        QString apiKey = providerRequest["api_key"].toString();
+        networkRequest.setRawHeader("Authorization", QString("Bearer %1").arg(apiKey).toUtf8());
+        providerRequest.remove("api_key");
+    }
+
+    QNetworkReply *reply = m_manager->post(networkRequest, QJsonDocument(providerRequest).toJson());
     if (!reply) {
         logMessage("Error: Failed to create network reply");
         return;

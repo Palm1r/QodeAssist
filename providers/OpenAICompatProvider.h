@@ -30,7 +30,6 @@ public:
 
     QString name() const override;
     QString url() const override;
-    int defaultPort() const override;
     QString completionEndpoint() const override;
     void prepareRequest(QJsonObject &request) override;
     bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) override;

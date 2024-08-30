@@ -39,12 +39,7 @@ QString LMStudioProvider::name() const
 
 QString LMStudioProvider::url() const
 {
-    return "http://localhost";
-}
-
-int LMStudioProvider::defaultPort() const
-{
-    return 1234;
+    return "http://localhost:1234";
 }
 
 QString LMStudioProvider::completionEndpoint() const

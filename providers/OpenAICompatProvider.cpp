@@ -39,12 +39,7 @@ QString OpenAICompatProvider::name() const
 
 QString OpenAICompatProvider::url() const
 {
-    return "http://localhost";
-}
-
-int OpenAICompatProvider::defaultPort() const
-{
-    return 1234;
+    return "http://localhost:1234";
 }
 
 QString OpenAICompatProvider::completionEndpoint() const
