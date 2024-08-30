@@ -197,7 +197,6 @@ QodeAssistSettings::QodeAssistSettings()
     readStringsBeforeCursor.setEnabled(!readFullFile());
     PromptTemplateManager::instance().setCurrentTemplate(fimPrompts.stringValue());
     LLMProvidersManager::instance().setCurrentProvider(llmProviders.stringValue());
-    updateProviderSettings();
 
     setLoggingEnabled(enableLogging());
 
