@@ -17,7 +17,7 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "OpenAICompatProvider.h"
+#include "OpenAICompatProvider.hpp"
 
 #include <QJsonArray>
 #include <QJsonDocument>
