@@ -81,6 +81,13 @@ private:
     QNetworkAccessManager *m_manager;
     QMap<QString, QNetworkReply *> m_activeRequests;
     QMap<QNetworkReply *, QString> m_accumulatedResponses;
+
+    QElapsedTimer m_completionTimer;
+    QMap<QString, qint64> m_requestStartTimes;
+
+    void startTimeMeasurement(const QString &requestId);
+    void endTimeMeasurement(const QString &requestId);
+    void logPerformance(const QString &requestId, const QString &operation, qint64 elapsedMs);
 };
 
 } // namespace QodeAssist
