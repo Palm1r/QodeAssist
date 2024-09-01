@@ -69,6 +69,8 @@ void LLMClientInterface::sendData(const QByteArray &data)
     } else if (method == "textDocument/didOpen") {
         handleTextDocumentDidOpen(request);
     } else if (method == "getCompletionsCycling") {
+        QString requestId = request["id"].toString();
+        startTimeMeasurement(requestId);
         handleCompletion(request);
     } else if (method == "$/cancelRequest") {
         handleCancelRequest(request);
@@ -136,8 +138,7 @@ QString LLMClientInterface::сontextBefore(TextEditor::TextEditorWidget *widget,
                                                 settings().readStringsBeforeCursor());
     }
 
-    return QString("%1\n%2\n%3")
-        .arg(reader.getSpecificInstructions(), reader.getLanguageAndFileInfo(), contextBefore);
+    return contextBefore;
 }
 
 QString LLMClientInterface::сontextAfter(TextEditor::TextEditorWidget *widget,
@@ -249,8 +250,8 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request,
     sendLLMRequest(request, updatedContext);
 }
 
-LLMClientInterface::ContextPair LLMClientInterface::prepareContext(
-    const QJsonObject &request, const QString &accumulatedCompletion)
+ContextData LLMClientInterface::prepareContext(const QJsonObject &request,
+                                               const QString &accumulatedCompletion)
 {
     QJsonObject params = request["params"].toObject();
     QJsonObject doc = params["doc"].toObject();
@@ -272,12 +273,20 @@ LLMClientInterface::ContextPair LLMClientInterface::prepareContext(
     auto textEditor = TextEditor::BaseTextEditor::currentTextEditor();
     TextEditor::TextEditorWidget *widget = textEditor->editorWidget();
 
+    DocumentContextReader reader(widget->textDocument());
+
     QString contextBefore = сontextBefore(widget, lineNumber, cursorPosition);
     QString contextAfter = сontextAfter(widget, lineNumber, cursorPosition);
+    QString instructions = QString("%1%2").arg(settings().useSpecificInstructions()
+                                                   ? reader.getSpecificInstructions()
+                                                   : QString(),
+                                               settings().useFilePathInContext()
+                                                   ? reader.getLanguageAndFileInfo()
+                                                   : QString());
 
     QString updatedContextBefore = contextBefore + accumulatedCompletion;
 
-    return {updatedContextBefore, contextAfter};
+    return {updatedContextBefore, contextAfter, instructions};
 }
 
 void LLMClientInterface::updateProvider()
@@ -316,15 +325,17 @@ void LLMClientInterface::sendCompletionToClient(const QString &completion,
     logMessage(QString("Full response: \n%1")
                    .arg(QString::fromUtf8(QJsonDocument(response).toJson(QJsonDocument::Indented))));
 
+    QString requestId = request["id"].toString();
+    endTimeMeasurement(requestId);
     emit messageReceived(LanguageServerProtocol::JsonRpcMessage(response));
 }
 
-void LLMClientInterface::sendLLMRequest(const QJsonObject &request, const ContextPair &prompt)
+void LLMClientInterface::sendLLMRequest(const QJsonObject &request, const ContextData &prompt)
 {
     QJsonObject providerRequest = {{"model", settings().modelName.value()}, {"stream", true}};
 
     auto currentTemplate = PromptTemplateManager::instance().getCurrentTemplate();
-    currentTemplate->prepareRequest(providerRequest, prompt.prefix, prompt.suffix);
+    currentTemplate->prepareRequest(providerRequest, prompt);
 
     auto &providerManager = LLMProvidersManager::instance();
     providerManager.getCurrentProvider()->prepareRequest(providerRequest);
@@ -379,6 +390,29 @@ QString LLMClientInterface::removeStopWords(const QString &completion)
     }
 
     return filteredCompletion;
+}
+
+void LLMClientInterface::startTimeMeasurement(const QString &requestId)
+{
+    m_requestStartTimes[requestId] = QDateTime::currentMSecsSinceEpoch();
+}
+
+void LLMClientInterface::endTimeMeasurement(const QString &requestId)
+{
+    if (m_requestStartTimes.contains(requestId)) {
+        qint64 startTime = m_requestStartTimes[requestId];
+        qint64 endTime = QDateTime::currentMSecsSinceEpoch();
+        qint64 totalTime = endTime - startTime;
+        logPerformance(requestId, "TotalCompletionTime", totalTime);
+        m_requestStartTimes.remove(requestId);
+    }
+}
+
+void LLMClientInterface::logPerformance(const QString &requestId,
+                                        const QString &operation,
+                                        qint64 elapsedMs)
+{
+    logMessage(QString("Performance: %1 %2 took %3 ms").arg(requestId, operation).arg(elapsedMs));
 }
 
 void LLMClientInterface::parseCurrentMessage() {}

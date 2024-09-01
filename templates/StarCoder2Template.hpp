@@ -27,17 +27,17 @@ class StarCoder2Template : public PromptTemplate
 {
 public:
     QString name() const override { return "StarCoder2"; }
-    QString promptTemplate() const override { return "<fim_prefix>%1<fim_suffix>%2<fim_middle>"; }
+    QString promptTemplate() const override { return "%1<fim_prefix>%2<fim_suffix>%3<fim_middle>"; }
     QStringList stopWords() const override
     {
         return QStringList() << "<|endoftext|>" << "<file_sep>" << "<fim_prefix>" << "<fim_suffix>"
                              << "<fim_middle>";
     }
-    void prepareRequest(QJsonObject &request,
-                        const QString &prefix,
-                        const QString &suffix) const override
+    void prepareRequest(QJsonObject &request, const ContextData &context) const override
     {
-        QString formattedPrompt = promptTemplate().arg(prefix, suffix);
+        QString formattedPrompt = promptTemplate().arg(context.instriuctions,
+                                                       context.prefix,
+                                                       context.suffix);
         request["prompt"] = formattedPrompt;
     }
 };

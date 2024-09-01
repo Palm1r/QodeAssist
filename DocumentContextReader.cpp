@@ -130,7 +130,7 @@ QString DocumentContextReader::getLanguageAndFileInfo() const
     QString filePath = m_textDocument->filePath().toString();
     QString fileExtension = QFileInfo(filePath).suffix();
 
-    return QString("//Language: %1 (MIME: %2) filepath: %3(%4)\n\n")
+    return QString("Language: %1 (MIME: %2) filepath: %3(%4)\n\n")
         .arg(language, mimeType, filePath, fileExtension);
 }
 
@@ -138,7 +138,7 @@ QString DocumentContextReader::getSpecificInstructions() const
 {
     QString specificInstruction = settings().specificInstractions().arg(
         LanguageServerProtocol::TextDocumentItem::mimeTypeToLanguageId(m_textDocument->mimeType()));
-    return QString("//Instructions: %1").arg(specificInstruction);
+    return QString("Instructions: %1").arg(specificInstruction);
 }
 
 CopyrightInfo DocumentContextReader::findCopyright()

@@ -19,21 +19,26 @@
 
 #pragma once
 
-#include <QJsonObject>
-#include <QList>
-#include <QString>
-
-#include "QodeAssistData.hpp"
+#include "PromptTemplate.hpp"
 
 namespace QodeAssist::Templates {
 
-class PromptTemplate
+class DeepSeekCoderV2Template : public PromptTemplate
 {
 public:
-    virtual ~PromptTemplate() = default;
-    virtual QString name() const = 0;
-    virtual QString promptTemplate() const = 0;
-    virtual QStringList stopWords() const = 0;
-    virtual void prepareRequest(QJsonObject &request, const ContextData &context) const = 0;
+    QString name() const override { return "DeepSeekCoderV2"; }
+    QString promptTemplate() const override
+    {
+        return "%1<｜fim▁begin｜>%2<｜fim▁hole｜>%3<｜fim▁end｜>";
+    }
+    QStringList stopWords() const override { return QStringList(); }
+    void prepareRequest(QJsonObject &request, const ContextData &context) const override
+    {
+        QString formattedPrompt = promptTemplate().arg(context.instriuctions,
+                                                       context.prefix,
+                                                       context.suffix);
+        request["prompt"] = formattedPrompt;
+    }
 };
+
 } // namespace QodeAssist::Templates

@@ -27,17 +27,17 @@ class CodeLLamaTemplate : public PromptTemplate
 {
 public:
     QString name() const override { return "CodeLlama"; }
-    QString promptTemplate() const override { return "<PRE> %1 <SUF>%2 <MID>"; }
+    QString promptTemplate() const override { return "%1<PRE> %2 <SUF>%3 <MID>"; }
     QStringList stopWords() const override
     {
         return QStringList() << "<EOT>" << "<PRE>" << "<SUF" << "<MID>";
     }
 
-    void prepareRequest(QJsonObject &request,
-                        const QString &prefix,
-                        const QString &suffix) const override
+    void prepareRequest(QJsonObject &request, const ContextData &context) const override
     {
-        QString formattedPrompt = promptTemplate().arg(prefix, suffix);
+        QString formattedPrompt = promptTemplate().arg(context.instriuctions,
+                                                       context.prefix,
+                                                       context.suffix);
         request["prompt"] = formattedPrompt;
     }
 };

@@ -27,16 +27,16 @@ class CodeQwenChatTemplate : public PromptTemplate
 {
 public:
     QString name() const override { return "CodeQwenChat (experimental)"; }
-    QString promptTemplate() const override { return "\n### Instruction:%1%2 ### Response:\n"; }
+    QString promptTemplate() const override { return "%1\n### Instruction:%2%3 ### Response:\n"; }
     QStringList stopWords() const override
     {
         return QStringList() << "### Instruction:" << "### Response:" << "\n\n### ";
     }
-    void prepareRequest(QJsonObject &request,
-                        const QString &prefix,
-                        const QString &suffix) const override
+    void prepareRequest(QJsonObject &request, const ContextData &context) const override
     {
-        QString formattedPrompt = promptTemplate().arg(prefix, suffix);
+        QString formattedPrompt = promptTemplate().arg(context.instriuctions,
+                                                       context.prefix,
+                                                       context.suffix);
         request["prompt"] = formattedPrompt;
     }
 };

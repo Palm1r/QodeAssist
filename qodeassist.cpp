@@ -43,9 +43,10 @@
 #include "QodeAssistClient.hpp"
 #include "providers/LMStudioProvider.hpp"
 #include "providers/OllamaProvider.hpp"
-#include "providers/OpenAICompatProvider.h"
+#include "providers/OpenAICompatProvider.hpp"
 #include "templates/CodeLLamaTemplate.hpp"
 #include "templates/CodeQwenChat.hpp"
+#include "templates/DeepSeekCoderV2.hpp"
 #include "templates/StarCoder2Template.hpp"
 
 using namespace Utils;
@@ -80,6 +81,7 @@ public:
         templateManager.registerTemplate<Templates::CodeLLamaTemplate>();
         templateManager.registerTemplate<Templates::StarCoder2Template>();
         templateManager.registerTemplate<Templates::CodeQwenChatTemplate>();
+        templateManager.registerTemplate<Templates::DeepSeekCoderV2Template>();
 
         Utils::Icon QCODEASSIST_ICON(
             {{":/resources/images/qoderassist-icon.png", Utils::Theme::IconsBaseColor}});

@@ -54,6 +54,8 @@ const char OLLAMA_LIVETIME[] = "QodeAssist.ollamaLivetime";
 const char SPECIFIC_INSTRUCTIONS[] = "QodeAssist.specificInstractions";
 const char MULTILINE_COMPLETION[] = "QodeAssist.multilineCompletion";
 const char API_KEY[] = "QodeAssist.apiKey";
+const char USE_SPECIFIC_INSTRUCTIONS[] = "QodeAssist.useSpecificInstructions";
+const char USE_FILE_PATH_IN_CONTEXT[] = "QodeAssist.useFilePathInContext";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
 const char QODE_ASSIST_GENERAL_OPTIONS_CATEGORY[] = "QodeAssist.Category";

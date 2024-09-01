@@ -19,21 +19,15 @@
 
 #pragma once
 
-#include <QJsonObject>
-#include <QList>
 #include <QString>
 
-#include "QodeAssistData.hpp"
+namespace QodeAssist {
 
-namespace QodeAssist::Templates {
-
-class PromptTemplate
+struct ContextData
 {
-public:
-    virtual ~PromptTemplate() = default;
-    virtual QString name() const = 0;
-    virtual QString promptTemplate() const = 0;
-    virtual QStringList stopWords() const = 0;
-    virtual void prepareRequest(QJsonObject &request, const ContextData &context) const = 0;
+    QString prefix;
+    QString suffix;
+    QString instriuctions;
 };
-} // namespace QodeAssist::Templates
+
+} // namespace QodeAssist

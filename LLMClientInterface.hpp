@@ -22,6 +22,8 @@
 #include <languageclient/languageclientinterface.h>
 #include <texteditor/texteditor.h>
 
+#include "QodeAssistData.hpp"
+
 class QNetworkReply;
 class QNetworkAccessManager;
 
@@ -35,12 +37,6 @@ public:
     LLMClientInterface();
 
 public:
-    struct ContextPair
-    {
-        QString prefix;
-        QString suffix;
-    };
-
     Utils::FilePath serverDeviceTemplate() const override;
 
     void sendCompletionToClient(const QString &completion,
@@ -50,10 +46,10 @@ public:
 
     void handleCompletion(const QJsonObject &request,
                           const QString &accumulatedCompletion = QString());
-    void sendLLMRequest(const QJsonObject &request, const ContextPair &prompt);
+    void sendLLMRequest(const QJsonObject &request, const ContextData &prompt);
     void handleLLMResponse(QNetworkReply *reply, const QJsonObject &request);
 
-    ContextPair prepareContext(const QJsonObject &request,
+    ContextData prepareContext(const QJsonObject &request,
                                const QString &accumulatedCompletion = QString{});
     void updateProvider();
 
@@ -81,6 +77,13 @@ private:
     QNetworkAccessManager *m_manager;
     QMap<QString, QNetworkReply *> m_activeRequests;
     QMap<QNetworkReply *, QString> m_accumulatedResponses;
+
+    QElapsedTimer m_completionTimer;
+    QMap<QString, qint64> m_requestStartTimes;
+
+    void startTimeMeasurement(const QString &requestId);
+    void endTimeMeasurement(const QString &requestId);
+    void logPerformance(const QString &requestId, const QString &operation, qint64 elapsedMs);
 };
 
 } // namespace QodeAssist

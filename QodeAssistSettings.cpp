@@ -153,6 +153,14 @@ QodeAssistSettings::QodeAssistSettings()
     startSuggestionTimer.setRange(10, 10000);
     startSuggestionTimer.setDefaultValue(500);
 
+    useFilePathInContext.setSettingsKey(Constants::USE_FILE_PATH_IN_CONTEXT);
+    useFilePathInContext.setDefaultValue(false);
+    useFilePathInContext.setLabelText(Tr::tr("Use File Path in Context"));
+
+    useSpecificInstructions.setSettingsKey(Constants::USE_SPECIFIC_INSTRUCTIONS);
+    useSpecificInstructions.setDefaultValue(false);
+    useSpecificInstructions.setLabelText(Tr::tr("Use Specific Instructions"));
+
     specificInstractions.setSettingsKey(Constants::SPECIFIC_INSTRUCTIONS);
     specificInstractions.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
     specificInstractions.setLabelText(
@@ -195,6 +203,7 @@ QodeAssistSettings::QodeAssistSettings()
     frequencyPenalty.setEnabled(useFrequencyPenalty());
     readStringsAfterCursor.setEnabled(!readFullFile());
     readStringsBeforeCursor.setEnabled(!readFullFile());
+    specificInstractions.setEnabled(useSpecificInstructions());
     PromptTemplateManager::instance().setCurrentTemplate(fimPrompts.stringValue());
     LLMProvidersManager::instance().setCurrentProvider(llmProviders.stringValue());
 
@@ -221,6 +230,8 @@ QodeAssistSettings::QodeAssistSettings()
                                         readStringsAfterCursor,
                                         ollamaLivetime,
                                         apiKey,
+                                        useFilePathInContext,
+                                        useSpecificInstructions,
                                         specificInstractions,
                                         temperature,
                                         maxTokens,
@@ -273,6 +284,9 @@ void QodeAssistSettings::setupConnections()
             &QodeAssistSettings::resetSettingsToDefaults);
     connect(&enableLogging, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
         setLoggingEnabled(enableLogging.volatileValue());
+    });
+    connect(&useSpecificInstructions, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
+        specificInstractions.setEnabled(useSpecificInstructions.volatileValue());
     });
 }
 
