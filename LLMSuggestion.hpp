@@ -32,6 +32,7 @@ public:
 
     bool apply() final;
     bool applyWord(TextEditor::TextEditorWidget *widget) final;
+    bool applyNextLine(TextEditor::TextEditorWidget *widget);
     void reset() final;
     int position() final;
 

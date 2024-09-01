@@ -54,13 +54,27 @@ public:
     {
         auto apply = addAction(Tr::tr("Apply (%1)").arg(QKeySequence(Qt::Key_Tab).toString()));
         connect(apply, &QAction::triggered, this, &QodeAssistCompletionToolTip::apply);
+
+        auto applyWord = addAction(Tr::tr("Apply Next Line (%1)")
+                                       .arg(QKeySequence(QKeySequence::MoveToNextLine).toString()));
+        connect(applyWord, &QAction::triggered, this, &QodeAssistCompletionToolTip::applyWord);
+        qDebug() << "applyWord sequence" << applyWord->shortcut();
     }
 
 private:
     void apply()
     {
-        if (TextSuggestion *suggestion = m_editor->currentSuggestion()) {
+        if (auto *suggestion = dynamic_cast<LLMSuggestion *>(m_editor->currentSuggestion())) {
             if (!suggestion->apply())
+                return;
+        }
+        ToolTip::hide();
+    }
+
+    void applyWord()
+    {
+        if (auto *suggestion = dynamic_cast<LLMSuggestion *>(m_editor->currentSuggestion())) {
+            if (!suggestion->applyWord(m_editor))
                 return;
         }
         ToolTip::hide();

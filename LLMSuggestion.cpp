@@ -19,6 +19,9 @@
 
 #include "LLMSuggestion.hpp"
 
+#include <texteditor/texteditor.h>
+#include <utils/stringutils.h>
+
 namespace QodeAssist {
 
 LLMSuggestion::LLMSuggestion(const Completion &completion, QTextDocument *origin)
@@ -63,8 +66,29 @@ bool LLMSuggestion::apply()
 
 bool LLMSuggestion::applyWord(TextEditor::TextEditorWidget *widget)
 {
-    Q_UNUSED(widget)
-    return apply();
+    return applyNextLine(widget);
+}
+
+bool LLMSuggestion::applyNextLine(TextEditor::TextEditorWidget *widget)
+{
+    QTextCursor currentCursor = widget->textCursor();
+    const QString text = m_completion.text();
+
+    int endPos = currentCursor.position();
+    while (endPos < text.length() && !text[endPos].isSpace()) {
+        ++endPos;
+    }
+
+    QString wordToInsert = text.left(endPos);
+
+    wordToInsert = wordToInsert.split('\n').first();
+
+    if (!wordToInsert.isEmpty()) {
+        currentCursor.insertText(wordToInsert);
+        widget->setTextCursor(currentCursor);
+    }
+
+    return false;
 }
 
 void LLMSuggestion::reset()
