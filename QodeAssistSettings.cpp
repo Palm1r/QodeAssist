@@ -77,7 +77,7 @@ QodeAssistSettings::QodeAssistSettings()
     temperature.setDefaultValue(0.2);
     temperature.setRange(0.0, 10.0);
 
-    selectModels.m_buttonText = Tr::tr("Select Models");
+    selectModels.m_buttonText = Tr::tr("Select Model");
 
     ollamaLivetime.setSettingsKey(Constants::OLLAMA_LIVETIME);
     ollamaLivetime.setLabelText(
@@ -144,9 +144,6 @@ QodeAssistSettings::QodeAssistSettings()
     frequencyPenalty.setLabelText(Tr::tr("frequency_penalty"));
     frequencyPenalty.setDefaultValue(0.0);
     frequencyPenalty.setRange(-2.0, 2.0);
-
-    providerPaths.setSettingsKey(Constants::PROVIDER_PATHS);
-    providerPaths.setLabelText(Tr::tr("Provider Paths:"));
 
     startSuggestionTimer.setSettingsKey(Constants::START_SUGGESTION_TIMER);
     startSuggestionTimer.setLabelText(Tr::tr("Start Suggestion Timer:"));
@@ -219,7 +216,7 @@ QodeAssistSettings::QodeAssistSettings()
                                         enableLogging,
                                         Row{Stretch{1}, resetToDefaults}}}},
                       Group{title(Tr::tr("LLM Providers")),
-                            Form{Column{llmProviders, Row{url, endPoint}, providerPaths}}},
+                            Form{Column{llmProviders, Row{url, endPoint}}}},
                       Group{title(Tr::tr("LLM Model Settings")),
                             Form{Column{Row{selectModels, modelName}}}},
                       Group{title(Tr::tr("FIM Prompt Settings")),
@@ -306,7 +303,7 @@ QStringList QodeAssistSettings::getInstalledModels()
 {
     auto *provider = LLMProvidersManager::instance().getCurrentProvider();
     if (provider) {
-        auto env = getEnvironmentWithProviderPaths();
+        Utils::Environment env = Utils::Environment::systemEnvironment();
         return provider->getInstalledModels(env);
     }
     return {};
@@ -329,16 +326,6 @@ void QodeAssistSettings::showModelSelectionDialog()
         modelName.setValue(selectedModel);
         writeSettings();
     }
-}
-
-Utils::Environment QodeAssistSettings::getEnvironmentWithProviderPaths() const
-{
-    Utils::Environment env = Utils::Environment::systemEnvironment();
-    const QStringList additionalPaths = providerPaths.volatileValue();
-    for (const QString &path : additionalPaths) {
-        env.prependOrSetPath(path);
-    }
-    return env;
 }
 
 void QodeAssistSettings::resetSettingsToDefaults()

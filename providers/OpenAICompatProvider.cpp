@@ -23,7 +23,6 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkReply>
-#include <QProcess>
 
 #include "PromptTemplateManager.hpp"
 #include "QodeAssistSettings.hpp"

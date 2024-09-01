@@ -15,6 +15,7 @@ QodeAssist has been tested with the following language models, all trained for F
 Ollama:
 - [starcoder2](https://ollama.com/library/starcoder2)
 - [codellama](https://ollama.com/library/codellama)
+- DeepSeek-Coder-V2-Lite-Base
 
 LM studio:
 - [second-state/StarCoder2-7B-GGUF](https://huggingface.co/second-state/StarCoder2-7B-GGUF)
@@ -30,7 +31,7 @@ If you've successfully used a model that's not listed here, please let us know b
 - [ ] Add chat functionality
 - [ ] Support for more providers and models
 
-## Installation Plugin
+## Plugin installation using Ollama as an example
 
 1. Install QtCreator 14.0
 2. Install [Ollama](https://ollama.com). Make sure to review the system requirements before installation.
@@ -50,9 +51,8 @@ ollama run starcoder2:7b
 1. Open Qt Creator settings
 2. Navigate to the "Qode Assist" tab
 3. Choose your LLM provider (e.g., Ollama)
-   - If you haven't added the provider to your system PATH, specify the path to the provider executable in the "Provider Paths" field
-4. Select the installed model
-   - If you need to enter the model name manually, it indicates that the plugin cannot locate the provider's executable file. However, this doesn't affect the plugin's functionality – it will still work correctly. This autoselector input option is provided for your convenience, allowing you to easily select and use different models
+4. Select the installed model by the "Select Model" button
+   - For LM Studio you will see current load model
 5. Choose the prompt template that corresponds to your model
 6. Apply the settings
 
