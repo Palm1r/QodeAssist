@@ -22,6 +22,8 @@
 #include <languageclient/languageclientinterface.h>
 #include <texteditor/texteditor.h>
 
+#include "QodeAssistData.hpp"
+
 class QNetworkReply;
 class QNetworkAccessManager;
 
@@ -35,12 +37,6 @@ public:
     LLMClientInterface();
 
 public:
-    struct ContextPair
-    {
-        QString prefix;
-        QString suffix;
-    };
-
     Utils::FilePath serverDeviceTemplate() const override;
 
     void sendCompletionToClient(const QString &completion,
@@ -50,10 +46,10 @@ public:
 
     void handleCompletion(const QJsonObject &request,
                           const QString &accumulatedCompletion = QString());
-    void sendLLMRequest(const QJsonObject &request, const ContextPair &prompt);
+    void sendLLMRequest(const QJsonObject &request, const ContextData &prompt);
     void handleLLMResponse(QNetworkReply *reply, const QJsonObject &request);
 
-    ContextPair prepareContext(const QJsonObject &request,
+    ContextData prepareContext(const QJsonObject &request,
                                const QString &accumulatedCompletion = QString{});
     void updateProvider();
 

@@ -138,8 +138,7 @@ QString LLMClientInterface::сontextBefore(TextEditor::TextEditorWidget *widget,
                                                 settings().readStringsBeforeCursor());
     }
 
-    return QString("%1\n%2\n%3")
-        .arg(reader.getSpecificInstructions(), reader.getLanguageAndFileInfo(), contextBefore);
+    return contextBefore;
 }
 
 QString LLMClientInterface::сontextAfter(TextEditor::TextEditorWidget *widget,
@@ -251,8 +250,8 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request,
     sendLLMRequest(request, updatedContext);
 }
 
-LLMClientInterface::ContextPair LLMClientInterface::prepareContext(
-    const QJsonObject &request, const QString &accumulatedCompletion)
+ContextData LLMClientInterface::prepareContext(const QJsonObject &request,
+                                               const QString &accumulatedCompletion)
 {
     QJsonObject params = request["params"].toObject();
     QJsonObject doc = params["doc"].toObject();
@@ -274,12 +273,20 @@ LLMClientInterface::ContextPair LLMClientInterface::prepareContext(
     auto textEditor = TextEditor::BaseTextEditor::currentTextEditor();
     TextEditor::TextEditorWidget *widget = textEditor->editorWidget();
 
+    DocumentContextReader reader(widget->textDocument());
+
     QString contextBefore = сontextBefore(widget, lineNumber, cursorPosition);
     QString contextAfter = сontextAfter(widget, lineNumber, cursorPosition);
+    QString instructions = QString("%1%2").arg(settings().useSpecificInstructions()
+                                                   ? reader.getSpecificInstructions()
+                                                   : QString(),
+                                               settings().useFilePathInContext()
+                                                   ? reader.getLanguageAndFileInfo()
+                                                   : QString());
 
     QString updatedContextBefore = contextBefore + accumulatedCompletion;
 
-    return {updatedContextBefore, contextAfter};
+    return {updatedContextBefore, contextAfter, instructions};
 }
 
 void LLMClientInterface::updateProvider()
@@ -323,12 +330,12 @@ void LLMClientInterface::sendCompletionToClient(const QString &completion,
     emit messageReceived(LanguageServerProtocol::JsonRpcMessage(response));
 }
 
-void LLMClientInterface::sendLLMRequest(const QJsonObject &request, const ContextPair &prompt)
+void LLMClientInterface::sendLLMRequest(const QJsonObject &request, const ContextData &prompt)
 {
     QJsonObject providerRequest = {{"model", settings().modelName.value()}, {"stream", true}};
 
     auto currentTemplate = PromptTemplateManager::instance().getCurrentTemplate();
-    currentTemplate->prepareRequest(providerRequest, prompt.prefix, prompt.suffix);
+    currentTemplate->prepareRequest(providerRequest, prompt);
 
     auto &providerManager = LLMProvidersManager::instance();
     providerManager.getCurrentProvider()->prepareRequest(providerRequest);

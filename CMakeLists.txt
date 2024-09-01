@@ -49,4 +49,5 @@ add_qtc_plugin(QodeAssist
     QodeAssistClient.hpp QodeAssistClient.cpp
     QodeAssistUtils.hpp
     DocumentContextReader.hpp DocumentContextReader.cpp
+    QodeAssistData.hpp
 )

@@ -29,14 +29,14 @@ public:
     QString name() const override { return "DeepSeekCoderV2"; }
     QString promptTemplate() const override
     {
-        return "<｜fim▁begin｜>%1<｜fim▁hole｜>%2<｜fim▁end｜>";
+        return "%1<｜fim▁begin｜>%2<｜fim▁hole｜>%3<｜fim▁end｜>";
     }
     QStringList stopWords() const override { return QStringList(); }
-    void prepareRequest(QJsonObject &request,
-                        const QString &prefix,
-                        const QString &suffix) const override
+    void prepareRequest(QJsonObject &request, const ContextData &context) const override
     {
-        QString formattedPrompt = promptTemplate().arg(prefix, suffix);
+        QString formattedPrompt = promptTemplate().arg(context.instriuctions,
+                                                       context.prefix,
+                                                       context.suffix);
         request["prompt"] = formattedPrompt;
     }
 };

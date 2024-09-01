@@ -95,6 +95,8 @@ public:
 
     Utils::StringAspect ollamaLivetime{this};
     Utils::StringAspect specificInstractions{this};
+    Utils::BoolAspect useSpecificInstructions{this};
+    Utils::BoolAspect useFilePathInContext{this};
     Utils::BoolAspect multiLineCompletion{this};
 
     Utils::StringAspect apiKey{this};
