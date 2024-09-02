@@ -19,10 +19,17 @@
 
 #include "LLMSuggestion.hpp"
 
+#include <QTextCursor>
+#include <QtWidgets/qtoolbar.h>
+#include <texteditor/texteditor.h>
+#include <utils/stringutils.h>
+#include <utils/tooltip/tooltip.h>
+
 namespace QodeAssist {
 
 LLMSuggestion::LLMSuggestion(const Completion &completion, QTextDocument *origin)
     : m_completion(completion)
+    , m_linesCount(0)
 {
     int startPos = completion.range().start().toPositionInDocument(origin);
     int endPos = completion.range().end().toPositionInDocument(origin);
@@ -63,8 +70,35 @@ bool LLMSuggestion::apply()
 
 bool LLMSuggestion::applyWord(TextEditor::TextEditorWidget *widget)
 {
-    Q_UNUSED(widget)
-    return apply();
+    return applyNextLine(widget);
+}
+
+bool LLMSuggestion::applyNextLine(TextEditor::TextEditorWidget *widget)
+{
+    const QString text = m_completion.text();
+    QStringList lines = text.split('\n');
+
+    if (m_linesCount < lines.size())
+        m_linesCount++;
+
+    showTooltip(widget, m_linesCount);
+
+    return m_linesCount == lines.size() && !Utils::ToolTip::isVisible();
+}
+
+void LLMSuggestion::onCounterFinished(int count)
+{
+    Utils::ToolTip::hide();
+    m_linesCount = 0;
+    QTextCursor cursor = m_completion.range().toSelection(m_start.document());
+    cursor.beginEditBlock();
+    cursor.removeSelectedText();
+
+    QStringList lines = m_completion.text().split('\n');
+    QString textToInsert = lines.mid(0, count).join('\n');
+
+    cursor.insertText(textToInsert);
+    cursor.endEditBlock();
 }
 
 void LLMSuggestion::reset()
@@ -75,6 +109,16 @@ void LLMSuggestion::reset()
 int LLMSuggestion::position()
 {
     return m_start.position();
+}
+
+void LLMSuggestion::showTooltip(TextEditor::TextEditorWidget *widget, int count)
+{
+    Utils::ToolTip::hide();
+    QPoint pos = widget->mapToGlobal(widget->cursorRect().topRight());
+    pos += QPoint(-10, -50);
+    m_counterTooltip = new CounterTooltip(count);
+    Utils::ToolTip::show(pos, m_counterTooltip, widget);
+    connect(m_counterTooltip, &CounterTooltip::finished, this, &LLMSuggestion::onCounterFinished);
 }
 
 } // namespace QodeAssist

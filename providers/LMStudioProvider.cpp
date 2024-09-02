@@ -19,14 +19,15 @@
 
 #include "LMStudioProvider.hpp"
 
+#include <QEventLoop>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkReply>
-#include <QProcess>
 
 #include "PromptTemplateManager.hpp"
 #include "QodeAssistSettings.hpp"
+#include "QodeAssistUtils.hpp"
 
 namespace QodeAssist::Providers {
 
@@ -113,53 +114,32 @@ bool LMStudioProvider::handleResponse(QNetworkReply *reply, QString &accumulated
 
 QList<QString> LMStudioProvider::getInstalledModels(const Utils::Environment &env)
 {
-    QProcess process;
-    process.setEnvironment(env.toStringList());
-    QString lmsConsoleName;
-#ifdef Q_OS_WIN
-    lmsConsoleName = "lms.exe";
-#else
-    lmsConsoleName = "lms";
-#endif
-    auto lmsPath = env.searchInPath(lmsConsoleName).toString();
+    QList<QString> models;
+    QNetworkAccessManager manager;
+    QNetworkRequest request(QUrl(url() + "/v1/models"));
 
-    if (!QFileInfo::exists(lmsPath)) {
-        qWarning() << "LMS executable not found at" << lmsPath;
-        return {};
-    }
+    QNetworkReply *reply = manager.get(request);
 
-    process.start(lmsPath, QStringList() << "ls");
-    if (!process.waitForStarted()) {
-        qWarning() << "Failed to start LMS process:" << process.errorString();
-        return {};
-    }
+    QEventLoop loop;
+    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    loop.exec();
 
-    if (!process.waitForFinished()) {
-        qWarning() << "LMS process did not finish:" << process.errorString();
-        return {};
-    }
+    if (reply->error() == QNetworkReply::NoError) {
+        QByteArray responseData = reply->readAll();
+        QJsonDocument jsonResponse = QJsonDocument::fromJson(responseData);
+        QJsonObject jsonObject = jsonResponse.object();
+        QJsonArray modelArray = jsonObject["data"].toArray();
 
-    QStringList models;
-    if (process.exitCode() == 0) {
-        QString output = QString::fromUtf8(process.readAllStandardOutput());
-        QStringList lines = output.split('\n', Qt::SkipEmptyParts);
-
-        // Skip the header lines
-        for (int i = 2; i < lines.size(); ++i) {
-            QString line = lines[i].trimmed();
-            if (!line.isEmpty()) {
-                // The model name is the first column
-                QString modelName = line.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts)
-                                        .first();
-                models.append(modelName);
-            }
+        for (const QJsonValue &value : modelArray) {
+            QJsonObject modelObject = value.toObject();
+            QString modelId = modelObject["id"].toString();
+            models.append(modelId);
         }
-        qDebug() << "Models:" << models;
     } else {
-        // Handle error
-        qWarning() << "Error running 'lms list':" << process.errorString();
+        logMessage(QString("Error fetching models: %1").arg(reply->errorString()));
     }
 
+    reply->deleteLater();
     return models;
 }
 

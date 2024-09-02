@@ -23,10 +23,11 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkReply>
-#include <QProcess>
+#include <QtCore/qeventloop.h>
 
 #include "PromptTemplateManager.hpp"
 #include "QodeAssistSettings.hpp"
+#include "QodeAssistUtils.hpp"
 
 namespace QodeAssist::Providers {
 
@@ -96,50 +97,31 @@ bool OllamaProvider::handleResponse(QNetworkReply *reply, QString &accumulatedRe
 
 QList<QString> OllamaProvider::getInstalledModels(const Utils::Environment &env)
 {
-    QProcess process;
-    process.setEnvironment(env.toStringList());
-    QString ollamaConsoleName;
-#ifdef Q_OS_WIN
-    ollamaConsoleName = "ollama.exe";
-#else
-    ollamaConsoleName = "ollama";
-#endif
+    QList<QString> models;
+    QNetworkAccessManager manager;
+    QNetworkRequest request(QUrl(url() + "/api/tags"));
+    QNetworkReply *reply = manager.get(request);
 
-    auto ollamaPath = env.searchInPath(ollamaConsoleName).toString();
+    QEventLoop loop;
+    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    loop.exec();
 
-    if (!QFileInfo::exists(ollamaPath)) {
-        qWarning() << "Ollama executable not found at" << ollamaPath;
-        return {};
-    }
+    if (reply->error() == QNetworkReply::NoError) {
+        QByteArray responseData = reply->readAll();
+        QJsonDocument jsonResponse = QJsonDocument::fromJson(responseData);
+        QJsonObject jsonObject = jsonResponse.object();
+        QJsonArray modelArray = jsonObject["models"].toArray();
 
-    process.start(ollamaPath, QStringList() << "list");
-    if (!process.waitForStarted()) {
-        qWarning() << "Failed to start Ollama process:" << process.errorString();
-        return {};
-    }
-
-    if (!process.waitForFinished()) {
-        qWarning() << "Ollama process did not finish:" << process.errorString();
-        return {};
-    }
-
-    QStringList models;
-    if (process.exitCode() == 0) {
-        QString output = QString::fromUtf8(process.readAllStandardOutput());
-        QStringList lines = output.split('\n', Qt::SkipEmptyParts);
-
-        for (int i = 1; i < lines.size(); ++i) {
-            QString line = lines[i].trimmed();
-            if (!line.isEmpty()) {
-                QString modelName = line.split(QRegularExpression("\\s+"), Qt::SkipEmptyParts)
-                                        .first();
-                models.append(modelName);
-            }
+        for (const QJsonValue &value : modelArray) {
+            QJsonObject modelObject = value.toObject();
+            QString modelName = modelObject["name"].toString();
+            models.append(modelName);
         }
     } else {
-        qWarning() << "Error running 'ollama list':" << process.errorString();
+        logMessage(QString("Error fetching models: %1").arg(reply->errorString()));
     }
 
+    reply->deleteLater();
     return models;
 }
 

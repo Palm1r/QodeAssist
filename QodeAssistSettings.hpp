@@ -88,8 +88,6 @@ public:
     Utils::BoolAspect useFrequencyPenalty{this};
     Utils::DoubleAspect frequencyPenalty{this};
 
-    Utils::StringListAspect providerPaths{this};
-
     Utils::IntegerAspect startSuggestionTimer{this};
     Utils::IntegerAspect maxFileThreshold{this};
 

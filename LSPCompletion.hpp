@@ -43,6 +43,10 @@ public:
     {
         return typedValue<LanguageServerProtocol::Position>(LanguageServerProtocol::positionKey);
     }
+    void setRange(const LanguageServerProtocol::Range &range)
+    {
+        insert(LanguageServerProtocol::rangeKey, range);
+    }
     LanguageServerProtocol::Range range() const
     {
         return typedValue<LanguageServerProtocol::Range>(LanguageServerProtocol::rangeKey);

@@ -27,7 +27,6 @@
 #include <languageclient/client.h>
 
 #include "LSPCompletion.hpp"
-#include "QodeAssistHoverHandler.hpp"
 
 namespace QodeAssist {
 
@@ -54,7 +53,6 @@ private:
 
     QHash<TextEditor::TextEditorWidget *, GetCompletionRequest> m_runningRequests;
     QHash<TextEditor::TextEditorWidget *, QTimer *> m_scheduledRequests;
-    QodeAssistHoverHandler m_hoverHandler;
     QMetaObject::Connection m_documentOpenedConnection;
     QMetaObject::Connection m_documentClosedConnection;
 };
