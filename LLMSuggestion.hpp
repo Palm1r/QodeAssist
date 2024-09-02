@@ -19,14 +19,17 @@
 
 #pragma once
 
+#include <QObject>
+#include "LSPCompletion.hpp"
 #include <texteditor/textdocumentlayout.h>
 
-#include "LSPCompletion.hpp"
+#include "utils/CounterTooltip.hpp"
 
 namespace QodeAssist {
 
-class LLMSuggestion final : public TextEditor::TextSuggestion
+class LLMSuggestion final : public QObject, public TextEditor::TextSuggestion
 {
+    Q_OBJECT
 public:
     LLMSuggestion(const Completion &completion, QTextDocument *origin);
 
@@ -38,9 +41,15 @@ public:
 
     const Completion &completion() const { return m_completion; }
 
+    void showTooltip(TextEditor::TextEditorWidget *widget, int count);
+    void onCounterFinished(int count);
+
 private:
     Completion m_completion;
     QTextCursor m_start;
+    int m_linesCount;
+
+    CounterTooltip *m_counterTooltip = nullptr;
 };
 
 } // namespace QodeAssist

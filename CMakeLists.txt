@@ -45,9 +45,9 @@ add_qtc_plugin(QodeAssist
     QodeAssist.qrc
     LSPCompletion.hpp
     LLMSuggestion.hpp LLMSuggestion.cpp
-    QodeAssistHoverHandler.hpp QodeAssistHoverHandler.cpp
     QodeAssistClient.hpp QodeAssistClient.cpp
     QodeAssistUtils.hpp
     DocumentContextReader.hpp DocumentContextReader.cpp
     QodeAssistData.hpp
+    utils/CounterTooltip.hpp utils/CounterTooltip.cpp
 )

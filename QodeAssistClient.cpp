@@ -190,7 +190,6 @@ void QodeAssistClient::handleCompletions(const GetCompletionRequest::Response &r
             return;
         editor->insertSuggestion(
             std::make_unique<LLMSuggestion>(completions.first(), editor->document()));
-        editor->addHoverHandler(&m_hoverHandler);
     }
 }
 
@@ -236,11 +235,6 @@ void QodeAssistClient::cleanupConnections()
 {
     disconnect(m_documentOpenedConnection);
     disconnect(m_documentClosedConnection);
-
-    for (IEditor *editor : DocumentModel::editorsForOpenedDocuments()) {
-        if (auto textEditor = qobject_cast<BaseTextEditor *>(editor))
-            textEditor->editorWidget()->removeHoverHandler(&m_hoverHandler);
-    }
 
     qDeleteAll(m_scheduledRequests);
     m_scheduledRequests.clear();

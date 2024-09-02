@@ -1,13 +1,8 @@
-/*
- * Copyright (C) 2023 The Qt Company Ltd.
+/* 
  * Copyright (C) 2024 Petr Mironychev
  *
- * This file is part of Qode Assist.
+ * This file is part of QodeAssist.
  *
- * The Qt Company portions:
- * SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0+ OR GPL-3.0 WITH Qt-GPL-exception-1.0
- *
- * Petr Mironychev portions:
  * QodeAssist is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -24,24 +19,30 @@
 
 #pragma once
 
-#include <QTextBlock>
-#include <texteditor/basehoverhandler.h>
+#include <QLabel>
+#include <QTimer>
+#include <QToolBar>
+#include <QWidget>
 
 namespace QodeAssist {
 
-class QodeAssistHoverHandler : public TextEditor::BaseHoverHandler
+class CounterTooltip : public QToolBar
 {
-public:
-    QodeAssistHoverHandler() = default;
+    Q_OBJECT
 
-protected:
-    void identifyMatch(TextEditor::TextEditorWidget *editorWidget,
-                       int pos,
-                       ReportPriority report) final;
-    void operateTooltip(TextEditor::TextEditorWidget *editorWidget, const QPoint &point) final;
+public:
+    CounterTooltip(int count);
+    ~CounterTooltip();
+
+signals:
+    void finished(int count);
 
 private:
-    QTextBlock m_block;
+    void updateLabel();
+
+    QLabel *m_label;
+    QTimer *m_timer;
+    int m_count;
 };
 
 } // namespace QodeAssist
