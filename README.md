@@ -58,6 +58,12 @@ ollama run starcoder2:7b
 
 You're all set! QodeAssist is now ready to use in Qt Creator.
 
+## Hotkeys
+- To insert the full suggestion, you can use the TAB key
+- To insert line by line, you can use the "Move cursor word right" shortcut:
+    - On Mac: Option + Right Arrow
+    - On Windows: Alt + Right Arrow
+
 ## Support the development of QodeAssist
 If you find QodeAssist helpful, there are several ways you can support the project:
 
