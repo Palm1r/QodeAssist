@@ -58,7 +58,7 @@ QodeAssistSettings::QodeAssistSettings()
     llmProviders.setSettingsKey(Constants::LLM_PROVIDERS);
     llmProviders.setDisplayName(Tr::tr("LLM Providers:"));
     llmProviders.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
-    llmProviders.setDefaultValue(1);
+    llmProviders.setDefaultValue(0);
 
     url.setSettingsKey(Constants::URL);
     url.setLabelText(Tr::tr("URL:"));
@@ -88,7 +88,7 @@ QodeAssistSettings::QodeAssistSettings()
 
     fimPrompts.setDisplayName(Tr::tr("Fill-In-Middle Prompt"));
     fimPrompts.setSettingsKey(Constants::FIM_PROMPTS);
-    fimPrompts.setDefaultValue(1);
+    fimPrompts.setDefaultValue(0);
     fimPrompts.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
 
     readFullFile.setSettingsKey(Constants::READ_FULL_FILE);
@@ -111,7 +111,7 @@ QodeAssistSettings::QodeAssistSettings()
     maxTokens.setSettingsKey(Constants::MAX_TOKENS);
     maxTokens.setLabelText(Tr::tr("Max Tokens"));
     maxTokens.setRange(-1, 10000);
-    maxTokens.setDefaultValue(250);
+    maxTokens.setDefaultValue(150);
 
     useTopP.setSettingsKey(Constants::USE_TOP_P);
     useTopP.setDefaultValue(false);
@@ -363,6 +363,12 @@ void QodeAssistSettings::resetSettingsToDefaults()
         resetAspect(enableLogging);
         resetAspect(ollamaLivetime);
         resetAspect(specificInstractions);
+        resetAspect(multiLineCompletion);
+        resetAspect(useFilePathInContext);
+        resetAspect(useSpecificInstructions);
+
+        fimPrompts.setStringValue("StarCoder2");
+        llmProviders.setStringValue("Ollama");
 
         updateProviderSettings();
         apply();

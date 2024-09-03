@@ -138,7 +138,7 @@ QString DocumentContextReader::getSpecificInstructions() const
 {
     QString specificInstruction = settings().specificInstractions().arg(
         LanguageServerProtocol::TextDocumentItem::mimeTypeToLanguageId(m_textDocument->mimeType()));
-    return QString("Instructions: %1").arg(specificInstruction);
+    return QString("%1").arg(specificInstruction);
 }
 
 CopyrightInfo DocumentContextReader::findCopyright()
