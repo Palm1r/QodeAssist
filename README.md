@@ -59,10 +59,23 @@ ollama run starcoder2:7b
 You're all set! QodeAssist is now ready to use in Qt Creator.
 
 ## Hotkeys
+
+- To call manual request to suggestion, you can use or change it in settings
+    - on Mac: Option + Command + Q
+    - on Windows: Ctrl + Alt + Q
 - To insert the full suggestion, you can use the TAB key
 - To insert line by line, you can use the "Move cursor word right" shortcut:
     - On Mac: Option + Right Arrow
     - On Windows: Alt + Right Arrow
+    
+## Troubleshooting
+
+If you're experiencing issues with QodeAssist, you can try resetting the settings to their default values:
+1. Open Qt Creator settings
+2. Navigate to the "Qode Assist" tab
+3. Click on the "Reset to Defaults" button
+    - The API key will not reset
+    - Select model after reset
 
 ## Support the development of QodeAssist
 If you find QodeAssist helpful, there are several ways you can support the project:
