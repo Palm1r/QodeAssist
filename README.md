@@ -70,7 +70,25 @@ You're all set! QodeAssist is now ready to use in Qt Creator.
     
 ## Troubleshooting
 
-If you're experiencing issues with QodeAssist, you can try resetting the settings to their default values:
+If QodeAssist is having problems connecting to the LLM provider, please check the following:
+
+1. Verify the IP address and port:
+
+    - For Ollama, the default is usually http://localhost:11434
+    - For LM Studio, the default is usually http://localhost:1234
+
+2. Check the endpoint:
+
+Make sure the endpoint in the settings matches the one required by your provider
+    - For Ollama, it should be /api/generate
+    - For LM Studio and OpenAI compatible providers, it's usually /v1/chat/completions
+
+3. Confirm that the selected model and template are compatible:
+
+Ensure you've chosen the correct model in the "Select Models" option
+Verify that the selected prompt template matches the model you're using
+
+If you're still experiencing issues with QodeAssist, you can try resetting the settings to their default values:
 1. Open Qt Creator settings
 2. Navigate to the "Qode Assist" tab
 3. Click on the "Reset to Defaults" button
