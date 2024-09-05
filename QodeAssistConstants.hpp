@@ -56,6 +56,7 @@ const char MULTILINE_COMPLETION[] = "QodeAssist.multilineCompletion";
 const char API_KEY[] = "QodeAssist.apiKey";
 const char USE_SPECIFIC_INSTRUCTIONS[] = "QodeAssist.useSpecificInstructions";
 const char USE_FILE_PATH_IN_CONTEXT[] = "QodeAssist.useFilePathInContext";
+const char CUSTOM_JSON_TEMPLATE[] = "QodeAssist.customJsonTemplate";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
 const char QODE_ASSIST_GENERAL_OPTIONS_CATEGORY[] = "QodeAssist.Category";

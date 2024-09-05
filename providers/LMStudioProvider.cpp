@@ -51,7 +51,8 @@ QString LMStudioProvider::completionEndpoint() const
 void LMStudioProvider::prepareRequest(QJsonObject &request)
 {
     const auto &currentTemplate = PromptTemplateManager::instance().getCurrentTemplate();
-
+    if (currentTemplate->name() == "Custom Template")
+        return;
     if (request.contains("prompt")) {
         QJsonArray messages{
             {QJsonObject{{"role", "user"}, {"content", request.take("prompt").toString()}}}};

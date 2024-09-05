@@ -46,6 +46,7 @@
 #include "providers/OpenAICompatProvider.hpp"
 #include "templates/CodeLLamaTemplate.hpp"
 #include "templates/CodeQwenChat.hpp"
+#include "templates/CustomTemplate.hpp"
 #include "templates/DeepSeekCoderV2.hpp"
 #include "templates/StarCoder2Template.hpp"
 
@@ -82,6 +83,7 @@ public:
         templateManager.registerTemplate<Templates::StarCoder2Template>();
         templateManager.registerTemplate<Templates::CodeQwenChatTemplate>();
         templateManager.registerTemplate<Templates::DeepSeekCoderV2Template>();
+        templateManager.registerTemplate<Templates::CustomTemplate>();
 
         Utils::Icon QCODEASSIST_ICON(
             {{":/resources/images/qoderassist-icon.png", Utils::Theme::IconsBaseColor}});

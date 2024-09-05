@@ -51,6 +51,8 @@ QString OllamaProvider::completionEndpoint() const
 void OllamaProvider::prepareRequest(QJsonObject &request)
 {
     auto currentTemplate = PromptTemplateManager::instance().getCurrentTemplate();
+    if (currentTemplate->name() == "Custom Template")
+        return;
 
     QJsonObject options;
     options["num_predict"] = settings().maxTokens();

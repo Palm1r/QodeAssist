@@ -97,6 +97,7 @@ public:
     Utils::BoolAspect useFilePathInContext{this};
     Utils::BoolAspect multiLineCompletion{this};
 
+    Utils::StringAspect customJsonTemplate{this};
     Utils::StringAspect apiKey{this};
 
     ButtonAspect resetToDefaults{this};

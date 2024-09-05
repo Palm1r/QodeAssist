@@ -176,6 +176,29 @@ QodeAssistSettings::QodeAssistSettings()
     apiKey.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
     apiKey.setPlaceHolderText(Tr::tr("Enter your API key here"));
 
+    customJsonTemplate.setSettingsKey(Constants::CUSTOM_JSON_TEMPLATE);
+    customJsonTemplate.setLabelText("Custom JSON Template:");
+    customJsonTemplate.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
+    customJsonTemplate.setDefaultValue(R"({
+  "prompt": "{{QODE_INSTRUCTIONS}}<fim_prefix>{{QODE_PREFIX}}<fim_suffix>{{QODE_SUFFIX}}<fim_middle>",
+  "options": {
+    "temperature": 0.7,
+    "top_p": 0.95,
+    "top_k": 40,
+    "num_predict": 100,
+    "stop": [
+      "<|endoftext|>",
+      "<file_sep>",
+      "<fim_prefix>",
+      "<fim_suffix>",
+      "<fim_middle>"
+    ],
+    "frequency_penalty": 0,
+    "presence_penalty": 0
+  },
+  "stream": true
+})");
+
     const auto &manager = LLMProvidersManager::instance();
     if (!manager.getProviderNames().isEmpty()) {
         const auto providerNames = manager.getProviderNames();
@@ -203,6 +226,8 @@ QodeAssistSettings::QodeAssistSettings()
     specificInstractions.setEnabled(useSpecificInstructions());
     PromptTemplateManager::instance().setCurrentTemplate(fimPrompts.stringValue());
     LLMProvidersManager::instance().setCurrentProvider(llmProviders.stringValue());
+    customJsonTemplate.setVisible(PromptTemplateManager::instance().getCurrentTemplate()->name()
+                                  == "Custom Template");
 
     setLoggingEnabled(enableLogging());
 
@@ -221,6 +246,7 @@ QodeAssistSettings::QodeAssistSettings()
                             Form{Column{Row{selectModels, modelName}}}},
                       Group{title(Tr::tr("FIM Prompt Settings")),
                             Form{Column{fimPrompts,
+                                        Row{customJsonTemplate, Space{40}},
                                         readFullFile,
                                         maxFileThreshold,
                                         readStringsBeforeCursor,
@@ -256,6 +282,7 @@ void QodeAssistSettings::setupConnections()
         int index = fimPrompts.volatileValue();
         logMessage(QString("currentPrompt %1").arg(fimPrompts.displayForIndex(index)));
         PromptTemplateManager::instance().setCurrentTemplate(fimPrompts.displayForIndex(index));
+        customJsonTemplate.setVisible(fimPrompts.displayForIndex(index) == "Custom Template"); 
     });
 
     connect(&selectModels, &ButtonAspect::clicked, this, [this]() { showModelSelectionDialog(); });
@@ -366,6 +393,7 @@ void QodeAssistSettings::resetSettingsToDefaults()
         resetAspect(multiLineCompletion);
         resetAspect(useFilePathInContext);
         resetAspect(useSpecificInstructions);
+        resetAspect(customJsonTemplate);
 
         fimPrompts.setStringValue("StarCoder2");
         llmProviders.setStringValue("Ollama");

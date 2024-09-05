@@ -49,6 +49,8 @@ QString OpenAICompatProvider::completionEndpoint() const
 void OpenAICompatProvider::prepareRequest(QJsonObject &request)
 {
     const auto &currentTemplate = PromptTemplateManager::instance().getCurrentTemplate();
+    if (currentTemplate->name() == "Custom Template")
+        return;
 
     if (request.contains("prompt")) {
         QJsonArray messages{
