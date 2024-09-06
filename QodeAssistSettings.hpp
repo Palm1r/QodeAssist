@@ -98,6 +98,8 @@ public:
     Utils::BoolAspect multiLineCompletion{this};
 
     Utils::StringAspect customJsonTemplate{this};
+    ButtonAspect saveCustomTemplateButton{this};
+    ButtonAspect loadCustomTemplateButton{this};
     Utils::StringAspect apiKey{this};
 
     ButtonAspect resetToDefaults{this};
@@ -109,6 +111,8 @@ private:
     void showModelSelectionDialog();
     Utils::Environment getEnvironmentWithProviderPaths() const;
     void resetSettingsToDefaults();
+    void saveCustomTemplate();
+    void loadCustomTemplate();
 };
 
 QodeAssistSettings &settings();
