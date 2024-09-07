@@ -169,7 +169,7 @@ void CustomPromptSettings::loadCustomTemplate()
         QJsonParseError parseError;
         QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonContent.toUtf8(), &parseError);
         if (parseError.error == QJsonParseError::NoError) {
-            customJsonTemplate.setValue(jsonContent);
+            customJsonTemplate.setVolatileValue(jsonContent);
             QMessageBox::information(nullptr,
                                      Tr::tr("Load Successful"),
                                      Tr::tr("JSON template has been loaded successfully."));
