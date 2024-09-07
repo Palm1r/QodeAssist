@@ -31,7 +31,6 @@
 
 #include "LLMClientInterface.hpp"
 #include "LLMSuggestion.hpp"
-#include "QodeAssistSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 
 using namespace LanguageServerProtocol;

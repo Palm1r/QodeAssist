@@ -28,7 +28,6 @@
 #include "DocumentContextReader.hpp"
 #include "LLMProvidersManager.hpp"
 #include "PromptTemplateManager.hpp"
-#include "QodeAssistSettings.hpp"
 #include "QodeAssistUtils.hpp"
 #include "settings/ContextSettings.hpp"
 #include "settings/GeneralSettings.hpp"

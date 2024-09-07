@@ -23,7 +23,6 @@
 #include <QTextBlock>
 #include <languageserverprotocol/lsptypes.h>
 
-#include "QodeAssistSettings.hpp"
 #include "settings/ContextSettings.hpp"
 
 const QRegularExpression &getYearRegex()

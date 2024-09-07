@@ -42,7 +42,6 @@ add_qtc_plugin(QodeAssist
     providers/LMStudioProvider.hpp providers/LMStudioProvider.cpp
     providers/OpenAICompatProvider.hpp providers/OpenAICompatProvider.cpp
     LLMProvidersManager.hpp LLMProvidersManager.cpp
-    QodeAssistSettings.hpp QodeAssistSettings.cpp
     QodeAssist.qrc
     LSPCompletion.hpp
     LLMSuggestion.hpp LLMSuggestion.cpp

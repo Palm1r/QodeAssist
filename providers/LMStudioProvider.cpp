@@ -26,7 +26,6 @@
 #include <QNetworkReply>
 
 #include "PromptTemplateManager.hpp"
-#include "QodeAssistSettings.hpp"
 #include "QodeAssistUtils.hpp"
 #include "settings/PresetPromptsSettings.hpp"
 

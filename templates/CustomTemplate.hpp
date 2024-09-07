@@ -24,7 +24,6 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 
-#include "QodeAssistSettings.hpp"
 #include "QodeAssistUtils.hpp"
 #include "settings/CustomPromptSettings.hpp"
 
