@@ -45,47 +45,14 @@ QodeAssistSettings::QodeAssistSettings()
 {
     setAutoApply(false);
 
-    resetToDefaults.m_buttonText = Tr::tr("Reset to Defaults");
-
-    customJsonTemplate.setSettingsKey(Constants::CUSTOM_JSON_TEMPLATE);
-    customJsonTemplate.setLabelText("Custom JSON Template:");
-    customJsonTemplate.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
-    customJsonTemplate.setDefaultValue(R"({
-  "prompt": "{{QODE_INSTRUCTIONS}}<fim_prefix>{{QODE_PREFIX}}<fim_suffix>{{QODE_SUFFIX}}<fim_middle>",
-  "options": {
-    "temperature": 0.7,
-    "top_p": 0.95,
-    "top_k": 40,
-    "num_predict": 100,
-    "stop": [
-      "<|endoftext|>",
-      "<file_sep>",
-      "<fim_prefix>",
-      "<fim_suffix>",
-      "<fim_middle>"
-    ],
-    "frequency_penalty": 0,
-    "presence_penalty": 0
-  },
-  "stream": true
-})");
-
-    saveCustomTemplateButton.m_buttonText = (Tr::tr("Save Custom Template to JSON"));
-    loadCustomTemplateButton.m_buttonText = (Tr::tr("Load Custom Template from JSON"));
-
     readSettings();
-
-    customJsonTemplate.setVisible(PromptTemplateManager::instance().getCurrentTemplate()->name()
-                                  == "Custom Template");
 
     setLayouter([this]() {
         using namespace Layouting;
 
         return Column{Group{title(Tr::tr("FIM Prompt Settings")),
-                            Form{Column{Column{customJsonTemplate,
-                                               Row{saveCustomTemplateButton,
-                                                   loadCustomTemplateButton,
-                                                   Stretch{1}}},
+                            Form{Column{Column{
+                                               },
                                         // readFullFile,
                                         // maxFileThreshold,
                                         // readStringsBeforeCursor,
@@ -110,19 +77,7 @@ QodeAssistSettings::QodeAssistSettings()
 
 void QodeAssistSettings::setupConnections()
 {
-    connect(&resetToDefaults,
-            &ButtonAspect::clicked,
-            this,
-            &QodeAssistSettings::resetSettingsToDefaults);
 
-    connect(&saveCustomTemplateButton,
-            &ButtonAspect::clicked,
-            this,
-            &QodeAssistSettings::saveCustomTemplate);
-    connect(&loadCustomTemplateButton,
-            &ButtonAspect::clicked,
-            this,
-            &QodeAssistSettings::loadCustomTemplate);
 }
 
 QStringList QodeAssistSettings::getInstalledModels()
@@ -173,7 +128,7 @@ void QodeAssistSettings::resetSettingsToDefaults()
         // resetAspect(multiLineCompletion);
         // resetAspect(useFilePathInContext);
         // resetAspect(useSpecificInstructions);
-        resetAspect(customJsonTemplate);
+        // resetAspect(customJsonTemplate);
 
         // fimPrompts.setStringValue("StarCoder2");
         // llmProviders.setStringValue("Ollama");
@@ -188,60 +143,60 @@ void QodeAssistSettings::resetSettingsToDefaults()
 
 void QodeAssistSettings::saveCustomTemplate()
 {
-    QString fileName = QFileDialog::getSaveFileName(nullptr,
-                                                    Tr::tr("Save JSON Template"),
-                                                    QString(),
-                                                    Tr::tr("JSON Files (*.json)"));
-    if (fileName.isEmpty())
-        return;
+    // QString fileName = QFileDialog::getSaveFileName(nullptr,
+    //                                                 Tr::tr("Save JSON Template"),
+    //                                                 QString(),
+    //                                                 Tr::tr("JSON Files (*.json)"));
+    // if (fileName.isEmpty())
+    //     return;
 
-    QFile file(fileName);
-    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
-        QTextStream out(&file);
-        out << customJsonTemplate.value();
-        file.close();
-        QMessageBox::information(nullptr,
-                                 Tr::tr("Save Successful"),
-                                 Tr::tr("JSON template has been saved successfully."));
-    } else {
-        QMessageBox::critical(nullptr,
-                              Tr::tr("Save Failed"),
-                              Tr::tr("Failed to save JSON template."));
-    }
+    // QFile file(fileName);
+    // if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+    //     QTextStream out(&file);
+    //     out << customJsonTemplate.value();
+    //     file.close();
+    //     QMessageBox::information(nullptr,
+    //                              Tr::tr("Save Successful"),
+    //                              Tr::tr("JSON template has been saved successfully."));
+    // } else {
+    //     QMessageBox::critical(nullptr,
+    //                           Tr::tr("Save Failed"),
+    //                           Tr::tr("Failed to save JSON template."));
+    // }
 }
 
 void QodeAssistSettings::loadCustomTemplate()
 {
-    QString fileName = QFileDialog::getOpenFileName(nullptr,
-                                                    Tr::tr("Load JSON Template"),
-                                                    QString(),
-                                                    Tr::tr("JSON Files (*.json)"));
-    if (fileName.isEmpty())
-        return;
+    // QString fileName = QFileDialog::getOpenFileName(nullptr,
+    //                                                 Tr::tr("Load JSON Template"),
+    //                                                 QString(),
+    //                                                 Tr::tr("JSON Files (*.json)"));
+    // if (fileName.isEmpty())
+    //     return;
 
-    QFile file(fileName);
-    if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QTextStream in(&file);
-        QString jsonContent = in.readAll();
-        file.close();
+    // QFile file(fileName);
+    // if (file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+    //     QTextStream in(&file);
+    //     QString jsonContent = in.readAll();
+    //     file.close();
 
-        QJsonParseError parseError;
-        QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonContent.toUtf8(), &parseError);
-        if (parseError.error == QJsonParseError::NoError) {
-            customJsonTemplate.setValue(jsonContent);
-            QMessageBox::information(nullptr,
-                                     Tr::tr("Load Successful"),
-                                     Tr::tr("JSON template has been loaded successfully."));
-        } else {
-            QMessageBox::critical(nullptr,
-                                  Tr::tr("Invalid JSON"),
-                                  Tr::tr("The selected file contains invalid JSON."));
-        }
-    } else {
-        QMessageBox::critical(nullptr,
-                              Tr::tr("Load Failed"),
-                              Tr::tr("Failed to load JSON template."));
-    }
+    //     QJsonParseError parseError;
+    //     QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonContent.toUtf8(), &parseError);
+    //     if (parseError.error == QJsonParseError::NoError) {
+    //         customJsonTemplate.setValue(jsonContent);
+    //         QMessageBox::information(nullptr,
+    //                                  Tr::tr("Load Successful"),
+    //                                  Tr::tr("JSON template has been loaded successfully."));
+    //     } else {
+    //         QMessageBox::critical(nullptr,
+    //                               Tr::tr("Invalid JSON"),
+    //                               Tr::tr("The selected file contains invalid JSON."));
+    //     }
+    // } else {
+    //     QMessageBox::critical(nullptr,
+    //                           Tr::tr("Load Failed"),
+    //                           Tr::tr("Failed to load JSON template."));
+    // }
 }
 
 class QodeAssistSettingsPage : public Core::IOptionsPage

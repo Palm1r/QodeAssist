@@ -57,12 +57,6 @@ class QodeAssistSettings : public Utils::AspectContainer
 public:
     QodeAssistSettings();
 
-    Utils::StringAspect customJsonTemplate{this};
-    ButtonAspect saveCustomTemplateButton{this};
-    ButtonAspect loadCustomTemplateButton{this};
-
-    ButtonAspect resetToDefaults{this};
-
 private:
     void setupConnections();
     QStringList getInstalledModels();

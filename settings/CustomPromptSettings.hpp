@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "settings/SettingsUtils.hpp"
 #include <utils/aspects.h>
 
 namespace QodeAssist::Settings {
@@ -27,6 +28,18 @@ class CustomPromptSettings : public Utils::AspectContainer
 {
 public:
     CustomPromptSettings();
+
+    Utils::StringAspect customJsonLabel{this};
+    Utils::StringAspect customJsonTemplate{this};
+    ButtonAspect saveCustomTemplateButton{this};
+    ButtonAspect loadCustomTemplateButton{this};
+    ButtonAspect resetToDefaults{this};
+
+private:
+    void setupConnection();
+    void resetSettingsToDefaults();
+    void saveCustomTemplate();
+    void loadCustomTemplate();
 };
 
 CustomPromptSettings &customPromptSettings();

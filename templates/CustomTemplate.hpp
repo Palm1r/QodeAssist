@@ -26,6 +26,7 @@
 
 #include "QodeAssistSettings.hpp"
 #include "QodeAssistUtils.hpp"
+#include "settings/CustomPromptSettings.hpp"
 
 namespace QodeAssist::Templates {
 
@@ -33,7 +34,10 @@ class CustomTemplate : public PromptTemplate
 {
 public:
     QString name() const override { return "Custom Template"; }
-    QString promptTemplate() const override { return settings().customJsonTemplate(); }
+    QString promptTemplate() const override
+    {
+        return Settings::customPromptSettings().customJsonTemplate();
+    }
     QStringList stopWords() const override { return QStringList(); }
 
     void prepareRequest(QJsonObject &request, const ContextData &context) const override
