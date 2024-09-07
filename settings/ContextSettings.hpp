@@ -21,12 +21,28 @@
 
 #include <utils/aspects.h>
 
+#include "SettingsUtils.hpp"
+
 namespace QodeAssist::Settings {
 
 class ContextSettings : public Utils::AspectContainer
 {
 public:
     ContextSettings();
+
+    Utils::BoolAspect readFullFile{this};
+    Utils::IntegerAspect readStringsBeforeCursor{this};
+    Utils::IntegerAspect readStringsAfterCursor{this};
+
+    Utils::StringAspect specificInstractions{this};
+    Utils::BoolAspect useSpecificInstructions{this};
+    Utils::BoolAspect useFilePathInContext{this};
+
+    ButtonAspect resetToDefaults{this};
+
+private:
+    void setupConnection();
+    void resetPageToDefaults();
 };
 
 ContextSettings &contextSettings();

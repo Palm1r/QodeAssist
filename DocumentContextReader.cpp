@@ -24,6 +24,7 @@
 #include <languageserverprotocol/lsptypes.h>
 
 #include "QodeAssistSettings.hpp"
+#include "settings/ContextSettings.hpp"
 
 const QRegularExpression &getYearRegex()
 {
@@ -136,7 +137,7 @@ QString DocumentContextReader::getLanguageAndFileInfo() const
 
 QString DocumentContextReader::getSpecificInstructions() const
 {
-    QString specificInstruction = settings().specificInstractions().arg(
+    QString specificInstruction = Settings::contextSettings().specificInstractions().arg(
         LanguageServerProtocol::TextDocumentItem::mimeTypeToLanguageId(m_textDocument->mimeType()));
     return QString("%1").arg(specificInstruction);
 }

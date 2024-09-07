@@ -60,10 +60,6 @@ public:
     Utils::DoubleAspect temperature{this};
     Utils::IntegerAspect maxTokens{this};
 
-    Utils::BoolAspect readFullFile{this};
-    Utils::IntegerAspect readStringsBeforeCursor{this};
-    Utils::IntegerAspect readStringsAfterCursor{this};
-
     Utils::BoolAspect useTopP{this};
     Utils::DoubleAspect topP{this};
 
@@ -77,13 +73,8 @@ public:
     Utils::DoubleAspect frequencyPenalty{this};
 
     Utils::IntegerAspect startSuggestionTimer{this};
-    Utils::IntegerAspect maxFileThreshold{this};
 
     Utils::StringAspect ollamaLivetime{this};
-    Utils::StringAspect specificInstractions{this};
-    Utils::BoolAspect useSpecificInstructions{this};
-    Utils::BoolAspect useFilePathInContext{this};
-    Utils::BoolAspect multiLineCompletion{this};
 
     Utils::StringAspect customJsonTemplate{this};
     ButtonAspect saveCustomTemplateButton{this};

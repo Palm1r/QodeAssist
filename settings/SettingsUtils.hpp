@@ -28,7 +28,7 @@ namespace QodeAssist::Settings {
 template<typename AspectType>
 void resetAspect(AspectType &aspect)
 {
-    aspect.setValue(aspect.defaultValue());
+    aspect.setVolatileValue(aspect.defaultValue());
 }
 
 class ButtonAspect : public Utils::BaseAspect

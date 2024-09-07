@@ -58,23 +58,6 @@ QodeAssistSettings::QodeAssistSettings()
     ollamaLivetime.setDefaultValue("5m");
     ollamaLivetime.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
 
-    readFullFile.setSettingsKey(Constants::READ_FULL_FILE);
-    readFullFile.setLabelText(Tr::tr("Read Full File"));
-    readFullFile.setDefaultValue(false);
-
-    maxFileThreshold.setSettingsKey(Constants::MAX_FILE_THRESHOLD);
-    maxFileThreshold.setLabelText(Tr::tr("Max File Threshold:"));
-    maxFileThreshold.setRange(10, 100000);
-    maxFileThreshold.setDefaultValue(600);
-
-    readStringsBeforeCursor.setSettingsKey(Constants::READ_STRINGS_BEFORE_CURSOR);
-    readStringsBeforeCursor.setLabelText(Tr::tr("Read Strings Before Cursor"));
-    readStringsBeforeCursor.setDefaultValue(50);
-
-    readStringsAfterCursor.setSettingsKey(Constants::READ_STRINGS_AFTER_CURSOR);
-    readStringsAfterCursor.setLabelText(Tr::tr("Read Strings After Cursor"));
-    readStringsAfterCursor.setDefaultValue(30);
-
     maxTokens.setSettingsKey(Constants::MAX_TOKENS);
     maxTokens.setLabelText(Tr::tr("Max Tokens"));
     maxTokens.setRange(-1, 10000);
@@ -117,26 +100,7 @@ QodeAssistSettings::QodeAssistSettings()
     startSuggestionTimer.setRange(10, 10000);
     startSuggestionTimer.setDefaultValue(500);
 
-    useFilePathInContext.setSettingsKey(Constants::USE_FILE_PATH_IN_CONTEXT);
-    useFilePathInContext.setDefaultValue(false);
-    useFilePathInContext.setLabelText(Tr::tr("Use File Path in Context"));
-
-    useSpecificInstructions.setSettingsKey(Constants::USE_SPECIFIC_INSTRUCTIONS);
-    useSpecificInstructions.setDefaultValue(false);
-    useSpecificInstructions.setLabelText(Tr::tr("Use Specific Instructions"));
-
-    specificInstractions.setSettingsKey(Constants::SPECIFIC_INSTRUCTIONS);
-    specificInstractions.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
-    specificInstractions.setLabelText(
-        Tr::tr("Instructions: Please keep %1 for languge name, warning, it shouldn't too big"));
-    specificInstractions.setDefaultValue(
-        "You are an expert %1 code completion AI."
-        "CRITICAL: Please provide minimal the best possible code completion suggestions.\n");
-
     resetToDefaults.m_buttonText = Tr::tr("Reset to Defaults");
-    multiLineCompletion.setSettingsKey(Constants::MULTILINE_COMPLETION);
-    multiLineCompletion.setDefaultValue(true);
-    multiLineCompletion.setLabelText(Tr::tr("Enable Multiline Completion"));
 
     apiKey.setSettingsKey(Constants::API_KEY);
     apiKey.setLabelText(Tr::tr("API Key:"));
@@ -175,9 +139,7 @@ QodeAssistSettings::QodeAssistSettings()
     topP.setEnabled(useTopP());
     presencePenalty.setEnabled(usePresencePenalty());
     frequencyPenalty.setEnabled(useFrequencyPenalty());
-    readStringsAfterCursor.setEnabled(!readFullFile());
-    readStringsBeforeCursor.setEnabled(!readFullFile());
-    specificInstractions.setEnabled(useSpecificInstructions());
+
     customJsonTemplate.setVisible(PromptTemplateManager::instance().getCurrentTemplate()->name()
                                   == "Custom Template");
 
@@ -189,15 +151,15 @@ QodeAssistSettings::QodeAssistSettings()
                                                Row{saveCustomTemplateButton,
                                                    loadCustomTemplateButton,
                                                    Stretch{1}}},
-                                        readFullFile,
-                                        maxFileThreshold,
-                                        readStringsBeforeCursor,
-                                        readStringsAfterCursor,
+                                        // readFullFile,
+                                        // maxFileThreshold,
+                                        // readStringsBeforeCursor,
+                                        // readStringsAfterCursor,
                                         ollamaLivetime,
                                         apiKey,
-                                        useFilePathInContext,
-                                        useSpecificInstructions,
-                                        specificInstractions,
+                                        // useFilePathInContext,
+                                        // useSpecificInstructions,
+                                        // specificInstractions,
                                         temperature,
                                         maxTokens,
                                         startSuggestionTimer,
@@ -225,18 +187,11 @@ void QodeAssistSettings::setupConnections()
     connect(&useFrequencyPenalty, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
         frequencyPenalty.setEnabled(useFrequencyPenalty.volatileValue());
     });
-    connect(&readFullFile, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
-        readStringsAfterCursor.setEnabled(!readFullFile.volatileValue());
-        readStringsBeforeCursor.setEnabled(!readFullFile.volatileValue());
-    });
+
     connect(&resetToDefaults,
             &ButtonAspect::clicked,
             this,
             &QodeAssistSettings::resetSettingsToDefaults);
-
-    connect(&useSpecificInstructions, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
-        specificInstractions.setEnabled(useSpecificInstructions.volatileValue());
-    });
 
     connect(&saveCustomTemplateButton,
             &ButtonAspect::clicked,
@@ -277,10 +232,10 @@ void QodeAssistSettings::resetSettingsToDefaults()
         // resetAspect(fimPrompts);
         resetAspect(temperature);
         resetAspect(maxTokens);
-        resetAspect(readFullFile);
-        resetAspect(maxFileThreshold);
-        resetAspect(readStringsBeforeCursor);
-        resetAspect(readStringsAfterCursor);
+        // resetAspect(readFullFile);
+        // resetAspect(maxFileThreshold);
+        // resetAspect(readStringsBeforeCursor);
+        // resetAspect(readStringsAfterCursor);
         resetAspect(useTopP);
         resetAspect(topP);
         resetAspect(useTopK);
@@ -292,10 +247,10 @@ void QodeAssistSettings::resetSettingsToDefaults()
         resetAspect(startSuggestionTimer);
         // resetAspect(enableLogging);
         resetAspect(ollamaLivetime);
-        resetAspect(specificInstractions);
-        resetAspect(multiLineCompletion);
-        resetAspect(useFilePathInContext);
-        resetAspect(useSpecificInstructions);
+        // resetAspect(specificInstractions);
+        // resetAspect(multiLineCompletion);
+        // resetAspect(useFilePathInContext);
+        // resetAspect(useSpecificInstructions);
         resetAspect(customJsonTemplate);
 
         // fimPrompts.setStringValue("StarCoder2");

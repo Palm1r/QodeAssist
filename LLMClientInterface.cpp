@@ -30,6 +30,7 @@
 #include "PromptTemplateManager.hpp"
 #include "QodeAssistSettings.hpp"
 #include "QodeAssistUtils.hpp"
+#include "settings/ContextSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 
 namespace QodeAssist {
@@ -131,12 +132,13 @@ QString LLMClientInterface::сontextBefore(TextEditor::TextEditorWidget *widget,
         return QString();
 
     QString contextBefore;
-    if (settings().readFullFile()) {
+    if (Settings::contextSettings().readFullFile()) {
         contextBefore = reader.readWholeFileBefore(lineNumber, cursorPosition);
     } else {
-        contextBefore = reader.getContextBefore(lineNumber,
-                                                cursorPosition,
-                                                settings().readStringsBeforeCursor());
+        contextBefore
+            = reader.getContextBefore(lineNumber,
+                                      cursorPosition,
+                                      Settings::contextSettings().readStringsBeforeCursor());
     }
 
     return contextBefore;
@@ -154,12 +156,12 @@ QString LLMClientInterface::сontextAfter(TextEditor::TextEditorWidget *widget,
         return QString();
 
     QString contextAfter;
-    if (settings().readFullFile()) {
+    if (Settings::contextSettings().readFullFile()) {
         contextAfter = reader.readWholeFileAfter(lineNumber, cursorPosition);
     } else {
         contextAfter = reader.getContextAfter(lineNumber,
                                               cursorPosition,
-                                              settings().readStringsAfterCursor());
+                                              Settings::contextSettings().readStringsAfterCursor());
     }
 
     return contextAfter;
@@ -228,7 +230,7 @@ void LLMClientInterface::handleLLMResponse(QNetworkReply *reply, const QJsonObje
 
     QJsonObject position = request["params"].toObject()["doc"].toObject()["position"].toObject();
 
-    if (!settings().multiLineCompletion()
+    if (!Settings::generalSettings().multiLineCompletion()
         && processSingleLineCompletion(reply, request, accumulatedResponse)) {
         return;
     }
@@ -278,10 +280,10 @@ ContextData LLMClientInterface::prepareContext(const QJsonObject &request,
 
     QString contextBefore = сontextBefore(widget, lineNumber, cursorPosition);
     QString contextAfter = сontextAfter(widget, lineNumber, cursorPosition);
-    QString instructions = QString("%1%2").arg(settings().useSpecificInstructions()
+    QString instructions = QString("%1%2").arg(Settings::contextSettings().useSpecificInstructions()
                                                    ? reader.getSpecificInstructions()
                                                    : QString(),
-                                               settings().useFilePathInContext()
+                                               Settings::contextSettings().useFilePathInContext()
                                                    ? reader.getLanguageAndFileInfo()
                                                    : QString());
 

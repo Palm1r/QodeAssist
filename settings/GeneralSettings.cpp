@@ -155,8 +155,8 @@ void GeneralSettings::updateProviderSettings()
     const auto provider = LLMProvidersManager::instance().getCurrentProvider();
 
     if (provider) {
-        url.setValue(provider->url());
-        endPoint.setValue(provider->completionEndpoint());
+        url.setVolatileValue(provider->url());
+        endPoint.setVolatileValue(provider->completionEndpoint());
     }
 }
 
@@ -177,7 +177,7 @@ void GeneralSettings::showModelSelectionDialog()
                                                       &ok);
 
         if (ok && !selectedModel.isEmpty()) {
-            modelName.setValue(selectedModel);
+            modelName.setVolatileValue(selectedModel);
             writeSettings();
         }
     }
@@ -205,8 +205,6 @@ void GeneralSettings::resetPageToDefaults()
 
     fimPrompts.setStringValue("StarCoder2");
     llmProviders.setStringValue("Ollama");
-
-    apply();
 
     QMessageBox::information(Core::ICore::dialogParent(),
                              Tr::tr("Settings Reset"),
