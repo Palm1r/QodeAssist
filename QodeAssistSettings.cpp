@@ -45,11 +45,6 @@ QodeAssistSettings::QodeAssistSettings()
 {
     setAutoApply(false);
 
-    startSuggestionTimer.setSettingsKey(Constants::START_SUGGESTION_TIMER);
-    startSuggestionTimer.setLabelText(Tr::tr("Start Suggestion Timer:"));
-    startSuggestionTimer.setRange(10, 10000);
-    startSuggestionTimer.setDefaultValue(500);
-
     resetToDefaults.m_buttonText = Tr::tr("Reset to Defaults");
 
     customJsonTemplate.setSettingsKey(Constants::CUSTOM_JSON_TEMPLATE);
@@ -171,7 +166,7 @@ void QodeAssistSettings::resetSettingsToDefaults()
         // resetAspect(presencePenalty);
         // resetAspect(useFrequencyPenalty);
         // resetAspect(frequencyPenalty);
-        resetAspect(startSuggestionTimer);
+        // resetAspect(startSuggestionTimer);
         // resetAspect(enableLogging);
         // resetAspect(ollamaLivetime);
         // resetAspect(specificInstractions);

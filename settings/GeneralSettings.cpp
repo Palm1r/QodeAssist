@@ -61,6 +61,11 @@ GeneralSettings::GeneralSettings()
     multiLineCompletion.setDefaultValue(true);
     multiLineCompletion.setLabelText(Tr::tr("Enable Multiline Completion"));
 
+    startSuggestionTimer.setSettingsKey(Constants::START_SUGGESTION_TIMER);
+    startSuggestionTimer.setLabelText(Tr::tr("Start Suggestion Timer:"));
+    startSuggestionTimer.setRange(10, 10000);
+    startSuggestionTimer.setDefaultValue(500);
+
     llmProviders.setSettingsKey(Constants::LLM_PROVIDERS);
     llmProviders.setDisplayName(Tr::tr("LLM Providers:"));
     llmProviders.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
@@ -115,6 +120,7 @@ GeneralSettings::GeneralSettings()
 
         auto rootLayout = Column{Row{enableQodeAssist, Stretch{1}, resetToDefaults},
                                  enableAutoComplete,
+                                 startSuggestionTimer,
                                  multiLineCompletion,
                                  Space{8},
                                  enableLogging,
@@ -201,6 +207,7 @@ void GeneralSettings::resetPageToDefaults()
         resetAspect(modelName);
         resetAspect(fimPrompts);
         resetAspect(enableLogging);
+        resetAspect(startSuggestionTimer);
     }
 
     fimPrompts.setStringValue("StarCoder2");

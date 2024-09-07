@@ -57,8 +57,6 @@ class QodeAssistSettings : public Utils::AspectContainer
 public:
     QodeAssistSettings();
 
-    Utils::IntegerAspect startSuggestionTimer{this};
-
     Utils::StringAspect customJsonTemplate{this};
     ButtonAspect saveCustomTemplateButton{this};
     ButtonAspect loadCustomTemplateButton{this};

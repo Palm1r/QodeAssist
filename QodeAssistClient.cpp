@@ -145,7 +145,7 @@ void QodeAssistClient::scheduleRequest(TextEditor::TextEditorWidget *editor)
     }
 
     it.value()->setProperty("cursorPosition", editor->textCursor().position());
-    it.value()->start(settings().startSuggestionTimer());
+    it.value()->start(Settings::generalSettings().startSuggestionTimer());
 }
 
 void QodeAssistClient::handleCompletions(const GetCompletionRequest::Response &response,
