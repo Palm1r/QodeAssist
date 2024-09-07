@@ -51,4 +51,8 @@ add_qtc_plugin(QodeAssist
     DocumentContextReader.hpp DocumentContextReader.cpp
     QodeAssistData.hpp
     utils/CounterTooltip.hpp utils/CounterTooltip.cpp
+    settings/GeneralSettings.hpp settings/GeneralSettings.cpp
+    settings/ContextSettings.hpp settings/ContextSettings.cpp
+    settings/CustomPromptSettings.hpp settings/CustomPromptSettings.cpp
+    settings/PresetPromptsSettings.hpp settings/PresetPromptsSettings.cpp
 )

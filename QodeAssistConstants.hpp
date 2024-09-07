@@ -59,6 +59,12 @@ const char USE_FILE_PATH_IN_CONTEXT[] = "QodeAssist.useFilePathInContext";
 const char CUSTOM_JSON_TEMPLATE[] = "QodeAssist.customJsonTemplate";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
+const char QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID[] = "QodeAssist.1GeneralSettingsPageId";
+const char QODE_ASSIST_CONTEXT_SETTINGS_PAGE_ID[] = "QodeAssist.2ContextSettingsPageId";
+const char QODE_ASSIST_PRESET_PROMPTS_SETTINGS_PAGE_ID[]
+    = "QodeAssist.3PresetPromptsSettingsPageId";
+const char QODE_ASSIST_CUSTOM_PROMPT_SETTINGS_PAGE_ID[] = "QodeAssist.4CustomPromptSettingsPageId";
+
 const char QODE_ASSIST_GENERAL_OPTIONS_CATEGORY[] = "QodeAssist.Category";
 const char QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY[] = "Qode Assist";
 
