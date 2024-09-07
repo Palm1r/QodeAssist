@@ -26,6 +26,7 @@
 
 #include "PromptTemplateManager.hpp"
 #include "QodeAssistSettings.hpp"
+#include "settings/PresetPromptsSettings.hpp"
 
 namespace QodeAssist::Providers {
 
@@ -48,6 +49,7 @@ QString OpenAICompatProvider::completionEndpoint() const
 
 void OpenAICompatProvider::prepareRequest(QJsonObject &request)
 {
+    auto &settings = Settings::presetPromptsSettings();
     const auto &currentTemplate = PromptTemplateManager::instance().getCurrentTemplate();
     if (currentTemplate->name() == "Custom Template")
         return;
@@ -58,19 +60,19 @@ void OpenAICompatProvider::prepareRequest(QJsonObject &request)
         request["messages"] = std::move(messages);
     }
 
-    request["max_tokens"] = settings().maxTokens();
-    request["temperature"] = settings().temperature();
+    request["max_tokens"] = settings.maxTokens();
+    request["temperature"] = settings.temperature();
     request["stop"] = QJsonArray::fromStringList(currentTemplate->stopWords());
-    if (settings().useTopP())
-        request["top_p"] = settings().topP();
-    if (settings().useTopK())
-        request["top_k"] = settings().topK();
-    if (settings().useFrequencyPenalty())
-        request["frequency_penalty"] = settings().frequencyPenalty();
-    if (settings().usePresencePenalty())
-        request["presence_penalty"] = settings().presencePenalty();
+    if (settings.useTopP())
+        request["top_p"] = settings.topP();
+    if (settings.useTopK())
+        request["top_k"] = settings.topK();
+    if (settings.useFrequencyPenalty())
+        request["frequency_penalty"] = settings.frequencyPenalty();
+    if (settings.usePresencePenalty())
+        request["presence_penalty"] = settings.presencePenalty();
 
-    const QString &apiKey = settings().apiKey.value();
+    const QString &apiKey = settings.apiKey.value();
     if (!apiKey.isEmpty()) {
         request["api_key"] = apiKey;
     }

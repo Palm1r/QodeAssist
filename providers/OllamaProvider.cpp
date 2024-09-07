@@ -28,6 +28,7 @@
 #include "PromptTemplateManager.hpp"
 #include "QodeAssistSettings.hpp"
 #include "QodeAssistUtils.hpp"
+#include "settings/PresetPromptsSettings.hpp"
 
 namespace QodeAssist::Providers {
 
@@ -50,23 +51,24 @@ QString OllamaProvider::completionEndpoint() const
 
 void OllamaProvider::prepareRequest(QJsonObject &request)
 {
+    auto &settings = Settings::presetPromptsSettings();
     auto currentTemplate = PromptTemplateManager::instance().getCurrentTemplate();
     if (currentTemplate->name() == "Custom Template")
         return;
 
     QJsonObject options;
-    options["num_predict"] = settings().maxTokens();
-    options["keep_alive"] = settings().ollamaLivetime();
-    options["temperature"] = settings().temperature();
+    options["num_predict"] = settings.maxTokens();
+    options["keep_alive"] = settings.ollamaLivetime();
+    options["temperature"] = settings.temperature();
     options["stop"] = QJsonArray::fromStringList(currentTemplate->stopWords());
-    if (settings().useTopP())
-        options["top_p"] = settings().topP();
-    if (settings().useTopK())
-        options["top_k"] = settings().topK();
-    if (settings().useFrequencyPenalty())
-        options["frequency_penalty"] = settings().frequencyPenalty();
-    if (settings().usePresencePenalty())
-        options["presence_penalty"] = settings().presencePenalty();
+    if (settings.useTopP())
+        options["top_p"] = settings.topP();
+    if (settings.useTopK())
+        options["top_k"] = settings.topK();
+    if (settings.useFrequencyPenalty())
+        options["frequency_penalty"] = settings.frequencyPenalty();
+    if (settings.usePresencePenalty())
+        options["presence_penalty"] = settings.presencePenalty();
     request["options"] = options;
 }
 

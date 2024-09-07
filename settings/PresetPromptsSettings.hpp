@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "settings/SettingsUtils.hpp"
 #include <utils/aspects.h>
 
 namespace QodeAssist::Settings {
@@ -27,6 +28,30 @@ class PresetPromptsSettings : public Utils::AspectContainer
 {
 public:
     PresetPromptsSettings();
+
+    Utils::DoubleAspect temperature{this};
+    Utils::IntegerAspect maxTokens{this};
+
+    Utils::BoolAspect useTopP{this};
+    Utils::DoubleAspect topP{this};
+
+    Utils::BoolAspect useTopK{this};
+    Utils::IntegerAspect topK{this};
+
+    Utils::BoolAspect usePresencePenalty{this};
+    Utils::DoubleAspect presencePenalty{this};
+
+    Utils::BoolAspect useFrequencyPenalty{this};
+    Utils::DoubleAspect frequencyPenalty{this};
+
+    Utils::StringAspect ollamaLivetime{this};
+    Utils::StringAspect apiKey{this};
+
+    ButtonAspect resetToDefaults{this};
+
+private:
+    void setupConnections();
+    void resetSettingsToDefaults();
 };
 
 PresetPromptsSettings &presetPromptsSettings();

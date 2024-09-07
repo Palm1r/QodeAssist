@@ -57,29 +57,11 @@ class QodeAssistSettings : public Utils::AspectContainer
 public:
     QodeAssistSettings();
 
-    Utils::DoubleAspect temperature{this};
-    Utils::IntegerAspect maxTokens{this};
-
-    Utils::BoolAspect useTopP{this};
-    Utils::DoubleAspect topP{this};
-
-    Utils::BoolAspect useTopK{this};
-    Utils::IntegerAspect topK{this};
-
-    Utils::BoolAspect usePresencePenalty{this};
-    Utils::DoubleAspect presencePenalty{this};
-
-    Utils::BoolAspect useFrequencyPenalty{this};
-    Utils::DoubleAspect frequencyPenalty{this};
-
     Utils::IntegerAspect startSuggestionTimer{this};
-
-    Utils::StringAspect ollamaLivetime{this};
 
     Utils::StringAspect customJsonTemplate{this};
     ButtonAspect saveCustomTemplateButton{this};
     ButtonAspect loadCustomTemplateButton{this};
-    Utils::StringAspect apiKey{this};
 
     ButtonAspect resetToDefaults{this};
 

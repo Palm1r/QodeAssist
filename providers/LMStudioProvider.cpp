@@ -28,6 +28,7 @@
 #include "PromptTemplateManager.hpp"
 #include "QodeAssistSettings.hpp"
 #include "QodeAssistUtils.hpp"
+#include "settings/PresetPromptsSettings.hpp"
 
 namespace QodeAssist::Providers {
 
@@ -50,6 +51,7 @@ QString LMStudioProvider::completionEndpoint() const
 
 void LMStudioProvider::prepareRequest(QJsonObject &request)
 {
+    auto &settings = Settings::presetPromptsSettings();
     const auto &currentTemplate = PromptTemplateManager::instance().getCurrentTemplate();
     if (currentTemplate->name() == "Custom Template")
         return;
@@ -59,17 +61,17 @@ void LMStudioProvider::prepareRequest(QJsonObject &request)
         request["messages"] = std::move(messages);
     }
 
-    request["max_tokens"] = settings().maxTokens();
-    request["temperature"] = settings().temperature();
+    request["max_tokens"] = settings.maxTokens();
+    request["temperature"] = settings.temperature();
     request["stop"] = QJsonArray::fromStringList(currentTemplate->stopWords());
-    if (settings().useTopP())
-        request["top_p"] = settings().topP();
-    if (settings().useTopK())
-        request["top_k"] = settings().topK();
-    if (settings().useFrequencyPenalty())
-        request["frequency_penalty"] = settings().frequencyPenalty();
-    if (settings().usePresencePenalty())
-        request["presence_penalty"] = settings().presencePenalty();
+    if (settings.useTopP())
+        request["top_p"] = settings.topP();
+    if (settings.useTopK())
+        request["top_k"] = settings.topK();
+    if (settings.useFrequencyPenalty())
+        request["frequency_penalty"] = settings.frequencyPenalty();
+    if (settings.usePresencePenalty())
+        request["presence_penalty"] = settings.presencePenalty();
 }
 
 bool LMStudioProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
