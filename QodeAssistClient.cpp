@@ -32,6 +32,7 @@
 #include "LLMClientInterface.hpp"
 #include "LLMSuggestion.hpp"
 #include "QodeAssistSettings.hpp"
+#include "settings/GeneralSettings.hpp"
 
 using namespace LanguageServerProtocol;
 using namespace TextEditor;
@@ -70,7 +71,7 @@ void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
             this,
             [this, document](int position, int charsRemoved, int charsAdded) {
                 Q_UNUSED(charsRemoved)
-                if (!settings().enableAutoComplete())
+                if (!Settings::generalSettings().enableAutoComplete())
                     return;
 
                 auto project = ProjectManager::projectForFile(document->filePath());
@@ -204,7 +205,7 @@ void QodeAssistClient::cancelRunningRequest(TextEditor::TextEditorWidget *editor
 
 bool QodeAssistClient::isEnabled(ProjectExplorer::Project *project) const
 {
-    return settings().enableQodeAssist();
+    return Settings::generalSettings().enableQodeAssist();
 }
 
 void QodeAssistClient::setupConnections()

@@ -19,10 +19,16 @@
 
 #include "GeneralSettings.hpp"
 
+#include <QInputDialog>
+#include <QMessageBox>
 #include <coreplugin/dialogs/ioptionspage.h>
+#include <coreplugin/icore.h>
 #include <utils/layoutbuilder.h>
 
+#include "LLMProvidersManager.hpp"
+#include "PromptTemplateManager.hpp"
 #include "QodeAssistConstants.hpp"
+#include "QodeAssistUtils.hpp"
 #include "QodeAssisttr.h"
 
 namespace QodeAssist::Settings {
@@ -39,10 +45,172 @@ GeneralSettings::GeneralSettings()
 
     setDisplayName(Tr::tr("General"));
 
+    enableQodeAssist.setSettingsKey(Constants::ENABLE_QODE_ASSIST);
+    enableQodeAssist.setLabelText(Tr::tr("Enable Qode Assist"));
+    enableQodeAssist.setDefaultValue(true);
+
+    enableAutoComplete.setSettingsKey(Constants::ENABLE_AUTO_COMPLETE);
+    enableAutoComplete.setLabelText(Tr::tr("Enable Auto Complete"));
+    enableAutoComplete.setDefaultValue(true);
+
+    enableLogging.setSettingsKey(Constants::ENABLE_LOGGING);
+    enableLogging.setLabelText(Tr::tr("Enable Logging"));
+    enableLogging.setDefaultValue(false);
+
+    multiLineCompletion.setSettingsKey(Constants::MULTILINE_COMPLETION);
+    multiLineCompletion.setDefaultValue(true);
+    multiLineCompletion.setLabelText(Tr::tr("Enable Multiline Completion"));
+
+    llmProviders.setSettingsKey(Constants::LLM_PROVIDERS);
+    llmProviders.setDisplayName(Tr::tr("LLM Providers:"));
+    llmProviders.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+    llmProviders.setDefaultValue(0);
+
+    url.setSettingsKey(Constants::URL);
+    url.setLabelText(Tr::tr("URL:"));
+    url.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+
+    endPoint.setSettingsKey(Constants::END_POINT);
+    endPoint.setLabelText(Tr::tr("Endpoint:"));
+    endPoint.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+
+    modelName.setSettingsKey(Constants::MODEL_NAME);
+    modelName.setLabelText(Tr::tr("LLM Name:"));
+    modelName.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+
+    selectModels.m_buttonText = Tr::tr("Select Model");
+
+    fimPrompts.setDisplayName(Tr::tr("Fill-In-Middle Prompt"));
+    fimPrompts.setSettingsKey(Constants::FIM_PROMPTS);
+    fimPrompts.setDefaultValue(0);
+    fimPrompts.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+    resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
+
+    const auto &manager = LLMProvidersManager::instance();
+    if (!manager.getProviderNames().isEmpty()) {
+        const auto providerNames = manager.getProviderNames();
+        for (const QString &name : providerNames) {
+            llmProviders.addOption(name);
+        }
+    }
+
+    const auto &promptManager = PromptTemplateManager::instance();
+    if (!promptManager.getTemplateNames().isEmpty()) {
+        const auto promptNames = promptManager.getTemplateNames();
+        for (const QString &name : promptNames) {
+            fimPrompts.addOption(name);
+        }
+    }
+
+    readSettings();
+
+    LLMProvidersManager::instance().setCurrentProvider(llmProviders.stringValue());
+    PromptTemplateManager::instance().setCurrentTemplate(fimPrompts.stringValue());
+    setLoggingEnabled(enableLogging());
+
+    setupConnections();
+
     setLayouter([this]() {
         using namespace Layouting;
-        return Column{Stretch{1}};
+
+        auto rootLayout = Column{Row{enableQodeAssist, Stretch{1}, resetToDefaults},
+                                 enableAutoComplete,
+                                 multiLineCompletion,
+                                 Space{8},
+                                 enableLogging,
+                                 Space{8},
+                                 llmProviders,
+                                 Row{url, endPoint},
+                                 Space{8},
+                                 Row{selectModels, modelName},
+                                 Space{8},
+                                 fimPrompts,
+                                 Stretch{1}};
+        return rootLayout;
     });
+}
+
+void GeneralSettings::setupConnections()
+{
+    connect(&llmProviders, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
+        int index = llmProviders.volatileValue();
+        logMessage(QString("currentProvider %1").arg(llmProviders.displayForIndex(index)));
+        LLMProvidersManager::instance().setCurrentProvider(llmProviders.displayForIndex(index));
+        updateProviderSettings();
+    });
+    connect(&fimPrompts, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
+        int index = fimPrompts.volatileValue();
+        logMessage(QString("currentPrompt %1").arg(fimPrompts.displayForIndex(index)));
+        PromptTemplateManager::instance().setCurrentTemplate(fimPrompts.displayForIndex(index));
+    });
+    connect(&selectModels, &ButtonAspect::clicked, this, [this]() { showModelSelectionDialog(); });
+    connect(&enableLogging, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
+        setLoggingEnabled(enableLogging.volatileValue());
+    });
+    connect(&resetToDefaults, &ButtonAspect::clicked, this, &GeneralSettings::resetPageToDefaults);
+}
+
+void GeneralSettings::updateProviderSettings()
+{
+    const auto provider = LLMProvidersManager::instance().getCurrentProvider();
+
+    if (provider) {
+        url.setValue(provider->url());
+        endPoint.setValue(provider->completionEndpoint());
+    }
+}
+
+void GeneralSettings::showModelSelectionDialog()
+{
+    auto *provider = LLMProvidersManager::instance().getCurrentProvider();
+    Utils::Environment env = Utils::Environment::systemEnvironment();
+
+    if (provider) {
+        QStringList models = provider->getInstalledModels(env);
+        bool ok;
+        QString selectedModel = QInputDialog::getItem(Core::ICore::dialogParent(),
+                                                      Tr::tr("Select LLM Model"),
+                                                      Tr::tr("Choose a model:"),
+                                                      models,
+                                                      0,
+                                                      false,
+                                                      &ok);
+
+        if (ok && !selectedModel.isEmpty()) {
+            modelName.setValue(selectedModel);
+            writeSettings();
+        }
+    }
+}
+
+void GeneralSettings::resetPageToDefaults()
+{
+    QMessageBox::StandardButton reply;
+    reply = QMessageBox::question(
+        Core::ICore::dialogParent(),
+        Tr::tr("Reset Settings"),
+        Tr::tr("Are you sure you want to reset all settings to default values?"),
+        QMessageBox::Yes | QMessageBox::No);
+
+    if (reply == QMessageBox::Yes) {
+        resetAspect(enableQodeAssist);
+        resetAspect(enableAutoComplete);
+        resetAspect(llmProviders);
+        resetAspect(url);
+        resetAspect(endPoint);
+        resetAspect(modelName);
+        resetAspect(fimPrompts);
+        resetAspect(enableLogging);
+    }
+
+    fimPrompts.setStringValue("StarCoder2");
+    llmProviders.setStringValue("Ollama");
+
+    apply();
+
+    QMessageBox::information(Core::ICore::dialogParent(),
+                             Tr::tr("Settings Reset"),
+                             Tr::tr("All settings have been reset to their default values."));
 }
 
 class GeneralSettingsPage : public Core::IOptionsPage

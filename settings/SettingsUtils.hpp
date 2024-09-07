@@ -19,38 +19,37 @@
 
 #pragma once
 
+#include <QPushButton>
 #include <utils/aspects.h>
-
-#include "settings/SettingsUtils.hpp"
+#include <utils/layoutbuilder.h>
 
 namespace QodeAssist::Settings {
 
-class GeneralSettings : public Utils::AspectContainer
+template<typename AspectType>
+void resetAspect(AspectType &aspect)
 {
+    aspect.setValue(aspect.defaultValue());
+}
+
+class ButtonAspect : public Utils::BaseAspect
+{
+    Q_OBJECT
+
 public:
-    GeneralSettings();
+    ButtonAspect(Utils::AspectContainer *container = nullptr)
+        : Utils::BaseAspect(container)
+    {}
 
-    Utils::BoolAspect enableQodeAssist{this};
-    Utils::BoolAspect enableAutoComplete{this};
-    Utils::BoolAspect multiLineCompletion{this};
-    Utils::BoolAspect enableLogging{this};
+    void addToLayout(Layouting::Layout &parent) override
+    {
+        auto button = new QPushButton(m_buttonText);
+        connect(button, &QPushButton::clicked, this, &ButtonAspect::clicked);
+        parent.addItem(button);
+    }
 
-    Utils::SelectionAspect llmProviders{this};
-    Utils::StringAspect url{this};
-    Utils::StringAspect endPoint{this};
-
-    Utils::StringAspect modelName{this};
-    ButtonAspect selectModels{this};
-    Utils::SelectionAspect fimPrompts{this};
-    ButtonAspect resetToDefaults{this};
-
-private:
-    void setupConnections();
-    void updateProviderSettings();
-    void showModelSelectionDialog();
-    void resetPageToDefaults();
+    QString m_buttonText;
+signals:
+    void clicked();
 };
-
-GeneralSettings &generalSettings();
 
 } // namespace QodeAssist::Settings

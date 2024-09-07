@@ -45,41 +45,11 @@ QodeAssistSettings::QodeAssistSettings()
 {
     setAutoApply(false);
 
-    enableQodeAssist.setSettingsKey(Constants::ENABLE_QODE_ASSIST);
-    enableQodeAssist.setLabelText(Tr::tr("Enable Qode Assist"));
-    enableQodeAssist.setDefaultValue(true);
-
-    enableAutoComplete.setSettingsKey(Constants::ENABLE_AUTO_COMPLETE);
-    enableAutoComplete.setLabelText(Tr::tr("Enable Auto Complete"));
-    enableAutoComplete.setDefaultValue(true);
-
-    enableLogging.setSettingsKey(Constants::ENABLE_LOGGING);
-    enableLogging.setLabelText(Tr::tr("Enable Logging"));
-    enableLogging.setDefaultValue(false);
-
-    llmProviders.setSettingsKey(Constants::LLM_PROVIDERS);
-    llmProviders.setDisplayName(Tr::tr("LLM Providers:"));
-    llmProviders.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
-    llmProviders.setDefaultValue(0);
-
-    url.setSettingsKey(Constants::URL);
-    url.setLabelText(Tr::tr("URL:"));
-    url.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
-
-    endPoint.setSettingsKey(Constants::END_POINT);
-    endPoint.setLabelText(Tr::tr("Endpoint:"));
-    endPoint.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
-
-    modelName.setSettingsKey(Constants::MODEL_NAME);
-    modelName.setLabelText(Tr::tr("LLM Name:"));
-    modelName.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
-
     temperature.setSettingsKey(Constants::TEMPERATURE);
     temperature.setLabelText(Tr::tr("Temperature:"));
     temperature.setDefaultValue(0.2);
     temperature.setRange(0.0, 10.0);
 
-    selectModels.m_buttonText = Tr::tr("Select Model");
 
     ollamaLivetime.setSettingsKey(Constants::OLLAMA_LIVETIME);
     ollamaLivetime.setLabelText(
@@ -87,11 +57,6 @@ QodeAssistSettings::QodeAssistSettings()
                "Only Ollama,  -1 to disable"));
     ollamaLivetime.setDefaultValue("5m");
     ollamaLivetime.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
-
-    fimPrompts.setDisplayName(Tr::tr("Fill-In-Middle Prompt"));
-    fimPrompts.setSettingsKey(Constants::FIM_PROMPTS);
-    fimPrompts.setDefaultValue(0);
-    fimPrompts.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
 
     readFullFile.setSettingsKey(Constants::READ_FULL_FILE);
     readFullFile.setLabelText(Tr::tr("Read Full File"));
@@ -204,22 +169,6 @@ QodeAssistSettings::QodeAssistSettings()
     saveCustomTemplateButton.m_buttonText = (Tr::tr("Save Custom Template to JSON"));
     loadCustomTemplateButton.m_buttonText = (Tr::tr("Load Custom Template from JSON"));
 
-    const auto &manager = LLMProvidersManager::instance();
-    if (!manager.getProviderNames().isEmpty()) {
-        const auto providerNames = manager.getProviderNames();
-        for (const QString &name : providerNames) {
-            llmProviders.addOption(name);
-        }
-    }
-
-    const auto &promptManager = PromptTemplateManager::instance();
-    if (!promptManager.getTemplateNames().isEmpty()) {
-        const auto promptNames = promptManager.getTemplateNames();
-        for (const QString &name : promptNames) {
-            fimPrompts.addOption(name);
-        }
-    }
-
     readSettings();
 
     topK.setEnabled(useTopK());
@@ -229,29 +178,14 @@ QodeAssistSettings::QodeAssistSettings()
     readStringsAfterCursor.setEnabled(!readFullFile());
     readStringsBeforeCursor.setEnabled(!readFullFile());
     specificInstractions.setEnabled(useSpecificInstructions());
-    PromptTemplateManager::instance().setCurrentTemplate(fimPrompts.stringValue());
-    LLMProvidersManager::instance().setCurrentProvider(llmProviders.stringValue());
     customJsonTemplate.setVisible(PromptTemplateManager::instance().getCurrentTemplate()->name()
                                   == "Custom Template");
-
-    setLoggingEnabled(enableLogging());
 
     setLayouter([this]() {
         using namespace Layouting;
 
-        return Column{Group{title(Tr::tr("General Settings")),
-                            Form{Column{enableQodeAssist,
-                                        enableAutoComplete,
-                                        multiLineCompletion,
-                                        enableLogging,
-                                        Row{Stretch{1}, resetToDefaults}}}},
-                      Group{title(Tr::tr("LLM Providers")),
-                            Form{Column{llmProviders, Row{url, endPoint}}}},
-                      Group{title(Tr::tr("LLM Model Settings")),
-                            Form{Column{Row{selectModels, modelName}}}},
-                      Group{title(Tr::tr("FIM Prompt Settings")),
-                            Form{Column{fimPrompts,
-                                        Column{customJsonTemplate,
+        return Column{Group{title(Tr::tr("FIM Prompt Settings")),
+                            Form{Column{Column{customJsonTemplate,
                                                Row{saveCustomTemplateButton,
                                                    loadCustomTemplateButton,
                                                    Stretch{1}}},
@@ -279,21 +213,6 @@ QodeAssistSettings::QodeAssistSettings()
 
 void QodeAssistSettings::setupConnections()
 {
-    connect(&llmProviders, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
-        int index = llmProviders.volatileValue();
-        logMessage(QString("currentProvider %1").arg(llmProviders.displayForIndex(index)));
-        LLMProvidersManager::instance().setCurrentProvider(llmProviders.displayForIndex(index));
-        updateProviderSettings();
-    });
-
-    connect(&fimPrompts, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
-        int index = fimPrompts.volatileValue();
-        logMessage(QString("currentPrompt %1").arg(fimPrompts.displayForIndex(index)));
-        PromptTemplateManager::instance().setCurrentTemplate(fimPrompts.displayForIndex(index));
-        customJsonTemplate.setVisible(fimPrompts.displayForIndex(index) == "Custom Template"); 
-    });
-
-    connect(&selectModels, &ButtonAspect::clicked, this, [this]() { showModelSelectionDialog(); });
     connect(&useTopP, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
         topP.setEnabled(useTopP.volatileValue());
     });
@@ -314,9 +233,7 @@ void QodeAssistSettings::setupConnections()
             &ButtonAspect::clicked,
             this,
             &QodeAssistSettings::resetSettingsToDefaults);
-    connect(&enableLogging, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
-        setLoggingEnabled(enableLogging.volatileValue());
-    });
+
     connect(&useSpecificInstructions, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
         specificInstractions.setEnabled(useSpecificInstructions.volatileValue());
     });
@@ -331,18 +248,6 @@ void QodeAssistSettings::setupConnections()
             &QodeAssistSettings::loadCustomTemplate);
 }
 
-void QodeAssistSettings::updateProviderSettings()
-{
-    auto *provider = LLMProvidersManager::instance().getCurrentProvider();
-
-    if (provider) {
-        logMessage(QString("currentProvider %1").arg(provider->name()));
-        url.setValue(provider->url());
-        endPoint.setValue(provider->completionEndpoint());
-        ollamaLivetime.setEnabled(provider->name() == "Ollama");
-    }
-}
-
 QStringList QodeAssistSettings::getInstalledModels()
 {
     auto *provider = LLMProvidersManager::instance().getCurrentProvider();
@@ -351,25 +256,6 @@ QStringList QodeAssistSettings::getInstalledModels()
         return provider->getInstalledModels(env);
     }
     return {};
-}
-
-void QodeAssistSettings::showModelSelectionDialog()
-{
-    QStringList models = getInstalledModels();
-
-    bool ok;
-    QString selectedModel = QInputDialog::getItem(Core::ICore::dialogParent(),
-                                                  Tr::tr("Select LLM Model"),
-                                                  Tr::tr("Choose a model:"),
-                                                  models,
-                                                  0,
-                                                  false,
-                                                  &ok);
-
-    if (ok && !selectedModel.isEmpty()) {
-        modelName.setValue(selectedModel);
-        writeSettings();
-    }
 }
 
 void QodeAssistSettings::resetSettingsToDefaults()
@@ -382,13 +268,13 @@ void QodeAssistSettings::resetSettingsToDefaults()
         QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
-        resetAspect(enableQodeAssist);
-        resetAspect(enableAutoComplete);
-        resetAspect(llmProviders);
-        resetAspect(url);
-        resetAspect(endPoint);
-        resetAspect(modelName);
-        resetAspect(fimPrompts);
+        // resetAspect(enableQodeAssist);
+        // resetAspect(enableAutoComplete);
+        // resetAspect(llmProviders);
+        // resetAspect(url);
+        // resetAspect(endPoint);
+        // resetAspect(modelName);
+        // resetAspect(fimPrompts);
         resetAspect(temperature);
         resetAspect(maxTokens);
         resetAspect(readFullFile);
@@ -404,7 +290,7 @@ void QodeAssistSettings::resetSettingsToDefaults()
         resetAspect(useFrequencyPenalty);
         resetAspect(frequencyPenalty);
         resetAspect(startSuggestionTimer);
-        resetAspect(enableLogging);
+        // resetAspect(enableLogging);
         resetAspect(ollamaLivetime);
         resetAspect(specificInstractions);
         resetAspect(multiLineCompletion);
@@ -412,10 +298,9 @@ void QodeAssistSettings::resetSettingsToDefaults()
         resetAspect(useSpecificInstructions);
         resetAspect(customJsonTemplate);
 
-        fimPrompts.setStringValue("StarCoder2");
-        llmProviders.setStringValue("Ollama");
+        // fimPrompts.setStringValue("StarCoder2");
+        // llmProviders.setStringValue("Ollama");
 
-        updateProviderSettings();
         apply();
 
         QMessageBox::information(Core::ICore::dialogParent(),

@@ -30,6 +30,7 @@
 #include "PromptTemplateManager.hpp"
 #include "QodeAssistSettings.hpp"
 #include "QodeAssistUtils.hpp"
+#include "settings/GeneralSettings.hpp"
 
 namespace QodeAssist {
 
@@ -289,7 +290,8 @@ ContextData LLMClientInterface::prepareContext(const QJsonObject &request,
 
 void LLMClientInterface::updateProvider()
 {
-    m_serverUrl = QUrl(QString("%1%2").arg(settings().url(), settings().endPoint()));
+    m_serverUrl = QUrl(QString("%1%2").arg(Settings::generalSettings().url(),
+                                           Settings::generalSettings().endPoint()));
 }
 
 void LLMClientInterface::sendCompletionToClient(const QString &completion,
@@ -330,7 +332,8 @@ void LLMClientInterface::sendCompletionToClient(const QString &completion,
 
 void LLMClientInterface::sendLLMRequest(const QJsonObject &request, const ContextData &prompt)
 {
-    QJsonObject providerRequest = {{"model", settings().modelName.value()}, {"stream", true}};
+    QJsonObject providerRequest = {{"model", Settings::generalSettings().modelName.value()},
+                                   {"stream", true}};
 
     auto currentTemplate = PromptTemplateManager::instance().getCurrentTemplate();
     currentTemplate->prepareRequest(providerRequest, prompt);

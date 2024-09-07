@@ -57,18 +57,6 @@ class QodeAssistSettings : public Utils::AspectContainer
 public:
     QodeAssistSettings();
 
-    Utils::BoolAspect enableQodeAssist{this};
-    Utils::BoolAspect enableAutoComplete{this};
-    Utils::BoolAspect enableLogging{this};
-
-    Utils::SelectionAspect llmProviders{this};
-    Utils::StringAspect url{this};
-    Utils::StringAspect endPoint{this};
-
-    Utils::StringAspect modelName{this};
-    ButtonAspect selectModels{this};
-
-    Utils::SelectionAspect fimPrompts{this};
     Utils::DoubleAspect temperature{this};
     Utils::IntegerAspect maxTokens{this};
 
@@ -106,9 +94,7 @@ public:
 
 private:
     void setupConnections();
-    void updateProviderSettings();
     QStringList getInstalledModels();
-    void showModelSelectionDialog();
     Utils::Environment getEnvironmentWithProviderPaths() const;
     void resetSettingsToDefaults();
     void saveCustomTemplate();

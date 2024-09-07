@@ -55,4 +55,5 @@ add_qtc_plugin(QodeAssist
     settings/ContextSettings.hpp settings/ContextSettings.cpp
     settings/CustomPromptSettings.hpp settings/CustomPromptSettings.cpp
     settings/PresetPromptsSettings.hpp settings/PresetPromptsSettings.cpp
+    settings/SettingsUtils.hpp
 )
