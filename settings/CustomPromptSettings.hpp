@@ -31,6 +31,7 @@ public:
 
     Utils::StringAspect customJsonLabel{this};
     Utils::StringAspect customJsonTemplate{this};
+    Utils::StringAspect customJsonLegend{this};
     ButtonAspect saveCustomTemplateButton{this};
     ButtonAspect loadCustomTemplateButton{this};
     ButtonAspect resetToDefaults{this};

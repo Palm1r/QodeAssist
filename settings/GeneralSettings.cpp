@@ -67,7 +67,7 @@ GeneralSettings::GeneralSettings()
     startSuggestionTimer.setDefaultValue(500);
 
     llmProviders.setSettingsKey(Constants::LLM_PROVIDERS);
-    llmProviders.setDisplayName(Tr::tr("LLM Providers:"));
+    llmProviders.setDisplayName(Tr::tr("FIM Provider:"));
     llmProviders.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
     llmProviders.setDefaultValue(0);
 
@@ -76,16 +76,16 @@ GeneralSettings::GeneralSettings()
     url.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
 
     endPoint.setSettingsKey(Constants::END_POINT);
-    endPoint.setLabelText(Tr::tr("Endpoint:"));
+    endPoint.setLabelText(Tr::tr("FIM Endpoint:"));
     endPoint.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
 
     modelName.setSettingsKey(Constants::MODEL_NAME);
     modelName.setLabelText(Tr::tr("LLM Name:"));
     modelName.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
 
-    selectModels.m_buttonText = Tr::tr("Select Model");
+    selectModels.m_buttonText = Tr::tr("Select Fill-In-the-Middle Model");
 
-    fimPrompts.setDisplayName(Tr::tr("Fill-In-Middle Prompt"));
+    fimPrompts.setDisplayName(Tr::tr("Fill-In-the-Middle Prompt"));
     fimPrompts.setSettingsKey(Constants::FIM_PROMPTS);
     fimPrompts.setDefaultValue(0);
     fimPrompts.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);

@@ -46,8 +46,15 @@ CustomPromptSettings::CustomPromptSettings()
     customJsonLabel.setLabelText("Custom JSON Template:");
     customJsonLabel.setDisplayStyle(Utils::StringAspect::LabelDisplay);
 
+    customJsonLegend.setLabelText(Tr::tr(R"(Prompt components:
+- {{QODE_INSTRUCTIONS}}: Placeholder for specific instructions or context.
+- {{QODE_PREFIX}}: Will be replaced with the actual code before the cursor.
+- {{QODE_SUFFIX}}: Will be replaced with the actual code after the cursor.
+)"));
+
     customJsonTemplate.setSettingsKey(Constants::CUSTOM_JSON_TEMPLATE);
     customJsonTemplate.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
+
     customJsonTemplate.setDefaultValue(R"({
   "prompt": "{{QODE_INSTRUCTIONS}}<fim_prefix>{{QODE_PREFIX}}<fim_suffix>{{QODE_SUFFIX}}<fim_middle>",
   "options": {
@@ -79,7 +86,10 @@ CustomPromptSettings::CustomPromptSettings()
         using namespace Layouting;
         return Column{Row{customJsonLabel, Stretch{1}, resetToDefaults},
                       Row{customJsonTemplate,
-                          Column{saveCustomTemplateButton, loadCustomTemplateButton, Stretch{1}}}};
+                          Column{saveCustomTemplateButton,
+                                 loadCustomTemplateButton,
+                                 customJsonLegend,
+                                 Stretch{1}}}};
     });
 }
 

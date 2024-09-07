@@ -137,6 +137,8 @@ public:
         setId(Constants::QODE_ASSIST_CONTEXT_SETTINGS_PAGE_ID);
         setDisplayName(Tr::tr("Context"));
         setCategory(Constants::QODE_ASSIST_GENERAL_OPTIONS_CATEGORY);
+        setDisplayCategory(Constants::QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY);
+        setCategoryIconPath(":/resources/images/qoderassist-icon.png");
         setSettingsProvider([] { return &contextSettings(); });
     }
 };
