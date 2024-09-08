@@ -62,22 +62,20 @@ GeneralSettings::GeneralSettings()
     multiLineCompletion.setLabelText(Tr::tr("Enable Multiline Completion"));
 
     startSuggestionTimer.setSettingsKey(Constants::START_SUGGESTION_TIMER);
-    startSuggestionTimer.setLabelText(Tr::tr("Start Suggestion Timer:"));
+    startSuggestionTimer.setLabelText(Tr::tr("with delay(ms)"));
     startSuggestionTimer.setRange(10, 10000);
     startSuggestionTimer.setDefaultValue(500);
 
     autoCompletionCharThreshold.setSettingsKey(Constants::AUTO_COMPLETION_CHAR_THRESHOLD);
-    autoCompletionCharThreshold.setLabelText(
-        Tr::tr("Character threshold for AI suggestion start:"));
+    autoCompletionCharThreshold.setLabelText(Tr::tr("AI suggestion triggers after typing"));
     autoCompletionCharThreshold.setToolTip(
         Tr::tr("The number of characters that need to be typed within the typing interval "
                "before an AI suggestion request is sent."));
-    autoCompletionCharThreshold.setRange(1, 10);
-    autoCompletionCharThreshold.setDefaultValue(2);
+    autoCompletionCharThreshold.setRange(0, 10);
+    autoCompletionCharThreshold.setDefaultValue(1);
 
     autoCompletionTypingInterval.setSettingsKey(Constants::AUTO_COMPLETION_TYPING_INTERVAL);
-    autoCompletionTypingInterval.setLabelText(
-        Tr::tr("Typing interval for AI suggestion start(ms):"));
+    autoCompletionTypingInterval.setLabelText(Tr::tr("character(s) within(ms)"));
     autoCompletionTypingInterval.setToolTip(
         Tr::tr("The time window (in milliseconds) during which the character threshold "
                "must be met to trigger an AI suggestion request."));
@@ -138,10 +136,11 @@ GeneralSettings::GeneralSettings()
 
         auto rootLayout = Column{Row{enableQodeAssist, Stretch{1}, resetToDefaults},
                                  enableAutoComplete,
-                                 startSuggestionTimer,
-                                 autoCompletionCharThreshold,
-                                 autoCompletionTypingInterval,
                                  multiLineCompletion,
+                                 Row{autoCompletionCharThreshold,
+                                     autoCompletionTypingInterval,
+                                     startSuggestionTimer,
+                                     Stretch{1}},
                                  Space{8},
                                  enableLogging,
                                  Space{8},

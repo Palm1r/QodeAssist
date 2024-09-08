@@ -85,8 +85,8 @@ ContextSettings::ContextSettings()
     setLayouter([this]() {
         using namespace Layouting;
         return Column{Row{readFullFile, Stretch{1}, resetToDefaults},
-                      readStringsBeforeCursor,
-                      readStringsAfterCursor,
+                      Row{readStringsBeforeCursor, Stretch{1}},
+                      Row{readStringsAfterCursor, Stretch{1}},
                       useFilePathInContext,
                       useSpecificInstructions,
                       specificInstractions,
