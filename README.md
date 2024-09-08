@@ -1,7 +1,9 @@
 # QodeAssist
-[![Build plugin](https://github.com/Palm1r/QodeAssist/actions/workflows/build_cmake.yml/badge.svg?branch=main)](https://github.com/Palm1r/QodeAssist/actions/workflows/build_cmake.yml) [![Ko-fi](https://img.shields.io/badge/Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/petrmdev)
+[![Build plugin](https://github.com/Palm1r/QodeAssist/actions/workflows/build_cmake.yml/badge.svg?branch=main)](https://github.com/Palm1r/QodeAssist/actions/workflows/build_cmake.yml)
 
 QodeAssist is an AI-powered coding assistant plugin for Qt Creator. It provides intelligent code completion and suggestions for C++ and QML, leveraging large language models through local providers like Ollama. Enhance your coding productivity with context-aware AI assistance directly in your Qt development environment.
+
+<img src="https://github.com/user-attachments/assets/255a52f1-5cc0-4ca3-b05c-c4cf9cdbe25a" width="600" alt="QodeAssistPreview">
 
 ## Supported LLM Providers
 QodeAssist currently supports the following LLM (Large Language Model) providers:
@@ -10,25 +12,34 @@ QodeAssist currently supports the following LLM (Large Language Model) providers
 - OpenAI compatible providers
 
 ## Supported Models
-QodeAssist has been tested with the following language models, all trained for Fill-in-theMiddle:
 
-Ollama:
-- [starcoder2](https://ollama.com/library/starcoder2)
-- [codellama](https://ollama.com/library/codellama)
+QodeAssist has been tested with the following language models, all trained for Fill-in-the-Middle:
+
+- CodeLlama 
+- StarCoder2
 - DeepSeek-Coder-V2-Lite-Base
 
-LM studio:
+### Tested Models
+
+#### Ollama:
+- [starcoder2](https://ollama.com/library/starcoder2)
+- [codellama](https://ollama.com/library/codellama)
+
+#### LM Studio:
 - [second-state/StarCoder2-7B-GGUF](https://huggingface.co/second-state/StarCoder2-7B-GGUF)
 - [TheBloke/CodeLlama-7B-GGUF](https://huggingface.co/TheBloke/CodeLlama-7B-GGUF)
 
 Please note that while these models have been specifically tested and confirmed to work well with QodeAssist, other models compatible with the supported providers may also work. We encourage users to experiment with different models and report their experiences.
+
 If you've successfully used a model that's not listed here, please let us know by opening an issue or submitting a pull request to update this list.
 
 ## Development Progress
 
 - [x] Basic plugin with code autocomplete functionality
-- [ ] Improve and automate settings
+- [x] Improve and automate settings
 - [ ] Add chat functionality
+- [ ] Sharing diff with model
+- [ ] Sharing project source with model
 - [ ] Support for more providers and models
 
 ## Plugin installation using Ollama as an example
@@ -48,13 +59,16 @@ ollama run starcoder2:7b
 
 ## Configure Plugin
 
+<img src="https://github.com/user-attachments/assets/0743d09e-1f02-44ed-9a1a-85e2a0a0c01a" width="800" alt="QodeAssist в действии">
+
 1. Open Qt Creator settings
 2. Navigate to the "Qode Assist" tab
-3. Choose your LLM provider (e.g., Ollama)
-4. Select the installed model by the "Select Model" button
+3. Select "General" page
+4. Choose your LLM provider (e.g., Ollama)
+5. Select the installed model by the "Select Model" button
    - For LM Studio you will see current load model
-5. Choose the prompt template that corresponds to your model
-6. Apply the settings
+6. Choose the prompt template that corresponds to your model
+7. Apply the settings
 
 You're all set! QodeAssist is now ready to use in Qt Creator.
 
@@ -91,7 +105,8 @@ Verify that the selected prompt template matches the model you're using
 If you're still experiencing issues with QodeAssist, you can try resetting the settings to their default values:
 1. Open Qt Creator settings
 2. Navigate to the "Qode Assist" tab
-3. Click on the "Reset to Defaults" button
+3. Pick settings page for reset
+4. Click on the "Reset Page to Defaults" button
     - The API key will not reset
     - Select model after reset
 
@@ -105,7 +120,7 @@ If you find QodeAssist helpful, there are several ways you can support the proje
 3. **Spread the Word**: Star our GitHub repository and share QodeAssist with your fellow developers.
 
 4. **Financial Support**: If you'd like to support the development financially, you can make a donation using one of the following:
-   - Buy me a coffee [![Ko-fi](https://img.shields.io/badge/Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/petrmdev)
+   - [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/P5P412V96G)
    - Bitcoin (BTC): `bc1qndq7f0mpnlya48vk7kugvyqj5w89xrg4wzg68t`
    - Ethereum (ETH): `0xA5e8c37c94b24e25F9f1f292a01AF55F03099D8D`
    - Litecoin (LTC): `ltc1qlrxnk30s2pcjchzx4qrxvdjt5gzuervy5mv0vy`
