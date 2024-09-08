@@ -34,7 +34,6 @@ add_qtc_plugin(QodeAssist
     templates/PromptTemplate.hpp
     templates/CodeLLamaTemplate.hpp
     templates/StarCoder2Template.hpp
-    templates/CodeQwenChat.hpp
     templates/DeepSeekCoderV2.hpp
     templates/CustomTemplate.hpp
     providers/LLMProvider.hpp

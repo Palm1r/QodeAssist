@@ -47,6 +47,7 @@ CustomPromptSettings::CustomPromptSettings()
     customJsonLabel.setDisplayStyle(Utils::StringAspect::LabelDisplay);
 
     customJsonLegend.setLabelText(Tr::tr(R"(Prompt components:
+- model is set on General Page
 - {{QODE_INSTRUCTIONS}}: Placeholder for specific instructions or context.
 - {{QODE_PREFIX}}: Will be replaced with the actual code before the cursor.
 - {{QODE_SUFFIX}}: Will be replaced with the actual code after the cursor.
