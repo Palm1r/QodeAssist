@@ -34,14 +34,13 @@ add_qtc_plugin(QodeAssist
     templates/PromptTemplate.hpp
     templates/CodeLLamaTemplate.hpp
     templates/StarCoder2Template.hpp
-    templates/CodeQwenChat.hpp
     templates/DeepSeekCoderV2.hpp
+    templates/CustomTemplate.hpp
     providers/LLMProvider.hpp
     providers/OllamaProvider.hpp providers/OllamaProvider.cpp
     providers/LMStudioProvider.hpp providers/LMStudioProvider.cpp
     providers/OpenAICompatProvider.hpp providers/OpenAICompatProvider.cpp
     LLMProvidersManager.hpp LLMProvidersManager.cpp
-    QodeAssistSettings.hpp QodeAssistSettings.cpp
     QodeAssist.qrc
     LSPCompletion.hpp
     LLMSuggestion.hpp LLMSuggestion.cpp
@@ -50,4 +49,9 @@ add_qtc_plugin(QodeAssist
     DocumentContextReader.hpp DocumentContextReader.cpp
     QodeAssistData.hpp
     utils/CounterTooltip.hpp utils/CounterTooltip.cpp
+    settings/GeneralSettings.hpp settings/GeneralSettings.cpp
+    settings/ContextSettings.hpp settings/ContextSettings.cpp
+    settings/CustomPromptSettings.hpp settings/CustomPromptSettings.cpp
+    settings/PresetPromptsSettings.hpp settings/PresetPromptsSettings.cpp
+    settings/SettingsUtils.hpp
 )

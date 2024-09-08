@@ -49,6 +49,8 @@ const char USE_FREQUENCY_PENALTY[] = "QodeAssist.useFrequencyPenalty";
 const char FREQUENCY_PENALTY[] = "QodeAssist.frequencyPenalty";
 const char PROVIDER_PATHS[] = "QodeAssist.providerPaths";
 const char START_SUGGESTION_TIMER[] = "QodeAssist.startSuggestionTimer";
+const char AUTO_COMPLETION_CHAR_THRESHOLD[] = "QodeAssist.autoCompletionCharThreshold";
+const char AUTO_COMPLETION_TYPING_INTERVAL[] = "QodeAssist.autoCompletionTypingInterval";
 const char MAX_FILE_THRESHOLD[] = "QodeAssist.maxFileThreshold";
 const char OLLAMA_LIVETIME[] = "QodeAssist.ollamaLivetime";
 const char SPECIFIC_INSTRUCTIONS[] = "QodeAssist.specificInstractions";
@@ -56,8 +58,15 @@ const char MULTILINE_COMPLETION[] = "QodeAssist.multilineCompletion";
 const char API_KEY[] = "QodeAssist.apiKey";
 const char USE_SPECIFIC_INSTRUCTIONS[] = "QodeAssist.useSpecificInstructions";
 const char USE_FILE_PATH_IN_CONTEXT[] = "QodeAssist.useFilePathInContext";
+const char CUSTOM_JSON_TEMPLATE[] = "QodeAssist.customJsonTemplate";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
+const char QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID[] = "QodeAssist.1GeneralSettingsPageId";
+const char QODE_ASSIST_CONTEXT_SETTINGS_PAGE_ID[] = "QodeAssist.2ContextSettingsPageId";
+const char QODE_ASSIST_PRESET_PROMPTS_SETTINGS_PAGE_ID[]
+    = "QodeAssist.3PresetPromptsSettingsPageId";
+const char QODE_ASSIST_CUSTOM_PROMPT_SETTINGS_PAGE_ID[] = "QodeAssist.4CustomPromptSettingsPageId";
+
 const char QODE_ASSIST_GENERAL_OPTIONS_CATEGORY[] = "QodeAssist.Category";
 const char QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY[] = "Qode Assist";
 

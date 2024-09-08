@@ -45,12 +45,12 @@ public:
                                 bool isComplete);
 
     void handleCompletion(const QJsonObject &request,
-                          const QString &accumulatedCompletion = QString());
+                          const QStringView &accumulatedCompletion = QString());
     void sendLLMRequest(const QJsonObject &request, const ContextData &prompt);
     void handleLLMResponse(QNetworkReply *reply, const QJsonObject &request);
 
     ContextData prepareContext(const QJsonObject &request,
-                               const QString &accumulatedCompletion = QString{});
+                               const QStringView &accumulatedCompletion = QString{});
     void updateProvider();
 
 protected:
@@ -71,7 +71,7 @@ private:
 
     QString сontextBefore(TextEditor::TextEditorWidget *widget, int lineNumber, int cursorPosition);
     QString сontextAfter(TextEditor::TextEditorWidget *widget, int lineNumber, int cursorPosition);
-    QString removeStopWords(const QString &completion);
+    QString removeStopWords(const QStringView &completion);
 
     QUrl m_serverUrl;
     QNetworkAccessManager *m_manager;

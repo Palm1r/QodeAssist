@@ -31,7 +31,7 @@
 
 #include "LLMClientInterface.hpp"
 #include "LLMSuggestion.hpp"
-#include "QodeAssistSettings.hpp"
+#include "settings/GeneralSettings.hpp"
 
 using namespace LanguageServerProtocol;
 using namespace TextEditor;
@@ -43,6 +43,7 @@ namespace QodeAssist {
 
 QodeAssistClient::QodeAssistClient()
     : LanguageClient::Client(new LLMClientInterface())
+    , m_recentCharCount(0)
 {
     setName("Qode Assist");
     LanguageClient::LanguageFilter filter;
@@ -51,6 +52,8 @@ QodeAssistClient::QodeAssistClient()
 
     start();
     setupConnections();
+
+    m_typingTimer.start();
 }
 
 QodeAssistClient::~QodeAssistClient()
@@ -70,7 +73,7 @@ void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
             this,
             [this, document](int position, int charsRemoved, int charsAdded) {
                 Q_UNUSED(charsRemoved)
-                if (!settings().enableAutoComplete())
+                if (!Settings::generalSettings().enableAutoComplete())
                     return;
 
                 auto project = ProjectManager::projectForFile(document->filePath());
@@ -86,7 +89,18 @@ void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
                 const int cursorPosition = widget->textCursor().position();
                 if (cursorPosition < position || cursorPosition > position + charsAdded)
                     return;
-                scheduleRequest(widget);
+
+                m_recentCharCount += charsAdded;
+
+                if (m_typingTimer.elapsed()
+                    > Settings::generalSettings().autoCompletionTypingInterval()) {
+                    m_recentCharCount = charsAdded;
+                    m_typingTimer.restart();
+                }
+
+                if (m_recentCharCount > Settings::generalSettings().autoCompletionCharThreshold()) {
+                    scheduleRequest(widget);
+                }
             });
 }
 
@@ -130,7 +144,8 @@ void QodeAssistClient::scheduleRequest(TextEditor::TextEditorWidget *editor)
         connect(timer, &QTimer::timeout, this, [this, editor]() {
             if (editor
                 && editor->textCursor().position()
-                       == m_scheduledRequests[editor]->property("cursorPosition").toInt())
+                       == m_scheduledRequests[editor]->property("cursorPosition").toInt()
+                && m_recentCharCount > Settings::generalSettings().autoCompletionCharThreshold())
                 requestCompletions(editor);
         });
         connect(editor, &TextEditorWidget::destroyed, this, [this, editor]() {
@@ -144,9 +159,8 @@ void QodeAssistClient::scheduleRequest(TextEditor::TextEditorWidget *editor)
     }
 
     it.value()->setProperty("cursorPosition", editor->textCursor().position());
-    it.value()->start(settings().startSuggestionTimer());
+    it.value()->start(Settings::generalSettings().startSuggestionTimer());
 }
-
 void QodeAssistClient::handleCompletions(const GetCompletionRequest::Response &response,
                                          TextEditor::TextEditorWidget *editor)
 {
@@ -204,7 +218,7 @@ void QodeAssistClient::cancelRunningRequest(TextEditor::TextEditorWidget *editor
 
 bool QodeAssistClient::isEnabled(ProjectExplorer::Project *project) const
 {
-    return settings().enableQodeAssist();
+    return Settings::generalSettings().enableQodeAssist();
 }
 
 void QodeAssistClient::setupConnections()

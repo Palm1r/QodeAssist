@@ -1,0 +1,16 @@
+{
+  "max_tokens": 150,
+  "messages": [
+    {
+      "content": "{{QODE_INSTRUCTIONS}}\n### Instruction:{{QODE_PREFIX}}{{QODE_SUFFIX}} ### Response:\n",
+      "role": "user"
+    }
+  ],
+  "stop": [
+    "### Instruction:",
+    "### Response:",
+    "\n\n### "
+  ],
+  "stream": true,
+  "temperature": 0.2
+}
