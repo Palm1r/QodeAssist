@@ -35,6 +35,8 @@ public:
     Utils::BoolAspect multiLineCompletion{this};
     Utils::BoolAspect enableLogging{this};
     Utils::IntegerAspect startSuggestionTimer{this};
+    Utils::IntegerAspect autoCompletionCharThreshold{this};
+    Utils::IntegerAspect autoCompletionTypingInterval{this};
 
     Utils::SelectionAspect llmProviders{this};
     Utils::StringAspect url{this};

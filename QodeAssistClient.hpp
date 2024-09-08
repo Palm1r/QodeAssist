@@ -55,6 +55,9 @@ private:
     QHash<TextEditor::TextEditorWidget *, QTimer *> m_scheduledRequests;
     QMetaObject::Connection m_documentOpenedConnection;
     QMetaObject::Connection m_documentClosedConnection;
+
+    QElapsedTimer m_typingTimer;
+    int m_recentCharCount;
 };
 
 } // namespace QodeAssist

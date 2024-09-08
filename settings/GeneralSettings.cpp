@@ -66,6 +66,24 @@ GeneralSettings::GeneralSettings()
     startSuggestionTimer.setRange(10, 10000);
     startSuggestionTimer.setDefaultValue(500);
 
+    autoCompletionCharThreshold.setSettingsKey(Constants::AUTO_COMPLETION_CHAR_THRESHOLD);
+    autoCompletionCharThreshold.setLabelText(
+        Tr::tr("Character threshold for AI suggestion start:"));
+    autoCompletionCharThreshold.setToolTip(
+        Tr::tr("The number of characters that need to be typed within the typing interval "
+               "before an AI suggestion request is sent."));
+    autoCompletionCharThreshold.setRange(1, 10);
+    autoCompletionCharThreshold.setDefaultValue(2);
+
+    autoCompletionTypingInterval.setSettingsKey(Constants::AUTO_COMPLETION_TYPING_INTERVAL);
+    autoCompletionTypingInterval.setLabelText(
+        Tr::tr("Typing interval for AI suggestion start(ms):"));
+    autoCompletionTypingInterval.setToolTip(
+        Tr::tr("The time window (in milliseconds) during which the character threshold "
+               "must be met to trigger an AI suggestion request."));
+    autoCompletionTypingInterval.setRange(500, 5000);
+    autoCompletionTypingInterval.setDefaultValue(2000);
+
     llmProviders.setSettingsKey(Constants::LLM_PROVIDERS);
     llmProviders.setDisplayName(Tr::tr("FIM Provider:"));
     llmProviders.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
@@ -121,6 +139,8 @@ GeneralSettings::GeneralSettings()
         auto rootLayout = Column{Row{enableQodeAssist, Stretch{1}, resetToDefaults},
                                  enableAutoComplete,
                                  startSuggestionTimer,
+                                 autoCompletionCharThreshold,
+                                 autoCompletionTypingInterval,
                                  multiLineCompletion,
                                  Space{8},
                                  enableLogging,
@@ -208,6 +228,8 @@ void GeneralSettings::resetPageToDefaults()
         resetAspect(fimPrompts);
         resetAspect(enableLogging);
         resetAspect(startSuggestionTimer);
+        resetAspect(autoCompletionTypingInterval);
+        resetAspect(autoCompletionCharThreshold);
     }
 
     fimPrompts.setStringValue("StarCoder2");
