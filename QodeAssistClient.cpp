@@ -31,6 +31,7 @@
 
 #include "LLMClientInterface.hpp"
 #include "LLMSuggestion.hpp"
+#include "core/ChangesManager.h"
 #include "settings/GeneralSettings.hpp"
 
 using namespace LanguageServerProtocol;
@@ -83,6 +84,9 @@ void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
                 auto textEditor = BaseTextEditor::currentTextEditor();
                 if (!textEditor || textEditor->document() != document)
                     return;
+
+                ChangesManager::instance().addChange(document, position, charsRemoved, charsAdded);
+
                 TextEditorWidget *widget = textEditor->editorWidget();
                 if (widget->isReadOnly() || widget->multiTextCursor().hasMultipleCursors())
                     return;

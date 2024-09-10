@@ -29,6 +29,7 @@
 #include "LLMProvidersManager.hpp"
 #include "PromptTemplateManager.hpp"
 #include "QodeAssistUtils.hpp"
+#include "core/ChangesManager.h"
 #include "settings/ContextSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 
@@ -277,14 +278,17 @@ ContextData LLMClientInterface::prepareContext(const QJsonObject &request,
 
     DocumentContextReader reader(widget->textDocument());
 
+    QString recentChanges = ChangesManager::instance().getRecentChangesContext();
+
     QString contextBefore = сontextBefore(widget, lineNumber, cursorPosition);
     QString contextAfter = сontextAfter(widget, lineNumber, cursorPosition);
-    QString instructions = QString("%1%2").arg(Settings::contextSettings().useSpecificInstructions()
-                                                   ? reader.getSpecificInstructions()
-                                                   : QString(),
-                                               Settings::contextSettings().useFilePathInContext()
-                                                   ? reader.getLanguageAndFileInfo()
-                                                   : QString());
+    QString instructions = QString("%1%2%3").arg(Settings::contextSettings().useSpecificInstructions()
+                                                     ? reader.getSpecificInstructions()
+                                                     : QString(),
+                                                 Settings::contextSettings().useFilePathInContext()
+                                                     ? reader.getLanguageAndFileInfo()
+                                                     : QString(),
+                                                 recentChanges);
 
     return {QString("%1%2").arg(contextBefore, accumulatedCompletion), contextAfter, instructions};
 }
