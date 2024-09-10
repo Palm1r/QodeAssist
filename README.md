@@ -13,11 +13,30 @@ QodeAssist currently supports the following LLM (Large Language Model) providers
 
 ## Supported Models
 
-QodeAssist has been tested with the following language models, all trained for Fill-in-the-Middle:
+QodeAssist has been thoroughly tested and optimized for use with the following language models, all of which are specifically trained for Fill-in-the-Middle (FIM) tasks:
 
-- CodeLlama 
+- CodeLlama
 - StarCoder2
 - DeepSeek-Coder-V2-Lite-Base
+
+These models have demonstrated excellent performance in code completion and assistance tasks within the QodeAssist environment.
+
+### Custom Prompts
+
+For advanced users or those with specific requirements, QodeAssist offers the flexibility to create, save, and load custom prompts using JSON templates. This feature allows you to tailor the AI's behavior to your exact needs.
+
+To get started with custom prompts:
+
+1. Navigate to the "Custom Template" option in the FIM Prompt Settings.
+2. Create your custom JSON prompt template.
+3. Use the "Save Custom Template to JSON" button to store your template for future use.
+4. To use a previously saved template, click "Load Custom Template from JSON".
+5. Make sure to select "Custom Template" from the dropdown menu in the FIM Prompt Settings on the General page to activate your custom template.
+
+For inspiration and examples of effective custom prompts, please refer to the `rawPromptExamples` folder in our repository.
+
+<img width="600" alt="Custom template" src="https://github.com/user-attachments/assets/4a14c552-baba-4531-ab4f-cb1f9ac6620b">
+<img width="600" alt="Select custom template" src="https://github.com/user-attachments/assets/3651dafd-83f9-4df9-943f-69c28cd3d8a3">
 
 ### Tested Models
 
