@@ -45,7 +45,7 @@ public:
                    int position,
                    int charsRemoved,
                    int charsAdded);
-    QString getRecentChangesContext() const;
+    QString getRecentChangesContext(const TextEditor::TextDocument *currentDocument) const;
 
 private:
     ChangesManager();

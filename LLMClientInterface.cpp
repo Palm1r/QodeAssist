@@ -278,7 +278,7 @@ ContextData LLMClientInterface::prepareContext(const QJsonObject &request,
 
     DocumentContextReader reader(widget->textDocument());
 
-    QString recentChanges = ChangesManager::instance().getRecentChangesContext();
+    QString recentChanges = ChangesManager::instance().getRecentChangesContext(textDocument);
 
     QString contextBefore = сontextBefore(widget, lineNumber, cursorPosition);
     QString contextAfter = сontextAfter(widget, lineNumber, cursorPosition);

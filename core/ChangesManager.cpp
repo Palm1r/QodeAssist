@@ -72,12 +72,14 @@ void ChangesManager::addChange(TextEditor::TextDocument *document,
     logMessage(QString("ChangesManager: Document queue size %1").arg(documentQueue.size()));
 }
 
-QString ChangesManager::getRecentChangesContext() const
+QString ChangesManager::getRecentChangesContext(const TextEditor::TextDocument *currentDocument) const
 {
     QString context;
-    for (const auto &documentChanges : m_documentChanges) {
-        for (const auto &change : documentChanges) {
-            context += change.lineContent + "\n";
+    for (auto it = m_documentChanges.constBegin(); it != m_documentChanges.constEnd(); ++it) {
+        if (it.key() != currentDocument) {
+            for (const auto &change : it.value()) {
+                context += change.lineContent + "\n";
+            }
         }
     }
     return context;
