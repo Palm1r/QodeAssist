@@ -54,7 +54,6 @@ private:
     ChangesManager &operator=(const ChangesManager &) = delete;
 
     void cleanupOldChanges();
-    static const int MAX_CACHED_CHANGES = 50;
 
     QHash<TextEditor::TextDocument *, QQueue<ChangeInfo>> m_documentChanges;
 };

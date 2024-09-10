@@ -282,13 +282,15 @@ ContextData LLMClientInterface::prepareContext(const QJsonObject &request,
 
     QString contextBefore = сontextBefore(widget, lineNumber, cursorPosition);
     QString contextAfter = сontextAfter(widget, lineNumber, cursorPosition);
-    QString instructions = QString("%1%2%3").arg(Settings::contextSettings().useSpecificInstructions()
-                                                     ? reader.getSpecificInstructions()
-                                                     : QString(),
-                                                 Settings::contextSettings().useFilePathInContext()
-                                                     ? reader.getLanguageAndFileInfo()
-                                                     : QString(),
-                                                 recentChanges);
+    QString instructions
+        = QString("%1%2%3").arg(Settings::contextSettings().useSpecificInstructions()
+                                    ? reader.getSpecificInstructions()
+                                    : QString(),
+                                Settings::contextSettings().useFilePathInContext()
+                                    ? reader.getLanguageAndFileInfo()
+                                    : QString(),
+                                Settings::contextSettings().useProjectChangesCache() ? recentChanges
+                                                                                     : QString());
 
     return {QString("%1%2").arg(contextBefore, accumulatedCompletion), contextAfter, instructions};
 }
