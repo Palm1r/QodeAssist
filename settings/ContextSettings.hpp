@@ -37,6 +37,8 @@ public:
     Utils::StringAspect specificInstractions{this};
     Utils::BoolAspect useSpecificInstructions{this};
     Utils::BoolAspect useFilePathInContext{this};
+    Utils::BoolAspect useProjectChangesCache{this};
+    Utils::IntegerAspect maxChangesCacheSize{this};
 
     ButtonAspect resetToDefaults{this};
 

@@ -74,6 +74,15 @@ ContextSettings::ContextSettings()
 
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
 
+    useProjectChangesCache.setSettingsKey(Constants::USE_PROJECT_CHANGES_CACHE);
+    useProjectChangesCache.setDefaultValue(true);
+    useProjectChangesCache.setLabelText(Tr::tr("Use Project Changes Cache"));
+
+    maxChangesCacheSize.setSettingsKey(Constants::MAX_CHANGES_CACHE_SIZE);
+    maxChangesCacheSize.setLabelText(Tr::tr("Max Changes Cache Size"));
+    maxChangesCacheSize.setRange(2, 1000);
+    maxChangesCacheSize.setDefaultValue(20);
+
     readSettings();
 
     readStringsAfterCursor.setEnabled(!readFullFile());
@@ -90,6 +99,8 @@ ContextSettings::ContextSettings()
                       useFilePathInContext,
                       useSpecificInstructions,
                       specificInstractions,
+                      useProjectChangesCache,
+                      Row{maxChangesCacheSize, Stretch{1}},
                       Stretch{1}};
     });
 }

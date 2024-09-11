@@ -57,7 +57,7 @@ If you've successfully used a model that's not listed here, please let us know b
 - [x] Basic plugin with code autocomplete functionality
 - [x] Improve and automate settings
 - [ ] Add chat functionality
-- [ ] Sharing diff with model
+- [x] Sharing diff with model
 - [ ] Sharing project source with model
 - [ ] Support for more providers and models
 

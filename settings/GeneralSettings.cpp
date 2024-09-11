@@ -72,7 +72,7 @@ GeneralSettings::GeneralSettings()
         Tr::tr("The number of characters that need to be typed within the typing interval "
                "before an AI suggestion request is sent."));
     autoCompletionCharThreshold.setRange(0, 10);
-    autoCompletionCharThreshold.setDefaultValue(1);
+    autoCompletionCharThreshold.setDefaultValue(0);
 
     autoCompletionTypingInterval.setSettingsKey(Constants::AUTO_COMPLETION_TYPING_INTERVAL);
     autoCompletionTypingInterval.setLabelText(Tr::tr("character(s) within(ms)"));
