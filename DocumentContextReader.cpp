@@ -23,6 +23,7 @@
 #include <QTextBlock>
 #include <languageserverprotocol/lsptypes.h>
 
+#include "core/ChangesManager.h"
 #include "settings/ContextSettings.hpp"
 
 const QRegularExpression &getYearRegex()
@@ -207,6 +208,58 @@ QString DocumentContextReader::getContextBetween(int startLine,
 CopyrightInfo DocumentContextReader::copyrightInfo() const
 {
     return m_copyrightInfo;
+}
+
+ContextData DocumentContextReader::prepareContext(int lineNumber, int cursorPosition) const
+{
+    QString contextBefore = getContextBefore(lineNumber, cursorPosition);
+    QString contextAfter = getContextAfter(lineNumber, cursorPosition);
+    QString instructions = getInstructions();
+
+    return {contextBefore, contextAfter, instructions};
+}
+
+QString DocumentContextReader::getContextBefore(int lineNumber, int cursorPosition) const
+{
+    if (Settings::contextSettings().readFullFile()) {
+        return readWholeFileBefore(lineNumber, cursorPosition);
+    } else {
+        int effectiveStartLine;
+        int beforeCursor = Settings::contextSettings().readStringsBeforeCursor();
+        if (m_copyrightInfo.found) {
+            effectiveStartLine = qMax(m_copyrightInfo.endLine + 1, lineNumber - beforeCursor);
+        } else {
+            effectiveStartLine = qMax(0, lineNumber - beforeCursor);
+        }
+        return getContextBetween(effectiveStartLine, lineNumber, cursorPosition);
+    }
+}
+
+QString DocumentContextReader::getContextAfter(int lineNumber, int cursorPosition) const
+{
+    if (Settings::contextSettings().readFullFile()) {
+        return readWholeFileAfter(lineNumber, cursorPosition);
+    } else {
+        int endLine = qMin(m_document->blockCount() - 1,
+                           lineNumber + Settings::contextSettings().readStringsAfterCursor());
+        return getContextBetween(lineNumber + 1, endLine, -1);
+    }
+}
+
+QString DocumentContextReader::getInstructions() const
+{
+    QString instructions;
+
+    if (Settings::contextSettings().useSpecificInstructions())
+        instructions += getSpecificInstructions();
+
+    if (Settings::contextSettings().useFilePathInContext())
+        instructions += getLanguageAndFileInfo();
+
+    if (Settings::contextSettings().useProjectChangesCache())
+        instructions += ChangesManager::instance().getRecentChangesContext(m_textDocument);
+
+    return instructions;
 }
 
 } // namespace QodeAssist

@@ -21,6 +21,7 @@
 
 #include <utils/aspects.h>
 
+#include "providers/LLMProvider.hpp"
 #include "settings/SettingsUtils.hpp"
 
 namespace QodeAssist::Settings {
@@ -47,17 +48,33 @@ public:
     Utils::SelectionAspect fimPrompts{this};
     ButtonAspect resetToDefaults{this};
 
-    Utils::StringAspect modelIndicator{this};
-    Utils::StringAspect urlIndicator{this};
+    Utils::SelectionAspect chatLlmProviders{this};
+    Utils::StringAspect chatUrl{this};
+    Utils::StringAspect chatEndPoint{this};
+
+    Utils::StringAspect chatModelName{this};
+    ButtonAspect chatSelectModels{this};
+    Utils::SelectionAspect chatPrompts{this};
+
+    Utils::StringAspect fimModelIndicator{this};
+    Utils::StringAspect fimUrlIndicator{this};
+    Utils::StringAspect chatModelIndicator{this};
+    Utils::StringAspect chatUrlIndicator{this};
 
 private:
     void setupConnections();
-    void updateProviderSettings();
-    void showModelSelectionDialog();
+    void showModelSelectionDialog(Utils::StringAspect *modelNameObj,
+                                  Providers::LLMProvider *provider);
     void resetPageToDefaults();
 
     void updateStatusIndicators();
     void setIndicatorStatus(Utils::StringAspect &indicator, const QString &tooltip, bool isValid);
+
+    void setCurrentFimProvider(const QString &name);
+    void setCurrentChatProvider(const QString &name);
+
+    void loadProviders();
+    void loadPrompts();
 };
 
 GeneralSettings &generalSettings();

@@ -48,18 +48,19 @@ QString OllamaProvider::completionEndpoint() const
     return "/api/generate";
 }
 
+QString OllamaProvider::chatEndpoint() const
+{
+    return "/api/chat";
+}
+
 void OllamaProvider::prepareRequest(QJsonObject &request)
 {
     auto &settings = Settings::presetPromptsSettings();
-    auto currentTemplate = PromptTemplateManager::instance().getCurrentTemplate();
-    if (currentTemplate->name() == "Custom Template")
-        return;
 
     QJsonObject options;
     options["num_predict"] = settings.maxTokens();
     options["keep_alive"] = settings.ollamaLivetime();
     options["temperature"] = settings.temperature();
-    options["stop"] = QJsonArray::fromStringList(currentTemplate->stopWords());
     if (settings.useTopP())
         options["top_p"] = settings.topP();
     if (settings.useTopK())
@@ -73,28 +74,52 @@ void OllamaProvider::prepareRequest(QJsonObject &request)
 
 bool OllamaProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
 {
+    QString endpoint = reply->url().path();
+
     bool isComplete = false;
     while (reply->canReadLine()) {
         QByteArray line = reply->readLine().trimmed();
         if (line.isEmpty()) {
             continue;
         }
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(line);
-        if (jsonResponse.isNull()) {
-            qWarning() << "Invalid JSON response from Ollama:" << line;
+
+        QJsonDocument doc = QJsonDocument::fromJson(line);
+        if (doc.isNull()) {
+            logMessage("Invalid JSON response from Ollama: " + QString::fromUtf8(line));
             continue;
         }
-        QJsonObject responseObj = jsonResponse.object();
-        if (responseObj.contains("response")) {
-            QString completion = responseObj["response"].toString();
 
-            accumulatedResponse += completion;
+        QJsonObject responseObj = doc.object();
+
+        if (responseObj.contains("error")) {
+            QString errorMessage = responseObj["error"].toString();
+            logMessage("Error in Ollama response: " + errorMessage);
+            return false;
         }
-        if (responseObj["done"].toBool()) {
+
+        if (endpoint == completionEndpoint()) {
+            if (responseObj.contains("response")) {
+                QString completion = responseObj["response"].toString();
+                accumulatedResponse += completion;
+            }
+        } else if (endpoint == chatEndpoint()) {
+            if (responseObj.contains("message")) {
+                QJsonObject message = responseObj["message"].toObject();
+                if (message.contains("content")) {
+                    QString content = message["content"].toString();
+                    accumulatedResponse += content;
+                }
+            }
+        } else {
+            logMessage("Unknown endpoint: " + endpoint);
+        }
+
+        if (responseObj.contains("done") && responseObj["done"].toBool()) {
             isComplete = true;
             break;
         }
     }
+
     return isComplete;
 }
 

@@ -47,6 +47,7 @@ inline void logMessage(const QString &message, bool silent = true)
         return;
 
     const QString prefixedMessage = QLatin1String("[Qode Assist] ") + message;
+    qDebug() << prefixedMessage;
     if (silent) {
         Core::MessageManager::writeSilently(prefixedMessage);
     } else {
@@ -60,6 +61,8 @@ inline void logMessages(const QStringList &messages, bool silent = true)
         return;
 
     QStringList prefixedMessages;
+    qDebug() << prefixedMessages;
+
     for (const QString &message : messages) {
         prefixedMessages << (QLatin1String("[Qode Assist] ") + message);
     }

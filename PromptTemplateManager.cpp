@@ -19,6 +19,8 @@
 
 #include "PromptTemplateManager.hpp"
 
+#include "QodeAssistUtils.hpp"
+
 namespace QodeAssist {
 
 PromptTemplateManager &PromptTemplateManager::instance()
@@ -27,27 +29,60 @@ PromptTemplateManager &PromptTemplateManager::instance()
     return instance;
 }
 
-void PromptTemplateManager::setCurrentTemplate(const QString &name)
+void PromptTemplateManager::setCurrentFimTemplate(const QString &name)
 {
-    if (m_templates.contains(name)) {
-        m_currentTemplateName = name;
+    logMessage("Setting current FIM provider to: " + name);
+    if (!m_fimTemplates.contains(name) || m_fimTemplates[name] == nullptr) {
+        logMessage("Error to set current FIM template" + name);
+        return;
     }
+
+    m_currentFimTemplate = m_fimTemplates[name];
 }
 
-const Templates::PromptTemplate *PromptTemplateManager::getCurrentTemplate() const
+Templates::PromptTemplate *PromptTemplateManager::getCurrentFimTemplate()
 {
-    auto it = m_templates.find(m_currentTemplateName);
-    return it != m_templates.end() ? it.value() : nullptr;
+    if (m_currentFimTemplate == nullptr) {
+        logMessage("Current fim provider is null");
+        return nullptr;
+    }
+
+    return m_currentFimTemplate;
 }
 
-QStringList PromptTemplateManager::getTemplateNames() const
+void PromptTemplateManager::setCurrentChatTemplate(const QString &name)
 {
-    return m_templates.keys();
+    logMessage("Setting current chat provider to:  " + name);
+    if (!m_chatTemplates.contains(name) || m_chatTemplates[name] == nullptr) {
+        logMessage("Error to set current chat template" + name);
+        return;
+    }
+
+    m_currentChatTemplate = m_chatTemplates[name];
+}
+
+Templates::PromptTemplate *PromptTemplateManager::getCurrentChatTemplate()
+{
+    if (m_currentChatTemplate == nullptr)
+        logMessage("Current chat provider is null");
+
+    return m_currentChatTemplate;
+}
+
+QStringList PromptTemplateManager::fimTemplatesNames() const
+{
+    return m_fimTemplates.keys();
+}
+
+QStringList PromptTemplateManager::chatTemplatesNames() const
+{
+    return m_chatTemplates.keys();
 }
 
 PromptTemplateManager::~PromptTemplateManager()
 {
-    qDeleteAll(m_templates);
+    qDeleteAll(m_fimTemplates);
+    qDeleteAll(m_chatTemplates);
 }
 
 } // namespace QodeAssist

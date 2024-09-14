@@ -19,24 +19,35 @@
 
 #pragma once
 
-#include <QJsonObject>
-#include <QList>
-#include <QString>
-
+#include <QObject>
+#include <QtCore/qjsonarray.h>
 #include "QodeAssistData.hpp"
+#include "core/LLMRequestHandler.hpp"
 
-namespace QodeAssist::Templates {
+namespace QodeAssist::Chat {
 
-enum class TemplateType { Chat, Fim };
-
-class PromptTemplate
+class ChatClientInterface : public QObject
 {
+    Q_OBJECT
+
 public:
-    virtual ~PromptTemplate() = default;
-    virtual TemplateType type() const = 0;
-    virtual QString name() const = 0;
-    virtual QString promptTemplate() const = 0;
-    virtual QStringList stopWords() const = 0;
-    virtual void prepareRequest(QJsonObject &request, const ContextData &context) const = 0;
+    explicit ChatClientInterface(QObject *parent = nullptr);
+    ~ChatClientInterface();
+
+    void sendMessage(const QString &message);
+
+signals:
+    void messageReceived(const QString &message);
+    void errorOccurred(const QString &error);
+
+private:
+    void handleLLMResponse(const QString &response, bool isComplete);
+    void trimChatHistory();
+
+    LLMRequestHandler *m_requestHandler;
+    QString m_accumulatedResponse;
+    QString m_pendingMessage;
+    QJsonArray m_chatHistory;
 };
-} // namespace QodeAssist::Templates
+
+} // namespace QodeAssist::Chat

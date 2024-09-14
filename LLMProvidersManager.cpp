@@ -19,6 +19,8 @@
 
 #include "LLMProvidersManager.hpp"
 
+#include "QodeAssistUtils.hpp"
+
 namespace QodeAssist {
 
 LLMProvidersManager &LLMProvidersManager::instance()
@@ -27,25 +29,53 @@ LLMProvidersManager &LLMProvidersManager::instance()
     return instance;
 }
 
-QStringList LLMProvidersManager::getProviderNames() const
+Providers::LLMProvider *LLMProvidersManager::setCurrentFimProvider(const QString &name)
 {
-    return m_providers.keys();
-}
-
-void LLMProvidersManager::setCurrentProvider(const QString &name)
-{
-    if (m_providers.contains(name)) {
-        m_currentProviderName = name;
-    }
-}
-
-Providers::LLMProvider *LLMProvidersManager::getCurrentProvider()
-{
-    if (m_currentProviderName.isEmpty()) {
+    logMessage("Setting current FIM provider to: " + name);
+    if (!m_providers.contains(name)) {
+        logMessage("Can't find provider with name: " + name);
         return nullptr;
     }
 
-    return m_providers[m_currentProviderName];
+    m_currentFimProvider = m_providers[name];
+    return m_currentFimProvider;
+}
+
+Providers::LLMProvider *LLMProvidersManager::setCurrentChatProvider(const QString &name)
+{
+    logMessage("Setting current chat provider to: " + name);
+    if (!m_providers.contains(name)) {
+        logMessage("Can't find chat provider with name: " + name);
+        return nullptr;
+    }
+
+    m_currentChatProvider = m_providers[name];
+    return m_currentChatProvider;
+}
+
+Providers::LLMProvider *LLMProvidersManager::getCurrentFimProvider()
+{
+    if (m_currentFimProvider == nullptr) {
+        logMessage("Current fim provider is null");
+        return nullptr;
+    }
+
+    return m_currentFimProvider;
+}
+
+Providers::LLMProvider *LLMProvidersManager::getCurrentChatProvider()
+{
+    if (m_currentChatProvider == nullptr) {
+        logMessage("Current chat provider is null");
+        return nullptr;
+    }
+
+    return m_currentChatProvider;
+}
+
+QStringList LLMProvidersManager::providersNames() const
+{
+    return m_providers.keys();
 }
 
 LLMProvidersManager::~LLMProvidersManager()

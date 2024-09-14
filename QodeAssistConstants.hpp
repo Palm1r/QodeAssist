@@ -61,6 +61,12 @@ const char USE_FILE_PATH_IN_CONTEXT[] = "QodeAssist.useFilePathInContext";
 const char CUSTOM_JSON_TEMPLATE[] = "QodeAssist.customJsonTemplate";
 const char USE_PROJECT_CHANGES_CACHE[] = "QodeAssist.useProjectChangesCache";
 const char MAX_CHANGES_CACHE_SIZE[] = "QodeAssist.maxChangesCacheSize";
+const char CHAT_LLM_PROVIDERS[] = "QodeAssist.chatLlmProviders";
+const char CHAT_URL[] = "QodeAssist.chatUrl";
+const char CHAT_END_POINT[] = "QodeAssist.chatEndPoint";
+const char CHAT_MODEL_NAME[] = "QodeAssist.chatModelName";
+const char CHAT_SELECT_MODELS[] = "QodeAssist.chatSelectModels";
+const char CHAT_PROMPTS[] = "QodeAssist.chatPrompts";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
 const char QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID[] = "QodeAssist.1GeneralSettingsPageId";

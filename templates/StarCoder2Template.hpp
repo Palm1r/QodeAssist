@@ -26,7 +26,8 @@ namespace QodeAssist::Templates {
 class StarCoder2Template : public PromptTemplate
 {
 public:
-    QString name() const override { return "StarCoder2"; }
+    TemplateType type() const override { return TemplateType::Fim; }
+    QString name() const override { return "StarCoder2 FIM"; }
     QString promptTemplate() const override { return "%1<fim_prefix>%2<fim_suffix>%3<fim_middle>"; }
     QStringList stopWords() const override
     {

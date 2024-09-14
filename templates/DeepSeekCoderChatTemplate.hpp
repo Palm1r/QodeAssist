@@ -19,26 +19,35 @@
 
 #pragma once
 
+#include <QJsonArray>
 #include "PromptTemplate.hpp"
 
 namespace QodeAssist::Templates {
 
-class DeepSeekCoderV2Template : public PromptTemplate
+class DeepSeekCoderChatTemplate : public PromptTemplate
 {
 public:
-    TemplateType type() const override { return TemplateType::Fim; }
-    QString name() const override { return "DeepSeekCoder FIM"; }
-    QString promptTemplate() const override
+    QString name() const override { return "DeepSeek Coder Chat"; }
+    TemplateType type() const override { return TemplateType::Chat; }
+
+    QString promptTemplate() const override { return "### Instruction:\n%1\n### Response:\n"; }
+
+    QStringList stopWords() const override
     {
-        return "%1<｜fim▁begin｜>%2<｜fim▁hole｜>%3<｜fim▁end｜>";
+        return QStringList() << "### Instruction:" << "### Response:" << "\n\n### " << "<|EOT|>";
     }
-    QStringList stopWords() const override { return QStringList(); }
+
     void prepareRequest(QJsonObject &request, const ContextData &context) const override
     {
-        QString formattedPrompt = promptTemplate().arg(context.instriuctions,
-                                                       context.prefix,
-                                                       context.suffix);
-        request["prompt"] = formattedPrompt;
+        QString formattedPrompt = promptTemplate().arg(context.prefix);
+        QJsonArray messages = request["messages"].toArray();
+
+        QJsonObject newMessage;
+        newMessage["role"] = "user";
+        newMessage["content"] = formattedPrompt;
+        messages.append(newMessage);
+
+        request["messages"] = messages;
     }
 };
 
