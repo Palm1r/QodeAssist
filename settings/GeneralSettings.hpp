@@ -47,11 +47,17 @@ public:
     Utils::SelectionAspect fimPrompts{this};
     ButtonAspect resetToDefaults{this};
 
+    Utils::StringAspect modelIndicator{this};
+    Utils::StringAspect urlIndicator{this};
+
 private:
     void setupConnections();
     void updateProviderSettings();
     void showModelSelectionDialog();
     void resetPageToDefaults();
+
+    void updateStatusIndicators();
+    void setIndicatorStatus(Utils::StringAspect &indicator, const QString &tooltip, bool isValid);
 };
 
 GeneralSettings &generalSettings();

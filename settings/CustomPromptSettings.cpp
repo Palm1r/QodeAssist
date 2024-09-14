@@ -122,10 +122,6 @@ void CustomPromptSettings::resetSettingsToDefaults()
     if (reply == QMessageBox::Yes) {
         resetAspect(customJsonTemplate);
     }
-
-    QMessageBox::information(Core::ICore::dialogParent(),
-                             Tr::tr("Settings Reset"),
-                             Tr::tr("All settings have been reset to their default values."));
 }
 
 void CustomPromptSettings::saveCustomTemplate()

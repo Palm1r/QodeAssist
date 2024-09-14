@@ -61,7 +61,7 @@ ContextSettings::ContextSettings()
     useFilePathInContext.setLabelText(Tr::tr("Use File Path in Context"));
 
     useSpecificInstructions.setSettingsKey(Constants::USE_SPECIFIC_INSTRUCTIONS);
-    useSpecificInstructions.setDefaultValue(false);
+    useSpecificInstructions.setDefaultValue(true);
     useSpecificInstructions.setLabelText(Tr::tr("Use Specific Instructions"));
 
     specificInstractions.setSettingsKey(Constants::SPECIFIC_INSTRUCTIONS);
@@ -134,10 +134,6 @@ void ContextSettings::resetPageToDefaults()
         resetAspect(useSpecificInstructions);
         resetAspect(specificInstractions);
     }
-
-    QMessageBox::information(Core::ICore::dialogParent(),
-                             Tr::tr("Settings Reset"),
-                             Tr::tr("All settings have been reset to their default values."));
 }
 
 class ContextSettingsPage : public Core::IOptionsPage
