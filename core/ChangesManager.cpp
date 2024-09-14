@@ -65,12 +65,6 @@ void ChangesManager::addChange(TextEditor::TextDocument *document,
             documentQueue.dequeue();
         }
     }
-
-    logMessage(QString("ChangesManager: Updated %1 line %2: '%3'")
-                   .arg(fileName)
-                   .arg(lineNumber)
-                   .arg(lineContent));
-    logMessage(QString("ChangesManager: Document queue size %1").arg(documentQueue.size()));
 }
 
 QString ChangesManager::getRecentChangesContext(const TextEditor::TextDocument *currentDocument) const

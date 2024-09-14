@@ -45,6 +45,7 @@ PresetPromptsSettings::PresetPromptsSettings()
     temperature.setLabelText(Tr::tr("Temperature:"));
     temperature.setDefaultValue(0.2);
     temperature.setRange(0.0, 10.0);
+    temperature.setSingleStep(0.1);
 
     ollamaLivetime.setSettingsKey(Constants::OLLAMA_LIVETIME);
     ollamaLivetime.setLabelText(
@@ -62,15 +63,16 @@ PresetPromptsSettings::PresetPromptsSettings()
     useTopP.setDefaultValue(false);
 
     topP.setSettingsKey(Constants::TOP_P);
-    topP.setLabelText(Tr::tr("top_p"));
+    topP.setLabelText(Tr::tr("use top_p"));
     topP.setDefaultValue(0.9);
     topP.setRange(0.0, 1.0);
+    topP.setSingleStep(0.1);
 
     useTopK.setSettingsKey(Constants::USE_TOP_K);
     useTopK.setDefaultValue(false);
 
     topK.setSettingsKey(Constants::TOP_K);
-    topK.setLabelText(Tr::tr("top_k"));
+    topK.setLabelText(Tr::tr("use top_k"));
     topK.setDefaultValue(50);
     topK.setRange(1, 1000);
 
@@ -78,17 +80,19 @@ PresetPromptsSettings::PresetPromptsSettings()
     usePresencePenalty.setDefaultValue(false);
 
     presencePenalty.setSettingsKey(Constants::PRESENCE_PENALTY);
-    presencePenalty.setLabelText(Tr::tr("presence_penalty"));
+    presencePenalty.setLabelText(Tr::tr("use presence_penalty"));
     presencePenalty.setDefaultValue(0.0);
     presencePenalty.setRange(-2.0, 2.0);
+    presencePenalty.setSingleStep(0.1);
 
     useFrequencyPenalty.setSettingsKey(Constants::USE_FREQUENCY_PENALTY);
     useFrequencyPenalty.setDefaultValue(false);
 
     frequencyPenalty.setSettingsKey(Constants::FREQUENCY_PENALTY);
-    frequencyPenalty.setLabelText(Tr::tr("frequency_penalty"));
+    frequencyPenalty.setLabelText(Tr::tr("use frequency_penalty"));
     frequencyPenalty.setDefaultValue(0.0);
     frequencyPenalty.setRange(-2.0, 2.0);
+    frequencyPenalty.setSingleStep(0.1);
 
     apiKey.setSettingsKey(Constants::API_KEY);
     apiKey.setLabelText(Tr::tr("API Key:"));
@@ -99,17 +103,12 @@ PresetPromptsSettings::PresetPromptsSettings()
 
     readSettings();
 
-    topK.setEnabled(useTopK());
-    topP.setEnabled(useTopP());
-    presencePenalty.setEnabled(usePresencePenalty());
-    frequencyPenalty.setEnabled(useFrequencyPenalty());
-
     setupConnections();
 
     setLayouter([this]() {
         using namespace Layouting;
         return Column{Row{temperature, Stretch{1}, resetToDefaults},
-                      maxTokens,
+                      Row{maxTokens, Stretch{1}},
                       Row{useTopP, topP, Stretch{1}},
                       Row{useTopK, topK, Stretch{1}},
                       Row{usePresencePenalty, presencePenalty, Stretch{1}},
@@ -121,19 +120,6 @@ PresetPromptsSettings::PresetPromptsSettings()
 
 void PresetPromptsSettings::setupConnections()
 {
-    connect(&useTopP, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
-        topP.setEnabled(useTopP.volatileValue());
-    });
-    connect(&useTopK, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
-        topK.setEnabled(useTopK.volatileValue());
-    });
-    connect(&usePresencePenalty, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
-        presencePenalty.setEnabled(usePresencePenalty.volatileValue());
-    });
-    connect(&useFrequencyPenalty, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
-        frequencyPenalty.setEnabled(useFrequencyPenalty.volatileValue());
-    });
-
     connect(&resetToDefaults,
             &ButtonAspect::clicked,
             this,
@@ -162,10 +148,6 @@ void PresetPromptsSettings::resetSettingsToDefaults()
         resetAspect(useFrequencyPenalty);
         resetAspect(frequencyPenalty);
     }
-
-    QMessageBox::information(Core::ICore::dialogParent(),
-                             Tr::tr("Settings Reset"),
-                             Tr::tr("All settings have been reset to their default values."));
 }
 
 class PresetPromptsSettingsPage : public Core::IOptionsPage

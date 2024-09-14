@@ -24,6 +24,7 @@
 #include <coreplugin/dialogs/ioptionspage.h>
 #include <coreplugin/icore.h>
 #include <utils/layoutbuilder.h>
+#include <utils/utilsicons.h>
 
 #include "LLMProvidersManager.hpp"
 #include "PromptTemplateManager.hpp"
@@ -144,15 +145,17 @@ GeneralSettings::GeneralSettings()
                                  Space{8},
                                  enableLogging,
                                  Space{8},
-                                 llmProviders,
-                                 Row{url, endPoint},
+                                 Row{llmProviders, Stretch{1}},
+                                 Row{url, endPoint, urlIndicator},
                                  Space{8},
-                                 Row{selectModels, modelName},
+                                 Row{selectModels, modelName, modelIndicator},
                                  Space{8},
                                  fimPrompts,
                                  Stretch{1}};
         return rootLayout;
     });
+
+    updateStatusIndicators();
 }
 
 void GeneralSettings::setupConnections()
@@ -173,6 +176,15 @@ void GeneralSettings::setupConnections()
         setLoggingEnabled(enableLogging.volatileValue());
     });
     connect(&resetToDefaults, &ButtonAspect::clicked, this, &GeneralSettings::resetPageToDefaults);
+
+    connect(&url,
+            &Utils::StringAspect::volatileValueChanged,
+            this,
+            &GeneralSettings::updateStatusIndicators);
+    connect(&modelName,
+            &Utils::StringAspect::volatileValueChanged,
+            this,
+            &GeneralSettings::updateStatusIndicators);
 }
 
 void GeneralSettings::updateProviderSettings()
@@ -182,6 +194,7 @@ void GeneralSettings::updateProviderSettings()
     if (provider) {
         url.setVolatileValue(provider->url());
         endPoint.setVolatileValue(provider->completionEndpoint());
+        modelName.setVolatileValue("");
     }
 }
 
@@ -233,10 +246,38 @@ void GeneralSettings::resetPageToDefaults()
 
     fimPrompts.setStringValue("StarCoder2");
     llmProviders.setStringValue("Ollama");
+    updateStatusIndicators();
+}
 
-    QMessageBox::information(Core::ICore::dialogParent(),
-                             Tr::tr("Settings Reset"),
-                             Tr::tr("All settings have been reset to their default values."));
+void GeneralSettings::updateStatusIndicators()
+{
+    bool urlValid = !url.volatileValue().isEmpty() && !endPoint.volatileValue().isEmpty();
+    bool modelValid = !modelName.volatileValue().isEmpty();
+
+    bool pingSuccessful = false;
+    if (urlValid) {
+        QUrl pingUrl(url.volatileValue());
+        pingSuccessful = QodeAssist::pingUrl(pingUrl);
+    }
+
+    setIndicatorStatus(modelIndicator,
+                       modelValid ? tr("Model is properly configured")
+                                  : tr("No model selected or model name is invalid"),
+                       modelValid);
+
+    setIndicatorStatus(urlIndicator,
+                       pingSuccessful ? tr("Server is reachable")
+                                      : tr("Server is not reachable or URL is invalid"),
+                       pingSuccessful);
+}
+
+void GeneralSettings::setIndicatorStatus(Utils::StringAspect &indicator,
+                                         const QString &tooltip,
+                                         bool isValid)
+{
+    const Utils::Icon &icon = isValid ? Utils::Icons::OK : Utils::Icons::WARNING;
+    indicator.setLabelPixmap(icon.pixmap());
+    indicator.setToolTip(tooltip);
 }
 
 class GeneralSettingsPage : public Core::IOptionsPage
