@@ -29,6 +29,7 @@ class LLMProvidersManager
 {
 public:
     static LLMProvidersManager &instance();
+    ~LLMProvidersManager();
 
     template<typename T>
     void registerProvider()
@@ -40,11 +41,13 @@ public:
         m_providers[name] = provider;
     }
 
-    QStringList getProviderNames() const;
-    void setCurrentProvider(const QString &name);
-    Providers::LLMProvider *getCurrentProvider();
+    Providers::LLMProvider *setCurrentFimProvider(const QString &name);
+    Providers::LLMProvider *setCurrentChatProvider(const QString &name);
 
-    ~LLMProvidersManager();
+    Providers::LLMProvider *getCurrentFimProvider();
+    Providers::LLMProvider *getCurrentChatProvider();
+
+    QStringList providersNames() const;
 
 private:
     LLMProvidersManager() = default;
@@ -52,7 +55,8 @@ private:
     LLMProvidersManager &operator=(const LLMProvidersManager &) = delete;
 
     QMap<QString, Providers::LLMProvider *> m_providers;
-    QString m_currentProviderName;
+    Providers::LLMProvider *m_currentFimProvider = nullptr;
+    Providers::LLMProvider *m_currentChatProvider = nullptr;
 };
 
 } // namespace QodeAssist

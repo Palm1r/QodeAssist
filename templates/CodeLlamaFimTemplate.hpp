@@ -23,10 +23,11 @@
 
 namespace QodeAssist::Templates {
 
-class CodeLLamaTemplate : public PromptTemplate
+class CodeLlamaFimTemplate : public PromptTemplate
 {
 public:
-    QString name() const override { return "CodeLlama"; }
+    TemplateType type() const override { return TemplateType::Fim; }
+    QString name() const override { return "CodeLlama FIM"; }
     QString promptTemplate() const override { return "%1<PRE> %2 <SUF>%3 <MID>"; }
     QStringList stopWords() const override
     {

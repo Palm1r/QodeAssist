@@ -32,7 +32,8 @@ namespace QodeAssist::Templates {
 class CustomTemplate : public PromptTemplate
 {
 public:
-    QString name() const override { return "Custom Template"; }
+    TemplateType type() const override { return TemplateType::Fim; }
+    QString name() const override { return "Custom FIM Template"; }
     QString promptTemplate() const override
     {
         return Settings::customPromptSettings().customJsonTemplate();

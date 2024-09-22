@@ -19,26 +19,30 @@
 
 #pragma once
 
+#include <QtCore/qjsonarray.h>
 #include "PromptTemplate.hpp"
 
 namespace QodeAssist::Templates {
 
-class DeepSeekCoderV2Template : public PromptTemplate
+class CodeLlamaInstructTemplate : public PromptTemplate
 {
 public:
-    TemplateType type() const override { return TemplateType::Fim; }
-    QString name() const override { return "DeepSeekCoder FIM"; }
-    QString promptTemplate() const override
-    {
-        return "%1<｜fim▁begin｜>%2<｜fim▁hole｜>%3<｜fim▁end｜>";
-    }
-    QStringList stopWords() const override { return QStringList(); }
+    TemplateType type() const override { return TemplateType::Chat; }
+    QString name() const override { return "CodeLlama Chat"; }
+    QString promptTemplate() const override { return "[INST] %1 [/INST]"; }
+    QStringList stopWords() const override { return QStringList() << "[INST]" << "[/INST]"; }
+
     void prepareRequest(QJsonObject &request, const ContextData &context) const override
     {
-        QString formattedPrompt = promptTemplate().arg(context.instriuctions,
-                                                       context.prefix,
-                                                       context.suffix);
-        request["prompt"] = formattedPrompt;
+        QString formattedPrompt = promptTemplate().arg(context.prefix);
+        QJsonArray messages = request["messages"].toArray();
+
+        QJsonObject newMessage;
+        newMessage["role"] = "user";
+        newMessage["content"] = formattedPrompt;
+        messages.append(newMessage);
+
+        request["messages"] = messages;
     }
 };
 

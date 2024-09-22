@@ -30,6 +30,7 @@ class PromptTemplateManager
 {
 public:
     static PromptTemplateManager &instance();
+    ~PromptTemplateManager();
 
     template<typename T>
     void registerTemplate()
@@ -38,22 +39,31 @@ public:
                       "T must inherit from PromptTemplate");
         T *template_ptr = new T();
         QString name = template_ptr->name();
-        m_templates[name] = template_ptr;
+        if (template_ptr->type() == Templates::TemplateType::Fim) {
+            m_fimTemplates[name] = template_ptr;
+        } else if (template_ptr->type() == Templates::TemplateType::Chat) {
+            m_chatTemplates[name] = template_ptr;
+        }
     }
 
-    void setCurrentTemplate(const QString &name);
-    const Templates::PromptTemplate *getCurrentTemplate() const;
-    QStringList getTemplateNames() const;
+    void setCurrentFimTemplate(const QString &name);
+    Templates::PromptTemplate *getCurrentFimTemplate();
 
-    ~PromptTemplateManager();
+    void setCurrentChatTemplate(const QString &name);
+    Templates::PromptTemplate *getCurrentChatTemplate();
+
+    QStringList fimTemplatesNames() const;
+    QStringList chatTemplatesNames() const;
 
 private:
     PromptTemplateManager() = default;
     PromptTemplateManager(const PromptTemplateManager &) = delete;
     PromptTemplateManager &operator=(const PromptTemplateManager &) = delete;
 
-    QMap<QString, Templates::PromptTemplate *> m_templates;
-    QString m_currentTemplateName;
+    QMap<QString, Templates::PromptTemplate *> m_fimTemplates;
+    QMap<QString, Templates::PromptTemplate *> m_chatTemplates;
+    Templates::PromptTemplate *m_currentFimTemplate;
+    Templates::PromptTemplate *m_currentChatTemplate;
 };
 
 } // namespace QodeAssist

@@ -31,6 +31,7 @@ public:
     QString name() const override;
     QString url() const override;
     QString completionEndpoint() const override;
+    QString chatEndpoint() const override;
     void prepareRequest(QJsonObject &request) override;
     bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) override;
     QList<QString> getInstalledModels(const Utils::Environment &env) override;

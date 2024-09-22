@@ -60,6 +60,8 @@ inline void logMessages(const QStringList &messages, bool silent = true)
         return;
 
     QStringList prefixedMessages;
+    qDebug() << prefixedMessages;
+
     for (const QString &message : messages) {
         prefixedMessages << (QLatin1String("[Qode Assist] ") + message);
     }

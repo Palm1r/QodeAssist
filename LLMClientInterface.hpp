@@ -23,6 +23,7 @@
 #include <texteditor/texteditor.h>
 
 #include "QodeAssistData.hpp"
+#include "core/LLMRequestHandler.hpp"
 
 class QNetworkReply;
 class QNetworkAccessManager;
@@ -36,22 +37,13 @@ class LLMClientInterface : public LanguageClient::BaseClientInterface
 public:
     LLMClientInterface();
 
-public:
     Utils::FilePath serverDeviceTemplate() const override;
 
     void sendCompletionToClient(const QString &completion,
                                 const QJsonObject &request,
-                                const QJsonObject &position,
                                 bool isComplete);
 
-    void handleCompletion(const QJsonObject &request,
-                          const QStringView &accumulatedCompletion = QString());
-    void sendLLMRequest(const QJsonObject &request, const ContextData &prompt);
-    void handleLLMResponse(QNetworkReply *reply, const QJsonObject &request);
-
-    ContextData prepareContext(const QJsonObject &request,
-                               const QStringView &accumulatedCompletion = QString{});
-    void updateProvider();
+    void handleCompletion(const QJsonObject &request);
 
 protected:
     void startImpl() override;
@@ -65,19 +57,11 @@ private:
     void handleInitialized(const QJsonObject &request);
     void handleExit(const QJsonObject &request);
     void handleCancelRequest(const QJsonObject &request);
-    bool processSingleLineCompletion(QNetworkReply *reply,
-                                     const QJsonObject &request,
-                                     const QString &accumulatedCompletion);
 
-    QString сontextBefore(TextEditor::TextEditorWidget *widget, int lineNumber, int cursorPosition);
-    QString сontextAfter(TextEditor::TextEditorWidget *widget, int lineNumber, int cursorPosition);
-    QString removeStopWords(const QStringView &completion);
+    ContextData prepareContext(const QJsonObject &request,
+                               const QStringView &accumulatedCompletion = QString{});
 
-    QUrl m_serverUrl;
-    QNetworkAccessManager *m_manager;
-    QMap<QString, QNetworkReply *> m_activeRequests;
-    QMap<QNetworkReply *, QString> m_accumulatedResponses;
-
+    LLMRequestHandler m_requestHandler;
     QElapsedTimer m_completionTimer;
     QMap<QString, qint64> m_requestStartTimes;
 

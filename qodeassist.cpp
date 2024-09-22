@@ -26,8 +26,9 @@
 #include <coreplugin/coreconstants.h>
 #include <coreplugin/icontext.h>
 #include <coreplugin/icore.h>
+#include <coreplugin/messagemanager.h>
+#include <coreplugin/modemanager.h>
 #include <coreplugin/statusbarmanager.h>
-
 #include <extensionsystem/iplugin.h>
 #include <languageclient/languageclientmanager.h>
 
@@ -41,11 +42,16 @@
 #include "LLMProvidersManager.hpp"
 #include "PromptTemplateManager.hpp"
 #include "QodeAssistClient.hpp"
+#include "chat/ChatOutputPane.h"
 #include "providers/LMStudioProvider.hpp"
 #include "providers/OllamaProvider.hpp"
 #include "providers/OpenAICompatProvider.hpp"
-#include "templates/CodeLLamaTemplate.hpp"
+
+#include "settings/GeneralSettings.hpp"
+#include "templates/CodeLlamaFimTemplate.hpp"
+#include "templates/CodeLlamaInstruct.hpp"
 #include "templates/CustomTemplate.hpp"
+#include "templates/DeepSeekCoderChatTemplate.hpp"
 #include "templates/DeepSeekCoderV2.hpp"
 #include "templates/StarCoder2Template.hpp"
 
@@ -78,10 +84,12 @@ public:
         providerManager.registerProvider<Providers::OpenAICompatProvider>();
 
         auto &templateManager = PromptTemplateManager::instance();
-        templateManager.registerTemplate<Templates::CodeLLamaTemplate>();
+        templateManager.registerTemplate<Templates::CodeLlamaFimTemplate>();
         templateManager.registerTemplate<Templates::StarCoder2Template>();
         templateManager.registerTemplate<Templates::DeepSeekCoderV2Template>();
         templateManager.registerTemplate<Templates::CustomTemplate>();
+        templateManager.registerTemplate<Templates::DeepSeekCoderChatTemplate>();
+        templateManager.registerTemplate<Templates::CodeLlamaInstructTemplate>();
 
         Utils::Icon QCODEASSIST_ICON(
             {{":/resources/images/qoderassist-icon.png", Utils::Theme::IconsBaseColor}});
@@ -106,6 +114,8 @@ public:
         auto toggleButton = new QToolButton;
         toggleButton->setDefaultAction(requestAction.contextAction());
         StatusBarManager::addStatusBarWidget(toggleButton, StatusBarManager::RightCorner);
+
+        m_chatOutputPane = new Chat::ChatOutputPane(this);
     }
 
     void extensionsInitialized() final
@@ -139,6 +149,7 @@ public:
 
 private:
     QPointer<QodeAssistClient> m_qodeAssistClient;
+    QPointer<Chat::ChatOutputPane> m_chatOutputPane;
 };
 
 } // namespace QodeAssist::Internal

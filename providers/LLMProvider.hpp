@@ -35,6 +35,7 @@ public:
     virtual QString name() const = 0;
     virtual QString url() const = 0;
     virtual QString completionEndpoint() const = 0;
+    virtual QString chatEndpoint() const = 0;
 
     virtual void prepareRequest(QJsonObject &request) = 0;
     virtual bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) = 0;

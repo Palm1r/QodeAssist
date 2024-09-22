@@ -59,8 +59,8 @@ GeneralSettings::GeneralSettings()
     enableLogging.setDefaultValue(false);
 
     multiLineCompletion.setSettingsKey(Constants::MULTILINE_COMPLETION);
-    multiLineCompletion.setDefaultValue(true);
-    multiLineCompletion.setLabelText(Tr::tr("Enable Multiline Completion"));
+    multiLineCompletion.setDefaultValue(false);
+    multiLineCompletion.setLabelText(Tr::tr("Enable Multiline Completion(experimental)"));
 
     startSuggestionTimer.setSettingsKey(Constants::START_SUGGESTION_TIMER);
     startSuggestionTimer.setLabelText(Tr::tr("with delay(ms)"));
@@ -84,9 +84,8 @@ GeneralSettings::GeneralSettings()
     autoCompletionTypingInterval.setDefaultValue(2000);
 
     llmProviders.setSettingsKey(Constants::LLM_PROVIDERS);
-    llmProviders.setDisplayName(Tr::tr("FIM Provider:"));
+    llmProviders.setDisplayName(Tr::tr("AI Suggest Provider:"));
     llmProviders.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
-    llmProviders.setDefaultValue(0);
 
     url.setSettingsKey(Constants::URL);
     url.setLabelText(Tr::tr("URL:"));
@@ -97,37 +96,53 @@ GeneralSettings::GeneralSettings()
     endPoint.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
 
     modelName.setSettingsKey(Constants::MODEL_NAME);
-    modelName.setLabelText(Tr::tr("LLM Name:"));
+    modelName.setLabelText(Tr::tr("Model name:"));
     modelName.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
 
     selectModels.m_buttonText = Tr::tr("Select Fill-In-the-Middle Model");
 
     fimPrompts.setDisplayName(Tr::tr("Fill-In-the-Middle Prompt"));
     fimPrompts.setSettingsKey(Constants::FIM_PROMPTS);
-    fimPrompts.setDefaultValue(0);
     fimPrompts.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
 
-    const auto &manager = LLMProvidersManager::instance();
-    if (!manager.getProviderNames().isEmpty()) {
-        const auto providerNames = manager.getProviderNames();
-        for (const QString &name : providerNames) {
-            llmProviders.addOption(name);
-        }
-    }
+    chatLlmProviders.setSettingsKey(Constants::CHAT_LLM_PROVIDERS);
+    chatLlmProviders.setDisplayName(Tr::tr("AI Chat Provider:"));
+    chatLlmProviders.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
 
-    const auto &promptManager = PromptTemplateManager::instance();
-    if (!promptManager.getTemplateNames().isEmpty()) {
-        const auto promptNames = promptManager.getTemplateNames();
-        for (const QString &name : promptNames) {
-            fimPrompts.addOption(name);
-        }
-    }
+    chatUrl.setSettingsKey(Constants::CHAT_URL);
+    chatUrl.setLabelText(Tr::tr("URL:"));
+    chatUrl.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+
+    chatEndPoint.setSettingsKey(Constants::CHAT_END_POINT);
+    chatEndPoint.setLabelText(Tr::tr("Chat Endpoint:"));
+    chatEndPoint.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+
+    chatModelName.setSettingsKey(Constants::CHAT_MODEL_NAME);
+    chatModelName.setLabelText(Tr::tr("Model name:"));
+    chatModelName.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+
+    chatSelectModels.m_buttonText = Tr::tr("Select Chat Model");
+
+    chatPrompts.setDisplayName(Tr::tr("Chat Prompt"));
+    chatPrompts.setSettingsKey(Constants::CHAT_PROMPTS);
+    chatPrompts.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+
+    loadProviders();
+    loadPrompts();
 
     readSettings();
 
-    LLMProvidersManager::instance().setCurrentProvider(llmProviders.stringValue());
-    PromptTemplateManager::instance().setCurrentTemplate(fimPrompts.stringValue());
+    auto fimProviderName = llmProviders.displayForIndex(llmProviders.value());
+    setCurrentFimProvider(fimProviderName);
+    auto chatProviderName = chatLlmProviders.displayForIndex(chatLlmProviders.value());
+    setCurrentChatProvider(chatProviderName);
+
+    auto nameFimPromts = fimPrompts.displayForIndex(fimPrompts.value());
+    PromptTemplateManager::instance().setCurrentFimTemplate(nameFimPromts);
+    auto nameChatPromts = chatPrompts.displayForIndex(chatPrompts.value());
+    PromptTemplateManager::instance().setCurrentChatTemplate(nameChatPromts);
+
     setLoggingEnabled(enableLogging());
 
     setupConnections();
@@ -135,23 +150,29 @@ GeneralSettings::GeneralSettings()
     setLayouter([this]() {
         using namespace Layouting;
 
-        auto rootLayout = Column{Row{enableQodeAssist, Stretch{1}, resetToDefaults},
-                                 enableAutoComplete,
-                                 multiLineCompletion,
-                                 Row{autoCompletionCharThreshold,
-                                     autoCompletionTypingInterval,
-                                     startSuggestionTimer,
-                                     Stretch{1}},
-                                 Space{8},
-                                 enableLogging,
-                                 Space{8},
-                                 Row{llmProviders, Stretch{1}},
-                                 Row{url, endPoint, urlIndicator},
-                                 Space{8},
-                                 Row{selectModels, modelName, modelIndicator},
-                                 Space{8},
-                                 fimPrompts,
-                                 Stretch{1}};
+        auto rootLayout
+            = Column{Row{enableQodeAssist, Stretch{1}, resetToDefaults},
+                     enableAutoComplete,
+                     multiLineCompletion,
+                     Row{autoCompletionCharThreshold,
+                         autoCompletionTypingInterval,
+                         startSuggestionTimer,
+                         Stretch{1}},
+                     Space{8},
+                     enableLogging,
+                     Space{8},
+                     Group{title(Tr::tr("AI Suggestions")),
+                           Column{Row{llmProviders, Stretch{1}},
+                                  Row{url, endPoint, fimUrlIndicator},
+                                  Row{selectModels, modelName, fimModelIndicator},
+                                  Row{fimPrompts, Stretch{1}}}},
+                     Space{16},
+                     Group{title(Tr::tr("AI Chat(experimental)")),
+                           Column{Row{chatLlmProviders, Stretch{1}},
+                                  Row{chatUrl, chatEndPoint, chatUrlIndicator},
+                                  Row{chatSelectModels, chatModelName, chatModelIndicator},
+                                  Row{chatPrompts, Stretch{1}}}},
+                     Stretch{1}};
         return rootLayout;
     });
 
@@ -161,17 +182,34 @@ GeneralSettings::GeneralSettings()
 void GeneralSettings::setupConnections()
 {
     connect(&llmProviders, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
-        int index = llmProviders.volatileValue();
-        logMessage(QString("currentProvider %1").arg(llmProviders.displayForIndex(index)));
-        LLMProvidersManager::instance().setCurrentProvider(llmProviders.displayForIndex(index));
-        updateProviderSettings();
+        auto providerName = llmProviders.displayForIndex(llmProviders.volatileValue());
+        setCurrentFimProvider(providerName);
+        modelName.setVolatileValue("");
     });
+    connect(&chatLlmProviders, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
+        auto providerName = chatLlmProviders.displayForIndex(chatLlmProviders.volatileValue());
+        setCurrentChatProvider(providerName);
+        chatModelName.setVolatileValue("");        
+    });
+
     connect(&fimPrompts, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
         int index = fimPrompts.volatileValue();
-        logMessage(QString("currentPrompt %1").arg(fimPrompts.displayForIndex(index)));
-        PromptTemplateManager::instance().setCurrentTemplate(fimPrompts.displayForIndex(index));
+        PromptTemplateManager::instance().setCurrentFimTemplate(fimPrompts.displayForIndex(index));
     });
-    connect(&selectModels, &ButtonAspect::clicked, this, [this]() { showModelSelectionDialog(); });
+    connect(&chatPrompts, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
+        int index = chatPrompts.volatileValue();
+        PromptTemplateManager::instance().setCurrentChatTemplate(chatPrompts.displayForIndex(index));
+    });
+
+    connect(&selectModels, &ButtonAspect::clicked, this, [this]() {
+        auto *provider = LLMProvidersManager::instance().getCurrentFimProvider();
+        showModelSelectionDialog(&modelName, provider);
+    });
+    connect(&chatSelectModels, &ButtonAspect::clicked, this, [this]() {
+        auto *provider = LLMProvidersManager::instance().getCurrentChatProvider();
+        showModelSelectionDialog(&chatModelName, provider);
+    });
+
     connect(&enableLogging, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
         setLoggingEnabled(enableLogging.volatileValue());
     });
@@ -185,22 +223,19 @@ void GeneralSettings::setupConnections()
             &Utils::StringAspect::volatileValueChanged,
             this,
             &GeneralSettings::updateStatusIndicators);
+    connect(&chatUrl,
+            &Utils::StringAspect::volatileValueChanged,
+            this,
+            &GeneralSettings::updateStatusIndicators);
+    connect(&chatModelName,
+            &Utils::StringAspect::volatileValueChanged,
+            this,
+            &GeneralSettings::updateStatusIndicators);
 }
 
-void GeneralSettings::updateProviderSettings()
+void GeneralSettings::showModelSelectionDialog(Utils::StringAspect *modelNameObj,
+                                               Providers::LLMProvider *provider)
 {
-    const auto provider = LLMProvidersManager::instance().getCurrentProvider();
-
-    if (provider) {
-        url.setVolatileValue(provider->url());
-        endPoint.setVolatileValue(provider->completionEndpoint());
-        modelName.setVolatileValue("");
-    }
-}
-
-void GeneralSettings::showModelSelectionDialog()
-{
-    auto *provider = LLMProvidersManager::instance().getCurrentProvider();
     Utils::Environment env = Utils::Environment::systemEnvironment();
 
     if (provider) {
@@ -215,7 +250,7 @@ void GeneralSettings::showModelSelectionDialog()
                                                       &ok);
 
         if (ok && !selectedModel.isEmpty()) {
-            modelName.setVolatileValue(selectedModel);
+            modelNameObj->setVolatileValue(selectedModel);
             writeSettings();
         }
     }
@@ -233,42 +268,58 @@ void GeneralSettings::resetPageToDefaults()
     if (reply == QMessageBox::Yes) {
         resetAspect(enableQodeAssist);
         resetAspect(enableAutoComplete);
-        resetAspect(llmProviders);
-        resetAspect(url);
-        resetAspect(endPoint);
-        resetAspect(modelName);
-        resetAspect(fimPrompts);
         resetAspect(enableLogging);
         resetAspect(startSuggestionTimer);
         resetAspect(autoCompletionTypingInterval);
         resetAspect(autoCompletionCharThreshold);
     }
 
-    fimPrompts.setStringValue("StarCoder2");
-    llmProviders.setStringValue("Ollama");
+    int fimIndex = llmProviders.indexForDisplay("Ollama");
+    llmProviders.setVolatileValue(fimIndex);
+    int chatIndex = chatLlmProviders.indexForDisplay("Ollama");
+    chatLlmProviders.setVolatileValue(chatIndex);
+    modelName.setVolatileValue("");
+    chatModelName.setVolatileValue("");
+
     updateStatusIndicators();
 }
 
 void GeneralSettings::updateStatusIndicators()
 {
-    bool urlValid = !url.volatileValue().isEmpty() && !endPoint.volatileValue().isEmpty();
-    bool modelValid = !modelName.volatileValue().isEmpty();
+    bool fimUrlValid = !url.volatileValue().isEmpty() && !endPoint.volatileValue().isEmpty();
+    bool fimModelValid = !modelName.volatileValue().isEmpty();
+    bool chatUrlValid = !chatUrl.volatileValue().isEmpty()
+                        && !chatEndPoint.volatileValue().isEmpty();
+    bool chatModelValid = !chatModelName.volatileValue().isEmpty();
 
-    bool pingSuccessful = false;
-    if (urlValid) {
+    bool fimPingSuccessful = false;
+    if (fimUrlValid) {
         QUrl pingUrl(url.volatileValue());
-        pingSuccessful = QodeAssist::pingUrl(pingUrl);
+        fimPingSuccessful = QodeAssist::pingUrl(pingUrl);
+    }
+    bool chatPingSuccessful = false;
+    if (chatUrlValid) {
+        QUrl pingUrl(chatUrl.volatileValue());
+        chatPingSuccessful = QodeAssist::pingUrl(pingUrl);
     }
 
-    setIndicatorStatus(modelIndicator,
-                       modelValid ? tr("Model is properly configured")
-                                  : tr("No model selected or model name is invalid"),
-                       modelValid);
+    setIndicatorStatus(fimModelIndicator,
+                       fimModelValid ? tr("Model is properly configured")
+                                     : tr("No model selected or model name is invalid"),
+                       fimModelValid);
+    setIndicatorStatus(fimUrlIndicator,
+                       fimPingSuccessful ? tr("Server is reachable")
+                                         : tr("Server is not reachable or URL is invalid"),
+                       fimPingSuccessful);
 
-    setIndicatorStatus(urlIndicator,
-                       pingSuccessful ? tr("Server is reachable")
-                                      : tr("Server is not reachable or URL is invalid"),
-                       pingSuccessful);
+    setIndicatorStatus(chatModelIndicator,
+                       chatModelValid ? tr("Model is properly configured")
+                                      : tr("No model selected or model name is invalid"),
+                       chatModelValid);
+    setIndicatorStatus(chatUrlIndicator,
+                       chatPingSuccessful ? tr("Server is reachable")
+                                          : tr("Server is not reachable or URL is invalid"),
+                       chatPingSuccessful);
 }
 
 void GeneralSettings::setIndicatorStatus(Utils::StringAspect &indicator,
@@ -278,6 +329,44 @@ void GeneralSettings::setIndicatorStatus(Utils::StringAspect &indicator,
     const Utils::Icon &icon = isValid ? Utils::Icons::OK : Utils::Icons::WARNING;
     indicator.setLabelPixmap(icon.pixmap());
     indicator.setToolTip(tooltip);
+}
+
+void GeneralSettings::setCurrentFimProvider(const QString &name)
+{
+    const auto provider = LLMProvidersManager::instance().setCurrentFimProvider(name);
+    if (!provider)
+        return;
+
+    url.setValue(provider->url());
+    endPoint.setValue(provider->completionEndpoint());
+}
+
+void GeneralSettings::setCurrentChatProvider(const QString &name)
+{
+    const auto provider = LLMProvidersManager::instance().setCurrentChatProvider(name);
+    if (!provider)
+        return;
+
+    chatUrl.setValue(provider->url());
+    chatEndPoint.setValue(provider->chatEndpoint());
+}
+
+void GeneralSettings::loadProviders()
+{
+    for (const auto &name : LLMProvidersManager::instance().providersNames()) {
+        llmProviders.addOption(name);
+        chatLlmProviders.addOption(name);
+    }
+}
+
+void GeneralSettings::loadPrompts()
+{
+    for (const auto &name : PromptTemplateManager::instance().fimTemplatesNames()) {
+        fimPrompts.addOption(name);
+    }
+    for (const auto &name : PromptTemplateManager::instance().chatTemplatesNames()) {
+        chatPrompts.addOption(name);
+    }
 }
 
 class GeneralSettingsPage : public Core::IOptionsPage

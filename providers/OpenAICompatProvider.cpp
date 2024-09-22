@@ -46,13 +46,14 @@ QString OpenAICompatProvider::completionEndpoint() const
     return "/v1/chat/completions";
 }
 
+QString OpenAICompatProvider::chatEndpoint() const
+{
+    return "/v1/chat/completions";
+}
+
 void OpenAICompatProvider::prepareRequest(QJsonObject &request)
 {
     auto &settings = Settings::presetPromptsSettings();
-    const auto &currentTemplate = PromptTemplateManager::instance().getCurrentTemplate();
-    if (currentTemplate->name() == "Custom Template")
-        return;
-
     if (request.contains("prompt")) {
         QJsonArray messages{
             {QJsonObject{{"role", "user"}, {"content", request.take("prompt").toString()}}}};
@@ -61,7 +62,6 @@ void OpenAICompatProvider::prepareRequest(QJsonObject &request)
 
     request["max_tokens"] = settings.maxTokens();
     request["temperature"] = settings.temperature();
-    request["stop"] = QJsonArray::fromStringList(currentTemplate->stopWords());
     if (settings.useTopP())
         request["top_p"] = settings.topP();
     if (settings.useTopK())

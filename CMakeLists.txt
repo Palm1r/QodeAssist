@@ -32,10 +32,12 @@ add_qtc_plugin(QodeAssist
     LLMClientInterface.hpp LLMClientInterface.cpp
     PromptTemplateManager.hpp PromptTemplateManager.cpp
     templates/PromptTemplate.hpp
-    templates/CodeLLamaTemplate.hpp
+    templates/CodeLlamaFimTemplate.hpp
     templates/StarCoder2Template.hpp
     templates/DeepSeekCoderV2.hpp
     templates/CustomTemplate.hpp
+    templates/DeepSeekCoderChatTemplate.hpp
+    templates/CodeLlamaInstruct.hpp
     providers/LLMProvider.hpp
     providers/OllamaProvider.hpp providers/OllamaProvider.cpp
     providers/LMStudioProvider.hpp providers/LMStudioProvider.cpp
@@ -55,4 +57,9 @@ add_qtc_plugin(QodeAssist
     settings/PresetPromptsSettings.hpp settings/PresetPromptsSettings.cpp
     settings/SettingsUtils.hpp
     core/ChangesManager.h core/ChangesManager.cpp
+    core/LLMRequestHandler.hpp core/LLMRequestHandler.cpp
+    core/LLMRequestConfig.hpp
+    chat/ChatWidget.h chat/ChatWidget.cpp
+    chat/ChatOutputPane.h chat/ChatOutputPane.cpp
+    chat/ChatClientInterface.hpp chat/ChatClientInterface.cpp
 )
