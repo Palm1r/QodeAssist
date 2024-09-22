@@ -59,8 +59,8 @@ GeneralSettings::GeneralSettings()
     enableLogging.setDefaultValue(false);
 
     multiLineCompletion.setSettingsKey(Constants::MULTILINE_COMPLETION);
-    multiLineCompletion.setDefaultValue(true);
-    multiLineCompletion.setLabelText(Tr::tr("Enable Multiline Completion"));
+    multiLineCompletion.setDefaultValue(false);
+    multiLineCompletion.setLabelText(Tr::tr("Enable Multiline Completion(experimental)"));
 
     startSuggestionTimer.setSettingsKey(Constants::START_SUGGESTION_TIMER);
     startSuggestionTimer.setLabelText(Tr::tr("with delay(ms)"));
@@ -167,7 +167,7 @@ GeneralSettings::GeneralSettings()
                                   Row{selectModels, modelName, fimModelIndicator},
                                   Row{fimPrompts, Stretch{1}}}},
                      Space{16},
-                     Group{title(Tr::tr("AI Chat")),
+                     Group{title(Tr::tr("AI Chat(experimental)")),
                            Column{Row{chatLlmProviders, Stretch{1}},
                                   Row{chatUrl, chatEndPoint, chatUrlIndicator},
                                   Row{chatSelectModels, chatModelName, chatModelIndicator},
@@ -184,10 +184,12 @@ void GeneralSettings::setupConnections()
     connect(&llmProviders, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
         auto providerName = llmProviders.displayForIndex(llmProviders.volatileValue());
         setCurrentFimProvider(providerName);
+        modelName.setVolatileValue("");
     });
     connect(&chatLlmProviders, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
         auto providerName = chatLlmProviders.displayForIndex(chatLlmProviders.volatileValue());
         setCurrentChatProvider(providerName);
+        chatModelName.setVolatileValue("");        
     });
 
     connect(&fimPrompts, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {

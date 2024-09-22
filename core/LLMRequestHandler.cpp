@@ -73,8 +73,6 @@ void LLMRequestHandler::handleLLMResponse(QNetworkReply *reply,
                                           const QJsonObject &request,
                                           const LLMConfig &config)
 {
-    qDebug() << "Handling LLM response" << request;
-
     QString &accumulatedResponse = m_accumulatedResponses[reply];
 
     bool isComplete = config.provider->handleResponse(reply, accumulatedResponse);
