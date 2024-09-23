@@ -40,6 +40,7 @@ public:
     void setShowTimestamp(bool show);
 
     void receiveMessage(const QString &message);
+
 private slots:
     void sendMessage();
     void receivePartialMessage(const QString &partialMessage);

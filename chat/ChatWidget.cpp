@@ -134,6 +134,7 @@ void ChatWidget::clear()
 {
     m_chatDisplay->clear();
     m_currentAIResponse.clear();
+    m_chatClient->clearMessages();
 }
 
 void ChatWidget::scrollToBottom()
