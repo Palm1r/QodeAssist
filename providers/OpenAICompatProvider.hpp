@@ -34,7 +34,7 @@ public:
     QString chatEndpoint() const override;
     void prepareRequest(QJsonObject &request) override;
     bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) override;
-    QList<QString> getInstalledModels(const Utils::Environment &env) override;
+    QList<QString> getInstalledModels(const Utils::Environment &env, const QString &url) override;
 };
 
 } // namespace QodeAssist::Providers

@@ -118,7 +118,8 @@ bool OpenAICompatProvider::handleResponse(QNetworkReply *reply, QString &accumul
     return isComplete;
 }
 
-QList<QString> OpenAICompatProvider::getInstalledModels(const Utils::Environment &env)
+QList<QString> OpenAICompatProvider::getInstalledModels(const Utils::Environment &env,
+                                                        const QString &url)
 {
     return QStringList();
 }

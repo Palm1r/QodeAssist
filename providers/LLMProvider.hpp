@@ -39,7 +39,7 @@ public:
 
     virtual void prepareRequest(QJsonObject &request) = 0;
     virtual bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) = 0;
-    virtual QList<QString> getInstalledModels(const Utils::Environment &env) = 0;
+    virtual QList<QString> getInstalledModels(const Utils::Environment &env, const QString &url) = 0;
 };
 
 } // namespace QodeAssist::Providers

@@ -25,7 +25,6 @@
 #include <QJsonObject>
 #include <QNetworkReply>
 
-#include "PromptTemplateManager.hpp"
 #include "QodeAssistUtils.hpp"
 #include "settings/PresetPromptsSettings.hpp"
 
@@ -115,11 +114,12 @@ bool LMStudioProvider::handleResponse(QNetworkReply *reply, QString &accumulated
     return isComplete;
 }
 
-QList<QString> LMStudioProvider::getInstalledModels(const Utils::Environment &env)
+QList<QString> LMStudioProvider::getInstalledModels(const Utils::Environment &env,
+                                                    const QString &url)
 {
     QList<QString> models;
     QNetworkAccessManager manager;
-    QNetworkRequest request(QUrl(url() + "/v1/models"));
+    QNetworkRequest request(QString("%1%2").arg(url, "/v1/models"));
 
     QNetworkReply *reply = manager.get(request);
 

@@ -237,9 +237,10 @@ void GeneralSettings::showModelSelectionDialog(Utils::StringAspect *modelNameObj
                                                Providers::LLMProvider *provider)
 {
     Utils::Environment env = Utils::Environment::systemEnvironment();
+    QString providerUrl = (modelNameObj == &modelName) ? url() : chatUrl();
 
     if (provider) {
-        QStringList models = provider->getInstalledModels(env);
+        QStringList models = provider->getInstalledModels(env, providerUrl);
         bool ok;
         QString selectedModel = QInputDialog::getItem(Core::ICore::dialogParent(),
                                                       Tr::tr("Select LLM Model"),

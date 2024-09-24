@@ -103,10 +103,17 @@ void ChatClientInterface::sendMessage(const QString &message)
     m_requestHandler->sendLLMRequest(config, request);
 }
 
+void ChatClientInterface::clearMessages()
+{
+    m_chatHistory = {};
+    m_accumulatedResponse.clear();
+    m_pendingMessage.clear();
+    logMessage("Chat history cleared");
+}
+
 void ChatClientInterface::handleLLMResponse(const QString &response, bool isComplete)
 {
     m_accumulatedResponse += response;
-    logMessage("Accumulated response: " + m_accumulatedResponse);
 
     if (isComplete) {
         logMessage("Message completed. Final response: " + m_accumulatedResponse);

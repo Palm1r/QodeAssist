@@ -35,6 +35,7 @@ public:
     ~ChatClientInterface();
 
     void sendMessage(const QString &message);
+    void clearMessages();
 
 signals:
     void messageReceived(const QString &message);
