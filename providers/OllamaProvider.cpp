@@ -123,11 +123,11 @@ bool OllamaProvider::handleResponse(QNetworkReply *reply, QString &accumulatedRe
     return isComplete;
 }
 
-QList<QString> OllamaProvider::getInstalledModels(const Utils::Environment &env)
+QList<QString> OllamaProvider::getInstalledModels(const Utils::Environment &env, const QString &url)
 {
     QList<QString> models;
     QNetworkAccessManager manager;
-    QNetworkRequest request(QUrl(url() + "/api/tags"));
+    QNetworkRequest request(QString("%1%2").arg(url, "/api/tags"));
     QNetworkReply *reply = manager.get(request);
 
     QEventLoop loop;
