@@ -77,7 +77,6 @@ void ChatWidget::sendMessage()
 
 void ChatWidget::receiveMessage(const QString &message)
 {
-    logMessage("Received message: " + message);
     updateLastAIMessage(message);
 }
 
@@ -90,7 +89,6 @@ void ChatWidget::receivePartialMessage(const QString &partialMessage)
 
 void ChatWidget::onMessageCompleted()
 {
-    logMessage("Message completed. Final response: " + m_currentAIResponse);
     updateLastAIMessage(m_currentAIResponse);
     m_currentAIResponse.clear();
     scrollToBottom();
@@ -107,14 +105,12 @@ void ChatWidget::addMessage(const QString &message, bool fromUser)
     auto prefix = fromUser ? "You: " : "AI: ";
     QString timestamp = m_showTimestamp ? QDateTime::currentDateTime().toString("[hh:mm:ss] ") : "";
     QString fullMessage = timestamp + prefix + message;
-    logMessage("Adding message to display: " + fullMessage);
     m_chatDisplay->append(fullMessage);
     scrollToBottom();
 }
 
 void ChatWidget::updateLastAIMessage(const QString &message)
 {
-    logMessage("Updating last AI message: " + message);
     QTextCursor cursor = m_chatDisplay->textCursor();
     cursor.movePosition(QTextCursor::End);
     cursor.movePosition(QTextCursor::StartOfBlock, QTextCursor::KeepAnchor);

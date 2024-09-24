@@ -114,7 +114,6 @@ void ChatClientInterface::clearMessages()
 void ChatClientInterface::handleLLMResponse(const QString &response, bool isComplete)
 {
     m_accumulatedResponse += response;
-    logMessage("Accumulated response: " + m_accumulatedResponse);
 
     if (isComplete) {
         logMessage("Message completed. Final response: " + m_accumulatedResponse);
