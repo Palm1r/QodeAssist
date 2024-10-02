@@ -20,11 +20,40 @@
 #pragma once
 
 #include <QObject>
-#include <QtCore/qjsonarray.h>
+#include <QString>
+#include <QVector>
 #include "QodeAssistData.hpp"
 #include "core/LLMRequestHandler.hpp"
 
 namespace QodeAssist::Chat {
+
+struct ChatMessage
+{
+    enum class Role { System, User, Assistant };
+    Role role;
+    QString content;
+    int tokenCount;
+};
+
+class ChatHistory
+{
+public:
+    void addMessage(ChatMessage::Role role, const QString &content);
+    void clear();
+    QVector<ChatMessage> getMessages() const;
+    QString getSystemPrompt() const;
+    void setSystemPrompt(const QString &prompt);
+    void trim();
+
+private:
+    QVector<ChatMessage> m_messages;
+    QString m_systemPrompt;
+    int m_totalTokens = 0;
+    static const int MAX_HISTORY_SIZE = 50;
+    static const int MAX_TOKENS = 4000;
+
+    int estimateTokenCount(const QString &text) const;
+};
 
 class ChatClientInterface : public QObject
 {
@@ -36,6 +65,7 @@ public:
 
     void sendMessage(const QString &message);
     void clearMessages();
+    QVector<ChatMessage> getChatHistory() const;
 
 signals:
     void messageReceived(const QString &message);
@@ -43,12 +73,11 @@ signals:
 
 private:
     void handleLLMResponse(const QString &response, bool isComplete);
-    void trimChatHistory();
+    QJsonArray prepareMessagesForRequest() const;
 
     LLMRequestHandler *m_requestHandler;
     QString m_accumulatedResponse;
-    QString m_pendingMessage;
-    QJsonArray m_chatHistory;
+    ChatHistory m_chatHistory;
 };
 
 } // namespace QodeAssist::Chat

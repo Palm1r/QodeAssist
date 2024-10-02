@@ -65,9 +65,15 @@ If you've successfully used a model that's not listed here, please let us know b
 
 1. Install QtCreator 14.0
 2. Install [Ollama](https://ollama.com). Make sure to review the system requirements before installation.
-3. Install a language model in Ollama. For example, you can run:
+3. Install a language models in Ollama. For example, you can run:
+
+For suggestions:
 ```
-ollama run starcoder2:7b
+ollama run codellama:7b-code
+```
+For chat:
+```
+ollama run codellama:7b-instruct
 ```
 4. Download the QodeAssist plugin.
 5. Launch Qt Creator and install the plugin:

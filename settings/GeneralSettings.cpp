@@ -131,6 +131,11 @@ GeneralSettings::GeneralSettings()
     loadProviders();
     loadPrompts();
 
+    llmProviders.setDefaultValue(llmProviders.indexForDisplay("Ollama"));
+    chatLlmProviders.setDefaultValue(chatLlmProviders.indexForDisplay("Ollama"));
+    fimPrompts.setDefaultValue(fimPrompts.indexForDisplay("CodeLLama FIM"));
+    chatPrompts.setDefaultValue(chatPrompts.indexForDisplay("CodeLLama Chat"));
+
     readSettings();
 
     auto fimProviderName = llmProviders.displayForIndex(llmProviders.value());
@@ -273,12 +278,12 @@ void GeneralSettings::resetPageToDefaults()
         resetAspect(startSuggestionTimer);
         resetAspect(autoCompletionTypingInterval);
         resetAspect(autoCompletionCharThreshold);
+        resetAspect(llmProviders);
+        resetAspect(chatLlmProviders);
+        resetAspect(fimPrompts);
+        resetAspect(chatPrompts);
     }
 
-    int fimIndex = llmProviders.indexForDisplay("Ollama");
-    llmProviders.setVolatileValue(fimIndex);
-    int chatIndex = chatLlmProviders.indexForDisplay("Ollama");
-    chatLlmProviders.setVolatileValue(chatIndex);
     modelName.setVolatileValue("");
     chatModelName.setVolatileValue("");
 

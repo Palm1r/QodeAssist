@@ -24,7 +24,6 @@
 #include <QJsonObject>
 #include <QNetworkReply>
 
-#include "PromptTemplateManager.hpp"
 #include "settings/PresetPromptsSettings.hpp"
 
 namespace QodeAssist::Providers {
@@ -54,9 +53,20 @@ QString OpenAICompatProvider::chatEndpoint() const
 void OpenAICompatProvider::prepareRequest(QJsonObject &request)
 {
     auto &settings = Settings::presetPromptsSettings();
+    QJsonArray messages;
+
+    if (request.contains("system")) {
+        QJsonObject systemMessage{{"role", "system"},
+                                  {"content", request.take("system").toString()}};
+        messages.append(systemMessage);
+    }
+
     if (request.contains("prompt")) {
-        QJsonArray messages{
-            {QJsonObject{{"role", "user"}, {"content", request.take("prompt").toString()}}}};
+        QJsonObject userMessage{{"role", "user"}, {"content", request.take("prompt").toString()}};
+        messages.append(userMessage);
+    }
+
+    if (!messages.isEmpty()) {
         request["messages"] = std::move(messages);
     }
 

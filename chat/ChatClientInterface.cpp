@@ -31,6 +31,51 @@
 
 namespace QodeAssist::Chat {
 
+int ChatHistory::estimateTokenCount(const QString &text) const
+{
+    return text.length() / 4;
+}
+
+void ChatHistory::addMessage(ChatMessage::Role role, const QString &content)
+{
+    int tokenCount = estimateTokenCount(content);
+    m_messages.append({role, content, tokenCount});
+    m_totalTokens += tokenCount;
+    trim();
+}
+void ChatHistory::clear()
+{
+    m_messages.clear();
+    m_totalTokens = 0;
+}
+
+QVector<ChatMessage> ChatHistory::getMessages() const
+{
+    return m_messages;
+}
+
+QString ChatHistory::getSystemPrompt() const
+{
+    return m_systemPrompt;
+}
+
+void ChatHistory::setSystemPrompt(const QString &prompt)
+{
+    m_systemPrompt = prompt;
+}
+
+void ChatHistory::trim()
+{
+    while (m_messages.size() > MAX_HISTORY_SIZE || m_totalTokens > MAX_TOKENS) {
+        if (!m_messages.isEmpty()) {
+            m_totalTokens -= m_messages.first().tokenCount;
+            m_messages.removeFirst();
+        } else {
+            break;
+        }
+    }
+}
+
 ChatClientInterface::ChatClientInterface(QObject *parent)
     : QObject(parent)
     , m_requestHandler(new LLMRequestHandler(this))
@@ -51,15 +96,10 @@ ChatClientInterface::ChatClientInterface(QObject *parent)
                 }
             });
 
-    // QJsonObject systemMessage;
-    // systemMessage["role"] = "system";
-    // systemMessage["content"] = "You are a helpful C++ and QML programming assistant.";
-    // m_chatHistory.append(systemMessage);
+    m_chatHistory.setSystemPrompt("You are a helpful C++ and QML programming assistant.");
 }
 
-ChatClientInterface::~ChatClientInterface()
-{
-}
+ChatClientInterface::~ChatClientInterface() = default;
 
 void ChatClientInterface::sendMessage(const QString &message)
 {
@@ -79,13 +119,10 @@ void ChatClientInterface::sendMessage(const QString &message)
     QJsonObject providerRequest;
     providerRequest["model"] = Settings::generalSettings().chatModelName();
     providerRequest["stream"] = true;
-
-    providerRequest["messages"] = m_chatHistory;
+    providerRequest["messages"] = prepareMessagesForRequest();
 
     chatTemplate->prepareRequest(providerRequest, context);
     chatProvider->prepareRequest(providerRequest);
-
-    m_chatHistory = providerRequest["messages"].toArray();
 
     LLMConfig config;
     config.requestType = RequestType::Chat;
@@ -99,16 +136,20 @@ void ChatClientInterface::sendMessage(const QString &message)
     request["id"] = QUuid::createUuid().toString();
 
     m_accumulatedResponse.clear();
-    m_pendingMessage = message;
+    m_chatHistory.addMessage(ChatMessage::Role::User, message);
     m_requestHandler->sendLLMRequest(config, request);
 }
 
 void ChatClientInterface::clearMessages()
 {
-    m_chatHistory = {};
+    m_chatHistory.clear();
     m_accumulatedResponse.clear();
-    m_pendingMessage.clear();
     logMessage("Chat history cleared");
+}
+
+QVector<ChatMessage> ChatClientInterface::getChatHistory() const
+{
+    return m_chatHistory.getMessages();
 }
 
 void ChatClientInterface::handleLLMResponse(const QString &response, bool isComplete)
@@ -119,42 +160,33 @@ void ChatClientInterface::handleLLMResponse(const QString &response, bool isComp
         logMessage("Message completed. Final response: " + m_accumulatedResponse);
         emit messageReceived(m_accumulatedResponse.trimmed());
 
-        QJsonObject assistantMessage;
-        assistantMessage["role"] = "assistant";
-        assistantMessage["content"] = m_accumulatedResponse.trimmed();
-        m_chatHistory.append(assistantMessage);
-
-        m_pendingMessage.clear();
+        m_chatHistory.addMessage(ChatMessage::Role::Assistant, m_accumulatedResponse.trimmed());
         m_accumulatedResponse.clear();
-
-        trimChatHistory();
     }
 }
 
-void ChatClientInterface::trimChatHistory()
+QJsonArray ChatClientInterface::prepareMessagesForRequest() const
 {
-    int maxTokens = 4000;
-    int totalTokens = 0;
-    QJsonArray newHistory;
+    QJsonArray messages;
 
-    if (!m_chatHistory.isEmpty()
-        && m_chatHistory.first().toObject()["role"].toString() == "system") {
-        newHistory.append(m_chatHistory.first());
-    }
+    messages.append(QJsonObject{{"role", "system"}, {"content", m_chatHistory.getSystemPrompt()}});
 
-    for (int i = m_chatHistory.size() - 1; i >= 0; --i) {
-        QJsonObject message = m_chatHistory[i].toObject();
-        int messageTokens = message["content"].toString().length() / 4;
-
-        if (totalTokens + messageTokens > maxTokens) {
+    for (const auto &message : m_chatHistory.getMessages()) {
+        QString role;
+        switch (message.role) {
+        case ChatMessage::Role::User:
+            role = "user";
             break;
+        case ChatMessage::Role::Assistant:
+            role = "assistant";
+            break;
+        default:
+            continue;
         }
-
-        newHistory.prepend(message);
-        totalTokens += messageTokens;
+        messages.append(QJsonObject{{"role", role}, {"content", message.content}});
     }
 
-    m_chatHistory = newHistory;
+    return messages;
 }
 
 } // namespace QodeAssist::Chat
