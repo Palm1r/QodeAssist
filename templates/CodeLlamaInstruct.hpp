@@ -28,7 +28,7 @@ class CodeLlamaInstructTemplate : public PromptTemplate
 {
 public:
     TemplateType type() const override { return TemplateType::Chat; }
-    QString name() const override { return "CodeLlama Chat"; }
+    QString name() const override { return "CodeLLama Chat"; }
     QString promptTemplate() const override { return "[INST] %1 [/INST]"; }
     QStringList stopWords() const override { return QStringList() << "[INST]" << "[/INST]"; }
 

@@ -27,7 +27,7 @@ class CodeLlamaFimTemplate : public PromptTemplate
 {
 public:
     TemplateType type() const override { return TemplateType::Fim; }
-    QString name() const override { return "CodeLlama FIM"; }
+    QString name() const override { return "CodeLLama FIM"; }
     QString promptTemplate() const override { return "%1<PRE> %2 <SUF>%3 <MID>"; }
     QStringList stopWords() const override
     {
