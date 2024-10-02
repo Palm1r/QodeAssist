@@ -59,7 +59,6 @@ void OllamaProvider::prepareRequest(QJsonObject &request)
 
     QJsonObject options;
     options["num_predict"] = settings.maxTokens();
-    options["keep_alive"] = settings.ollamaLivetime();
     options["temperature"] = settings.temperature();
     if (settings.useTopP())
         options["top_p"] = settings.topP();
@@ -70,6 +69,7 @@ void OllamaProvider::prepareRequest(QJsonObject &request)
     if (settings.usePresencePenalty())
         options["presence_penalty"] = settings.presencePenalty();
     request["options"] = options;
+    request["keep_alive"] = settings.ollamaLivetime();
 }
 
 bool OllamaProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
