@@ -17,8 +17,6 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
 #include "ContextSettings.hpp"
 
 #include <QMessageBox>
@@ -60,11 +58,11 @@ ContextSettings::ContextSettings()
     useFilePathInContext.setDefaultValue(false);
     useFilePathInContext.setLabelText(Tr::tr("Use File Path in Context"));
 
-    useSpecificInstructions.setSettingsKey(Constants::USE_SPECIFIC_INSTRUCTIONS);
+    useSpecificInstructions.setSettingsKey(Constants::USE_SYSTEM_PROMPT);
     useSpecificInstructions.setDefaultValue(true);
-    useSpecificInstructions.setLabelText(Tr::tr("Use Specific Instructions"));
+    useSpecificInstructions.setLabelText(Tr::tr("Use System Prompt"));
 
-    specificInstractions.setSettingsKey(Constants::SPECIFIC_INSTRUCTIONS);
+    specificInstractions.setSettingsKey(Constants::SYSTEM_PROMPT);
     specificInstractions.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
     specificInstractions.setLabelText(
         Tr::tr("Instructions: Please keep %1 for languge name, warning, it shouldn't too big"));

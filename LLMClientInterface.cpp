@@ -30,6 +30,7 @@
 #include "PromptTemplateManager.hpp"
 #include "QodeAssistUtils.hpp"
 #include "core/LLMRequestConfig.hpp"
+#include "settings/ContextSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 
 namespace QodeAssist {
@@ -158,6 +159,9 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
                               {"stream", true},
                               {"stop",
                                QJsonArray::fromStringList(config.promptTemplate->stopWords())}};
+
+    if (Settings::contextSettings().useSpecificInstructions())
+        config.providerRequest["system"] = Settings::contextSettings().specificInstractions();
 
     config.promptTemplate->prepareRequest(config.providerRequest, updatedContext);
     config.provider->prepareRequest(config.providerRequest);

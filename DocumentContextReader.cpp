@@ -250,9 +250,6 @@ QString DocumentContextReader::getInstructions() const
 {
     QString instructions;
 
-    if (Settings::contextSettings().useSpecificInstructions())
-        instructions += getSpecificInstructions();
-
     if (Settings::contextSettings().useFilePathInContext())
         instructions += getLanguageAndFileInfo();
 
