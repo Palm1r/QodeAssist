@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(QtCreator REQUIRED COMPONENTS Core)
-find_package(Qt6 COMPONENTS Widgets REQUIRED)
+find_package(Qt6 COMPONENTS Core Gui Widgets Network REQUIRED)
 
 add_qtc_plugin(QodeAssist
   PLUGIN_DEPENDS
