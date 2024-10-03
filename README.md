@@ -3,6 +3,7 @@
 
 QodeAssist is an AI-powered coding assistant plugin for Qt Creator. It provides intelligent code completion and suggestions for C++ and QML, leveraging large language models through local providers like Ollama. Enhance your coding productivity with context-aware AI assistance directly in your Qt development environment.
 
+
 <img src="https://github.com/user-attachments/assets/255a52f1-5cc0-4ca3-b05c-c4cf9cdbe25a" width="600" alt="QodeAssistPreview">
 
 ## Supported LLM Providers
@@ -10,6 +11,11 @@ QodeAssist currently supports the following LLM (Large Language Model) providers
 - [Ollama](https://ollama.com)
 - [LM Studio](https://lmstudio.ai)
 - OpenAI compatible providers
+
+## QtCreator Version Compatibility
+
+- Since version 0.2.3: Compatible with QtCreator 14.0.2
+- QtCreator 14.0.1 and below are not supported anymore (latest compatible version: 0.2.2)
 
 ## Supported Models
 
