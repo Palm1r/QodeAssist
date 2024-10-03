@@ -4,8 +4,8 @@ on: [push]
 
 env:
   PLUGIN_NAME: QodeAssist
-  QT_VERSION: 6.7.2
-  QT_CREATOR_VERSION: 14.0.0
+  QT_VERSION: 6.7.3
+  QT_CREATOR_VERSION: 14.0.2
   QT_CREATOR_SNAPSHOT: NO
   MACOS_DEPLOYMENT_TARGET: "11.0"
   CMAKE_VERSION: "3.29.6"
@@ -100,7 +100,7 @@ jobs:
             COMMAND sudo apt update
           )
           execute_process(
-            COMMAND sudo apt install libgl1-mesa-dev
+            COMMAND sudo apt install libgl1-mesa-dev libcups2-dev
             RESULT_VARIABLE result
           )
           if (NOT result EQUAL 0)
