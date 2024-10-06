@@ -62,4 +62,9 @@ add_qtc_plugin(QodeAssist
     chat/ChatWidget.h chat/ChatWidget.cpp
     chat/ChatOutputPane.h chat/ChatOutputPane.cpp
     chat/ChatClientInterface.hpp chat/ChatClientInterface.cpp
+    chat/NavigationPanel.hpp chat/NavigationPanel.cpp
 )
+
+add_subdirectory(chatview)
+
+target_link_libraries(QodeAssist PUBLIC QodeAssistChatViewplugin)
