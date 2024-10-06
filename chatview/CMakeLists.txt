@@ -6,9 +6,10 @@ qt_add_qml_module(QodeAssistChatView
     URI ChatView
     VERSION 1.0
     QML_FILES
-        qml/ChatView.qml
+        qml/RootItem.qml
     SOURCES
         BaseChatWidget.hpp BaseChatWidget.cpp
+        ChatModel.hpp ChatModel.cpp
 )
 
 target_link_libraries(QodeAssistChatView

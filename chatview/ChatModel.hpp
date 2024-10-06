@@ -19,17 +19,38 @@
 
 #pragma once
 
-#include <QtQuickWidgets/QtQuickWidgets>
+#include <QAbstractListModel>
 
 namespace QodeAssist::Chat {
 
-class BaseChatWidget : public QQuickWidget
+enum class ChatRole { System, User, Assistant };
+
+struct Message
+{
+    ChatRole role;
+    QString content;
+};
+
+class ChatModel : public QAbstractListModel
 {
     Q_OBJECT
 
 public:
-    explicit BaseChatWidget(QWidget *parent = nullptr);
-    ~BaseChatWidget() = default;
+    enum Roles { RoleType = Qt::UserRole, Content };
+
+    explicit ChatModel(QObject *parent = nullptr);
+
+    int rowCount(const QModelIndex &parent = QModelIndex()) const override;
+    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
+    QHash<int, QByteArray> roleNames() const override;
+
+    Q_INVOKABLE void addMessage(const QString &content, ChatRole role);
+    Q_INVOKABLE void clear();
+
+private:
+    QVector<Message> m_messages;
 };
 
-}
+} // namespace QodeAssist::Chat
+
+Q_DECLARE_METATYPE(QodeAssist::Chat::ChatRole)
