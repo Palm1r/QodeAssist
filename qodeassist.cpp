@@ -124,9 +124,9 @@ public:
 
     void restartClient()
     {
-        LanguageClient::LanguageClientManager::shutdownClient(m_qodeAssistClient);
+        LanguageClient::LanguageClientManager::shutdownClient(m_qodeAssistClient.get());
 
-        m_qodeAssistClient = new QodeAssistClient();
+        m_qodeAssistClient.reset(new QodeAssistClient());
     }
 
     bool delayedInitialize() final
@@ -140,7 +140,7 @@ public:
     {
         if (!m_qodeAssistClient)
             return SynchronousShutdown;
-        connect(m_qodeAssistClient,
+        connect(m_qodeAssistClient.get(),
                 &QObject::destroyed,
                 this,
                 &IPlugin::asynchronousShutdownFinished);
@@ -148,7 +148,7 @@ public:
     }
 
 private:
-    QPointer<QodeAssistClient> m_qodeAssistClient;
+    QScopedPointer<QodeAssistClient> m_qodeAssistClient;
     QPointer<Chat::ChatOutputPane> m_chatOutputPane;
 };
 
