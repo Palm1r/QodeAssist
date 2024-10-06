@@ -1,7 +1,13 @@
 import QtQuick
+import ChatView
 
-Rectangle {
+ChatRootView {
     id: root
 
-    color: "gray"
+    Rectangle {
+        id: bg
+
+        anchors.fill: parent
+        color: "gray"
+    }
 }
