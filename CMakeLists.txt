@@ -12,6 +12,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(QtCreator REQUIRED COMPONENTS Core)
 find_package(Qt6 COMPONENTS Core Gui Widgets Network REQUIRED)
 
+add_subdirectory(chatview)
+
 add_qtc_plugin(QodeAssist
   PLUGIN_DEPENDS
     QtCreator::Core
@@ -64,7 +66,5 @@ add_qtc_plugin(QodeAssist
     chat/ChatClientInterface.hpp chat/ChatClientInterface.cpp
     chat/NavigationPanel.hpp chat/NavigationPanel.cpp
 )
-
-add_subdirectory(chatview)
 
 target_link_libraries(QodeAssist PUBLIC QodeAssistChatViewplugin)
