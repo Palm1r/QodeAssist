@@ -21,7 +21,7 @@
 
 #include <QString>
 
-#include "providers/LLMProvider.hpp"
+#include "LLMProvider.hpp"
 
 namespace QodeAssist {
 

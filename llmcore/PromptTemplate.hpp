@@ -20,21 +20,23 @@
 #pragma once
 
 #include <QJsonObject>
-#include <QUrl>
-#include "providers/LLMProvider.hpp"
-#include "templates/PromptTemplate.hpp"
+#include <QList>
+#include <QString>
 
-namespace QodeAssist {
+#include "ContextData.hpp"
 
-enum class RequestType { Fim, Chat };
+namespace QodeAssist::Templates {
 
-struct LLMConfig
+enum class TemplateType { Chat, Fim };
+
+class PromptTemplate
 {
-    QUrl url;
-    Providers::LLMProvider *provider;
-    Templates::PromptTemplate *promptTemplate;
-    QJsonObject providerRequest;
-    RequestType requestType;
+public:
+    virtual ~PromptTemplate() = default;
+    virtual TemplateType type() const = 0;
+    virtual QString name() const = 0;
+    virtual QString promptTemplate() const = 0;
+    virtual QStringList stopWords() const = 0;
+    virtual void prepareRequest(QJsonObject &request, const ContextData &context) const = 0;
 };
-
-} // namespace QodeAssist
+} // namespace QodeAssist::Templates

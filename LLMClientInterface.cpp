@@ -23,13 +23,14 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 
+#include <llmcore/RequestConfig.hpp>
 #include <texteditor/textdocument.h>
 
 #include "DocumentContextReader.hpp"
 #include "LLMProvidersManager.hpp"
 #include "PromptTemplateManager.hpp"
 #include "QodeAssistUtils.hpp"
-#include "core/LLMRequestConfig.hpp"
+// #include "core/LLMRequestConfig.hpp"
 #include "settings/ContextSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 

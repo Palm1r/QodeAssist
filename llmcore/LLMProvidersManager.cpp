@@ -18,8 +18,8 @@
  */
 
 #include "LLMProvidersManager.hpp"
-
-#include "QodeAssistUtils.hpp"
+#include "Logger.hpp"
+#include <coreplugin/messagemanager.h>
 
 namespace QodeAssist {
 

@@ -21,7 +21,9 @@
 
 #include <utils/aspects.h>
 
-#include "providers/LLMProvider.hpp"
+// #include "providers/LLMProvider.hpp"
+#include <llmcore/LLMProvider.hpp>
+
 #include "settings/SettingsUtils.hpp"
 
 namespace QodeAssist::Settings {

@@ -22,8 +22,10 @@
 #include <languageclient/languageclientinterface.h>
 #include <texteditor/texteditor.h>
 
-#include "QodeAssistData.hpp"
-#include "core/LLMRequestHandler.hpp"
+// #include "QodeAssistData.hpp"
+// #include "core/LLMRequestHandler.hpp"
+#include <llmcore/ContextData.hpp>
+#include <llmcore/RequestHandler.hpp>
 
 class QNetworkReply;
 class QNetworkAccessManager;

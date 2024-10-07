@@ -19,6 +19,7 @@ target_link_libraries(QodeAssistChatView
     Qt::Quick
     Qt::QuickWidgets
     Qt::Network
+    LLMCore
 )
 
 target_include_directories(QodeAssistChatView

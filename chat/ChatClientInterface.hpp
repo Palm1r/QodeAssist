@@ -22,8 +22,8 @@
 #include <QObject>
 #include <QString>
 #include <QVector>
-#include "QodeAssistData.hpp"
-#include "core/LLMRequestHandler.hpp"
+
+#include "llmcore/RequestHandler.hpp"
 
 namespace QodeAssist::Chat {
 

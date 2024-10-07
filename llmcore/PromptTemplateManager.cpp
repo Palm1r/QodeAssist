@@ -19,7 +19,7 @@
 
 #include "PromptTemplateManager.hpp"
 
-#include "QodeAssistUtils.hpp"
+#include "Logger.hpp"
 
 namespace QodeAssist {
 

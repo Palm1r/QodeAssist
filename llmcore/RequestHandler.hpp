@@ -23,8 +23,7 @@
 #include <QNetworkAccessManager>
 #include <QObject>
 
-#include "QodeAssistData.hpp"
-#include "core/LLMRequestConfig.hpp"
+#include "RequestConfig.hpp"
 
 class QNetworkReply;
 

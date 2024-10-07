@@ -30,6 +30,8 @@ class BaseChatWidget : public QQuickWidget
 public:
     explicit BaseChatWidget(QWidget *parent = nullptr);
     ~BaseChatWidget() = default;
+
+private:
 };
 
 }

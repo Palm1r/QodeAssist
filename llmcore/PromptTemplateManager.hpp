@@ -22,7 +22,7 @@
 #include <QMap>
 #include <QString>
 
-#include "templates/PromptTemplate.hpp"
+#include "PromptTemplate.hpp"
 
 namespace QodeAssist {
 

@@ -17,10 +17,10 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "LLMRequestHandler.hpp"
+#include "RequestHandler.hpp"
 #include "LLMProvidersManager.hpp"
-#include "QodeAssistUtils.hpp"
-#include "settings/GeneralSettings.hpp"
+#include "Logger.hpp"
+// #include "settings/GeneralSettings.hpp"
 
 #include <QJsonDocument>
 #include <QNetworkReply>
@@ -77,12 +77,12 @@ void LLMRequestHandler::handleLLMResponse(QNetworkReply *reply,
 
     bool isComplete = config.provider->handleResponse(reply, accumulatedResponse);
 
-    if (config.requestType == RequestType::Fim) {
-        if (!Settings::generalSettings().multiLineCompletion()
-            && processSingleLineCompletion(reply, request, accumulatedResponse, config)) {
-            return;
-        }
-    }
+    // if (config.requestType == RequestType::Fim) {
+    //     if (!Settings::generalSettings().multiLineCompletion()
+    //         && processSingleLineCompletion(reply, request, accumulatedResponse, config)) {
+    //         return;
+    //     }
+    // }
 
     if (isComplete || reply->isFinished()) {
         if (isComplete) {
