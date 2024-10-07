@@ -73,7 +73,8 @@ public:
 
     ~QodeAssistPlugin() final
     {
-
+        delete m_qodeAssistClient;
+        delete m_chatOutputPane;
     }
 
     void initialize() final
@@ -124,9 +125,9 @@ public:
 
     void restartClient()
     {
-        LanguageClient::LanguageClientManager::shutdownClient(m_qodeAssistClient.get());
+        LanguageClient::LanguageClientManager::shutdownClient(m_qodeAssistClient);
 
-        m_qodeAssistClient.reset(new QodeAssistClient());
+        m_qodeAssistClient = new QodeAssistClient();
     }
 
     bool delayedInitialize() final
@@ -140,7 +141,7 @@ public:
     {
         if (!m_qodeAssistClient)
             return SynchronousShutdown;
-        connect(m_qodeAssistClient.get(),
+        connect(m_qodeAssistClient,
                 &QObject::destroyed,
                 this,
                 &IPlugin::asynchronousShutdownFinished);
@@ -148,7 +149,7 @@ public:
     }
 
 private:
-    QScopedPointer<QodeAssistClient> m_qodeAssistClient;
+    QPointer<QodeAssistClient> m_qodeAssistClient;
     QPointer<Chat::ChatOutputPane> m_chatOutputPane;
 };
 
