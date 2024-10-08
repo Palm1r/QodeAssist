@@ -35,6 +35,7 @@ struct LLMConfig
     PromptTemplate *promptTemplate;
     QJsonObject providerRequest;
     RequestType requestType;
+    bool multiLineCompletion;
 };
 
 } // namespace QodeAssist::LLMCore

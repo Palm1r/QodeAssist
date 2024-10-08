@@ -30,7 +30,6 @@
 #include "PromptTemplateManager.hpp"
 #include "ProvidersManager.hpp"
 #include "QodeAssistUtils.hpp"
-// #include "core/LLMRequestConfig.hpp"
 #include "settings/ContextSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 
@@ -160,6 +159,7 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
                               {"stream", true},
                               {"stop",
                                QJsonArray::fromStringList(config.promptTemplate->stopWords())}};
+    config.multiLineCompletion = Settings::generalSettings().multiLineCompletion();
 
     if (Settings::contextSettings().useSpecificInstructions())
         config.providerRequest["system"] = Settings::contextSettings().specificInstractions();
