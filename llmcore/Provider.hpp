@@ -25,12 +25,12 @@
 class QNetworkReply;
 class QJsonObject;
 
-namespace QodeAssist::Providers {
+namespace QodeAssist::LLMCore {
 
-class LLMProvider
+class Provider
 {
 public:
-    virtual ~LLMProvider() = default;
+    virtual ~Provider() = default;
 
     virtual QString name() const = 0;
     virtual QString url() const = 0;
@@ -42,4 +42,4 @@ public:
     virtual QList<QString> getInstalledModels(const Utils::Environment &env, const QString &url) = 0;
 };
 
-} // namespace QodeAssist::Providers
+} // namespace QodeAssist::LLMCore

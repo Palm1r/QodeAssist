@@ -75,7 +75,7 @@ private:
     void handleLLMResponse(const QString &response, bool isComplete);
     QJsonArray prepareMessagesForRequest() const;
 
-    LLMRequestHandler *m_requestHandler;
+    LLMCore::RequestHandler *m_requestHandler;
     QString m_accumulatedResponse;
     ChatHistory m_chatHistory;
 };

@@ -21,7 +21,7 @@
 
 #include <QString>
 
-namespace QodeAssist {
+namespace QodeAssist::LLMCore {
 
 struct ContextData
 {
@@ -30,4 +30,4 @@ struct ContextData
     QString instriuctions;
 };
 
-} // namespace QodeAssist
+} // namespace QodeAssist::LLMCore

@@ -21,7 +21,7 @@
 
 #include "Logger.hpp"
 
-namespace QodeAssist {
+namespace QodeAssist::LLMCore {
 
 PromptTemplateManager &PromptTemplateManager::instance()
 {
@@ -40,7 +40,7 @@ void PromptTemplateManager::setCurrentFimTemplate(const QString &name)
     m_currentFimTemplate = m_fimTemplates[name];
 }
 
-Templates::PromptTemplate *PromptTemplateManager::getCurrentFimTemplate()
+PromptTemplate *PromptTemplateManager::getCurrentFimTemplate()
 {
     if (m_currentFimTemplate == nullptr) {
         logMessage("Current fim provider is null");
@@ -61,7 +61,7 @@ void PromptTemplateManager::setCurrentChatTemplate(const QString &name)
     m_currentChatTemplate = m_chatTemplates[name];
 }
 
-Templates::PromptTemplate *PromptTemplateManager::getCurrentChatTemplate()
+PromptTemplate *PromptTemplateManager::getCurrentChatTemplate()
 {
     if (m_currentChatTemplate == nullptr)
         logMessage("Current chat provider is null");
@@ -85,4 +85,4 @@ PromptTemplateManager::~PromptTemplateManager()
     qDeleteAll(m_chatTemplates);
 }
 
-} // namespace QodeAssist
+} // namespace QodeAssist::LLMCore

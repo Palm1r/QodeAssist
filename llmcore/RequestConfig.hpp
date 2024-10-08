@@ -21,20 +21,20 @@
 
 #include <QJsonObject>
 #include <QUrl>
-#include "LLMProvider.hpp"
+#include "Provider.hpp"
 #include "PromptTemplate.hpp"
 
-namespace QodeAssist {
+namespace QodeAssist::LLMCore {
 
 enum class RequestType { Fim, Chat };
 
 struct LLMConfig
 {
     QUrl url;
-    Providers::LLMProvider *provider;
-    Templates::PromptTemplate *promptTemplate;
+    Provider *provider;
+    PromptTemplate *promptTemplate;
     QJsonObject providerRequest;
     RequestType requestType;
 };
 
-} // namespace QodeAssist
+} // namespace QodeAssist::LLMCore

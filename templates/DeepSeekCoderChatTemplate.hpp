@@ -24,11 +24,11 @@
 
 namespace QodeAssist::Templates {
 
-class DeepSeekCoderChatTemplate : public PromptTemplate
+class DeepSeekCoderChatTemplate : public LLMCore::PromptTemplate
 {
 public:
     QString name() const override { return "DeepSeek Coder Chat"; }
-    TemplateType type() const override { return TemplateType::Chat; }
+    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
 
     QString promptTemplate() const override { return "### Instruction:\n%1\n### Response:\n"; }
 
@@ -37,7 +37,7 @@ public:
         return QStringList() << "### Instruction:" << "### Response:" << "\n\n### " << "<|EOT|>";
     }
 
-    void prepareRequest(QJsonObject &request, const ContextData &context) const override
+    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
         QString formattedPrompt = promptTemplate().arg(context.prefix);
         QJsonArray messages = request["messages"].toArray();

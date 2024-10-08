@@ -17,19 +17,19 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "LLMProvidersManager.hpp"
+#include "ProvidersManager.hpp"
 #include "Logger.hpp"
 #include <coreplugin/messagemanager.h>
 
-namespace QodeAssist {
+namespace QodeAssist::LLMCore {
 
-LLMProvidersManager &LLMProvidersManager::instance()
+ProvidersManager &ProvidersManager::instance()
 {
-    static LLMProvidersManager instance;
+    static ProvidersManager instance;
     return instance;
 }
 
-Providers::LLMProvider *LLMProvidersManager::setCurrentFimProvider(const QString &name)
+Provider *ProvidersManager::setCurrentFimProvider(const QString &name)
 {
     logMessage("Setting current FIM provider to: " + name);
     if (!m_providers.contains(name)) {
@@ -41,7 +41,7 @@ Providers::LLMProvider *LLMProvidersManager::setCurrentFimProvider(const QString
     return m_currentFimProvider;
 }
 
-Providers::LLMProvider *LLMProvidersManager::setCurrentChatProvider(const QString &name)
+Provider *ProvidersManager::setCurrentChatProvider(const QString &name)
 {
     logMessage("Setting current chat provider to: " + name);
     if (!m_providers.contains(name)) {
@@ -53,7 +53,7 @@ Providers::LLMProvider *LLMProvidersManager::setCurrentChatProvider(const QStrin
     return m_currentChatProvider;
 }
 
-Providers::LLMProvider *LLMProvidersManager::getCurrentFimProvider()
+Provider *ProvidersManager::getCurrentFimProvider()
 {
     if (m_currentFimProvider == nullptr) {
         logMessage("Current fim provider is null");
@@ -63,7 +63,7 @@ Providers::LLMProvider *LLMProvidersManager::getCurrentFimProvider()
     return m_currentFimProvider;
 }
 
-Providers::LLMProvider *LLMProvidersManager::getCurrentChatProvider()
+Provider *ProvidersManager::getCurrentChatProvider()
 {
     if (m_currentChatProvider == nullptr) {
         logMessage("Current chat provider is null");
@@ -73,14 +73,14 @@ Providers::LLMProvider *LLMProvidersManager::getCurrentChatProvider()
     return m_currentChatProvider;
 }
 
-QStringList LLMProvidersManager::providersNames() const
+QStringList ProvidersManager::providersNames() const
 {
     return m_providers.keys();
 }
 
-LLMProvidersManager::~LLMProvidersManager()
+ProvidersManager::~ProvidersManager()
 {
     qDeleteAll(m_providers);
 }
 
-} // namespace QodeAssist
+} // namespace QodeAssist::LLMCore

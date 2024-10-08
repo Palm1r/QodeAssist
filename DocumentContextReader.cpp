@@ -210,7 +210,7 @@ CopyrightInfo DocumentContextReader::copyrightInfo() const
     return m_copyrightInfo;
 }
 
-ContextData DocumentContextReader::prepareContext(int lineNumber, int cursorPosition) const
+LLMCore::ContextData DocumentContextReader::prepareContext(int lineNumber, int cursorPosition) const
 {
     QString contextBefore = getContextBefore(lineNumber, cursorPosition);
     QString contextAfter = getContextAfter(lineNumber, cursorPosition);

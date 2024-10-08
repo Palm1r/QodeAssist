@@ -24,15 +24,15 @@
 
 namespace QodeAssist::Templates {
 
-class CodeLlamaInstructTemplate : public PromptTemplate
+class CodeLlamaInstructTemplate : public LLMCore::PromptTemplate
 {
 public:
-    TemplateType type() const override { return TemplateType::Chat; }
+    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
     QString name() const override { return "CodeLLama Chat"; }
     QString promptTemplate() const override { return "[INST] %1 [/INST]"; }
     QStringList stopWords() const override { return QStringList() << "[INST]" << "[/INST]"; }
 
-    void prepareRequest(QJsonObject &request, const ContextData &context) const override
+    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
         QString formattedPrompt = promptTemplate().arg(context.prefix);
         QJsonArray messages = request["messages"].toArray();

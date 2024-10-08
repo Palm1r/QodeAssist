@@ -25,7 +25,7 @@
 
 #include "ContextData.hpp"
 
-namespace QodeAssist::Templates {
+namespace QodeAssist::LLMCore {
 
 enum class TemplateType { Chat, Fim };
 
@@ -39,4 +39,4 @@ public:
     virtual QStringList stopWords() const = 0;
     virtual void prepareRequest(QJsonObject &request, const ContextData &context) const = 0;
 };
-} // namespace QodeAssist::Templates
+} // namespace QodeAssist::LLMCore

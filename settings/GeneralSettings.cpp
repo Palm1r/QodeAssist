@@ -26,8 +26,8 @@
 #include <utils/layoutbuilder.h>
 #include <utils/utilsicons.h>
 
-#include "LLMProvidersManager.hpp"
 #include "PromptTemplateManager.hpp"
+#include "ProvidersManager.hpp"
 #include "QodeAssistConstants.hpp"
 #include "QodeAssistUtils.hpp"
 #include "QodeAssisttr.h"
@@ -144,9 +144,9 @@ GeneralSettings::GeneralSettings()
     setCurrentChatProvider(chatProviderName);
 
     auto nameFimPromts = fimPrompts.displayForIndex(fimPrompts.value());
-    PromptTemplateManager::instance().setCurrentFimTemplate(nameFimPromts);
+    LLMCore::PromptTemplateManager::instance().setCurrentFimTemplate(nameFimPromts);
     auto nameChatPromts = chatPrompts.displayForIndex(chatPrompts.value());
-    PromptTemplateManager::instance().setCurrentChatTemplate(nameChatPromts);
+    LLMCore::PromptTemplateManager::instance().setCurrentChatTemplate(nameChatPromts);
 
     setLoggingEnabled(enableLogging());
 
@@ -199,19 +199,21 @@ void GeneralSettings::setupConnections()
 
     connect(&fimPrompts, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
         int index = fimPrompts.volatileValue();
-        PromptTemplateManager::instance().setCurrentFimTemplate(fimPrompts.displayForIndex(index));
+        LLMCore::PromptTemplateManager::instance().setCurrentFimTemplate(
+            fimPrompts.displayForIndex(index));
     });
     connect(&chatPrompts, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
         int index = chatPrompts.volatileValue();
-        PromptTemplateManager::instance().setCurrentChatTemplate(chatPrompts.displayForIndex(index));
+        LLMCore::PromptTemplateManager::instance().setCurrentChatTemplate(
+            chatPrompts.displayForIndex(index));
     });
 
     connect(&selectModels, &ButtonAspect::clicked, this, [this]() {
-        auto *provider = LLMProvidersManager::instance().getCurrentFimProvider();
+        auto *provider = LLMCore::ProvidersManager::instance().getCurrentFimProvider();
         showModelSelectionDialog(&modelName, provider);
     });
     connect(&chatSelectModels, &ButtonAspect::clicked, this, [this]() {
-        auto *provider = LLMProvidersManager::instance().getCurrentChatProvider();
+        auto *provider = LLMCore::ProvidersManager::instance().getCurrentChatProvider();
         showModelSelectionDialog(&chatModelName, provider);
     });
 
@@ -239,7 +241,7 @@ void GeneralSettings::setupConnections()
 }
 
 void GeneralSettings::showModelSelectionDialog(Utils::StringAspect *modelNameObj,
-                                               Providers::LLMProvider *provider)
+                                               LLMCore::Provider *provider)
 {
     Utils::Environment env = Utils::Environment::systemEnvironment();
     QString providerUrl = (modelNameObj == &modelName) ? url() : chatUrl();
@@ -339,7 +341,7 @@ void GeneralSettings::setIndicatorStatus(Utils::StringAspect &indicator,
 
 void GeneralSettings::setCurrentFimProvider(const QString &name)
 {
-    const auto provider = LLMProvidersManager::instance().setCurrentFimProvider(name);
+    const auto provider = LLMCore::ProvidersManager::instance().setCurrentFimProvider(name);
     if (!provider)
         return;
 
@@ -349,7 +351,7 @@ void GeneralSettings::setCurrentFimProvider(const QString &name)
 
 void GeneralSettings::setCurrentChatProvider(const QString &name)
 {
-    const auto provider = LLMProvidersManager::instance().setCurrentChatProvider(name);
+    const auto provider = LLMCore::ProvidersManager::instance().setCurrentChatProvider(name);
     if (!provider)
         return;
 
@@ -359,7 +361,7 @@ void GeneralSettings::setCurrentChatProvider(const QString &name)
 
 void GeneralSettings::loadProviders()
 {
-    for (const auto &name : LLMProvidersManager::instance().providersNames()) {
+    for (const auto &name : LLMCore::ProvidersManager::instance().providersNames()) {
         llmProviders.addOption(name);
         chatLlmProviders.addOption(name);
     }
@@ -367,10 +369,10 @@ void GeneralSettings::loadProviders()
 
 void GeneralSettings::loadPrompts()
 {
-    for (const auto &name : PromptTemplateManager::instance().fimTemplatesNames()) {
+    for (const auto &name : LLMCore::PromptTemplateManager::instance().fimTemplatesNames()) {
         fimPrompts.addOption(name);
     }
-    for (const auto &name : PromptTemplateManager::instance().chatTemplatesNames()) {
+    for (const auto &name : LLMCore::PromptTemplateManager::instance().chatTemplatesNames()) {
         chatPrompts.addOption(name);
     }
 }

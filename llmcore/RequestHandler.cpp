@@ -18,21 +18,20 @@
  */
 
 #include "RequestHandler.hpp"
-#include "LLMProvidersManager.hpp"
 #include "Logger.hpp"
 // #include "settings/GeneralSettings.hpp"
 
 #include <QJsonDocument>
 #include <QNetworkReply>
 
-namespace QodeAssist {
+namespace QodeAssist::LLMCore {
 
-LLMRequestHandler::LLMRequestHandler(QObject *parent)
+RequestHandler::RequestHandler(QObject *parent)
     : QObject(parent)
     , m_manager(new QNetworkAccessManager(this))
 {}
 
-void LLMRequestHandler::sendLLMRequest(const LLMConfig &config, const QJsonObject &request)
+void RequestHandler::sendLLMRequest(const LLMConfig &config, const QJsonObject &request)
 {
     logMessage(QString("Sending request to llm: \nurl: %1\nRequest body:\n%2")
                    .arg(config.url.toString(),
@@ -69,9 +68,9 @@ void LLMRequestHandler::sendLLMRequest(const LLMConfig &config, const QJsonObjec
     });
 }
 
-void LLMRequestHandler::handleLLMResponse(QNetworkReply *reply,
-                                          const QJsonObject &request,
-                                          const LLMConfig &config)
+void RequestHandler::handleLLMResponse(QNetworkReply *reply,
+                                       const QJsonObject &request,
+                                       const LLMConfig &config)
 {
     QString &accumulatedResponse = m_accumulatedResponses[reply];
 
@@ -100,7 +99,7 @@ void LLMRequestHandler::handleLLMResponse(QNetworkReply *reply,
     }
 }
 
-bool LLMRequestHandler::cancelRequest(const QString &id)
+bool RequestHandler::cancelRequest(const QString &id)
 {
     if (m_activeRequests.contains(id)) {
         QNetworkReply *reply = m_activeRequests[id];
@@ -113,8 +112,8 @@ bool LLMRequestHandler::cancelRequest(const QString &id)
     return false;
 }
 
-void LLMRequestHandler::prepareNetworkRequest(QNetworkRequest &networkRequest,
-                                              const QJsonObject &providerRequest)
+void RequestHandler::prepareNetworkRequest(QNetworkRequest &networkRequest,
+                                           const QJsonObject &providerRequest)
 {
     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
@@ -124,10 +123,10 @@ void LLMRequestHandler::prepareNetworkRequest(QNetworkRequest &networkRequest,
     }
 }
 
-bool LLMRequestHandler::processSingleLineCompletion(QNetworkReply *reply,
-                                                    const QJsonObject &request,
-                                                    const QString &accumulatedResponse,
-                                                    const LLMConfig &config)
+bool RequestHandler::processSingleLineCompletion(QNetworkReply *reply,
+                                                 const QJsonObject &request,
+                                                 const QString &accumulatedResponse,
+                                                 const LLMConfig &config)
 {
     int newlinePos = accumulatedResponse.indexOf('\n');
 
@@ -145,8 +144,7 @@ bool LLMRequestHandler::processSingleLineCompletion(QNetworkReply *reply,
     return false;
 }
 
-QString LLMRequestHandler::removeStopWords(const QStringView &completion,
-                                           const QStringList &stopWords)
+QString RequestHandler::removeStopWords(const QStringView &completion, const QStringList &stopWords)
 {
     QString filteredCompletion = completion.toString();
 
@@ -157,4 +155,4 @@ QString LLMRequestHandler::removeStopWords(const QStringView &completion,
     return filteredCompletion;
 }
 
-} // namespace QodeAssist
+} // namespace QodeAssist::LLMCore

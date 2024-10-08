@@ -39,15 +39,14 @@
 #include <texteditor/texteditor.h>
 #include <utils/icon.h>
 
-#include "LLMProvidersManager.hpp"
 #include "PromptTemplateManager.hpp"
+#include "ProvidersManager.hpp"
 #include "QodeAssistClient.hpp"
 #include "chat/ChatOutputPane.h"
 #include "providers/LMStudioProvider.hpp"
 #include "providers/OllamaProvider.hpp"
 #include "providers/OpenAICompatProvider.hpp"
 
-#include "settings/GeneralSettings.hpp"
 #include "templates/CodeLlamaFimTemplate.hpp"
 #include "templates/CodeLlamaInstruct.hpp"
 #include "templates/CustomTemplate.hpp"
@@ -79,12 +78,12 @@ public:
 
     void initialize() final
     {
-        auto &providerManager = LLMProvidersManager::instance();
+        auto &providerManager = LLMCore::ProvidersManager::instance();
         providerManager.registerProvider<Providers::OllamaProvider>();
         providerManager.registerProvider<Providers::LMStudioProvider>();
         providerManager.registerProvider<Providers::OpenAICompatProvider>();
 
-        auto &templateManager = PromptTemplateManager::instance();
+        auto &templateManager = LLMCore::PromptTemplateManager::instance();
         templateManager.registerTemplate<Templates::CodeLlamaFimTemplate>();
         templateManager.registerTemplate<Templates::StarCoder2Template>();
         templateManager.registerTemplate<Templates::DeepSeekCoderV2Template>();

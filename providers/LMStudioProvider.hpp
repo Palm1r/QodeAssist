@@ -19,11 +19,11 @@
 
 #pragma once
 
-#include "LLMProvider.hpp"
+#include "Provider.hpp"
 
 namespace QodeAssist::Providers {
 
-class LMStudioProvider : public LLMProvider
+class LMStudioProvider : public LLMCore::Provider
 {
 public:
     LMStudioProvider();

@@ -21,8 +21,8 @@
 
 #include <utils/aspects.h>
 
-// #include "providers/LLMProvider.hpp"
-#include <llmcore/LLMProvider.hpp>
+// #include "providers/Provider.hpp"
+#include <llmcore/Provider.hpp>
 
 #include "settings/SettingsUtils.hpp"
 
@@ -65,8 +65,7 @@ public:
 
 private:
     void setupConnections();
-    void showModelSelectionDialog(Utils::StringAspect *modelNameObj,
-                                  Providers::LLMProvider *provider);
+    void showModelSelectionDialog(Utils::StringAspect *modelNameObj, LLMCore::Provider *provider);
     void resetPageToDefaults();
 
     void updateStatusIndicators();

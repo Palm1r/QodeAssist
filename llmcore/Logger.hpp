@@ -25,7 +25,7 @@
 #include <coreplugin/messagemanager.h>
 #include <utils/qtcassert.h>
 
-namespace QodeAssist {
+namespace QodeAssist::LLMCore {
 
 inline bool &loggingEnabled()
 {
@@ -69,4 +69,4 @@ inline void logMessages(const QStringList &messages, bool silent = true)
     }
 }
 
-} // namespace QodeAssist
+} // namespace QodeAssist::LLMCore

@@ -19,11 +19,11 @@
 
 #pragma once
 
-#include "LLMProvider.hpp"
+#include "Provider.hpp"
 
 namespace QodeAssist::Providers {
 
-class OpenAICompatProvider : public LLMProvider
+class OpenAICompatProvider : public LLMCore::Provider
 {
 public:
     OpenAICompatProvider();

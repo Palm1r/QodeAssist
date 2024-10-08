@@ -27,8 +27,8 @@
 #include <texteditor/textdocument.h>
 
 #include "DocumentContextReader.hpp"
-#include "LLMProvidersManager.hpp"
 #include "PromptTemplateManager.hpp"
+#include "ProvidersManager.hpp"
 #include "QodeAssistUtils.hpp"
 // #include "core/LLMRequestConfig.hpp"
 #include "settings/ContextSettings.hpp"
@@ -40,7 +40,7 @@ LLMClientInterface::LLMClientInterface()
     : m_requestHandler(this)
 {
     connect(&m_requestHandler,
-            &LLMRequestHandler::completionReceived,
+            &LLMCore::RequestHandler::completionReceived,
             this,
             &LLMClientInterface::sendCompletionToClient);
 }
@@ -149,10 +149,10 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
 {
     auto updatedContext = prepareContext(request);
 
-    LLMConfig config;
-    config.requestType = RequestType::Fim;
-    config.provider = LLMProvidersManager::instance().getCurrentFimProvider();
-    config.promptTemplate = PromptTemplateManager::instance().getCurrentFimTemplate();
+    LLMCore::LLMConfig config;
+    config.requestType = LLMCore::RequestType::Fim;
+    config.provider = LLMCore::ProvidersManager::instance().getCurrentFimProvider();
+    config.promptTemplate = LLMCore::PromptTemplateManager::instance().getCurrentFimTemplate();
     config.url = QUrl(QString("%1%2").arg(Settings::generalSettings().url(),
                                           Settings::generalSettings().endPoint()));
 
@@ -170,8 +170,8 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     m_requestHandler.sendLLMRequest(config, request);
 }
 
-ContextData LLMClientInterface::prepareContext(const QJsonObject &request,
-                                               const QStringView &accumulatedCompletion)
+LLMCore::ContextData LLMClientInterface::prepareContext(const QJsonObject &request,
+                                                        const QStringView &accumulatedCompletion)
 {
     QJsonObject params = request["params"].toObject();
     QJsonObject doc = params["doc"].toObject();
@@ -184,7 +184,7 @@ ContextData LLMClientInterface::prepareContext(const QJsonObject &request,
 
     if (!textDocument) {
         logMessage("Error: Document is not available for" + filePath.toString());
-        return ContextData{};
+        return LLMCore::ContextData{};
     }
 
     int cursorPosition = position["character"].toInt();

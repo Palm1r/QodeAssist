@@ -51,7 +51,7 @@ public:
 
     CopyrightInfo copyrightInfo() const;
 
-    ContextData prepareContext(int lineNumber, int cursorPosition) const;
+    LLMCore::ContextData prepareContext(int lineNumber, int cursorPosition) const;
 
 private:
     QString getContextBefore(int lineNumber, int cursorPosition) const;

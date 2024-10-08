@@ -18,8 +18,8 @@
  */
 
 #include "ChatClientInterface.hpp"
-#include "LLMProvidersManager.hpp"
 #include "PromptTemplateManager.hpp"
+#include "ProvidersManager.hpp"
 #include "QodeAssistUtils.hpp"
 #include "settings/ContextSettings.hpp"
 #include "settings/GeneralSettings.hpp"
@@ -78,17 +78,17 @@ void ChatHistory::trim()
 
 ChatClientInterface::ChatClientInterface(QObject *parent)
     : QObject(parent)
-    , m_requestHandler(new LLMRequestHandler(this))
+    , m_requestHandler(new LLMCore::RequestHandler(this))
 {
     connect(m_requestHandler,
-            &LLMRequestHandler::completionReceived,
+            &LLMCore::RequestHandler::completionReceived,
             this,
             [this](const QString &completion, const QJsonObject &, bool isComplete) {
                 handleLLMResponse(completion, isComplete);
             });
 
     connect(m_requestHandler,
-            &LLMRequestHandler::requestFinished,
+            &LLMCore::RequestHandler::requestFinished,
             this,
             [this](const QString &, bool success, const QString &errorString) {
                 if (!success) {
@@ -107,10 +107,10 @@ void ChatClientInterface::sendMessage(const QString &message)
     logMessage("chatProvider " + Settings::generalSettings().chatLlmProviders.stringValue());
     logMessage("chatTemplate " + Settings::generalSettings().chatPrompts.stringValue());
 
-    auto chatTemplate = PromptTemplateManager::instance().getCurrentChatTemplate();
-    auto chatProvider = LLMProvidersManager::instance().getCurrentChatProvider();
+    auto chatTemplate = LLMCore::PromptTemplateManager::instance().getCurrentChatTemplate();
+    auto chatProvider = LLMCore::ProvidersManager::instance().getCurrentChatProvider();
 
-    ContextData context;
+    LLMCore::ContextData context;
     context.prefix = message;
     context.suffix = "";
     if (Settings::contextSettings().useSpecificInstructions())
@@ -124,8 +124,8 @@ void ChatClientInterface::sendMessage(const QString &message)
     chatTemplate->prepareRequest(providerRequest, context);
     chatProvider->prepareRequest(providerRequest);
 
-    LLMConfig config;
-    config.requestType = RequestType::Chat;
+    LLMCore::LLMConfig config;
+    config.requestType = LLMCore::RequestType::Chat;
     config.provider = chatProvider;
     config.promptTemplate = chatTemplate;
     config.url = QString("%1%2").arg(Settings::generalSettings().chatUrl(),
