@@ -31,13 +31,17 @@ class ChatRootView : public QQuickItem
     QML_ELEMENT
 
     Q_PROPERTY(ChatModel *chatModel READ chatModel NOTIFY chatModelChanged FINAL)
+    Q_PROPERTY(QColor backgroundColor READ backgroundColor NOTIFY backgroundColorChanged FINAL)
 public:
     ChatRootView(QQuickItem *parent = nullptr);
 
     ChatModel *chatModel() const;
 
+    QColor backgroundColor() const;
+
 signals:
     void chatModelChanged();
+    void backgroundColorChanged();
 
 private:
     ChatModel *m_chatModel = nullptr;

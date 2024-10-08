@@ -8,6 +8,6 @@ ChatRootView {
         id: bg
 
         anchors.fill: parent
-        color: "gray"
+        color: root.backgroundColor
     }
 }

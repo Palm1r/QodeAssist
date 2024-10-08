@@ -18,6 +18,7 @@
  */
 
 #include "ChatRootView.hpp"
+#include <utils/theme/theme.h>
 
 namespace QodeAssist::Chat {
 
@@ -29,6 +30,11 @@ ChatRootView::ChatRootView(QQuickItem *parent)
 ChatModel *ChatRootView::chatModel() const
 {
     return m_chatModel;
+}
+
+QColor ChatRootView::backgroundColor() const
+{
+    return Utils::creatorColor(Utils::Theme::BackgroundColorNormal);
 }
 
 } // namespace QodeAssist::Chat

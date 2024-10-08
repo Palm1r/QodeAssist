@@ -1,5 +1,6 @@
 qt_add_library(QodeAssistChatView STATIC)
 
+find_package(QtCreator REQUIRED COMPONENTS Core Utils)
 find_package(Qt6 COMPONENTS Core Widgets Quick QuickWidgets Network REQUIRED)
 
 qt_add_qml_module(QodeAssistChatView
@@ -19,6 +20,8 @@ target_link_libraries(QodeAssistChatView
     Qt::Quick
     Qt::QuickWidgets
     Qt::Network
+    QtCreator::Core
+    QtCreator::Utils
     LLMCore
 )
 

@@ -19,8 +19,8 @@
 
 #include "BaseChatWidget.hpp"
 
-#include <QQmlEngine>
 #include <QQmlContext>
+#include <QQmlEngine>
 
 namespace QodeAssist::Chat {
 

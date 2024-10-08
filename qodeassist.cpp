@@ -43,6 +43,7 @@
 #include "ProvidersManager.hpp"
 #include "QodeAssistClient.hpp"
 #include "chat/ChatOutputPane.h"
+#include "chat/NavigationPanel.hpp"
 #include "providers/LMStudioProvider.hpp"
 #include "providers/OllamaProvider.hpp"
 #include "providers/OpenAICompatProvider.hpp"
@@ -74,6 +75,7 @@ public:
     {
         delete m_qodeAssistClient;
         delete m_chatOutputPane;
+        delete m_navigationPanel;
     }
 
     void initialize() final
@@ -116,6 +118,7 @@ public:
         StatusBarManager::addStatusBarWidget(toggleButton, StatusBarManager::RightCorner);
 
         m_chatOutputPane = new Chat::ChatOutputPane(this);
+        m_navigationPanel = new Chat::NavigationPanel();
     }
 
     void extensionsInitialized() final
@@ -150,6 +153,7 @@ public:
 private:
     QPointer<QodeAssistClient> m_qodeAssistClient;
     QPointer<Chat::ChatOutputPane> m_chatOutputPane;
+    QPointer<Chat::NavigationPanel> m_navigationPanel;
 };
 
 } // namespace QodeAssist::Internal
