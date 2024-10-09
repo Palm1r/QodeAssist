@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "settings/SettingsUtils.hpp"
+#include "SettingsUtils.hpp"
 #include <utils/aspects.h>
 
 namespace QodeAssist::Settings {

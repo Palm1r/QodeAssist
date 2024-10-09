@@ -1,4 +1,4 @@
-find_package(QtCreator REQUIRED COMPONENTS Core)
+find_package(QtCreator REQUIRED COMPONENTS Core Utils ExtensionSystem)
 find_package(Qt6 COMPONENTS Core Gui Widgets Network REQUIRED)
 
 add_library(LLMCore STATIC
@@ -20,6 +20,7 @@ target_link_libraries(LLMCore
     Qt::Network
     QtCreator::Core
     QtCreator::Utils
+    QtCreator::ExtensionSystem
 )
 
 set_target_properties(LLMCore PROPERTIES

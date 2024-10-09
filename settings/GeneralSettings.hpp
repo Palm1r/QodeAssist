@@ -21,10 +21,9 @@
 
 #include <utils/aspects.h>
 
-// #include "providers/Provider.hpp"
-#include <llmcore/Provider.hpp>
+#include <Provider.hpp>
 
-#include "settings/SettingsUtils.hpp"
+#include "SettingsUtils.hpp"
 
 namespace QodeAssist::Settings {
 

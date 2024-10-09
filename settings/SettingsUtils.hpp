@@ -19,11 +19,17 @@
 
 #pragma once
 
+#include <QCoreApplication>
 #include <QPushButton>
 #include <utils/aspects.h>
 #include <utils/layoutbuilder.h>
 
 namespace QodeAssist::Settings {
+
+struct Tr
+{
+    Q_DECLARE_TR_FUNCTIONS(QtC::QodeAssist)
+};
 
 template<typename AspectType>
 void resetAspect(AspectType &aspect)

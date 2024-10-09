@@ -26,8 +26,7 @@
 #include <coreplugin/icore.h>
 #include <utils/layoutbuilder.h>
 
-#include "QodeAssistConstants.hpp"
-#include "QodeAssisttr.h"
+#include "SettingsConstants.hpp"
 
 namespace QodeAssist::Settings {
 

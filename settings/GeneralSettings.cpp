@@ -28,9 +28,8 @@
 
 #include "PromptTemplateManager.hpp"
 #include "ProvidersManager.hpp"
-#include "QodeAssistConstants.hpp"
-#include "QodeAssistUtils.hpp"
-#include "QodeAssisttr.h"
+#include "SettingsConstants.hpp"
+// #include "QodeAssistUtils.hpp"
 
 namespace QodeAssist::Settings {
 
@@ -148,7 +147,7 @@ GeneralSettings::GeneralSettings()
     auto nameChatPromts = chatPrompts.displayForIndex(chatPrompts.value());
     LLMCore::PromptTemplateManager::instance().setCurrentChatTemplate(nameChatPromts);
 
-    setLoggingEnabled(enableLogging());
+    // setLoggingEnabled(enableLogging());
 
     setupConnections();
 
@@ -218,7 +217,7 @@ void GeneralSettings::setupConnections()
     });
 
     connect(&enableLogging, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
-        setLoggingEnabled(enableLogging.volatileValue());
+        // setLoggingEnabled(enableLogging.volatileValue());
     });
     connect(&resetToDefaults, &ButtonAspect::clicked, this, &GeneralSettings::resetPageToDefaults);
 
@@ -303,12 +302,12 @@ void GeneralSettings::updateStatusIndicators()
     bool fimPingSuccessful = false;
     if (fimUrlValid) {
         QUrl pingUrl(url.volatileValue());
-        fimPingSuccessful = QodeAssist::pingUrl(pingUrl);
+        // fimPingSuccessful = QodeAssist::pingUrl(pingUrl);
     }
     bool chatPingSuccessful = false;
     if (chatUrlValid) {
         QUrl pingUrl(chatUrl.volatileValue());
-        chatPingSuccessful = QodeAssist::pingUrl(pingUrl);
+        // chatPingSuccessful = QodeAssist::pingUrl(pingUrl);
     }
 
     setIndicatorStatus(fimModelIndicator,

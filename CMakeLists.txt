@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
 
-list(APPEND CMAKE_PREFIX_PATH "/Users/palm1r/Qt/Qt Creator.app/Contents/Resources/lib/cmake/QtCreator")
-
 project(QodeAssist)
 
 set(CMAKE_AUTOMOC ON)
@@ -16,6 +14,7 @@ find_package(Qt6 COMPONENTS Core Gui Widgets Network REQUIRED)
 
 add_subdirectory(llmcore)
 add_subdirectory(chatview)
+add_subdirectory(settings)
 
 add_qtc_plugin(QodeAssist
   PLUGIN_DEPENDS
@@ -51,11 +50,11 @@ add_qtc_plugin(QodeAssist
     QodeAssistUtils.hpp
     DocumentContextReader.hpp DocumentContextReader.cpp
     utils/CounterTooltip.hpp utils/CounterTooltip.cpp
-    settings/GeneralSettings.hpp settings/GeneralSettings.cpp
-    settings/ContextSettings.hpp settings/ContextSettings.cpp
-    settings/CustomPromptSettings.hpp settings/CustomPromptSettings.cpp
-    settings/PresetPromptsSettings.hpp settings/PresetPromptsSettings.cpp
-    settings/SettingsUtils.hpp
+    # settings/GeneralSettings.hpp settings/GeneralSettings.cpp
+    # settings/ContextSettings.hpp settings/ContextSettings.cpp
+    # settings/CustomPromptSettings.hpp settings/CustomPromptSettings.cpp
+    # settings/PresetPromptsSettings.hpp settings/PresetPromptsSettings.cpp
+    # settings/SettingsUtils.hpp
     core/ChangesManager.h core/ChangesManager.cpp
     chat/ChatWidget.h chat/ChatWidget.cpp
     chat/ChatOutputPane.h chat/ChatOutputPane.cpp
@@ -63,4 +62,4 @@ add_qtc_plugin(QodeAssist
     chat/NavigationPanel.hpp chat/NavigationPanel.cpp
 )
 
-target_link_libraries(QodeAssist PRIVATE LLMCore QodeAssistChatViewplugin)
+target_link_libraries(QodeAssist PRIVATE QodeAssistSettings LLMCore QodeAssistChatViewplugin)
