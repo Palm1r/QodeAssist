@@ -19,7 +19,7 @@
 
 #include "NavigationPanel.hpp"
 
-#include "chatview/BaseChatWidget.hpp"
+#include "chatview/ChatWidget.hpp"
 
 namespace QodeAssist::Chat {
 
@@ -37,7 +37,7 @@ NavigationPanel::~NavigationPanel()
 Core::NavigationView NavigationPanel::createWidget()
 {
     Core::NavigationView view;
-    view.widget = new BaseChatWidget;
+    view.widget = new ChatWidget;
 
     return view;
 }

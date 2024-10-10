@@ -21,24 +21,27 @@
 
 #include <QAbstractListModel>
 #include <QJsonArray>
+#include <qqmlintegration.h>
 
 namespace QodeAssist::Chat {
-
-enum class ChatRole { System, User, Assistant };
-
-struct Message
-{
-    ChatRole role;
-    QString content;
-    int tokenCount;
-};
 
 class ChatModel : public QAbstractListModel
 {
     Q_OBJECT
-
+    QML_ELEMENT
+    QML_UNCREATABLE("ChatModel no need to create")
 public:
     enum Roles { RoleType = Qt::UserRole, Content };
+
+    enum ChatRole { System, User, Assistant };
+    Q_ENUM(ChatRole)
+
+    struct Message
+    {
+        ChatRole role;
+        QString content;
+        int tokenCount;
+    };
 
     explicit ChatModel(QObject *parent = nullptr);
 
@@ -66,5 +69,3 @@ private:
 };
 
 } // namespace QodeAssist::Chat
-
-Q_DECLARE_METATYPE(QodeAssist::Chat::ChatRole)

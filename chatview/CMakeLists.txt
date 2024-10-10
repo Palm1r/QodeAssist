@@ -9,7 +9,7 @@ qt_add_qml_module(QodeAssistChatView
     QML_FILES
     qml/RootItem.qml
     SOURCES
-    BaseChatWidget.hpp BaseChatWidget.cpp
+    ChatWidget.hpp ChatWidget.cpp
     ChatModel.hpp ChatModel.cpp
     ChatRootView.hpp ChatRootView.cpp
     ClientInterface.hpp ClientInterface.cpp

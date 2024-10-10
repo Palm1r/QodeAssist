@@ -91,7 +91,7 @@ void ClientInterface::sendMessage(const QString &message)
     request["id"] = QUuid::createUuid().toString();
 
     m_accumulatedResponse.clear();
-    m_chatModel->addMessage(message, ChatRole::User);
+    m_chatModel->addMessage(message, ChatModel::ChatRole::User);
     m_requestHandler->sendLLMRequest(config, request);
 }
 
@@ -110,7 +110,7 @@ void ClientInterface::handleLLMResponse(const QString &response, bool isComplete
         LOG_MESSAGE("Message completed. Final response: " + m_accumulatedResponse);
         emit messageReceived(m_accumulatedResponse.trimmed());
 
-        m_chatModel->addMessage(m_accumulatedResponse.trimmed(), ChatRole::Assistant);
+        m_chatModel->addMessage(m_accumulatedResponse.trimmed(), ChatModel::ChatRole::Assistant);
         m_accumulatedResponse.clear();
     }
 }

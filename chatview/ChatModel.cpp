@@ -19,6 +19,7 @@
 
 #include "ChatModel.hpp"
 #include <QtCore/qjsonobject.h>
+#include <QtQml>
 
 namespace QodeAssist::Chat {
 
@@ -58,7 +59,7 @@ QHash<int, QByteArray> ChatModel::roleNames() const
     return roles;
 }
 
-QVector<Message> ChatModel::getChatHistory() const
+QVector<ChatModel::Message> ChatModel::getChatHistory() const
 {
     return m_messages;
 }

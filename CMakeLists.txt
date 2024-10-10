@@ -51,9 +51,7 @@ add_qtc_plugin(QodeAssist
     DocumentContextReader.hpp DocumentContextReader.cpp
     utils/CounterTooltip.hpp utils/CounterTooltip.cpp
     core/ChangesManager.h core/ChangesManager.cpp
-    chat/ChatWidget.h chat/ChatWidget.cpp
     chat/ChatOutputPane.h chat/ChatOutputPane.cpp
-    chat/ChatClientInterface.hpp chat/ChatClientInterface.cpp
     chat/NavigationPanel.hpp chat/NavigationPanel.cpp
 )
 

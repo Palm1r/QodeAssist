@@ -5,8 +5,6 @@ import ChatView
 
 ChatRootView {
     id: root
-    width: 400
-    height: 600
 
     Rectangle {
         id: bg
@@ -29,7 +27,7 @@ ChatRootView {
             delegate: Rectangle {
                 width: ListView.view.width
                 height: messageText.height + 20
-                color: model.roleType === ChatRole.User ? "#e6e6e6" : "#f0f0f0"
+                color: model.roleType === ChatModel.User ? "#e6e6e6" : "#f0f0f0"
                 radius: 10
 
                 Text {

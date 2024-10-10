@@ -17,14 +17,15 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "BaseChatWidget.hpp"
+#include "ChatWidget.hpp"
 
 #include <QQmlContext>
 #include <QQmlEngine>
 
 namespace QodeAssist::Chat {
 
-BaseChatWidget::BaseChatWidget(QWidget *parent) : QQuickWidget(parent)
+ChatWidget::ChatWidget(QWidget *parent)
+    : QQuickWidget(parent)
 {
     setSource(QUrl("qrc:/ChatView/qml/RootItem.qml"));
     setResizeMode(QQuickWidget::SizeRootObjectToView);
