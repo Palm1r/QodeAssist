@@ -29,7 +29,7 @@
 #include "PromptTemplateManager.hpp"
 #include "ProvidersManager.hpp"
 #include "SettingsConstants.hpp"
-// #include "QodeAssistUtils.hpp"
+#include "SettingsUtils.hpp"
 
 namespace QodeAssist::Settings {
 
@@ -302,12 +302,12 @@ void GeneralSettings::updateStatusIndicators()
     bool fimPingSuccessful = false;
     if (fimUrlValid) {
         QUrl pingUrl(url.volatileValue());
-        // fimPingSuccessful = QodeAssist::pingUrl(pingUrl);
+        fimPingSuccessful = Settings::pingUrl(pingUrl);
     }
     bool chatPingSuccessful = false;
     if (chatUrlValid) {
         QUrl pingUrl(chatUrl.volatileValue());
-        // chatPingSuccessful = QodeAssist::pingUrl(pingUrl);
+        chatPingSuccessful = Settings::pingUrl(pingUrl);
     }
 
     setIndicatorStatus(fimModelIndicator,

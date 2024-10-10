@@ -72,36 +72,4 @@ inline void logMessages(const QStringList &messages, bool silent = true)
     }
 }
 
-inline bool pingUrl(const QUrl &url, int timeout = 5000)
-{
-    if (!url.isValid()) {
-        return false;
-    }
-
-    QNetworkAccessManager manager;
-    QNetworkRequest request(url);
-    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, true);
-
-    QScopedPointer<QNetworkReply> reply(manager.get(request));
-
-    QTimer timer;
-    timer.setSingleShot(true);
-
-    QEventLoop loop;
-    QObject::connect(reply.data(), &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    QObject::connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
-
-    timer.start(timeout);
-    loop.exec();
-
-    if (timer.isActive()) {
-        timer.stop();
-        return (reply->error() == QNetworkReply::NoError);
-    } else {
-        QObject::disconnect(reply.data(), &QNetworkReply::finished, &loop, &QEventLoop::quit);
-        reply->abort();
-        return false;
-    }
-}
-
 } // namespace QodeAssist
