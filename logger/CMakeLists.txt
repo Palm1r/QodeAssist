@@ -1,13 +1,10 @@
-find_package(Qt6 COMPONENTS Core REQUIRED)
-find_package(QtCreator REQUIRED COMPONENTS Core)
-
 add_library(QodeAssistLogger STATIC
     Logger.cpp
     Logger.hpp
 )
 
 target_link_libraries(QodeAssistLogger
-    PRIVATE
+    PUBLIC
     Qt::Core
     QtCreator::Core
 )
