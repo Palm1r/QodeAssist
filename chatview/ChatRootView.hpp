@@ -40,6 +40,9 @@ public:
 
     QColor backgroundColor() const;
 
+public slots:
+    void sendMessage(const QString &message) const;
+
 signals:
     void chatModelChanged();
     void backgroundColorChanged();

@@ -25,7 +25,7 @@ namespace QodeAssist::Chat {
 ChatRootView::ChatRootView(QQuickItem *parent)
     : QQuickItem(parent)
     , m_chatModel(new ChatModel(this))
-    , m_clientInterface(new ClientInterface(this))
+    , m_clientInterface(new ClientInterface(m_chatModel, this))
 {}
 
 ChatModel *ChatRootView::chatModel() const
@@ -36,6 +36,11 @@ ChatModel *ChatRootView::chatModel() const
 QColor ChatRootView::backgroundColor() const
 {
     return Utils::creatorColor(Utils::Theme::BackgroundColorNormal);
+}
+
+void ChatRootView::sendMessage(const QString &message) const
+{
+    m_clientInterface->sendMessage(message);
 }
 
 } // namespace QodeAssist::Chat

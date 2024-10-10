@@ -31,6 +31,9 @@ public:
     explicit BaseChatWidget(QWidget *parent = nullptr);
     ~BaseChatWidget() = default;
 
+    void clear() {};
+    void scrollToBottom() {};
+
 private:
 };
 

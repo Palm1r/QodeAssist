@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "ChatWidget.h"
+#include "chatview/BaseChatWidget.hpp"
 #include <coreplugin/ioutputpane.h>
 
 namespace QodeAssist::Chat {
@@ -46,7 +46,7 @@ public:
     void goToPrev() override;
 
 private:
-    ChatWidget *m_chatWidget;
+    BaseChatWidget *m_chatWidget;
 };
 
 } // namespace QodeAssist::Chat

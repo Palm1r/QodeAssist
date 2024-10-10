@@ -23,49 +23,21 @@
 #include <QString>
 #include <QVector>
 
+#include "ChatModel.hpp"
 #include "RequestHandler.hpp"
 
 namespace QodeAssist::Chat {
-
-struct CMessage
-{
-    enum class Role { System, User, Assistant };
-    Role role;
-    QString content;
-    int tokenCount;
-};
-
-class CHistory
-{
-public:
-    void addMessage(CMessage::Role role, const QString &content);
-    void clear();
-    QVector<CMessage> getMessages() const;
-    QString getSystemPrompt() const;
-    void setSystemPrompt(const QString &prompt);
-    void trim();
-
-private:
-    QVector<CMessage> m_messages;
-    QString m_systemPrompt;
-    int m_totalTokens = 0;
-    static const int MAX_HISTORY_SIZE = 50;
-    static const int MAX_TOKENS = 4000;
-
-    int estimateTokenCount(const QString &text) const;
-};
 
 class ClientInterface : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit ClientInterface(QObject *parent = nullptr);
+    explicit ClientInterface(ChatModel *chatModel, QObject *parent = nullptr);
     ~ClientInterface();
 
     void sendMessage(const QString &message);
     void clearMessages();
-    QVector<CMessage> getChatHistory() const;
 
 signals:
     void messageReceived(const QString &message);
@@ -73,11 +45,10 @@ signals:
 
 private:
     void handleLLMResponse(const QString &response, bool isComplete);
-    QJsonArray prepareMessagesForRequest() const;
 
     LLMCore::RequestHandler *m_requestHandler;
     QString m_accumulatedResponse;
-    CHistory m_chatHistory;
+    ChatModel *m_chatModel;
 };
 
 } // namespace QodeAssist::Chat

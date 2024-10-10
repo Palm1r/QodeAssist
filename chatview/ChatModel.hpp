@@ -20,6 +20,7 @@
 #pragma once
 
 #include <QAbstractListModel>
+#include <QJsonArray>
 
 namespace QodeAssist::Chat {
 
@@ -29,6 +30,7 @@ struct Message
 {
     ChatRole role;
     QString content;
+    int tokenCount;
 };
 
 class ChatModel : public QAbstractListModel
@@ -47,8 +49,20 @@ public:
     Q_INVOKABLE void addMessage(const QString &content, ChatRole role);
     Q_INVOKABLE void clear();
 
+    QVector<Message> getChatHistory() const;
+    QString getSystemPrompt() const;
+    void setSystemPrompt(const QString &prompt);
+    QJsonArray prepareMessagesForRequest() const;
+
 private:
+    void trim();
+    int estimateTokenCount(const QString &text) const;
+
     QVector<Message> m_messages;
+    QString m_systemPrompt;
+    int m_totalTokens = 0;
+    static const int MAX_HISTORY_SIZE = 50;
+    static const int MAX_TOKENS = 4000;
 };
 
 } // namespace QodeAssist::Chat
