@@ -19,12 +19,12 @@
 
 #pragma once
 
-#include "PromptTemplate.hpp"
+#include "llmcore/PromptTemplate.hpp"
 
 #include <QJsonArray>
 #include <QJsonDocument>
 
-#include "Logger.hpp"
+#include "logger/Logger.hpp"
 #include "settings/CustomPromptSettings.hpp"
 
 namespace QodeAssist::Templates {

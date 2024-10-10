@@ -15,7 +15,7 @@ target_link_libraries(QodeAssistSettings
     Qt::Network
     QtCreator::Core
     QtCreator::Utils
+    QodeAssistLogger
     PRIVATE
     LLMCore
-    QodeAssistLogger
 )

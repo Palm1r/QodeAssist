@@ -25,7 +25,7 @@
 #include <QJsonObject>
 #include <QNetworkReply>
 
-#include "Logger.hpp"
+#include "logger/Logger.hpp"
 #include "settings/PresetPromptsSettings.hpp"
 
 namespace QodeAssist::Providers {

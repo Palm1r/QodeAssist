@@ -20,7 +20,7 @@
 #pragma once
 
 #include <QtCore/qjsonarray.h>
-#include "PromptTemplate.hpp"
+#include "llmcore/PromptTemplate.hpp"
 
 namespace QodeAssist::Templates {
 

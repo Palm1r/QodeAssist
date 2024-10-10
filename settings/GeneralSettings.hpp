@@ -21,10 +21,11 @@
 
 #include <utils/aspects.h>
 
-#include <Provider.hpp>
-
 #include "SettingsUtils.hpp"
 
+namespace QodeAssist::LLMCore {
+class Provider;
+}
 namespace QodeAssist::Settings {
 
 class GeneralSettings : public Utils::AspectContainer

@@ -57,4 +57,4 @@ add_qtc_plugin(QodeAssist
     chat/NavigationPanel.hpp chat/NavigationPanel.cpp
 )
 
-target_link_libraries(QodeAssist PRIVATE QodeAssistSettings QodeAssistLogger LLMCore QodeAssistChatViewplugin)
+target_link_libraries(QodeAssist PRIVATE QodeAssistChatViewplugin)

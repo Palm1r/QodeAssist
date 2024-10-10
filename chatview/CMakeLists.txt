@@ -20,9 +20,7 @@ target_link_libraries(QodeAssistChatView
     Qt::Network
     QtCreator::Core
     QtCreator::Utils
-    PRIVATE
     LLMCore
-    QodeAssistLogger
     QodeAssistSettings
 )
 

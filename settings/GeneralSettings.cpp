@@ -28,6 +28,7 @@
 
 #include "Logger.hpp"
 #include "PromptTemplateManager.hpp"
+#include "Provider.hpp"
 #include "ProvidersManager.hpp"
 #include "SettingsConstants.hpp"
 #include "SettingsUtils.hpp"

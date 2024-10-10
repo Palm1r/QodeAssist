@@ -27,9 +27,9 @@
 #include <texteditor/textdocument.h>
 
 #include "DocumentContextReader.hpp"
-#include "Logger.hpp"
-#include "PromptTemplateManager.hpp"
-#include "ProvidersManager.hpp"
+#include "logger/Logger.hpp"
+#include "llmcore/PromptTemplateManager.hpp"
+#include "llmcore/ProvidersManager.hpp"
 #include "settings/ContextSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 

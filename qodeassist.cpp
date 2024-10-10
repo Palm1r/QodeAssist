@@ -39,11 +39,11 @@
 #include <texteditor/texteditor.h>
 #include <utils/icon.h>
 
-#include "PromptTemplateManager.hpp"
-#include "ProvidersManager.hpp"
 #include "QodeAssistClient.hpp"
 #include "chat/ChatOutputPane.h"
 #include "chat/NavigationPanel.hpp"
+#include "llmcore/PromptTemplateManager.hpp"
+#include "llmcore/ProvidersManager.hpp"
 #include "providers/LMStudioProvider.hpp"
 #include "providers/OllamaProvider.hpp"
 #include "providers/OpenAICompatProvider.hpp"

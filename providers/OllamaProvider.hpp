@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "Provider.hpp"
+#include "llmcore/Provider.hpp"
 
 namespace QodeAssist::Providers {
 
