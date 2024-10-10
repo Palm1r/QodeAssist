@@ -24,7 +24,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 
-#include "QodeAssistUtils.hpp"
+#include "Logger.hpp"
 #include "settings/CustomPromptSettings.hpp"
 
 namespace QodeAssist::Templates {

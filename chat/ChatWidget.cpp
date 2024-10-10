@@ -18,13 +18,13 @@
  */
 
 #include "ChatWidget.h"
-#include "QodeAssistUtils.hpp"
 
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QScrollBar>
 #include <QVBoxLayout>
 #include <QtCore/qtimer.h>
+#include "Logger.hpp"
 
 namespace QodeAssist::Chat {
 

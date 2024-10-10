@@ -25,8 +25,8 @@
 #include <QNetworkReply>
 #include <QtCore/qeventloop.h>
 
+#include "Logger.hpp"
 #include "PromptTemplateManager.hpp"
-#include "QodeAssistUtils.hpp"
 #include "settings/PresetPromptsSettings.hpp"
 
 namespace QodeAssist::Providers {

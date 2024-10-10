@@ -48,14 +48,8 @@ add_qtc_plugin(QodeAssist
     LSPCompletion.hpp
     LLMSuggestion.hpp LLMSuggestion.cpp
     QodeAssistClient.hpp QodeAssistClient.cpp
-    QodeAssistUtils.hpp
     DocumentContextReader.hpp DocumentContextReader.cpp
     utils/CounterTooltip.hpp utils/CounterTooltip.cpp
-    # settings/GeneralSettings.hpp settings/GeneralSettings.cpp
-    # settings/ContextSettings.hpp settings/ContextSettings.cpp
-    # settings/CustomPromptSettings.hpp settings/CustomPromptSettings.cpp
-    # settings/PresetPromptsSettings.hpp settings/PresetPromptsSettings.cpp
-    # settings/SettingsUtils.hpp
     core/ChangesManager.h core/ChangesManager.cpp
     chat/ChatWidget.h chat/ChatWidget.cpp
     chat/ChatOutputPane.h chat/ChatOutputPane.cpp
