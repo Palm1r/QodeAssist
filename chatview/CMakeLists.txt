@@ -12,6 +12,7 @@ qt_add_qml_module(QodeAssistChatView
     BaseChatWidget.hpp BaseChatWidget.cpp
     ChatModel.hpp ChatModel.cpp
     ChatRootView.hpp ChatRootView.cpp
+    ClientInterface.hpp ClientInterface.cpp
 )
 
 target_link_libraries(QodeAssistChatView
@@ -23,6 +24,8 @@ target_link_libraries(QodeAssistChatView
     QtCreator::Core
     QtCreator::Utils
     LLMCore
+    QodeAssistLogger
+    QodeAssistSettings
 )
 
 target_include_directories(QodeAssistChatView

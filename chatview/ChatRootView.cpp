@@ -25,6 +25,7 @@ namespace QodeAssist::Chat {
 ChatRootView::ChatRootView(QQuickItem *parent)
     : QQuickItem(parent)
     , m_chatModel(new ChatModel(this))
+    , m_clientInterface(new ClientInterface(this))
 {}
 
 ChatModel *ChatRootView::chatModel() const

@@ -22,6 +22,7 @@
 #include <QQuickItem>
 
 #include "ChatModel.hpp"
+#include "ClientInterface.hpp"
 
 namespace QodeAssist::Chat {
 
@@ -44,7 +45,8 @@ signals:
     void backgroundColorChanged();
 
 private:
-    ChatModel *m_chatModel = nullptr;
+    ChatModel *m_chatModel;
+    ClientInterface *m_clientInterface;
 };
 
 } // namespace QodeAssist::Chat
