@@ -32,7 +32,7 @@ RequestHandler::RequestHandler(QObject *parent)
 
 void RequestHandler::sendLLMRequest(const LLMConfig &config, const QJsonObject &request)
 {
-    logMessage(QString("Sending request to llm: \nurl: %1\nRequest body:\n%2")
+    LOG_MESSAGE(QString("Sending request to llm: \nurl: %1\nRequest body:\n%2")
                    .arg(config.url.toString(),
                         QString::fromUtf8(
                             QJsonDocument(config.providerRequest).toJson(QJsonDocument::Indented))));
@@ -43,7 +43,7 @@ void RequestHandler::sendLLMRequest(const LLMConfig &config, const QJsonObject &
     QNetworkReply *reply = m_manager->post(networkRequest,
                                            QJsonDocument(config.providerRequest).toJson());
     if (!reply) {
-        logMessage("Error: Failed to create network reply");
+        LOG_MESSAGE("Error: Failed to create network reply");
         return;
     }
 
@@ -58,10 +58,10 @@ void RequestHandler::sendLLMRequest(const LLMConfig &config, const QJsonObject &
         reply->deleteLater();
         m_activeRequests.remove(requestId);
         if (reply->error() != QNetworkReply::NoError) {
-            logMessage(QString("Error in QodeAssist request: %1").arg(reply->errorString()));
+            LOG_MESSAGE(QString("Error in QodeAssist request: %1").arg(reply->errorString()));
             emit requestFinished(requestId, false, reply->errorString());
         } else {
-            logMessage("Request finished successfully");
+            LOG_MESSAGE("Request finished successfully");
             emit requestFinished(requestId, true, QString());
         }
     });

@@ -26,6 +26,7 @@
 #include <utils/layoutbuilder.h>
 #include <utils/utilsicons.h>
 
+#include "Logger.hpp"
 #include "PromptTemplateManager.hpp"
 #include "ProvidersManager.hpp"
 #include "SettingsConstants.hpp"
@@ -147,7 +148,7 @@ GeneralSettings::GeneralSettings()
     auto nameChatPromts = chatPrompts.displayForIndex(chatPrompts.value());
     LLMCore::PromptTemplateManager::instance().setCurrentChatTemplate(nameChatPromts);
 
-    // setLoggingEnabled(enableLogging());
+    Logger::instance().setLoggingEnabled(enableLogging());
 
     setupConnections();
 
@@ -217,7 +218,7 @@ void GeneralSettings::setupConnections()
     });
 
     connect(&enableLogging, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
-        // setLoggingEnabled(enableLogging.volatileValue());
+        Logger::instance().setLoggingEnabled(enableLogging.volatileValue());
     });
     connect(&resetToDefaults, &ButtonAspect::clicked, this, &GeneralSettings::resetPageToDefaults);
 

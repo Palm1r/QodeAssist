@@ -13,8 +13,9 @@ find_package(QtCreator REQUIRED COMPONENTS Core)
 find_package(Qt6 COMPONENTS Core Gui Widgets Network REQUIRED)
 
 add_subdirectory(llmcore)
-add_subdirectory(chatview)
 add_subdirectory(settings)
+add_subdirectory(logger)
+add_subdirectory(chatview)
 
 add_qtc_plugin(QodeAssist
   PLUGIN_DEPENDS
@@ -62,4 +63,4 @@ add_qtc_plugin(QodeAssist
     chat/NavigationPanel.hpp chat/NavigationPanel.cpp
 )
 
-target_link_libraries(QodeAssist PRIVATE QodeAssistSettings LLMCore QodeAssistChatViewplugin)
+target_link_libraries(QodeAssist PRIVATE QodeAssistSettings QodeAssistLogger LLMCore QodeAssistChatViewplugin)

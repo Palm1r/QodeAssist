@@ -103,9 +103,9 @@ ChatClientInterface::~ChatClientInterface() = default;
 
 void ChatClientInterface::sendMessage(const QString &message)
 {
-    logMessage("Sending message: " + message);
-    logMessage("chatProvider " + Settings::generalSettings().chatLlmProviders.stringValue());
-    logMessage("chatTemplate " + Settings::generalSettings().chatPrompts.stringValue());
+    LOG_MESSAGE("Sending message: " + message);
+    LOG_MESSAGE("chatProvider " + Settings::generalSettings().chatLlmProviders.stringValue());
+    LOG_MESSAGE("chatTemplate " + Settings::generalSettings().chatPrompts.stringValue());
 
     auto chatTemplate = LLMCore::PromptTemplateManager::instance().getCurrentChatTemplate();
     auto chatProvider = LLMCore::ProvidersManager::instance().getCurrentChatProvider();
@@ -145,7 +145,7 @@ void ChatClientInterface::clearMessages()
 {
     m_chatHistory.clear();
     m_accumulatedResponse.clear();
-    logMessage("Chat history cleared");
+    LOG_MESSAGE("Chat history cleared");
 }
 
 QVector<ChatMessage> ChatClientInterface::getChatHistory() const
@@ -158,7 +158,7 @@ void ChatClientInterface::handleLLMResponse(const QString &response, bool isComp
     m_accumulatedResponse += response;
 
     if (isComplete) {
-        logMessage("Message completed. Final response: " + m_accumulatedResponse);
+        LOG_MESSAGE("Message completed. Final response: " + m_accumulatedResponse);
         emit messageReceived(m_accumulatedResponse.trimmed());
 
         m_chatHistory.addMessage(ChatMessage::Role::Assistant, m_accumulatedResponse.trimmed());

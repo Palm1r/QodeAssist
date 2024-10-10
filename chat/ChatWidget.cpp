@@ -41,7 +41,7 @@ ChatWidget::ChatWidget(QWidget *parent)
     connect(m_chatClient, &ChatClientInterface::messageReceived, this, &ChatWidget::receiveMessage);
     connect(m_chatClient, &ChatClientInterface::errorOccurred, this, &ChatWidget::handleError);
 
-    logMessage("ChatWidget initialized");
+    LOG_MESSAGE("ChatWidget initialized");
 }
 
 void ChatWidget::setupUi()
@@ -67,7 +67,7 @@ void ChatWidget::sendMessage()
 {
     QString message = m_messageInput->text().trimmed();
     if (!message.isEmpty()) {
-        logMessage("Sending message: " + message);
+        LOG_MESSAGE("Sending message: " + message);
         addMessage(message, true);
         m_chatClient->sendMessage(message);
         m_messageInput->clear();
@@ -82,7 +82,7 @@ void ChatWidget::receiveMessage(const QString &message)
 
 void ChatWidget::receivePartialMessage(const QString &partialMessage)
 {
-    logMessage("Received partial message: " + partialMessage);
+    LOG_MESSAGE("Received partial message: " + partialMessage);
     m_currentAIResponse += partialMessage;
     updateLastAIMessage(m_currentAIResponse);
 }
@@ -96,7 +96,7 @@ void ChatWidget::onMessageCompleted()
 
 void ChatWidget::handleError(const QString &error)
 {
-    logMessage("Error occurred: " + error);
+    LOG_MESSAGE("Error occurred: " + error);
     addMessage("Error: " + error, false);
 }
 

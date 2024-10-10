@@ -31,9 +31,9 @@ ProvidersManager &ProvidersManager::instance()
 
 Provider *ProvidersManager::setCurrentFimProvider(const QString &name)
 {
-    logMessage("Setting current FIM provider to: " + name);
+    LOG_MESSAGE("Setting current FIM provider to: " + name);
     if (!m_providers.contains(name)) {
-        logMessage("Can't find provider with name: " + name);
+        LOG_MESSAGE("Can't find provider with name: " + name);
         return nullptr;
     }
 
@@ -43,9 +43,9 @@ Provider *ProvidersManager::setCurrentFimProvider(const QString &name)
 
 Provider *ProvidersManager::setCurrentChatProvider(const QString &name)
 {
-    logMessage("Setting current chat provider to: " + name);
+    LOG_MESSAGE("Setting current chat provider to: " + name);
     if (!m_providers.contains(name)) {
-        logMessage("Can't find chat provider with name: " + name);
+        LOG_MESSAGE("Can't find chat provider with name: " + name);
         return nullptr;
     }
 
@@ -56,7 +56,7 @@ Provider *ProvidersManager::setCurrentChatProvider(const QString &name)
 Provider *ProvidersManager::getCurrentFimProvider()
 {
     if (m_currentFimProvider == nullptr) {
-        logMessage("Current fim provider is null");
+        LOG_MESSAGE("Current fim provider is null");
         return nullptr;
     }
 
@@ -66,7 +66,7 @@ Provider *ProvidersManager::getCurrentFimProvider()
 Provider *ProvidersManager::getCurrentChatProvider()
 {
     if (m_currentChatProvider == nullptr) {
-        logMessage("Current chat provider is null");
+        LOG_MESSAGE("Current chat provider is null");
         return nullptr;
     }
 

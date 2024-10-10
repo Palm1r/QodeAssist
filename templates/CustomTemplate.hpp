@@ -44,7 +44,7 @@ public:
     {
         QJsonDocument doc = QJsonDocument::fromJson(promptTemplate().toUtf8());
         if (doc.isNull() || !doc.isObject()) {
-            logMessage(QString("Invalid JSON template in settings"));
+            LOG_MESSAGE(QString("Invalid JSON template in settings"));
 
             return;
         }

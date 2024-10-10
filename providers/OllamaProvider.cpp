@@ -85,7 +85,7 @@ bool OllamaProvider::handleResponse(QNetworkReply *reply, QString &accumulatedRe
 
         QJsonDocument doc = QJsonDocument::fromJson(line);
         if (doc.isNull()) {
-            logMessage("Invalid JSON response from Ollama: " + QString::fromUtf8(line));
+            LOG_MESSAGE("Invalid JSON response from Ollama: " + QString::fromUtf8(line));
             continue;
         }
 
@@ -93,7 +93,7 @@ bool OllamaProvider::handleResponse(QNetworkReply *reply, QString &accumulatedRe
 
         if (responseObj.contains("error")) {
             QString errorMessage = responseObj["error"].toString();
-            logMessage("Error in Ollama response: " + errorMessage);
+            LOG_MESSAGE("Error in Ollama response: " + errorMessage);
             return false;
         }
 
@@ -111,7 +111,7 @@ bool OllamaProvider::handleResponse(QNetworkReply *reply, QString &accumulatedRe
                 }
             }
         } else {
-            logMessage("Unknown endpoint: " + endpoint);
+            LOG_MESSAGE("Unknown endpoint: " + endpoint);
         }
 
         if (responseObj.contains("done") && responseObj["done"].toBool()) {
@@ -146,7 +146,7 @@ QList<QString> OllamaProvider::getInstalledModels(const Utils::Environment &env,
             models.append(modelName);
         }
     } else {
-        logMessage(QString("Error fetching models: %1").arg(reply->errorString()));
+        LOG_MESSAGE(QString("Error fetching models: %1").arg(reply->errorString()));
     }
 
     reply->deleteLater();

@@ -18,6 +18,7 @@ target_link_libraries(QodeAssistSettings
     QtCreator::Core
     QtCreator::Utils
     LLMCore
+    QodeAssistLogger
 )
 
 set_target_properties(QodeAssistSettings PROPERTIES

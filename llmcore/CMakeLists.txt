@@ -2,7 +2,6 @@ find_package(QtCreator REQUIRED COMPONENTS Core Utils ExtensionSystem)
 find_package(Qt6 COMPONENTS Core Gui Widgets Network REQUIRED)
 
 add_library(LLMCore STATIC
-    Logger.hpp
     Provider.hpp
     ProvidersManager.hpp ProvidersManager.cpp
     ContextData.hpp
@@ -21,6 +20,7 @@ target_link_libraries(LLMCore
     QtCreator::Core
     QtCreator::Utils
     QtCreator::ExtensionSystem
+    QodeAssistLogger
 )
 
 set_target_properties(LLMCore PROPERTIES

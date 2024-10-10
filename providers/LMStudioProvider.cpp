@@ -150,7 +150,7 @@ QList<QString> LMStudioProvider::getInstalledModels(const Utils::Environment &en
             models.append(modelId);
         }
     } else {
-        logMessage(QString("Error fetching models: %1").arg(reply->errorString()));
+        LOG_MESSAGE(QString("Error fetching models: %1").arg(reply->errorString()));
     }
 
     reply->deleteLater();

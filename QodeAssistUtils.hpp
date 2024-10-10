@@ -25,25 +25,27 @@
 #include <QString>
 #include <QTimer>
 #include <QUrl>
+#include "GeneralSettings.hpp"
 #include <coreplugin/messagemanager.h>
 #include <utils/qtcassert.h>
 
 namespace QodeAssist {
 
-inline bool &loggingEnabled()
-{
-    static bool enabled = false;
-    return enabled;
-}
+// inline bool &loggingEnabled()
+// {
+//     static bool enabled = false;
+//     return enabled;
+// }
 
-inline void setLoggingEnabled(bool enable)
-{
-    loggingEnabled() = enable;
-}
+// inline void setLoggingEnabled(bool enable)
+// {
+//     loggingEnabled() = enable;
+// }
 
-inline void logMessage(const QString &message, bool silent = true)
+inline void LOG_MESSAGE(const QString &message, bool silent = true)
 {
-    if (!loggingEnabled())
+    // if (!loggingEnabled())
+    if (!Settings::generalSettings().enableLogging())
         return;
 
     const QString prefixedMessage = QLatin1String("[Qode Assist] ") + message;
@@ -54,9 +56,10 @@ inline void logMessage(const QString &message, bool silent = true)
     }
 }
 
-inline void logMessages(const QStringList &messages, bool silent = true)
+inline void LOG_MESSAGEs(const QStringList &messages, bool silent = true)
 {
-    if (!loggingEnabled())
+    // if (!loggingEnabled())
+    if (!Settings::generalSettings().enableLogging())
         return;
 
     QStringList prefixedMessages;

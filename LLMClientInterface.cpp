@@ -80,7 +80,7 @@ void LLMClientInterface::sendData(const QByteArray &data)
     } else if (method == "exit") {
         // TODO make exit handler
     } else {
-        logMessage(QString("Unknown method: %1").arg(method));
+        LOG_MESSAGE(QString("Unknown method: %1").arg(method));
     }
 }
 
@@ -88,9 +88,9 @@ void LLMClientInterface::handleCancelRequest(const QJsonObject &request)
 {
     QString id = request["params"].toObject()["id"].toString();
     if (m_requestHandler.cancelRequest(id)) {
-        logMessage(QString("Request %1 cancelled successfully").arg(id));
+        LOG_MESSAGE(QString("Request %1 cancelled successfully").arg(id));
     } else {
-        logMessage(QString("Request %1 not found").arg(id));
+        LOG_MESSAGE(QString("Request %1 not found").arg(id));
     }
 }
 
@@ -183,7 +183,7 @@ LLMCore::ContextData LLMClientInterface::prepareContext(const QJsonObject &reque
         filePath);
 
     if (!textDocument) {
-        logMessage("Error: Document is not available for" + filePath.toString());
+        LOG_MESSAGE("Error: Document is not available for" + filePath.toString());
         return LLMCore::ContextData{};
     }
 
@@ -219,11 +219,11 @@ void LLMClientInterface::sendCompletionToClient(const QString &completion,
     result[LanguageServerProtocol::isIncompleteKey] = !isComplete;
     response[LanguageServerProtocol::resultKey] = result;
 
-    logMessage(
+    LOG_MESSAGE(
         QString("Completions: \n%1")
             .arg(QString::fromUtf8(QJsonDocument(completions).toJson(QJsonDocument::Indented))));
 
-    logMessage(QString("Full response: \n%1")
+    LOG_MESSAGE(QString("Full response: \n%1")
                    .arg(QString::fromUtf8(QJsonDocument(response).toJson(QJsonDocument::Indented))));
 
     QString requestId = request["id"].toString();
@@ -251,7 +251,7 @@ void LLMClientInterface::logPerformance(const QString &requestId,
                                         const QString &operation,
                                         qint64 elapsedMs)
 {
-    logMessage(QString("Performance: %1 %2 took %3 ms").arg(requestId, operation).arg(elapsedMs));
+    LOG_MESSAGE(QString("Performance: %1 %2 took %3 ms").arg(requestId, operation).arg(elapsedMs));
 }
 
 void LLMClientInterface::parseCurrentMessage() {}
