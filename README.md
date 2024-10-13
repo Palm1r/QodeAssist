@@ -52,6 +52,8 @@ ollama run codellama:7b-instruct
 
 You're all set! QodeAssist is now ready to use in Qt Creator.
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/P5P412V96G)
+
 ## Supported LLM Providers
 QodeAssist currently supports the following LLM (Large Language Model) providers:
 - [Ollama](https://ollama.com)
