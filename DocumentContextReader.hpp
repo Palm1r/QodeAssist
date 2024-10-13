@@ -22,7 +22,6 @@
 #include <QTextDocument>
 #include <texteditor/textdocument.h>
 
-// #include "QodeAssistData.hpp"
 #include <llmcore/ContextData.hpp>
 
 namespace QodeAssist {
