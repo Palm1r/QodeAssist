@@ -1,10 +1,56 @@
-# QodeAssist
+# QodeAssist - AI-powered coding assistant plugin for Qt Creator
 [![Build plugin](https://github.com/Palm1r/QodeAssist/actions/workflows/build_cmake.yml/badge.svg?branch=main)](https://github.com/Palm1r/QodeAssist/actions/workflows/build_cmake.yml)
 
 QodeAssist is an AI-powered coding assistant plugin for Qt Creator. It provides intelligent code completion and suggestions for C++ and QML, leveraging large language models through local providers like Ollama. Enhance your coding productivity with context-aware AI assistance directly in your Qt development environment.
 
+Code completion:
 
 <img src="https://github.com/user-attachments/assets/255a52f1-5cc0-4ca3-b05c-c4cf9cdbe25a" width="600" alt="QodeAssistPreview">
+
+
+Chat with LLM models in side panels:
+
+<img src="https://github.com/user-attachments/assets/ead5a5d9-b40a-4f17-af05-77fa2bcb3a61" width="600" alt="QodeAssistChat">
+
+Chat with LLM models in bottom panel:
+
+<img width="326" alt="QodeAssistBottomPanel" src="https://github.com/user-attachments/assets/4cc64c23-a294-4df8-9153-39ad6fdab34b">
+
+## Plugin installation using Ollama as an example
+
+1. Install Latest QtCreator
+2. Install [Ollama](https://ollama.com). Make sure to review the system requirements before installation.
+3. Install a language models in Ollama via terminal. For example, you can run:
+
+For suggestions:
+```
+ollama run codellama:7b-code
+```
+For chat:
+```
+ollama run codellama:7b-instruct
+```
+4. Download the QodeAssist plugin for your QtCreator.
+5. Launch Qt Creator and install the plugin:
+   - Go to MacOS: Qt Creator -> About Plugins...
+           Windows\Linux: Help -> About Plugins...
+   - Click on "Install Plugin..."
+   - Select the downloaded QodeAssist plugin archive file
+
+## Configure Plugin
+
+<img src="https://github.com/user-attachments/assets/00ad980f-b470-48eb-9aaa-077783d38798" width="600" alt="Configuere QodeAssist">
+
+1. Open Qt Creator settings
+2. Navigate to the "Qode Assist" tab
+3. Select "General" page
+4. Choose your LLM provider (e.g., Ollama)
+5. Select the installed model by the "Select Model" button
+   - For LM Studio you will see current loaded model
+6. Choose the prompt template that corresponds to your model
+7. Apply the settings
+
+You're all set! QodeAssist is now ready to use in Qt Creator.
 
 ## Supported LLM Providers
 QodeAssist currently supports the following LLM (Large Language Model) providers:
@@ -14,18 +60,33 @@ QodeAssist currently supports the following LLM (Large Language Model) providers
 
 ## QtCreator Version Compatibility
 
-- Since version 0.2.3: Compatible with QtCreator 14.0.2
-- QtCreator 14.0.1 and below are not supported anymore (latest compatible version: 0.2.2)
+- QtCreator 14.0.2 - 0.2.3 - 0.3.x 
+- QtCreator 14.0.1 - 0.2.2 plugin version and below
 
 ## Supported Models
 
-QodeAssist has been thoroughly tested and optimized for use with the following language models, all of which are specifically trained for Fill-in-the-Middle (FIM) tasks:
+QodeAssist has been thoroughly tested and optimized for use with the following language models:
 
 - CodeLlama
 - StarCoder2
-- DeepSeek-Coder-V2-Lite-Base
+- DeepSeek-Coder-V2
+- Qwen-2.5
 
 These models have demonstrated excellent performance in code completion and assistance tasks within the QodeAssist environment.
+
+### Tested Models
+
+#### Ollama:
+- [starcoder2](https://ollama.com/library/starcoder2)
+- [codellama](https://ollama.com/library/codellama)
+
+#### LM Studio:
+- [second-state/StarCoder2-7B-GGUF](https://huggingface.co/second-state/StarCoder2-7B-GGUF)
+- [TheBloke/CodeLlama-7B-GGUF](https://huggingface.co/TheBloke/CodeLlama-7B-GGUF)
+
+Please note that while these models have been specifically tested and confirmed to work well with QodeAssist, other models compatible with the supported providers may also work. We encourage users to experiment with different models and report their experiences.
+
+If you've successfully used a model that's not listed here, please let us know by opening an issue or submitting a pull request to update this list.
 
 ### Custom Prompts
 
@@ -44,64 +105,14 @@ For inspiration and examples of effective custom prompts, please refer to the `r
 <img width="600" alt="Custom template" src="https://github.com/user-attachments/assets/4a14c552-baba-4531-ab4f-cb1f9ac6620b">
 <img width="600" alt="Select custom template" src="https://github.com/user-attachments/assets/3651dafd-83f9-4df9-943f-69c28cd3d8a3">
 
-### Tested Models
-
-#### Ollama:
-- [starcoder2](https://ollama.com/library/starcoder2)
-- [codellama](https://ollama.com/library/codellama)
-
-#### LM Studio:
-- [second-state/StarCoder2-7B-GGUF](https://huggingface.co/second-state/StarCoder2-7B-GGUF)
-- [TheBloke/CodeLlama-7B-GGUF](https://huggingface.co/TheBloke/CodeLlama-7B-GGUF)
-
-Please note that while these models have been specifically tested and confirmed to work well with QodeAssist, other models compatible with the supported providers may also work. We encourage users to experiment with different models and report their experiences.
-
-If you've successfully used a model that's not listed here, please let us know by opening an issue or submitting a pull request to update this list.
-
 ## Development Progress
 
 - [x] Basic plugin with code autocomplete functionality
 - [x] Improve and automate settings
-- [ ] Add chat functionality
+- [x] Add chat functionality
 - [x] Sharing diff with model
 - [ ] Sharing project source with model
 - [ ] Support for more providers and models
-
-## Plugin installation using Ollama as an example
-
-1. Install QtCreator 14.0
-2. Install [Ollama](https://ollama.com). Make sure to review the system requirements before installation.
-3. Install a language models in Ollama. For example, you can run:
-
-For suggestions:
-```
-ollama run codellama:7b-code
-```
-For chat:
-```
-ollama run codellama:7b-instruct
-```
-4. Download the QodeAssist plugin.
-5. Launch Qt Creator and install the plugin:
-   - Go to MacOS: Qt Creator -> About Plugins...
-           Windows\Linux: Help -> About Plugins...
-   - Click on "Install Plugin..."
-   - Select the downloaded QodeAssist plugin archive file
-
-## Configure Plugin
-
-<img src="https://github.com/user-attachments/assets/0743d09e-1f02-44ed-9a1a-85e2a0a0c01a" width="800" alt="QodeAssist в действии">
-
-1. Open Qt Creator settings
-2. Navigate to the "Qode Assist" tab
-3. Select "General" page
-4. Choose your LLM provider (e.g., Ollama)
-5. Select the installed model by the "Select Model" button
-   - For LM Studio you will see current load model
-6. Choose the prompt template that corresponds to your model
-7. Apply the settings
-
-You're all set! QodeAssist is now ready to use in Qt Creator.
 
 ## Hotkeys
 
