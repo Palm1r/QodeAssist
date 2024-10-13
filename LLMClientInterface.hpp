@@ -22,8 +22,8 @@
 #include <languageclient/languageclientinterface.h>
 #include <texteditor/texteditor.h>
 
-#include "QodeAssistData.hpp"
-#include "core/LLMRequestHandler.hpp"
+#include <llmcore/ContextData.hpp>
+#include <llmcore/RequestHandler.hpp>
 
 class QNetworkReply;
 class QNetworkAccessManager;
@@ -58,10 +58,10 @@ private:
     void handleExit(const QJsonObject &request);
     void handleCancelRequest(const QJsonObject &request);
 
-    ContextData prepareContext(const QJsonObject &request,
-                               const QStringView &accumulatedCompletion = QString{});
+    LLMCore::ContextData prepareContext(const QJsonObject &request,
+                                        const QStringView &accumulatedCompletion = QString{});
 
-    LLMRequestHandler m_requestHandler;
+    LLMCore::RequestHandler m_requestHandler;
     QElapsedTimer m_completionTimer;
     QMap<QString, qint64> m_requestStartTimes;
 

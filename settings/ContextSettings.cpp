@@ -24,8 +24,7 @@
 #include <coreplugin/icore.h>
 #include <utils/layoutbuilder.h>
 
-#include "QodeAssistConstants.hpp"
-#include "QodeAssisttr.h"
+#include "SettingsConstants.hpp"
 
 namespace QodeAssist::Settings {
 ContextSettings &contextSettings()
@@ -58,17 +57,37 @@ ContextSettings::ContextSettings()
     useFilePathInContext.setDefaultValue(false);
     useFilePathInContext.setLabelText(Tr::tr("Use File Path in Context"));
 
-    useSpecificInstructions.setSettingsKey(Constants::USE_SYSTEM_PROMPT);
-    useSpecificInstructions.setDefaultValue(true);
-    useSpecificInstructions.setLabelText(Tr::tr("Use System Prompt"));
+    useSystemPrompt.setSettingsKey(Constants::USE_SYSTEM_PROMPT);
+    useSystemPrompt.setDefaultValue(true);
+    useSystemPrompt.setLabelText(Tr::tr("Use System Prompt"));
 
-    specificInstractions.setSettingsKey(Constants::SYSTEM_PROMPT);
-    specificInstractions.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
-    specificInstractions.setLabelText(
-        Tr::tr("Instructions: Please keep %1 for languge name, warning, it shouldn't too big"));
-    specificInstractions.setDefaultValue(
-        "You are an expert %1 code completion AI."
-        "CRITICAL: Please provide minimal the best possible code completion suggestions.\n");
+    systemPrompt.setSettingsKey(Constants::SYSTEM_PROMPT);
+    systemPrompt.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
+    systemPrompt.setDefaultValue(
+        "You are an expert C++, Qt, and QML code completion AI. Your task is to provide accurate "
+        "and "
+        "contextually appropriate code suggestions. Focus on completing the code in a way that "
+        "follows best practices, is efficient, and matches the surrounding code style. Prioritize "
+        "Qt and QML-specific completions when appropriate. Avoid adding comments or explanations "
+        "in your completions.");
+
+    useChatSystemPrompt.setSettingsKey(Constants::USE_CHAT_SYSTEM_PROMPT);
+    useChatSystemPrompt.setDefaultValue(true);
+    useChatSystemPrompt.setLabelText(Tr::tr("Use System Prompt for chat"));
+
+    chatSystemPrompt.setSettingsKey(Constants::CHAT_SYSTEM_PROMPT);
+    chatSystemPrompt.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
+    chatSystemPrompt.setDefaultValue(
+        "You are an advanced AI assistant specializing in C++, Qt, and QML development. Your role "
+        "is "
+        "to provide helpful, accurate, and detailed responses to questions about coding, "
+        "debugging, "
+        "and best practices in these technologies. Offer clear explanations, code examples when "
+        "appropriate, and guidance on Qt Creator usage. Always prioritize officially recommended "
+        "Qt "
+        "and C++ practices. If you're unsure about something, state it clearly and suggest where "
+        "the "
+        "user might find more information.");
 
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
 
@@ -85,21 +104,26 @@ ContextSettings::ContextSettings()
 
     readStringsAfterCursor.setEnabled(!readFullFile());
     readStringsBeforeCursor.setEnabled(!readFullFile());
-    specificInstractions.setEnabled(useSpecificInstructions());
+    systemPrompt.setEnabled(useSystemPrompt());
 
     setupConnection();
 
     setLayouter([this]() {
         using namespace Layouting;
-        return Column{Row{readFullFile, Stretch{1}, resetToDefaults},
-                      Row{readStringsBeforeCursor, Stretch{1}},
-                      Row{readStringsAfterCursor, Stretch{1}},
-                      useFilePathInContext,
-                      useSpecificInstructions,
-                      specificInstractions,
-                      useProjectChangesCache,
-                      Row{maxChangesCacheSize, Stretch{1}},
-                      Stretch{1}};
+        return Column{Row{Stretch{1}, resetToDefaults},
+                      Group{title(Tr::tr("AI Suggestions Context")),
+                            Column{Row{readFullFile, Stretch{1}},
+                                   Row{readStringsBeforeCursor, Stretch{1}},
+                                   Row{readStringsAfterCursor, Stretch{1}},
+                                   useFilePathInContext,
+                                   useSystemPrompt,
+                                   systemPrompt,
+                                   useProjectChangesCache,
+                                   Row{maxChangesCacheSize, Stretch{1}},
+                                   Stretch{1}}},
+                      Space{16},
+                      Group{title(Tr::tr("AI Chat Context")),
+                            Column{useChatSystemPrompt, chatSystemPrompt}}};
     });
 }
 
@@ -109,8 +133,8 @@ void ContextSettings::setupConnection()
         readStringsAfterCursor.setEnabled(!readFullFile.volatileValue());
         readStringsBeforeCursor.setEnabled(!readFullFile.volatileValue());
     });
-    connect(&useSpecificInstructions, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
-        specificInstractions.setEnabled(useSpecificInstructions.volatileValue());
+    connect(&useSystemPrompt, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
+        systemPrompt.setEnabled(useSystemPrompt.volatileValue());
     });
     connect(&resetToDefaults, &ButtonAspect::clicked, this, &ContextSettings::resetPageToDefaults);
 }
@@ -129,8 +153,10 @@ void ContextSettings::resetPageToDefaults()
         resetAspect(readStringsBeforeCursor);
         resetAspect(readStringsAfterCursor);
         resetAspect(useFilePathInContext);
-        resetAspect(useSpecificInstructions);
-        resetAspect(specificInstractions);
+        resetAspect(useSystemPrompt);
+        resetAspect(systemPrompt);
+        resetAspect(useChatSystemPrompt);
+        resetAspect(chatSystemPrompt);
     }
 }
 

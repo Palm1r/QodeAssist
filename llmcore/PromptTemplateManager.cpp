@@ -19,9 +19,9 @@
 
 #include "PromptTemplateManager.hpp"
 
-#include "QodeAssistUtils.hpp"
+#include "Logger.hpp"
 
-namespace QodeAssist {
+namespace QodeAssist::LLMCore {
 
 PromptTemplateManager &PromptTemplateManager::instance()
 {
@@ -31,19 +31,19 @@ PromptTemplateManager &PromptTemplateManager::instance()
 
 void PromptTemplateManager::setCurrentFimTemplate(const QString &name)
 {
-    logMessage("Setting current FIM provider to: " + name);
+    LOG_MESSAGE("Setting current FIM provider to: " + name);
     if (!m_fimTemplates.contains(name) || m_fimTemplates[name] == nullptr) {
-        logMessage("Error to set current FIM template" + name);
+        LOG_MESSAGE("Error to set current FIM template" + name);
         return;
     }
 
     m_currentFimTemplate = m_fimTemplates[name];
 }
 
-Templates::PromptTemplate *PromptTemplateManager::getCurrentFimTemplate()
+PromptTemplate *PromptTemplateManager::getCurrentFimTemplate()
 {
     if (m_currentFimTemplate == nullptr) {
-        logMessage("Current fim provider is null");
+        LOG_MESSAGE("Current fim provider is null");
         return nullptr;
     }
 
@@ -52,19 +52,19 @@ Templates::PromptTemplate *PromptTemplateManager::getCurrentFimTemplate()
 
 void PromptTemplateManager::setCurrentChatTemplate(const QString &name)
 {
-    logMessage("Setting current chat provider to:  " + name);
+    LOG_MESSAGE("Setting current chat provider to:  " + name);
     if (!m_chatTemplates.contains(name) || m_chatTemplates[name] == nullptr) {
-        logMessage("Error to set current chat template" + name);
+        LOG_MESSAGE("Error to set current chat template" + name);
         return;
     }
 
     m_currentChatTemplate = m_chatTemplates[name];
 }
 
-Templates::PromptTemplate *PromptTemplateManager::getCurrentChatTemplate()
+PromptTemplate *PromptTemplateManager::getCurrentChatTemplate()
 {
     if (m_currentChatTemplate == nullptr)
-        logMessage("Current chat provider is null");
+        LOG_MESSAGE("Current chat provider is null");
 
     return m_currentChatTemplate;
 }
@@ -85,4 +85,4 @@ PromptTemplateManager::~PromptTemplateManager()
     qDeleteAll(m_chatTemplates);
 }
 
-} // namespace QodeAssist
+} // namespace QodeAssist::LLMCore

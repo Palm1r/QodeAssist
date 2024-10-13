@@ -1,4 +1,4 @@
-/*
+/* 
  * Copyright (C) 2024 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -19,17 +19,15 @@
 
 #pragma once
 
-#include <QtQuickWidgets/QtQuickWidgets>
+#include <QString>
 
-namespace QodeAssist::Chat {
+namespace QodeAssist::LLMCore {
 
-class BaseChatWidget : public QQuickWidget
+struct ContextData
 {
-    Q_OBJECT
-
-public:
-    explicit BaseChatWidget(QWidget *parent = nullptr);
-    ~BaseChatWidget() = default;
+    QString prefix;
+    QString suffix;
+    QString systemPrompt;
 };
 
-}
+} // namespace QodeAssist::LLMCore

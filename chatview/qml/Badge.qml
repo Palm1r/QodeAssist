@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -17,13 +17,24 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
+import QtQuick
 
-namespace QodeAssist::Constants {
+Rectangle {
+    id: root
 
-const char ACTION_ID[] = "QodeAssist.Action";
-const char MENU_ID[] = "QodeAssist.Menu";
+    property alias text: badgeText.text
+    property alias fontColor: badgeText.color
 
-const char QODE_ASSIST_REQUEST_SUGGESTION[] = "QodeAssist.RequestSuggestion";
+    width: badgeText.implicitWidth + radius
+    height: badgeText.implicitHeight + 6
+    color: "lightgreen"
+    radius: height / 2
+    border.width: 1
+    border.color: "gray"
 
-} // namespace QodeAssist::Constants
+    Text {
+        id: badgeText
+
+        anchors.centerIn: parent
+    }
+}

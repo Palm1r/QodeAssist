@@ -19,11 +19,22 @@
 
 #pragma once
 
-namespace QodeAssist::Constants {
+#include <QJsonObject>
+#include <QUrl>
+#include "PromptTemplate.hpp"
+#include "Provider.hpp"
+#include "RequestType.hpp"
 
-const char ACTION_ID[] = "QodeAssist.Action";
-const char MENU_ID[] = "QodeAssist.Menu";
+namespace QodeAssist::LLMCore {
 
-const char QODE_ASSIST_REQUEST_SUGGESTION[] = "QodeAssist.RequestSuggestion";
+struct LLMConfig
+{
+    QUrl url;
+    Provider *provider;
+    PromptTemplate *promptTemplate;
+    QJsonObject providerRequest;
+    RequestType requestType;
+    bool multiLineCompletion;
+};
 
-} // namespace QodeAssist::Constants
+} // namespace QodeAssist::LLMCore

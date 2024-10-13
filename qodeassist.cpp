@@ -39,21 +39,22 @@
 #include <texteditor/texteditor.h>
 #include <utils/icon.h>
 
-#include "LLMProvidersManager.hpp"
-#include "PromptTemplateManager.hpp"
 #include "QodeAssistClient.hpp"
 #include "chat/ChatOutputPane.h"
+#include "chat/NavigationPanel.hpp"
+#include "llmcore/PromptTemplateManager.hpp"
+#include "llmcore/ProvidersManager.hpp"
 #include "providers/LMStudioProvider.hpp"
 #include "providers/OllamaProvider.hpp"
 #include "providers/OpenAICompatProvider.hpp"
 
-#include "settings/GeneralSettings.hpp"
-#include "templates/CodeLlamaFimTemplate.hpp"
-#include "templates/CodeLlamaInstruct.hpp"
-#include "templates/CustomTemplate.hpp"
-#include "templates/DeepSeekCoderChatTemplate.hpp"
-#include "templates/DeepSeekCoderV2.hpp"
-#include "templates/StarCoder2Template.hpp"
+#include "templates/CodeLlamaChat.hpp"
+#include "templates/CodeLlamaFim.hpp"
+#include "templates/CustomFimTemplate.hpp"
+#include "templates/DeepSeekCoderChat.hpp"
+#include "templates/DeepSeekCoderFim.hpp"
+#include "templates/QwenChat.hpp"
+#include "templates/StarCoder2Fim.hpp"
 
 using namespace Utils;
 using namespace Core;
@@ -73,23 +74,26 @@ public:
 
     ~QodeAssistPlugin() final
     {
-
+        delete m_qodeAssistClient;
+        delete m_chatOutputPane;
+        delete m_navigationPanel;
     }
 
     void initialize() final
     {
-        auto &providerManager = LLMProvidersManager::instance();
+        auto &providerManager = LLMCore::ProvidersManager::instance();
         providerManager.registerProvider<Providers::OllamaProvider>();
         providerManager.registerProvider<Providers::LMStudioProvider>();
         providerManager.registerProvider<Providers::OpenAICompatProvider>();
 
-        auto &templateManager = PromptTemplateManager::instance();
-        templateManager.registerTemplate<Templates::CodeLlamaFimTemplate>();
-        templateManager.registerTemplate<Templates::StarCoder2Template>();
-        templateManager.registerTemplate<Templates::DeepSeekCoderV2Template>();
+        auto &templateManager = LLMCore::PromptTemplateManager::instance();
+        templateManager.registerTemplate<Templates::CodeLlamaFim>();
+        templateManager.registerTemplate<Templates::StarCoder2Fim>();
+        templateManager.registerTemplate<Templates::DeepSeekCoderFim>();
         templateManager.registerTemplate<Templates::CustomTemplate>();
-        templateManager.registerTemplate<Templates::DeepSeekCoderChatTemplate>();
-        templateManager.registerTemplate<Templates::CodeLlamaInstructTemplate>();
+        templateManager.registerTemplate<Templates::DeepSeekCoderChat>();
+        templateManager.registerTemplate<Templates::CodeLlamaChat>();
+        templateManager.registerTemplate<Templates::QwenChat>();
 
         Utils::Icon QCODEASSIST_ICON(
             {{":/resources/images/qoderassist-icon.png", Utils::Theme::IconsBaseColor}});
@@ -116,6 +120,7 @@ public:
         StatusBarManager::addStatusBarWidget(toggleButton, StatusBarManager::RightCorner);
 
         m_chatOutputPane = new Chat::ChatOutputPane(this);
+        m_navigationPanel = new Chat::NavigationPanel();
     }
 
     void extensionsInitialized() final
@@ -124,9 +129,9 @@ public:
 
     void restartClient()
     {
-        LanguageClient::LanguageClientManager::shutdownClient(m_qodeAssistClient.get());
+        LanguageClient::LanguageClientManager::shutdownClient(m_qodeAssistClient);
 
-        m_qodeAssistClient.reset(new QodeAssistClient());
+        m_qodeAssistClient = new QodeAssistClient();
     }
 
     bool delayedInitialize() final
@@ -140,7 +145,7 @@ public:
     {
         if (!m_qodeAssistClient)
             return SynchronousShutdown;
-        connect(m_qodeAssistClient.get(),
+        connect(m_qodeAssistClient,
                 &QObject::destroyed,
                 this,
                 &IPlugin::asynchronousShutdownFinished);
@@ -148,8 +153,9 @@ public:
     }
 
 private:
-    QScopedPointer<QodeAssistClient> m_qodeAssistClient;
+    QPointer<QodeAssistClient> m_qodeAssistClient;
     QPointer<Chat::ChatOutputPane> m_chatOutputPane;
+    QPointer<Chat::NavigationPanel> m_navigationPanel;
 };
 
 } // namespace QodeAssist::Internal

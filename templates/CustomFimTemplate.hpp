@@ -19,20 +19,20 @@
 
 #pragma once
 
-#include "PromptTemplate.hpp"
+#include "llmcore/PromptTemplate.hpp"
 
 #include <QJsonArray>
 #include <QJsonDocument>
 
-#include "QodeAssistUtils.hpp"
+#include "logger/Logger.hpp"
 #include "settings/CustomPromptSettings.hpp"
 
 namespace QodeAssist::Templates {
 
-class CustomTemplate : public PromptTemplate
+class CustomTemplate : public LLMCore::PromptTemplate
 {
 public:
-    TemplateType type() const override { return TemplateType::Fim; }
+    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Fim; }
     QString name() const override { return "Custom FIM Template"; }
     QString promptTemplate() const override
     {
@@ -40,11 +40,11 @@ public:
     }
     QStringList stopWords() const override { return QStringList(); }
 
-    void prepareRequest(QJsonObject &request, const ContextData &context) const override
+    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
         QJsonDocument doc = QJsonDocument::fromJson(promptTemplate().toUtf8());
         if (doc.isNull() || !doc.isObject()) {
-            logMessage(QString("Invalid JSON template in settings"));
+            LOG_MESSAGE(QString("Invalid JSON template in settings"));
 
             return;
         }
@@ -58,11 +58,11 @@ public:
     }
 
 private:
-    QJsonValue processJsonValue(const QJsonValue &value, const ContextData &context) const
+    QJsonValue processJsonValue(const QJsonValue &value, const LLMCore::ContextData &context) const
     {
         if (value.isString()) {
             QString str = value.toString();
-            str.replace("{{QODE_INSTRUCTIONS}}", context.instriuctions);
+            str.replace("{{QODE_INSTRUCTIONS}}", context.systemPrompt);
             str.replace("{{QODE_PREFIX}}", context.prefix);
             str.replace("{{QODE_SUFFIX}}", context.suffix);
             return str;
@@ -78,7 +78,8 @@ private:
         return value;
     }
 
-    QJsonObject processJsonTemplate(const QJsonObject &templateObj, const ContextData &context) const
+    QJsonObject processJsonTemplate(const QJsonObject &templateObj,
+                                    const LLMCore::ContextData &context) const
     {
         QJsonObject result;
         for (auto it = templateObj.begin(); it != templateObj.end(); ++it) {

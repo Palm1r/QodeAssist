@@ -19,27 +19,36 @@
 
 #pragma once
 
+#include <QObject>
 #include <QString>
-#include <utils/environment.h>
+#include <QVector>
 
-class QNetworkReply;
-class QJsonObject;
+#include "ChatModel.hpp"
+#include "RequestHandler.hpp"
 
-namespace QodeAssist::Providers {
+namespace QodeAssist::Chat {
 
-class LLMProvider
+class ClientInterface : public QObject
 {
+    Q_OBJECT
+
 public:
-    virtual ~LLMProvider() = default;
+    explicit ClientInterface(ChatModel *chatModel, QObject *parent = nullptr);
+    ~ClientInterface();
 
-    virtual QString name() const = 0;
-    virtual QString url() const = 0;
-    virtual QString completionEndpoint() const = 0;
-    virtual QString chatEndpoint() const = 0;
+    void sendMessage(const QString &message);
+    void clearMessages();
 
-    virtual void prepareRequest(QJsonObject &request) = 0;
-    virtual bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) = 0;
-    virtual QList<QString> getInstalledModels(const Utils::Environment &env, const QString &url) = 0;
+signals:
+    void messageReceived(const QString &message);
+    void errorOccurred(const QString &error);
+
+private:
+    void handleLLMResponse(const QString &response, bool isComplete);
+
+    LLMCore::RequestHandler *m_requestHandler;
+    QString m_accumulatedResponse;
+    ChatModel *m_chatModel;
 };
 
-} // namespace QodeAssist::Providers
+} // namespace QodeAssist::Chat

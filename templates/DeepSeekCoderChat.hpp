@@ -19,27 +19,35 @@
 
 #pragma once
 
-#include "PromptTemplate.hpp"
+#include <QJsonArray>
+#include "llmcore/PromptTemplate.hpp"
 
 namespace QodeAssist::Templates {
 
-class CodeLlamaFimTemplate : public PromptTemplate
+class DeepSeekCoderChat : public LLMCore::PromptTemplate
 {
 public:
-    TemplateType type() const override { return TemplateType::Fim; }
-    QString name() const override { return "CodeLLama FIM"; }
-    QString promptTemplate() const override { return "%1<PRE> %2 <SUF>%3 <MID>"; }
+    QString name() const override { return "DeepSeekCoder Chat"; }
+    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
+
+    QString promptTemplate() const override { return "### Instruction:\n%1\n### Response:\n"; }
+
     QStringList stopWords() const override
     {
-        return QStringList() << "<EOT>" << "<PRE>" << "<SUF" << "<MID>";
+        return QStringList() << "### Instruction:" << "### Response:" << "\n\n### " << "<|EOT|>";
     }
 
-    void prepareRequest(QJsonObject &request, const ContextData &context) const override
+    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
-        QString formattedPrompt = promptTemplate().arg(context.instriuctions,
-                                                       context.prefix,
-                                                       context.suffix);
-        request["prompt"] = formattedPrompt;
+        QString formattedPrompt = promptTemplate().arg(context.prefix);
+        QJsonArray messages = request["messages"].toArray();
+
+        QJsonObject newMessage;
+        newMessage["role"] = "user";
+        newMessage["content"] = formattedPrompt;
+        messages.append(newMessage);
+
+        request["messages"] = messages;
     }
 };
 

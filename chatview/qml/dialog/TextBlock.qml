@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -17,24 +17,13 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
+import QtQuick
 
-#include <QJsonObject>
-#include <QUrl>
-#include "providers/LLMProvider.hpp"
-#include "templates/PromptTemplate.hpp"
+TextEdit {
+    id: root
 
-namespace QodeAssist {
-
-enum class RequestType { Fim, Chat };
-
-struct LLMConfig
-{
-    QUrl url;
-    Providers::LLMProvider *provider;
-    Templates::PromptTemplate *promptTemplate;
-    QJsonObject providerRequest;
-    RequestType requestType;
-};
-
-} // namespace QodeAssist
+    readOnly: true
+    selectByMouse: true
+    wrapMode: Text.WordWrap
+    textFormat: Text.StyledText
+}

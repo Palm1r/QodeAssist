@@ -34,11 +34,13 @@ public:
     Utils::IntegerAspect readStringsBeforeCursor{this};
     Utils::IntegerAspect readStringsAfterCursor{this};
 
-    Utils::StringAspect specificInstractions{this};
-    Utils::BoolAspect useSpecificInstructions{this};
+    Utils::BoolAspect useSystemPrompt{this};
+    Utils::StringAspect systemPrompt{this};
     Utils::BoolAspect useFilePathInContext{this};
     Utils::BoolAspect useProjectChangesCache{this};
     Utils::IntegerAspect maxChangesCacheSize{this};
+    Utils::BoolAspect useChatSystemPrompt{this};
+    Utils::StringAspect chatSystemPrompt{this};
 
     ButtonAspect resetToDefaults{this};
 

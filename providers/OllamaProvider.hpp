@@ -19,11 +19,11 @@
 
 #pragma once
 
-#include "LLMProvider.hpp"
+#include "llmcore/Provider.hpp"
 
 namespace QodeAssist::Providers {
 
-class OllamaProvider : public LLMProvider
+class OllamaProvider : public LLMCore::Provider
 {
 public:
     OllamaProvider();
@@ -32,7 +32,7 @@ public:
     QString url() const override;
     QString completionEndpoint() const override;
     QString chatEndpoint() const override;
-    void prepareRequest(QJsonObject &request) override;
+    void prepareRequest(QJsonObject &request, LLMCore::RequestType type) override;
     bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) override;
     QList<QString> getInstalledModels(const Utils::Environment &env, const QString &url) override;
 };

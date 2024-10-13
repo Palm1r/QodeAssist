@@ -18,7 +18,7 @@
  */
 
 #include "ChangesManager.h"
-#include "QodeAssistUtils.hpp"
+#include "logger/Logger.hpp"
 #include "settings/ContextSettings.hpp"
 
 namespace QodeAssist {

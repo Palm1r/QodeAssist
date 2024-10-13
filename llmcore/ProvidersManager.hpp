@@ -21,42 +21,41 @@
 
 #include <QString>
 
-#include "providers/LLMProvider.hpp"
+#include "Provider.hpp"
 
-namespace QodeAssist {
+namespace QodeAssist::LLMCore {
 
-class LLMProvidersManager
+class ProvidersManager
 {
 public:
-    static LLMProvidersManager &instance();
-    ~LLMProvidersManager();
+    static ProvidersManager &instance();
+    ~ProvidersManager();
 
     template<typename T>
     void registerProvider()
     {
-        static_assert(std::is_base_of<Providers::LLMProvider, T>::value,
-                      "T must inherit from LLMProvider");
+        static_assert(std::is_base_of<Provider, T>::value, "T must inherit from Provider");
         T *provider = new T();
         QString name = provider->name();
         m_providers[name] = provider;
     }
 
-    Providers::LLMProvider *setCurrentFimProvider(const QString &name);
-    Providers::LLMProvider *setCurrentChatProvider(const QString &name);
+    Provider *setCurrentFimProvider(const QString &name);
+    Provider *setCurrentChatProvider(const QString &name);
 
-    Providers::LLMProvider *getCurrentFimProvider();
-    Providers::LLMProvider *getCurrentChatProvider();
+    Provider *getCurrentFimProvider();
+    Provider *getCurrentChatProvider();
 
     QStringList providersNames() const;
 
 private:
-    LLMProvidersManager() = default;
-    LLMProvidersManager(const LLMProvidersManager &) = delete;
-    LLMProvidersManager &operator=(const LLMProvidersManager &) = delete;
+    ProvidersManager() = default;
+    ProvidersManager(const ProvidersManager &) = delete;
+    ProvidersManager &operator=(const ProvidersManager &) = delete;
 
-    QMap<QString, Providers::LLMProvider *> m_providers;
-    Providers::LLMProvider *m_currentFimProvider = nullptr;
-    Providers::LLMProvider *m_currentChatProvider = nullptr;
+    QMap<QString, Provider *> m_providers;
+    Provider *m_currentFimProvider = nullptr;
+    Provider *m_currentChatProvider = nullptr;
 };
 
-} // namespace QodeAssist
+} // namespace QodeAssist::LLMCore

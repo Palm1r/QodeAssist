@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -19,45 +19,23 @@
 
 #pragma once
 
-#include <QLineEdit>
-#include <QPushButton>
-#include <QTextEdit>
-#include <QWidget>
-
-#include "ChatClientInterface.hpp"
+#include <QtQuickWidgets/QtQuickWidgets>
 
 namespace QodeAssist::Chat {
 
-class ChatWidget : public QWidget
+class ChatWidget : public QQuickWidget
 {
     Q_OBJECT
 
 public:
     explicit ChatWidget(QWidget *parent = nullptr);
+    ~ChatWidget() = default;
 
-    void clear();
-    void scrollToBottom();
-    void setShowTimestamp(bool show);
+    Q_INVOKABLE void clear();
+    Q_INVOKABLE void scrollToBottom();
 
-    void receiveMessage(const QString &message);
-
-private slots:
-    void sendMessage();
-    void receivePartialMessage(const QString &partialMessage);
-    void onMessageCompleted();
-    void handleError(const QString &error);
-
-private:
-    QTextEdit *m_chatDisplay;
-    QLineEdit *m_messageInput;
-    QPushButton *m_sendButton;
-    bool m_showTimestamp;
-    ChatClientInterface *m_chatClient;
-    QString m_currentAIResponse;
-
-    void setupUi();
-    void addMessage(const QString &message, bool fromUser = true);
-    void updateLastAIMessage(const QString &message);
+signals:
+    void clearPressed();
 };
 
-} // namespace QodeAssist::Chat
+}

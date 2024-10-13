@@ -24,8 +24,8 @@
 #include <coreplugin/icore.h>
 #include <utils/layoutbuilder.h>
 
-#include "QodeAssistConstants.hpp"
-#include "QodeAssisttr.h"
+#include "RequestType.hpp"
+#include "SettingsConstants.hpp"
 
 namespace QodeAssist::Settings {
 
@@ -41,63 +41,121 @@ PresetPromptsSettings::PresetPromptsSettings()
 
     setDisplayName(Tr::tr("Preset Prompts Params"));
 
-    temperature.setSettingsKey(Constants::TEMPERATURE);
-    temperature.setLabelText(Tr::tr("Temperature:"));
-    temperature.setDefaultValue(0.2);
-    temperature.setRange(0.0, 10.0);
-    temperature.setSingleStep(0.1);
+    fimTemperature.setSettingsKey(Constants::FIM_TEMPERATURE);
+    fimTemperature.setLabelText(Tr::tr("Temperature:"));
+    fimTemperature.setDefaultValue(0.2);
+    fimTemperature.setRange(0.0, 10.0);
+    fimTemperature.setSingleStep(0.1);
 
-    ollamaLivetime.setSettingsKey(Constants::OLLAMA_LIVETIME);
-    ollamaLivetime.setLabelText(
+    chatTemperature.setSettingsKey(Constants::CHAT_TEMPERATURE);
+    chatTemperature.setLabelText(Tr::tr("Temperature:"));
+    chatTemperature.setDefaultValue(0.5);
+    chatTemperature.setRange(0.0, 10.0);
+    chatTemperature.setSingleStep(0.1);
+
+    fimOllamaLivetime.setSettingsKey(Constants::FIM_OLLAMA_LIVETIME);
+    fimOllamaLivetime.setLabelText(
         Tr::tr("Time to suspend Ollama after completion request (in minutes), "
                "Only Ollama,  -1 to disable"));
-    ollamaLivetime.setDefaultValue("5m");
-    ollamaLivetime.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    fimOllamaLivetime.setDefaultValue("5m");
+    fimOllamaLivetime.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
 
-    maxTokens.setSettingsKey(Constants::MAX_TOKENS);
-    maxTokens.setLabelText(Tr::tr("Max Tokens"));
-    maxTokens.setRange(-1, 10000);
-    maxTokens.setDefaultValue(150);
+    chatOllamaLivetime.setSettingsKey(Constants::CHAT_OLLAMA_LIVETIME);
+    chatOllamaLivetime.setLabelText(
+        Tr::tr("Time to suspend Ollama after completion request (in minutes), "
+               "Only Ollama,  -1 to disable"));
+    chatOllamaLivetime.setDefaultValue("5m");
+    chatOllamaLivetime.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
 
-    useTopP.setSettingsKey(Constants::USE_TOP_P);
-    useTopP.setDefaultValue(false);
+    fimMaxTokens.setSettingsKey(Constants::FIM_MAX_TOKENS);
+    fimMaxTokens.setLabelText(Tr::tr("Max Tokens"));
+    fimMaxTokens.setRange(-1, 10000);
+    fimMaxTokens.setDefaultValue(50);
 
-    topP.setSettingsKey(Constants::TOP_P);
-    topP.setLabelText(Tr::tr("use top_p"));
-    topP.setDefaultValue(0.9);
-    topP.setRange(0.0, 1.0);
-    topP.setSingleStep(0.1);
+    chatMaxTokens.setSettingsKey(Constants::CHAT_MAX_TOKENS);
+    chatMaxTokens.setLabelText(Tr::tr("Max Tokens"));
+    chatMaxTokens.setRange(-1, 10000);
+    chatMaxTokens.setDefaultValue(2000);
 
-    useTopK.setSettingsKey(Constants::USE_TOP_K);
-    useTopK.setDefaultValue(false);
+    fimUseTopP.setSettingsKey(Constants::FIM_USE_TOP_P);
+    fimUseTopP.setDefaultValue(false);
 
-    topK.setSettingsKey(Constants::TOP_K);
-    topK.setLabelText(Tr::tr("use top_k"));
-    topK.setDefaultValue(50);
-    topK.setRange(1, 1000);
+    fimTopP.setSettingsKey(Constants::FIM_TOP_P);
+    fimTopP.setLabelText(Tr::tr("use top_p"));
+    fimTopP.setDefaultValue(0.9);
+    fimTopP.setRange(0.0, 1.0);
+    fimTopP.setSingleStep(0.1);
 
-    usePresencePenalty.setSettingsKey(Constants::USE_PRESENCE_PENALTY);
-    usePresencePenalty.setDefaultValue(false);
+    chatUseTopP.setSettingsKey(Constants::CHAT_USE_TOP_P);
+    chatUseTopP.setDefaultValue(false);
 
-    presencePenalty.setSettingsKey(Constants::PRESENCE_PENALTY);
-    presencePenalty.setLabelText(Tr::tr("use presence_penalty"));
-    presencePenalty.setDefaultValue(0.0);
-    presencePenalty.setRange(-2.0, 2.0);
-    presencePenalty.setSingleStep(0.1);
+    chatTopP.setSettingsKey(Constants::CHAT_TOP_P);
+    chatTopP.setLabelText(Tr::tr("use top_p"));
+    chatTopP.setDefaultValue(0.9);
+    chatTopP.setRange(0.0, 1.0);
+    chatTopP.setSingleStep(0.1);
 
-    useFrequencyPenalty.setSettingsKey(Constants::USE_FREQUENCY_PENALTY);
-    useFrequencyPenalty.setDefaultValue(false);
+    fimUseTopK.setSettingsKey(Constants::FIM_USE_TOP_K);
+    fimUseTopK.setDefaultValue(false);
 
-    frequencyPenalty.setSettingsKey(Constants::FREQUENCY_PENALTY);
-    frequencyPenalty.setLabelText(Tr::tr("use frequency_penalty"));
-    frequencyPenalty.setDefaultValue(0.0);
-    frequencyPenalty.setRange(-2.0, 2.0);
-    frequencyPenalty.setSingleStep(0.1);
+    fimTopK.setSettingsKey(Constants::FIM_TOP_K);
+    fimTopK.setLabelText(Tr::tr("use top_k"));
+    fimTopK.setDefaultValue(50);
+    fimTopK.setRange(1, 1000);
 
-    apiKey.setSettingsKey(Constants::API_KEY);
-    apiKey.setLabelText(Tr::tr("API Key:"));
-    apiKey.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
-    apiKey.setPlaceHolderText(Tr::tr("Enter your API key here"));
+    chatUseTopK.setSettingsKey(Constants::CHAT_USE_TOP_K);
+    chatUseTopK.setDefaultValue(false);
+
+    chatTopK.setSettingsKey(Constants::CHAT_TOP_K);
+    chatTopK.setLabelText(Tr::tr("use top_k"));
+    chatTopK.setDefaultValue(50);
+    chatTopK.setRange(1, 1000);
+
+    fimUsePresencePenalty.setSettingsKey(Constants::FIM_USE_PRESENCE_PENALTY);
+    fimUsePresencePenalty.setDefaultValue(false);
+
+    fimPresencePenalty.setSettingsKey(Constants::FIM_PRESENCE_PENALTY);
+    fimPresencePenalty.setLabelText(Tr::tr("use presence_penalty"));
+    fimPresencePenalty.setDefaultValue(0.0);
+    fimPresencePenalty.setRange(-2.0, 2.0);
+    fimPresencePenalty.setSingleStep(0.1);
+
+    chatUsePresencePenalty.setSettingsKey(Constants::CHAT_USE_PRESENCE_PENALTY);
+    chatUsePresencePenalty.setDefaultValue(false);
+
+    chatPresencePenalty.setSettingsKey(Constants::CHAT_PRESENCE_PENALTY);
+    chatPresencePenalty.setLabelText(Tr::tr("use presence_penalty"));
+    chatPresencePenalty.setDefaultValue(0.0);
+    chatPresencePenalty.setRange(-2.0, 2.0);
+    chatPresencePenalty.setSingleStep(0.1);
+
+    fimUseFrequencyPenalty.setSettingsKey(Constants::FIM_USE_FREQUENCY_PENALTY);
+    fimUseFrequencyPenalty.setDefaultValue(false);
+
+    fimFrequencyPenalty.setSettingsKey(Constants::FIM_FREQUENCY_PENALTY);
+    fimFrequencyPenalty.setLabelText(Tr::tr("use frequency_penalty"));
+    fimFrequencyPenalty.setDefaultValue(0.0);
+    fimFrequencyPenalty.setRange(-2.0, 2.0);
+    fimFrequencyPenalty.setSingleStep(0.1);
+
+    chatUseFrequencyPenalty.setSettingsKey(Constants::CHAT_USE_FREQUENCY_PENALTY);
+    chatUseFrequencyPenalty.setDefaultValue(false);
+
+    chatFrequencyPenalty.setSettingsKey(Constants::CHAT_FREQUENCY_PENALTY);
+    chatFrequencyPenalty.setLabelText(Tr::tr("use frequency_penalty"));
+    chatFrequencyPenalty.setDefaultValue(0.0);
+    chatFrequencyPenalty.setRange(-2.0, 2.0);
+    chatFrequencyPenalty.setSingleStep(0.1);
+
+    fimApiKey.setSettingsKey(Constants::FIM_API_KEY);
+    fimApiKey.setLabelText(Tr::tr("API Key:"));
+    fimApiKey.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    fimApiKey.setPlaceHolderText(Tr::tr("Enter your API key here"));
+
+    chatApiKey.setSettingsKey(Constants::CHAT_API_KEY);
+    chatApiKey.setLabelText(Tr::tr("API Key:"));
+    chatApiKey.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    chatApiKey.setPlaceHolderText(Tr::tr("Enter your API key here"));
 
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
 
@@ -107,15 +165,62 @@ PresetPromptsSettings::PresetPromptsSettings()
 
     setLayouter([this]() {
         using namespace Layouting;
-        return Column{Row{temperature, Stretch{1}, resetToDefaults},
-                      Row{maxTokens, Stretch{1}},
-                      Row{useTopP, topP, Stretch{1}},
-                      Row{useTopK, topK, Stretch{1}},
-                      Row{usePresencePenalty, presencePenalty, Stretch{1}},
-                      Row{useFrequencyPenalty, frequencyPenalty, Stretch{1}},
-                      apiKey,
+        return Column{Row{Stretch{1}, resetToDefaults},
+                      Group{title(Tr::tr("Prompt settings for FIM")),
+                            Column{Row{fimTemperature, Stretch{1}},
+                                   Row{fimMaxTokens, Stretch{1}},
+                                   Row{fimUseTopP, fimTopP, Stretch{1}},
+                                   Row{fimUseTopK, fimTopK, Stretch{1}},
+                                   Row{fimUsePresencePenalty, fimPresencePenalty, Stretch{1}},
+                                   Row{fimUseFrequencyPenalty, fimFrequencyPenalty, Stretch{1}},
+                                   Row{fimOllamaLivetime, Stretch{1}},
+                                   fimApiKey}},
+                      Space{16},
+                      Group{title(Tr::tr("Prompt settings for Chat")),
+                            Column{Row{chatTemperature, Stretch{1}},
+                                   Row{chatMaxTokens, Stretch{1}},
+                                   Row{chatUseTopP, chatTopP, Stretch{1}},
+                                   Row{chatUseTopK, chatTopK, Stretch{1}},
+                                   Row{fimUsePresencePenalty, fimPresencePenalty, Stretch{1}},
+                                   Row{fimUseFrequencyPenalty, fimFrequencyPenalty, Stretch{1}},
+                                   Row{chatOllamaLivetime, Stretch{1}},
+                                   chatApiKey}},
                       Stretch{1}};
     });
+}
+
+PresetPromptsSettings::PromptSettings PresetPromptsSettings::getSettings(int type) const
+{
+    auto reqtype = static_cast<LLMCore::RequestType>(type);
+    PromptSettings settings;
+    if (reqtype == LLMCore::RequestType::Fim) {
+        settings.temperature = fimTemperature();
+        settings.maxTokens = fimMaxTokens();
+        settings.useTopP = fimUseTopP();
+        settings.topP = fimTopP();
+        settings.useTopK = fimUseTopK();
+        settings.topK = fimTopK();
+        settings.usePresencePenalty = fimUsePresencePenalty();
+        settings.presencePenalty = fimPresencePenalty();
+        settings.useFrequencyPenalty = fimUseFrequencyPenalty();
+        settings.frequencyPenalty = fimFrequencyPenalty();
+        settings.ollamaLivetime = fimOllamaLivetime();
+        settings.apiKey = fimApiKey();
+    } else if (reqtype == LLMCore::RequestType::Chat) {
+        settings.temperature = chatTemperature();
+        settings.maxTokens = chatMaxTokens();
+        settings.useTopP = chatUseTopP();
+        settings.topP = chatTopP();
+        settings.useTopK = chatUseTopK();
+        settings.topK = chatTopK();
+        settings.usePresencePenalty = chatUsePresencePenalty();
+        settings.presencePenalty = chatPresencePenalty();
+        settings.useFrequencyPenalty = chatUseFrequencyPenalty();
+        settings.frequencyPenalty = chatFrequencyPenalty();
+        settings.ollamaLivetime = chatOllamaLivetime();
+        settings.apiKey = chatApiKey();
+    }
+    return settings;
 }
 
 void PresetPromptsSettings::setupConnections()
@@ -136,17 +241,28 @@ void PresetPromptsSettings::resetSettingsToDefaults()
         QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
-        resetAspect(temperature);
-        resetAspect(maxTokens);
-        resetAspect(ollamaLivetime);
-        resetAspect(useTopP);
-        resetAspect(topP);
-        resetAspect(useTopK);
-        resetAspect(topK);
-        resetAspect(usePresencePenalty);
-        resetAspect(presencePenalty);
-        resetAspect(useFrequencyPenalty);
-        resetAspect(frequencyPenalty);
+        resetAspect(fimTemperature);
+        resetAspect(fimMaxTokens);
+        resetAspect(fimOllamaLivetime);
+        resetAspect(fimUseTopP);
+        resetAspect(fimTopP);
+        resetAspect(fimUseTopK);
+        resetAspect(fimTopK);
+        resetAspect(fimUsePresencePenalty);
+        resetAspect(fimPresencePenalty);
+        resetAspect(fimUseFrequencyPenalty);
+        resetAspect(fimFrequencyPenalty);
+        resetAspect(chatTemperature);
+        resetAspect(chatMaxTokens);
+        resetAspect(chatUseTopP);
+        resetAspect(chatTopP);
+        resetAspect(chatUseTopK);
+        resetAspect(chatTopK);
+        resetAspect(chatUsePresencePenalty);
+        resetAspect(chatPresencePenalty);
+        resetAspect(chatUseFrequencyPenalty);
+        resetAspect(chatFrequencyPenalty);
+        resetAspect(chatOllamaLivetime);
     }
 }
 

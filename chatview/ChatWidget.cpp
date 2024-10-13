@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -17,13 +17,27 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include "ChatWidget.hpp"
 
-namespace QodeAssist::Constants {
+#include <QQmlContext>
+#include <QQmlEngine>
 
-const char ACTION_ID[] = "QodeAssist.Action";
-const char MENU_ID[] = "QodeAssist.Menu";
+namespace QodeAssist::Chat {
 
-const char QODE_ASSIST_REQUEST_SUGGESTION[] = "QodeAssist.RequestSuggestion";
+ChatWidget::ChatWidget(QWidget *parent)
+    : QQuickWidget(parent)
+{
+    setSource(QUrl("qrc:/ChatView/qml/RootItem.qml"));
+    setResizeMode(QQuickWidget::SizeRootObjectToView);
+}
 
-} // namespace QodeAssist::Constants
+void ChatWidget::clear()
+{
+    QMetaObject::invokeMethod(rootObject(), "clearChat");
+}
+
+void ChatWidget::scrollToBottom()
+{
+    QMetaObject::invokeMethod(rootObject(), "scrollToBottom");
+}
+}

@@ -19,11 +19,28 @@
 
 #pragma once
 
-namespace QodeAssist::Constants {
+#include <QString>
+#include "RequestType.hpp"
+#include <utils/environment.h>
 
-const char ACTION_ID[] = "QodeAssist.Action";
-const char MENU_ID[] = "QodeAssist.Menu";
+class QNetworkReply;
+class QJsonObject;
 
-const char QODE_ASSIST_REQUEST_SUGGESTION[] = "QodeAssist.RequestSuggestion";
+namespace QodeAssist::LLMCore {
 
-} // namespace QodeAssist::Constants
+class Provider
+{
+public:
+    virtual ~Provider() = default;
+
+    virtual QString name() const = 0;
+    virtual QString url() const = 0;
+    virtual QString completionEndpoint() const = 0;
+    virtual QString chatEndpoint() const = 0;
+
+    virtual void prepareRequest(QJsonObject &request, RequestType type) = 0;
+    virtual bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) = 0;
+    virtual QList<QString> getInstalledModels(const Utils::Environment &env, const QString &url) = 0;
+};
+
+} // namespace QodeAssist::LLMCore
