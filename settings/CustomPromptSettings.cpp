@@ -26,8 +26,7 @@
 #include <coreplugin/icore.h>
 #include <utils/layoutbuilder.h>
 
-#include "QodeAssistConstants.hpp"
-#include "QodeAssisttr.h"
+#include "SettingsConstants.hpp"
 
 namespace QodeAssist::Settings {
 
@@ -85,12 +84,13 @@ CustomPromptSettings::CustomPromptSettings()
 
     setLayouter([this]() {
         using namespace Layouting;
-        return Column{Row{customJsonLabel, Stretch{1}, resetToDefaults},
-                      Row{customJsonTemplate,
-                          Column{saveCustomTemplateButton,
-                                 loadCustomTemplateButton,
-                                 customJsonLegend,
-                                 Stretch{1}}}};
+        return Column{Group{title(Tr::tr("Custom prompt for FIM model")),
+                            Column{Row{customJsonLabel, Stretch{1}, resetToDefaults},
+                                   Row{customJsonTemplate,
+                                       Column{saveCustomTemplateButton,
+                                              loadCustomTemplateButton,
+                                              customJsonLegend,
+                                              Stretch{1}}}}}};
     });
 }
 

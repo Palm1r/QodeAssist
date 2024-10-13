@@ -23,13 +23,13 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 
+#include <llmcore/RequestConfig.hpp>
 #include <texteditor/textdocument.h>
 
 #include "DocumentContextReader.hpp"
-#include "LLMProvidersManager.hpp"
-#include "PromptTemplateManager.hpp"
-#include "QodeAssistUtils.hpp"
-#include "core/LLMRequestConfig.hpp"
+#include "logger/Logger.hpp"
+#include "llmcore/PromptTemplateManager.hpp"
+#include "llmcore/ProvidersManager.hpp"
 #include "settings/ContextSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 
@@ -39,7 +39,7 @@ LLMClientInterface::LLMClientInterface()
     : m_requestHandler(this)
 {
     connect(&m_requestHandler,
-            &LLMRequestHandler::completionReceived,
+            &LLMCore::RequestHandler::completionReceived,
             this,
             &LLMClientInterface::sendCompletionToClient);
 }
@@ -80,7 +80,7 @@ void LLMClientInterface::sendData(const QByteArray &data)
     } else if (method == "exit") {
         // TODO make exit handler
     } else {
-        logMessage(QString("Unknown method: %1").arg(method));
+        LOG_MESSAGE(QString("Unknown method: %1").arg(method));
     }
 }
 
@@ -88,9 +88,9 @@ void LLMClientInterface::handleCancelRequest(const QJsonObject &request)
 {
     QString id = request["params"].toObject()["id"].toString();
     if (m_requestHandler.cancelRequest(id)) {
-        logMessage(QString("Request %1 cancelled successfully").arg(id));
+        LOG_MESSAGE(QString("Request %1 cancelled successfully").arg(id));
     } else {
-        logMessage(QString("Request %1 not found").arg(id));
+        LOG_MESSAGE(QString("Request %1 not found").arg(id));
     }
 }
 
@@ -148,10 +148,10 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
 {
     auto updatedContext = prepareContext(request);
 
-    LLMConfig config;
-    config.requestType = RequestType::Fim;
-    config.provider = LLMProvidersManager::instance().getCurrentFimProvider();
-    config.promptTemplate = PromptTemplateManager::instance().getCurrentFimTemplate();
+    LLMCore::LLMConfig config;
+    config.requestType = LLMCore::RequestType::Fim;
+    config.provider = LLMCore::ProvidersManager::instance().getCurrentFimProvider();
+    config.promptTemplate = LLMCore::PromptTemplateManager::instance().getCurrentFimTemplate();
     config.url = QUrl(QString("%1%2").arg(Settings::generalSettings().url(),
                                           Settings::generalSettings().endPoint()));
 
@@ -159,18 +159,19 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
                               {"stream", true},
                               {"stop",
                                QJsonArray::fromStringList(config.promptTemplate->stopWords())}};
+    config.multiLineCompletion = Settings::generalSettings().multiLineCompletion();
 
-    if (Settings::contextSettings().useSpecificInstructions())
-        config.providerRequest["system"] = Settings::contextSettings().specificInstractions();
+    if (Settings::contextSettings().useSystemPrompt())
+        config.providerRequest["system"] = Settings::contextSettings().systemPrompt();
 
     config.promptTemplate->prepareRequest(config.providerRequest, updatedContext);
-    config.provider->prepareRequest(config.providerRequest);
+    config.provider->prepareRequest(config.providerRequest, LLMCore::RequestType::Fim);
 
     m_requestHandler.sendLLMRequest(config, request);
 }
 
-ContextData LLMClientInterface::prepareContext(const QJsonObject &request,
-                                               const QStringView &accumulatedCompletion)
+LLMCore::ContextData LLMClientInterface::prepareContext(const QJsonObject &request,
+                                                        const QStringView &accumulatedCompletion)
 {
     QJsonObject params = request["params"].toObject();
     QJsonObject doc = params["doc"].toObject();
@@ -182,8 +183,8 @@ ContextData LLMClientInterface::prepareContext(const QJsonObject &request,
         filePath);
 
     if (!textDocument) {
-        logMessage("Error: Document is not available for" + filePath.toString());
-        return ContextData{};
+        LOG_MESSAGE("Error: Document is not available for" + filePath.toString());
+        return LLMCore::ContextData{};
     }
 
     int cursorPosition = position["character"].toInt();
@@ -218,11 +219,11 @@ void LLMClientInterface::sendCompletionToClient(const QString &completion,
     result[LanguageServerProtocol::isIncompleteKey] = !isComplete;
     response[LanguageServerProtocol::resultKey] = result;
 
-    logMessage(
+    LOG_MESSAGE(
         QString("Completions: \n%1")
             .arg(QString::fromUtf8(QJsonDocument(completions).toJson(QJsonDocument::Indented))));
 
-    logMessage(QString("Full response: \n%1")
+    LOG_MESSAGE(QString("Full response: \n%1")
                    .arg(QString::fromUtf8(QJsonDocument(response).toJson(QJsonDocument::Indented))));
 
     QString requestId = request["id"].toString();
@@ -250,7 +251,7 @@ void LLMClientInterface::logPerformance(const QString &requestId,
                                         const QString &operation,
                                         qint64 elapsedMs)
 {
-    logMessage(QString("Performance: %1 %2 took %3 ms").arg(requestId, operation).arg(elapsedMs));
+    LOG_MESSAGE(QString("Performance: %1 %2 took %3 ms").arg(requestId, operation).arg(elapsedMs));
 }
 
 void LLMClientInterface::parseCurrentMessage() {}

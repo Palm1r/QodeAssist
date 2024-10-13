@@ -26,11 +26,12 @@
 #include <utils/layoutbuilder.h>
 #include <utils/utilsicons.h>
 
-#include "LLMProvidersManager.hpp"
+#include "Logger.hpp"
 #include "PromptTemplateManager.hpp"
-#include "QodeAssistConstants.hpp"
-#include "QodeAssistUtils.hpp"
-#include "QodeAssisttr.h"
+#include "Provider.hpp"
+#include "ProvidersManager.hpp"
+#include "SettingsConstants.hpp"
+#include "SettingsUtils.hpp"
 
 namespace QodeAssist::Settings {
 
@@ -128,27 +129,34 @@ GeneralSettings::GeneralSettings()
     chatPrompts.setSettingsKey(Constants::CHAT_PROMPTS);
     chatPrompts.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
 
+    chatTokensThreshold.setSettingsKey(Constants::CHAT_TOKENS_THRESHOLD);
+    chatTokensThreshold.setLabelText(Tr::tr("Chat History Token Limit"));
+    chatTokensThreshold.setToolTip(Tr::tr("Maximum number of tokens in chat history. When "
+                                          "exceeded, oldest messages will be removed."));
+    chatTokensThreshold.setRange(1000, 16000);
+    chatTokensThreshold.setDefaultValue(4000);
+
     loadProviders();
     loadPrompts();
 
     llmProviders.setDefaultValue(llmProviders.indexForDisplay("Ollama"));
     chatLlmProviders.setDefaultValue(chatLlmProviders.indexForDisplay("Ollama"));
-    fimPrompts.setDefaultValue(fimPrompts.indexForDisplay("CodeLLama FIM"));
-    chatPrompts.setDefaultValue(chatPrompts.indexForDisplay("CodeLLama Chat"));
-
-    readSettings();
+    fimPrompts.setDefaultValue(fimPrompts.indexForDisplay("CodeLlama FIM"));
+    chatPrompts.setDefaultValue(chatPrompts.indexForDisplay("CodeLlama Chat"));
 
     auto fimProviderName = llmProviders.displayForIndex(llmProviders.value());
     setCurrentFimProvider(fimProviderName);
     auto chatProviderName = chatLlmProviders.displayForIndex(chatLlmProviders.value());
     setCurrentChatProvider(chatProviderName);
 
-    auto nameFimPromts = fimPrompts.displayForIndex(fimPrompts.value());
-    PromptTemplateManager::instance().setCurrentFimTemplate(nameFimPromts);
-    auto nameChatPromts = chatPrompts.displayForIndex(chatPrompts.value());
-    PromptTemplateManager::instance().setCurrentChatTemplate(nameChatPromts);
+    readSettings();
 
-    setLoggingEnabled(enableLogging());
+    auto nameFimPromts = fimPrompts.displayForIndex(fimPrompts.value());
+    LLMCore::PromptTemplateManager::instance().setCurrentFimTemplate(nameFimPromts);
+    auto nameChatPromts = chatPrompts.displayForIndex(chatPrompts.value());
+    LLMCore::PromptTemplateManager::instance().setCurrentChatTemplate(nameChatPromts);
+
+    Logger::instance().setLoggingEnabled(enableLogging());
 
     setupConnections();
 
@@ -157,26 +165,26 @@ GeneralSettings::GeneralSettings()
 
         auto rootLayout
             = Column{Row{enableQodeAssist, Stretch{1}, resetToDefaults},
-                     enableAutoComplete,
-                     multiLineCompletion,
-                     Row{autoCompletionCharThreshold,
-                         autoCompletionTypingInterval,
-                         startSuggestionTimer,
-                         Stretch{1}},
-                     Space{8},
-                     enableLogging,
+                     Row{enableLogging, Stretch{1}},
                      Space{8},
                      Group{title(Tr::tr("AI Suggestions")),
-                           Column{Row{llmProviders, Stretch{1}},
+                           Column{enableAutoComplete,
+                                  multiLineCompletion,
+                                  Row{autoCompletionCharThreshold,
+                                      autoCompletionTypingInterval,
+                                      startSuggestionTimer,
+                                      Stretch{1}},
+                                  Row{llmProviders, Stretch{1}},
                                   Row{url, endPoint, fimUrlIndicator},
                                   Row{selectModels, modelName, fimModelIndicator},
                                   Row{fimPrompts, Stretch{1}}}},
                      Space{16},
-                     Group{title(Tr::tr("AI Chat(experimental)")),
+                     Group{title(Tr::tr("AI Chat")),
                            Column{Row{chatLlmProviders, Stretch{1}},
                                   Row{chatUrl, chatEndPoint, chatUrlIndicator},
                                   Row{chatSelectModels, chatModelName, chatModelIndicator},
-                                  Row{chatPrompts, Stretch{1}}}},
+                                  Row{chatPrompts, Stretch{1}},
+                                  Row{chatTokensThreshold, Stretch{1}}}},
                      Stretch{1}};
         return rootLayout;
     });
@@ -199,24 +207,26 @@ void GeneralSettings::setupConnections()
 
     connect(&fimPrompts, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
         int index = fimPrompts.volatileValue();
-        PromptTemplateManager::instance().setCurrentFimTemplate(fimPrompts.displayForIndex(index));
+        LLMCore::PromptTemplateManager::instance().setCurrentFimTemplate(
+            fimPrompts.displayForIndex(index));
     });
     connect(&chatPrompts, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
         int index = chatPrompts.volatileValue();
-        PromptTemplateManager::instance().setCurrentChatTemplate(chatPrompts.displayForIndex(index));
+        LLMCore::PromptTemplateManager::instance().setCurrentChatTemplate(
+            chatPrompts.displayForIndex(index));
     });
 
     connect(&selectModels, &ButtonAspect::clicked, this, [this]() {
-        auto *provider = LLMProvidersManager::instance().getCurrentFimProvider();
+        auto *provider = LLMCore::ProvidersManager::instance().getCurrentFimProvider();
         showModelSelectionDialog(&modelName, provider);
     });
     connect(&chatSelectModels, &ButtonAspect::clicked, this, [this]() {
-        auto *provider = LLMProvidersManager::instance().getCurrentChatProvider();
+        auto *provider = LLMCore::ProvidersManager::instance().getCurrentChatProvider();
         showModelSelectionDialog(&chatModelName, provider);
     });
 
     connect(&enableLogging, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
-        setLoggingEnabled(enableLogging.volatileValue());
+        Logger::instance().setLoggingEnabled(enableLogging.volatileValue());
     });
     connect(&resetToDefaults, &ButtonAspect::clicked, this, &GeneralSettings::resetPageToDefaults);
 
@@ -239,7 +249,7 @@ void GeneralSettings::setupConnections()
 }
 
 void GeneralSettings::showModelSelectionDialog(Utils::StringAspect *modelNameObj,
-                                               Providers::LLMProvider *provider)
+                                               LLMCore::Provider *provider)
 {
     Utils::Environment env = Utils::Environment::systemEnvironment();
     QString providerUrl = (modelNameObj == &modelName) ? url() : chatUrl();
@@ -282,6 +292,7 @@ void GeneralSettings::resetPageToDefaults()
         resetAspect(chatLlmProviders);
         resetAspect(fimPrompts);
         resetAspect(chatPrompts);
+        resetAspect(chatTokensThreshold);
     }
 
     modelName.setVolatileValue("");
@@ -301,12 +312,12 @@ void GeneralSettings::updateStatusIndicators()
     bool fimPingSuccessful = false;
     if (fimUrlValid) {
         QUrl pingUrl(url.volatileValue());
-        fimPingSuccessful = QodeAssist::pingUrl(pingUrl);
+        fimPingSuccessful = Settings::pingUrl(pingUrl);
     }
     bool chatPingSuccessful = false;
     if (chatUrlValid) {
         QUrl pingUrl(chatUrl.volatileValue());
-        chatPingSuccessful = QodeAssist::pingUrl(pingUrl);
+        chatPingSuccessful = Settings::pingUrl(pingUrl);
     }
 
     setIndicatorStatus(fimModelIndicator,
@@ -339,7 +350,7 @@ void GeneralSettings::setIndicatorStatus(Utils::StringAspect &indicator,
 
 void GeneralSettings::setCurrentFimProvider(const QString &name)
 {
-    const auto provider = LLMProvidersManager::instance().setCurrentFimProvider(name);
+    const auto provider = LLMCore::ProvidersManager::instance().setCurrentFimProvider(name);
     if (!provider)
         return;
 
@@ -349,7 +360,7 @@ void GeneralSettings::setCurrentFimProvider(const QString &name)
 
 void GeneralSettings::setCurrentChatProvider(const QString &name)
 {
-    const auto provider = LLMProvidersManager::instance().setCurrentChatProvider(name);
+    const auto provider = LLMCore::ProvidersManager::instance().setCurrentChatProvider(name);
     if (!provider)
         return;
 
@@ -359,7 +370,7 @@ void GeneralSettings::setCurrentChatProvider(const QString &name)
 
 void GeneralSettings::loadProviders()
 {
-    for (const auto &name : LLMProvidersManager::instance().providersNames()) {
+    for (const auto &name : LLMCore::ProvidersManager::instance().providersNames()) {
         llmProviders.addOption(name);
         chatLlmProviders.addOption(name);
     }
@@ -367,10 +378,10 @@ void GeneralSettings::loadProviders()
 
 void GeneralSettings::loadPrompts()
 {
-    for (const auto &name : PromptTemplateManager::instance().fimTemplatesNames()) {
+    for (const auto &name : LLMCore::PromptTemplateManager::instance().fimTemplatesNames()) {
         fimPrompts.addOption(name);
     }
-    for (const auto &name : PromptTemplateManager::instance().chatTemplatesNames()) {
+    for (const auto &name : LLMCore::PromptTemplateManager::instance().chatTemplatesNames()) {
         chatPrompts.addOption(name);
     }
 }

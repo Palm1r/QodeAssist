@@ -50,9 +50,10 @@ QString OpenAICompatProvider::chatEndpoint() const
     return "/v1/chat/completions";
 }
 
-void OpenAICompatProvider::prepareRequest(QJsonObject &request)
+void OpenAICompatProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType type)
 {
-    auto &settings = Settings::presetPromptsSettings();
+    auto &promptSettings = Settings::presetPromptsSettings();
+    auto settings = promptSettings.getSettings(type);
     QJsonArray messages;
 
     if (request.contains("system")) {
@@ -70,18 +71,18 @@ void OpenAICompatProvider::prepareRequest(QJsonObject &request)
         request["messages"] = std::move(messages);
     }
 
-    request["max_tokens"] = settings.maxTokens();
-    request["temperature"] = settings.temperature();
-    if (settings.useTopP())
-        request["top_p"] = settings.topP();
-    if (settings.useTopK())
-        request["top_k"] = settings.topK();
-    if (settings.useFrequencyPenalty())
-        request["frequency_penalty"] = settings.frequencyPenalty();
-    if (settings.usePresencePenalty())
-        request["presence_penalty"] = settings.presencePenalty();
+    request["max_tokens"] = settings.maxTokens;
+    request["temperature"] = settings.temperature;
+    if (settings.useTopP)
+        request["top_p"] = settings.topP;
+    if (settings.useTopK)
+        request["top_k"] = settings.topK;
+    if (settings.useFrequencyPenalty)
+        request["frequency_penalty"] = settings.frequencyPenalty;
+    if (settings.usePresencePenalty)
+        request["presence_penalty"] = settings.presencePenalty;
 
-    const QString &apiKey = settings.apiKey.value();
+    const QString &apiKey = settings.apiKey;
     if (!apiKey.isEmpty()) {
         request["api_key"] = apiKey;
     }

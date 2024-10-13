@@ -25,7 +25,7 @@
 #include <QJsonObject>
 #include <QNetworkReply>
 
-#include "QodeAssistUtils.hpp"
+#include "logger/Logger.hpp"
 #include "settings/PresetPromptsSettings.hpp"
 
 namespace QodeAssist::Providers {
@@ -52,9 +52,11 @@ QString LMStudioProvider::chatEndpoint() const
     return "/v1/chat/completions";
 }
 
-void LMStudioProvider::prepareRequest(QJsonObject &request)
+void LMStudioProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType type)
 {
-    auto &settings = Settings::presetPromptsSettings();
+    auto &promptSettings = Settings::presetPromptsSettings();
+    auto settings = promptSettings.getSettings(type);
+
     QJsonArray messages;
 
     if (request.contains("system")) {
@@ -72,16 +74,16 @@ void LMStudioProvider::prepareRequest(QJsonObject &request)
         request["messages"] = std::move(messages);
     }
 
-    request["max_tokens"] = settings.maxTokens();
-    request["temperature"] = settings.temperature();
-    if (settings.useTopP())
-        request["top_p"] = settings.topP();
-    if (settings.useTopK())
-        request["top_k"] = settings.topK();
-    if (settings.useFrequencyPenalty())
-        request["frequency_penalty"] = settings.frequencyPenalty();
-    if (settings.usePresencePenalty())
-        request["presence_penalty"] = settings.presencePenalty();
+    request["max_tokens"] = settings.maxTokens;
+    request["temperature"] = settings.temperature;
+    if (settings.useTopP)
+        request["top_p"] = settings.topP;
+    if (settings.useTopK)
+        request["top_k"] = settings.topK;
+    if (settings.useFrequencyPenalty)
+        request["frequency_penalty"] = settings.frequencyPenalty;
+    if (settings.usePresencePenalty)
+        request["presence_penalty"] = settings.presencePenalty;
 }
 
 bool LMStudioProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
@@ -150,7 +152,7 @@ QList<QString> LMStudioProvider::getInstalledModels(const Utils::Environment &en
             models.append(modelId);
         }
     } else {
-        logMessage(QString("Error fetching models: %1").arg(reply->errorString()));
+        LOG_MESSAGE(QString("Error fetching models: %1").arg(reply->errorString()));
     }
 
     reply->deleteLater();

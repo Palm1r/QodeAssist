@@ -19,24 +19,34 @@
 
 #pragma once
 
+#include "ContextData.hpp"
+#include "MessagePart.hpp"
+
 #include <QAbstractListModel>
+#include <QJsonArray>
+#include <qqmlintegration.h>
 
 namespace QodeAssist::Chat {
-
-enum class ChatRole { System, User, Assistant };
-
-struct Message
-{
-    ChatRole role;
-    QString content;
-};
 
 class ChatModel : public QAbstractListModel
 {
     Q_OBJECT
+    Q_PROPERTY(int totalTokens READ totalTokens NOTIFY totalTokensChanged FINAL)
+    Q_PROPERTY(int tokensThreshold READ tokensThreshold NOTIFY tokensThresholdChanged FINAL)
+    QML_ELEMENT
 
 public:
     enum Roles { RoleType = Qt::UserRole, Content };
+
+    enum ChatRole { System, User, Assistant };
+    Q_ENUM(ChatRole)
+
+    struct Message
+    {
+        ChatRole role;
+        QString content;
+        int tokenCount;
+    };
 
     explicit ChatModel(QObject *parent = nullptr);
 
@@ -46,11 +56,28 @@ public:
 
     Q_INVOKABLE void addMessage(const QString &content, ChatRole role);
     Q_INVOKABLE void clear();
+    Q_INVOKABLE QList<MessagePart> processMessageContent(const QString &content) const;
+
+    QVector<Message> getChatHistory() const;
+    QJsonArray prepareMessagesForRequest(LLMCore::ContextData context) const;
+
+    int totalTokens() const;
+    int tokensThreshold() const;
+
+    QString currentModel() const;
+
+signals:
+    void totalTokensChanged();
+    void tokensThresholdChanged();
 
 private:
+    void trim();
+    int estimateTokenCount(const QString &text) const;
+
     QVector<Message> m_messages;
+    int m_totalTokens = 0;
 };
 
 } // namespace QodeAssist::Chat
-
-Q_DECLARE_METATYPE(QodeAssist::Chat::ChatRole)
+Q_DECLARE_METATYPE(QodeAssist::Chat::ChatModel::Message)
+Q_DECLARE_METATYPE(QodeAssist::Chat::MessagePart)

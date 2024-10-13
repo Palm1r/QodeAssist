@@ -22,9 +22,9 @@
 #include <QMap>
 #include <QString>
 
-#include "templates/PromptTemplate.hpp"
+#include "PromptTemplate.hpp"
 
-namespace QodeAssist {
+namespace QodeAssist::LLMCore {
 
 class PromptTemplateManager
 {
@@ -35,22 +35,22 @@ public:
     template<typename T>
     void registerTemplate()
     {
-        static_assert(std::is_base_of<Templates::PromptTemplate, T>::value,
+        static_assert(std::is_base_of<PromptTemplate, T>::value,
                       "T must inherit from PromptTemplate");
         T *template_ptr = new T();
         QString name = template_ptr->name();
-        if (template_ptr->type() == Templates::TemplateType::Fim) {
+        if (template_ptr->type() == TemplateType::Fim) {
             m_fimTemplates[name] = template_ptr;
-        } else if (template_ptr->type() == Templates::TemplateType::Chat) {
+        } else if (template_ptr->type() == TemplateType::Chat) {
             m_chatTemplates[name] = template_ptr;
         }
     }
 
     void setCurrentFimTemplate(const QString &name);
-    Templates::PromptTemplate *getCurrentFimTemplate();
+    PromptTemplate *getCurrentFimTemplate();
 
     void setCurrentChatTemplate(const QString &name);
-    Templates::PromptTemplate *getCurrentChatTemplate();
+    PromptTemplate *getCurrentChatTemplate();
 
     QStringList fimTemplatesNames() const;
     QStringList chatTemplatesNames() const;
@@ -60,10 +60,10 @@ private:
     PromptTemplateManager(const PromptTemplateManager &) = delete;
     PromptTemplateManager &operator=(const PromptTemplateManager &) = delete;
 
-    QMap<QString, Templates::PromptTemplate *> m_fimTemplates;
-    QMap<QString, Templates::PromptTemplate *> m_chatTemplates;
-    Templates::PromptTemplate *m_currentFimTemplate;
-    Templates::PromptTemplate *m_currentChatTemplate;
+    QMap<QString, PromptTemplate *> m_fimTemplates;
+    QMap<QString, PromptTemplate *> m_chatTemplates;
+    PromptTemplate *m_currentFimTemplate;
+    PromptTemplate *m_currentChatTemplate;
 };
 
-} // namespace QodeAssist
+} // namespace QodeAssist::LLMCore

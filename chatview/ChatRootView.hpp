@@ -22,25 +22,54 @@
 #include <QQuickItem>
 
 #include "ChatModel.hpp"
+#include "ClientInterface.hpp"
 
 namespace QodeAssist::Chat {
 
 class ChatRootView : public QQuickItem
 {
-    Q_OBJECT
+    Q_OBJECT    
+    Q_PROPERTY(ChatModel *chatModel READ chatModel NOTIFY chatModelChanged FINAL)
+    Q_PROPERTY(QString currentTemplate READ currentTemplate NOTIFY currentTemplateChanged FINAL)
+    Q_PROPERTY(QColor backgroundColor READ backgroundColor CONSTANT FINAL)
+    Q_PROPERTY(QColor primaryColor READ primaryColor CONSTANT FINAL)
+    Q_PROPERTY(QColor secondaryColor READ secondaryColor CONSTANT FINAL)
+    Q_PROPERTY(QColor codeColor READ codeColor CONSTANT FINAL)
     QML_ELEMENT
 
-    Q_PROPERTY(ChatModel *chatModel READ chatModel NOTIFY chatModelChanged FINAL)
 public:
     ChatRootView(QQuickItem *parent = nullptr);
 
     ChatModel *chatModel() const;
+    QString currentTemplate() const;
+
+    QColor backgroundColor() const;
+    QColor primaryColor() const;
+    QColor secondaryColor() const;
+
+    QColor codeColor() const;
+
+public slots:
+    void sendMessage(const QString &message) const;
+    void copyToClipboard(const QString &text);
 
 signals:
     void chatModelChanged();
+    void currentTemplateChanged();
 
 private:
-    ChatModel *m_chatModel = nullptr;
+    void generateColors();
+    QColor generateColor(const QColor &baseColor,
+                         float hueShift,
+                         float saturationMod,
+                         float lightnessMod);
+
+    ChatModel *m_chatModel;
+    ClientInterface *m_clientInterface;
+    QString m_currentTemplate;
+    QColor m_primaryColor;
+    QColor m_secondaryColor;
+    QColor m_codeColor;
 };
 
 } // namespace QodeAssist::Chat

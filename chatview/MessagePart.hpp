@@ -17,19 +17,35 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "BaseChatWidget.hpp"
+#pragma once
 
-#include <QQmlEngine>
-#include <QQmlContext>
+#include <qobject.h>
+#include <qqmlintegration.h>
 
 namespace QodeAssist::Chat {
+Q_NAMESPACE
 
-BaseChatWidget::BaseChatWidget(QWidget *parent) : QQuickWidget(parent)
+class MessagePart
 {
-    setSource(QUrl("qrc:/ChatView/qml/RootItem.qml"));
-    setResizeMode(QQuickWidget::SizeRootObjectToView);
+    Q_GADGET
+    Q_PROPERTY(PartType type MEMBER type CONSTANT FINAL)
+    Q_PROPERTY(QString text MEMBER text CONSTANT FINAL)
+    Q_PROPERTY(QString language MEMBER language CONSTANT FINAL)
+    QML_VALUE_TYPE(messagePart)
+public:
+    enum PartType { Code, Text };
+    Q_ENUM(PartType)
 
-    engine()->rootContext()->setContextObject(this);
-}
+    PartType type;
+    QString text;
+    QString language;
+};
 
-}
+class MessagePartType : public MessagePart
+{
+    Q_GADGET
+};
+
+QML_NAMED_ELEMENT(MessagePart)
+QML_FOREIGN_NAMESPACE(QodeAssist::Chat::MessagePartType)
+} // namespace QodeAssist::Chat

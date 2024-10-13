@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "ChatWidget.h"
+#include "chatview/ChatWidget.hpp"
 #include <coreplugin/ioutputpane.h>
 
 namespace QodeAssist::Chat {

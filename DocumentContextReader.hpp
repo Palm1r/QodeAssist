@@ -22,7 +22,8 @@
 #include <QTextDocument>
 #include <texteditor/textdocument.h>
 
-#include "QodeAssistData.hpp"
+// #include "QodeAssistData.hpp"
+#include <llmcore/ContextData.hpp>
 
 namespace QodeAssist {
 
@@ -44,13 +45,12 @@ public:
     QString readWholeFileBefore(int lineNumber, int cursorPosition) const;
     QString readWholeFileAfter(int lineNumber, int cursorPosition) const;
     QString getLanguageAndFileInfo() const;
-    QString getSpecificInstructions() const;
     CopyrightInfo findCopyright();
     QString getContextBetween(int startLine, int endLine, int cursorPosition) const;
 
     CopyrightInfo copyrightInfo() const;
 
-    ContextData prepareContext(int lineNumber, int cursorPosition) const;
+    LLMCore::ContextData prepareContext(int lineNumber, int cursorPosition) const;
 
 private:
     QString getContextBefore(int lineNumber, int cursorPosition) const;

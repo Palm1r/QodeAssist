@@ -25,8 +25,8 @@
 #include <QNetworkReply>
 #include <QtCore/qeventloop.h>
 
-#include "PromptTemplateManager.hpp"
-#include "QodeAssistUtils.hpp"
+#include "llmcore/PromptTemplateManager.hpp"
+#include "logger/Logger.hpp"
 #include "settings/PresetPromptsSettings.hpp"
 
 namespace QodeAssist::Providers {
@@ -53,23 +53,24 @@ QString OllamaProvider::chatEndpoint() const
     return "/api/chat";
 }
 
-void OllamaProvider::prepareRequest(QJsonObject &request)
+void OllamaProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType type)
 {
-    auto &settings = Settings::presetPromptsSettings();
+    auto &promptSettings = Settings::presetPromptsSettings();
+    auto settings = promptSettings.getSettings(type);
 
     QJsonObject options;
-    options["num_predict"] = settings.maxTokens();
-    options["temperature"] = settings.temperature();
-    if (settings.useTopP())
-        options["top_p"] = settings.topP();
-    if (settings.useTopK())
-        options["top_k"] = settings.topK();
-    if (settings.useFrequencyPenalty())
-        options["frequency_penalty"] = settings.frequencyPenalty();
-    if (settings.usePresencePenalty())
-        options["presence_penalty"] = settings.presencePenalty();
+    options["num_predict"] = settings.maxTokens;
+    options["temperature"] = settings.temperature;
+    if (settings.useTopP)
+        options["top_p"] = settings.topP;
+    if (settings.useTopK)
+        options["top_k"] = settings.topK;
+    if (settings.useFrequencyPenalty)
+        options["frequency_penalty"] = settings.frequencyPenalty;
+    if (settings.usePresencePenalty)
+        options["presence_penalty"] = settings.presencePenalty;
     request["options"] = options;
-    request["keep_alive"] = settings.ollamaLivetime();
+    request["keep_alive"] = settings.ollamaLivetime;
 }
 
 bool OllamaProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
@@ -85,7 +86,7 @@ bool OllamaProvider::handleResponse(QNetworkReply *reply, QString &accumulatedRe
 
         QJsonDocument doc = QJsonDocument::fromJson(line);
         if (doc.isNull()) {
-            logMessage("Invalid JSON response from Ollama: " + QString::fromUtf8(line));
+            LOG_MESSAGE("Invalid JSON response from Ollama: " + QString::fromUtf8(line));
             continue;
         }
 
@@ -93,7 +94,7 @@ bool OllamaProvider::handleResponse(QNetworkReply *reply, QString &accumulatedRe
 
         if (responseObj.contains("error")) {
             QString errorMessage = responseObj["error"].toString();
-            logMessage("Error in Ollama response: " + errorMessage);
+            LOG_MESSAGE("Error in Ollama response: " + errorMessage);
             return false;
         }
 
@@ -111,7 +112,7 @@ bool OllamaProvider::handleResponse(QNetworkReply *reply, QString &accumulatedRe
                 }
             }
         } else {
-            logMessage("Unknown endpoint: " + endpoint);
+            LOG_MESSAGE("Unknown endpoint: " + endpoint);
         }
 
         if (responseObj.contains("done") && responseObj["done"].toBool()) {
@@ -146,7 +147,7 @@ QList<QString> OllamaProvider::getInstalledModels(const Utils::Environment &env,
             models.append(modelName);
         }
     } else {
-        logMessage(QString("Error fetching models: %1").arg(reply->errorString()));
+        LOG_MESSAGE(QString("Error fetching models: %1").arg(reply->errorString()));
     }
 
     reply->deleteLater();

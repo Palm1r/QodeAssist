@@ -135,13 +135,6 @@ QString DocumentContextReader::getLanguageAndFileInfo() const
         .arg(language, mimeType, filePath, fileExtension);
 }
 
-QString DocumentContextReader::getSpecificInstructions() const
-{
-    QString specificInstruction = Settings::contextSettings().specificInstractions().arg(
-        LanguageServerProtocol::TextDocumentItem::mimeTypeToLanguageId(m_textDocument->mimeType()));
-    return QString("%1").arg(specificInstruction);
-}
-
 CopyrightInfo DocumentContextReader::findCopyright()
 {
     CopyrightInfo result = {-1, -1, false};
@@ -210,7 +203,7 @@ CopyrightInfo DocumentContextReader::copyrightInfo() const
     return m_copyrightInfo;
 }
 
-ContextData DocumentContextReader::prepareContext(int lineNumber, int cursorPosition) const
+LLMCore::ContextData DocumentContextReader::prepareContext(int lineNumber, int cursorPosition) const
 {
     QString contextBefore = getContextBefore(lineNumber, cursorPosition);
     QString contextAfter = getContextAfter(lineNumber, cursorPosition);

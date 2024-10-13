@@ -19,23 +19,24 @@
 
 #pragma once
 
-#include "PromptTemplate.hpp"
+#include "llmcore/PromptTemplate.hpp"
 
 namespace QodeAssist::Templates {
 
-class DeepSeekCoderV2Template : public PromptTemplate
+class CodeLlamaFim : public LLMCore::PromptTemplate
 {
 public:
-    TemplateType type() const override { return TemplateType::Fim; }
-    QString name() const override { return "DeepSeekCoder FIM"; }
-    QString promptTemplate() const override
+    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Fim; }
+    QString name() const override { return "CodeLlama FIM"; }
+    QString promptTemplate() const override { return "%1<PRE> %2 <SUF>%3 <MID>"; }
+    QStringList stopWords() const override
     {
-        return "%1<｜fim▁begin｜>%2<｜fim▁hole｜>%3<｜fim▁end｜>";
+        return QStringList() << "<EOT>" << "<PRE>" << "<SUF" << "<MID>";
     }
-    QStringList stopWords() const override { return QStringList(); }
-    void prepareRequest(QJsonObject &request, const ContextData &context) const override
+
+    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
-        QString formattedPrompt = promptTemplate().arg(context.instriuctions,
+        QString formattedPrompt = promptTemplate().arg(context.systemPrompt,
                                                        context.prefix,
                                                        context.suffix);
         request["prompt"] = formattedPrompt;

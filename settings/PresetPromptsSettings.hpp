@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "settings/SettingsUtils.hpp"
+#include "SettingsUtils.hpp"
 #include <utils/aspects.h>
 
 namespace QodeAssist::Settings {
@@ -27,27 +27,62 @@ namespace QodeAssist::Settings {
 class PresetPromptsSettings : public Utils::AspectContainer
 {
 public:
+    struct PromptSettings
+    {
+        double temperature;
+        int maxTokens;
+        bool useTopP;
+        double topP;
+        bool useTopK;
+        int topK;
+        bool usePresencePenalty;
+        double presencePenalty;
+        bool useFrequencyPenalty;
+        double frequencyPenalty;
+        QString ollamaLivetime;
+        QString apiKey;
+    };
+
     PresetPromptsSettings();
 
-    Utils::DoubleAspect temperature{this};
-    Utils::IntegerAspect maxTokens{this};
+    Utils::DoubleAspect fimTemperature{this};
+    Utils::IntegerAspect fimMaxTokens{this};
 
-    Utils::BoolAspect useTopP{this};
-    Utils::DoubleAspect topP{this};
+    Utils::DoubleAspect chatTemperature{this};
+    Utils::IntegerAspect chatMaxTokens{this};
 
-    Utils::BoolAspect useTopK{this};
-    Utils::IntegerAspect topK{this};
+    Utils::BoolAspect fimUseTopP{this};
+    Utils::DoubleAspect fimTopP{this};
 
-    Utils::BoolAspect usePresencePenalty{this};
-    Utils::DoubleAspect presencePenalty{this};
+    Utils::BoolAspect chatUseTopP{this};
+    Utils::DoubleAspect chatTopP{this};
 
-    Utils::BoolAspect useFrequencyPenalty{this};
-    Utils::DoubleAspect frequencyPenalty{this};
+    Utils::BoolAspect fimUseTopK{this};
+    Utils::IntegerAspect fimTopK{this};
 
-    Utils::StringAspect ollamaLivetime{this};
-    Utils::StringAspect apiKey{this};
+    Utils::BoolAspect chatUseTopK{this};
+    Utils::IntegerAspect chatTopK{this};
+
+    Utils::BoolAspect fimUsePresencePenalty{this};
+    Utils::DoubleAspect fimPresencePenalty{this};
+
+    Utils::BoolAspect chatUsePresencePenalty{this};
+    Utils::DoubleAspect chatPresencePenalty{this};
+
+    Utils::BoolAspect fimUseFrequencyPenalty{this};
+    Utils::DoubleAspect fimFrequencyPenalty{this};
+
+    Utils::BoolAspect chatUseFrequencyPenalty{this};
+    Utils::DoubleAspect chatFrequencyPenalty{this};
+
+    Utils::StringAspect fimOllamaLivetime{this};
+    Utils::StringAspect chatOllamaLivetime{this};
+    Utils::StringAspect fimApiKey{this};
+    Utils::StringAspect chatApiKey{this};
 
     ButtonAspect resetToDefaults{this};
+
+    PromptSettings getSettings(int type) const;
 
 private:
     void setupConnections();

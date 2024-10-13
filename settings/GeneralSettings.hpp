@@ -21,9 +21,11 @@
 
 #include <utils/aspects.h>
 
-#include "providers/LLMProvider.hpp"
-#include "settings/SettingsUtils.hpp"
+#include "SettingsUtils.hpp"
 
+namespace QodeAssist::LLMCore {
+class Provider;
+}
 namespace QodeAssist::Settings {
 
 class GeneralSettings : public Utils::AspectContainer
@@ -61,10 +63,11 @@ public:
     Utils::StringAspect chatModelIndicator{this};
     Utils::StringAspect chatUrlIndicator{this};
 
+    Utils::IntegerAspect chatTokensThreshold{this};
+
 private:
     void setupConnections();
-    void showModelSelectionDialog(Utils::StringAspect *modelNameObj,
-                                  Providers::LLMProvider *provider);
+    void showModelSelectionDialog(Utils::StringAspect *modelNameObj, LLMCore::Provider *provider);
     void resetPageToDefaults();
 
     void updateStatusIndicators();

@@ -19,11 +19,52 @@
 
 #pragma once
 
+#include <QCoreApplication>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
 #include <QPushButton>
+#include <QtCore/qtimer.h>
 #include <utils/aspects.h>
 #include <utils/layoutbuilder.h>
 
 namespace QodeAssist::Settings {
+
+struct Tr
+{
+    Q_DECLARE_TR_FUNCTIONS(QtC::QodeAssist)
+};
+
+inline bool pingUrl(const QUrl &url, int timeout = 5000)
+{
+    if (!url.isValid()) {
+        return false;
+    }
+
+    QNetworkAccessManager manager;
+    QNetworkRequest request(url);
+    request.setAttribute(QNetworkRequest::RedirectPolicyAttribute, true);
+
+    QScopedPointer<QNetworkReply> reply(manager.get(request));
+
+    QTimer timer;
+    timer.setSingleShot(true);
+
+    QEventLoop loop;
+    QObject::connect(reply.data(), &QNetworkReply::finished, &loop, &QEventLoop::quit);
+    QObject::connect(&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+
+    timer.start(timeout);
+    loop.exec();
+
+    if (timer.isActive()) {
+        timer.stop();
+        return (reply->error() == QNetworkReply::NoError);
+    } else {
+        QObject::disconnect(reply.data(), &QNetworkReply::finished, &loop, &QEventLoop::quit);
+        reply->abort();
+        return false;
+    }
+}
 
 template<typename AspectType>
 void resetAspect(AspectType &aspect)

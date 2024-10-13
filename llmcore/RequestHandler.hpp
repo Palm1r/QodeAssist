@@ -23,19 +23,18 @@
 #include <QNetworkAccessManager>
 #include <QObject>
 
-#include "QodeAssistData.hpp"
-#include "core/LLMRequestConfig.hpp"
+#include "RequestConfig.hpp"
 
 class QNetworkReply;
 
-namespace QodeAssist {
+namespace QodeAssist::LLMCore {
 
-class LLMRequestHandler : public QObject
+class RequestHandler : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit LLMRequestHandler(QObject *parent = nullptr);
+    explicit RequestHandler(QObject *parent = nullptr);
 
     void sendLLMRequest(const LLMConfig &config, const QJsonObject &request);
     void handleLLMResponse(QNetworkReply *reply,
@@ -61,4 +60,4 @@ private:
     QString removeStopWords(const QStringView &completion, const QStringList &stopWords);
 };
 
-} // namespace QodeAssist
+} // namespace QodeAssist::LLMCore

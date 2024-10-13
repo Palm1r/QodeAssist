@@ -19,11 +19,13 @@
 
 #pragma once
 
-namespace QodeAssist::Constants {
+#include <QCoreApplication>
 
-const char ACTION_ID[] = "QodeAssist.Action";
-const char MENU_ID[] = "QodeAssist.Menu";
+namespace QodeAssist {
 
-const char QODE_ASSIST_REQUEST_SUGGESTION[] = "QodeAssist.RequestSuggestion";
+struct Tr
+{
+    Q_DECLARE_TR_FUNCTIONS(QtC::QodeAssist)
+};
 
-} // namespace QodeAssist::Constants
+} // namespace QodeAssist

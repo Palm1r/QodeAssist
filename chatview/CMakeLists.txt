@@ -1,24 +1,33 @@
 qt_add_library(QodeAssistChatView STATIC)
 
-find_package(Qt6 COMPONENTS Core Widgets Quick QuickWidgets Network REQUIRED)
-
 qt_add_qml_module(QodeAssistChatView
     URI ChatView
     VERSION 1.0
     QML_FILES
     qml/RootItem.qml
+    qml/ChatItem.qml
+    qml/Badge.qml
+    qml/dialog/CodeBlock.qml
+    qml/dialog/TextBlock.qml
     SOURCES
-    BaseChatWidget.hpp BaseChatWidget.cpp
+    ChatWidget.hpp ChatWidget.cpp
     ChatModel.hpp ChatModel.cpp
     ChatRootView.hpp ChatRootView.cpp
+    ClientInterface.hpp ClientInterface.cpp
+    MessagePart.hpp
+    ChatUtils.h ChatUtils.cpp
 )
 
 target_link_libraries(QodeAssistChatView
-    PRIVATE
+    PUBLIC
     Qt::Widgets
     Qt::Quick
     Qt::QuickWidgets
     Qt::Network
+    QtCreator::Core
+    QtCreator::Utils
+    LLMCore
+    QodeAssistSettings
 )
 
 target_include_directories(QodeAssistChatView
