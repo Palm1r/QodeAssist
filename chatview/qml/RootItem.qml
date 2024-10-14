@@ -81,17 +81,16 @@ ChatRootView {
             }
         }
 
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 5
+        ScrollView {
+            id: view
 
-            QQC.TextField {
+            Layout.fillWidth: true
+            Layout.minimumHeight: 30
+            Layout.maximumHeight: root.height / 2
+
+            QQC.TextArea {
                 id: messageInput
 
-                Layout.fillWidth: true
-                Layout.minimumWidth: 60
-                Layout.minimumHeight: 30
-                rightInset: -(parent.width - sendButton.width - clearButton.width)
                 placeholderText: qsTr("Type your message here...")
                 placeholderTextColor: "#888"
                 color: root.primaryColor.hslLightness > 0.5 ? "black" : "white"
@@ -102,30 +101,31 @@ ChatRootView {
                                                                        : Qt.darker(root.primaryColor, 1.5)
                     border.width: 1
                 }
-
-                onAccepted: sendButton.clicked()
+                Keys.onPressed: function(event) {
+                    if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && !(event.modifiers & Qt.ShiftModifier)) {
+                        sendChatMessage()
+                        event.accepted = true;
+                    }
+                }
             }
+        }
+
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 5
 
             Button {
                 id: sendButton
 
-                Layout.alignment: Qt.AlignVCenter
-                Layout.minimumHeight: 30
+                Layout.alignment: Qt.AlignBottom
                 text: qsTr("Send")
-                onClicked: {
-                    if (messageInput.text.trim() !== "") {
-                        root.sendMessage(messageInput.text);
-                        messageInput.text = ""
-                        scrollToBottom()
-                    }
-                }
+                onClicked: sendChatMessage()
             }
             Button {
                 id: clearButton
 
-                Layout.alignment: Qt.AlignVCenter
-                Layout.minimumHeight: 30
-                text: qsTr("Clear")
+                Layout.alignment: Qt.AlignBottom
+                text: qsTr("Clear Chat")
                 onClicked: clearChat()
             }
         }
@@ -157,5 +157,11 @@ ChatRootView {
 
     function scrollToBottom() {
         Qt.callLater(chatListView.positionViewAtEnd)
+    }
+
+    function sendChatMessage() {
+        root.sendMessage(messageInput.text);
+        messageInput.text = ""
+        scrollToBottom()
     }
 }
