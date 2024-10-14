@@ -69,6 +69,7 @@ QodeAssist currently supports the following LLM (Large Language Model) providers
 
 QodeAssist has been thoroughly tested and optimized for use with the following language models:
 
+- Llama
 - CodeLlama
 - StarCoder2
 - DeepSeek-Coder-V2
