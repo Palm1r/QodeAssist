@@ -7,7 +7,6 @@ namespace QodeAssist::Chat {
 
 void ChatUtils::copyToClipboard(const QString &text)
 {
-    qDebug() << "call clipboard" << text;
     QGuiApplication::clipboard()->setText(text);
 }
 

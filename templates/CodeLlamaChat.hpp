@@ -46,4 +46,10 @@ public:
     }
 };
 
+class LlamaChat : public CodeLlamaChat
+{
+public:
+    QString name() const override { return "Llama Chat"; }
+};
+
 } // namespace QodeAssist::Templates
