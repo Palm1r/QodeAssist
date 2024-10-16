@@ -56,8 +56,8 @@ Provider *ProvidersManager::setCurrentChatProvider(const QString &name)
 Provider *ProvidersManager::getCurrentFimProvider()
 {
     if (m_currentFimProvider == nullptr) {
-        LOG_MESSAGE("Current fim provider is null");
-        return nullptr;
+        LOG_MESSAGE("Current fim provider is null, return first");
+        return m_providers.first();
     }
 
     return m_currentFimProvider;
@@ -66,8 +66,8 @@ Provider *ProvidersManager::getCurrentFimProvider()
 Provider *ProvidersManager::getCurrentChatProvider()
 {
     if (m_currentChatProvider == nullptr) {
-        LOG_MESSAGE("Current chat provider is null");
-        return nullptr;
+        LOG_MESSAGE("Current chat provider is null, return first");
+        return m_providers.first();
     }
 
     return m_currentChatProvider;
