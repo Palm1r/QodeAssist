@@ -60,6 +60,11 @@ void ChatRootView::copyToClipboard(const QString &text)
     QGuiApplication::clipboard()->setText(text);
 }
 
+void ChatRootView::cancelRequest()
+{
+    m_clientInterface->cancelRequest();
+}
+
 void ChatRootView::generateColors()
 {
     QColor baseColor = backgroundColor();

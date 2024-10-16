@@ -121,6 +121,15 @@ ChatRootView {
                 text: qsTr("Send")
                 onClicked: sendChatMessage()
             }
+
+            Button {
+                id: stopButton
+
+                Layout.alignment: Qt.AlignBottom
+                text: qsTr("Stop")
+                onClicked: root.cancelRequest()
+            }
+
             Button {
                 id: clearButton
 

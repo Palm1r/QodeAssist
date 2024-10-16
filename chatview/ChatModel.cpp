@@ -68,6 +68,28 @@ QHash<int, QByteArray> ChatModel::roleNames() const
     return roles;
 }
 
+void ChatModel::addMessage(const QString &content, ChatRole role, const QString &id)
+{
+    int tokenCount = estimateTokenCount(content);
+
+    if (!m_messages.isEmpty() && !id.isEmpty() && m_messages.last().id == id) {
+        Message &lastMessage = m_messages.last();
+        int oldTokenCount = lastMessage.tokenCount;
+        lastMessage.content = content;
+        lastMessage.tokenCount = tokenCount;
+        m_totalTokens += (tokenCount - oldTokenCount);
+        emit dataChanged(index(m_messages.size() - 1), index(m_messages.size() - 1));
+    } else {
+        beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());
+        m_messages.append({role, content, tokenCount, id});
+        m_totalTokens += tokenCount;
+        endInsertRows();
+    }
+
+    trim();
+    emit totalTokensChanged();
+}
+
 QVector<ChatModel::Message> ChatModel::getChatHistory() const
 {
     return m_messages;
@@ -90,17 +112,6 @@ void ChatModel::trim()
 int ChatModel::estimateTokenCount(const QString &text) const
 {
     return text.length() / 4;
-}
-
-void ChatModel::addMessage(const QString &content, ChatRole role)
-{
-    int tokenCount = estimateTokenCount(content);
-    beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());
-    m_messages.append({role, content, tokenCount});
-    m_totalTokens += tokenCount;
-    endInsertRows();
-    trim();
-    emit totalTokensChanged();
 }
 
 void ChatModel::clear()
@@ -174,6 +185,11 @@ int ChatModel::tokensThreshold() const
 {
     auto &settings = Settings::generalSettings();
     return settings.chatTokensThreshold();
+}
+
+QString ChatModel::lastMessageId() const
+{
+    return !m_messages.isEmpty() ? m_messages.last().id : "";
 }
 
 } // namespace QodeAssist::Chat

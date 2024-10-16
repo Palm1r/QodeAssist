@@ -38,8 +38,8 @@ ClientInterface::ClientInterface(ChatModel *chatModel, QObject *parent)
     connect(m_requestHandler,
             &LLMCore::RequestHandler::completionReceived,
             this,
-            [this](const QString &completion, const QJsonObject &, bool isComplete) {
-                handleLLMResponse(completion, isComplete);
+            [this](const QString &completion, const QJsonObject &request, bool isComplete) {
+                handleLLMResponse(completion, request, isComplete);
             });
 
     connect(m_requestHandler,
@@ -56,6 +56,8 @@ ClientInterface::~ClientInterface() = default;
 
 void ClientInterface::sendMessage(const QString &message)
 {
+    cancelRequest();
+
     LOG_MESSAGE("Sending message: " + message);
     LOG_MESSAGE("chatProvider " + Settings::generalSettings().chatLlmProviders.stringValue());
     LOG_MESSAGE("chatTemplate " + Settings::generalSettings().chatPrompts.stringValue());
@@ -74,6 +76,9 @@ void ClientInterface::sendMessage(const QString &message)
     providerRequest["stream"] = true;
     providerRequest["messages"] = m_chatModel->prepareMessagesForRequest(context);
 
+    if (!chatTemplate || !chatProvider) {
+        LOG_MESSAGE("Check settings, provider or template are not set");
+    }
     chatTemplate->prepareRequest(providerRequest, context);
     chatProvider->prepareRequest(providerRequest, LLMCore::RequestType::Chat);
 
@@ -89,28 +94,31 @@ void ClientInterface::sendMessage(const QString &message)
     QJsonObject request;
     request["id"] = QUuid::createUuid().toString();
 
-    m_accumulatedResponse.clear();
-    m_chatModel->addMessage(message, ChatModel::ChatRole::User);
+    m_chatModel->addMessage(message, ChatModel::ChatRole::User, "");
     m_requestHandler->sendLLMRequest(config, request);
 }
 
 void ClientInterface::clearMessages()
 {
     m_chatModel->clear();
-    m_accumulatedResponse.clear();
     LOG_MESSAGE("Chat history cleared");
 }
 
-void ClientInterface::handleLLMResponse(const QString &response, bool isComplete)
+void ClientInterface::cancelRequest()
 {
-    m_accumulatedResponse += response;
+    auto id = m_chatModel->lastMessageId();
+    m_requestHandler->cancelRequest(id);
+}
+
+void ClientInterface::handleLLMResponse(const QString &response,
+                                        const QJsonObject &request,
+                                        bool isComplete)
+{
+    QString messageId = request["id"].toString();
+    m_chatModel->addMessage(response.trimmed(), ChatModel::ChatRole::Assistant, messageId);
 
     if (isComplete) {
-        LOG_MESSAGE("Message completed. Final response: " + m_accumulatedResponse);
-        emit messageReceived(m_accumulatedResponse.trimmed());
-
-        m_chatModel->addMessage(m_accumulatedResponse.trimmed(), ChatModel::ChatRole::Assistant);
-        m_accumulatedResponse.clear();
+        LOG_MESSAGE("Message completed. Final response for message " + messageId + ": " + response);
     }
 }
 

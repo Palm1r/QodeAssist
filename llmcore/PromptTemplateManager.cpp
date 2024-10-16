@@ -43,8 +43,8 @@ void PromptTemplateManager::setCurrentFimTemplate(const QString &name)
 PromptTemplate *PromptTemplateManager::getCurrentFimTemplate()
 {
     if (m_currentFimTemplate == nullptr) {
-        LOG_MESSAGE("Current fim provider is null");
-        return nullptr;
+        LOG_MESSAGE("Current fim provider is null, return first");
+        return m_fimTemplates.first();
     }
 
     return m_currentFimTemplate;
@@ -63,8 +63,10 @@ void PromptTemplateManager::setCurrentChatTemplate(const QString &name)
 
 PromptTemplate *PromptTemplateManager::getCurrentChatTemplate()
 {
-    if (m_currentChatTemplate == nullptr)
-        LOG_MESSAGE("Current chat provider is null");
+    if (m_currentChatTemplate == nullptr) {
+        LOG_MESSAGE("Current chat provider is null, return first");
+        return m_chatTemplates.first();
+    }
 
     return m_currentChatTemplate;
 }
