@@ -40,11 +40,10 @@ public:
     void clearMessages();
 
 signals:
-    void messageReceived(const QString &message);
     void errorOccurred(const QString &error);
 
 private:
-    void handleLLMResponse(const QString &response, bool isComplete);
+    void handleLLMResponse(const QString &response, const QJsonObject &request, bool isComplete);
 
     LLMCore::RequestHandler *m_requestHandler;
     QString m_accumulatedResponse;

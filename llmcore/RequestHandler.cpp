@@ -80,22 +80,18 @@ void RequestHandler::handleLLMResponse(QNetworkReply *reply,
             && processSingleLineCompletion(reply, request, accumulatedResponse, config)) {
             return;
         }
+
+        if (isComplete) {
+            auto cleanedCompletion = removeStopWords(accumulatedResponse,
+                                                     config.promptTemplate->stopWords());
+            emit completionReceived(cleanedCompletion, request, true);
+        }
+    } else if (config.requestType == RequestType::Chat) {
+        emit completionReceived(accumulatedResponse, request, isComplete);
     }
 
-    if (isComplete || reply->isFinished()) {
-        if (isComplete) {
-            if (config.requestType == RequestType::Fim) {
-                auto cleanedCompletion = removeStopWords(accumulatedResponse,
-                                                         config.promptTemplate->stopWords());
-                emit completionReceived(cleanedCompletion, request, true);
-            } else {
-                emit completionReceived(accumulatedResponse, request, true);
-            }
-        } else {
-            emit completionReceived(accumulatedResponse, request, false);
-        }
+    if (isComplete)
         m_accumulatedResponses.remove(reply);
-    }
 }
 
 bool RequestHandler::cancelRequest(const QString &id)

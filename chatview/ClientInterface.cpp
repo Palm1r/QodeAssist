@@ -38,8 +38,8 @@ ClientInterface::ClientInterface(ChatModel *chatModel, QObject *parent)
     connect(m_requestHandler,
             &LLMCore::RequestHandler::completionReceived,
             this,
-            [this](const QString &completion, const QJsonObject &, bool isComplete) {
-                handleLLMResponse(completion, isComplete);
+            [this](const QString &completion, const QJsonObject &request, bool isComplete) {
+                handleLLMResponse(completion, request, isComplete);
             });
 
     connect(m_requestHandler,
@@ -90,7 +90,7 @@ void ClientInterface::sendMessage(const QString &message)
     request["id"] = QUuid::createUuid().toString();
 
     m_accumulatedResponse.clear();
-    m_chatModel->addMessage(message, ChatModel::ChatRole::User);
+    m_chatModel->addMessage(message, ChatModel::ChatRole::User, "");
     m_requestHandler->sendLLMRequest(config, request);
 }
 
@@ -101,16 +101,15 @@ void ClientInterface::clearMessages()
     LOG_MESSAGE("Chat history cleared");
 }
 
-void ClientInterface::handleLLMResponse(const QString &response, bool isComplete)
+void ClientInterface::handleLLMResponse(const QString &response,
+                                        const QJsonObject &request,
+                                        bool isComplete)
 {
-    m_accumulatedResponse += response;
+    QString messageId = request["id"].toString();
+    m_chatModel->addMessage(response.trimmed(), ChatModel::ChatRole::Assistant, messageId);
 
     if (isComplete) {
-        LOG_MESSAGE("Message completed. Final response: " + m_accumulatedResponse);
-        emit messageReceived(m_accumulatedResponse.trimmed());
-
-        m_chatModel->addMessage(m_accumulatedResponse.trimmed(), ChatModel::ChatRole::Assistant);
-        m_accumulatedResponse.clear();
+        LOG_MESSAGE("Message completed. Final response for message " + messageId + ": " + response);
     }
 }
 
