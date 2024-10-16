@@ -66,6 +66,7 @@ public:
     int tokensThreshold() const;
 
     QString currentModel() const;
+    QString lastMessageId() const;
 
 signals:
     void totalTokensChanged();

@@ -56,6 +56,8 @@ ClientInterface::~ClientInterface() = default;
 
 void ClientInterface::sendMessage(const QString &message)
 {
+    cancelRequest();
+
     LOG_MESSAGE("Sending message: " + message);
     LOG_MESSAGE("chatProvider " + Settings::generalSettings().chatLlmProviders.stringValue());
     LOG_MESSAGE("chatTemplate " + Settings::generalSettings().chatPrompts.stringValue());
@@ -74,6 +76,9 @@ void ClientInterface::sendMessage(const QString &message)
     providerRequest["stream"] = true;
     providerRequest["messages"] = m_chatModel->prepareMessagesForRequest(context);
 
+    if (!chatTemplate || !chatProvider) {
+        LOG_MESSAGE("Check settings, provider or template are not set");
+    }
     chatTemplate->prepareRequest(providerRequest, context);
     chatProvider->prepareRequest(providerRequest, LLMCore::RequestType::Chat);
 
@@ -89,7 +94,6 @@ void ClientInterface::sendMessage(const QString &message)
     QJsonObject request;
     request["id"] = QUuid::createUuid().toString();
 
-    m_accumulatedResponse.clear();
     m_chatModel->addMessage(message, ChatModel::ChatRole::User, "");
     m_requestHandler->sendLLMRequest(config, request);
 }
@@ -97,8 +101,13 @@ void ClientInterface::sendMessage(const QString &message)
 void ClientInterface::clearMessages()
 {
     m_chatModel->clear();
-    m_accumulatedResponse.clear();
     LOG_MESSAGE("Chat history cleared");
+}
+
+void ClientInterface::cancelRequest()
+{
+    auto id = m_chatModel->lastMessageId();
+    m_requestHandler->cancelRequest(id);
 }
 
 void ClientInterface::handleLLMResponse(const QString &response,

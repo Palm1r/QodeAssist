@@ -38,6 +38,7 @@ public:
 
     void sendMessage(const QString &message);
     void clearMessages();
+    void cancelRequest();
 
 signals:
     void errorOccurred(const QString &error);
@@ -46,7 +47,6 @@ private:
     void handleLLMResponse(const QString &response, const QJsonObject &request, bool isComplete);
 
     LLMCore::RequestHandler *m_requestHandler;
-    QString m_accumulatedResponse;
     ChatModel *m_chatModel;
 };
 

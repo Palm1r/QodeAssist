@@ -52,6 +52,7 @@ public:
 public slots:
     void sendMessage(const QString &message) const;
     void copyToClipboard(const QString &text);
+    void cancelRequest();
 
 signals:
     void chatModelChanged();

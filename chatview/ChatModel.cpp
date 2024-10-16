@@ -187,4 +187,9 @@ int ChatModel::tokensThreshold() const
     return settings.chatTokensThreshold();
 }
 
+QString ChatModel::lastMessageId() const
+{
+    return !m_messages.isEmpty() ? m_messages.last().id : "";
+}
+
 } // namespace QodeAssist::Chat
