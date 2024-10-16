@@ -134,7 +134,7 @@ GeneralSettings::GeneralSettings()
     chatTokensThreshold.setToolTip(Tr::tr("Maximum number of tokens in chat history. When "
                                           "exceeded, oldest messages will be removed."));
     chatTokensThreshold.setRange(1000, 16000);
-    chatTokensThreshold.setDefaultValue(4000);
+    chatTokensThreshold.setDefaultValue(8000);
 
     loadProviders();
     loadPrompts();
