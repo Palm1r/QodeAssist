@@ -1,6 +1,6 @@
 {
     "Name" : "QodeAssist",
-    "Version" : "0.3.1",
+    "Version" : "0.3.2",
     "CompatVersion" : "${IDE_VERSION_COMPAT}",
     "Vendor" : "Petr Mironychev",
     "Copyright" : "(C) ${IDE_COPYRIGHT_YEAR} Petr Mironychev, (C) ${IDE_COPYRIGHT_YEAR} The Qt Company Ltd",

@@ -42,6 +42,7 @@ add_qtc_plugin(QodeAssist
     templates/DeepSeekCoderChat.hpp
     templates/CodeLlamaChat.hpp
     templates/QwenChat.hpp
+    templates/StarCoderChat.hpp
     providers/OllamaProvider.hpp providers/OllamaProvider.cpp
     providers/LMStudioProvider.hpp providers/LMStudioProvider.cpp
     providers/OpenAICompatProvider.hpp providers/OpenAICompatProvider.cpp

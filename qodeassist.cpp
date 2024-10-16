@@ -55,6 +55,7 @@
 #include "templates/DeepSeekCoderFim.hpp"
 #include "templates/QwenChat.hpp"
 #include "templates/StarCoder2Fim.hpp"
+#include "templates/StarCoderChat.hpp"
 
 using namespace Utils;
 using namespace Core;
@@ -95,6 +96,7 @@ public:
         templateManager.registerTemplate<Templates::CodeLlamaChat>();
         templateManager.registerTemplate<Templates::QwenChat>();
         templateManager.registerTemplate<Templates::LlamaChat>();
+        templateManager.registerTemplate<Templates::StarCoderChat>();
 
         Utils::Icon QCODEASSIST_ICON(
             {{":/resources/images/qoderassist-icon.png", Utils::Theme::IconsBaseColor}});
