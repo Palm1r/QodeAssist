@@ -209,10 +209,19 @@ void QodeAssistClient::handleCompletions(const GetCompletionRequest::Response &r
             if (delta > 0)
                 completion.setText(completionText.chopped(delta));
         }
+        auto suggestions = Utils::transform(completions, [](const Completion &c) {
+            auto toTextPos = [](const LanguageServerProtocol::Position pos) {
+                return Text::Position{pos.line() + 1, pos.character()};
+            };
+
+            Text::Range range{toTextPos(c.range().start()), toTextPos(c.range().end())};
+            Text::Position pos{toTextPos(c.position())};
+            return TextSuggestion::Data{range, pos, c.text()};
+        });
         if (completions.isEmpty())
             return;
         editor->insertSuggestion(
-            std::make_unique<LLMSuggestion>(completions.first(), editor->document()));
+            std::make_unique<LLMSuggestion>(suggestions.first(), editor->document()));
     }
 }
 

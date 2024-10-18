@@ -31,25 +31,21 @@ class LLMSuggestion final : public QObject, public TextEditor::TextSuggestion
 {
     Q_OBJECT
 public:
-    LLMSuggestion(const Completion &completion, QTextDocument *origin);
+    LLMSuggestion(const TextEditor::TextSuggestion::Data &data, QTextDocument *origin);
 
-    bool apply() final;
-    bool applyWord(TextEditor::TextEditorWidget *widget) final;
-    bool applyNextLine(TextEditor::TextEditorWidget *widget);
-    void reset() final;
-    int position() final;
-
-    const Completion &completion() const { return m_completion; }
+    bool apply() override;
+    bool applyWord(TextEditor::TextEditorWidget *widget) override;
+    bool applyLine(TextEditor::TextEditorWidget *widget) override;
+    void reset();
 
     void showTooltip(TextEditor::TextEditorWidget *widget, int count);
     void onCounterFinished(int count);
 
 private:
-    Completion m_completion;
-    QTextCursor m_start;
     int m_linesCount;
-
     CounterTooltip *m_counterTooltip = nullptr;
+    int m_startPosition;
+    TextEditor::TextSuggestion::Data m_suggestion;
 };
 
 } // namespace QodeAssist

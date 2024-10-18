@@ -20,13 +20,13 @@ add_subdirectory(chatview)
 add_qtc_plugin(QodeAssist
   PLUGIN_DEPENDS
     QtCreator::Core
-    QtCreator::LanguageClient
     QtCreator::TextEditor
+    QtCreator::LanguageClient
+    QtCreator::ProjectExplorer
   DEPENDS
-    Qt::Widgets
     QtCreator::ExtensionSystem
     QtCreator::Utils
-    QtCreator::ProjectExplorer
+    Qt::Widgets
   SOURCES
     .github/workflows/build_cmake.yml
     .github/workflows/README.md
