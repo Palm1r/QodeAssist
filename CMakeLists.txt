@@ -41,7 +41,7 @@ add_qtc_plugin(QodeAssist
     templates/CustomFimTemplate.hpp
     templates/DeepSeekCoderChat.hpp
     templates/CodeLlamaChat.hpp
-    templates/QwenChat.hpp
+    templates/Qwen.hpp
     templates/StarCoderChat.hpp
     providers/OllamaProvider.hpp providers/OllamaProvider.cpp
     providers/LMStudioProvider.hpp providers/LMStudioProvider.cpp

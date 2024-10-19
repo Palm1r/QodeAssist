@@ -53,7 +53,7 @@
 #include "templates/CustomFimTemplate.hpp"
 #include "templates/DeepSeekCoderChat.hpp"
 #include "templates/DeepSeekCoderFim.hpp"
-#include "templates/QwenChat.hpp"
+#include "templates/Qwen.hpp"
 #include "templates/StarCoder2Fim.hpp"
 #include "templates/StarCoderChat.hpp"
 
@@ -94,9 +94,10 @@ public:
         templateManager.registerTemplate<Templates::CustomTemplate>();
         templateManager.registerTemplate<Templates::DeepSeekCoderChat>();
         templateManager.registerTemplate<Templates::CodeLlamaChat>();
-        templateManager.registerTemplate<Templates::QwenChat>();
         templateManager.registerTemplate<Templates::LlamaChat>();
         templateManager.registerTemplate<Templates::StarCoderChat>();
+        templateManager.registerTemplate<Templates::QwenChat>();
+        templateManager.registerTemplate<Templates::QwenFim>();
 
         Utils::Icon QCODEASSIST_ICON(
             {{":/resources/images/qoderassist-icon.png", Utils::Theme::IconsBaseColor}});
