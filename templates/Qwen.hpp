@@ -51,4 +51,21 @@ public:
     }
 };
 
+class QwenFim : public LLMCore::PromptTemplate
+{
+public:
+    QString name() const override { return "Qwen FIM"; }
+    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Fim; }
+    QString promptTemplate() const override
+    {
+        return "<|fim_prefix|>%1<|fim_suffix|>%2<|fim_middle|>";
+    }
+    QStringList stopWords() const override { return QStringList() << "<|endoftext|>" << "<|EOT|>"; }
+    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
+    {
+        QString formattedPrompt = promptTemplate().arg(context.prefix, context.suffix);
+        request["prompt"] = formattedPrompt;
+    }
+};
+
 } // namespace QodeAssist::Templates

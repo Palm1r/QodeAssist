@@ -154,7 +154,7 @@ ChatRootView {
         spacing: 10
 
         Badge {
-            text: "%1/%2".arg(root.chatModel.totalTokens).arg(root.chatModel.tokensThreshold)
+            text: qsTr("tokens:%1/%2").arg(root.chatModel.totalTokens).arg(root.chatModel.tokensThreshold)
             color: root.codeColor
             fontColor: root.primaryColor.hslLightness > 0.5 ? "black" : "white"
         }
