@@ -129,34 +129,45 @@ ChatRootView {
                 text: qsTr("Stop")
                 onClicked: root.cancelRequest()
             }
-
-            Button {
-                id: clearButton
-
-                Layout.alignment: Qt.AlignBottom
-                text: qsTr("Clear Chat")
-                onClicked: clearChat()
-            }
         }
     }
 
     Row {
         id: bar
 
-        layoutDirection: Qt.RightToLeft
-
         anchors {
-            left: parent.left
-            leftMargin: 5
             right: parent.right
             rightMargin: scroll.width
         }
-        spacing: 10
+        spacing: 4
 
         Badge {
+            id: tokens
+
             text: qsTr("tokens:%1/%2").arg(root.chatModel.totalTokens).arg(root.chatModel.tokensThreshold)
             color: root.codeColor
             fontColor: root.primaryColor.hslLightness > 0.5 ? "black" : "white"
+        }
+
+        QQC.Button {
+            id: clearButton
+
+            height: tokens.height
+
+            icon {
+                source: "qrc:/ChatView/icons/clear-chat-icon.svg"
+                height: parent.height
+                width: height
+                color: "#993c3c"
+            }
+
+            background: Rectangle {
+                radius: 6
+                color: clearButton.pressed ? "#993c3c" : "transparent"
+                border.width: 1
+                border.color: "#993c3c"
+            }
+            onClicked: clearChat()
         }
     }
 

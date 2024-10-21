@@ -16,6 +16,8 @@ qt_add_qml_module(QodeAssistChatView
     ClientInterface.hpp ClientInterface.cpp
     MessagePart.hpp
     ChatUtils.h ChatUtils.cpp
+    RESOURCES
+    icons/clear-chat-icon.svg
 )
 
 target_link_libraries(QodeAssistChatView

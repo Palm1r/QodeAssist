@@ -27,8 +27,7 @@ Rectangle {
 
     width: badgeText.implicitWidth + radius
     height: badgeText.implicitHeight + 6
-    color: "lightgreen"
-    radius: height / 2
+    radius: 6
     border.width: 1
     border.color: "gray"
 
