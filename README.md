@@ -1,22 +1,55 @@
 # QodeAssist - AI-powered coding assistant plugin for Qt Creator
 [![Build plugin](https://github.com/Palm1r/QodeAssist/actions/workflows/build_cmake.yml/badge.svg?branch=main)](https://github.com/Palm1r/QodeAssist/actions/workflows/build_cmake.yml)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Palm1r/QodeAssist/total?color=41%2C173%2C71)
+![GitHub Tag](https://img.shields.io/github/v/tag/Palm1r/QodeAssist)
+![Static Badge](https://img.shields.io/badge/QtCreator-14.0.2-brightgreen)
 
 QodeAssist is an AI-powered coding assistant plugin for Qt Creator. It provides intelligent code completion and suggestions for C++ and QML, leveraging large language models through local providers like Ollama. Enhance your coding productivity with context-aware AI assistance directly in your Qt development environment.
 
-Code completion:
+## Table of Contents
+1. [Overview](#overview)
+2. [Installation](#installation)
+3. [Configure Plugin](#configure-plugin)
+4. [Supported LLM Providers](#supported-llm-providers)
+5. [Recommended Models](#recommended-models)
+   - [Ollama](#ollama)
+   - [LM Studio](#lm-studio)
+6. [QtCreator Version Compatibility](#qtcreator-version-compatibility)
+7. [Development Progress](#development-progress)
+8. [Hotkeys](#hotkeys)
+9. [Troubleshooting](#troubleshooting)
+10. [Support the Development](#support-the-development-of-qodeassist)
+11. [How to Build](#how-to-build)
 
-<img src="https://github.com/user-attachments/assets/255a52f1-5cc0-4ca3-b05c-c4cf9cdbe25a" width="600" alt="QodeAssistPreview">
+## Overview
 
+- AI-powered code completion
+- Chat functionality:
+  - Side and Bottom panels
+- Support for multiple LLM providers:
+  - Ollama
+  - LM Studio
+  - OpenAI-compatible local providers
+- Extensive library of model-specific templates
+- Custom template support
+- Easy configuration and model selection
 
-Chat with LLM models in side panels:
+<details>
+  <summary>Code completion: (click to expand)</summary>
+  <img src="https://github.com/user-attachments/assets/255a52f1-5cc0-4ca3-b05c-c4cf9cdbe25a" width="600" alt="QodeAssistPreview">
+</details>
 
-<img src="https://github.com/user-attachments/assets/ead5a5d9-b40a-4f17-af05-77fa2bcb3a61" width="600" alt="QodeAssistChat">
+<details>
+  <summary>Chat with LLM models in side panels: (click to expand)</summary>
+  <img src="https://github.com/user-attachments/assets/ead5a5d9-b40a-4f17-af05-77fa2bcb3a61" width="600" alt="QodeAssistChat">
+</details>
 
-Chat with LLM models in bottom panel:
+<details>
+  <summary>Chat with LLM models in bottom panel: (click to expand)</summary>
+  <img width="326" alt="QodeAssistBottomPanel" src="https://github.com/user-attachments/assets/4cc64c23-a294-4df8-9153-39ad6fdab34b">
+</details>
 
-<img width="326" alt="QodeAssistBottomPanel" src="https://github.com/user-attachments/assets/4cc64c23-a294-4df8-9153-39ad6fdab34b">
-
-## Plugin installation using Ollama as an example
+## Installation
 
 1. Install Latest QtCreator
 2. Install [Ollama](https://ollama.com). Make sure to review the system requirements before installation.
@@ -39,7 +72,10 @@ ollama run codellama:7b-instruct
 
 ## Configure Plugin
 
-<img src="https://github.com/user-attachments/assets/00ad980f-b470-48eb-9aaa-077783d38798" width="600" alt="Configuere QodeAssist">
+<details>
+  <summary>Configure plugins: (click to expand)</summary>
+  <img src="https://github.com/user-attachments/assets/00ad980f-b470-48eb-9aaa-077783d38798" width="600" alt="Configuere QodeAssist">
+</details>
 
 1. Open Qt Creator settings
 2. Navigate to the "Qode Assist" tab
@@ -60,13 +96,7 @@ QodeAssist currently supports the following LLM (Large Language Model) providers
 - [LM Studio](https://lmstudio.ai)
 - OpenAI compatible providers
 
-## QtCreator Version Compatibility
-
-- QtCreator 14.0.2 - 0.2.3 - 0.3.x 
-- QtCreator 14.0.1 - 0.2.2 plugin version and below
-
-## Supported Models
-
+## Recommended Models:
 QodeAssist has been thoroughly tested and optimized for use with the following language models:
 
 - Llama
@@ -75,38 +105,33 @@ QodeAssist has been thoroughly tested and optimized for use with the following l
 - DeepSeek-Coder-V2
 - Qwen-2.5
 
-These models have demonstrated excellent performance in code completion and assistance tasks within the QodeAssist environment.
+### Ollama:
+### For autocomplete(FIM)
+```
+ollama run codellama:7b-code
+ollama run starcoder2:7b
+ollama run qwen2.5-coder:7b-base
+ollama run deepseek-coder-v2:16b-lite-base-q3_K_M
+```
+### For chat
+```
+ollama run codellama:7b-instruct
+ollama run starcoder2:instruct
+ollama run qwen2.5-coder:7b-instruct
+ollama run deepseek-coder-v2
+```
 
-### Tested Models
-
-#### Ollama:
-- [starcoder2](https://ollama.com/library/starcoder2)
-- [codellama](https://ollama.com/library/codellama)
-
-#### LM Studio:
-- [second-state/StarCoder2-7B-GGUF](https://huggingface.co/second-state/StarCoder2-7B-GGUF)
-- [TheBloke/CodeLlama-7B-GGUF](https://huggingface.co/TheBloke/CodeLlama-7B-GGUF)
+### LM Studio:
+   similar models, like for ollama
 
 Please note that while these models have been specifically tested and confirmed to work well with QodeAssist, other models compatible with the supported providers may also work. We encourage users to experiment with different models and report their experiences.
 
 If you've successfully used a model that's not listed here, please let us know by opening an issue or submitting a pull request to update this list.
 
-### Custom Prompts
+## QtCreator Version Compatibility
 
-For advanced users or those with specific requirements, QodeAssist offers the flexibility to create, save, and load custom prompts using JSON templates. This feature allows you to tailor the AI's behavior to your exact needs.
-
-To get started with custom prompts:
-
-1. Navigate to the "Custom Template" option in the FIM Prompt Settings.
-2. Create your custom JSON prompt template.
-3. Use the "Save Custom Template to JSON" button to store your template for future use.
-4. To use a previously saved template, click "Load Custom Template from JSON".
-5. Make sure to select "Custom Template" from the dropdown menu in the FIM Prompt Settings on the General page to activate your custom template.
-
-For inspiration and examples of effective custom prompts, please refer to the `rawPromptExamples` folder in our repository.
-
-<img width="600" alt="Custom template" src="https://github.com/user-attachments/assets/4a14c552-baba-4531-ab4f-cb1f9ac6620b">
-<img width="600" alt="Select custom template" src="https://github.com/user-attachments/assets/3651dafd-83f9-4df9-943f-69c28cd3d8a3">
+- QtCreator 14.0.2 - 0.2.3 - 0.3.x 
+- QtCreator 14.0.1 - 0.2.2 plugin version and below
 
 ## Development Progress
 
