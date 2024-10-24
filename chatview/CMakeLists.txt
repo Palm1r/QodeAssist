@@ -9,6 +9,7 @@ qt_add_qml_module(QodeAssistChatView
     qml/Badge.qml
     qml/dialog/CodeBlock.qml
     qml/dialog/TextBlock.qml
+    qml/controls/SendButton.qml
     SOURCES
     ChatWidget.hpp ChatWidget.cpp
     ChatModel.hpp ChatModel.cpp
@@ -18,6 +19,11 @@ qt_add_qml_module(QodeAssistChatView
     ChatUtils.h ChatUtils.cpp
     RESOURCES
     icons/clear-chat-icon.svg
+    icons/bubble-icon.svg
+    icons/bubble-pause-icon.svg
+    icons/typing-bubble-1.svg
+    icons/typing-bubble-2.svg
+    icons/typing-bubble-3.svg
 )
 
 target_link_libraries(QodeAssistChatView

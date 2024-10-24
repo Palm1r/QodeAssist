@@ -42,6 +42,8 @@ public:
 
 signals:
     void errorOccurred(const QString &error);
+    void isStarted();
+    void isCompleted();
 
 private:
     void handleLLMResponse(const QString &response, const QJsonObject &request, bool isComplete);

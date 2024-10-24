@@ -20,8 +20,11 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Basic as QQC
+
 import QtQuick.Layouts
 import ChatView
+
+import "./controls"
 
 ChatRootView {
     id: root
@@ -54,10 +57,11 @@ ChatRootView {
                 width: ListView.view.width - scroll.width
                 msgModel: root.chatModel.processMessageContent(model.content)
                 color: model.roleType === ChatModel.User ? root.primaryColor : root.secondaryColor
-                fontColor: root.primaryColor.hslLightness > 0.5 ? "black" : "white"
+                fontColor: root.isDarkTheme ? "white" : "black"
                 codeBgColor: root.codeColor
-                selectionColor: root.primaryColor.hslLightness > 0.5 ? Qt.darker(root.primaryColor, 1.5)
-                                                                     : Qt.lighter(root.primaryColor, 1.5)
+                selectionColor: root.isDarkTheme ? Qt.lighter(root.primaryColor, 1.5)
+                                                 : Qt.darker(root.primaryColor, 1.5)
+
 
             }
 
@@ -93,12 +97,12 @@ ChatRootView {
 
                 placeholderText: qsTr("Type your message here...")
                 placeholderTextColor: "#888"
-                color: root.primaryColor.hslLightness > 0.5 ? "black" : "white"
+                color: root.isDarkTheme ? "white" : "black"
                 background: Rectangle {
                     radius: 2
                     color: root.primaryColor
-                    border.color: root.primaryColor.hslLightness > 0.5 ? Qt.lighter(root.primaryColor, 1.5)
-                                                                       : Qt.darker(root.primaryColor, 1.5)
+                    border.color: root.isDarkTheme ? Qt.lighter(root.primaryColor, 1.5)
+                                                   : Qt.darker(root.primaryColor, 1.5)
                     border.width: 1
                 }
                 Keys.onPressed: function(event) {
@@ -110,24 +114,17 @@ ChatRootView {
             }
         }
 
-        RowLayout {
-            Layout.fillWidth: true
+        Row {
+            leftPadding: 5
+            bottomPadding: 5
             spacing: 5
 
-            Button {
+            SendButton {
                 id: sendButton
 
-                Layout.alignment: Qt.AlignBottom
-                text: qsTr("Send")
-                onClicked: sendChatMessage()
-            }
-
-            Button {
-                id: stopButton
-
-                Layout.alignment: Qt.AlignBottom
-                text: qsTr("Stop")
-                onClicked: root.cancelRequest()
+                buttonColor: root.isDarkTheme ? "#959595" : "#363636"
+                onClicked: root.isAnswering ? root.cancelRequest(): root.sendChatMessage()
+                isAnswering: root.isAnswering
             }
         }
     }
@@ -139,11 +136,13 @@ ChatRootView {
             right: parent.right
             rightMargin: scroll.width
         }
+        height: 24
         spacing: 4
 
         Badge {
             id: tokens
 
+            height: bar.height
             text: qsTr("tokens:%1/%2").arg(root.chatModel.totalTokens).arg(root.chatModel.tokensThreshold)
             color: root.codeColor
             fontColor: root.primaryColor.hslLightness > 0.5 ? "black" : "white"
@@ -152,18 +151,18 @@ ChatRootView {
         QQC.Button {
             id: clearButton
 
-            height: tokens.height
+            width: 24
+            height: 24
+            display: QQC.Button.IconOnly
 
             icon {
                 source: "qrc:/ChatView/icons/clear-chat-icon.svg"
-                height: parent.height
-                width: height
                 color: "#993c3c"
             }
 
             background: Rectangle {
                 radius: 6
-                color: clearButton.pressed ? "#993c3c" : "transparent"
+                color: clearButton.pressed ? "#993c3c" : root.backgroundColor
                 border.width: 1
                 border.color: "#993c3c"
             }

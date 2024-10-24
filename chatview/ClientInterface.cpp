@@ -96,6 +96,7 @@ void ClientInterface::sendMessage(const QString &message)
 
     m_chatModel->addMessage(message, ChatModel::ChatRole::User, "");
     m_requestHandler->sendLLMRequest(config, request);
+    emit isStarted();
 }
 
 void ClientInterface::clearMessages()
@@ -108,6 +109,7 @@ void ClientInterface::cancelRequest()
 {
     auto id = m_chatModel->lastMessageId();
     m_requestHandler->cancelRequest(id);
+    emit isCompleted();
 }
 
 void ClientInterface::handleLLMResponse(const QString &response,
@@ -118,6 +120,7 @@ void ClientInterface::handleLLMResponse(const QString &response,
     m_chatModel->addMessage(response.trimmed(), ChatModel::ChatRole::Assistant, messageId);
 
     if (isComplete) {
+        emit isCompleted();
         LOG_MESSAGE("Message completed. Final response for message " + messageId + ": " + response);
     }
 }

@@ -35,6 +35,8 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(QColor primaryColor READ primaryColor CONSTANT FINAL)
     Q_PROPERTY(QColor secondaryColor READ secondaryColor CONSTANT FINAL)
     Q_PROPERTY(QColor codeColor READ codeColor CONSTANT FINAL)
+    Q_PROPERTY(bool isDarkTheme READ isDarkTheme NOTIFY isDarkThemeChanged FINAL)
+    Q_PROPERTY(bool isAnswering READ isAnswering NOTIFY isAnsweringChanged FINAL)
     QML_ELEMENT
 
 public:
@@ -46,8 +48,11 @@ public:
     QColor backgroundColor() const;
     QColor primaryColor() const;
     QColor secondaryColor() const;
-
     QColor codeColor() const;
+    bool isDarkTheme() const;
+    bool isAnswering() const;
+
+    void setIsAnswering(bool state);
 
 public slots:
     void sendMessage(const QString &message) const;
@@ -57,6 +62,8 @@ public slots:
 signals:
     void chatModelChanged();
     void currentTemplateChanged();
+    void isDarkThemeChanged();
+    void isAnsweringChanged();
 
 private:
     void generateColors();
@@ -71,6 +78,7 @@ private:
     QColor m_primaryColor;
     QColor m_secondaryColor;
     QColor m_codeColor;
+    bool m_isAnswering;
 };
 
 } // namespace QodeAssist::Chat

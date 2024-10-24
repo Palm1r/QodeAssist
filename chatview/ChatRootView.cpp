@@ -37,6 +37,14 @@ ChatRootView::ChatRootView(QQuickItem *parent)
             &Utils::BaseAspect::changed,
             this,
             &ChatRootView::currentTemplateChanged);
+
+    connect(m_clientInterface, &ClientInterface::isStarted, this, [this]() {
+        setIsAnswering(true);
+    });
+    connect(m_clientInterface, &ClientInterface::isCompleted, this, [this]() {
+        setIsAnswering(false);
+    });
+
     generateColors();
 }
 
@@ -127,6 +135,24 @@ QColor ChatRootView::secondaryColor() const
 QColor ChatRootView::codeColor() const
 {
     return m_codeColor;
+}
+
+bool ChatRootView::isDarkTheme() const
+{
+    float h, s, l, a;
+    m_primaryColor.getHslF(&h, &s, &l, &a);
+    return l < 0.5;
+}
+
+bool ChatRootView::isAnswering() const
+{
+    return m_isAnswering;
+}
+
+void ChatRootView::setIsAnswering(bool state)
+{
+    m_isAnswering = state;
+    emit isAnsweringChanged();
 }
 
 } // namespace QodeAssist::Chat
