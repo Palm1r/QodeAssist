@@ -79,49 +79,107 @@ void ChatRootView::cancelRequest()
 
 void ChatRootView::generateChunks()
 {
-
     TextEditor::BaseTextEditor *editor = TextEditor::BaseTextEditor::currentTextEditor();
-    TextEditor::TextDocument *textDocument = editor->textDocument();
-
-    auto &chunker = LLMCore::CodeChunker::instance();
-    auto chunks = chunker.splitDocument(textDocument);
-
-    qDebug() << "chunk sizes" << chunks.size();
-    for (const auto &chunk : chunks) {
-        qDebug() << "Chunk from file:" << chunk.filePath;
-        qDebug() << "Lines:" << chunk.startLine << "-" << chunk.endLine;
-        qDebug() << "Content size:" << chunk.content.length();
-        qDebug() << "Has overlap:" << !chunk.overlapContent.isEmpty();
+    if (!editor) {
+        qDebug() << "No active editor";
+        return;
     }
 
+    TextEditor::TextDocument *textDocument = editor->textDocument();
+    if (!textDocument) {
+        qDebug() << "No text document";
+        return;
+    }
+
+    // Проверяем, не устарели ли эмбеддинги
+    auto &storage = LLMCore::EmbeddingsStorage::instance();
+    // if (storage.isFileUpToDate(textDocument->filePath().toString())) {
+    //     qDebug() << "Embeddings are up to date for" << textDocument->filePath().toString();
+    //     return;
+    // }
+
+    // Разбиваем документ на чанки
+    auto &chunker = LLMCore::CodeChunker::instance();
+    auto chunks = chunker.splitDocument(textDocument);
+    qDebug() << "Generated" << chunks.size() << "chunks";
+
+    for (const auto &chunk : chunks) {
+        qDebug() << "Chunk from file:" << chunk.filePath << "Lines:" << chunk.startLine << "-"
+                 << chunk.endLine << "Content size:" << chunk.content.length()
+                 << "Has overlap:" << !chunk.overlapContent.isEmpty();
+    }
+
+    // Генерируем эмбеддинги для чанков
     auto &generator = LLMCore::EmbeddingsGenerator::instance();
 
-    // // Подключаем обработчики
+    // Сначала отключаем старые соединения, если они есть
+    disconnect(&generator, nullptr, this, nullptr);
+
+    // Подключаем обработчик для чанков кода
     connect(&generator,
             &LLMCore::EmbeddingsGenerator::embeddingGenerated,
             this,
             [](const LLMCore::CodeChunk &chunk, const QVector<float> &embedding) {
-                qDebug() << "Got embedding for chunk at lines" << chunk.startLine << "-"
+                qDebug() << "Generated embedding for chunk at lines" << chunk.startLine << "-"
                          << chunk.endLine;
-                // save and use embeding
+
+                // Сохраняем эмбеддинг
                 LLMCore::EmbeddingsStorage::instance().storeEmbedding(chunk, embedding);
             });
 
+    // Подключаем обработчик ошибок
     connect(&generator, &LLMCore::EmbeddingsGenerator::error, this, [](const QString &error) {
         qDebug() << "Embedding error:" << error;
     });
 
+    // Генерируем эмбеддинги для документа
+    generator.generateEmbeddings(chunks);
+}
+
+void ChatRootView::sendEmbeddings(const QString &query)
+{
+    auto &generator = LLMCore::EmbeddingsGenerator::instance();
+    auto &storage = LLMCore::EmbeddingsStorage::instance();
+
+    // Отключаем предыдущие соединения
+    disconnect(&generator, nullptr, this, nullptr);
+
+    // Подключаем обработчик для сообщения пользователя
     connect(&generator,
             &LLMCore::EmbeddingsGenerator::messageEmbeddingGenerated,
             this,
-            [](const QString &message, const QVector<float> &embedding) {
-                qDebug() << "Got embedding for message:" << message.left(50) << "...";
-                // Дальше используем embedding для поиска похожего кода
+            [query, &storage, this](const QString &message, const QVector<float> &embedding) {
+                qDebug() << "Generated embedding for query:" << query.left(50) << "...";
+
+                // Ищем похожий код
+                auto results = storage.findSimilarCode(embedding, 0.65f, 5);
+
+                // Формируем ответ на основе найденного кода
+                QString response;
+                for (const auto &result : results) {
+                    response += QString("%1 %2 %3 similarity:%4 %5")
+                                    .arg(result.filePath)
+                                    .arg(result.startLine)
+                                    .arg(result.endLine)
+                                    .arg(result.similarity, 0, 'f', 4)
+                                    .arg(result.content);
+                }
+
+                qDebug() << "Response:" << response;
+
+                m_clientInterface->sendMessage(message, response);
+
+                // sendMessage(query, response)
+                // Здесь можно отправить response в чат или показать пользователю
             });
 
-    // // // Запускаем генерацию
-    generator.generateEmbeddings(chunks);
-    generator.generateEmbedding("What inside in Test struct?");
+    // Подключаем обработчик ошибок
+    connect(&generator, &LLMCore::EmbeddingsGenerator::error, this, [](const QString &error) {
+        qDebug() << "Error generating embedding for query:" << error;
+    });
+
+    // Генерируем эмбеддинг для запроса
+    generator.generateEmbedding(query);
 }
 
 void ChatRootView::generateColors()

@@ -13,21 +13,32 @@
 
 namespace QodeAssist::LLMCore {
 
+struct SearchConfig
+{
+    float minSimilarity = 0.65f;      // Базовый порог
+    int maxResults = 5;               // Максимум результатов
+    bool useAdaptiveThreshold = true; // Использовать ли адаптивный порог
+    int minResultsCount = 1; // Минимальное желаемое количество результатов
+    float minAllowedThreshold = 0.55f; // Минимально допустимый порог
+    float maxAllowedThreshold = 0.80f; // Максимально допустимый порог
+    float significantGap = 0.03f;      // Что считать значимым разрывом
+};
+
+struct SearchResult
+{
+    QString content;  // Найденный код
+    QString filePath; // Путь к файлу
+    int startLine;    // Начальная строка
+    int endLine;      // Конечная строка
+    float similarity; // Степень схожести (0-1)
+};
+
 class EmbeddingsStorage : public QObject
 {
     Q_OBJECT
 
 public:
     static EmbeddingsStorage &instance();
-
-    struct SearchResult
-    {
-        QString content;  // Найденный код
-        QString filePath; // Путь к файлу
-        int startLine;    // Начальная строка
-        int endLine;      // Конечная строка
-        float similarity; // Степень схожести (0-1)
-    };
 
     // Сохранение эмбеддинга для чанка
     bool storeEmbedding(const CodeChunk &chunk, const QVector<float> &embedding);
@@ -54,7 +65,7 @@ private:
 
     void ensureDirectoriesExist() const;
     static float cosineDistance(const QVector<float> &a, const QVector<float> &b);
-
+    float calculateAdaptiveThreshold(const QVector<float> &similarities, const SearchConfig &config);
     // Директории для хранения
     QDir m_storageDir;  // Базовая директория
     QDir m_vectorsDir;  // Директория для .vec файлов

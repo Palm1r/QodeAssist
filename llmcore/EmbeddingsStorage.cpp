@@ -111,18 +111,21 @@ bool EmbeddingsStorage::storeEmbedding(const CodeChunk &chunk, const QVector<flo
     return true;
 }
 
-QVector<EmbeddingsStorage::SearchResult> EmbeddingsStorage::findSimilarCode(
-    const QVector<float> &queryEmbedding, float minSimilarity, int maxResults)
+QVector<SearchResult> EmbeddingsStorage::findSimilarCode(const QVector<float> &queryEmbedding,
+                                                         float minSimilarity,
+                                                         int maxResults)
 {
-    QVector<SearchResult> results;
-    QVector<QPair<float, QString>> candidates;
+    SearchConfig config;
+    config.minSimilarity = minSimilarity;
+    config.maxResults = maxResults;
 
-    // Читаем все векторы, имя файла уже содержит хеш
+    QVector<std::pair<SearchResult, float>> preliminaryResults;
+    QVector<float> similarities;
+
+    // Первый проход - собираем все схожести
     QDirIterator vecIt(m_vectorsDir.path(), QStringList() << "*.vec", QDir::Files);
     while (vecIt.hasNext()) {
         QString vecPath = vecIt.next();
-        QString fileName = QFileInfo(vecPath).baseName(); // Включает хеш
-
         QFile vecFile(vecPath);
         if (!vecFile.open(QIODevice::ReadOnly)) {
             continue;
@@ -132,44 +135,57 @@ QVector<EmbeddingsStorage::SearchResult> EmbeddingsStorage::findSimilarCode(
         QDataStream stream(&vecFile);
         stream >> storedEmbedding;
 
-        if (storedEmbedding.size() == queryEmbedding.size()) {
-            float similarity = cosineDistance(queryEmbedding, storedEmbedding);
-            if (similarity >= minSimilarity) {
-                candidates.append({similarity, fileName});
-            }
-        }
-    }
-
-    // Сортируем по убыванию сходства
-    std::sort(candidates.begin(), candidates.end(), [](const auto &a, const auto &b) {
-        return a.first > b.first;
-    });
-
-    // Берем top-k результатов
-    int count = qMin(maxResults, candidates.size());
-    for (int i = 0; i < count; ++i) {
-        const auto &[similarity, fileName] = candidates[i];
-
-        // Загружаем метаданные для найденных совпадений
-        QFile metaFile(m_metadataDir.filePath(fileName + ".json"));
-        if (!metaFile.open(QIODevice::ReadOnly)) {
+        if (storedEmbedding.size() != queryEmbedding.size()) {
             continue;
         }
 
-        QJsonDocument doc = QJsonDocument::fromJson(metaFile.readAll());
-        QJsonObject metadata = doc.object();
+        float similarity = cosineDistance(queryEmbedding, storedEmbedding);
+        similarities.append(similarity);
+        QString fileName = QFileInfo(vecPath).baseName();
 
-        SearchResult result;
-        result.content = metadata["content"].toString();
-        result.filePath = metadata["filePath"].toString();
-        result.startLine = metadata["startLine"].toInt();
-        result.endLine = metadata["endLine"].toInt();
-        result.similarity = similarity;
+        qDebug() << "Vector" << fileName << "similarity:" << similarity;
 
-        results.append(result);
+        // Предварительно сохраняем все результаты
+        if (similarity > config.minAllowedThreshold) {
+            QFile metaFile(m_metadataDir.filePath(fileName + ".json"));
+            if (!metaFile.open(QIODevice::ReadOnly)) {
+                continue;
+            }
 
-        qDebug() << "Found similar code in" << result.filePath << "lines" << result.startLine << "-"
-                 << result.endLine << "with similarity" << similarity;
+            QJsonDocument doc = QJsonDocument::fromJson(metaFile.readAll());
+            QJsonObject metadata = doc.object();
+
+            SearchResult result;
+            result.content = metadata["content"].toString();
+            result.filePath = metadata["filePath"].toString();
+            result.startLine = metadata["startLine"].toInt();
+            result.endLine = metadata["endLine"].toInt();
+            result.similarity = similarity;
+
+            preliminaryResults.append({result, similarity});
+        }
+    }
+
+    // Вычисляем адаптивный порог
+    float adaptiveThreshold = calculateAdaptiveThreshold(similarities, config);
+    qDebug() << "Adaptive threshold:" << adaptiveThreshold;
+
+    // Фильтруем результаты по адаптивному порогу
+    QVector<SearchResult> results;
+    for (const auto &[result, similarity] : preliminaryResults) {
+        if (similarity >= adaptiveThreshold) {
+            results.append(result);
+        }
+    }
+
+    // Сортируем по убыванию схожести
+    std::sort(results.begin(), results.end(), [](const auto &a, const auto &b) {
+        return a.similarity > b.similarity;
+    });
+
+    // Ограничиваем количество результатов
+    if (results.size() > config.maxResults) {
+        results.resize(config.maxResults);
     }
 
     return results;
@@ -225,7 +241,8 @@ void EmbeddingsStorage::clearFileEmbeddings(const QString &filePath)
 
 float EmbeddingsStorage::cosineDistance(const QVector<float> &a, const QVector<float> &b)
 {
-    if (a.size() != b.size() || a.isEmpty()) {
+    if (a.size() != b.size()) {
+        qWarning() << "Vectors have different sizes!";
         return 0.0f;
     }
 
@@ -233,22 +250,80 @@ float EmbeddingsStorage::cosineDistance(const QVector<float> &a, const QVector<f
     const float *ptrB = b.constData();
     const int size = a.size();
 
-    float dotProduct = 0.0f;
-    float normA = 0.0f;
-    float normB = 0.0f;
+    double dotProduct = 0.0;
+    double normA = 0.0;
+    double normB = 0.0;
 
     for (int i = 0; i < size; i++) {
-        dotProduct += ptrA[i] * ptrB[i];
-        normA += ptrA[i] * ptrA[i];
-        normB += ptrB[i] * ptrB[i];
+        dotProduct += static_cast<double>(ptrA[i]) * static_cast<double>(ptrB[i]);
+        normA += static_cast<double>(ptrA[i]) * static_cast<double>(ptrA[i]);
+        normB += static_cast<double>(ptrB[i]) * static_cast<double>(ptrB[i]);
     }
 
-    float denominator = std::sqrt(normA) * std::sqrt(normB);
-    if (denominator == 0) {
+    if (normA <= 1e-10 || normB <= 1e-10) {
         return 0.0f;
     }
 
-    return dotProduct / denominator;
+    // Вычисляем косинусное сходство в диапазоне [-1, 1]
+    double similarity = dotProduct / (std::sqrt(normA) * std::sqrt(normB));
+
+    // Ограничиваем значение в диапазоне [-1, 1]
+    similarity = std::max(-1.0, std::min(1.0, similarity));
+
+    // Преобразуем в диапазон [0, 1]
+    similarity = (similarity + 1.0) / 2.0;
+
+    return similarity;
+}
+
+float EmbeddingsStorage::calculateAdaptiveThreshold(const QVector<float> &similarities,
+                                                    const SearchConfig &config)
+{
+    if (similarities.isEmpty()) {
+        return config.minSimilarity;
+    }
+
+    // Сортируем значения по убыванию
+    auto sortedSims = similarities;
+    std::sort(sortedSims.begin(), sortedSims.end(), std::greater<float>());
+
+    // Если результатов меньше желаемого минимума, понижаем порог
+    if (sortedSims.size() < config.minResultsCount) {
+        return config.minAllowedThreshold;
+    }
+
+    // Ищем значительный разрыв в значениях
+    float maxGap = 0.0f;
+    int thresholdIndex = 0;
+
+    for (int i = 0; i < sortedSims.size() - 1; ++i) {
+        float gap = sortedSims[i] - sortedSims[i + 1];
+
+        // Проверяем, является ли разрыв значимым
+        if (gap > maxGap && gap > config.significantGap) {
+            maxGap = gap;
+            thresholdIndex = i;
+
+            // Если после разрыва у нас есть достаточно результатов, используем его
+            if (i + 1 >= config.minResultsCount) {
+                break;
+            }
+        }
+    }
+
+    // Вычисляем адаптивный порог
+    float adaptiveThreshold;
+    if (maxGap > config.significantGap) {
+        adaptiveThreshold = (sortedSims[thresholdIndex] + sortedSims[thresholdIndex + 1]) / 2.0f;
+    } else {
+        qsizetype index = std::min<qsizetype>(static_cast<qsizetype>(config.minResultsCount - 1),
+                                              sortedSims.size() - 1);
+        adaptiveThreshold = sortedSims[index];
+    }
+
+    // Ограничиваем порог заданными пределами
+    return std::max(std::min(adaptiveThreshold, config.maxAllowedThreshold),
+                    config.minAllowedThreshold);
 }
 
 } // namespace QodeAssist::LLMCore

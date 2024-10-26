@@ -36,7 +36,7 @@ public:
     explicit ClientInterface(ChatModel *chatModel, QObject *parent = nullptr);
     ~ClientInterface();
 
-    void sendMessage(const QString &message);
+    void sendMessage(const QString &message, const QString &embeddings = {});
     void clearMessages();
     void cancelRequest();
 

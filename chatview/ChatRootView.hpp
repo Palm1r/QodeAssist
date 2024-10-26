@@ -59,6 +59,7 @@ public slots:
     void copyToClipboard(const QString &text);
     void cancelRequest();
     void generateChunks();
+    void sendEmbeddings(const QString &query);
 
 signals:
     void chatModelChanged();

@@ -152,11 +152,14 @@ QList<MessagePart> ChatModel::processMessageContent(const QString &content) cons
     return parts;
 }
 
-QJsonArray ChatModel::prepareMessagesForRequest(LLMCore::ContextData context) const
+QJsonArray ChatModel::prepareMessagesForRequest(LLMCore::ContextData context,
+                                                const QString &embedding) const
 {
     QJsonArray messages;
 
-    messages.append(QJsonObject{{"role", "system"}, {"content", context.systemPrompt}});
+    QString fullSystemPrompt = QString("%1 Relevant code:%2").arg(context.systemPrompt, embedding);
+
+    messages.append(QJsonObject{{"role", "system"}, {"content", fullSystemPrompt}});
 
     for (const auto &message : m_messages) {
         QString role;

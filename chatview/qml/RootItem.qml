@@ -131,6 +131,15 @@ ChatRootView {
                 text: "Generate chunks"
                 onClicked: root.generateChunks()
             }
+
+            Button {
+                text: "Ask with embedding"
+                onClicked: {
+                    root.sendEmbeddings(messageInput.text)
+                    messageInput.text = ""
+                    scrollToBottom()
+                }
+            }
         }
     }
 

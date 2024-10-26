@@ -54,11 +54,12 @@ ClientInterface::ClientInterface(ChatModel *chatModel, QObject *parent)
 
 ClientInterface::~ClientInterface() = default;
 
-void ClientInterface::sendMessage(const QString &message)
+void ClientInterface::sendMessage(const QString &message, const QString &embeddings)
 {
     cancelRequest();
 
     LOG_MESSAGE("Sending message: " + message);
+    LOG_MESSAGE("Embedding: " + embeddings);
     LOG_MESSAGE("chatProvider " + Settings::generalSettings().chatLlmProviders.stringValue());
     LOG_MESSAGE("chatTemplate " + Settings::generalSettings().chatPrompts.stringValue());
 
@@ -66,7 +67,7 @@ void ClientInterface::sendMessage(const QString &message)
     auto chatProvider = LLMCore::ProvidersManager::instance().getCurrentChatProvider();
 
     LLMCore::ContextData context;
-    context.prefix = message;
+    context.prefix = message; //QString("%1 %2").arg(message, embeddings);
     context.suffix = "";
     if (Settings::contextSettings().useChatSystemPrompt())
         context.systemPrompt = Settings::contextSettings().chatSystemPrompt();
@@ -74,7 +75,7 @@ void ClientInterface::sendMessage(const QString &message)
     QJsonObject providerRequest;
     providerRequest["model"] = Settings::generalSettings().chatModelName();
     providerRequest["stream"] = true;
-    providerRequest["messages"] = m_chatModel->prepareMessagesForRequest(context);
+    providerRequest["messages"] = m_chatModel->prepareMessagesForRequest(context, embeddings);
 
     if (!chatTemplate || !chatProvider) {
         LOG_MESSAGE("Check settings, provider or template are not set");

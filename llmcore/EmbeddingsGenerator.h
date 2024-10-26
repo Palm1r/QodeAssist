@@ -42,7 +42,7 @@ private:
     QJsonObject prepareRequest(const QString &content) const;
     QJsonObject prepareMessageRequest(const QString &message) const;
 
-    static constexpr const char *MODEL_NAME = "starcoder2:7b";
+    static constexpr const char *MODEL_NAME = "starcoder2:7b"; //"all-minilm"; //"starcoder2:7b";
     static constexpr const char *BASE_URL = "http://localhost:11434";
     static constexpr const char *ENDPOINT = "/api/embeddings";
     // Специальный промпт для преобразования вопроса в эмбеддинг, совместимый с кодом
