@@ -7,7 +7,9 @@ add_library(LLMCore STATIC
     PromptTemplateManager.hpp PromptTemplateManager.cpp
     RequestConfig.hpp
     RequestHandler.hpp RequestHandler.cpp
-    ChunkGenerator.h ChunkGenerator.cpp
+    CodeChunker.h CodeChunker.cpp
+    EmbeddingsGenerator.h EmbeddingsGenerator.cpp
+    EmbeddingsStorage.hpp EmbeddingsStorage.cpp
 )
 
 target_link_libraries(LLMCore

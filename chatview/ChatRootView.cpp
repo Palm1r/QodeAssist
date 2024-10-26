@@ -23,6 +23,9 @@
 #include <utils/theme/theme.h>
 #include <utils/utilsicons.h>
 
+#include "CodeChunker.h"
+#include "EmbeddingsGenerator.h"
+#include "EmbeddingsStorage.hpp"
 #include "GeneralSettings.hpp"
 
 namespace QodeAssist::Chat {
@@ -76,9 +79,6 @@ void ChatRootView::cancelRequest()
 
 void ChatRootView::generateChunks()
 {
-    // TextEditor::TextDocument *textDocument = TextEditor::TextDocument::textDocumentForFilePath(
-    //     Utils::FilePath::fromString("/Users/palm1r/Projects/QodeAssist/logger/Logger.cpp"));
-    // auto textEditor = BaseTextEditor::currentTextEditor();
 
     TextEditor::BaseTextEditor *editor = TextEditor::BaseTextEditor::currentTextEditor();
     TextEditor::TextDocument *textDocument = editor->textDocument();
@@ -93,6 +93,35 @@ void ChatRootView::generateChunks()
         qDebug() << "Content size:" << chunk.content.length();
         qDebug() << "Has overlap:" << !chunk.overlapContent.isEmpty();
     }
+
+    auto &generator = LLMCore::EmbeddingsGenerator::instance();
+
+    // // Подключаем обработчики
+    connect(&generator,
+            &LLMCore::EmbeddingsGenerator::embeddingGenerated,
+            this,
+            [](const LLMCore::CodeChunk &chunk, const QVector<float> &embedding) {
+                qDebug() << "Got embedding for chunk at lines" << chunk.startLine << "-"
+                         << chunk.endLine;
+                // save and use embeding
+                LLMCore::EmbeddingsStorage::instance().storeEmbedding(chunk, embedding);
+            });
+
+    connect(&generator, &LLMCore::EmbeddingsGenerator::error, this, [](const QString &error) {
+        qDebug() << "Embedding error:" << error;
+    });
+
+    connect(&generator,
+            &LLMCore::EmbeddingsGenerator::messageEmbeddingGenerated,
+            this,
+            [](const QString &message, const QVector<float> &embedding) {
+                qDebug() << "Got embedding for message:" << message.left(50) << "...";
+                // Дальше используем embedding для поиска похожего кода
+            });
+
+    // // // Запускаем генерацию
+    generator.generateEmbeddings(chunks);
+    generator.generateEmbedding("What inside in Test struct?");
 }
 
 void ChatRootView::generateColors()

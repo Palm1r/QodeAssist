@@ -22,7 +22,6 @@
 #include <QQuickItem>
 
 #include "ChatModel.hpp"
-#include "ChunkGenerator.h"
 #include "ClientInterface.hpp"
 
 namespace QodeAssist::Chat {

@@ -1,4 +1,4 @@
-#include "ChunkGenerator.h"
+#include "CodeChunker.h"
 
 #include "Logger.hpp"
 
@@ -99,8 +99,7 @@ QVector<CodeChunk> CodeChunker::splitDocument(TextEditor::TextDocument *document
         qDebug() << "Chunk" << i + 1 << ":"
                  << "lines" << chunk.startLine << "-" << chunk.endLine
                  << "main content size:" << chunk.content.length()
-                 << "overlap content size:" << chunk.overlapContent.length() << "content"
-                 << chunk.overlapContent;
+                 << "overlap content size:" << chunk.overlapContent.length();
     }
 
     return chunks;
