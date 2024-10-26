@@ -19,6 +19,7 @@
 
 #include "ChatRootView.hpp"
 #include <QtGui/qclipboard.h>
+#include <texteditor/texteditor.h>
 #include <utils/theme/theme.h>
 #include <utils/utilsicons.h>
 
@@ -71,6 +72,27 @@ void ChatRootView::copyToClipboard(const QString &text)
 void ChatRootView::cancelRequest()
 {
     m_clientInterface->cancelRequest();
+}
+
+void ChatRootView::generateChunks()
+{
+    // TextEditor::TextDocument *textDocument = TextEditor::TextDocument::textDocumentForFilePath(
+    //     Utils::FilePath::fromString("/Users/palm1r/Projects/QodeAssist/logger/Logger.cpp"));
+    // auto textEditor = BaseTextEditor::currentTextEditor();
+
+    TextEditor::BaseTextEditor *editor = TextEditor::BaseTextEditor::currentTextEditor();
+    TextEditor::TextDocument *textDocument = editor->textDocument();
+
+    auto &chunker = LLMCore::CodeChunker::instance();
+    auto chunks = chunker.splitDocument(textDocument);
+
+    qDebug() << "chunk sizes" << chunks.size();
+    for (const auto &chunk : chunks) {
+        qDebug() << "Chunk from file:" << chunk.filePath;
+        qDebug() << "Lines:" << chunk.startLine << "-" << chunk.endLine;
+        qDebug() << "Content size:" << chunk.content.length();
+        qDebug() << "Has overlap:" << !chunk.overlapContent.isEmpty();
+    }
 }
 
 void ChatRootView::generateColors()

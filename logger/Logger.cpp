@@ -1,4 +1,5 @@
 #include "Logger.hpp"
+#include <QtCore/qdebug.h>
 #include <coreplugin/messagemanager.h>
 
 namespace QodeAssist {
@@ -29,11 +30,7 @@ void Logger::log(const QString &message, bool silent)
         return;
 
     const QString prefixedMessage = QLatin1String("[Qode Assist] ") + message;
-    if (silent) {
-        Core::MessageManager::writeSilently(prefixedMessage);
-    } else {
-        Core::MessageManager::writeFlashing(prefixedMessage);
-    }
+    qDebug() << prefixedMessage;
 }
 
 void Logger::logMessages(const QStringList &messages, bool silent)
@@ -46,10 +43,6 @@ void Logger::logMessages(const QStringList &messages, bool silent)
         prefixedMessages << (QLatin1String("[Qode Assist] ") + message);
     }
 
-    if (silent) {
-        Core::MessageManager::writeSilently(prefixedMessages);
-    } else {
-        Core::MessageManager::writeFlashing(prefixedMessages);
-    }
+    qDebug() << prefixedMessages;
 }
 } // namespace QodeAssist

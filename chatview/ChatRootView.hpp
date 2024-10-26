@@ -22,6 +22,7 @@
 #include <QQuickItem>
 
 #include "ChatModel.hpp"
+#include "ChunkGenerator.h"
 #include "ClientInterface.hpp"
 
 namespace QodeAssist::Chat {
@@ -58,6 +59,7 @@ public slots:
     void sendMessage(const QString &message) const;
     void copyToClipboard(const QString &text);
     void cancelRequest();
+    void generateChunks();
 
 signals:
     void chatModelChanged();

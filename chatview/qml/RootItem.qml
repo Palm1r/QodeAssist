@@ -126,6 +126,11 @@ ChatRootView {
                 onClicked: root.isAnswering ? root.cancelRequest(): root.sendChatMessage()
                 isAnswering: root.isAnswering
             }
+
+            Button {
+                text: "Generate chunks"
+                onClicked: root.generateChunks()
+            }
         }
     }
 

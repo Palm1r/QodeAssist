@@ -7,6 +7,7 @@ add_library(LLMCore STATIC
     PromptTemplateManager.hpp PromptTemplateManager.cpp
     RequestConfig.hpp
     RequestHandler.hpp RequestHandler.cpp
+    ChunkGenerator.h ChunkGenerator.cpp
 )
 
 target_link_libraries(LLMCore
