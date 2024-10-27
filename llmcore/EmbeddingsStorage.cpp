@@ -287,43 +287,31 @@ float EmbeddingsStorage::calculateAdaptiveThreshold(const QVector<float> &simila
     auto sortedSims = similarities;
     std::sort(sortedSims.begin(), sortedSims.end(), std::greater<float>());
 
-    // Если результатов меньше желаемого минимума, понижаем порог
-    if (sortedSims.size() < config.minResultsCount) {
-        return config.minAllowedThreshold;
-    }
+    const float SIGNIFICANT_GAP = 0.02f; // Значимый разрыв между значениями
+    const int CLUSTER_SIZE = 3; // Размер кластера "близких" результатов
 
-    // Ищем значительный разрыв в значениях
-    float maxGap = 0.0f;
-    int thresholdIndex = 0;
-
-    for (int i = 0; i < sortedSims.size() - 1; ++i) {
+    // Проверяем первые элементы на наличие кластера или значимого разрыва
+    for (int i = 0; i < std::min<qsizetype>(CLUSTER_SIZE - 1, sortedSims.size() - 1); ++i) {
         float gap = sortedSims[i] - sortedSims[i + 1];
 
-        // Проверяем, является ли разрыв значимым
-        if (gap > maxGap && gap > config.significantGap) {
-            maxGap = gap;
-            thresholdIndex = i;
-
-            // Если после разрыва у нас есть достаточно результатов, используем его
-            if (i + 1 >= config.minResultsCount) {
-                break;
-            }
+        // Если нашли значимый разрыв, возвращаем порог по текущей позиции
+        if (gap > SIGNIFICANT_GAP) {
+            return sortedSims[i + 1]; // Используем нижнюю границу разрыва как порог
         }
     }
 
-    // Вычисляем адаптивный порог
-    float adaptiveThreshold;
-    if (maxGap > config.significantGap) {
-        adaptiveThreshold = (sortedSims[thresholdIndex] + sortedSims[thresholdIndex + 1]) / 2.0f;
-    } else {
-        qsizetype index = std::min<qsizetype>(static_cast<qsizetype>(config.minResultsCount - 1),
-                                              sortedSims.size() - 1);
-        adaptiveThreshold = sortedSims[index];
+    // Если дошли сюда и есть хотя бы CLUSTER_SIZE элементов в кластере
+    if (sortedSims.size() >= CLUSTER_SIZE) {
+        float clusterGap = sortedSims[0] - sortedSims[CLUSTER_SIZE - 1];
+
+        // Если элементы достаточно близки (образуют кластер)
+        if (clusterGap < SIGNIFICANT_GAP * (CLUSTER_SIZE - 1)) {
+            return sortedSims[CLUSTER_SIZE - 1]; // Берём последний элемент кластера
+        }
     }
 
-    // Ограничиваем порог заданными пределами
-    return std::max(std::min(adaptiveThreshold, config.maxAllowedThreshold),
-                    config.minAllowedThreshold);
+    // Если не нашли ни кластер, ни значимый разрыв, берём только лучший результат
+    return sortedSims[0] - SIGNIFICANT_GAP;
 }
 
 } // namespace QodeAssist::LLMCore

@@ -69,6 +69,7 @@ void OllamaProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType t
         options["frequency_penalty"] = settings.frequencyPenalty;
     if (settings.usePresencePenalty)
         options["presence_penalty"] = settings.presencePenalty;
+    options["num_ctx"] = 2048;
     request["options"] = options;
     request["keep_alive"] = settings.ollamaLivetime;
 }

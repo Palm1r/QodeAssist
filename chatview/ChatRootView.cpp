@@ -157,7 +157,8 @@ void ChatRootView::sendEmbeddings(const QString &query)
                 // Формируем ответ на основе найденного кода
                 QString response;
                 for (const auto &result : results) {
-                    response += QString("%1 %2 %3 similarity:%4 %5")
+                    response += QString(
+                                    "filepath:%1 startLine:%2 endLine:%3 similarity:%4 content:%5")
                                     .arg(result.filePath)
                                     .arg(result.startLine)
                                     .arg(result.endLine)
