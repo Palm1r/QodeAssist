@@ -23,6 +23,10 @@
 
 #include "SettingsUtils.hpp"
 
+namespace ProjectExplorer {
+class Project;
+}
+
 namespace QodeAssist::LLMCore {
 class Provider;
 }
@@ -81,5 +85,19 @@ private:
 };
 
 GeneralSettings &generalSettings();
+
+class QodeAssistProjectSettings : public Utils::AspectContainer
+{
+public:
+    explicit QodeAssistProjectSettings(ProjectExplorer::Project *project);
+
+    void save(ProjectExplorer::Project *project);
+    void setUseGlobalSettings(bool useGlobal);
+
+    bool isEnabled() const;
+
+    Utils::BoolAspect enableQodeAssist{this};
+    Utils::BoolAspect useGlobalSettings{this};
+};
 
 } // namespace QodeAssist::Settings

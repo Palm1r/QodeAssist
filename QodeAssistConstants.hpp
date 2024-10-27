@@ -26,4 +26,6 @@ const char MENU_ID[] = "QodeAssist.Menu";
 
 const char QODE_ASSIST_REQUEST_SUGGESTION[] = "QodeAssist.RequestSuggestion";
 
+const char QODE_ASSIST_PROJECT_SETTINGS_OPTIONS_ID[] = "QodeAssist.ProjectSettings";
+
 } // namespace QodeAssist::Constants

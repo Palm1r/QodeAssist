@@ -55,6 +55,7 @@ add_qtc_plugin(QodeAssist
     core/ChangesManager.h core/ChangesManager.cpp
     chat/ChatOutputPane.h chat/ChatOutputPane.cpp
     chat/NavigationPanel.hpp chat/NavigationPanel.cpp
+    QodeAssistProjectPanel.hpp QodeAssistProjectPanel.cpp
 )
 
 target_link_libraries(QodeAssist PRIVATE QodeAssistChatViewplugin)

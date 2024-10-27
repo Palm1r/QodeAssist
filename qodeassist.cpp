@@ -18,6 +18,7 @@
  */
 
 #include "QodeAssistConstants.hpp"
+#include "QodeAssistProjectPanel.hpp"
 #include "QodeAssisttr.h"
 
 #include <coreplugin/actionmanager/actioncontainer.h>
@@ -125,6 +126,8 @@ public:
 
         m_chatOutputPane = new Chat::ChatOutputPane(this);
         m_navigationPanel = new Chat::NavigationPanel();
+
+        initQodeAssistProjectSettings();
     }
 
     void extensionsInitialized() final

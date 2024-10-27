@@ -227,7 +227,11 @@ void QodeAssistClient::cancelRunningRequest(TextEditor::TextEditorWidget *editor
 
 bool QodeAssistClient::isEnabled(ProjectExplorer::Project *project) const
 {
-    return Settings::generalSettings().enableQodeAssist();
+    if (!project)
+        return Settings::generalSettings().enableQodeAssist();
+
+    Settings::QodeAssistProjectSettings settings(project);
+    return settings.isEnabled();
 }
 
 void QodeAssistClient::setupConnections()

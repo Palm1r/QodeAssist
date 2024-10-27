@@ -23,6 +23,7 @@
 #include <QMessageBox>
 #include <coreplugin/dialogs/ioptionspage.h>
 #include <coreplugin/icore.h>
+#include <projectexplorer/project.h>
 #include <utils/layoutbuilder.h>
 #include <utils/utilsicons.h>
 
@@ -34,6 +35,13 @@
 #include "SettingsUtils.hpp"
 
 namespace QodeAssist::Settings {
+
+static void initQodeAssistAspect(Utils::BoolAspect &enableQodeAssist)
+{
+    enableQodeAssist.setSettingsKey(Constants::ENABLE_QODE_ASSIST);
+    enableQodeAssist.setLabelText(Tr::tr("Enable Qode Assist"));
+    enableQodeAssist.setDefaultValue(true);
+}
 
 GeneralSettings &generalSettings()
 {
@@ -47,9 +55,7 @@ GeneralSettings::GeneralSettings()
 
     setDisplayName(Tr::tr("General"));
 
-    enableQodeAssist.setSettingsKey(Constants::ENABLE_QODE_ASSIST);
-    enableQodeAssist.setLabelText(Tr::tr("Enable Qode Assist"));
-    enableQodeAssist.setDefaultValue(true);
+    initQodeAssistAspect(enableQodeAssist);
 
     enableAutoComplete.setSettingsKey(Constants::ENABLE_AUTO_COMPLETE);
     enableAutoComplete.setLabelText(Tr::tr("Enable Auto Complete"));
@@ -397,6 +403,48 @@ public:
         setSettingsProvider([] { return &generalSettings(); });
     }
 };
+
+QodeAssistProjectSettings::QodeAssistProjectSettings(ProjectExplorer::Project *project)
+{
+    setAutoApply(true);
+
+    useGlobalSettings.setSettingsKey(Constants::QODE_ASSIST_USE_GLOBAL_SETTINGS);
+    useGlobalSettings.setDefaultValue(true);
+
+    initQodeAssistAspect(enableQodeAssist);
+
+    Utils::Store map = Utils::storeFromVariant(
+        project->namedSettings(Constants::QODE_ASSIST_PROJECT_SETTINGS_ID));
+    fromMap(map);
+
+    connect(&enableQodeAssist, &Utils::BaseAspect::changed, this, [this, project]() {
+        save(project);
+    });
+    connect(&useGlobalSettings, &Utils::BaseAspect::changed, this, [this, project]() {
+        save(project);
+    });
+}
+
+void QodeAssistProjectSettings::save(ProjectExplorer::Project *project)
+{
+    Utils::Store map;
+    toMap(map);
+    project->setNamedSettings(Constants::QODE_ASSIST_PROJECT_SETTINGS_ID, variantFromStore(map));
+
+    generalSettings().apply();
+}
+
+void QodeAssistProjectSettings::setUseGlobalSettings(bool useGlobal)
+{
+    useGlobalSettings.setValue(useGlobal);
+}
+
+bool QodeAssistProjectSettings::isEnabled() const
+{
+    if (useGlobalSettings())
+        return generalSettings().enableQodeAssist();
+    return enableQodeAssist();
+}
 
 const GeneralSettingsPage generalSettingsPage;
 
