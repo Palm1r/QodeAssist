@@ -98,6 +98,7 @@ public:
 
     Utils::BoolAspect enableQodeAssist{this};
     Utils::BoolAspect useGlobalSettings{this};
+    Utils::StringAspect embeddingStoragePath{this};
 };
 
 } // namespace QodeAssist::Settings

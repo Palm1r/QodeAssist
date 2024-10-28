@@ -10,6 +10,7 @@ add_library(LLMCore STATIC
     CodeChunker.h CodeChunker.cpp
     EmbeddingsGenerator.h EmbeddingsGenerator.cpp
     EmbeddingsStorage.hpp EmbeddingsStorage.cpp
+    EmbeddingsManager.h EmbeddingsManager.cpp
 )
 
 target_link_libraries(LLMCore

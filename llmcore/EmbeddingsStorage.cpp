@@ -1,3 +1,22 @@
+/* 
+ * Copyright (C) 2024 Petr Mironychev
+ *
+ * This file is part of QodeAssist.
+ *
+ * QodeAssist is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * QodeAssist is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "EmbeddingsStorage.hpp"
 #include "Logger.hpp"
 
@@ -18,13 +37,23 @@ EmbeddingsStorage &EmbeddingsStorage::instance()
 EmbeddingsStorage::EmbeddingsStorage(QObject *parent)
     : QObject(parent)
 {
-    QString basePath = QString("/Users/palm1r/Projects/TestEmbeding") + "/embeddings";
+    // QString basePath = QString("/Users/palm1r/Projects/TestEmbeding") + "/embeddings";
 
-    m_storageDir.setPath(basePath);
-    m_vectorsDir.setPath(basePath + "/vectors");
-    m_metadataDir.setPath(basePath + "/metadata");
+    // m_storageDir.setPath(basePath);
+    // m_vectorsDir.setPath(basePath + "/vectors");
+    // m_metadataDir.setPath(basePath + "/metadata");
+
+    // ensureDirectoriesExist();
+}
+
+void EmbeddingsStorage::setStoragePath(const QString &path)
+{
+    m_storageDir.setPath(path);
+    m_vectorsDir.setPath(path + "/vectors");
+    m_metadataDir.setPath(path + "/metadata");
 
     ensureDirectoriesExist();
+    LOG_MESSAGE(QString("Storage path set to: %1").arg(path));
 }
 
 void EmbeddingsStorage::ensureDirectoriesExist() const
@@ -231,7 +260,6 @@ void EmbeddingsStorage::clearFileEmbeddings(const QString &filePath)
         QFile metaFile(it.next());
         QString fileName = QFileInfo(metaFile).baseName();
 
-        // Удаляем оба файла
         QFile::remove(generateStoragePath(fileName, false)); // .vec
         metaFile.remove();                                   // .json
 
@@ -264,13 +292,8 @@ float EmbeddingsStorage::cosineDistance(const QVector<float> &a, const QVector<f
         return 0.0f;
     }
 
-    // Вычисляем косинусное сходство в диапазоне [-1, 1]
     double similarity = dotProduct / (std::sqrt(normA) * std::sqrt(normB));
-
-    // Ограничиваем значение в диапазоне [-1, 1]
     similarity = std::max(-1.0, std::min(1.0, similarity));
-
-    // Преобразуем в диапазон [0, 1]
     similarity = (similarity + 1.0) / 2.0;
 
     return similarity;

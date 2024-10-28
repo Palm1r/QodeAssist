@@ -48,7 +48,7 @@ private:
     void initializeLayout()
     {
         using namespace Layouting;
-        Column{m_settings->enableQodeAssist}.attachTo(this);
+        Column{m_settings->enableQodeAssist, Row{m_settings->embeddingStoragePath}}.attachTo(this);
     }
 
     Settings::QodeAssistProjectSettings *m_settings;

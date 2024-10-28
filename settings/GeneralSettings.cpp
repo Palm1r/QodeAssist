@@ -413,6 +413,10 @@ QodeAssistProjectSettings::QodeAssistProjectSettings(ProjectExplorer::Project *p
 
     initQodeAssistAspect(enableQodeAssist);
 
+    embeddingStoragePath.setSettingsKey(Constants::QODE_ASSIST_EMBEDDDING_STORAGE_PATH);
+    embeddingStoragePath.setLabelText(Tr::tr("Embedding Storage Path:"));
+    embeddingStoragePath.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+
     Utils::Store map = Utils::storeFromVariant(
         project->namedSettings(Constants::QODE_ASSIST_PROJECT_SETTINGS_ID));
     fromMap(map);
@@ -421,6 +425,9 @@ QodeAssistProjectSettings::QodeAssistProjectSettings(ProjectExplorer::Project *p
         save(project);
     });
     connect(&useGlobalSettings, &Utils::BaseAspect::changed, this, [this, project]() {
+        save(project);
+    });
+    connect(&embeddingStoragePath, &Utils::BaseAspect::changed, this, [this, project]() {
         save(project);
     });
 }

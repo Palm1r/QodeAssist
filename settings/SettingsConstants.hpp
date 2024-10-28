@@ -58,10 +58,8 @@ const char QODE_ASSIST_CUSTOM_PROMPT_SETTINGS_PAGE_ID[] = "QodeAssist.4CustomPro
 
 const char QODE_ASSIST_GENERAL_OPTIONS_CATEGORY[] = "QodeAssist.Category";
 const char QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY[] = "Qode Assist";
-const char QODE_ASSIST_PROJECT_SETTINGS_ID[] = "QodeAssist.Project.Settings";
 
 const char QODE_ASSIST_REQUEST_SUGGESTION[] = "QodeAssist.RequestSuggestion";
-const char QODE_ASSIST_USE_GLOBAL_SETTINGS[] = "QodeAssist.useGlobalSettings";
 
 // context settings
 const char READ_FULL_FILE[] = "QodeAssist.readFullFile";
@@ -100,5 +98,10 @@ const char CHAT_USE_FREQUENCY_PENALTY[] = "QodeAssist.chatUseFrequencyPenalty";
 const char CHAT_FREQUENCY_PENALTY[] = "QodeAssist.chatFrequencyPenalty";
 const char CHAT_OLLAMA_LIVETIME[] = "QodeAssist.chatOllamaLivetime";
 const char CHAT_API_KEY[] = "QodeAssist.chatApiKey";
+
+// project settings
+const char QODE_ASSIST_PROJECT_SETTINGS_ID[] = "QodeAssist.Project.Settings";
+const char QODE_ASSIST_USE_GLOBAL_SETTINGS[] = "QodeAssist.useGlobalSettings";
+const char QODE_ASSIST_EMBEDDDING_STORAGE_PATH[] = "QodeAssist.embeddingStoragePath";
 
 } // namespace QodeAssist::Constants
