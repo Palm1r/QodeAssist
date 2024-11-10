@@ -26,13 +26,11 @@
 #include <llmcore/RequestConfig.hpp>
 #include <texteditor/textdocument.h>
 
-#include "ConfigurationManager.hpp"
 #include "DocumentContextReader.hpp"
 #include "llmcore/PromptTemplateManager.hpp"
 #include "llmcore/ProvidersManager.hpp"
 #include "logger/Logger.hpp"
 #include "settings/CodeCompletionSettings.hpp"
-#include "settings/ContextSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 
 namespace QodeAssist {

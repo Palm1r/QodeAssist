@@ -51,6 +51,27 @@ CodeCompletionSettings::CodeCompletionSettings()
     multiLineCompletion.setDefaultValue(false);
     multiLineCompletion.setLabelText(Tr::tr("Enable Multiline Completion(experimental)"));
 
+    startSuggestionTimer.setSettingsKey(Constants::СС_START_SUGGESTION_TIMER);
+    startSuggestionTimer.setLabelText(Tr::tr("with delay(ms)"));
+    startSuggestionTimer.setRange(10, 10000);
+    startSuggestionTimer.setDefaultValue(500);
+
+    autoCompletionCharThreshold.setSettingsKey(Constants::СС_AUTO_COMPLETION_CHAR_THRESHOLD);
+    autoCompletionCharThreshold.setLabelText(Tr::tr("AI suggestion triggers after typing"));
+    autoCompletionCharThreshold.setToolTip(
+        Tr::tr("The number of characters that need to be typed within the typing interval "
+               "before an AI suggestion request is sent."));
+    autoCompletionCharThreshold.setRange(0, 10);
+    autoCompletionCharThreshold.setDefaultValue(0);
+
+    autoCompletionTypingInterval.setSettingsKey(Constants::СС_AUTO_COMPLETION_TYPING_INTERVAL);
+    autoCompletionTypingInterval.setLabelText(Tr::tr("character(s) within(ms)"));
+    autoCompletionTypingInterval.setToolTip(
+        Tr::tr("The time window (in milliseconds) during which the character threshold "
+               "must be met to trigger an AI suggestion request."));
+    autoCompletionTypingInterval.setRange(500, 5000);
+    autoCompletionTypingInterval.setDefaultValue(2000);
+
     // General Parameters Settings
     temperature.setSettingsKey(Constants::CC_TEMPERATURE);
     temperature.setLabelText(Tr::tr("Temperature:"));
@@ -136,7 +157,7 @@ CodeCompletionSettings::CodeCompletionSettings()
 
     maxChangesCacheSize.setSettingsKey(Constants::CC_MAX_CHANGES_CACHE_SIZE);
     maxChangesCacheSize.setRange(2, 1000);
-    maxChangesCacheSize.setDefaultValue(20);
+    maxChangesCacheSize.setDefaultValue(10);
 
     // Ollama Settings
     ollamaLivetime.setSettingsKey(Constants::CC_OLLAMA_LIVETIME);
@@ -196,11 +217,13 @@ CodeCompletionSettings::CodeCompletionSettings()
         return Column{Row{Stretch{1}, resetToDefaults},
                       Space{8},
                       Group{title(Tr::tr("Auto Completion Settings")),
-                            Column{
-                                autoCompletion,
-                                Space{8},
-                                multiLineCompletion,
-                            }},
+                            Column{autoCompletion,
+                                   Space{8},
+                                   multiLineCompletion,
+                                   Row{autoCompletionCharThreshold,
+                                       autoCompletionTypingInterval,
+                                       startSuggestionTimer,
+                                       Stretch{1}}}},
                       Space{8},
                       Group{title(Tr::tr("General Parameters")),
                             Column{

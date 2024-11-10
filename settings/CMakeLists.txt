@@ -1,8 +1,6 @@
 add_library(QodeAssistSettings STATIC
     GeneralSettings.hpp GeneralSettings.cpp
-    ContextSettings.hpp ContextSettings.cpp
     CustomPromptSettings.hpp CustomPromptSettings.cpp
-    PresetPromptsSettings.hpp PresetPromptsSettings.cpp
     SettingsUtils.hpp
     SettingsConstants.hpp
     ButtonAspect.hpp

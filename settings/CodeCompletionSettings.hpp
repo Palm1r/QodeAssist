@@ -36,6 +36,10 @@ public:
     Utils::BoolAspect autoCompletion{this};
     Utils::BoolAspect multiLineCompletion{this};
 
+    Utils::IntegerAspect startSuggestionTimer{this};
+    Utils::IntegerAspect autoCompletionCharThreshold{this};
+    Utils::IntegerAspect autoCompletionTypingInterval{this};
+
     // General Parameters Settings
     Utils::DoubleAspect temperature{this};
     Utils::IntegerAspect maxTokens{this};

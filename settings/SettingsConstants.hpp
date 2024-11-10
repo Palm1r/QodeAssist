@@ -27,22 +27,26 @@ const char MENU_ID[] = "QodeAssist.Menu";
 // new settings
 const char CC_PROVIDER[] = "QodeAssist.ccProvider";
 const char CC_MODEL[] = "QodeAssist.ccModel";
+const char CC_MODEL_HISTORY[] = "QodeAssist.ccModelHistory";
 const char CC_TEMPLATE[] = "QodeAssist.ccTemplate";
 const char CC_URL[] = "QodeAssist.ccUrl";
+const char CC_URL_HISTORY[] = "QodeAssist.ccUrlHistory";
 
 const char CA_PROVIDER[] = "QodeAssist.caProvider";
 const char CA_MODEL[] = "QodeAssist.caModel";
+const char CA_MODEL_HISTORY[] = "QodeAssist.caModelHistory";
 const char CA_TEMPLATE[] = "QodeAssist.caTemplate";
 const char CA_URL[] = "QodeAssist.caUrl";
+const char CA_URL_HISTORY[] = "QodeAssist.caUrlHistory";
 
 // settings
 const char ENABLE_QODE_ASSIST[] = "QodeAssist.enableQodeAssist";
 const char CC_AUTO_COMPLETION[] = "QodeAssist.ccAutoCompletion";
 const char ENABLE_LOGGING[] = "QodeAssist.enableLogging";
 const char PROVIDER_PATHS[] = "QodeAssist.providerPaths";
-const char START_SUGGESTION_TIMER[] = "QodeAssist.startSuggestionTimer";
-const char AUTO_COMPLETION_CHAR_THRESHOLD[] = "QodeAssist.autoCompletionCharThreshold";
-const char AUTO_COMPLETION_TYPING_INTERVAL[] = "QodeAssist.autoCompletionTypingInterval";
+const char СС_START_SUGGESTION_TIMER[] = "QodeAssist.startSuggestionTimer";
+const char СС_AUTO_COMPLETION_CHAR_THRESHOLD[] = "QodeAssist.autoCompletionCharThreshold";
+const char СС_AUTO_COMPLETION_TYPING_INTERVAL[] = "QodeAssist.autoCompletionTypingInterval";
 const char MAX_FILE_THRESHOLD[] = "QodeAssist.maxFileThreshold";
 const char CC_MULTILINE_COMPLETION[] = "QodeAssist.ccMultilineCompletion";
 const char CUSTOM_JSON_TEMPLATE[] = "QodeAssist.customJsonTemplate";
@@ -54,10 +58,7 @@ const char QODE_ASSIST_CODE_COMPLETION_SETTINGS_PAGE_ID[]
     = "QodeAssist.2CodeCompletionSettingsPageId";
 const char QODE_ASSIST_CHAT_ASSISTANT_SETTINGS_PAGE_ID[]
     = "QodeAssist.3ChatAssistantSettingsPageId";
-const char QODE_ASSIST_CONTEXT_SETTINGS_PAGE_ID[] = "QodeAssist.4ContextSettingsPageId";
-const char QODE_ASSIST_PRESET_PROMPTS_SETTINGS_PAGE_ID[]
-    = "QodeAssist.5PresetPromptsSettingsPageId";
-const char QODE_ASSIST_CUSTOM_PROMPT_SETTINGS_PAGE_ID[] = "QodeAssist.6CustomPromptSettingsPageId";
+const char QODE_ASSIST_CUSTOM_PROMPT_SETTINGS_PAGE_ID[] = "QodeAssist.4CustomPromptSettingsPageId";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_CATEGORY[] = "QodeAssist.Category";
 const char QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY[] = "Qode Assist";

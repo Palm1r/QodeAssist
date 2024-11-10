@@ -26,7 +26,8 @@
 #include <QtCore/qeventloop.h>
 
 #include "logger/Logger.hpp"
-#include "settings/PresetPromptsSettings.hpp"
+#include "settings/ChatAssistantSettings.hpp"
+#include "settings/CodeCompletionSettings.hpp"
 
 namespace QodeAssist::Providers {
 
@@ -54,22 +55,29 @@ QString OllamaProvider::chatEndpoint() const
 
 void OllamaProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType type)
 {
-    auto &promptSettings = Settings::presetPromptsSettings();
-    auto settings = promptSettings.getSettings(type);
+    auto applySettings = [&request](const auto &settings) {
+        QJsonObject options;
+        options["num_predict"] = settings.maxTokens();
+        options["temperature"] = settings.temperature();
 
-    QJsonObject options;
-    options["num_predict"] = settings.maxTokens;
-    options["temperature"] = settings.temperature;
-    if (settings.useTopP)
-        options["top_p"] = settings.topP;
-    if (settings.useTopK)
-        options["top_k"] = settings.topK;
-    if (settings.useFrequencyPenalty)
-        options["frequency_penalty"] = settings.frequencyPenalty;
-    if (settings.usePresencePenalty)
-        options["presence_penalty"] = settings.presencePenalty;
-    request["options"] = options;
-    request["keep_alive"] = settings.ollamaLivetime;
+        if (settings.useTopP())
+            options["top_p"] = settings.topP();
+        if (settings.useTopK())
+            options["top_k"] = settings.topK();
+        if (settings.useFrequencyPenalty())
+            options["frequency_penalty"] = settings.frequencyPenalty();
+        if (settings.usePresencePenalty())
+            options["presence_penalty"] = settings.presencePenalty();
+
+        request["options"] = options;
+        request["keep_alive"] = settings.ollamaLivetime();
+    };
+
+    if (type == LLMCore::RequestType::Fim) {
+        applySettings(Settings::codeCompletionSettings());
+    } else {
+        applySettings(Settings::chatAssistantSettings());
+    }
 }
 
 bool OllamaProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)

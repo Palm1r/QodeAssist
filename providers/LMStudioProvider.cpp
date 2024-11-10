@@ -26,7 +26,8 @@
 #include <QNetworkReply>
 
 #include "logger/Logger.hpp"
-#include "settings/PresetPromptsSettings.hpp"
+#include "settings/ChatAssistantSettings.hpp"
+#include "settings/CodeCompletionSettings.hpp"
 
 namespace QodeAssist::Providers {
 
@@ -54,36 +55,43 @@ QString LMStudioProvider::chatEndpoint() const
 
 void LMStudioProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType type)
 {
-    auto &promptSettings = Settings::presetPromptsSettings();
-    auto settings = promptSettings.getSettings(type);
+    auto prepareMessages = [](QJsonObject &req) -> QJsonArray {
+        QJsonArray messages;
+        if (req.contains("system")) {
+            messages.append(
+                QJsonObject{{"role", "system"}, {"content", req.take("system").toString()}});
+        }
+        if (req.contains("prompt")) {
+            messages.append(
+                QJsonObject{{"role", "user"}, {"content", req.take("prompt").toString()}});
+        }
+        return messages;
+    };
 
-    QJsonArray messages;
+    auto applyModelParams = [&request](const auto &settings) {
+        request["max_tokens"] = settings.maxTokens();
+        request["temperature"] = settings.temperature();
 
-    if (request.contains("system")) {
-        QJsonObject systemMessage{{"role", "system"},
-                                  {"content", request.take("system").toString()}};
-        messages.append(systemMessage);
-    }
+        if (settings.useTopP())
+            request["top_p"] = settings.topP();
+        if (settings.useTopK())
+            request["top_k"] = settings.topK();
+        if (settings.useFrequencyPenalty())
+            request["frequency_penalty"] = settings.frequencyPenalty();
+        if (settings.usePresencePenalty())
+            request["presence_penalty"] = settings.presencePenalty();
+    };
 
-    if (request.contains("prompt")) {
-        QJsonObject userMessage{{"role", "user"}, {"content", request.take("prompt").toString()}};
-        messages.append(userMessage);
-    }
-
+    QJsonArray messages = prepareMessages(request);
     if (!messages.isEmpty()) {
         request["messages"] = std::move(messages);
     }
 
-    request["max_tokens"] = settings.maxTokens;
-    request["temperature"] = settings.temperature;
-    if (settings.useTopP)
-        request["top_p"] = settings.topP;
-    if (settings.useTopK)
-        request["top_k"] = settings.topK;
-    if (settings.useFrequencyPenalty)
-        request["frequency_penalty"] = settings.frequencyPenalty;
-    if (settings.usePresencePenalty)
-        request["presence_penalty"] = settings.presencePenalty;
+    if (type == LLMCore::RequestType::Fim) {
+        applyModelParams(Settings::codeCompletionSettings());
+    } else {
+        applyModelParams(Settings::chatAssistantSettings());
+    }
 }
 
 bool LMStudioProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)

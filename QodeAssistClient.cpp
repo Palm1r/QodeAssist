@@ -32,7 +32,7 @@
 #include "LLMClientInterface.hpp"
 #include "LLMSuggestion.hpp"
 #include "core/ChangesManager.h"
-#include "settings/ContextSettings.hpp"
+#include "settings/CodeCompletionSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 
 using namespace LanguageServerProtocol;
@@ -65,52 +65,53 @@ QodeAssistClient::~QodeAssistClient()
 
 void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
 {
-    // auto project = ProjectManager::projectForFile(document->filePath());
-    // if (!isEnabled(project))
-    //     return;
+    auto project = ProjectManager::projectForFile(document->filePath());
+    if (!isEnabled(project))
+        return;
 
-    // Client::openDocument(document);
-    // connect(document,
-    //         &TextDocument::contentsChangedWithPosition,
-    //         this,
-    //         [this, document](int position, int charsRemoved, int charsAdded) {
-    //             Q_UNUSED(charsRemoved)
-    //             if (!Settings::generalSettings().enableAutoComplete())
-    //                 return;
+    Client::openDocument(document);
+    connect(document,
+            &TextDocument::contentsChangedWithPosition,
+            this,
+            [this, document](int position, int charsRemoved, int charsAdded) {
+                Q_UNUSED(charsRemoved)
+                if (!Settings::codeCompletionSettings().autoCompletion())
+                    return;
 
-    //             auto project = ProjectManager::projectForFile(document->filePath());
-    //             if (!isEnabled(project))
-    //                 return;
+                auto project = ProjectManager::projectForFile(document->filePath());
+                if (!isEnabled(project))
+                    return;
 
-    //             auto textEditor = BaseTextEditor::currentTextEditor();
-    //             if (!textEditor || textEditor->document() != document)
-    //                 return;
+                auto textEditor = BaseTextEditor::currentTextEditor();
+                if (!textEditor || textEditor->document() != document)
+                    return;
 
-    //             if (Settings::contextSettings().useProjectChangesCache())
-    //                 ChangesManager::instance().addChange(document,
-    //                                                      position,
-    //                                                      charsRemoved,
-    //                                                      charsAdded);
+                if (Settings::codeCompletionSettings().useProjectChangesCache())
+                    ChangesManager::instance().addChange(document,
+                                                         position,
+                                                         charsRemoved,
+                                                         charsAdded);
 
-    //             TextEditorWidget *widget = textEditor->editorWidget();
-    //             if (widget->isReadOnly() || widget->multiTextCursor().hasMultipleCursors())
-    //                 return;
-    //             const int cursorPosition = widget->textCursor().position();
-    //             if (cursorPosition < position || cursorPosition > position + charsAdded)
-    //                 return;
+                TextEditorWidget *widget = textEditor->editorWidget();
+                if (widget->isReadOnly() || widget->multiTextCursor().hasMultipleCursors())
+                    return;
+                const int cursorPosition = widget->textCursor().position();
+                if (cursorPosition < position || cursorPosition > position + charsAdded)
+                    return;
 
-    //             m_recentCharCount += charsAdded;
+                m_recentCharCount += charsAdded;
 
-    //             if (m_typingTimer.elapsed()
-    //                 > Settings::generalSettings().autoCompletionTypingInterval()) {
-    //                 m_recentCharCount = charsAdded;
-    //                 m_typingTimer.restart();
-    //             }
+                if (m_typingTimer.elapsed()
+                    > Settings::codeCompletionSettings().autoCompletionTypingInterval()) {
+                    m_recentCharCount = charsAdded;
+                    m_typingTimer.restart();
+                }
 
-    //             if (m_recentCharCount > Settings::generalSettings().autoCompletionCharThreshold()) {
-    //                 scheduleRequest(widget);
-    //             }
-    //         });
+                if (m_recentCharCount
+                    > Settings::codeCompletionSettings().autoCompletionCharThreshold()) {
+                    scheduleRequest(widget);
+                }
+            });
 }
 
 bool QodeAssistClient::canOpenProject(ProjectExplorer::Project *project)
@@ -144,31 +145,32 @@ void QodeAssistClient::requestCompletions(TextEditor::TextEditorWidget *editor)
 
 void QodeAssistClient::scheduleRequest(TextEditor::TextEditorWidget *editor)
 {
-    // cancelRunningRequest(editor);
+    cancelRunningRequest(editor);
 
-    // auto it = m_scheduledRequests.find(editor);
-    // if (it == m_scheduledRequests.end()) {
-    //     auto timer = new QTimer(this);
-    //     timer->setSingleShot(true);
-    //     connect(timer, &QTimer::timeout, this, [this, editor]() {
-    //         if (editor
-    //             && editor->textCursor().position()
-    //                    == m_scheduledRequests[editor]->property("cursorPosition").toInt()
-    //             && m_recentCharCount > Settings::generalSettings().autoCompletionCharThreshold())
-    //             requestCompletions(editor);
-    //     });
-    //     connect(editor, &TextEditorWidget::destroyed, this, [this, editor]() {
-    //         delete m_scheduledRequests.take(editor);
-    //         cancelRunningRequest(editor);
-    //     });
-    //     connect(editor, &TextEditorWidget::cursorPositionChanged, this, [this, editor] {
-    //         cancelRunningRequest(editor);
-    //     });
-    //     it = m_scheduledRequests.insert(editor, timer);
-    // }
+    auto it = m_scheduledRequests.find(editor);
+    if (it == m_scheduledRequests.end()) {
+        auto timer = new QTimer(this);
+        timer->setSingleShot(true);
+        connect(timer, &QTimer::timeout, this, [this, editor]() {
+            if (editor
+                && editor->textCursor().position()
+                       == m_scheduledRequests[editor]->property("cursorPosition").toInt()
+                && m_recentCharCount
+                       > Settings::codeCompletionSettings().autoCompletionCharThreshold())
+                requestCompletions(editor);
+        });
+        connect(editor, &TextEditorWidget::destroyed, this, [this, editor]() {
+            delete m_scheduledRequests.take(editor);
+            cancelRunningRequest(editor);
+        });
+        connect(editor, &TextEditorWidget::cursorPositionChanged, this, [this, editor] {
+            cancelRunningRequest(editor);
+        });
+        it = m_scheduledRequests.insert(editor, timer);
+    }
 
-    // it.value()->setProperty("cursorPosition", editor->textCursor().position());
-    // it.value()->start(Settings::generalSettings().startSuggestionTimer());
+    it.value()->setProperty("cursorPosition", editor->textCursor().position());
+    it.value()->start(Settings::codeCompletionSettings().startSuggestionTimer());
 }
 void QodeAssistClient::handleCompletions(const GetCompletionRequest::Response &response,
                                          TextEditor::TextEditorWidget *editor)

@@ -60,6 +60,7 @@ GeneralSettings::GeneralSettings()
     ccSelectProvider.m_buttonText = TrConstants::SELECT;
 
     initStringAspect(ccModel, Constants::CC_MODEL, TrConstants::MODEL, "codellama:7b-code");
+    ccModel.setHistoryCompleter(Constants::CC_MODEL_HISTORY);
     ccSelectModel.m_buttonText = TrConstants::SELECT;
 
     initStringAspect(ccTemplate, Constants::CC_TEMPLATE, TrConstants::TEMPLATE, "CodeLlama FIM");
@@ -67,6 +68,7 @@ GeneralSettings::GeneralSettings()
     ccSelectTemplate.m_buttonText = TrConstants::SELECT;
 
     initStringAspect(ccUrl, Constants::CC_URL, TrConstants::URL, "http://localhost:11434");
+    ccUrl.setHistoryCompleter(Constants::CC_URL_HISTORY);
     ccSetUrl.m_buttonText = TrConstants::SELECT;
 
     ccStatus.setDisplayStyle(Utils::StringAspect::LabelDisplay);
@@ -79,6 +81,7 @@ GeneralSettings::GeneralSettings()
     caSelectProvider.m_buttonText = TrConstants::SELECT;
 
     initStringAspect(caModel, Constants::CA_MODEL, TrConstants::MODEL, "codellama:7b-instruct");
+    caModel.setHistoryCompleter(Constants::CA_MODEL_HISTORY);
     caSelectModel.m_buttonText = TrConstants::SELECT;
 
     initStringAspect(caTemplate, Constants::CA_TEMPLATE, TrConstants::TEMPLATE, "CodeLlama Chat");
@@ -87,6 +90,7 @@ GeneralSettings::GeneralSettings()
     caSelectTemplate.m_buttonText = TrConstants::SELECT;
 
     initStringAspect(caUrl, Constants::CA_URL, TrConstants::URL, "http://localhost:11434");
+    caUrl.setHistoryCompleter(Constants::CA_URL_HISTORY);
     caSetUrl.m_buttonText = TrConstants::SELECT;
 
     caStatus.setDisplayStyle(Utils::StringAspect::LabelDisplay);

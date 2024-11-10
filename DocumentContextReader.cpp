@@ -24,7 +24,7 @@
 #include <languageserverprotocol/lsptypes.h>
 
 #include "core/ChangesManager.h"
-#include "settings/ContextSettings.hpp"
+#include "settings/CodeCompletionSettings.hpp"
 
 const QRegularExpression &getYearRegex()
 {
@@ -214,11 +214,11 @@ LLMCore::ContextData DocumentContextReader::prepareContext(int lineNumber, int c
 
 QString DocumentContextReader::getContextBefore(int lineNumber, int cursorPosition) const
 {
-    if (Settings::contextSettings().readFullFile()) {
+    if (Settings::codeCompletionSettings().readFullFile()) {
         return readWholeFileBefore(lineNumber, cursorPosition);
     } else {
         int effectiveStartLine;
-        int beforeCursor = Settings::contextSettings().readStringsBeforeCursor();
+        int beforeCursor = Settings::codeCompletionSettings().readStringsBeforeCursor();
         if (m_copyrightInfo.found) {
             effectiveStartLine = qMax(m_copyrightInfo.endLine + 1, lineNumber - beforeCursor);
         } else {
@@ -230,11 +230,11 @@ QString DocumentContextReader::getContextBefore(int lineNumber, int cursorPositi
 
 QString DocumentContextReader::getContextAfter(int lineNumber, int cursorPosition) const
 {
-    if (Settings::contextSettings().readFullFile()) {
+    if (Settings::codeCompletionSettings().readFullFile()) {
         return readWholeFileAfter(lineNumber, cursorPosition);
     } else {
         int endLine = qMin(m_document->blockCount() - 1,
-                           lineNumber + Settings::contextSettings().readStringsAfterCursor());
+                           lineNumber + Settings::codeCompletionSettings().readStringsAfterCursor());
         return getContextBetween(lineNumber + 1, endLine, -1);
     }
 }
@@ -243,10 +243,10 @@ QString DocumentContextReader::getInstructions() const
 {
     QString instructions;
 
-    if (Settings::contextSettings().useFilePathInContext())
+    if (Settings::codeCompletionSettings().useFilePathInContext())
         instructions += getLanguageAndFileInfo();
 
-    if (Settings::contextSettings().useProjectChangesCache())
+    if (Settings::codeCompletionSettings().useProjectChangesCache())
         instructions += ChangesManager::instance().getRecentChangesContext(m_textDocument);
 
     return instructions;
