@@ -19,31 +19,27 @@
 
 #pragma once
 
+#include <QPushButton>
 #include <utils/aspects.h>
+#include <utils/layoutbuilder.h>
 
-#include "ButtonAspect.hpp"
-
-namespace QodeAssist::Settings {
-
-class CustomPromptSettings : public Utils::AspectContainer
+class ButtonAspect : public Utils::BaseAspect
 {
+    Q_OBJECT
+
 public:
-    CustomPromptSettings();
+    ButtonAspect(Utils::AspectContainer *container = nullptr)
+        : Utils::BaseAspect(container)
+    {}
 
-    Utils::StringAspect customJsonLabel{this};
-    Utils::StringAspect customJsonTemplate{this};
-    Utils::StringAspect customJsonLegend{this};
-    ButtonAspect saveCustomTemplateButton{this};
-    ButtonAspect loadCustomTemplateButton{this};
-    ButtonAspect resetToDefaults{this};
+    void addToLayout(Layouting::Layout &parent) override
+    {
+        auto button = new QPushButton(m_buttonText);
+        connect(button, &QPushButton::clicked, this, &ButtonAspect::clicked);
+        parent.addItem(button);
+    }
 
-private:
-    void setupConnection();
-    void resetSettingsToDefaults();
-    void saveCustomTemplate();
-    void loadCustomTemplate();
+    QString m_buttonText;
+signals:
+    void clicked();
 };
-
-CustomPromptSettings &customPromptSettings();
-
-} // namespace QodeAssist::Settings

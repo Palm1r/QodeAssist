@@ -21,7 +21,7 @@
 
 #include <utils/aspects.h>
 
-#include "SettingsUtils.hpp"
+#include "ButtonAspect.hpp"
 
 namespace QodeAssist::LLMCore {
 class Provider;

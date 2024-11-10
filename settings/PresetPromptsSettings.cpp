@@ -26,6 +26,8 @@
 
 #include "RequestType.hpp"
 #include "SettingsConstants.hpp"
+#include "SettingsTr.hpp"
+#include "SettingsUtils.hpp"
 
 namespace QodeAssist::Settings {
 

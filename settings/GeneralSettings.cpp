@@ -31,6 +31,7 @@
 #include "Provider.hpp"
 #include "ProvidersManager.hpp"
 #include "SettingsConstants.hpp"
+#include "SettingsTr.hpp"
 #include "SettingsUtils.hpp"
 
 namespace QodeAssist::Settings {

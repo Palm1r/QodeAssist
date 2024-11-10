@@ -5,6 +5,8 @@ add_library(QodeAssistSettings STATIC
     PresetPromptsSettings.hpp PresetPromptsSettings.cpp
     SettingsUtils.hpp
     SettingsConstants.hpp
+    ButtonAspect.hpp
+    SettingsTr.hpp
 )
 
 target_link_libraries(QodeAssistSettings

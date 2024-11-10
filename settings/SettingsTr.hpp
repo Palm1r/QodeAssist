@@ -19,31 +19,13 @@
 
 #pragma once
 
-#include <utils/aspects.h>
-
-#include "ButtonAspect.hpp"
+#include <QCoreApplication>
 
 namespace QodeAssist::Settings {
 
-class CustomPromptSettings : public Utils::AspectContainer
+struct Tr
 {
-public:
-    CustomPromptSettings();
-
-    Utils::StringAspect customJsonLabel{this};
-    Utils::StringAspect customJsonTemplate{this};
-    Utils::StringAspect customJsonLegend{this};
-    ButtonAspect saveCustomTemplateButton{this};
-    ButtonAspect loadCustomTemplateButton{this};
-    ButtonAspect resetToDefaults{this};
-
-private:
-    void setupConnection();
-    void resetSettingsToDefaults();
-    void saveCustomTemplate();
-    void loadCustomTemplate();
+    Q_DECLARE_TR_FUNCTIONS(QtC::QodeAssist)
 };
-
-CustomPromptSettings &customPromptSettings();
 
 } // namespace QodeAssist::Settings
