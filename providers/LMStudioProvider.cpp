@@ -127,8 +127,7 @@ bool LMStudioProvider::handleResponse(QNetworkReply *reply, QString &accumulated
     return isComplete;
 }
 
-QList<QString> LMStudioProvider::getInstalledModels(const Utils::Environment &env,
-                                                    const QString &url)
+QList<QString> LMStudioProvider::getInstalledModels(const QString &url)
 {
     QList<QString> models;
     QNetworkAccessManager manager;

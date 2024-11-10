@@ -46,11 +46,8 @@ public:
         }
     }
 
-    void setCurrentFimTemplate(const QString &name);
-    PromptTemplate *getCurrentFimTemplate();
-
-    void setCurrentChatTemplate(const QString &name);
-    PromptTemplate *getCurrentChatTemplate();
+    PromptTemplate *getFimTemplateByName(const QString &templateName);
+    PromptTemplate *getChatTemplateByName(const QString &templateName);
 
     QStringList fimTemplatesNames() const;
     QStringList chatTemplatesNames() const;
@@ -62,8 +59,6 @@ private:
 
     QMap<QString, PromptTemplate *> m_fimTemplates;
     QMap<QString, PromptTemplate *> m_chatTemplates;
-    PromptTemplate *m_currentFimTemplate;
-    PromptTemplate *m_currentChatTemplate;
 };
 
 } // namespace QodeAssist::LLMCore

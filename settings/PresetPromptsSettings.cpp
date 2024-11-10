@@ -24,7 +24,6 @@
 #include <coreplugin/icore.h>
 #include <utils/layoutbuilder.h>
 
-#include "RequestType.hpp"
 #include "SettingsConstants.hpp"
 #include "SettingsTr.hpp"
 #include "SettingsUtils.hpp"
@@ -193,9 +192,8 @@ PresetPromptsSettings::PresetPromptsSettings()
 
 PresetPromptsSettings::PromptSettings PresetPromptsSettings::getSettings(int type) const
 {
-    auto reqtype = static_cast<LLMCore::RequestType>(type);
     PromptSettings settings;
-    if (reqtype == LLMCore::RequestType::Fim) {
+    if (type == 0) {
         settings.temperature = fimTemperature();
         settings.maxTokens = fimMaxTokens();
         settings.useTopP = fimUseTopP();
@@ -208,7 +206,7 @@ PresetPromptsSettings::PromptSettings PresetPromptsSettings::getSettings(int typ
         settings.frequencyPenalty = fimFrequencyPenalty();
         settings.ollamaLivetime = fimOllamaLivetime();
         settings.apiKey = fimApiKey();
-    } else if (reqtype == LLMCore::RequestType::Chat) {
+    } else if (type = 1) {
         settings.temperature = chatTemperature();
         settings.maxTokens = chatMaxTokens();
         settings.useTopP = chatUseTopP();

@@ -146,28 +146,28 @@ void LLMClientInterface::handleExit(const QJsonObject &request)
 
 void LLMClientInterface::handleCompletion(const QJsonObject &request)
 {
-    auto updatedContext = prepareContext(request);
+    // auto updatedContext = prepareContext(request);
 
-    LLMCore::LLMConfig config;
-    config.requestType = LLMCore::RequestType::Fim;
-    config.provider = LLMCore::ProvidersManager::instance().getCurrentFimProvider();
-    config.promptTemplate = LLMCore::PromptTemplateManager::instance().getCurrentFimTemplate();
-    config.url = QUrl(QString("%1%2").arg(Settings::generalSettings().url(),
-                                          Settings::generalSettings().endPoint()));
+    // LLMCore::LLMConfig config;
+    // config.requestType = LLMCore::RequestType::Fim;
+    // config.provider = LLMCore::ProvidersManager::instance().getCurrentFimProvider();
+    // config.promptTemplate = LLMCore::PromptTemplateManager::instance().getCurrentFimTemplate();
+    // config.url = QUrl(QString("%1%2").arg(Settings::generalSettings().url(),
+    //                                       Settings::generalSettings().endPoint()));
 
-    config.providerRequest = {{"model", Settings::generalSettings().modelName.value()},
-                              {"stream", true},
-                              {"stop",
-                               QJsonArray::fromStringList(config.promptTemplate->stopWords())}};
-    config.multiLineCompletion = Settings::generalSettings().multiLineCompletion();
+    // config.providerRequest = {{"model", Settings::generalSettings().modelName.value()},
+    //                           {"stream", true},
+    //                           {"stop",
+    //                            QJsonArray::fromStringList(config.promptTemplate->stopWords())}};
+    // config.multiLineCompletion = Settings::generalSettings().multiLineCompletion();
 
-    if (Settings::contextSettings().useSystemPrompt())
-        config.providerRequest["system"] = Settings::contextSettings().systemPrompt();
+    // if (Settings::contextSettings().useSystemPrompt())
+    //     config.providerRequest["system"] = Settings::contextSettings().systemPrompt();
 
-    config.promptTemplate->prepareRequest(config.providerRequest, updatedContext);
-    config.provider->prepareRequest(config.providerRequest, LLMCore::RequestType::Fim);
+    // config.promptTemplate->prepareRequest(config.providerRequest, updatedContext);
+    // config.provider->prepareRequest(config.providerRequest, LLMCore::RequestType::Fim);
 
-    m_requestHandler.sendLLMRequest(config, request);
+    // m_requestHandler.sendLLMRequest(config, request);
 }
 
 LLMCore::ContextData LLMClientInterface::prepareContext(const QJsonObject &request,

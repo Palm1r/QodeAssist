@@ -24,6 +24,17 @@ namespace QodeAssist::Constants {
 const char ACTION_ID[] = "QodeAssist.Action";
 const char MENU_ID[] = "QodeAssist.Menu";
 
+// new settings
+const char CC_PROVIDER[] = "QodeAssist.ccProvider";
+const char CC_MODEL[] = "QodeAssist.ccModel";
+const char CC_TEMPLATE[] = "QodeAssist.ccTemplate";
+const char CC_URL[] = "QodeAssist.ccUrl";
+
+const char CA_PROVIDER[] = "QodeAssist.caProvider";
+const char CA_MODEL[] = "QodeAssist.caModel";
+const char CA_TEMPLATE[] = "QodeAssist.caTemplate";
+const char CA_URL[] = "QodeAssist.caUrl";
+
 // settings
 const char ENABLE_QODE_ASSIST[] = "QodeAssist.enableQodeAssist";
 const char ENABLE_AUTO_COMPLETE[] = "QodeAssist.enableAutoComplete";

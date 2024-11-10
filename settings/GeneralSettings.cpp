@@ -27,9 +27,6 @@
 #include <utils/utilsicons.h>
 
 #include "Logger.hpp"
-#include "PromptTemplateManager.hpp"
-#include "Provider.hpp"
-#include "ProvidersManager.hpp"
 #include "SettingsConstants.hpp"
 #include "SettingsTr.hpp"
 #include "SettingsUtils.hpp"
@@ -46,116 +43,58 @@ GeneralSettings::GeneralSettings()
 {
     setAutoApply(false);
 
-    setDisplayName(Tr::tr("General"));
+    setDisplayName(TrConstants::GENERAL);
 
     enableQodeAssist.setSettingsKey(Constants::ENABLE_QODE_ASSIST);
-    enableQodeAssist.setLabelText(Tr::tr("Enable Qode Assist"));
+    enableQodeAssist.setLabelText(TrConstants::ENABLE_QODE_ASSIST);
     enableQodeAssist.setDefaultValue(true);
 
-    enableAutoComplete.setSettingsKey(Constants::ENABLE_AUTO_COMPLETE);
-    enableAutoComplete.setLabelText(Tr::tr("Enable Auto Complete"));
-    enableAutoComplete.setDefaultValue(true);
-
     enableLogging.setSettingsKey(Constants::ENABLE_LOGGING);
-    enableLogging.setLabelText(Tr::tr("Enable Logging"));
+    enableLogging.setLabelText(TrConstants::ENABLE_LOG);
     enableLogging.setDefaultValue(false);
 
-    multiLineCompletion.setSettingsKey(Constants::MULTILINE_COMPLETION);
-    multiLineCompletion.setDefaultValue(false);
-    multiLineCompletion.setLabelText(Tr::tr("Enable Multiline Completion(experimental)"));
+    resetToDefaults.m_buttonText = TrConstants::RESET_TO_DEFAULTS;
 
-    startSuggestionTimer.setSettingsKey(Constants::START_SUGGESTION_TIMER);
-    startSuggestionTimer.setLabelText(Tr::tr("with delay(ms)"));
-    startSuggestionTimer.setRange(10, 10000);
-    startSuggestionTimer.setDefaultValue(500);
+    initStringAspect(ccProvider, Constants::CC_PROVIDER, TrConstants::PROVIDER, "Ollama");
+    ccProvider.setReadOnly(true);
+    ccSelectProvider.m_buttonText = TrConstants::SELECT;
 
-    autoCompletionCharThreshold.setSettingsKey(Constants::AUTO_COMPLETION_CHAR_THRESHOLD);
-    autoCompletionCharThreshold.setLabelText(Tr::tr("AI suggestion triggers after typing"));
-    autoCompletionCharThreshold.setToolTip(
-        Tr::tr("The number of characters that need to be typed within the typing interval "
-               "before an AI suggestion request is sent."));
-    autoCompletionCharThreshold.setRange(0, 10);
-    autoCompletionCharThreshold.setDefaultValue(0);
+    initStringAspect(ccModel, Constants::CC_MODEL, TrConstants::MODEL, "codellama:7b-code");
+    ccSelectModel.m_buttonText = TrConstants::SELECT;
 
-    autoCompletionTypingInterval.setSettingsKey(Constants::AUTO_COMPLETION_TYPING_INTERVAL);
-    autoCompletionTypingInterval.setLabelText(Tr::tr("character(s) within(ms)"));
-    autoCompletionTypingInterval.setToolTip(
-        Tr::tr("The time window (in milliseconds) during which the character threshold "
-               "must be met to trigger an AI suggestion request."));
-    autoCompletionTypingInterval.setRange(500, 5000);
-    autoCompletionTypingInterval.setDefaultValue(2000);
+    initStringAspect(ccTemplate, Constants::CC_TEMPLATE, TrConstants::TEMPLATE, "CodeLlama FIM");
+    ccTemplate.setReadOnly(true);
+    ccSelectTemplate.m_buttonText = TrConstants::SELECT;
 
-    llmProviders.setSettingsKey(Constants::LLM_PROVIDERS);
-    llmProviders.setDisplayName(Tr::tr("AI Suggest Provider:"));
-    llmProviders.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+    initStringAspect(ccUrl, Constants::CC_URL, TrConstants::URL, "http://localhost:11434");
+    ccSetUrl.m_buttonText = TrConstants::SELECT;
 
-    url.setSettingsKey(Constants::URL);
-    url.setLabelText(Tr::tr("URL:"));
-    url.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    ccStatus.setDisplayStyle(Utils::StringAspect::LabelDisplay);
+    ccStatus.setLabelText(TrConstants::STATUS);
+    ccStatus.setDefaultValue("");
+    ccTest.m_buttonText = TrConstants::TEST;
 
-    endPoint.setSettingsKey(Constants::END_POINT);
-    endPoint.setLabelText(Tr::tr("FIM Endpoint:"));
-    endPoint.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    initStringAspect(caProvider, Constants::CA_PROVIDER, TrConstants::PROVIDER, "Ollama");
+    caProvider.setReadOnly(true);
+    caSelectProvider.m_buttonText = TrConstants::SELECT;
 
-    modelName.setSettingsKey(Constants::MODEL_NAME);
-    modelName.setLabelText(Tr::tr("Model name:"));
-    modelName.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    initStringAspect(caModel, Constants::CA_MODEL, TrConstants::MODEL, "codellama:7b-instruct");
+    caSelectModel.m_buttonText = TrConstants::SELECT;
 
-    selectModels.m_buttonText = Tr::tr("Select Fill-In-the-Middle Model");
+    initStringAspect(caTemplate, Constants::CA_TEMPLATE, TrConstants::TEMPLATE, "CodeLlama Chat");
+    caTemplate.setReadOnly(true);
 
-    fimPrompts.setDisplayName(Tr::tr("Fill-In-the-Middle Prompt"));
-    fimPrompts.setSettingsKey(Constants::FIM_PROMPTS);
-    fimPrompts.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
-    resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
+    caSelectTemplate.m_buttonText = TrConstants::SELECT;
 
-    chatLlmProviders.setSettingsKey(Constants::CHAT_LLM_PROVIDERS);
-    chatLlmProviders.setDisplayName(Tr::tr("AI Chat Provider:"));
-    chatLlmProviders.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+    initStringAspect(caUrl, Constants::CA_URL, TrConstants::URL, "http://localhost:11434");
+    caSetUrl.m_buttonText = TrConstants::SELECT;
 
-    chatUrl.setSettingsKey(Constants::CHAT_URL);
-    chatUrl.setLabelText(Tr::tr("URL:"));
-    chatUrl.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
-
-    chatEndPoint.setSettingsKey(Constants::CHAT_END_POINT);
-    chatEndPoint.setLabelText(Tr::tr("Chat Endpoint:"));
-    chatEndPoint.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
-
-    chatModelName.setSettingsKey(Constants::CHAT_MODEL_NAME);
-    chatModelName.setLabelText(Tr::tr("Model name:"));
-    chatModelName.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
-
-    chatSelectModels.m_buttonText = Tr::tr("Select Chat Model");
-
-    chatPrompts.setDisplayName(Tr::tr("Chat Prompt"));
-    chatPrompts.setSettingsKey(Constants::CHAT_PROMPTS);
-    chatPrompts.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
-
-    chatTokensThreshold.setSettingsKey(Constants::CHAT_TOKENS_THRESHOLD);
-    chatTokensThreshold.setLabelText(Tr::tr("Chat History Token Limit"));
-    chatTokensThreshold.setToolTip(Tr::tr("Maximum number of tokens in chat history. When "
-                                          "exceeded, oldest messages will be removed."));
-    chatTokensThreshold.setRange(1000, 16000);
-    chatTokensThreshold.setDefaultValue(8000);
-
-    loadProviders();
-    loadPrompts();
-
-    llmProviders.setDefaultValue(llmProviders.indexForDisplay("Ollama"));
-    chatLlmProviders.setDefaultValue(chatLlmProviders.indexForDisplay("Ollama"));
-    fimPrompts.setDefaultValue(fimPrompts.indexForDisplay("CodeLlama FIM"));
-    chatPrompts.setDefaultValue(chatPrompts.indexForDisplay("CodeLlama Chat"));
-
-    auto fimProviderName = llmProviders.displayForIndex(llmProviders.value());
-    setCurrentFimProvider(fimProviderName);
-    auto chatProviderName = chatLlmProviders.displayForIndex(chatLlmProviders.value());
-    setCurrentChatProvider(chatProviderName);
+    caStatus.setDisplayStyle(Utils::StringAspect::LabelDisplay);
+    caStatus.setLabelText(TrConstants::STATUS);
+    caStatus.setDefaultValue("");
+    caTest.m_buttonText = TrConstants::TEST;
 
     readSettings();
-
-    auto nameFimPromts = fimPrompts.displayForIndex(fimPrompts.value());
-    LLMCore::PromptTemplateManager::instance().setCurrentFimTemplate(nameFimPromts);
-    auto nameChatPromts = chatPrompts.displayForIndex(chatPrompts.value());
-    LLMCore::PromptTemplateManager::instance().setCurrentChatTemplate(nameChatPromts);
 
     Logger::instance().setLoggingEnabled(enableLogging());
 
@@ -164,226 +103,88 @@ GeneralSettings::GeneralSettings()
     setLayouter([this]() {
         using namespace Layouting;
 
-        auto rootLayout
-            = Column{Row{enableQodeAssist, Stretch{1}, resetToDefaults},
-                     Row{enableLogging, Stretch{1}},
-                     Space{8},
-                     Group{title(Tr::tr("AI Suggestions")),
-                           Column{enableAutoComplete,
-                                  multiLineCompletion,
-                                  Row{autoCompletionCharThreshold,
-                                      autoCompletionTypingInterval,
-                                      startSuggestionTimer,
-                                      Stretch{1}},
-                                  Row{llmProviders, Stretch{1}},
-                                  Row{url, endPoint, fimUrlIndicator},
-                                  Row{selectModels, modelName, fimModelIndicator},
-                                  Row{fimPrompts, Stretch{1}}}},
-                     Space{16},
-                     Group{title(Tr::tr("AI Chat")),
-                           Column{Row{chatLlmProviders, Stretch{1}},
-                                  Row{chatUrl, chatEndPoint, chatUrlIndicator},
-                                  Row{chatSelectModels, chatModelName, chatModelIndicator},
-                                  Row{chatPrompts, Stretch{1}},
-                                  Row{chatTokensThreshold, Stretch{1}}}},
-                     Stretch{1}};
+        auto ccGrid = Grid{};
+        ccGrid.addRow({ccProvider, ccSelectProvider});
+        ccGrid.addRow({ccModel, ccSelectModel});
+        ccGrid.addRow({ccTemplate, ccSelectTemplate});
+        ccGrid.addRow({ccUrl, ccSetUrl});
+        ccGrid.addRow({ccStatus, ccTest});
+
+        auto caGrid = Grid{};
+        caGrid.addRow({caProvider, caSelectProvider});
+        caGrid.addRow({caModel, caSelectModel});
+        caGrid.addRow({caTemplate, caSelectTemplate});
+        caGrid.addRow({caUrl, caSetUrl});
+        caGrid.addRow({caStatus, caTest});
+
+        auto ccGroup = Group{title(TrConstants::CODE_COMPLETION), ccGrid};
+        auto caGroup = Group{title(TrConstants::CHAT_ASSISTANT), caGrid};
+
+        auto rootLayout = Column{Row{enableQodeAssist, Stretch{1}, resetToDefaults},
+                                 Row{enableLogging, Stretch{1}},
+                                 Space{8},
+                                 ccGroup,
+                                 Space{8},
+                                 caGroup,
+                                 Stretch{1}};
+
         return rootLayout;
     });
-
-    updateStatusIndicators();
 }
 
-void GeneralSettings::setupConnections()
+void GeneralSettings::showSelectionDialog(const QStringList &data,
+                                          Utils::StringAspect &aspect,
+                                          const QString &title,
+                                          const QString &text)
 {
-    connect(&llmProviders, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
-        auto providerName = llmProviders.displayForIndex(llmProviders.volatileValue());
-        setCurrentFimProvider(providerName);
-        modelName.setVolatileValue("");
-    });
-    connect(&chatLlmProviders, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
-        auto providerName = chatLlmProviders.displayForIndex(chatLlmProviders.volatileValue());
-        setCurrentChatProvider(providerName);
-        chatModelName.setVolatileValue("");        
-    });
+    if (data.isEmpty())
+        return;
 
-    connect(&fimPrompts, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
-        int index = fimPrompts.volatileValue();
-        LLMCore::PromptTemplateManager::instance().setCurrentFimTemplate(
-            fimPrompts.displayForIndex(index));
-    });
-    connect(&chatPrompts, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
-        int index = chatPrompts.volatileValue();
-        LLMCore::PromptTemplateManager::instance().setCurrentChatTemplate(
-            chatPrompts.displayForIndex(index));
-    });
+    bool ok;
+    QInputDialog dialog(Core::ICore::dialogParent());
+    dialog.setWindowTitle(title);
+    dialog.setLabelText(text);
+    dialog.setComboBoxItems(data);
+    dialog.setComboBoxEditable(false);
+    dialog.setFixedSize(400, 150);
 
-    connect(&selectModels, &ButtonAspect::clicked, this, [this]() {
-        auto *provider = LLMCore::ProvidersManager::instance().getCurrentFimProvider();
-        showModelSelectionDialog(&modelName, provider);
-    });
-    connect(&chatSelectModels, &ButtonAspect::clicked, this, [this]() {
-        auto *provider = LLMCore::ProvidersManager::instance().getCurrentChatProvider();
-        showModelSelectionDialog(&chatModelName, provider);
-    });
-
-    connect(&enableLogging, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
-        Logger::instance().setLoggingEnabled(enableLogging.volatileValue());
-    });
-    connect(&resetToDefaults, &ButtonAspect::clicked, this, &GeneralSettings::resetPageToDefaults);
-
-    connect(&url,
-            &Utils::StringAspect::volatileValueChanged,
-            this,
-            &GeneralSettings::updateStatusIndicators);
-    connect(&modelName,
-            &Utils::StringAspect::volatileValueChanged,
-            this,
-            &GeneralSettings::updateStatusIndicators);
-    connect(&chatUrl,
-            &Utils::StringAspect::volatileValueChanged,
-            this,
-            &GeneralSettings::updateStatusIndicators);
-    connect(&chatModelName,
-            &Utils::StringAspect::volatileValueChanged,
-            this,
-            &GeneralSettings::updateStatusIndicators);
-}
-
-void GeneralSettings::showModelSelectionDialog(Utils::StringAspect *modelNameObj,
-                                               LLMCore::Provider *provider)
-{
-    Utils::Environment env = Utils::Environment::systemEnvironment();
-    QString providerUrl = (modelNameObj == &modelName) ? url() : chatUrl();
-
-    if (provider) {
-        QStringList models = provider->getInstalledModels(env, providerUrl);
-        bool ok;
-        QString selectedModel = QInputDialog::getItem(Core::ICore::dialogParent(),
-                                                      Tr::tr("Select LLM Model"),
-                                                      Tr::tr("Choose a model:"),
-                                                      models,
-                                                      0,
-                                                      false,
-                                                      &ok);
-
-        if (ok && !selectedModel.isEmpty()) {
-            modelNameObj->setVolatileValue(selectedModel);
+    if (dialog.exec() == QDialog::Accepted) {
+        QString result = dialog.textValue();
+        if (!result.isEmpty()) {
+            aspect.setValue(result);
             writeSettings();
         }
     }
 }
 
+void GeneralSettings::setupConnections()
+{
+    connect(&enableLogging, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
+        Logger::instance().setLoggingEnabled(enableLogging.volatileValue());
+    });
+    connect(&resetToDefaults, &ButtonAspect::clicked, this, &GeneralSettings::resetPageToDefaults);
+}
+
 void GeneralSettings::resetPageToDefaults()
 {
     QMessageBox::StandardButton reply;
-    reply = QMessageBox::question(
-        Core::ICore::dialogParent(),
-        Tr::tr("Reset Settings"),
-        Tr::tr("Are you sure you want to reset all settings to default values?"),
-        QMessageBox::Yes | QMessageBox::No);
+    reply = QMessageBox::question(Core::ICore::dialogParent(),
+                                  TrConstants::RESET_SETTINGS,
+                                  TrConstants::CONFIRMATION,
+                                  QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
         resetAspect(enableQodeAssist);
-        resetAspect(enableAutoComplete);
         resetAspect(enableLogging);
-        resetAspect(startSuggestionTimer);
-        resetAspect(autoCompletionTypingInterval);
-        resetAspect(autoCompletionCharThreshold);
-        resetAspect(llmProviders);
-        resetAspect(chatLlmProviders);
-        resetAspect(fimPrompts);
-        resetAspect(chatPrompts);
-        resetAspect(chatTokensThreshold);
-    }
-
-    modelName.setVolatileValue("");
-    chatModelName.setVolatileValue("");
-
-    updateStatusIndicators();
-}
-
-void GeneralSettings::updateStatusIndicators()
-{
-    bool fimUrlValid = !url.volatileValue().isEmpty() && !endPoint.volatileValue().isEmpty();
-    bool fimModelValid = !modelName.volatileValue().isEmpty();
-    bool chatUrlValid = !chatUrl.volatileValue().isEmpty()
-                        && !chatEndPoint.volatileValue().isEmpty();
-    bool chatModelValid = !chatModelName.volatileValue().isEmpty();
-
-    bool fimPingSuccessful = false;
-    if (fimUrlValid) {
-        QUrl pingUrl(url.volatileValue());
-        fimPingSuccessful = Settings::pingUrl(pingUrl);
-    }
-    bool chatPingSuccessful = false;
-    if (chatUrlValid) {
-        QUrl pingUrl(chatUrl.volatileValue());
-        chatPingSuccessful = Settings::pingUrl(pingUrl);
-    }
-
-    setIndicatorStatus(fimModelIndicator,
-                       fimModelValid ? tr("Model is properly configured")
-                                     : tr("No model selected or model name is invalid"),
-                       fimModelValid);
-    setIndicatorStatus(fimUrlIndicator,
-                       fimPingSuccessful ? tr("Server is reachable")
-                                         : tr("Server is not reachable or URL is invalid"),
-                       fimPingSuccessful);
-
-    setIndicatorStatus(chatModelIndicator,
-                       chatModelValid ? tr("Model is properly configured")
-                                      : tr("No model selected or model name is invalid"),
-                       chatModelValid);
-    setIndicatorStatus(chatUrlIndicator,
-                       chatPingSuccessful ? tr("Server is reachable")
-                                          : tr("Server is not reachable or URL is invalid"),
-                       chatPingSuccessful);
-}
-
-void GeneralSettings::setIndicatorStatus(Utils::StringAspect &indicator,
-                                         const QString &tooltip,
-                                         bool isValid)
-{
-    const Utils::Icon &icon = isValid ? Utils::Icons::OK : Utils::Icons::WARNING;
-    indicator.setLabelPixmap(icon.pixmap());
-    indicator.setToolTip(tooltip);
-}
-
-void GeneralSettings::setCurrentFimProvider(const QString &name)
-{
-    const auto provider = LLMCore::ProvidersManager::instance().setCurrentFimProvider(name);
-    if (!provider)
-        return;
-
-    url.setValue(provider->url());
-    endPoint.setValue(provider->completionEndpoint());
-}
-
-void GeneralSettings::setCurrentChatProvider(const QString &name)
-{
-    const auto provider = LLMCore::ProvidersManager::instance().setCurrentChatProvider(name);
-    if (!provider)
-        return;
-
-    chatUrl.setValue(provider->url());
-    chatEndPoint.setValue(provider->chatEndpoint());
-}
-
-void GeneralSettings::loadProviders()
-{
-    for (const auto &name : LLMCore::ProvidersManager::instance().providersNames()) {
-        llmProviders.addOption(name);
-        chatLlmProviders.addOption(name);
-    }
-}
-
-void GeneralSettings::loadPrompts()
-{
-    for (const auto &name : LLMCore::PromptTemplateManager::instance().fimTemplatesNames()) {
-        fimPrompts.addOption(name);
-    }
-    for (const auto &name : LLMCore::PromptTemplateManager::instance().chatTemplatesNames()) {
-        chatPrompts.addOption(name);
+        resetAspect(ccProvider);
+        resetAspect(ccModel);
+        resetAspect(ccTemplate);
+        resetAspect(ccUrl);
+        resetAspect(caProvider);
+        resetAspect(caModel);
+        resetAspect(caTemplate);
+        resetAspect(caUrl);
+        writeSettings();
     }
 }
 
@@ -393,7 +194,7 @@ public:
     GeneralSettingsPage()
     {
         setId(Constants::QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID);
-        setDisplayName(Tr::tr("General"));
+        setDisplayName(TrConstants::GENERAL);
         setCategory(Constants::QODE_ASSIST_GENERAL_OPTIONS_CATEGORY);
         setSettingsProvider([] { return &generalSettings(); });
     }

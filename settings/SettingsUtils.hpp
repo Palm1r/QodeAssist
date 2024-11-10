@@ -67,4 +67,15 @@ void resetAspect(AspectType &aspect)
     aspect.setVolatileValue(aspect.defaultValue());
 }
 
+inline void initStringAspect(Utils::StringAspect &aspect,
+                             const Utils::Key &settingsKey,
+                             const QString &labelText,
+                             const QString &defaultValue)
+{
+    aspect.setSettingsKey(settingsKey);
+    aspect.setLabelText(labelText);
+    aspect.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    aspect.setDefaultValue(defaultValue);
+}
+
 } // namespace QodeAssist::Settings

@@ -10,7 +10,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(QtCreator REQUIRED COMPONENTS Core)
-find_package(Qt6 COMPONENTS Core Gui Widgets Network REQUIRED)
+find_package(Qt6 COMPONENTS Core Gui Quick Widgets Network REQUIRED)
 
 add_subdirectory(llmcore)
 add_subdirectory(settings)
@@ -22,11 +22,16 @@ add_qtc_plugin(QodeAssist
     QtCreator::Core
     QtCreator::LanguageClient
     QtCreator::TextEditor
+    QtCreator::ProjectExplorer
   DEPENDS
+    Qt::Core
+    Qt::Gui
+    Qt::Quick
     Qt::Widgets
+    Qt::Network
     QtCreator::ExtensionSystem
     QtCreator::Utils
-    QtCreator::ProjectExplorer
+    QodeAssistChatViewplugin
   SOURCES
     .github/workflows/build_cmake.yml
     .github/workflows/README.md
@@ -55,6 +60,7 @@ add_qtc_plugin(QodeAssist
     core/ChangesManager.h core/ChangesManager.cpp
     chat/ChatOutputPane.h chat/ChatOutputPane.cpp
     chat/NavigationPanel.hpp chat/NavigationPanel.cpp
+    ConfigurationManager.hpp ConfigurationManager.cpp
 )
 
-target_link_libraries(QodeAssist PRIVATE QodeAssistChatViewplugin)
+target_link_libraries(QodeAssist PRIVATE )

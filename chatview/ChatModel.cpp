@@ -30,12 +30,12 @@ ChatModel::ChatModel(QObject *parent)
     : QAbstractListModel(parent)
     , m_totalTokens(0)
 {
-    auto &settings = Settings::generalSettings();
+    // auto &settings = Settings::generalSettings();
 
-    connect(&settings.chatTokensThreshold,
-            &Utils::BaseAspect::changed,
-            this,
-            &ChatModel::tokensThresholdChanged);
+    // connect(&settings.chatTokensThreshold,
+    //         &Utils::BaseAspect::changed,
+    //         this,
+    //         &ChatModel::tokensThresholdChanged);
 }
 
 int ChatModel::rowCount(const QModelIndex &parent) const
@@ -183,8 +183,9 @@ int ChatModel::totalTokens() const
 
 int ChatModel::tokensThreshold() const
 {
-    auto &settings = Settings::generalSettings();
-    return settings.chatTokensThreshold();
+    // auto &settings = Settings::generalSettings();
+    // return settings.chatTokensThreshold();
+    return 0;
 }
 
 QString ChatModel::lastMessageId() const

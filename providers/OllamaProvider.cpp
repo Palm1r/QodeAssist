@@ -25,7 +25,6 @@
 #include <QNetworkReply>
 #include <QtCore/qeventloop.h>
 
-#include "llmcore/PromptTemplateManager.hpp"
 #include "logger/Logger.hpp"
 #include "settings/PresetPromptsSettings.hpp"
 
@@ -124,7 +123,7 @@ bool OllamaProvider::handleResponse(QNetworkReply *reply, QString &accumulatedRe
     return isComplete;
 }
 
-QList<QString> OllamaProvider::getInstalledModels(const Utils::Environment &env, const QString &url)
+QList<QString> OllamaProvider::getInstalledModels(const QString &url)
 {
     QList<QString> models;
     QNetworkAccessManager manager;

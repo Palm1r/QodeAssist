@@ -21,6 +21,7 @@
 
 #include <QString>
 
+#include <QMap>
 #include "Provider.hpp"
 
 namespace QodeAssist::LLMCore {
@@ -40,11 +41,7 @@ public:
         m_providers[name] = provider;
     }
 
-    Provider *setCurrentFimProvider(const QString &name);
-    Provider *setCurrentChatProvider(const QString &name);
-
-    Provider *getCurrentFimProvider();
-    Provider *getCurrentChatProvider();
+    Provider *getProviderByName(const QString &providerName);
 
     QStringList providersNames() const;
 
@@ -54,8 +51,6 @@ private:
     ProvidersManager &operator=(const ProvidersManager &) = delete;
 
     QMap<QString, Provider *> m_providers;
-    Provider *m_currentFimProvider = nullptr;
-    Provider *m_currentChatProvider = nullptr;
 };
 
 } // namespace QodeAssist::LLMCore

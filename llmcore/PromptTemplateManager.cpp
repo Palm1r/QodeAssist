@@ -19,56 +19,12 @@
 
 #include "PromptTemplateManager.hpp"
 
-#include "Logger.hpp"
-
 namespace QodeAssist::LLMCore {
 
 PromptTemplateManager &PromptTemplateManager::instance()
 {
     static PromptTemplateManager instance;
     return instance;
-}
-
-void PromptTemplateManager::setCurrentFimTemplate(const QString &name)
-{
-    LOG_MESSAGE("Setting current FIM provider to: " + name);
-    if (!m_fimTemplates.contains(name) || m_fimTemplates[name] == nullptr) {
-        LOG_MESSAGE("Error to set current FIM template" + name);
-        return;
-    }
-
-    m_currentFimTemplate = m_fimTemplates[name];
-}
-
-PromptTemplate *PromptTemplateManager::getCurrentFimTemplate()
-{
-    if (m_currentFimTemplate == nullptr) {
-        LOG_MESSAGE("Current fim provider is null, return first");
-        return m_fimTemplates.first();
-    }
-
-    return m_currentFimTemplate;
-}
-
-void PromptTemplateManager::setCurrentChatTemplate(const QString &name)
-{
-    LOG_MESSAGE("Setting current chat provider to:  " + name);
-    if (!m_chatTemplates.contains(name) || m_chatTemplates[name] == nullptr) {
-        LOG_MESSAGE("Error to set current chat template" + name);
-        return;
-    }
-
-    m_currentChatTemplate = m_chatTemplates[name];
-}
-
-PromptTemplate *PromptTemplateManager::getCurrentChatTemplate()
-{
-    if (m_currentChatTemplate == nullptr) {
-        LOG_MESSAGE("Current chat provider is null, return first");
-        return m_chatTemplates.first();
-    }
-
-    return m_currentChatTemplate;
 }
 
 QStringList PromptTemplateManager::fimTemplatesNames() const
@@ -85,6 +41,16 @@ PromptTemplateManager::~PromptTemplateManager()
 {
     qDeleteAll(m_fimTemplates);
     qDeleteAll(m_chatTemplates);
+}
+
+PromptTemplate *PromptTemplateManager::getFimTemplateByName(const QString &templateName)
+{
+    return m_fimTemplates[templateName];
+}
+
+PromptTemplate *PromptTemplateManager::getChatTemplateByName(const QString &templateName)
+{
+    return m_chatTemplates[templateName];
 }
 
 } // namespace QodeAssist::LLMCore

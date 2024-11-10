@@ -31,12 +31,12 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     , m_chatModel(new ChatModel(this))
     , m_clientInterface(new ClientInterface(m_chatModel, this))
 {
-    auto &settings = Settings::generalSettings();
+    // auto &settings = Settings::generalSettings();
 
-    connect(&settings.chatModelName,
-            &Utils::BaseAspect::changed,
-            this,
-            &ChatRootView::currentTemplateChanged);
+    // connect(&settings.chatModelName,
+    //         &Utils::BaseAspect::changed,
+    //         this,
+    //         &ChatRootView::currentTemplateChanged);
     generateColors();
 }
 
@@ -111,7 +111,7 @@ QColor ChatRootView::generateColor(const QColor &baseColor,
 QString ChatRootView::currentTemplate() const
 {
     auto &settings = Settings::generalSettings();
-    return settings.chatModelName();
+    return settings.caModel();
 }
 
 QColor ChatRootView::primaryColor() const

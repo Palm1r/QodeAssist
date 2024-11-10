@@ -56,46 +56,46 @@ ClientInterface::~ClientInterface() = default;
 
 void ClientInterface::sendMessage(const QString &message)
 {
-    cancelRequest();
+    // cancelRequest();
 
-    LOG_MESSAGE("Sending message: " + message);
-    LOG_MESSAGE("chatProvider " + Settings::generalSettings().chatLlmProviders.stringValue());
-    LOG_MESSAGE("chatTemplate " + Settings::generalSettings().chatPrompts.stringValue());
+    // LOG_MESSAGE("Sending message: " + message);
+    // LOG_MESSAGE("chatProvider " + Settings::generalSettings().chatLlmProviders.stringValue());
+    // LOG_MESSAGE("chatTemplate " + Settings::generalSettings().chatPrompts.stringValue());
 
-    auto chatTemplate = LLMCore::PromptTemplateManager::instance().getCurrentChatTemplate();
-    auto chatProvider = LLMCore::ProvidersManager::instance().getCurrentChatProvider();
+    // auto chatTemplate = LLMCore::PromptTemplateManager::instance().getCurrentChatTemplate();
+    // auto chatProvider = LLMCore::ProvidersManager::instance().getCurrentChatProvider();
 
-    LLMCore::ContextData context;
-    context.prefix = message;
-    context.suffix = "";
-    if (Settings::contextSettings().useChatSystemPrompt())
-        context.systemPrompt = Settings::contextSettings().chatSystemPrompt();
+    // LLMCore::ContextData context;
+    // context.prefix = message;
+    // context.suffix = "";
+    // if (Settings::contextSettings().useChatSystemPrompt())
+    //     context.systemPrompt = Settings::contextSettings().chatSystemPrompt();
 
-    QJsonObject providerRequest;
-    providerRequest["model"] = Settings::generalSettings().chatModelName();
-    providerRequest["stream"] = true;
-    providerRequest["messages"] = m_chatModel->prepareMessagesForRequest(context);
+    // QJsonObject providerRequest;
+    // providerRequest["model"] = Settings::generalSettings().chatModelName();
+    // providerRequest["stream"] = true;
+    // providerRequest["messages"] = m_chatModel->prepareMessagesForRequest(context);
 
-    if (!chatTemplate || !chatProvider) {
-        LOG_MESSAGE("Check settings, provider or template are not set");
-    }
-    chatTemplate->prepareRequest(providerRequest, context);
-    chatProvider->prepareRequest(providerRequest, LLMCore::RequestType::Chat);
+    // if (!chatTemplate || !chatProvider) {
+    //     LOG_MESSAGE("Check settings, provider or template are not set");
+    // }
+    // chatTemplate->prepareRequest(providerRequest, context);
+    // chatProvider->prepareRequest(providerRequest, LLMCore::RequestType::Chat);
 
-    LLMCore::LLMConfig config;
-    config.requestType = LLMCore::RequestType::Chat;
-    config.provider = chatProvider;
-    config.promptTemplate = chatTemplate;
-    config.url = QString("%1%2").arg(Settings::generalSettings().chatUrl(),
-                                     Settings::generalSettings().chatEndPoint());
-    config.providerRequest = providerRequest;
-    config.multiLineCompletion = Settings::generalSettings().multiLineCompletion();
+    // LLMCore::LLMConfig config;
+    // config.requestType = LLMCore::RequestType::Chat;
+    // config.provider = chatProvider;
+    // config.promptTemplate = chatTemplate;
+    // config.url = QString("%1%2").arg(Settings::generalSettings().chatUrl(),
+    //                                  Settings::generalSettings().chatEndPoint());
+    // config.providerRequest = providerRequest;
+    // config.multiLineCompletion = Settings::generalSettings().multiLineCompletion();
 
-    QJsonObject request;
-    request["id"] = QUuid::createUuid().toString();
+    // QJsonObject request;
+    // request["id"] = QUuid::createUuid().toString();
 
-    m_chatModel->addMessage(message, ChatModel::ChatRole::User, "");
-    m_requestHandler->sendLLMRequest(config, request);
+    // m_chatModel->addMessage(message, ChatModel::ChatRole::User, "");
+    // m_requestHandler->sendLLMRequest(config, request);
 }
 
 void ClientInterface::clearMessages()

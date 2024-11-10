@@ -16,7 +16,5 @@ target_link_libraries(QodeAssistSettings
     QtCreator::Core
     QtCreator::Utils
     QodeAssistLogger
-    PRIVATE
-    LLMCore
 )
 target_include_directories(QodeAssistSettings PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
