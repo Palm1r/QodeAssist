@@ -50,6 +50,10 @@ ChatAssistantSettings::ChatAssistantSettings()
     chatTokensThreshold.setRange(1000, 16000);
     chatTokensThreshold.setDefaultValue(8000);
 
+    sharingCurrentFile.setSettingsKey(Constants::CA_SHARING_CURRENT_FILE);
+    sharingCurrentFile.setLabelText(Tr::tr("Share Current File With Assistant by Default"));
+    sharingCurrentFile.setDefaultValue(true);
+
     // General Parameters Settings
     temperature.setSettingsKey(Constants::CA_TEMPERATURE);
     temperature.setLabelText(Tr::tr("Temperature:"));
@@ -156,7 +160,8 @@ ChatAssistantSettings::ChatAssistantSettings()
 
         return Column{Row{Stretch{1}, resetToDefaults},
                       Space{8},
-                      Group{title(Tr::tr("Chat Settings")), Row{chatTokensThreshold, Stretch{1}}},
+                      Group{title(Tr::tr("Chat Settings")),
+                            Column{Row{chatTokensThreshold, Stretch{1}}, sharingCurrentFile}},
                       Space{8},
                       Group{
                           title(Tr::tr("General Parameters")),

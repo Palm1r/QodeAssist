@@ -51,6 +51,7 @@ const char MAX_FILE_THRESHOLD[] = "QodeAssist.maxFileThreshold";
 const char CC_MULTILINE_COMPLETION[] = "QodeAssist.ccMultilineCompletion";
 const char CUSTOM_JSON_TEMPLATE[] = "QodeAssist.customJsonTemplate";
 const char CA_TOKENS_THRESHOLD[] = "QodeAssist.caTokensThreshold";
+const char CA_SHARING_CURRENT_FILE[] = "QodeAssist.caSharingCurrentFile";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
 const char QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID[] = "QodeAssist.1GeneralSettingsPageId";

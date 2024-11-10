@@ -34,6 +34,7 @@ public:
 
     // Chat settings
     Utils::IntegerAspect chatTokensThreshold{this};
+    Utils::BoolAspect sharingCurrentFile{this};
 
     // General Parameters Settings
     Utils::DoubleAspect temperature{this};

@@ -19,9 +19,18 @@
 
 #include "ClientInterface.hpp"
 
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QUuid>
+#include <texteditor/textdocument.h>
+
+#include <coreplugin/editormanager/editormanager.h>
+#include <coreplugin/editormanager/ieditor.h>
+#include <coreplugin/idocument.h>
+
+#include <texteditor/textdocument.h>
+#include <texteditor/texteditor.h>
 
 #include "ChatAssistantSettings.hpp"
 #include "GeneralSettings.hpp"
@@ -55,7 +64,7 @@ ClientInterface::ClientInterface(ChatModel *chatModel, QObject *parent)
 
 ClientInterface::~ClientInterface() = default;
 
-void ClientInterface::sendMessage(const QString &message)
+void ClientInterface::sendMessage(const QString &message, bool includeCurrentFile)
 {
     cancelRequest();
 
@@ -71,8 +80,20 @@ void ClientInterface::sendMessage(const QString &message)
     LLMCore::ContextData context;
     context.prefix = message;
     context.suffix = "";
-    if (chatAssistantSettings.useSystemPrompt())
-        context.systemPrompt = chatAssistantSettings.systemPrompt();
+
+    QString systemPrompt = chatAssistantSettings.systemPrompt();
+    if (includeCurrentFile) {
+        QString fileContext = getCurrentFileContext();
+        if (!fileContext.isEmpty()) {
+            context.systemPrompt = QString("%1\n\n%2").arg(systemPrompt, fileContext);
+            LOG_MESSAGE("Using system prompt with file context");
+        } else {
+            context.systemPrompt = systemPrompt;
+            LOG_MESSAGE("Failed to get file context, using default system prompt");
+        }
+    } else {
+        context.systemPrompt = systemPrompt;
+    }
 
     QJsonObject providerRequest;
     providerRequest["model"] = Settings::generalSettings().caModel();
@@ -126,6 +147,30 @@ void ClientInterface::handleLLMResponse(const QString &response,
     if (isComplete) {
         LOG_MESSAGE("Message completed. Final response for message " + messageId + ": " + response);
     }
+}
+
+QString ClientInterface::getCurrentFileContext() const
+{
+    auto currentEditor = Core::EditorManager::currentEditor();
+    if (!currentEditor) {
+        LOG_MESSAGE("No active editor found");
+        return QString();
+    }
+
+    auto textDocument = qobject_cast<TextEditor::TextDocument *>(currentEditor->document());
+    if (!textDocument) {
+        LOG_MESSAGE("Current document is not a text document");
+        return QString();
+    }
+
+    QString fileInfo = QString("Language: %1\nFile: %2\n\n")
+                           .arg(textDocument->mimeType(), textDocument->filePath().toString());
+
+    QString content = textDocument->document()->toPlainText();
+
+    LOG_MESSAGE(QString("Got context from file: %1").arg(textDocument->filePath().toString()));
+
+    return QString("Current file context:\n%1\nFile content:\n%2").arg(fileInfo, content);
 }
 
 } // namespace QodeAssist::Chat

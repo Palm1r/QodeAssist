@@ -88,8 +88,8 @@ void ConfigurationManager::selectModel()
         return;
 
     const auto providerUrl = (settingsButton == &m_generalSettings.ccSelectModel)
-                                 ? m_generalSettings.ccUrl.volatileValue()
-                                 : m_generalSettings.caUrl.volatileValue();
+                                 ? m_generalSettings.ccUrl()
+                                 : m_generalSettings.caUrl();
     const auto modelList = m_providersManager.getProviderByName(providerName)
                                ->getInstalledModels(providerUrl);
 
