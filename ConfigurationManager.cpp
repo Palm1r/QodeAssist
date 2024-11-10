@@ -37,18 +37,6 @@ void ConfigurationManager::init()
     setupConnections();
 }
 
-LLMCore::Provider *ConfigurationManager::getCurrentProvider()
-{
-    auto providerName = Settings::generalSettings().ccProvider();
-    return LLMCore::ProvidersManager::instance().getProviderByName(providerName);
-}
-
-LLMCore::PromptTemplate *ConfigurationManager::getCurrentTemplate()
-{
-    auto templateName = Settings::generalSettings().ccTemplate();
-    return LLMCore::PromptTemplateManager::instance().getFimTemplateByName(templateName);
-}
-
 ConfigurationManager::ConfigurationManager(QObject *parent)
     : QObject(parent)
     , m_generalSettings(Settings::generalSettings())

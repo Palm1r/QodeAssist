@@ -36,9 +36,6 @@ public:
 
     void init();
 
-    LLMCore::Provider *getCurrentProvider();
-    LLMCore::PromptTemplate *getCurrentTemplate();
-
 public slots:
     void selectProvider();
     void selectModel();

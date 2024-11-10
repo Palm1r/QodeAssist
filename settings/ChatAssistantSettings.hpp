@@ -25,16 +25,15 @@
 
 namespace QodeAssist::Settings {
 
-class CodeCompletionSettings : public Utils::AspectContainer
+class ChatAssistantSettings : public Utils::AspectContainer
 {
 public:
-    CodeCompletionSettings();
+    ChatAssistantSettings();
 
     ButtonAspect resetToDefaults{this};
 
-    // Auto Completion Settings
-    Utils::BoolAspect autoCompletion{this};
-    Utils::BoolAspect multiLineCompletion{this};
+    // Chat settings
+    Utils::IntegerAspect chatTokensThreshold{this};
 
     // General Parameters Settings
     Utils::DoubleAspect temperature{this};
@@ -54,15 +53,8 @@ public:
     Utils::DoubleAspect frequencyPenalty{this};
 
     // Context Settings
-    Utils::BoolAspect readFullFile{this};
-    Utils::BoolAspect readFileParts{this};
-    Utils::IntegerAspect readStringsBeforeCursor{this};
-    Utils::IntegerAspect readStringsAfterCursor{this};
     Utils::BoolAspect useSystemPrompt{this};
     Utils::StringAspect systemPrompt{this};
-    Utils::BoolAspect useFilePathInContext{this};
-    Utils::BoolAspect useProjectChangesCache{this};
-    Utils::IntegerAspect maxChangesCacheSize{this};
 
     // Ollama Settings
     Utils::StringAspect ollamaLivetime{this};
@@ -76,6 +68,6 @@ private:
     void resetSettingsToDefaults();
 };
 
-CodeCompletionSettings &codeCompletionSettings();
+ChatAssistantSettings &chatAssistantSettings();
 
 } // namespace QodeAssist::Settings

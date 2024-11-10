@@ -151,9 +151,12 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     auto updatedContext = prepareContext(request);
     auto &completeSettings = Settings::codeCompletionSettings();
 
-    auto &configManager = ConfigurationManager::instance();
-    auto provider = configManager.getCurrentProvider();
-    auto promptTemplate = configManager.getCurrentTemplate();
+    auto providerName = Settings::generalSettings().ccProvider();
+    auto provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
+
+    auto templateName = Settings::generalSettings().ccTemplate();
+    auto promptTemplate = LLMCore::PromptTemplateManager::instance().getFimTemplateByName(
+        templateName);
 
     LLMCore::LLMConfig config;
     config.requestType = LLMCore::RequestType::Fim;

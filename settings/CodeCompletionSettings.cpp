@@ -55,7 +55,7 @@ CodeCompletionSettings::CodeCompletionSettings()
     temperature.setSettingsKey(Constants::CC_TEMPERATURE);
     temperature.setLabelText(Tr::tr("Temperature:"));
     temperature.setDefaultValue(0.2);
-    temperature.setRange(0.0, 10.0);
+    temperature.setRange(0.0, 2.0);
     temperature.setSingleStep(0.1);
 
     maxTokens.setSettingsKey(Constants::CC_MAX_TOKENS);
@@ -63,6 +63,7 @@ CodeCompletionSettings::CodeCompletionSettings()
     maxTokens.setRange(-1, 10000);
     maxTokens.setDefaultValue(50);
 
+    // Advanced Parameters
     useTopP.setSettingsKey(Constants::CC_USE_TOP_P);
     useTopP.setDefaultValue(false);
     useTopP.setLabelText(Tr::tr("Top P:"));
@@ -80,7 +81,6 @@ CodeCompletionSettings::CodeCompletionSettings()
     topK.setDefaultValue(50);
     topK.setRange(1, 1000);
 
-    // Advanced Parameters
     usePresencePenalty.setSettingsKey(Constants::CC_USE_PRESENCE_PENALTY);
     usePresencePenalty.setDefaultValue(false);
     usePresencePenalty.setLabelText(Tr::tr("Presence Penalty:"));
@@ -124,11 +124,7 @@ CodeCompletionSettings::CodeCompletionSettings()
     systemPrompt.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
     systemPrompt.setDefaultValue(
         "You are an expert C++, Qt, and QML code completion AI. Your task is to provide accurate "
-        "and "
-        "contextually appropriate code suggestions. Focus on completing the code in a way that "
-        "follows best practices, is efficient, and matches the surrounding code style. Prioritize "
-        "Qt and QML-specific completions when appropriate. Avoid adding comments or explanations "
-        "in your completions.");
+        "and contextually appropriate code suggestions.");
 
     useFilePathInContext.setSettingsKey(Constants::CC_USE_FILE_PATH_IN_CONTEXT);
     useFilePathInContext.setDefaultValue(false);
@@ -190,6 +186,7 @@ CodeCompletionSettings::CodeCompletionSettings()
         auto contextGrid = Grid{};
         contextGrid.addRow({Row{readFullFile}});
         contextGrid.addRow({Row{readFileParts, readStringsBeforeCursor, readStringsAfterCursor}});
+
         auto contextItem = Column{Row{contextGrid, Stretch{1}},
                                   Row{useSystemPrompt, Stretch{1}},
                                   systemPrompt,
@@ -204,19 +201,19 @@ CodeCompletionSettings::CodeCompletionSettings()
                                 Space{8},
                                 multiLineCompletion,
                             }},
-                      Space{16},
+                      Space{8},
                       Group{title(Tr::tr("General Parameters")),
                             Column{
                                 Row{genGrid, Stretch{1}},
                             }},
-                      Space{16},
+                      Space{8},
                       Group{title(Tr::tr("Advanced Parameters")),
                             Column{Row{advancedGrid, Stretch{1}}}},
-                      Space{16},
+                      Space{8},
                       Group{title(Tr::tr("Context Settings")), contextItem},
-                      Space{16},
+                      Space{8},
                       Group{title(Tr::tr("Ollama Settings")), Column{Row{ollamaGrid, Stretch{1}}}},
-                      Space{16},
+                      Space{8},
                       Group{title(Tr::tr("API Configuration")), Column{apiKey}},
                       Stretch{1}};
     });

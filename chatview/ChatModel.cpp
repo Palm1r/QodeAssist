@@ -22,7 +22,7 @@
 #include <QtQml>
 #include <utils/aspects.h>
 
-#include "GeneralSettings.hpp"
+#include "ChatAssistantSettings.hpp"
 
 namespace QodeAssist::Chat {
 
@@ -30,12 +30,12 @@ ChatModel::ChatModel(QObject *parent)
     : QAbstractListModel(parent)
     , m_totalTokens(0)
 {
-    // auto &settings = Settings::generalSettings();
+    auto &settings = Settings::chatAssistantSettings();
 
-    // connect(&settings.chatTokensThreshold,
-    //         &Utils::BaseAspect::changed,
-    //         this,
-    //         &ChatModel::tokensThresholdChanged);
+    connect(&settings.chatTokensThreshold,
+            &Utils::BaseAspect::changed,
+            this,
+            &ChatModel::tokensThresholdChanged);
 }
 
 int ChatModel::rowCount(const QModelIndex &parent) const
@@ -183,9 +183,8 @@ int ChatModel::totalTokens() const
 
 int ChatModel::tokensThreshold() const
 {
-    // auto &settings = Settings::generalSettings();
-    // return settings.chatTokensThreshold();
-    return 0;
+    auto &settings = Settings::chatAssistantSettings();
+    return settings.chatTokensThreshold();
 }
 
 QString ChatModel::lastMessageId() const

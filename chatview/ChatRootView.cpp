@@ -31,12 +31,12 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     , m_chatModel(new ChatModel(this))
     , m_clientInterface(new ClientInterface(m_chatModel, this))
 {
-    // auto &settings = Settings::generalSettings();
+    auto &settings = Settings::generalSettings();
 
-    // connect(&settings.chatModelName,
-    //         &Utils::BaseAspect::changed,
-    //         this,
-    //         &ChatRootView::currentTemplateChanged);
+    connect(&settings.caModel,
+            &Utils::BaseAspect::changed,
+            this,
+            &ChatRootView::currentTemplateChanged);
     generateColors();
 }
 

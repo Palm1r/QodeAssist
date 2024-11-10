@@ -48,7 +48,7 @@ PresetPromptsSettings::PresetPromptsSettings()
     fimTemperature.setRange(0.0, 10.0);
     fimTemperature.setSingleStep(0.1);
 
-    chatTemperature.setSettingsKey(Constants::CHAT_TEMPERATURE);
+    chatTemperature.setSettingsKey(Constants::CA_TEMPERATURE);
     chatTemperature.setLabelText(Tr::tr("Temperature:"));
     chatTemperature.setDefaultValue(0.5);
     chatTemperature.setRange(0.0, 10.0);
@@ -61,7 +61,7 @@ PresetPromptsSettings::PresetPromptsSettings()
     fimOllamaLivetime.setDefaultValue("5m");
     fimOllamaLivetime.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
 
-    chatOllamaLivetime.setSettingsKey(Constants::CHAT_OLLAMA_LIVETIME);
+    chatOllamaLivetime.setSettingsKey(Constants::CA_OLLAMA_LIVETIME);
     chatOllamaLivetime.setLabelText(
         Tr::tr("Time to suspend Ollama after completion request (in minutes), "
                "Only Ollama,  -1 to disable"));
@@ -73,7 +73,7 @@ PresetPromptsSettings::PresetPromptsSettings()
     fimMaxTokens.setRange(-1, 10000);
     fimMaxTokens.setDefaultValue(50);
 
-    chatMaxTokens.setSettingsKey(Constants::CHAT_MAX_TOKENS);
+    chatMaxTokens.setSettingsKey(Constants::CA_MAX_TOKENS);
     chatMaxTokens.setLabelText(Tr::tr("Max Tokens"));
     chatMaxTokens.setRange(-1, 10000);
     chatMaxTokens.setDefaultValue(2000);
@@ -87,10 +87,10 @@ PresetPromptsSettings::PresetPromptsSettings()
     fimTopP.setRange(0.0, 1.0);
     fimTopP.setSingleStep(0.1);
 
-    chatUseTopP.setSettingsKey(Constants::CHAT_USE_TOP_P);
+    chatUseTopP.setSettingsKey(Constants::CA_USE_TOP_P);
     chatUseTopP.setDefaultValue(false);
 
-    chatTopP.setSettingsKey(Constants::CHAT_TOP_P);
+    chatTopP.setSettingsKey(Constants::CA_TOP_P);
     chatTopP.setLabelText(Tr::tr("use top_p"));
     chatTopP.setDefaultValue(0.9);
     chatTopP.setRange(0.0, 1.0);
@@ -104,10 +104,10 @@ PresetPromptsSettings::PresetPromptsSettings()
     fimTopK.setDefaultValue(50);
     fimTopK.setRange(1, 1000);
 
-    chatUseTopK.setSettingsKey(Constants::CHAT_USE_TOP_K);
+    chatUseTopK.setSettingsKey(Constants::CA_USE_TOP_K);
     chatUseTopK.setDefaultValue(false);
 
-    chatTopK.setSettingsKey(Constants::CHAT_TOP_K);
+    chatTopK.setSettingsKey(Constants::CA_TOP_K);
     chatTopK.setLabelText(Tr::tr("use top_k"));
     chatTopK.setDefaultValue(50);
     chatTopK.setRange(1, 1000);
@@ -121,10 +121,10 @@ PresetPromptsSettings::PresetPromptsSettings()
     fimPresencePenalty.setRange(-2.0, 2.0);
     fimPresencePenalty.setSingleStep(0.1);
 
-    chatUsePresencePenalty.setSettingsKey(Constants::CHAT_USE_PRESENCE_PENALTY);
+    chatUsePresencePenalty.setSettingsKey(Constants::CA_USE_PRESENCE_PENALTY);
     chatUsePresencePenalty.setDefaultValue(false);
 
-    chatPresencePenalty.setSettingsKey(Constants::CHAT_PRESENCE_PENALTY);
+    chatPresencePenalty.setSettingsKey(Constants::CA_PRESENCE_PENALTY);
     chatPresencePenalty.setLabelText(Tr::tr("use presence_penalty"));
     chatPresencePenalty.setDefaultValue(0.0);
     chatPresencePenalty.setRange(-2.0, 2.0);
@@ -139,10 +139,10 @@ PresetPromptsSettings::PresetPromptsSettings()
     fimFrequencyPenalty.setRange(-2.0, 2.0);
     fimFrequencyPenalty.setSingleStep(0.1);
 
-    chatUseFrequencyPenalty.setSettingsKey(Constants::CHAT_USE_FREQUENCY_PENALTY);
+    chatUseFrequencyPenalty.setSettingsKey(Constants::CA_USE_FREQUENCY_PENALTY);
     chatUseFrequencyPenalty.setDefaultValue(false);
 
-    chatFrequencyPenalty.setSettingsKey(Constants::CHAT_FREQUENCY_PENALTY);
+    chatFrequencyPenalty.setSettingsKey(Constants::CA_FREQUENCY_PENALTY);
     chatFrequencyPenalty.setLabelText(Tr::tr("use frequency_penalty"));
     chatFrequencyPenalty.setDefaultValue(0.0);
     chatFrequencyPenalty.setRange(-2.0, 2.0);
@@ -153,7 +153,7 @@ PresetPromptsSettings::PresetPromptsSettings()
     fimApiKey.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
     fimApiKey.setPlaceHolderText(Tr::tr("Enter your API key here"));
 
-    chatApiKey.setSettingsKey(Constants::CHAT_API_KEY);
+    chatApiKey.setSettingsKey(Constants::CA_API_KEY);
     chatApiKey.setLabelText(Tr::tr("API Key:"));
     chatApiKey.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
     chatApiKey.setPlaceHolderText(Tr::tr("Enter your API key here"));

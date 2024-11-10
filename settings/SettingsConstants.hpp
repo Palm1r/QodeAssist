@@ -46,16 +46,18 @@ const char AUTO_COMPLETION_TYPING_INTERVAL[] = "QodeAssist.autoCompletionTypingI
 const char MAX_FILE_THRESHOLD[] = "QodeAssist.maxFileThreshold";
 const char CC_MULTILINE_COMPLETION[] = "QodeAssist.ccMultilineCompletion";
 const char CUSTOM_JSON_TEMPLATE[] = "QodeAssist.customJsonTemplate";
-const char CHAT_TOKENS_THRESHOLD[] = "QodeAssist.chatTokensThreshold";
+const char CA_TOKENS_THRESHOLD[] = "QodeAssist.caTokensThreshold";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
 const char QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID[] = "QodeAssist.1GeneralSettingsPageId";
 const char QODE_ASSIST_CODE_COMPLETION_SETTINGS_PAGE_ID[]
     = "QodeAssist.2CodeCompletionSettingsPageId";
-const char QODE_ASSIST_CONTEXT_SETTINGS_PAGE_ID[] = "QodeAssist.3ContextSettingsPageId";
+const char QODE_ASSIST_CHAT_ASSISTANT_SETTINGS_PAGE_ID[]
+    = "QodeAssist.3ChatAssistantSettingsPageId";
+const char QODE_ASSIST_CONTEXT_SETTINGS_PAGE_ID[] = "QodeAssist.4ContextSettingsPageId";
 const char QODE_ASSIST_PRESET_PROMPTS_SETTINGS_PAGE_ID[]
-    = "QodeAssist.4PresetPromptsSettingsPageId";
-const char QODE_ASSIST_CUSTOM_PROMPT_SETTINGS_PAGE_ID[] = "QodeAssist.5CustomPromptSettingsPageId";
+    = "QodeAssist.5PresetPromptsSettingsPageId";
+const char QODE_ASSIST_CUSTOM_PROMPT_SETTINGS_PAGE_ID[] = "QodeAssist.6CustomPromptSettingsPageId";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_CATEGORY[] = "QodeAssist.Category";
 const char QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY[] = "Qode Assist";
@@ -71,8 +73,8 @@ const char CC_USE_FILE_PATH_IN_CONTEXT[] = "QodeAssist.ccUseFilePathInContext";
 const char CC_SYSTEM_PROMPT[] = "QodeAssist.ccSystemPrompt";
 const char CC_USE_PROJECT_CHANGES_CACHE[] = "QodeAssist.ccUseProjectChangesCache";
 const char CC_MAX_CHANGES_CACHE_SIZE[] = "QodeAssist.ccMaxChangesCacheSize";
-const char USE_CHAT_SYSTEM_PROMPT[] = "QodeAssist.useChatSystemPrompt";
-const char CHAT_SYSTEM_PROMPT[] = "QodeAssist.chatSystemPrompt";
+const char CA_USE_SYSTEM_PROMPT[] = "QodeAssist.useChatSystemPrompt";
+const char CA_SYSTEM_PROMPT[] = "QodeAssist.chatSystemPrompt";
 
 // preset prompt settings
 const char CC_TEMPERATURE[] = "QodeAssist.ccTemperature";
@@ -88,17 +90,18 @@ const char CC_FREQUENCY_PENALTY[] = "QodeAssist.fimFrequencyPenalty";
 const char CC_OLLAMA_LIVETIME[] = "QodeAssist.fimOllamaLivetime";
 const char CC_OLLAMA_CONTEXT_WINDOW[] = "QodeAssist.ccOllamaContextWindow";
 const char CC_API_KEY[] = "QodeAssist.apiKey";
-const char CHAT_TEMPERATURE[] = "QodeAssist.chatTemperature";
-const char CHAT_MAX_TOKENS[] = "QodeAssist.chatMaxTokens";
-const char CHAT_USE_TOP_P[] = "QodeAssist.chatUseTopP";
-const char CHAT_TOP_P[] = "QodeAssist.chatTopP";
-const char CHAT_USE_TOP_K[] = "QodeAssist.chatUseTopK";
-const char CHAT_TOP_K[] = "QodeAssist.chatTopK";
-const char CHAT_USE_PRESENCE_PENALTY[] = "QodeAssist.chatUsePresencePenalty";
-const char CHAT_PRESENCE_PENALTY[] = "QodeAssist.chatPresencePenalty";
-const char CHAT_USE_FREQUENCY_PENALTY[] = "QodeAssist.chatUseFrequencyPenalty";
-const char CHAT_FREQUENCY_PENALTY[] = "QodeAssist.chatFrequencyPenalty";
-const char CHAT_OLLAMA_LIVETIME[] = "QodeAssist.chatOllamaLivetime";
-const char CHAT_API_KEY[] = "QodeAssist.chatApiKey";
+const char CA_TEMPERATURE[] = "QodeAssist.chatTemperature";
+const char CA_MAX_TOKENS[] = "QodeAssist.chatMaxTokens";
+const char CA_USE_TOP_P[] = "QodeAssist.chatUseTopP";
+const char CA_TOP_P[] = "QodeAssist.chatTopP";
+const char CA_USE_TOP_K[] = "QodeAssist.chatUseTopK";
+const char CA_TOP_K[] = "QodeAssist.chatTopK";
+const char CA_USE_PRESENCE_PENALTY[] = "QodeAssist.chatUsePresencePenalty";
+const char CA_PRESENCE_PENALTY[] = "QodeAssist.chatPresencePenalty";
+const char CA_USE_FREQUENCY_PENALTY[] = "QodeAssist.chatUseFrequencyPenalty";
+const char CA_FREQUENCY_PENALTY[] = "QodeAssist.chatFrequencyPenalty";
+const char CA_OLLAMA_LIVETIME[] = "QodeAssist.chatOllamaLivetime";
+const char CA_OLLAMA_CONTEXT_WINDOW[] = "QodeAssist.caOllamaContextWindow";
+const char CA_API_KEY[] = "QodeAssist.chatApiKey";
 
 } // namespace QodeAssist::Constants

@@ -18,15 +18,16 @@
  */
 
 #include "ClientInterface.hpp"
-#include "ContextSettings.hpp"
-#include "GeneralSettings.hpp"
-#include "Logger.hpp"
-#include "PromptTemplateManager.hpp"
-#include "ProvidersManager.hpp"
 
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QUuid>
+
+#include "ChatAssistantSettings.hpp"
+#include "GeneralSettings.hpp"
+#include "Logger.hpp"
+#include "PromptTemplateManager.hpp"
+#include "ProvidersManager.hpp"
 
 namespace QodeAssist::Chat {
 
@@ -56,46 +57,51 @@ ClientInterface::~ClientInterface() = default;
 
 void ClientInterface::sendMessage(const QString &message)
 {
-    // cancelRequest();
+    cancelRequest();
 
-    // LOG_MESSAGE("Sending message: " + message);
-    // LOG_MESSAGE("chatProvider " + Settings::generalSettings().chatLlmProviders.stringValue());
-    // LOG_MESSAGE("chatTemplate " + Settings::generalSettings().chatPrompts.stringValue());
+    auto &chatAssistantSettings = Settings::chatAssistantSettings();
 
-    // auto chatTemplate = LLMCore::PromptTemplateManager::instance().getCurrentChatTemplate();
-    // auto chatProvider = LLMCore::ProvidersManager::instance().getCurrentChatProvider();
+    auto providerName = Settings::generalSettings().caProvider();
+    auto provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
-    // LLMCore::ContextData context;
-    // context.prefix = message;
-    // context.suffix = "";
-    // if (Settings::contextSettings().useChatSystemPrompt())
-    //     context.systemPrompt = Settings::contextSettings().chatSystemPrompt();
+    auto templateName = Settings::generalSettings().caTemplate();
+    auto promptTemplate = LLMCore::PromptTemplateManager::instance().getChatTemplateByName(
+        templateName);
 
-    // QJsonObject providerRequest;
-    // providerRequest["model"] = Settings::generalSettings().chatModelName();
-    // providerRequest["stream"] = true;
-    // providerRequest["messages"] = m_chatModel->prepareMessagesForRequest(context);
+    LLMCore::ContextData context;
+    context.prefix = message;
+    context.suffix = "";
+    if (chatAssistantSettings.useSystemPrompt())
+        context.systemPrompt = chatAssistantSettings.systemPrompt();
 
-    // if (!chatTemplate || !chatProvider) {
-    //     LOG_MESSAGE("Check settings, provider or template are not set");
-    // }
-    // chatTemplate->prepareRequest(providerRequest, context);
-    // chatProvider->prepareRequest(providerRequest, LLMCore::RequestType::Chat);
+    QJsonObject providerRequest;
+    providerRequest["model"] = Settings::generalSettings().caModel();
+    providerRequest["stream"] = true;
+    providerRequest["messages"] = m_chatModel->prepareMessagesForRequest(context);
 
-    // LLMCore::LLMConfig config;
-    // config.requestType = LLMCore::RequestType::Chat;
-    // config.provider = chatProvider;
-    // config.promptTemplate = chatTemplate;
-    // config.url = QString("%1%2").arg(Settings::generalSettings().chatUrl(),
-    //                                  Settings::generalSettings().chatEndPoint());
-    // config.providerRequest = providerRequest;
-    // config.multiLineCompletion = Settings::generalSettings().multiLineCompletion();
+    if (promptTemplate)
+        promptTemplate->prepareRequest(providerRequest, context);
+    else
+        qWarning("No prompt template found");
 
-    // QJsonObject request;
-    // request["id"] = QUuid::createUuid().toString();
+    if (provider)
+        provider->prepareRequest(providerRequest, LLMCore::RequestType::Chat);
+    else
+        qWarning("No provider found");
 
-    // m_chatModel->addMessage(message, ChatModel::ChatRole::User, "");
-    // m_requestHandler->sendLLMRequest(config, request);
+    LLMCore::LLMConfig config;
+    config.requestType = LLMCore::RequestType::Chat;
+    config.provider = provider;
+    config.promptTemplate = promptTemplate;
+    config.url = QString("%1%2").arg(Settings::generalSettings().caUrl(), provider->chatEndpoint());
+    config.providerRequest = providerRequest;
+    config.multiLineCompletion = false;
+
+    QJsonObject request;
+    request["id"] = QUuid::createUuid().toString();
+
+    m_chatModel->addMessage(message, ChatModel::ChatRole::User, "");
+    m_requestHandler->sendLLMRequest(config, request);
 }
 
 void ClientInterface::clearMessages()

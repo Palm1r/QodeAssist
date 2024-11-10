@@ -73,11 +73,11 @@ ContextSettings::ContextSettings()
         "Qt and QML-specific completions when appropriate. Avoid adding comments or explanations "
         "in your completions.");
 
-    useChatSystemPrompt.setSettingsKey(Constants::USE_CHAT_SYSTEM_PROMPT);
+    useChatSystemPrompt.setSettingsKey(Constants::CA_SYSTEM_PROMPT);
     useChatSystemPrompt.setDefaultValue(true);
     useChatSystemPrompt.setLabelText(Tr::tr("Use System Prompt for chat"));
 
-    chatSystemPrompt.setSettingsKey(Constants::CHAT_SYSTEM_PROMPT);
+    chatSystemPrompt.setSettingsKey(Constants::CA_SYSTEM_PROMPT);
     chatSystemPrompt.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
     chatSystemPrompt.setDefaultValue(
         "You are an advanced AI assistant specializing in C++, Qt, and QML development. Your role "
