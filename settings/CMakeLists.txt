@@ -7,6 +7,7 @@ add_library(QodeAssistSettings STATIC
     SettingsConstants.hpp
     ButtonAspect.hpp
     SettingsTr.hpp
+    CodeCompletionSettings.hpp CodeCompletionSettings.cpp
 )
 
 target_link_libraries(QodeAssistSettings

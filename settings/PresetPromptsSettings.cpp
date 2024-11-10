@@ -42,7 +42,7 @@ PresetPromptsSettings::PresetPromptsSettings()
 
     setDisplayName(Tr::tr("Preset Prompts Params"));
 
-    fimTemperature.setSettingsKey(Constants::FIM_TEMPERATURE);
+    fimTemperature.setSettingsKey(Constants::CC_TEMPERATURE);
     fimTemperature.setLabelText(Tr::tr("Temperature:"));
     fimTemperature.setDefaultValue(0.2);
     fimTemperature.setRange(0.0, 10.0);
@@ -54,7 +54,7 @@ PresetPromptsSettings::PresetPromptsSettings()
     chatTemperature.setRange(0.0, 10.0);
     chatTemperature.setSingleStep(0.1);
 
-    fimOllamaLivetime.setSettingsKey(Constants::FIM_OLLAMA_LIVETIME);
+    fimOllamaLivetime.setSettingsKey(Constants::CC_OLLAMA_LIVETIME);
     fimOllamaLivetime.setLabelText(
         Tr::tr("Time to suspend Ollama after completion request (in minutes), "
                "Only Ollama,  -1 to disable"));
@@ -68,7 +68,7 @@ PresetPromptsSettings::PresetPromptsSettings()
     chatOllamaLivetime.setDefaultValue("5m");
     chatOllamaLivetime.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
 
-    fimMaxTokens.setSettingsKey(Constants::FIM_MAX_TOKENS);
+    fimMaxTokens.setSettingsKey(Constants::CC_MAX_TOKENS);
     fimMaxTokens.setLabelText(Tr::tr("Max Tokens"));
     fimMaxTokens.setRange(-1, 10000);
     fimMaxTokens.setDefaultValue(50);
@@ -78,10 +78,10 @@ PresetPromptsSettings::PresetPromptsSettings()
     chatMaxTokens.setRange(-1, 10000);
     chatMaxTokens.setDefaultValue(2000);
 
-    fimUseTopP.setSettingsKey(Constants::FIM_USE_TOP_P);
+    fimUseTopP.setSettingsKey(Constants::CC_USE_TOP_P);
     fimUseTopP.setDefaultValue(false);
 
-    fimTopP.setSettingsKey(Constants::FIM_TOP_P);
+    fimTopP.setSettingsKey(Constants::CC_TOP_P);
     fimTopP.setLabelText(Tr::tr("use top_p"));
     fimTopP.setDefaultValue(0.9);
     fimTopP.setRange(0.0, 1.0);
@@ -96,10 +96,10 @@ PresetPromptsSettings::PresetPromptsSettings()
     chatTopP.setRange(0.0, 1.0);
     chatTopP.setSingleStep(0.1);
 
-    fimUseTopK.setSettingsKey(Constants::FIM_USE_TOP_K);
+    fimUseTopK.setSettingsKey(Constants::CC_USE_TOP_K);
     fimUseTopK.setDefaultValue(false);
 
-    fimTopK.setSettingsKey(Constants::FIM_TOP_K);
+    fimTopK.setSettingsKey(Constants::CC_TOP_K);
     fimTopK.setLabelText(Tr::tr("use top_k"));
     fimTopK.setDefaultValue(50);
     fimTopK.setRange(1, 1000);
@@ -112,10 +112,10 @@ PresetPromptsSettings::PresetPromptsSettings()
     chatTopK.setDefaultValue(50);
     chatTopK.setRange(1, 1000);
 
-    fimUsePresencePenalty.setSettingsKey(Constants::FIM_USE_PRESENCE_PENALTY);
+    fimUsePresencePenalty.setSettingsKey(Constants::CC_USE_PRESENCE_PENALTY);
     fimUsePresencePenalty.setDefaultValue(false);
 
-    fimPresencePenalty.setSettingsKey(Constants::FIM_PRESENCE_PENALTY);
+    fimPresencePenalty.setSettingsKey(Constants::CC_PRESENCE_PENALTY);
     fimPresencePenalty.setLabelText(Tr::tr("use presence_penalty"));
     fimPresencePenalty.setDefaultValue(0.0);
     fimPresencePenalty.setRange(-2.0, 2.0);
@@ -130,10 +130,10 @@ PresetPromptsSettings::PresetPromptsSettings()
     chatPresencePenalty.setRange(-2.0, 2.0);
     chatPresencePenalty.setSingleStep(0.1);
 
-    fimUseFrequencyPenalty.setSettingsKey(Constants::FIM_USE_FREQUENCY_PENALTY);
+    fimUseFrequencyPenalty.setSettingsKey(Constants::CC_USE_FREQUENCY_PENALTY);
     fimUseFrequencyPenalty.setDefaultValue(false);
 
-    fimFrequencyPenalty.setSettingsKey(Constants::FIM_FREQUENCY_PENALTY);
+    fimFrequencyPenalty.setSettingsKey(Constants::CC_FREQUENCY_PENALTY);
     fimFrequencyPenalty.setLabelText(Tr::tr("use frequency_penalty"));
     fimFrequencyPenalty.setDefaultValue(0.0);
     fimFrequencyPenalty.setRange(-2.0, 2.0);
@@ -148,7 +148,7 @@ PresetPromptsSettings::PresetPromptsSettings()
     chatFrequencyPenalty.setRange(-2.0, 2.0);
     chatFrequencyPenalty.setSingleStep(0.1);
 
-    fimApiKey.setSettingsKey(Constants::FIM_API_KEY);
+    fimApiKey.setSettingsKey(Constants::CC_API_KEY);
     fimApiKey.setLabelText(Tr::tr("API Key:"));
     fimApiKey.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
     fimApiKey.setPlaceHolderText(Tr::tr("Enter your API key here"));

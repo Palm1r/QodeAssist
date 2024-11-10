@@ -26,10 +26,12 @@
 #include <llmcore/RequestConfig.hpp>
 #include <texteditor/textdocument.h>
 
+#include "ConfigurationManager.hpp"
 #include "DocumentContextReader.hpp"
-#include "logger/Logger.hpp"
 #include "llmcore/PromptTemplateManager.hpp"
 #include "llmcore/ProvidersManager.hpp"
+#include "logger/Logger.hpp"
+#include "settings/CodeCompletionSettings.hpp"
 #include "settings/ContextSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 
@@ -146,28 +148,33 @@ void LLMClientInterface::handleExit(const QJsonObject &request)
 
 void LLMClientInterface::handleCompletion(const QJsonObject &request)
 {
-    // auto updatedContext = prepareContext(request);
+    auto updatedContext = prepareContext(request);
+    auto &completeSettings = Settings::codeCompletionSettings();
 
-    // LLMCore::LLMConfig config;
-    // config.requestType = LLMCore::RequestType::Fim;
-    // config.provider = LLMCore::ProvidersManager::instance().getCurrentFimProvider();
-    // config.promptTemplate = LLMCore::PromptTemplateManager::instance().getCurrentFimTemplate();
-    // config.url = QUrl(QString("%1%2").arg(Settings::generalSettings().url(),
-    //                                       Settings::generalSettings().endPoint()));
+    auto &configManager = ConfigurationManager::instance();
+    auto provider = configManager.getCurrentProvider();
+    auto promptTemplate = configManager.getCurrentTemplate();
 
-    // config.providerRequest = {{"model", Settings::generalSettings().modelName.value()},
-    //                           {"stream", true},
-    //                           {"stop",
-    //                            QJsonArray::fromStringList(config.promptTemplate->stopWords())}};
-    // config.multiLineCompletion = Settings::generalSettings().multiLineCompletion();
+    LLMCore::LLMConfig config;
+    config.requestType = LLMCore::RequestType::Fim;
+    config.provider = provider;
+    config.promptTemplate = promptTemplate;
+    config.url = QUrl(
+        QString("%1%2").arg(Settings::generalSettings().ccUrl(), provider->completionEndpoint()));
 
-    // if (Settings::contextSettings().useSystemPrompt())
-    //     config.providerRequest["system"] = Settings::contextSettings().systemPrompt();
+    config.providerRequest = {{"model", Settings::generalSettings().ccModel()},
+                              {"stream", true},
+                              {"stop",
+                               QJsonArray::fromStringList(config.promptTemplate->stopWords())}};
+    config.multiLineCompletion = completeSettings.multiLineCompletion();
 
-    // config.promptTemplate->prepareRequest(config.providerRequest, updatedContext);
-    // config.provider->prepareRequest(config.providerRequest, LLMCore::RequestType::Fim);
+    if (completeSettings.useSystemPrompt())
+        config.providerRequest["system"] = completeSettings.systemPrompt();
 
-    // m_requestHandler.sendLLMRequest(config, request);
+    config.promptTemplate->prepareRequest(config.providerRequest, updatedContext);
+    config.provider->prepareRequest(config.providerRequest, LLMCore::RequestType::Fim);
+
+    m_requestHandler.sendLLMRequest(config, request);
 }
 
 LLMCore::ContextData LLMClientInterface::prepareContext(const QJsonObject &request,
