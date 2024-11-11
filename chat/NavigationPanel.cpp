@@ -19,7 +19,7 @@
 
 #include "NavigationPanel.hpp"
 
-#include "chatview/ChatWidget.hpp"
+#include "ChatView/ChatWidget.hpp"
 
 namespace QodeAssist::Chat {
 
