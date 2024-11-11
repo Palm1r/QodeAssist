@@ -81,15 +81,15 @@ void ConfigurationManager::selectProvider()
 
 void ConfigurationManager::selectModel()
 {
-    const QString providerName = m_generalSettings.ccProvider();
+    const QString providerName = m_generalSettings.ccProvider.volatileValue();
 
     auto *settingsButton = qobject_cast<ButtonAspect *>(sender());
     if (!settingsButton)
         return;
 
     const auto providerUrl = (settingsButton == &m_generalSettings.ccSelectModel)
-                                 ? m_generalSettings.ccUrl()
-                                 : m_generalSettings.caUrl();
+                                 ? m_generalSettings.ccUrl.volatileValue()
+                                 : m_generalSettings.caUrl.volatileValue();
     const auto modelList = m_providersManager.getProviderByName(providerName)
                                ->getInstalledModels(providerUrl);
 
