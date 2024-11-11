@@ -39,6 +39,7 @@
 #include <texteditor/texteditor.h>
 #include <utils/icon.h>
 
+#include "ConfigurationManager.hpp"
 #include "QodeAssistClient.hpp"
 #include "chat/ChatOutputPane.h"
 #include "chat/NavigationPanel.hpp"
@@ -125,6 +126,8 @@ public:
 
         m_chatOutputPane = new Chat::ChatOutputPane(this);
         m_navigationPanel = new Chat::NavigationPanel();
+
+        ConfigurationManager::instance().init();
     }
 
     void extensionsInitialized() final

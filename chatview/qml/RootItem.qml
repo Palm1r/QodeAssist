@@ -137,6 +137,13 @@ ChatRootView {
                 text: qsTr("Clear Chat")
                 onClicked: clearChat()
             }
+
+            CheckBox {
+                id: sharingCurrentFile
+
+                text: "Share current file with models"
+                checked: root.isSharingCurrentFile
+            }
         }
     }
 
@@ -169,7 +176,7 @@ ChatRootView {
     }
 
     function sendChatMessage() {
-        root.sendMessage(messageInput.text);
+        root.sendMessage(messageInput.text, sharingCurrentFile.checked)
         messageInput.text = ""
         scrollToBottom()
     }

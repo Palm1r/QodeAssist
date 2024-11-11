@@ -27,10 +27,10 @@
 #include <texteditor/textdocument.h>
 
 #include "DocumentContextReader.hpp"
-#include "logger/Logger.hpp"
 #include "llmcore/PromptTemplateManager.hpp"
 #include "llmcore/ProvidersManager.hpp"
-#include "settings/ContextSettings.hpp"
+#include "logger/Logger.hpp"
+#include "settings/CodeCompletionSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 
 namespace QodeAssist {
@@ -147,22 +147,30 @@ void LLMClientInterface::handleExit(const QJsonObject &request)
 void LLMClientInterface::handleCompletion(const QJsonObject &request)
 {
     auto updatedContext = prepareContext(request);
+    auto &completeSettings = Settings::codeCompletionSettings();
+
+    auto providerName = Settings::generalSettings().ccProvider();
+    auto provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
+
+    auto templateName = Settings::generalSettings().ccTemplate();
+    auto promptTemplate = LLMCore::PromptTemplateManager::instance().getFimTemplateByName(
+        templateName);
 
     LLMCore::LLMConfig config;
     config.requestType = LLMCore::RequestType::Fim;
-    config.provider = LLMCore::ProvidersManager::instance().getCurrentFimProvider();
-    config.promptTemplate = LLMCore::PromptTemplateManager::instance().getCurrentFimTemplate();
-    config.url = QUrl(QString("%1%2").arg(Settings::generalSettings().url(),
-                                          Settings::generalSettings().endPoint()));
+    config.provider = provider;
+    config.promptTemplate = promptTemplate;
+    config.url = QUrl(
+        QString("%1%2").arg(Settings::generalSettings().ccUrl(), provider->completionEndpoint()));
 
-    config.providerRequest = {{"model", Settings::generalSettings().modelName.value()},
+    config.providerRequest = {{"model", Settings::generalSettings().ccModel()},
                               {"stream", true},
                               {"stop",
                                QJsonArray::fromStringList(config.promptTemplate->stopWords())}};
-    config.multiLineCompletion = Settings::generalSettings().multiLineCompletion();
+    config.multiLineCompletion = completeSettings.multiLineCompletion();
 
-    if (Settings::contextSettings().useSystemPrompt())
-        config.providerRequest["system"] = Settings::contextSettings().systemPrompt();
+    if (completeSettings.useSystemPrompt())
+        config.providerRequest["system"] = completeSettings.systemPrompt();
 
     config.promptTemplate->prepareRequest(config.providerRequest, updatedContext);
     config.provider->prepareRequest(config.providerRequest, LLMCore::RequestType::Fim);

@@ -36,7 +36,7 @@ public:
     explicit ClientInterface(ChatModel *chatModel, QObject *parent = nullptr);
     ~ClientInterface();
 
-    void sendMessage(const QString &message);
+    void sendMessage(const QString &message, bool includeCurrentFile = false);
     void clearMessages();
     void cancelRequest();
 
@@ -45,6 +45,7 @@ signals:
 
 private:
     void handleLLMResponse(const QString &response, const QJsonObject &request, bool isComplete);
+    QString getCurrentFileContext() const;
 
     LLMCore::RequestHandler *m_requestHandler;
     ChatModel *m_chatModel;

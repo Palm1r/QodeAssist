@@ -22,6 +22,7 @@
 #include <utils/theme/theme.h>
 #include <utils/utilsicons.h>
 
+#include "ChatAssistantSettings.hpp"
 #include "GeneralSettings.hpp"
 
 namespace QodeAssist::Chat {
@@ -33,10 +34,16 @@ ChatRootView::ChatRootView(QQuickItem *parent)
 {
     auto &settings = Settings::generalSettings();
 
-    connect(&settings.chatModelName,
+    connect(&settings.caModel,
             &Utils::BaseAspect::changed,
             this,
             &ChatRootView::currentTemplateChanged);
+
+    connect(&Settings::chatAssistantSettings().sharingCurrentFile,
+            &Utils::BaseAspect::changed,
+            this,
+            &ChatRootView::isSharingCurrentFileChanged);
+
     generateColors();
 }
 
@@ -50,9 +57,9 @@ QColor ChatRootView::backgroundColor() const
     return Utils::creatorColor(Utils::Theme::BackgroundColorNormal);
 }
 
-void ChatRootView::sendMessage(const QString &message) const
+void ChatRootView::sendMessage(const QString &message, bool sharingCurrentFile) const
 {
-    m_clientInterface->sendMessage(message);
+    m_clientInterface->sendMessage(message, sharingCurrentFile);
 }
 
 void ChatRootView::copyToClipboard(const QString &text)
@@ -111,7 +118,7 @@ QColor ChatRootView::generateColor(const QColor &baseColor,
 QString ChatRootView::currentTemplate() const
 {
     auto &settings = Settings::generalSettings();
-    return settings.chatModelName();
+    return settings.caModel();
 }
 
 QColor ChatRootView::primaryColor() const
@@ -127,6 +134,11 @@ QColor ChatRootView::secondaryColor() const
 QColor ChatRootView::codeColor() const
 {
     return m_codeColor;
+}
+
+bool ChatRootView::isSharingCurrentFile() const
+{
+    return Settings::chatAssistantSettings().sharingCurrentFile();
 }
 
 } // namespace QodeAssist::Chat

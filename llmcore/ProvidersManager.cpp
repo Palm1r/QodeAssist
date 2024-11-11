@@ -18,8 +18,6 @@
  */
 
 #include "ProvidersManager.hpp"
-#include "Logger.hpp"
-#include <coreplugin/messagemanager.h>
 
 namespace QodeAssist::LLMCore {
 
@@ -27,50 +25,6 @@ ProvidersManager &ProvidersManager::instance()
 {
     static ProvidersManager instance;
     return instance;
-}
-
-Provider *ProvidersManager::setCurrentFimProvider(const QString &name)
-{
-    LOG_MESSAGE("Setting current FIM provider to: " + name);
-    if (!m_providers.contains(name)) {
-        LOG_MESSAGE("Can't find provider with name: " + name);
-        return nullptr;
-    }
-
-    m_currentFimProvider = m_providers[name];
-    return m_currentFimProvider;
-}
-
-Provider *ProvidersManager::setCurrentChatProvider(const QString &name)
-{
-    LOG_MESSAGE("Setting current chat provider to: " + name);
-    if (!m_providers.contains(name)) {
-        LOG_MESSAGE("Can't find chat provider with name: " + name);
-        return nullptr;
-    }
-
-    m_currentChatProvider = m_providers[name];
-    return m_currentChatProvider;
-}
-
-Provider *ProvidersManager::getCurrentFimProvider()
-{
-    if (m_currentFimProvider == nullptr) {
-        LOG_MESSAGE("Current fim provider is null, return first");
-        return m_providers.first();
-    }
-
-    return m_currentFimProvider;
-}
-
-Provider *ProvidersManager::getCurrentChatProvider()
-{
-    if (m_currentChatProvider == nullptr) {
-        LOG_MESSAGE("Current chat provider is null, return first");
-        return m_providers.first();
-    }
-
-    return m_currentChatProvider;
 }
 
 QStringList ProvidersManager::providersNames() const
@@ -81,6 +35,11 @@ QStringList ProvidersManager::providersNames() const
 ProvidersManager::~ProvidersManager()
 {
     qDeleteAll(m_providers);
+}
+
+Provider *ProvidersManager::getProviderByName(const QString &providerName)
+{
+    return m_providers[providerName];
 }
 
 } // namespace QodeAssist::LLMCore

@@ -19,8 +19,9 @@
 
 #pragma once
 
-#include "SettingsUtils.hpp"
 #include <utils/aspects.h>
+
+#include "ButtonAspect.hpp"
 
 namespace QodeAssist::Settings {
 

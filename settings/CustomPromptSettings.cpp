@@ -27,6 +27,8 @@
 #include <utils/layoutbuilder.h>
 
 #include "SettingsConstants.hpp"
+#include "SettingsTr.hpp"
+#include "SettingsUtils.hpp"
 
 namespace QodeAssist::Settings {
 

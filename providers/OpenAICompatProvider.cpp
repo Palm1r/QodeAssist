@@ -18,13 +18,13 @@
  */
 
 #include "OpenAICompatProvider.hpp"
+#include "settings/ChatAssistantSettings.hpp"
+#include "settings/CodeCompletionSettings.hpp"
 
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkReply>
-
-#include "settings/PresetPromptsSettings.hpp"
 
 namespace QodeAssist::Providers {
 
@@ -52,39 +52,42 @@ QString OpenAICompatProvider::chatEndpoint() const
 
 void OpenAICompatProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType type)
 {
-    auto &promptSettings = Settings::presetPromptsSettings();
-    auto settings = promptSettings.getSettings(type);
-    QJsonArray messages;
+    auto prepareMessages = [](QJsonObject &req) -> QJsonArray {
+        QJsonArray messages;
+        if (req.contains("system")) {
+            messages.append(
+                QJsonObject{{"role", "system"}, {"content", req.take("system").toString()}});
+        }
+        if (req.contains("prompt")) {
+            messages.append(
+                QJsonObject{{"role", "user"}, {"content", req.take("prompt").toString()}});
+        }
+        return messages;
+    };
 
-    if (request.contains("system")) {
-        QJsonObject systemMessage{{"role", "system"},
-                                  {"content", request.take("system").toString()}};
-        messages.append(systemMessage);
-    }
+    auto applyModelParams = [&request](const auto &settings) {
+        request["max_tokens"] = settings.maxTokens();
+        request["temperature"] = settings.temperature();
 
-    if (request.contains("prompt")) {
-        QJsonObject userMessage{{"role", "user"}, {"content", request.take("prompt").toString()}};
-        messages.append(userMessage);
-    }
+        if (settings.useTopP())
+            request["top_p"] = settings.topP();
+        if (settings.useTopK())
+            request["top_k"] = settings.topK();
+        if (settings.useFrequencyPenalty())
+            request["frequency_penalty"] = settings.frequencyPenalty();
+        if (settings.usePresencePenalty())
+            request["presence_penalty"] = settings.presencePenalty();
+    };
 
+    QJsonArray messages = prepareMessages(request);
     if (!messages.isEmpty()) {
         request["messages"] = std::move(messages);
     }
 
-    request["max_tokens"] = settings.maxTokens;
-    request["temperature"] = settings.temperature;
-    if (settings.useTopP)
-        request["top_p"] = settings.topP;
-    if (settings.useTopK)
-        request["top_k"] = settings.topK;
-    if (settings.useFrequencyPenalty)
-        request["frequency_penalty"] = settings.frequencyPenalty;
-    if (settings.usePresencePenalty)
-        request["presence_penalty"] = settings.presencePenalty;
-
-    const QString &apiKey = settings.apiKey;
-    if (!apiKey.isEmpty()) {
-        request["api_key"] = apiKey;
+    if (type == LLMCore::RequestType::Fim) {
+        applyModelParams(Settings::codeCompletionSettings());
+    } else {
+        applyModelParams(Settings::chatAssistantSettings());
     }
 }
 
@@ -129,8 +132,7 @@ bool OpenAICompatProvider::handleResponse(QNetworkReply *reply, QString &accumul
     return isComplete;
 }
 
-QList<QString> OpenAICompatProvider::getInstalledModels(const Utils::Environment &env,
-                                                        const QString &url)
+QList<QString> OpenAICompatProvider::getInstalledModels(const QString &url)
 {
     return QStringList();
 }

@@ -18,15 +18,25 @@
  */
 
 #include "ClientInterface.hpp"
-#include "ContextSettings.hpp"
+
+#include <QFileInfo>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QUuid>
+#include <texteditor/textdocument.h>
+
+#include <coreplugin/editormanager/editormanager.h>
+#include <coreplugin/editormanager/ieditor.h>
+#include <coreplugin/idocument.h>
+
+#include <texteditor/textdocument.h>
+#include <texteditor/texteditor.h>
+
+#include "ChatAssistantSettings.hpp"
 #include "GeneralSettings.hpp"
 #include "Logger.hpp"
 #include "PromptTemplateManager.hpp"
 #include "ProvidersManager.hpp"
-
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QUuid>
 
 namespace QodeAssist::Chat {
 
@@ -54,42 +64,59 @@ ClientInterface::ClientInterface(ChatModel *chatModel, QObject *parent)
 
 ClientInterface::~ClientInterface() = default;
 
-void ClientInterface::sendMessage(const QString &message)
+void ClientInterface::sendMessage(const QString &message, bool includeCurrentFile)
 {
     cancelRequest();
 
-    LOG_MESSAGE("Sending message: " + message);
-    LOG_MESSAGE("chatProvider " + Settings::generalSettings().chatLlmProviders.stringValue());
-    LOG_MESSAGE("chatTemplate " + Settings::generalSettings().chatPrompts.stringValue());
+    auto &chatAssistantSettings = Settings::chatAssistantSettings();
 
-    auto chatTemplate = LLMCore::PromptTemplateManager::instance().getCurrentChatTemplate();
-    auto chatProvider = LLMCore::ProvidersManager::instance().getCurrentChatProvider();
+    auto providerName = Settings::generalSettings().caProvider();
+    auto provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
+
+    auto templateName = Settings::generalSettings().caTemplate();
+    auto promptTemplate = LLMCore::PromptTemplateManager::instance().getChatTemplateByName(
+        templateName);
 
     LLMCore::ContextData context;
     context.prefix = message;
     context.suffix = "";
-    if (Settings::contextSettings().useChatSystemPrompt())
-        context.systemPrompt = Settings::contextSettings().chatSystemPrompt();
+
+    QString systemPrompt = chatAssistantSettings.systemPrompt();
+    if (includeCurrentFile) {
+        QString fileContext = getCurrentFileContext();
+        if (!fileContext.isEmpty()) {
+            context.systemPrompt = QString("%1\n\n%2").arg(systemPrompt, fileContext);
+            LOG_MESSAGE("Using system prompt with file context");
+        } else {
+            context.systemPrompt = systemPrompt;
+            LOG_MESSAGE("Failed to get file context, using default system prompt");
+        }
+    } else {
+        context.systemPrompt = systemPrompt;
+    }
 
     QJsonObject providerRequest;
-    providerRequest["model"] = Settings::generalSettings().chatModelName();
+    providerRequest["model"] = Settings::generalSettings().caModel();
     providerRequest["stream"] = true;
     providerRequest["messages"] = m_chatModel->prepareMessagesForRequest(context);
 
-    if (!chatTemplate || !chatProvider) {
-        LOG_MESSAGE("Check settings, provider or template are not set");
-    }
-    chatTemplate->prepareRequest(providerRequest, context);
-    chatProvider->prepareRequest(providerRequest, LLMCore::RequestType::Chat);
+    if (promptTemplate)
+        promptTemplate->prepareRequest(providerRequest, context);
+    else
+        qWarning("No prompt template found");
+
+    if (provider)
+        provider->prepareRequest(providerRequest, LLMCore::RequestType::Chat);
+    else
+        qWarning("No provider found");
 
     LLMCore::LLMConfig config;
     config.requestType = LLMCore::RequestType::Chat;
-    config.provider = chatProvider;
-    config.promptTemplate = chatTemplate;
-    config.url = QString("%1%2").arg(Settings::generalSettings().chatUrl(),
-                                     Settings::generalSettings().chatEndPoint());
+    config.provider = provider;
+    config.promptTemplate = promptTemplate;
+    config.url = QString("%1%2").arg(Settings::generalSettings().caUrl(), provider->chatEndpoint());
     config.providerRequest = providerRequest;
-    config.multiLineCompletion = Settings::generalSettings().multiLineCompletion();
+    config.multiLineCompletion = false;
 
     QJsonObject request;
     request["id"] = QUuid::createUuid().toString();
@@ -120,6 +147,30 @@ void ClientInterface::handleLLMResponse(const QString &response,
     if (isComplete) {
         LOG_MESSAGE("Message completed. Final response for message " + messageId + ": " + response);
     }
+}
+
+QString ClientInterface::getCurrentFileContext() const
+{
+    auto currentEditor = Core::EditorManager::currentEditor();
+    if (!currentEditor) {
+        LOG_MESSAGE("No active editor found");
+        return QString();
+    }
+
+    auto textDocument = qobject_cast<TextEditor::TextDocument *>(currentEditor->document());
+    if (!textDocument) {
+        LOG_MESSAGE("Current document is not a text document");
+        return QString();
+    }
+
+    QString fileInfo = QString("Language: %1\nFile: %2\n\n")
+                           .arg(textDocument->mimeType(), textDocument->filePath().toString());
+
+    QString content = textDocument->document()->toPlainText();
+
+    LOG_MESSAGE(QString("Got context from file: %1").arg(textDocument->filePath().toString()));
+
+    return QString("Current file context:\n%1\nFile content:\n%2").arg(fileInfo, content);
 }
 
 } // namespace QodeAssist::Chat

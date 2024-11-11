@@ -21,7 +21,7 @@
 
 #include <utils/aspects.h>
 
-#include "SettingsUtils.hpp"
+#include "ButtonAspect.hpp"
 
 namespace QodeAssist::LLMCore {
 class Provider;
@@ -34,50 +34,49 @@ public:
     GeneralSettings();
 
     Utils::BoolAspect enableQodeAssist{this};
-    Utils::BoolAspect enableAutoComplete{this};
-    Utils::BoolAspect multiLineCompletion{this};
     Utils::BoolAspect enableLogging{this};
-    Utils::IntegerAspect startSuggestionTimer{this};
-    Utils::IntegerAspect autoCompletionCharThreshold{this};
-    Utils::IntegerAspect autoCompletionTypingInterval{this};
-
-    Utils::SelectionAspect llmProviders{this};
-    Utils::StringAspect url{this};
-    Utils::StringAspect endPoint{this};
-
-    Utils::StringAspect modelName{this};
-    ButtonAspect selectModels{this};
-    Utils::SelectionAspect fimPrompts{this};
     ButtonAspect resetToDefaults{this};
 
-    Utils::SelectionAspect chatLlmProviders{this};
-    Utils::StringAspect chatUrl{this};
-    Utils::StringAspect chatEndPoint{this};
+    // code completion setttings
+    Utils::StringAspect ccProvider{this};
+    ButtonAspect ccSelectProvider{this};
 
-    Utils::StringAspect chatModelName{this};
-    ButtonAspect chatSelectModels{this};
-    Utils::SelectionAspect chatPrompts{this};
+    Utils::StringAspect ccModel{this};
+    ButtonAspect ccSelectModel{this};
 
-    Utils::StringAspect fimModelIndicator{this};
-    Utils::StringAspect fimUrlIndicator{this};
-    Utils::StringAspect chatModelIndicator{this};
-    Utils::StringAspect chatUrlIndicator{this};
+    Utils::StringAspect ccTemplate{this};
+    ButtonAspect ccSelectTemplate{this};
 
-    Utils::IntegerAspect chatTokensThreshold{this};
+    Utils::StringAspect ccUrl{this};
+    ButtonAspect ccSetUrl{this};
+
+    Utils::StringAspect ccStatus{this};
+    ButtonAspect ccTest{this};
+
+    // chat assistant settings
+    Utils::StringAspect caProvider{this};
+    ButtonAspect caSelectProvider{this};
+
+    Utils::StringAspect caModel{this};
+    ButtonAspect caSelectModel{this};
+
+    Utils::StringAspect caTemplate{this};
+    ButtonAspect caSelectTemplate{this};
+
+    Utils::StringAspect caUrl{this};
+    ButtonAspect caSetUrl{this};
+
+    Utils::StringAspect caStatus{this};
+    ButtonAspect caTest{this};
+
+    void showSelectionDialog(const QStringList &data,
+                             Utils::StringAspect &aspect,
+                             const QString &title = {},
+                             const QString &text = {});
 
 private:
     void setupConnections();
-    void showModelSelectionDialog(Utils::StringAspect *modelNameObj, LLMCore::Provider *provider);
     void resetPageToDefaults();
-
-    void updateStatusIndicators();
-    void setIndicatorStatus(Utils::StringAspect &indicator, const QString &tooltip, bool isValid);
-
-    void setCurrentFimProvider(const QString &name);
-    void setCurrentChatProvider(const QString &name);
-
-    void loadProviders();
-    void loadPrompts();
 };
 
 GeneralSettings &generalSettings();

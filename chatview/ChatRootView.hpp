@@ -35,6 +35,8 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(QColor primaryColor READ primaryColor CONSTANT FINAL)
     Q_PROPERTY(QColor secondaryColor READ secondaryColor CONSTANT FINAL)
     Q_PROPERTY(QColor codeColor READ codeColor CONSTANT FINAL)
+    Q_PROPERTY(bool isSharingCurrentFile READ isSharingCurrentFile NOTIFY
+                   isSharingCurrentFileChanged FINAL)
     QML_ELEMENT
 
 public:
@@ -49,14 +51,18 @@ public:
 
     QColor codeColor() const;
 
+    bool isSharingCurrentFile() const;
+
 public slots:
-    void sendMessage(const QString &message) const;
+    void sendMessage(const QString &message, bool sharingCurrentFile = false) const;
     void copyToClipboard(const QString &text);
     void cancelRequest();
 
 signals:
     void chatModelChanged();
     void currentTemplateChanged();
+
+    void isSharingCurrentFileChanged();
 
 private:
     void generateColors();

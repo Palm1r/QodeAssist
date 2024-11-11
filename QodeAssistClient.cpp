@@ -32,7 +32,7 @@
 #include "LLMClientInterface.hpp"
 #include "LLMSuggestion.hpp"
 #include "core/ChangesManager.h"
-#include "settings/ContextSettings.hpp"
+#include "settings/CodeCompletionSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 
 using namespace LanguageServerProtocol;
@@ -75,7 +75,7 @@ void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
             this,
             [this, document](int position, int charsRemoved, int charsAdded) {
                 Q_UNUSED(charsRemoved)
-                if (!Settings::generalSettings().enableAutoComplete())
+                if (!Settings::codeCompletionSettings().autoCompletion())
                     return;
 
                 auto project = ProjectManager::projectForFile(document->filePath());
@@ -86,7 +86,7 @@ void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
                 if (!textEditor || textEditor->document() != document)
                     return;
 
-                if (Settings::contextSettings().useProjectChangesCache())
+                if (Settings::codeCompletionSettings().useProjectChangesCache())
                     ChangesManager::instance().addChange(document,
                                                          position,
                                                          charsRemoved,
@@ -102,12 +102,13 @@ void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
                 m_recentCharCount += charsAdded;
 
                 if (m_typingTimer.elapsed()
-                    > Settings::generalSettings().autoCompletionTypingInterval()) {
+                    > Settings::codeCompletionSettings().autoCompletionTypingInterval()) {
                     m_recentCharCount = charsAdded;
                     m_typingTimer.restart();
                 }
 
-                if (m_recentCharCount > Settings::generalSettings().autoCompletionCharThreshold()) {
+                if (m_recentCharCount
+                    > Settings::codeCompletionSettings().autoCompletionCharThreshold()) {
                     scheduleRequest(widget);
                 }
             });
@@ -154,7 +155,8 @@ void QodeAssistClient::scheduleRequest(TextEditor::TextEditorWidget *editor)
             if (editor
                 && editor->textCursor().position()
                        == m_scheduledRequests[editor]->property("cursorPosition").toInt()
-                && m_recentCharCount > Settings::generalSettings().autoCompletionCharThreshold())
+                && m_recentCharCount
+                       > Settings::codeCompletionSettings().autoCompletionCharThreshold())
                 requestCompletions(editor);
         });
         connect(editor, &TextEditorWidget::destroyed, this, [this, editor]() {
@@ -168,7 +170,7 @@ void QodeAssistClient::scheduleRequest(TextEditor::TextEditorWidget *editor)
     }
 
     it.value()->setProperty("cursorPosition", editor->textCursor().position());
-    it.value()->start(Settings::generalSettings().startSuggestionTimer());
+    it.value()->start(Settings::codeCompletionSettings().startSuggestionTimer());
 }
 void QodeAssistClient::handleCompletions(const GetCompletionRequest::Response &response,
                                          TextEditor::TextEditorWidget *editor)

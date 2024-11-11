@@ -29,11 +29,6 @@
 
 namespace QodeAssist::Settings {
 
-struct Tr
-{
-    Q_DECLARE_TR_FUNCTIONS(QtC::QodeAssist)
-};
-
 inline bool pingUrl(const QUrl &url, int timeout = 5000)
 {
     if (!url.isValid()) {
@@ -72,25 +67,15 @@ void resetAspect(AspectType &aspect)
     aspect.setVolatileValue(aspect.defaultValue());
 }
 
-class ButtonAspect : public Utils::BaseAspect
+inline void initStringAspect(Utils::StringAspect &aspect,
+                             const Utils::Key &settingsKey,
+                             const QString &labelText,
+                             const QString &defaultValue)
 {
-    Q_OBJECT
-
-public:
-    ButtonAspect(Utils::AspectContainer *container = nullptr)
-        : Utils::BaseAspect(container)
-    {}
-
-    void addToLayout(Layouting::Layout &parent) override
-    {
-        auto button = new QPushButton(m_buttonText);
-        connect(button, &QPushButton::clicked, this, &ButtonAspect::clicked);
-        parent.addItem(button);
-    }
-
-    QString m_buttonText;
-signals:
-    void clicked();
-};
+    aspect.setSettingsKey(settingsKey);
+    aspect.setLabelText(labelText);
+    aspect.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    aspect.setDefaultValue(defaultValue);
+}
 
 } // namespace QodeAssist::Settings

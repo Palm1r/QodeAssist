@@ -25,6 +25,8 @@
 #include <utils/layoutbuilder.h>
 
 #include "SettingsConstants.hpp"
+#include "SettingsTr.hpp"
+#include "SettingsUtils.hpp"
 
 namespace QodeAssist::Settings {
 ContextSettings &contextSettings()
@@ -39,29 +41,29 @@ ContextSettings::ContextSettings()
 
     setDisplayName(Tr::tr("Context"));
 
-    readFullFile.setSettingsKey(Constants::READ_FULL_FILE);
+    readFullFile.setSettingsKey(Constants::CC_READ_FULL_FILE);
     readFullFile.setLabelText(Tr::tr("Read Full File"));
     readFullFile.setDefaultValue(false);
 
-    readStringsBeforeCursor.setSettingsKey(Constants::READ_STRINGS_BEFORE_CURSOR);
+    readStringsBeforeCursor.setSettingsKey(Constants::CC_READ_STRINGS_BEFORE_CURSOR);
     readStringsBeforeCursor.setLabelText(Tr::tr("Read Strings Before Cursor"));
     readStringsBeforeCursor.setRange(0, 10000);
     readStringsBeforeCursor.setDefaultValue(50);
 
-    readStringsAfterCursor.setSettingsKey(Constants::READ_STRINGS_AFTER_CURSOR);
+    readStringsAfterCursor.setSettingsKey(Constants::CC_READ_STRINGS_AFTER_CURSOR);
     readStringsAfterCursor.setLabelText(Tr::tr("Read Strings After Cursor"));
     readStringsAfterCursor.setRange(0, 10000);
     readStringsAfterCursor.setDefaultValue(30);
 
-    useFilePathInContext.setSettingsKey(Constants::USE_FILE_PATH_IN_CONTEXT);
+    useFilePathInContext.setSettingsKey(Constants::CC_USE_FILE_PATH_IN_CONTEXT);
     useFilePathInContext.setDefaultValue(false);
     useFilePathInContext.setLabelText(Tr::tr("Use File Path in Context"));
 
-    useSystemPrompt.setSettingsKey(Constants::USE_SYSTEM_PROMPT);
+    useSystemPrompt.setSettingsKey(Constants::CC_USE_SYSTEM_PROMPT);
     useSystemPrompt.setDefaultValue(true);
     useSystemPrompt.setLabelText(Tr::tr("Use System Prompt"));
 
-    systemPrompt.setSettingsKey(Constants::SYSTEM_PROMPT);
+    systemPrompt.setSettingsKey(Constants::CC_SYSTEM_PROMPT);
     systemPrompt.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
     systemPrompt.setDefaultValue(
         "You are an expert C++, Qt, and QML code completion AI. Your task is to provide accurate "
@@ -71,11 +73,11 @@ ContextSettings::ContextSettings()
         "Qt and QML-specific completions when appropriate. Avoid adding comments or explanations "
         "in your completions.");
 
-    useChatSystemPrompt.setSettingsKey(Constants::USE_CHAT_SYSTEM_PROMPT);
+    useChatSystemPrompt.setSettingsKey(Constants::CA_SYSTEM_PROMPT);
     useChatSystemPrompt.setDefaultValue(true);
     useChatSystemPrompt.setLabelText(Tr::tr("Use System Prompt for chat"));
 
-    chatSystemPrompt.setSettingsKey(Constants::CHAT_SYSTEM_PROMPT);
+    chatSystemPrompt.setSettingsKey(Constants::CA_SYSTEM_PROMPT);
     chatSystemPrompt.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
     chatSystemPrompt.setDefaultValue(
         "You are an advanced AI assistant specializing in C++, Qt, and QML development. Your role "
@@ -91,11 +93,11 @@ ContextSettings::ContextSettings()
 
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
 
-    useProjectChangesCache.setSettingsKey(Constants::USE_PROJECT_CHANGES_CACHE);
+    useProjectChangesCache.setSettingsKey(Constants::CC_USE_PROJECT_CHANGES_CACHE);
     useProjectChangesCache.setDefaultValue(true);
     useProjectChangesCache.setLabelText(Tr::tr("Use Project Changes Cache"));
 
-    maxChangesCacheSize.setSettingsKey(Constants::MAX_CHANGES_CACHE_SIZE);
+    maxChangesCacheSize.setSettingsKey(Constants::CC_MAX_CHANGES_CACHE_SIZE);
     maxChangesCacheSize.setLabelText(Tr::tr("Max Changes Cache Size"));
     maxChangesCacheSize.setRange(2, 1000);
     maxChangesCacheSize.setDefaultValue(20);

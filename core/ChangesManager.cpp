@@ -18,8 +18,7 @@
  */
 
 #include "ChangesManager.h"
-#include "logger/Logger.hpp"
-#include "settings/ContextSettings.hpp"
+#include "settings/CodeCompletionSettings.hpp"
 
 namespace QodeAssist {
 
@@ -61,7 +60,7 @@ void ChangesManager::addChange(TextEditor::TextDocument *document,
     } else {
         documentQueue.enqueue(change);
 
-        if (documentQueue.size() > Settings::contextSettings().maxChangesCacheSize()) {
+        if (documentQueue.size() > Settings::codeCompletionSettings().maxChangesCacheSize()) {
             documentQueue.dequeue();
         }
     }
