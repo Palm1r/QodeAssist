@@ -61,7 +61,7 @@ Rectangle {
         text: root.code
         readOnly: true
         selectByMouse: true
-        font.family: monospaceFont
+        font.family: root.monospaceFont
         font.pointSize: 12
         color: parent.color.hslLightness > 0.5 ? "black" : "white"
         wrapMode: Text.WordWrap

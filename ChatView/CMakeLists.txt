@@ -1,8 +1,12 @@
 qt_add_library(QodeAssistChatView STATIC)
 
+qt_policy(SET QTP0001 NEW)
+
+# URI name should match the subdirectory name to suppress the warning
 qt_add_qml_module(QodeAssistChatView
     URI ChatView
     VERSION 1.0
+    DEPENDENCIES QtQuick
     QML_FILES
     qml/RootItem.qml
     qml/ChatItem.qml
@@ -31,5 +35,5 @@ target_link_libraries(QodeAssistChatView
 )
 
 target_include_directories(QodeAssistChatView
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
 )

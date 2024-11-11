@@ -28,8 +28,12 @@ namespace QodeAssist::Chat {
 
 class ChatRootView : public QQuickItem
 {
-    Q_OBJECT    
-    Q_PROPERTY(ChatModel *chatModel READ chatModel NOTIFY chatModelChanged FINAL)
+    Q_OBJECT
+    // Possibly Qt bug: QTBUG-131004
+    // The class type name must be fully qualified
+    // including the namespace.
+    // Otherwise qmlls can't find it.
+    Q_PROPERTY(QodeAssist::Chat::ChatModel *chatModel READ chatModel NOTIFY chatModelChanged FINAL)
     Q_PROPERTY(QString currentTemplate READ currentTemplate NOTIFY currentTemplateChanged FINAL)
     Q_PROPERTY(QColor backgroundColor READ backgroundColor CONSTANT FINAL)
     Q_PROPERTY(QColor primaryColor READ primaryColor CONSTANT FINAL)

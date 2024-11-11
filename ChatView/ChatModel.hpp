@@ -24,7 +24,7 @@
 
 #include <QAbstractListModel>
 #include <QJsonArray>
-#include <qqmlintegration.h>
+#include <QtQmlIntegration>
 
 namespace QodeAssist::Chat {
 

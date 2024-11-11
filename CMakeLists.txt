@@ -15,7 +15,7 @@ find_package(Qt6 COMPONENTS Core Gui Quick Widgets Network REQUIRED)
 add_subdirectory(llmcore)
 add_subdirectory(settings)
 add_subdirectory(logger)
-add_subdirectory(chatview)
+add_subdirectory(ChatView)
 
 add_qtc_plugin(QodeAssist
   PLUGIN_DEPENDS

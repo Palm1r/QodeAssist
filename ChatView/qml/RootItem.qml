@@ -17,6 +17,8 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
+pragma ComponentBehavior: Bound
+
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Basic as QQC
@@ -51,6 +53,7 @@ ChatRootView {
             cacheBuffer: 2000
 
             delegate: ChatItem {
+                required property var model
                 width: ListView.view.width - scroll.width
                 msgModel: root.chatModel.processMessageContent(model.content)
                 color: model.roleType === ChatModel.User ? root.primaryColor : root.secondaryColor
@@ -71,12 +74,12 @@ ChatRootView {
             }
 
             onCountChanged: {
-                scrollToBottom()
+                root.scrollToBottom()
             }
 
             onContentHeightChanged: {
                 if (atYEnd) {
-                    scrollToBottom()
+                    root.scrollToBottom()
                 }
             }
         }
@@ -103,7 +106,7 @@ ChatRootView {
                 }
                 Keys.onPressed: function(event) {
                     if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && !(event.modifiers & Qt.ShiftModifier)) {
-                        sendChatMessage()
+                        root.sendChatMessage()
                         event.accepted = true;
                     }
                 }
@@ -119,7 +122,7 @@ ChatRootView {
 
                 Layout.alignment: Qt.AlignBottom
                 text: qsTr("Send")
-                onClicked: sendChatMessage()
+                onClicked: root.sendChatMessage()
             }
 
             Button {
@@ -135,7 +138,7 @@ ChatRootView {
 
                 Layout.alignment: Qt.AlignBottom
                 text: qsTr("Clear Chat")
-                onClicked: clearChat()
+                onClicked: root.clearChat()
             }
 
             CheckBox {
