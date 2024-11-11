@@ -1,4 +1,5 @@
 # QodeAssist - AI-powered coding assistant plugin for Qt Creator
+![Discord](https://img.shields.io/discord/1305328686513393715?style=flat&logo=discord&label=Discord%3A)
 [![Build plugin](https://github.com/Palm1r/QodeAssist/actions/workflows/build_cmake.yml/badge.svg?branch=main)](https://github.com/Palm1r/QodeAssist/actions/workflows/build_cmake.yml)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Palm1r/QodeAssist/total?color=41%2C173%2C71)
 ![GitHub Tag](https://img.shields.io/github/v/tag/Palm1r/QodeAssist)
