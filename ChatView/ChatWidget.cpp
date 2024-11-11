@@ -27,7 +27,7 @@ namespace QodeAssist::Chat {
 ChatWidget::ChatWidget(QWidget *parent)
     : QQuickWidget(parent)
 {
-    setSource(QUrl("qrc:/ChatView/qml/RootItem.qml"));
+    setSource(QUrl("qrc:/qt/qml/ChatView/qml/RootItem.qml"));
     setResizeMode(QQuickWidget::SizeRootObjectToView);
 }
 
