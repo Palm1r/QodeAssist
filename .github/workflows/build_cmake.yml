@@ -1,6 +1,6 @@
 name: Build plugin
 
-on: [push]
+on: [push, pull_request]
 
 env:
   PLUGIN_NAME: QodeAssist
