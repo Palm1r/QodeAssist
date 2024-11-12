@@ -81,21 +81,22 @@ void ConfigurationManager::selectProvider()
 
 void ConfigurationManager::selectModel()
 {
-    const QString providerName = m_generalSettings.ccProvider.volatileValue();
-
     auto *settingsButton = qobject_cast<ButtonAspect *>(sender());
     if (!settingsButton)
         return;
 
-    const auto providerUrl = (settingsButton == &m_generalSettings.ccSelectModel)
-                                 ? m_generalSettings.ccUrl.volatileValue()
-                                 : m_generalSettings.caUrl.volatileValue();
-    const auto modelList = m_providersManager.getProviderByName(providerName)
-                               ->getInstalledModels(providerUrl);
+    const bool isCodeCompletion = (settingsButton == &m_generalSettings.ccSelectModel);
 
-    auto &targetSettings = (settingsButton == &m_generalSettings.ccSelectModel)
-                               ? m_generalSettings.ccModel
-                               : m_generalSettings.caModel;
+    const QString providerName = isCodeCompletion ? m_generalSettings.ccProvider.volatileValue()
+                                                  : m_generalSettings.caProvider.volatileValue();
+
+    const auto providerUrl = isCodeCompletion ? m_generalSettings.ccUrl.volatileValue()
+                                              : m_generalSettings.caUrl.volatileValue();
+
+    auto &targetSettings = isCodeCompletion ? m_generalSettings.ccModel : m_generalSettings.caModel;
+
+    const auto modelList
+        = m_providersManager.getProviderByName(providerName)->getInstalledModels(providerUrl);
 
     QTimer::singleShot(0, &m_generalSettings, [this, modelList, &targetSettings]() {
         m_generalSettings.showSelectionDialog(modelList,
@@ -111,13 +112,13 @@ void ConfigurationManager::selectTemplate()
     if (!settingsButton)
         return;
 
-    const auto templateList = (settingsButton == &m_generalSettings.ccSelectTemplate)
-                                  ? m_templateManger.fimTemplatesNames()
-                                  : m_templateManger.chatTemplatesNames();
+    const bool isCodeCompletion = (settingsButton == &m_generalSettings.ccSelectTemplate);
 
-    auto &targetSettings = (settingsButton == &m_generalSettings.ccSelectTemplate)
-                               ? m_generalSettings.ccTemplate
-                               : m_generalSettings.caTemplate;
+    const auto templateList = isCodeCompletion ? m_templateManger.fimTemplatesNames()
+                                               : m_templateManger.chatTemplatesNames();
+
+    auto &targetSettings = isCodeCompletion ? m_generalSettings.ccTemplate
+                                            : m_generalSettings.caTemplate;
 
     QTimer::singleShot(0, &m_generalSettings, [this, templateList, &targetSettings]() {
         m_generalSettings.showSelectionDialog(templateList,
