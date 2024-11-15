@@ -210,3 +210,8 @@ where `<path_to_qtcreator>` is the relative or absolute path to a Qt Creator bui
 combined binary and development package (Windows / Linux), or to the `Qt Creator.app/Contents/Resources/`
 directory of a combined binary and development package (macOS), and `<path_to_plugin_source>` is the
 relative or absolute path to this plugin directory.
+
+## For Contributors
+
+QML code style: Preferably follow the following guidelines https://github.com/Furkanzmc/QML-Coding-Guide, thank you @Furkanzmc for collect them
+C++ code style: check use .clang-fortmat in project
