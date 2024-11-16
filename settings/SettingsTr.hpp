@@ -42,6 +42,44 @@ inline const char *RESET_SETTINGS = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Reset 
 inline const char *CONFIRMATION
     = QT_TRANSLATE_NOOP("QtC::QodeAssist",
                         "Are you sure you want to reset all settings to default values?");
+
+inline const char CONNECTION_ERROR[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Connection Error");
+inline const char NO_MODELS_FOUND[]
+    = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Unable to retrieve the list of models from the server.");
+inline const char CHECK_CONNECTION[] = QT_TRANSLATE_NOOP(
+    "QtC::QodeAssist",
+    "Please verify the following:\n"
+    "- Server is running and accessible\n"
+    "- URL is correct\n"
+    "- Provider is properly configured\n\n"
+    "You can try selecting a different provider or changing the URL:");
+inline const char SELECT_PROVIDER[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Select Provider");
+inline const char SELECT_URL[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Select URL");
+inline const char CLOSE[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Close");
+inline const char MODEL_SELECTION[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Model Selection");
+inline const char MODEL_LISTING_NOT_SUPPORTED_INFO[] = QT_TRANSLATE_NOOP(
+    "QtC::QodeAssist",
+    "Select from previously used models or enter a new model name.\n\n"
+    "If entering a new model name:\n"
+    "• For providers with automatic listing - ensure the model is installed\n"
+    "• For providers without listing support - check provider's documentation\n"
+    "• Make sure the model name matches exactly");
+inline const char MODEL_NAME[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Model name:");
+inline const char OK[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "OK");
+inline const char CANCEL[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Cancel");
+inline const char ENTER_MODEL_MANUALLY[]
+    = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Enter Model Manually");
+inline const char URL_SELECTION[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "URL Selection");
+inline const char URL_SELECTION_INFO[] = QT_TRANSLATE_NOOP(
+    "QtC::QodeAssist",
+    "Select from the list of default and previously used URLs, or enter a custom one.\n"
+    "Please ensure the selected URL is accessible and the service is running.");
+inline const char PREDEFINED_URL[]
+    = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Use default provider URL or from history");
+inline const char CUSTOM_URL[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Enter custom URL");
+inline const char ENTER_MODEL_MANUALLY_BUTTON[]
+    = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Enter Model Name Manually");
+
 } // namespace TrConstants
 
 struct Tr

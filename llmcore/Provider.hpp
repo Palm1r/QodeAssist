@@ -37,6 +37,7 @@ public:
     virtual QString url() const = 0;
     virtual QString completionEndpoint() const = 0;
     virtual QString chatEndpoint() const = 0;
+    virtual bool supportsModelListing() const = 0;
 
     virtual void prepareRequest(QJsonObject &request, RequestType type) = 0;
     virtual bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) = 0;

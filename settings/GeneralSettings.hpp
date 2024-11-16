@@ -74,6 +74,12 @@ public:
                              const QString &title = {},
                              const QString &text = {});
 
+    void showModelsNotFoundDialog(Utils::StringAspect &aspect);
+
+    void showModelsNotSupportedDialog(Utils::StringAspect &aspect);
+
+    void showUrlSelectionDialog(Utils::StringAspect &aspect, const QStringList &predefinedUrls);
+
 private:
     void setupConnections();
     void resetPageToDefaults();

@@ -7,6 +7,7 @@ add_library(QodeAssistSettings STATIC
     SettingsTr.hpp
     CodeCompletionSettings.hpp CodeCompletionSettings.cpp
     ChatAssistantSettings.hpp ChatAssistantSettings.cpp
+    SettingsDialog.hpp SettingsDialog.cpp
 )
 
 target_link_libraries(QodeAssistSettings

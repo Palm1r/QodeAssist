@@ -50,6 +50,11 @@ QString OpenAICompatProvider::chatEndpoint() const
     return "/v1/chat/completions";
 }
 
+bool OpenAICompatProvider::supportsModelListing() const
+{
+    return false;
+}
+
 void OpenAICompatProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType type)
 {
     auto prepareMessages = [](QJsonObject &req) -> QJsonArray {

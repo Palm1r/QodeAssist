@@ -53,6 +53,11 @@ QString LMStudioProvider::chatEndpoint() const
     return "/v1/chat/completions";
 }
 
+bool LMStudioProvider::supportsModelListing() const
+{
+    return true;
+}
+
 void LMStudioProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType type)
 {
     auto prepareMessages = [](QJsonObject &req) -> QJsonArray {
