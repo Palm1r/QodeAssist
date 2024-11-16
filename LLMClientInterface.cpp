@@ -169,8 +169,13 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
                                QJsonArray::fromStringList(config.promptTemplate->stopWords())}};
     config.multiLineCompletion = completeSettings.multiLineCompletion();
 
+    QString systemPrompt;
     if (completeSettings.useSystemPrompt())
-        config.providerRequest["system"] = completeSettings.systemPrompt();
+        systemPrompt.append(completeSettings.systemPrompt());
+    if (!updatedContext.fileContext.isEmpty())
+        systemPrompt.append(updatedContext.fileContext);
+
+    config.providerRequest["system"] = systemPrompt;
 
     config.promptTemplate->prepareRequest(config.providerRequest, updatedContext);
     config.provider->prepareRequest(config.providerRequest, LLMCore::RequestType::Fim);

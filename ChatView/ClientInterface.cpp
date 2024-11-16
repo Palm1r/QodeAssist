@@ -81,24 +81,21 @@ void ClientInterface::sendMessage(const QString &message, bool includeCurrentFil
     context.prefix = message;
     context.suffix = "";
 
-    QString systemPrompt = chatAssistantSettings.systemPrompt();
+    QString systemPrompt;
+    if (chatAssistantSettings.useSystemPrompt())
+        systemPrompt = chatAssistantSettings.systemPrompt();
+
     if (includeCurrentFile) {
         QString fileContext = getCurrentFileContext();
         if (!fileContext.isEmpty()) {
-            context.systemPrompt = QString("%1\n\n%2").arg(systemPrompt, fileContext);
-            LOG_MESSAGE("Using system prompt with file context");
-        } else {
-            context.systemPrompt = systemPrompt;
-            LOG_MESSAGE("Failed to get file context, using default system prompt");
+            systemPrompt = systemPrompt.append(fileContext);
         }
-    } else {
-        context.systemPrompt = systemPrompt;
     }
 
     QJsonObject providerRequest;
     providerRequest["model"] = Settings::generalSettings().caModel();
     providerRequest["stream"] = true;
-    providerRequest["messages"] = m_chatModel->prepareMessagesForRequest(context);
+    providerRequest["messages"] = m_chatModel->prepareMessagesForRequest(systemPrompt);
 
     if (promptTemplate)
         promptTemplate->prepareRequest(providerRequest, context);

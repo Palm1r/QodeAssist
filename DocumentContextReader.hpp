@@ -54,7 +54,6 @@ public:
 private:
     QString getContextBefore(int lineNumber, int cursorPosition) const;
     QString getContextAfter(int lineNumber, int cursorPosition) const;
-    QString getInstructions() const;
 
 private:
     TextEditor::TextDocument *m_textDocument;

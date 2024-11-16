@@ -148,7 +148,7 @@ CodeCompletionSettings::CodeCompletionSettings()
         "and contextually appropriate code suggestions.");
 
     useFilePathInContext.setSettingsKey(Constants::CC_USE_FILE_PATH_IN_CONTEXT);
-    useFilePathInContext.setDefaultValue(false);
+    useFilePathInContext.setDefaultValue(true);
     useFilePathInContext.setLabelText(Tr::tr("Use File Path in Context"));
 
     useProjectChangesCache.setSettingsKey(Constants::CC_USE_PROJECT_CHANGES_CACHE);

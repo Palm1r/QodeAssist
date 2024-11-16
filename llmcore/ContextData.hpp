@@ -27,7 +27,7 @@ struct ContextData
 {
     QString prefix;
     QString suffix;
-    QString systemPrompt;
+    QString fileContext;
 };
 
 } // namespace QodeAssist::LLMCore

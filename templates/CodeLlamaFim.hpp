@@ -28,7 +28,7 @@ class CodeLlamaFim : public LLMCore::PromptTemplate
 public:
     LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Fim; }
     QString name() const override { return "CodeLlama FIM"; }
-    QString promptTemplate() const override { return "%1<PRE> %2 <SUF>%3 <MID>"; }
+    QString promptTemplate() const override { return "<PRE> %1 <SUF>%2 <MID>"; }
     QStringList stopWords() const override
     {
         return QStringList() << "<EOT>" << "<PRE>" << "<SUF" << "<MID>";
@@ -36,9 +36,7 @@ public:
 
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
-        QString formattedPrompt = promptTemplate().arg(context.systemPrompt,
-                                                       context.prefix,
-                                                       context.suffix);
+        QString formattedPrompt = promptTemplate().arg(context.prefix, context.suffix);
         request["prompt"] = formattedPrompt;
     }
 };
