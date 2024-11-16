@@ -207,9 +207,15 @@ LLMCore::ContextData DocumentContextReader::prepareContext(int lineNumber, int c
 {
     QString contextBefore = getContextBefore(lineNumber, cursorPosition);
     QString contextAfter = getContextAfter(lineNumber, cursorPosition);
-    QString instructions = getInstructions();
 
-    return {contextBefore, contextAfter, instructions};
+    QString fileContext;
+    if (Settings::codeCompletionSettings().useFilePathInContext())
+        fileContext += getLanguageAndFileInfo();
+
+    if (Settings::codeCompletionSettings().useProjectChangesCache())
+        fileContext += ChangesManager::instance().getRecentChangesContext(m_textDocument);
+
+    return {contextBefore, contextAfter, fileContext};
 }
 
 QString DocumentContextReader::getContextBefore(int lineNumber, int cursorPosition) const
@@ -237,19 +243,6 @@ QString DocumentContextReader::getContextAfter(int lineNumber, int cursorPositio
                            lineNumber + Settings::codeCompletionSettings().readStringsAfterCursor());
         return getContextBetween(lineNumber + 1, endLine, -1);
     }
-}
-
-QString DocumentContextReader::getInstructions() const
-{
-    QString instructions;
-
-    if (Settings::codeCompletionSettings().useFilePathInContext())
-        instructions += getLanguageAndFileInfo();
-
-    if (Settings::codeCompletionSettings().useProjectChangesCache())
-        instructions += ChangesManager::instance().getRecentChangesContext(m_textDocument);
-
-    return instructions;
 }
 
 } // namespace QodeAssist

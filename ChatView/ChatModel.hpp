@@ -60,7 +60,7 @@ public:
     Q_INVOKABLE QList<MessagePart> processMessageContent(const QString &content) const;
 
     QVector<Message> getChatHistory() const;
-    QJsonArray prepareMessagesForRequest(LLMCore::ContextData context) const;
+    QJsonArray prepareMessagesForRequest(const QString &systemPrompt) const;
 
     int totalTokens() const;
     int tokensThreshold() const;

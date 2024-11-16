@@ -30,14 +30,12 @@ public:
     QString name() const override { return "DeepSeekCoder FIM"; }
     QString promptTemplate() const override
     {
-        return "%1<｜fim▁begin｜>%2<｜fim▁hole｜>%3<｜fim▁end｜>";
+        return "<｜fim▁begin｜>%1<｜fim▁hole｜>%2<｜fim▁end｜>";
     }
     QStringList stopWords() const override { return QStringList(); }
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
-        QString formattedPrompt = promptTemplate().arg(context.systemPrompt,
-                                                       context.prefix,
-                                                       context.suffix);
+        QString formattedPrompt = promptTemplate().arg(context.prefix, context.suffix);
         request["prompt"] = formattedPrompt;
     }
 };

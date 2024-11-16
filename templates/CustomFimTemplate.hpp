@@ -62,7 +62,6 @@ private:
     {
         if (value.isString()) {
             QString str = value.toString();
-            str.replace("{{QODE_INSTRUCTIONS}}", context.systemPrompt);
             str.replace("{{QODE_PREFIX}}", context.prefix);
             str.replace("{{QODE_SUFFIX}}", context.suffix);
             return str;
