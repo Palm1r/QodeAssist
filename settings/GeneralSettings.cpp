@@ -19,15 +19,22 @@
 
 #include "GeneralSettings.hpp"
 
-#include <QInputDialog>
-#include <QMessageBox>
 #include <coreplugin/dialogs/ioptionspage.h>
 #include <coreplugin/icore.h>
 #include <utils/layoutbuilder.h>
 #include <utils/utilsicons.h>
+#include <QInputDialog>
+#include <QMessageBox>
+#include <QTimer>
+#include <QtWidgets/qboxlayout.h>
+#include <QtWidgets/qcompleter.h>
+#include <QtWidgets/qgroupbox.h>
+#include <QtWidgets/qradiobutton.h>
+#include <QtWidgets/qstackedwidget.h>
 
 #include "Logger.hpp"
 #include "SettingsConstants.hpp"
+#include "SettingsDialog.hpp"
 #include "SettingsTr.hpp"
 #include "SettingsUtils.hpp"
 
@@ -109,16 +116,16 @@ GeneralSettings::GeneralSettings()
 
         auto ccGrid = Grid{};
         ccGrid.addRow({ccProvider, ccSelectProvider});
+        ccGrid.addRow({ccUrl, ccSetUrl});
         ccGrid.addRow({ccModel, ccSelectModel});
         ccGrid.addRow({ccTemplate, ccSelectTemplate});
-        ccGrid.addRow({ccUrl, ccSetUrl});
         ccGrid.addRow({ccStatus, ccTest});
 
         auto caGrid = Grid{};
         caGrid.addRow({caProvider, caSelectProvider});
+        caGrid.addRow({caUrl, caSetUrl});
         caGrid.addRow({caModel, caSelectModel});
         caGrid.addRow({caTemplate, caSelectTemplate});
-        caGrid.addRow({caUrl, caSetUrl});
         caGrid.addRow({caStatus, caTest});
 
         auto ccGroup = Group{title(TrConstants::CODE_COMPLETION), ccGrid};
@@ -159,6 +166,129 @@ void GeneralSettings::showSelectionDialog(const QStringList &data,
             writeSettings();
         }
     }
+}
+
+void GeneralSettings::showModelsNotFoundDialog(Utils::StringAspect &aspect)
+{
+    SettingsDialog dialog(TrConstants::CONNECTION_ERROR);
+    dialog.addLabel(TrConstants::NO_MODELS_FOUND);
+    dialog.addLabel(TrConstants::CHECK_CONNECTION);
+    dialog.addSpacing();
+
+    ButtonAspect *providerButton = nullptr;
+    ButtonAspect *urlButton = nullptr;
+
+    if (&aspect == &ccModel) {
+        providerButton = &ccSelectProvider;
+        urlButton = &ccSetUrl;
+    } else if (&aspect == &caModel) {
+        providerButton = &caSelectProvider;
+        urlButton = &caSetUrl;
+    }
+
+    if (providerButton && urlButton) {
+        auto selectProviderBtn = new QPushButton(TrConstants::SELECT_PROVIDER);
+        auto selectUrlBtn = new QPushButton(TrConstants::SELECT_URL);
+        auto enterManuallyBtn = new QPushButton(TrConstants::ENTER_MODEL_MANUALLY);
+
+        connect(selectProviderBtn, &QPushButton::clicked, &dialog, [this, providerButton, &dialog]() {
+            dialog.close();
+            emit providerButton->clicked();
+        });
+
+        connect(selectUrlBtn, &QPushButton::clicked, &dialog, [this, urlButton, &dialog]() {
+            dialog.close();
+            emit urlButton->clicked();
+        });
+
+        connect(enterManuallyBtn, &QPushButton::clicked, &dialog, [this, &aspect, &dialog]() {
+            dialog.close();
+            showModelsNotSupportedDialog(aspect);
+        });
+
+        dialog.buttonLayout()->addWidget(selectProviderBtn);
+        dialog.buttonLayout()->addWidget(selectUrlBtn);
+        dialog.buttonLayout()->addWidget(enterManuallyBtn);
+    }
+
+    auto closeBtn = new QPushButton(TrConstants::CLOSE);
+    connect(closeBtn, &QPushButton::clicked, &dialog, &QDialog::close);
+    dialog.buttonLayout()->addWidget(closeBtn);
+
+    dialog.exec();
+}
+
+void GeneralSettings::showModelsNotSupportedDialog(Utils::StringAspect &aspect)
+{
+    SettingsDialog dialog(TrConstants::MODEL_SELECTION);
+    dialog.addLabel(TrConstants::MODEL_LISTING_NOT_SUPPORTED_INFO);
+    dialog.addSpacing();
+
+    QString key = QString("CompleterHistory/")
+                      .append(
+                          (&aspect == &ccModel) ? Constants::CC_MODEL_HISTORY
+                                                : Constants::CA_MODEL_HISTORY);
+    QStringList historyList = qtcSettings()->value(Utils::Key(key.toLocal8Bit())).toStringList();
+
+    auto modelList = dialog.addComboBox(historyList, aspect.value());
+    dialog.addSpacing();
+
+    auto okButton = new QPushButton(TrConstants::OK);
+    connect(okButton, &QPushButton::clicked, &dialog, [this, &aspect, modelList, &dialog]() {
+        QString value = modelList->currentText().trimmed();
+        if (!value.isEmpty()) {
+            aspect.setValue(value);
+            writeSettings();
+            dialog.accept();
+        }
+    });
+
+    auto cancelButton = new QPushButton(TrConstants::CANCEL);
+    connect(cancelButton, &QPushButton::clicked, &dialog, &QDialog::reject);
+
+    dialog.buttonLayout()->addWidget(cancelButton);
+    dialog.buttonLayout()->addWidget(okButton);
+
+    modelList->setFocus();
+    dialog.exec();
+}
+
+void GeneralSettings::showUrlSelectionDialog(
+    Utils::StringAspect &aspect, const QStringList &predefinedUrls)
+{
+    SettingsDialog dialog(TrConstants::URL_SELECTION);
+    dialog.addLabel(TrConstants::URL_SELECTION_INFO);
+    dialog.addSpacing();
+
+    QStringList allUrls = predefinedUrls;
+    QString key
+        = QString("CompleterHistory/")
+              .append((&aspect == &ccUrl) ? Constants::CC_URL_HISTORY : Constants::CA_URL_HISTORY);
+    QStringList historyList = qtcSettings()->value(Utils::Key(key.toLocal8Bit())).toStringList();
+    allUrls.append(historyList);
+    allUrls.removeDuplicates();
+
+    auto urlList = dialog.addComboBox(allUrls, aspect.value());
+    dialog.addSpacing();
+
+    auto okButton = new QPushButton(TrConstants::OK);
+    connect(okButton, &QPushButton::clicked, &dialog, [this, &aspect, urlList, &dialog]() {
+        QString value = urlList->currentText().trimmed();
+        if (!value.isEmpty()) {
+            aspect.setValue(value);
+            writeSettings();
+            dialog.accept();
+        }
+    });
+
+    auto cancelButton = new QPushButton(TrConstants::CANCEL);
+    connect(cancelButton, &QPushButton::clicked, &dialog, &QDialog::reject);
+
+    dialog.buttonLayout()->addWidget(cancelButton);
+    dialog.buttonLayout()->addWidget(okButton);
+
+    urlList->setFocus();
+    dialog.exec();
 }
 
 void GeneralSettings::setupConnections()

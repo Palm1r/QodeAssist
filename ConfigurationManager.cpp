@@ -95,15 +95,24 @@ void ConfigurationManager::selectModel()
 
     auto &targetSettings = isCodeCompletion ? m_generalSettings.ccModel : m_generalSettings.caModel;
 
-    const auto modelList
-        = m_providersManager.getProviderByName(providerName)->getInstalledModels(providerUrl);
+    if (auto provider = m_providersManager.getProviderByName(providerName)) {
+        if (!provider->supportsModelListing()) {
+            m_generalSettings.showModelsNotSupportedDialog(targetSettings);
+            return;
+        }
 
-    QTimer::singleShot(0, &m_generalSettings, [this, modelList, &targetSettings]() {
-        m_generalSettings.showSelectionDialog(modelList,
-                                              targetSettings,
-                                              Tr::tr("Select LLM Model"),
-                                              Tr::tr("Models:"));
-    });
+        const auto modelList = provider->getInstalledModels(providerUrl);
+
+        if (modelList.isEmpty()) {
+            m_generalSettings.showModelsNotFoundDialog(targetSettings);
+            return;
+        }
+
+        QTimer::singleShot(0, &m_generalSettings, [this, modelList, &targetSettings]() {
+            m_generalSettings.showSelectionDialog(
+                modelList, targetSettings, Tr::tr("Select LLM Model"), Tr::tr("Models:"));
+        });
+    }
 }
 
 void ConfigurationManager::selectTemplate()
@@ -130,6 +139,10 @@ void ConfigurationManager::selectTemplate()
 
 void ConfigurationManager::selectUrl()
 {
+    auto *settingsButton = qobject_cast<ButtonAspect *>(sender());
+    if (!settingsButton)
+        return;
+
     QStringList urls;
     for (const auto &name : m_providersManager.providersNames()) {
         const auto url = m_providersManager.getProviderByName(name)->url();
@@ -137,19 +150,12 @@ void ConfigurationManager::selectUrl()
             urls.append(url);
     }
 
-    auto *settingsButton = qobject_cast<ButtonAspect *>(sender());
-    if (!settingsButton)
-        return;
-
     auto &targetSettings = (settingsButton == &m_generalSettings.ccSetUrl)
                                ? m_generalSettings.ccUrl
                                : m_generalSettings.caUrl;
 
     QTimer::singleShot(0, &m_generalSettings, [this, urls, &targetSettings]() {
-        m_generalSettings.showSelectionDialog(urls,
-                                              targetSettings,
-                                              Tr::tr("Select URL"),
-                                              Tr::tr("URLs:"));
+        m_generalSettings.showUrlSelectionDialog(targetSettings, urls);
     });
 }
 

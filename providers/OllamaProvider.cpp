@@ -53,6 +53,11 @@ QString OllamaProvider::chatEndpoint() const
     return "/api/chat";
 }
 
+bool OllamaProvider::supportsModelListing() const
+{
+    return true;
+}
+
 void OllamaProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType type)
 {
     auto applySettings = [&request](const auto &settings) {
