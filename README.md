@@ -29,8 +29,8 @@ QodeAssist is an AI-powered coding assistant plugin for Qt Creator. It provides 
   - Side and Bottom panels
 - Support for multiple LLM providers:
   - Ollama
-  - LM Studio
-  - OpenAI-compatible local providers
+  - LM Studio (experimental)
+  - OpenAI-compatible providers (experimental)
 - Extensive library of model-specific templates
 - Custom template support
 - Easy configuration and model selection
@@ -56,13 +56,17 @@ QodeAssist is an AI-powered coding assistant plugin for Qt Creator. It provides 
 2. Install [Ollama](https://ollama.com). Make sure to review the system requirements before installation.
 3. Install a language models in Ollama via terminal. For example, you can run:
 
-For suggestions:
+For standard computers (minimum 8GB RAM):
 ```
-ollama run codellama:7b-code
+ollama run qwen2.5-coder:7b
 ```
-For chat:
+For better performance (16GB+ RAM):
 ```
-ollama run codellama:7b-instruct
+ollama run qwen2.5-coder:14b
+```
+For high-end systems (32GB+ RAM):
+```
+ollama run qwen2.5-coder:32b
 ```
 4. Download the QodeAssist plugin for your QtCreator.
 5. Launch Qt Creator and install the plugin:
@@ -73,38 +77,32 @@ ollama run codellama:7b-instruct
 
 ## Configure Plugin
 
-<details>
-  <summary>Configure plugins: (click to expand)</summary>
-  <img src="https://github.com/user-attachments/assets/00ad980f-b470-48eb-9aaa-077783d38798" width="600" alt="Configuere QodeAssist">
-</details>
+QodeAssist comes with default settings that should work immediately after installing a language model. The plugin is pre-configured to use Ollama with standard templates, so you may only need to verify the settings.
 
-1. Open Qt Creator settings
+1. Open Qt Creator settings (Edit > Preferences on Linux/Windows, Qt Creator > Preferences on macOS)
 2. Navigate to the "Qode Assist" tab
-3. Select "General" page
-4. Choose your LLM provider (e.g., Ollama)
-5. Select the installed model by the "Select Model" button
-   - For LM Studio you will see current loaded model
-6. Choose the prompt template that corresponds to your model
-7. Apply the settings
+3. On the "General" page, verify:
+    - Ollama is selected as your LLM provider
+    - The URL is set to http://localhost:11434
+    - Your installed model appears in the model selection
+    - The prompt template is Ollama Auto FIM
+4. Click Apply if you made any changes
 
 You're all set! QodeAssist is now ready to use in Qt Creator.
-
-[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/P5P412V96G)
 
 ## Supported LLM Providers
 QodeAssist currently supports the following LLM (Large Language Model) providers:
 - [Ollama](https://ollama.com)
-- [LM Studio](https://lmstudio.ai)
-- OpenAI compatible providers
+- [LM Studio](https://lmstudio.ai) (experimental)
+- OpenAI compatible providers (experimental)
 
 ## Recommended Models:
 QodeAssist has been thoroughly tested and optimized for use with the following language models:
 
-- Llama
+- Qwen2.5-coder
 - CodeLlama
 - StarCoder2
 - DeepSeek-Coder-V2
-- Qwen-2.5
 
 ### Ollama:
 ### For autocomplete(FIM)
@@ -121,13 +119,6 @@ ollama run starcoder2:instruct
 ollama run qwen2.5-coder:7b-instruct
 ollama run deepseek-coder-v2
 ```
-
-### LM Studio:
-   similar models, like for ollama
-
-Please note that while these models have been specifically tested and confirmed to work well with QodeAssist, other models compatible with the supported providers may also work. We encourage users to experiment with different models and report their experiences.
-
-If you've successfully used a model that's not listed here, please let us know by opening an issue or submitting a pull request to update this list.
 
 ## QtCreator Version Compatibility
 
@@ -191,7 +182,6 @@ If you find QodeAssist helpful, there are several ways you can support the proje
 3. **Spread the Word**: Star our GitHub repository and share QodeAssist with your fellow developers.
 
 4. **Financial Support**: If you'd like to support the development financially, you can make a donation using one of the following:
-   - [![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/P5P412V96G)
    - Bitcoin (BTC): `bc1qndq7f0mpnlya48vk7kugvyqj5w89xrg4wzg68t`
    - Ethereum (ETH): `0xA5e8c37c94b24e25F9f1f292a01AF55F03099D8D`
    - Litecoin (LTC): `ltc1qlrxnk30s2pcjchzx4qrxvdjt5gzuervy5mv0vy`

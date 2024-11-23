@@ -66,7 +66,7 @@ GeneralSettings::GeneralSettings()
     ccProvider.setReadOnly(true);
     ccSelectProvider.m_buttonText = TrConstants::SELECT;
 
-    initStringAspect(ccModel, Constants::CC_MODEL, TrConstants::MODEL, "codellama:7b-code");
+    initStringAspect(ccModel, Constants::CC_MODEL, TrConstants::MODEL, "qwen2.5-coder:7b");
     ccModel.setHistoryCompleter(Constants::CC_MODEL_HISTORY);
     ccSelectModel.m_buttonText = TrConstants::SELECT;
 
@@ -87,7 +87,7 @@ GeneralSettings::GeneralSettings()
     caProvider.setReadOnly(true);
     caSelectProvider.m_buttonText = TrConstants::SELECT;
 
-    initStringAspect(caModel, Constants::CA_MODEL, TrConstants::MODEL, "codellama:7b-instruct");
+    initStringAspect(caModel, Constants::CA_MODEL, TrConstants::MODEL, "qwen2.5-coder:7b");
     caModel.setHistoryCompleter(Constants::CA_MODEL_HISTORY);
     caSelectModel.m_buttonText = TrConstants::SELECT;
 
