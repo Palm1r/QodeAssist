@@ -152,9 +152,19 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     auto providerName = Settings::generalSettings().ccProvider();
     auto provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
+    if (!provider) {
+        LOG_MESSAGE(QString("No provider found with name: %1").arg(providerName));
+        return;
+    }
+
     auto templateName = Settings::generalSettings().ccTemplate();
     auto promptTemplate = LLMCore::PromptTemplateManager::instance().getFimTemplateByName(
         templateName);
+
+    if (!promptTemplate) {
+        LOG_MESSAGE(QString("No template found with name: %1").arg(templateName));
+        return;
+    }
 
     LLMCore::LLMConfig config;
     config.requestType = LLMCore::RequestType::Fim;
@@ -163,10 +173,8 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     config.url = QUrl(
         QString("%1%2").arg(Settings::generalSettings().ccUrl(), provider->completionEndpoint()));
 
-    config.providerRequest = {{"model", Settings::generalSettings().ccModel()},
-                              {"stream", true},
-                              {"stop",
-                               QJsonArray::fromStringList(config.promptTemplate->stopWords())}};
+    config.providerRequest = {{"model", Settings::generalSettings().ccModel()}, {"stream", true}};
+
     config.multiLineCompletion = completeSettings.multiLineCompletion();
 
     QString systemPrompt;
@@ -174,8 +182,12 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         systemPrompt.append(completeSettings.systemPrompt());
     if (!updatedContext.fileContext.isEmpty())
         systemPrompt.append(updatedContext.fileContext);
+    if (!systemPrompt.isEmpty())
+        config.providerRequest["system"] = systemPrompt;
 
-    config.providerRequest["system"] = systemPrompt;
+    const auto stopWords = QJsonArray::fromStringList(config.promptTemplate->stopWords());
+    if (!stopWords.isEmpty())
+        config.providerRequest["stop"] = stopWords;
 
     config.promptTemplate->prepareRequest(config.providerRequest, updatedContext);
     config.provider->prepareRequest(config.providerRequest, LLMCore::RequestType::Fim);

@@ -73,9 +73,19 @@ void ClientInterface::sendMessage(const QString &message, bool includeCurrentFil
     auto providerName = Settings::generalSettings().caProvider();
     auto provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
+    if (!provider) {
+        LOG_MESSAGE(QString("No provider found with name: %1").arg(providerName));
+        return;
+    }
+
     auto templateName = Settings::generalSettings().caTemplate();
     auto promptTemplate = LLMCore::PromptTemplateManager::instance().getChatTemplateByName(
         templateName);
+
+    if (!promptTemplate) {
+        LOG_MESSAGE(QString("No template found with name: %1").arg(templateName));
+        return;
+    }
 
     LLMCore::ContextData context;
     context.prefix = message;
