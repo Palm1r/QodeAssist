@@ -91,7 +91,7 @@ GeneralSettings::GeneralSettings()
     caModel.setHistoryCompleter(Constants::CA_MODEL_HISTORY);
     caSelectModel.m_buttonText = TrConstants::SELECT;
 
-    initStringAspect(caTemplate, Constants::CA_TEMPLATE, TrConstants::TEMPLATE, "CodeLlama Chat");
+    initStringAspect(caTemplate, Constants::CA_TEMPLATE, TrConstants::TEMPLATE, "Ollama Auto Chat");
     caTemplate.setReadOnly(true);
 
     caSelectTemplate.m_buttonText = TrConstants::SELECT;

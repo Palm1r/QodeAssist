@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <QJsonArray>
+
 #include "llmcore/PromptTemplate.hpp"
 
 namespace QodeAssist::Templates {
@@ -35,6 +37,27 @@ public:
     {
         request["prompt"] = context.prefix;
         request["suffix"] = context.suffix;
+    }
+};
+
+class OllamaAutoChat : public LLMCore::PromptTemplate
+{
+public:
+    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
+    QString name() const override { return "Ollama Auto Chat"; }
+    QString promptTemplate() const override { return {}; }
+    QStringList stopWords() const override { return QStringList(); }
+
+    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
+    {
+        QJsonArray messages = request["messages"].toArray();
+
+        QJsonObject newMessage;
+        newMessage["role"] = "user";
+        newMessage["content"] = context.prefix;
+        messages.append(newMessage);
+
+        request["messages"] = messages;
     }
 };
 

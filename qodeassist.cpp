@@ -49,6 +49,7 @@
 #include "providers/OllamaProvider.hpp"
 #include "providers/OpenAICompatProvider.hpp"
 
+#include "templates/BasicChat.hpp"
 #include "templates/CodeLlamaChat.hpp"
 #include "templates/CodeLlamaFim.hpp"
 #include "templates/CustomFimTemplate.hpp"
@@ -101,6 +102,8 @@ public:
         templateManager.registerTemplate<Templates::QwenChat>();
         templateManager.registerTemplate<Templates::QwenFim>();
         templateManager.registerTemplate<Templates::OllamaAutoFim>();
+        templateManager.registerTemplate<Templates::OllamaAutoChat>();
+        templateManager.registerTemplate<Templates::BasicChat>();
 
         Utils::Icon QCODEASSIST_ICON(
             {{":/resources/images/qoderassist-icon.png", Utils::Theme::IconsBaseColor}});

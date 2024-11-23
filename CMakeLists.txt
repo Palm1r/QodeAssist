@@ -49,6 +49,7 @@ add_qtc_plugin(QodeAssist
     templates/Qwen.hpp
     templates/StarCoderChat.hpp
     templates/Ollama.hpp
+    templates/BasicChat.hpp
     providers/OllamaProvider.hpp providers/OllamaProvider.cpp
     providers/LMStudioProvider.hpp providers/LMStudioProvider.cpp
     providers/OpenAICompatProvider.hpp providers/OpenAICompatProvider.cpp

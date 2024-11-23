@@ -25,32 +25,25 @@
 
 namespace QodeAssist::Templates {
 
-class CodeLlamaChat : public LLMCore::PromptTemplate
+class BasicChat : public LLMCore::PromptTemplate
 {
 public:
     LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
-    QString name() const override { return "CodeLlama Chat"; }
-    QString promptTemplate() const override { return "[INST] %1 [/INST]"; }
-    QStringList stopWords() const override { return QStringList() << "[INST]" << "[/INST]"; }
+    QString name() const override { return "Basic Chat"; }
+    QString promptTemplate() const override { return {}; }
+    QStringList stopWords() const override { return QStringList(); }
 
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
-        QString formattedPrompt = promptTemplate().arg(context.prefix);
         QJsonArray messages = request["messages"].toArray();
 
         QJsonObject newMessage;
         newMessage["role"] = "user";
-        newMessage["content"] = formattedPrompt;
+        newMessage["content"] = context.prefix;
         messages.append(newMessage);
 
         request["messages"] = messages;
     }
-};
-
-class LlamaChat : public CodeLlamaChat
-{
-public:
-    QString name() const override { return "Llama Chat"; }
 };
 
 } // namespace QodeAssist::Templates
