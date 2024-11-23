@@ -48,6 +48,7 @@ add_qtc_plugin(QodeAssist
     templates/CodeLlamaChat.hpp
     templates/Qwen.hpp
     templates/StarCoderChat.hpp
+    templates/Ollama.hpp
     providers/OllamaProvider.hpp providers/OllamaProvider.cpp
     providers/LMStudioProvider.hpp providers/LMStudioProvider.cpp
     providers/OpenAICompatProvider.hpp providers/OpenAICompatProvider.cpp
@@ -62,5 +63,3 @@ add_qtc_plugin(QodeAssist
     chat/NavigationPanel.hpp chat/NavigationPanel.cpp
     ConfigurationManager.hpp ConfigurationManager.cpp
 )
-
-target_link_libraries(QodeAssist PRIVATE )

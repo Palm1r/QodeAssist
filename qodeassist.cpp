@@ -54,6 +54,7 @@
 #include "templates/CustomFimTemplate.hpp"
 #include "templates/DeepSeekCoderChat.hpp"
 #include "templates/DeepSeekCoderFim.hpp"
+#include "templates/Ollama.hpp"
 #include "templates/Qwen.hpp"
 #include "templates/StarCoder2Fim.hpp"
 #include "templates/StarCoderChat.hpp"
@@ -99,6 +100,7 @@ public:
         templateManager.registerTemplate<Templates::StarCoderChat>();
         templateManager.registerTemplate<Templates::QwenChat>();
         templateManager.registerTemplate<Templates::QwenFim>();
+        templateManager.registerTemplate<Templates::OllamaAutoFim>();
 
         Utils::Icon QCODEASSIST_ICON(
             {{":/resources/images/qoderassist-icon.png", Utils::Theme::IconsBaseColor}});

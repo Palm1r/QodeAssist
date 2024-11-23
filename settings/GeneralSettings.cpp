@@ -70,7 +70,7 @@ GeneralSettings::GeneralSettings()
     ccModel.setHistoryCompleter(Constants::CC_MODEL_HISTORY);
     ccSelectModel.m_buttonText = TrConstants::SELECT;
 
-    initStringAspect(ccTemplate, Constants::CC_TEMPLATE, TrConstants::TEMPLATE, "CodeLlama FIM");
+    initStringAspect(ccTemplate, Constants::CC_TEMPLATE, TrConstants::TEMPLATE, "Ollama Auto FIM");
     ccTemplate.setReadOnly(true);
     ccSelectTemplate.m_buttonText = TrConstants::SELECT;
 
