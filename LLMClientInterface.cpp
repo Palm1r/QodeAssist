@@ -152,9 +152,19 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     auto providerName = Settings::generalSettings().ccProvider();
     auto provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
+    if (!provider) {
+        LOG_MESSAGE(QString("No provider found with name: %1").arg(providerName));
+        return;
+    }
+
     auto templateName = Settings::generalSettings().ccTemplate();
     auto promptTemplate = LLMCore::PromptTemplateManager::instance().getFimTemplateByName(
         templateName);
+
+    if (!promptTemplate) {
+        LOG_MESSAGE(QString("No template found with name: %1").arg(templateName));
+        return;
+    }
 
     LLMCore::LLMConfig config;
     config.requestType = LLMCore::RequestType::Fim;
