@@ -33,11 +33,14 @@ public:
     {
         return QStringList() << "<EOT>" << "<PRE>" << "<SUF" << "<MID>";
     }
-
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
         QString formattedPrompt = promptTemplate().arg(context.prefix, context.suffix);
         request["prompt"] = formattedPrompt;
+    }
+    QString description() const override
+    {
+        return "The message will contain the following tokens: <PRE> %1 <SUF>%2 <MID>";
     }
 };
 

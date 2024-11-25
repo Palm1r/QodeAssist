@@ -40,16 +40,22 @@ add_qtc_plugin(QodeAssist
     QodeAssistConstants.hpp
     QodeAssisttr.h
     LLMClientInterface.hpp LLMClientInterface.cpp
+    templates/Templates.hpp
     templates/CodeLlamaFim.hpp
     templates/StarCoder2Fim.hpp
     templates/DeepSeekCoderFim.hpp
     templates/CustomFimTemplate.hpp
-    templates/DeepSeekCoderChat.hpp
-    templates/CodeLlamaChat.hpp
+
+
     templates/Qwen.hpp
-    templates/StarCoderChat.hpp
+
     templates/Ollama.hpp
     templates/BasicChat.hpp
+    templates/Llama3.hpp
+    templates/ChatML.hpp
+    templates/Alpaca.hpp
+    templates/Llama2.hpp
+    providers/Providers.hpp
     providers/OllamaProvider.hpp providers/OllamaProvider.cpp
     providers/LMStudioProvider.hpp providers/LMStudioProvider.cpp
     providers/OpenAICompatProvider.hpp providers/OpenAICompatProvider.cpp

@@ -38,6 +38,11 @@ public:
         QString formattedPrompt = promptTemplate().arg(context.prefix, context.suffix);
         request["prompt"] = formattedPrompt;
     }
+    QString description() const override
+    {
+        return "The message will contain the following tokens: "
+               "<｜fim▁begin｜>%1<｜fim▁hole｜>%2<｜fim▁end｜>";
+    }
 };
 
 } // namespace QodeAssist::Templates

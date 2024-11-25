@@ -68,6 +68,8 @@ void ClientInterface::sendMessage(const QString &message, bool includeCurrentFil
 {
     cancelRequest();
 
+    m_chatModel->addMessage(message, ChatModel::ChatRole::User, "");
+
     auto &chatAssistantSettings = Settings::chatAssistantSettings();
 
     auto providerName = Settings::generalSettings().caProvider();
@@ -128,7 +130,6 @@ void ClientInterface::sendMessage(const QString &message, bool includeCurrentFil
     QJsonObject request;
     request["id"] = QUuid::createUuid().toString();
 
-    m_chatModel->addMessage(message, ChatModel::ChatRole::User, "");
     m_requestHandler->sendLLMRequest(config, request);
 }
 

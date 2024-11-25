@@ -32,18 +32,9 @@ public:
     QString name() const override { return "Basic Chat"; }
     QString promptTemplate() const override { return {}; }
     QStringList stopWords() const override { return QStringList(); }
-
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
-    {
-        QJsonArray messages = request["messages"].toArray();
-
-        QJsonObject newMessage;
-        newMessage["role"] = "user";
-        newMessage["content"] = context.prefix;
-        messages.append(newMessage);
-
-        request["messages"] = messages;
-    }
+    {}
+    QString description() const override { return "chat without tokens"; }
 };
 
 } // namespace QodeAssist::Templates

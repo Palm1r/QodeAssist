@@ -32,12 +32,12 @@ public:
     QString name() const override { return "Ollama Auto FIM"; }
     QString promptTemplate() const override { return {}; }
     QStringList stopWords() const override { return QStringList(); }
-
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
         request["prompt"] = context.prefix;
         request["suffix"] = context.suffix;
     }
+    QString description() const override { return "template will take from ollama modelfile"; }
 };
 
 class OllamaAutoChat : public LLMCore::PromptTemplate
@@ -59,6 +59,7 @@ public:
 
         request["messages"] = messages;
     }
+    QString description() const override { return "template will take from ollama modelfile"; }
 };
 
 } // namespace QodeAssist::Templates

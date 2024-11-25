@@ -19,25 +19,19 @@
 
 #pragma once
 
-#include <QJsonObject>
-#include <QList>
-#include <QString>
+#include "llmcore/ProvidersManager.hpp"
+#include "providers/LMStudioProvider.hpp"
+#include "providers/OllamaProvider.hpp"
+#include "providers/OpenAICompatProvider.hpp"
 
-#include "ContextData.hpp"
+namespace QodeAssist::Providers {
 
-namespace QodeAssist::LLMCore {
-
-enum class TemplateType { Chat, Fim };
-
-class PromptTemplate
+inline void registerProviders()
 {
-public:
-    virtual ~PromptTemplate() = default;
-    virtual TemplateType type() const = 0;
-    virtual QString name() const = 0;
-    virtual QString promptTemplate() const = 0;
-    virtual QStringList stopWords() const = 0;
-    virtual void prepareRequest(QJsonObject &request, const ContextData &context) const = 0;
-    virtual QString description() const = 0;
-};
-} // namespace QodeAssist::LLMCore
+    auto &providerManager = LLMCore::ProvidersManager::instance();
+    providerManager.registerProvider<OllamaProvider>();
+    providerManager.registerProvider<LMStudioProvider>();
+    providerManager.registerProvider<OpenAICompatProvider>();
+}
+
+} // namespace QodeAssist::Providers

@@ -19,30 +19,41 @@
 
 #pragma once
 
+#include <QJsonArray>
+
 #include "llmcore/PromptTemplate.hpp"
 
 namespace QodeAssist::Templates {
 
-class StarCoder2Fim : public LLMCore::PromptTemplate
+class ChatML : public LLMCore::PromptTemplate
 {
 public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Fim; }
-    QString name() const override { return "StarCoder2 FIM"; }
-    QString promptTemplate() const override { return "<fim_prefix>%1<fim_suffix>%2<fim_middle>"; }
+    QString name() const override { return "ChatML"; }
+    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
+    QString promptTemplate() const override { return {}; }
     QStringList stopWords() const override
     {
-        return QStringList() << "<|endoftext|>" << "<file_sep>" << "<fim_prefix>" << "<fim_suffix>"
-                             << "<fim_middle>";
+        return QStringList() << "<|im_start|>" << "<|im_end|>";
     }
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
-        QString formattedPrompt = promptTemplate().arg(context.prefix, context.suffix);
-        request["prompt"] = formattedPrompt;
+        QJsonArray messages = request["messages"].toArray();
+
+        for (int i = 0; i < messages.size(); ++i) {
+            QJsonObject message = messages[i].toObject();
+            QString role = message["role"].toString();
+            QString content = message["content"].toString();
+
+            message["content"] = QString("<|im_start|>%1\n%2\n<|im_end|>").arg(role, content);
+
+            messages[i] = message;
+        }
+
+        request["messages"] = messages;
     }
     QString description() const override
     {
-        return "The message will contain the following tokens: "
-               "<fim_prefix>%1<fim_suffix>%2<fim_middle>";
+        return "The message will contain the following tokens: <|im_start|>%1\n%2\n<|im_end|>";
     }
 };
 

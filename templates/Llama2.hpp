@@ -19,38 +19,46 @@
 
 #pragma once
 
-#include <QJsonArray>
-
 #include "llmcore/PromptTemplate.hpp"
+#include <QJsonArray>
 
 namespace QodeAssist::Templates {
 
-class CodeLlamaChat : public LLMCore::PromptTemplate
+class Llama2 : public LLMCore::PromptTemplate
 {
 public:
+    QString name() const override { return "Llama 2"; }
     LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
-    QString name() const override { return "CodeLlama Chat"; }
-    QString promptTemplate() const override { return "[INST] %1 [/INST]"; }
-    QStringList stopWords() const override { return QStringList() << "[INST]" << "[/INST]"; }
-
+    QString promptTemplate() const override { return {}; }
+    QStringList stopWords() const override { return QStringList() << "[INST]"; }
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
-        QString formattedPrompt = promptTemplate().arg(context.prefix);
         QJsonArray messages = request["messages"].toArray();
 
-        QJsonObject newMessage;
-        newMessage["role"] = "user";
-        newMessage["content"] = formattedPrompt;
-        messages.append(newMessage);
+        for (int i = 0; i < messages.size(); ++i) {
+            QJsonObject message = messages[i].toObject();
+            QString role = message["role"].toString();
+            QString content = message["content"].toString();
+
+            QString formattedContent;
+            if (role == "system") {
+                formattedContent = QString("[INST]<<SYS>>\n%1\n<</SYS>>[/INST]\n").arg(content);
+            } else if (role == "user") {
+                formattedContent = QString("[INST]%1[/INST]\n").arg(content);
+            } else if (role == "assistant") {
+                formattedContent = content + "\n";
+            }
+
+            message["content"] = formattedContent;
+            messages[i] = message;
+        }
 
         request["messages"] = messages;
     }
-};
-
-class LlamaChat : public CodeLlamaChat
-{
-public:
-    QString name() const override { return "Llama Chat"; }
+    QString description() const override
+    {
+        return "The message will contain the following tokens: [INST]%1[/INST]\n";
+    }
 };
 
 } // namespace QodeAssist::Templates

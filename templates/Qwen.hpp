@@ -24,33 +24,6 @@
 
 namespace QodeAssist::Templates {
 
-class QwenChat : public LLMCore::PromptTemplate
-{
-public:
-    QString name() const override { return "Qwen Chat"; }
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
-
-    QString promptTemplate() const override { return "### Instruction:\n%1\n### Response:\n"; }
-
-    QStringList stopWords() const override
-    {
-        return QStringList() << "### Instruction:" << "### Response:" << "\n\n### " << "<|EOT|>";
-    }
-
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
-    {
-        QString formattedPrompt = promptTemplate().arg(context.prefix);
-        QJsonArray messages = request["messages"].toArray();
-
-        QJsonObject newMessage;
-        newMessage["role"] = "user";
-        newMessage["content"] = formattedPrompt;
-        messages.append(newMessage);
-
-        request["messages"] = messages;
-    }
-};
-
 class QwenFim : public LLMCore::PromptTemplate
 {
 public:
@@ -65,6 +38,11 @@ public:
     {
         QString formattedPrompt = promptTemplate().arg(context.prefix, context.suffix);
         request["prompt"] = formattedPrompt;
+    }
+    QString description() const override
+    {
+        return "The message will contain the following tokens: "
+               "<|fim_prefix|>%1<|fim_suffix|>%2<|fim_middle|>";
     }
 };
 

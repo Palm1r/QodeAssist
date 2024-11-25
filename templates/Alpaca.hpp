@@ -19,35 +19,48 @@
 
 #pragma once
 
-#include <QJsonArray>
 #include "llmcore/PromptTemplate.hpp"
+#include <QJsonArray>
 
 namespace QodeAssist::Templates {
 
-class DeepSeekCoderChat : public LLMCore::PromptTemplate
+class Alpaca : public LLMCore::PromptTemplate
 {
 public:
-    QString name() const override { return "DeepSeekCoder Chat"; }
+    QString name() const override { return "Alpaca"; }
     LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
-
-    QString promptTemplate() const override { return "### Instruction:\n%1\n### Response:\n"; }
-
+    QString promptTemplate() const override { return {}; }
     QStringList stopWords() const override
     {
-        return QStringList() << "### Instruction:" << "### Response:" << "\n\n### " << "<|EOT|>";
+        return QStringList() << "### Instruction:" << "### Response:";
     }
-
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
-        QString formattedPrompt = promptTemplate().arg(context.prefix);
         QJsonArray messages = request["messages"].toArray();
 
-        QJsonObject newMessage;
-        newMessage["role"] = "user";
-        newMessage["content"] = formattedPrompt;
-        messages.append(newMessage);
+        for (int i = 0; i < messages.size(); ++i) {
+            QJsonObject message = messages[i].toObject();
+            QString role = message["role"].toString();
+            QString content = message["content"].toString();
+
+            QString formattedContent;
+            if (role == "system") {
+                formattedContent = content + "\n\n";
+            } else if (role == "user") {
+                formattedContent = "### Instruction:\n" + content + "\n\n";
+            } else if (role == "assistant") {
+                formattedContent = "### Response:\n" + content + "\n\n";
+            }
+
+            message["content"] = formattedContent;
+            messages[i] = message;
+        }
 
         request["messages"] = messages;
+    }
+    QString description() const override
+    {
+        return "The message will contain the following tokens: ### Instruction:\n### Response:\n";
     }
 };
 

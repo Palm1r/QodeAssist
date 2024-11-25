@@ -43,22 +43,9 @@
 #include "QodeAssistClient.hpp"
 #include "chat/ChatOutputPane.h"
 #include "chat/NavigationPanel.hpp"
-#include "llmcore/PromptTemplateManager.hpp"
-#include "llmcore/ProvidersManager.hpp"
-#include "providers/LMStudioProvider.hpp"
-#include "providers/OllamaProvider.hpp"
-#include "providers/OpenAICompatProvider.hpp"
 
-#include "templates/BasicChat.hpp"
-#include "templates/CodeLlamaChat.hpp"
-#include "templates/CodeLlamaFim.hpp"
-#include "templates/CustomFimTemplate.hpp"
-#include "templates/DeepSeekCoderChat.hpp"
-#include "templates/DeepSeekCoderFim.hpp"
-#include "templates/Ollama.hpp"
-#include "templates/Qwen.hpp"
-#include "templates/StarCoder2Fim.hpp"
-#include "templates/StarCoderChat.hpp"
+#include "providers/Providers.hpp"
+#include "templates/Templates.hpp"
 
 using namespace Utils;
 using namespace Core;
@@ -85,25 +72,8 @@ public:
 
     void initialize() final
     {
-        auto &providerManager = LLMCore::ProvidersManager::instance();
-        providerManager.registerProvider<Providers::OllamaProvider>();
-        providerManager.registerProvider<Providers::LMStudioProvider>();
-        providerManager.registerProvider<Providers::OpenAICompatProvider>();
-
-        auto &templateManager = LLMCore::PromptTemplateManager::instance();
-        templateManager.registerTemplate<Templates::CodeLlamaFim>();
-        templateManager.registerTemplate<Templates::StarCoder2Fim>();
-        templateManager.registerTemplate<Templates::DeepSeekCoderFim>();
-        templateManager.registerTemplate<Templates::CustomTemplate>();
-        templateManager.registerTemplate<Templates::DeepSeekCoderChat>();
-        templateManager.registerTemplate<Templates::CodeLlamaChat>();
-        templateManager.registerTemplate<Templates::LlamaChat>();
-        templateManager.registerTemplate<Templates::StarCoderChat>();
-        templateManager.registerTemplate<Templates::QwenChat>();
-        templateManager.registerTemplate<Templates::QwenFim>();
-        templateManager.registerTemplate<Templates::OllamaAutoFim>();
-        templateManager.registerTemplate<Templates::OllamaAutoChat>();
-        templateManager.registerTemplate<Templates::BasicChat>();
+        Providers::registerProviders();
+        Templates::registerTemplates();
 
         Utils::Icon QCODEASSIST_ICON(
             {{":/resources/images/qoderassist-icon.png", Utils::Theme::IconsBaseColor}});

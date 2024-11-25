@@ -39,7 +39,6 @@ public:
         return Settings::customPromptSettings().customJsonTemplate();
     }
     QStringList stopWords() const override { return QStringList(); }
-
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
         QJsonDocument doc = QJsonDocument::fromJson(promptTemplate().toUtf8());
@@ -56,6 +55,7 @@ public:
             request[it.key()] = it.value();
         }
     }
+    QString description() const override { return promptTemplate(); }
 
 private:
     QJsonValue processJsonValue(const QJsonValue &value, const LLMCore::ContextData &context) const
