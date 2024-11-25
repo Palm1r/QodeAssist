@@ -148,11 +148,16 @@ void ClientInterface::handleLLMResponse(const QString &response,
                                         const QJsonObject &request,
                                         bool isComplete)
 {
-    QString messageId = request["id"].toString();
-    m_chatModel->addMessage(response.trimmed(), ChatModel::ChatRole::Assistant, messageId);
+    const auto message = response.trimmed();
 
-    if (isComplete) {
-        LOG_MESSAGE("Message completed. Final response for message " + messageId + ": " + response);
+    if (!message.isEmpty()) {
+        QString messageId = request["id"].toString();
+        m_chatModel->addMessage(message, ChatModel::ChatRole::Assistant, messageId);
+
+        if (isComplete) {
+            LOG_MESSAGE(
+                "Message completed. Final response for message " + messageId + ": " + response);
+        }
     }
 }
 
