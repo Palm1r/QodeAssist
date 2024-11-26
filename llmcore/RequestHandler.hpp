@@ -52,7 +52,7 @@ private:
     QMap<QString, QNetworkReply *> m_activeRequests;
     QMap<QNetworkReply *, QString> m_accumulatedResponses;
 
-    void prepareNetworkRequest(QNetworkRequest &networkRequest, const QJsonObject &providerRequest);
+    void prepareNetworkRequest(QNetworkRequest &networkRequest, const QString &apiKey) const;
     bool processSingleLineCompletion(QNetworkReply *reply,
                                      const QJsonObject &request,
                                      const QString &accumulatedResponse,

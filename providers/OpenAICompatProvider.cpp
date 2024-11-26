@@ -82,10 +82,6 @@ void OpenAICompatProvider::prepareRequest(QJsonObject &request, LLMCore::Request
             request["frequency_penalty"] = settings.frequencyPenalty();
         if (settings.usePresencePenalty())
             request["presence_penalty"] = settings.presencePenalty();
-        const QString &apiKey = settings.apiKey();
-        if (!apiKey.isEmpty()) {
-            request["api_key"] = apiKey;
-        }
     };
 
     QJsonArray messages = prepareMessages(request);

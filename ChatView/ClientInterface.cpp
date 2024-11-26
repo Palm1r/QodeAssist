@@ -126,6 +126,7 @@ void ClientInterface::sendMessage(const QString &message, bool includeCurrentFil
     config.url = QString("%1%2").arg(Settings::generalSettings().caUrl(), provider->chatEndpoint());
     config.providerRequest = providerRequest;
     config.multiLineCompletion = false;
+    config.apiKey = Settings::chatAssistantSettings().apiKey();
 
     QJsonObject request;
     request["id"] = QUuid::createUuid().toString();

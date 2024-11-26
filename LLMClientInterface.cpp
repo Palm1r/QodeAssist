@@ -172,6 +172,7 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     config.promptTemplate = promptTemplate;
     config.url = QUrl(
         QString("%1%2").arg(Settings::generalSettings().ccUrl(), provider->completionEndpoint()));
+    config.apiKey = Settings::codeCompletionSettings().apiKey();
 
     config.providerRequest = {{"model", Settings::generalSettings().ccModel()}, {"stream", true}};
 
