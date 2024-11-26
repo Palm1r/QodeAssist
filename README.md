@@ -29,8 +29,8 @@ QodeAssist is an AI-powered coding assistant plugin for Qt Creator. It provides 
   - Side and Bottom panels
 - Support for multiple LLM providers:
   - Ollama
-  - LM Studio (experimental)
-  - OpenAI-compatible providers (experimental)
+  - LM Studio
+  - OpenAI-compatible providers(eg. https://openrouter.ai)
 - Extensive library of model-specific templates
 - Custom template support
 - Easy configuration and model selection
