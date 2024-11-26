@@ -210,10 +210,11 @@ LLMCore::ContextData DocumentContextReader::prepareContext(int lineNumber, int c
 
     QString fileContext;
     if (Settings::codeCompletionSettings().useFilePathInContext())
-        fileContext += getLanguageAndFileInfo();
+        fileContext.append("\n ").append(getLanguageAndFileInfo());
 
     if (Settings::codeCompletionSettings().useProjectChangesCache())
-        fileContext += ChangesManager::instance().getRecentChangesContext(m_textDocument);
+        fileContext.append("\n ").append(
+            ChangesManager::instance().getRecentChangesContext(m_textDocument));
 
     return {contextBefore, contextAfter, fileContext};
 }
