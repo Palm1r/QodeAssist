@@ -143,9 +143,8 @@ CodeCompletionSettings::CodeCompletionSettings()
 
     systemPrompt.setSettingsKey(Constants::CC_SYSTEM_PROMPT);
     systemPrompt.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
-    systemPrompt.setDefaultValue(
-        "You are an expert C++, Qt, and QML code completion AI. Your task is to provide accurate "
-        "and contextually appropriate code suggestions.");
+    systemPrompt.setDefaultValue("You are an expert C++, Qt, and QML code completion AI. ANSWER "
+                                 "should be SHORT and in CODE");
 
     useFilePathInContext.setSettingsKey(Constants::CC_USE_FILE_PATH_IN_CONTEXT);
     useFilePathInContext.setDefaultValue(true);
