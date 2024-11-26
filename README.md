@@ -120,6 +120,28 @@ ollama run qwen2.5-coder:7b-instruct
 ollama run deepseek-coder-v2
 ```
 
+### Template-Model Compatibility
+
+| Template | Compatible Models | Purpose |
+|----------|------------------|----------|
+| CodeLlama FIM | `codellama:code` | Code completion |
+| DeepSeekCoder FIM | `deepseek-coder-v2`, `deepseek-v2.5` | Code completion |
+| Ollama Auto FIM | `Any Ollama base model` | Code completion |
+| Qwen FIM | `Qwen 2.5 models` | Code completion |
+| StarCoder2 FIM | `starcoder2 base model` | Code completion |
+| Alpaca | `starcoder2:instruct` | Chat assistance |
+| Basic Chat| `Messages without tokens` | Chat assistance |
+| ChatML | `Qwen 2.5 models` | Chat assistance |
+| Llama2 | `llama2 model family`, `codellama:instruct` | Chat assistance |
+| Llama3 | `llama3 model family` | Chat assistance |
+| Ollama Auto Chat | `Any Ollama chat model` | Chat assistance |
+
+> Note: 
+> - FIM (Fill-in-Middle) templates are optimized for code completion
+> - Chat templates are designed for interactive dialogue
+> - The Ollama Auto templates automatically adapt to most Ollama models
+> - Custom Template allows you to define your own prompt format
+
 ## QtCreator Version Compatibility
 
 - QtCreator 14.0.2 - 0.2.3 - 0.3.x 
