@@ -58,6 +58,7 @@ private:
                                      const QString &accumulatedResponse,
                                      const LLMConfig &config);
     QString removeStopWords(const QStringView &completion, const QStringList &stopWords);
+    void removeCodeBlockWrappers(QString &response);
 };
 
 } // namespace QodeAssist::LLMCore

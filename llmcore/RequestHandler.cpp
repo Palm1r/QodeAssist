@@ -85,6 +85,8 @@ void RequestHandler::handleLLMResponse(QNetworkReply *reply,
         if (isComplete) {
             auto cleanedCompletion = removeStopWords(accumulatedResponse,
                                                      config.promptTemplate->stopWords());
+            removeCodeBlockWrappers(cleanedCompletion);
+
             emit completionReceived(cleanedCompletion, request, true);
         }
     } else if (config.requestType == RequestType::Chat) {
@@ -115,22 +117,23 @@ void RequestHandler::prepareNetworkRequest(
     networkRequest.setRawHeader("Authorization", QString("Bearer %1").arg(apiKey).toUtf8());
 }
 
-bool RequestHandler::processSingleLineCompletion(QNetworkReply *reply,
-                                                 const QJsonObject &request,
-                                                 const QString &accumulatedResponse,
-                                                 const LLMConfig &config)
+bool RequestHandler::processSingleLineCompletion(
+    QNetworkReply *reply,
+    const QJsonObject &request,
+    const QString &accumulatedResponse,
+    const LLMConfig &config)
 {
-    int newlinePos = accumulatedResponse.indexOf('\n');
+    QString cleanedResponse = accumulatedResponse;
+    removeCodeBlockWrappers(cleanedResponse);
 
+    int newlinePos = cleanedResponse.indexOf('\n');
     if (newlinePos != -1) {
-        QString singleLineCompletion = accumulatedResponse.left(newlinePos).trimmed();
-        singleLineCompletion = removeStopWords(singleLineCompletion,
-                                               config.promptTemplate->stopWords());
-
+        QString singleLineCompletion = cleanedResponse.left(newlinePos).trimmed();
+        singleLineCompletion
+            = removeStopWords(singleLineCompletion, config.promptTemplate->stopWords());
         emit completionReceived(singleLineCompletion, request, true);
         m_accumulatedResponses.remove(reply);
         reply->abort();
-
         return true;
     }
     return false;
@@ -145,6 +148,38 @@ QString RequestHandler::removeStopWords(const QStringView &completion, const QSt
     }
 
     return filteredCompletion;
+}
+
+void RequestHandler::removeCodeBlockWrappers(QString &response)
+{
+    static const QRegularExpression
+        fullCodeBlockRegex(R"(```[\w\s]*\n([\s\S]*?)```)", QRegularExpression::MultilineOption);
+    static const QRegularExpression
+        partialStartBlockRegex(R"(```[\w\s]*\n([\s\S]*?)$)", QRegularExpression::MultilineOption);
+    static const QRegularExpression
+        partialEndBlockRegex(R"(^([\s\S]*?)```)", QRegularExpression::MultilineOption);
+
+    QRegularExpressionMatchIterator matchIterator = fullCodeBlockRegex.globalMatch(response);
+    while (matchIterator.hasNext()) {
+        QRegularExpressionMatch match = matchIterator.next();
+        QString codeBlock = match.captured(0);
+        QString codeContent = match.captured(1).trimmed();
+        response.replace(codeBlock, codeContent);
+    }
+
+    QRegularExpressionMatch startMatch = partialStartBlockRegex.match(response);
+    if (startMatch.hasMatch()) {
+        QString partialBlock = startMatch.captured(0);
+        QString codeContent = startMatch.captured(1).trimmed();
+        response.replace(partialBlock, codeContent);
+    }
+
+    QRegularExpressionMatch endMatch = partialEndBlockRegex.match(response);
+    if (endMatch.hasMatch()) {
+        QString partialBlock = endMatch.captured(0);
+        QString codeContent = endMatch.captured(1).trimmed();
+        response.replace(partialBlock, codeContent);
+    }
 }
 
 } // namespace QodeAssist::LLMCore
