@@ -140,7 +140,7 @@ jobs:
         endif()
 
         set(qt_base_url "https://download.qt.io/online/qtsdkrepository/${url_os}/desktop/qt6_${qt_version_dotless}")
-        set(qt_base_url "${qt_base_url}/qt.qt6.${qt_version_dotless}.${qt_package_arch_suffix}")
+        set(qt_base_url "${qt_base_url}/qt6_${qt_version_dotless}/qt.qt6.${qt_version_dotless}.${qt_package_arch_suffix}")
         file(DOWNLOAD "${qt_base_url}/Updates.xml" ./Updates.xml SHOW_PROGRESS)
 
         file(READ ./Updates.xml updates_xml)
@@ -162,14 +162,14 @@ jobs:
 
         foreach(package qtbase qtdeclarative)
           downloadAndExtract(
-            "${qt_base_url}/${qt_package_version}${package}${qt_package_suffix}.7z"
+            "${qt_base_url}/${qt_version}-0-202411221531${package}${qt_package_suffix}.7z"
             ${package}.7z
           )
         endforeach()
 
         foreach(package qt5compat qtshadertools)
           downloadAndExtract(
-            "${qt_base_url}/${qt_package_version}${package}${qt_package_suffix}.7z"
+            "${qt_base_url}/${qt_version}-0-202411221531${package}${qt_package_suffix}.7z"
             ${package}.7z
           )
         endforeach()
