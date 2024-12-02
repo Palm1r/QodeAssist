@@ -32,7 +32,7 @@ public:
         : Utils::BaseAspect(container)
     {}
 
-    void addToLayout(Layouting::Layout &parent) override
+    void addToLayoutImpl(Layouting::Layout &parent) override
     {
         auto button = new QPushButton(m_buttonText);
         connect(button, &QPushButton::clicked, this, &ButtonAspect::clicked);
