@@ -191,9 +191,14 @@ jobs:
           set(icu_archive "${qt_base_url}/${qt_version}-0-${timestamp}icu-linux-Rhel8.6-x86_64.7z")
           message("Downloading ${icu_archive}")
           file(DOWNLOAD "${icu_archive}" ./icu.7z SHOW_PROGRESS)
+
+          execute_process(
+            COMMAND ${CMAKE_COMMAND} -E make_directory qt6/${qt_version}/gcc_64/lib
+          )
+
           execute_process(
             COMMAND ${CMAKE_COMMAND} -E tar xvf ../icu.7z
-            WORKING_DIRECTORY qt6
+            WORKING_DIRECTORY qt6/${qt_version}/gcc_64/lib
           )
         endif()
 
