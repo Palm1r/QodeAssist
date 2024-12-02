@@ -188,9 +188,12 @@ jobs:
 
         # uic depends on libicu*.so
         if ("${{ runner.os }}" STREQUAL "Linux")
-          downloadAndExtract(
-            "${qt_base_url}/${qt_version}-0-${timestamp}icu-linux-Rhel8.6-x86_64.7z"
-            icu.7z
+          set(icu_archive "${qt_base_url}/${qt_version}-0-${timestamp}icu-linux-Rhel8.6-x86_64.7z")
+          message("Downloading ${icu_archive}")
+          file(DOWNLOAD "${icu_archive}" ./icu.7z SHOW_PROGRESS)
+          execute_process(
+            COMMAND ${CMAKE_COMMAND} -E tar xvf ../icu.7z
+            WORKING_DIRECTORY qt6
           )
         endif()
 
