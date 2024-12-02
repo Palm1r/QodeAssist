@@ -190,14 +190,14 @@ jobs:
         function(downloadAndExtractLibicu url archive)
           message("Downloading ${url} to ${qt_version}/gcc_64/lib")
           file(DOWNLOAD "${url}" ./${archive} SHOW_PROGRESS)
-          execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ${archive} WORKING_DIRECTORY ${qt_version}/gcc_64/lib)
+          execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ../../../${archive} WORKING_DIRECTORY ${qt_version}/gcc_64/lib)
         endfunction()
 
         # uic depends on libicu*.so
         if ("${{ runner.os }}" STREQUAL "Linux")
           downloadAndExtractLibicu(
             "${qt_base_url}/${qt_version}-0-${timestamp}icu-linux-Rhel8.6-x86_64.7z"
-            "6.8.1-0-202411221531icu-linux-Rhel8.6-x86_64.7z"
+            "icu.7z"
           )
         endif()
 
