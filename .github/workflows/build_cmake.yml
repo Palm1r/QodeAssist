@@ -175,12 +175,16 @@ jobs:
           )
         endforeach()
 
-        foreach(package qt5compat qtshadertools)
-          downloadAndExtract(
-            "${qt_base_url}/${qt_version}-0-${timestamp}${package}${qt_package_suffix}.7z"
-            ${package}.7z
-          )
-        endforeach()
+        set(qt_addons_url "${qt_base_url}/../qt.qt6.${qt_version_dotless}.addons")
+        downloadAndExtract(
+          "${qt_addons_url}.qt5compat.${qt_package_arch_suffix}/${qt_version}-0-${timestamp}qt5compat${qt_package_suffix}.7z"
+          qt5compat.7z
+        )
+
+        downloadAndExtract(
+          "${qt_addons_url}.qtshadertools.${qt_package_arch_suffix}/${qt_version}-0-${timestamp}qtshadertools${qt_package_suffix}.7z"
+          qtshadertools.7z
+        )
 
         # uic depends on libicu*.so
         if ("${{ runner.os }}" STREQUAL "Linux")
