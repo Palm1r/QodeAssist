@@ -188,14 +188,10 @@ jobs:
 
         # uic depends on libicu*.so
         if ("${{ runner.os }}" STREQUAL "Linux")
+          set(uic_suffix "Rhel8.10-X86_64")
           downloadAndExtract(
-            "${qt_addons_url}.qtshadertools.${qt_package_arch_suffix}/${qt_version}-0-${timestamp}qtshadertools${qt_package_suffix}.7z"
+            "${qt_base_url}/${qt_package_version}icu-linux-${uic_suffix}.7z"
             icu.7z
-          )
-
-          execute_process(
-            COMMAND ${CMAKE_COMMAND} -E tar xvf ../icu.7z
-            WORKING_DIRECTORY qt6/${qt_version}/gcc_64/lib
           )
         endif()
 
