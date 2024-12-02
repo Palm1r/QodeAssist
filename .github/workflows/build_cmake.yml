@@ -160,16 +160,24 @@ jobs:
           execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ../${archive} WORKING_DIRECTORY qt6)
         endfunction()
 
+        if ("${{ runner.os }}" STREQUAL "Windows")
+          set(timestamp "202411221531")
+        elseif ("${{ runner.os }}" STREQUAL "Linux")
+          set(timestamp "202411221531")
+        elseif ("${{ runner.os }}" STREQUAL "macOS")
+         set(timestamp "202411221530")
+        endif()
+
         foreach(package qtbase qtdeclarative)
           downloadAndExtract(
-            "${qt_base_url}/${qt_version}-0-202411221531${package}${qt_package_suffix}.7z"
+            "${qt_base_url}/${qt_version}-0-${timestamp}${package}${qt_package_suffix}.7z"
             ${package}.7z
           )
         endforeach()
 
         foreach(package qt5compat qtshadertools)
           downloadAndExtract(
-            "${qt_base_url}/${qt_version}-0-202411221531${package}${qt_package_suffix}.7z"
+            "${qt_base_url}/${qt_version}-0-${timestamp}${package}${qt_package_suffix}.7z"
             ${package}.7z
           )
         endforeach()
