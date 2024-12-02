@@ -191,7 +191,7 @@ jobs:
           file(MAKE_DIRECTORY "${qt_version}/gcc_64/lib")
           message("Downloading ${url} to ${qt_version}/gcc_64/lib")
           file(DOWNLOAD "${url}" ./${archive} SHOW_PROGRESS)
-          execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ../${archive} WORKING_DIRECTORY ${qt_version}/gcc_64/lib)
+          execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ${archive} WORKING_DIRECTORY ${qt_version}/gcc_64/lib)
         endfunction()
 
         # uic depends on libicu*.so
