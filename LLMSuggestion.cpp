@@ -27,19 +27,16 @@
 
 namespace QodeAssist {
 
-LLMSuggestion::LLMSuggestion(const Completion &completion, QTextDocument *origin)
-    : m_completion(completion)
+LLMSuggestion::LLMSuggestion(const TextEditor::TextSuggestion::Data &data, QTextDocument *origin)
+    : TextEditor::TextSuggestion(data, origin)
     , m_linesCount(0)
+    , m_suggestion(data)
 {
-    int startPos = completion.range().start().toPositionInDocument(origin);
-    int endPos = completion.range().end().toPositionInDocument(origin);
+    int startPos = data.range.begin.toPositionInDocument(origin);
+    int endPos = data.range.end.toPositionInDocument(origin);
 
     startPos = qBound(0, startPos, origin->characterCount() - 1);
     endPos = qBound(startPos, endPos, origin->characterCount() - 1);
-
-    m_start = QTextCursor(origin);
-    m_start.setPosition(startPos);
-    m_start.setKeepPositionOnInsert(true);
 
     QTextCursor cursor(origin);
     cursor.setPosition(startPos);
@@ -51,39 +48,30 @@ LLMSuggestion::LLMSuggestion(const Completion &completion, QTextDocument *origin
     int startPosInBlock = startPos - block.position();
     int endPosInBlock = endPos - block.position();
 
-    blockText.replace(startPosInBlock, endPosInBlock - startPosInBlock, completion.text());
+    blockText.replace(startPosInBlock, endPosInBlock - startPosInBlock, data.text);
 
-    document()->setPlainText(blockText);
-
-    setCurrentPosition(m_start.position());
+    replacementDocument()->setPlainText(blockText);
 }
 
 bool LLMSuggestion::apply()
 {
-    QTextCursor cursor = m_completion.range().toSelection(m_start.document());
-    cursor.beginEditBlock();
-    cursor.removeSelectedText();
-    cursor.insertText(m_completion.text());
-    cursor.endEditBlock();
-    return true;
+    return TextEditor::TextSuggestion::apply();
 }
 
 bool LLMSuggestion::applyWord(TextEditor::TextEditorWidget *widget)
 {
-    return applyNextLine(widget);
+    return TextEditor::TextSuggestion::applyWord(widget);
 }
 
-bool LLMSuggestion::applyNextLine(TextEditor::TextEditorWidget *widget)
+bool LLMSuggestion::applyLine(TextEditor::TextEditorWidget *widget)
 {
-    const QString text = m_completion.text();
-    QStringList lines = text.split('\n');
+    return TextEditor::TextSuggestion::applyLine(widget);
+}
 
-    if (m_linesCount < lines.size())
-        m_linesCount++;
-
-    showTooltip(widget, m_linesCount);
-
-    return m_linesCount == lines.size() && !Utils::ToolTip::isVisible();
+void LLMSuggestion::reset()
+{
+    reset();
+    m_linesCount = 0;
 }
 
 void LLMSuggestion::onCounterFinished(int count)
@@ -101,24 +89,24 @@ void LLMSuggestion::onCounterFinished(int count)
     cursor.endEditBlock();
 }
 
-void LLMSuggestion::reset()
-{
-    m_start.removeSelectedText();
-}
+// void LLMSuggestion::reset()
+// {
+//     m_start.removeSelectedText();
+// }
 
-int LLMSuggestion::position()
-{
-    return m_start.position();
-}
+// int LLMSuggestion::position()
+// {
+//     return m_start.position();
+// }
 
 void LLMSuggestion::showTooltip(TextEditor::TextEditorWidget *widget, int count)
 {
-    Utils::ToolTip::hide();
-    QPoint pos = widget->mapToGlobal(widget->cursorRect().topRight());
-    pos += QPoint(-10, -50);
-    m_counterTooltip = new CounterTooltip(count);
-    Utils::ToolTip::show(pos, m_counterTooltip, widget);
-    connect(m_counterTooltip, &CounterTooltip::finished, this, &LLMSuggestion::onCounterFinished);
+    // Utils::ToolTip::hide();
+    // QPoint pos = widget->mapToGlobal(widget->cursorRect().topRight());
+    // pos += QPoint(-10, -50);
+    // m_counterTooltip = new CounterTooltip(count);
+    // Utils::ToolTip::show(pos, m_counterTooltip, widget);
+    // connect(m_counterTooltip, &CounterTooltip::finished, this, &LLMSuggestion::onCounterFinished);
 }
 
 } // namespace QodeAssist
