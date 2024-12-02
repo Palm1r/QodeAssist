@@ -188,9 +188,8 @@ jobs:
 
         # uic depends on libicu*.so
         if ("${{ runner.os }}" STREQUAL "Linux")
-          file(MAKE_DIRECTORY "${qt_version}/gcc_64/lib")
           downloadAndExtract(
-            "${qt_base_url}/${qt_version}-0-${timestamp}icu-linux-Rhel8.6-x86_64.7z"
+            "https://download.qt.io/online/qtsdkrepository/linux_x64/desktop/qt6_673/qt.qt6.673.linux_gcc_64/6.7.3-0-202409200836icu-linux-Rhel8.6-x86_64.7z"
             "icu-linux-Rhel8.6-x86_64.7z"
           )
         endif()
