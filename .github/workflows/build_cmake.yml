@@ -191,13 +191,13 @@ jobs:
           file(DOWNLOAD "${url}" ./${archive} SHOW_PROGRESS)
           execute_process(
             COMMAND ${CMAKE_COMMAND} -E tar xvf ../${archive}
-            WORKING_DIRECTORY qt6/${qt_version}/gcc_64/lib
+            WORKING_DIRECTORY ${qt_version}/gcc_64/lib
           )
         endfunction()
 
         # uic depends on libicu*.so
         if ("${{ runner.os }}" STREQUAL "Linux")
-          file(MAKE_DIRECTORY "qt6/${qt_version}/gcc_64/lib")
+          file(MAKE_DIRECTORY "${qt_version}/gcc_64/lib")
           downloadAndExtract(
             "${qt_base_url}/${qt_version}-0-${timestamp}icu-linux-Rhel8.6-x86_64.7z"
             "icu-linux-Rhel8.6-x86_64.7z"
