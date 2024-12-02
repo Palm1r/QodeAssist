@@ -186,20 +186,22 @@ jobs:
           qtshadertools.7z
         )
 
-        # uic depends on libicu*.so
         if ("${{ runner.os }}" STREQUAL "Linux")
           set(icu_archive "${qt_base_url}/${qt_version}-0-${timestamp}icu-linux-Rhel8.6-x86_64.7z")
           message("Downloading ${icu_archive}")
           file(DOWNLOAD "${icu_archive}" ./icu.7z SHOW_PROGRESS)
+
+          # Extract preserving directory structure
           execute_process(
             COMMAND ${CMAKE_COMMAND} -E tar xvf ../icu.7z
-            WORKING_DIRECTORY qt6/${qt_dir_prefix}/lib
+            WORKING_DIRECTORY qt6
           )
-          # Also copy to libexec for qmlcachegen
+
+          # Copy to libexec
           execute_process(
-            COMMAND ${CMAKE_COMMAND} -E copy_directory
-            qt6/${qt_dir_prefix}/lib
-            qt6/${qt_dir_prefix}/libexec
+            COMMAND ${CMAKE_COMMAND} -E copy
+            qt6/${qt_version}/gcc_64/lib/libicu*.so*
+            qt6/${qt_version}/gcc_64/libexec/
           )
         endif()
 
