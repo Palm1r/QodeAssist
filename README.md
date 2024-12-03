@@ -3,7 +3,7 @@
 [![Build plugin](https://github.com/Palm1r/QodeAssist/actions/workflows/build_cmake.yml/badge.svg?branch=main)](https://github.com/Palm1r/QodeAssist/actions/workflows/build_cmake.yml)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Palm1r/QodeAssist/total?color=41%2C173%2C71)
 ![GitHub Tag](https://img.shields.io/github/v/tag/Palm1r/QodeAssist)
-![Static Badge](https://img.shields.io/badge/QtCreator-14.0.2-brightgreen)
+![Static Badge](https://img.shields.io/badge/QtCreator-15.0.0-brightgreen)
 
 QodeAssist is an AI-powered coding assistant plugin for Qt Creator. It provides intelligent code completion and suggestions for C++ and QML, leveraging large language models through local providers like Ollama. Enhance your coding productivity with context-aware AI assistance directly in your Qt development environment.
 
@@ -144,6 +144,7 @@ ollama run deepseek-coder-v2
 
 ## QtCreator Version Compatibility
 
+- QtCreator 15.0.0 - 0.4.x 
 - QtCreator 14.0.2 - 0.2.3 - 0.3.x 
 - QtCreator 14.0.1 - 0.2.2 plugin version and below
 

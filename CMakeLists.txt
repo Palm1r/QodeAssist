@@ -45,10 +45,7 @@ add_qtc_plugin(QodeAssist
     templates/StarCoder2Fim.hpp
     templates/DeepSeekCoderFim.hpp
     templates/CustomFimTemplate.hpp
-
-
     templates/Qwen.hpp
-
     templates/Ollama.hpp
     templates/BasicChat.hpp
     templates/Llama3.hpp
