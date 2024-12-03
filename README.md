@@ -4,8 +4,9 @@
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Palm1r/QodeAssist/total?color=41%2C173%2C71)
 ![GitHub Tag](https://img.shields.io/github/v/tag/Palm1r/QodeAssist)
 ![Static Badge](https://img.shields.io/badge/QtCreator-14.0.2-brightgreen)
+![Static Badge](https://img.shields.io/badge/donations:0-brightgreen)
 
-QodeAssist is an AI-powered coding assistant plugin for Qt Creator. It provides intelligent code completion and suggestions for C++ and QML, leveraging large language models through local providers like Ollama. Enhance your coding productivity with context-aware AI assistance directly in your Qt development environment.
+![qodeassist-icon](https://github.com/user-attachments/assets/dc336712-83cb-440d-8761-8d0a31de898d) QodeAssist is an AI-powered coding assistant plugin for Qt Creator. It provides intelligent code completion and suggestions for C++ and QML, leveraging large language models through local providers like Ollama. Enhance your coding productivity with context-aware AI assistance directly in your Qt development environment.
 
 ## Table of Contents
 1. [Overview](#overview)
@@ -14,7 +15,6 @@ QodeAssist is an AI-powered coding assistant plugin for Qt Creator. It provides 
 4. [Supported LLM Providers](#supported-llm-providers)
 5. [Recommended Models](#recommended-models)
    - [Ollama](#ollama)
-   - [LM Studio](#lm-studio)
 6. [QtCreator Version Compatibility](#qtcreator-version-compatibility)
 7. [Development Progress](#development-progress)
 8. [Hotkeys](#hotkeys)
@@ -228,3 +228,7 @@ relative or absolute path to this plugin directory.
 
 QML code style: Preferably follow the following guidelines https://github.com/Furkanzmc/QML-Coding-Guide, thank you @Furkanzmc for collect them
 C++ code style: check use .clang-fortmat in project
+
+![qodeassist-icon](https://github.com/user-attachments/assets/dc336712-83cb-440d-8761-8d0a31de898d)
+![qodeassist-icon-small](https://github.com/user-attachments/assets/8ec241bf-3186-452e-b8db-8d70543c2f41)
+
