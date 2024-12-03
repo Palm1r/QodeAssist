@@ -1,0 +1,56 @@
+{
+    "name": "QodeAssist",
+    "vendor": "Petr Mironychev",
+    "tags": [
+        "code assistant",
+        "llm",
+        "ai",
+        "openai"
+        "ollama",
+    ],
+    "compatibility": "Qt 6.8.1",
+    "platforms": [
+        "Windows",
+        "macOS",
+        "Linux"
+    ],
+    "license": "GPLv3",
+    "version": "0.4.0",
+    "status": "draft",
+    "is_pack": false,
+    "released_at": null,
+    "version_history": [
+        {
+            "version": "0.4.0",
+            "is_latest": true,
+            "released_at": "2024-01-24T15:00:00Z"
+        }
+    ],
+    "icon": "https://github.com/user-attachments/assets/dc336712-83cb-440d-8761-8d0a31de898d",
+    "small_icon": "https://github.com/user-attachments/assets/8ec241bf-3186-452e-b8db-8d70543c2f41",
+    "description_paragraphs": [
+        {
+            "header": "Description",
+            "text": [
+                "QodeAssist is an AI-powered coding assistant plugin for Qt Creator. It provides intelligent code completion and suggestions for C++ and QML, leveraging large language models through local providers like Ollama. Enhance your coding productivity with context-aware AI assistance directly in your Qt development environment."
+            ]
+        }
+    ],
+    "description_links": [
+        {
+            "url": "https://github.com/Palm1r/QodeAssist",
+            "link_text": "Site"
+        }
+    ],
+    "description_images": [
+        {
+            "url": "https://github.com/user-attachments/assets/255a52f1-5cc0-4ca3-b05c-c4cf9cdbe25a",
+            "image_label": "Code Completion"
+        }
+    ],
+    "copyright": "(C) Petr Mironychev",
+    "download_history": {
+        "download_count": 0
+    },
+    "plugin_sets": []
+}
