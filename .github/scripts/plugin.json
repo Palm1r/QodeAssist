@@ -4,9 +4,7 @@
     "tags": [
         "code assistant",
         "llm",
-        "ai",
-        "openai"
-        "ollama",
+        "ai"
     ],
     "compatibility": "Qt 6.8.1",
     "platforms": [
