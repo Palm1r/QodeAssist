@@ -19,53 +19,40 @@
 
 #pragma once
 
-#include <QDateTime>
-#include <QJsonArray>
+#include <QByteArray>
 #include <QJsonObject>
-#include <QObject>
+#include <QString>
 
-namespace QodeAssist::Providers {
+namespace QodeAssist::LLMCore {
 
-class OllamaMessage
+class OpenAIMessage
 {
 public:
-    enum class Type { Generate, Chat };
-
-    struct Metrics
+    struct Choice
     {
-        qint64 totalDuration{0};
-        qint64 loadDuration{0};
-        qint64 promptEvalCount{0};
-        qint64 promptEvalDuration{0};
-        qint64 evalCount{0};
-        qint64 evalDuration{0};
-    };
-
-    struct GenerateResponse
-    {
-        QString response;
-        QVector<int> context;
-    };
-
-    struct ChatResponse
-    {
-        QString role;
         QString content;
+        QString finishReason;
     };
 
-    QString model;
-    QDateTime createdAt;
-    std::variant<GenerateResponse, ChatResponse> response;
-    bool done{false};
-    QString doneReason;
-    Metrics metrics;
+    struct Usage
+    {
+        int promptTokens{0};
+        int completionTokens{0};
+        int totalTokens{0};
+    };
+
+    Choice choice;
     QString error;
+    bool done{false};
+    Usage usage;
 
-    static OllamaMessage fromJson(const QJsonObject &obj, Type type);
-
+    static OpenAIMessage fromJson(const QByteArray &data);
     QString getContent() const;
-
     bool hasError() const;
+    bool isDone() const;
+
+private:
+    static OpenAIMessage fromJsonObject(const QJsonObject &obj);
 };
 
-} // namespace QodeAssist::Providers
+} // namespace QodeAssist::LLMCore

@@ -7,6 +7,8 @@ add_library(LLMCore STATIC
     PromptTemplateManager.hpp PromptTemplateManager.cpp
     RequestConfig.hpp
     RequestHandler.hpp RequestHandler.cpp
+    OllamaMessage.hpp OllamaMessage.cpp
+    OpenAIMessage.hpp OpenAIMessage.cpp
 )
 
 target_link_libraries(LLMCore

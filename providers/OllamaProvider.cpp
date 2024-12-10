@@ -25,7 +25,7 @@
 #include <QNetworkReply>
 #include <QtCore/qeventloop.h>
 
-#include "OllamaMessage.hpp"
+#include "llmcore/OllamaMessage.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -88,41 +88,23 @@ void OllamaProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType t
 
 bool OllamaProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
 {
-    const QString endpoint = reply->url().path();
-    auto messageType = endpoint == completionEndpoint() ? OllamaMessage::Type::Generate
-                                                        : OllamaMessage::Type::Chat;
-
-    auto processMessage =
-        [&accumulatedResponse](const QJsonDocument &doc, OllamaMessage::Type messageType) {
-            if (doc.isNull()) {
-                LOG_MESSAGE("Invalid JSON response from Ollama");
-                return false;
-            }
-
-            auto message = OllamaMessage::fromJson(doc.object(), messageType);
-            if (message.hasError()) {
-                LOG_MESSAGE("Error in Ollama response: " + message.error);
-                return false;
-            }
-
-            accumulatedResponse += message.getContent();
-            return message.done;
-        };
-
-    if (reply->canReadLine()) {
-        while (reply->canReadLine()) {
-            QByteArray line = reply->readLine().trimmed();
-            if (line.isEmpty())
-                continue;
-
-            if (processMessage(QJsonDocument::fromJson(line), messageType)) {
-                return true;
-            }
-        }
+    QByteArray data = reply->readAll();
+    if (data.isEmpty()) {
         return false;
-    } else {
-        return processMessage(QJsonDocument::fromJson(reply->readAll()), messageType);
     }
+
+    const QString endpoint = reply->url().path();
+    auto messageType = endpoint == completionEndpoint() ? LLMCore::OllamaMessage::Type::Generate
+                                                        : LLMCore::OllamaMessage::Type::Chat;
+
+    auto message = LLMCore::OllamaMessage::fromJson(data, messageType);
+    if (message.hasError()) {
+        LOG_MESSAGE("Error in Ollama response: " + message.error);
+        return false;
+    }
+
+    accumulatedResponse += message.getContent();
+    return message.done;
 }
 
 QList<QString> OllamaProvider::getInstalledModels(const QString &url)

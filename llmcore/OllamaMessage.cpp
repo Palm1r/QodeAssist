@@ -18,12 +18,38 @@
  */
 
 #include "OllamaMessage.hpp"
+#include <QJsonArray>
+#include <QJsonDocument>
 
-namespace QodeAssist::Providers {
+namespace QodeAssist::LLMCore {
 
-OllamaMessage OllamaMessage::fromJson(const QJsonObject &obj, Type type)
+QJsonObject OllamaMessage::parseJsonFromData(const QByteArray &data)
+{
+    QByteArrayList lines = data.split('\n');
+    for (const QByteArray &line : lines) {
+        if (line.trimmed().isEmpty()) {
+            continue;
+        }
+
+        QJsonParseError error;
+        QJsonDocument doc = QJsonDocument::fromJson(line, &error);
+        if (!doc.isNull() && error.error == QJsonParseError::NoError) {
+            return doc.object();
+        }
+    }
+    return QJsonObject();
+}
+
+OllamaMessage OllamaMessage::fromJson(const QByteArray &data, Type type)
 {
     OllamaMessage msg;
+    QJsonObject obj = parseJsonFromData(data);
+
+    if (obj.isEmpty()) {
+        msg.error = "Invalid JSON response";
+        return msg;
+    }
+
     msg.model = obj["model"].toString();
     msg.createdAt = QDateTime::fromString(obj["created_at"].toString(), Qt::ISODate);
     msg.done = obj["done"].toBool();
@@ -73,4 +99,4 @@ bool OllamaMessage::hasError() const
     return !error.isEmpty();
 }
 
-} // namespace QodeAssist::Providers
+} // namespace QodeAssist::LLMCore

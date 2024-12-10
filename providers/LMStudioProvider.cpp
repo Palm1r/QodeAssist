@@ -25,6 +25,7 @@
 #include <QJsonObject>
 #include <QNetworkReply>
 
+#include "llmcore/OpenAIMessage.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -101,43 +102,19 @@ void LMStudioProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType
 
 bool LMStudioProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
 {
-    bool isComplete = false;
-    while (reply->canReadLine()) {
-        QByteArray line = reply->readLine().trimmed();
-        if (line.isEmpty()) {
-            continue;
-        }
-        if (line == "data: [DONE]") {
-            isComplete = true;
-            break;
-        }
-        if (line.startsWith("data: ")) {
-            line = line.mid(6); // Remove "data: " prefix
-        }
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(line);
-        if (jsonResponse.isNull()) {
-            qWarning() << "Invalid JSON response from LM Studio:" << line;
-            continue;
-        }
-        QJsonObject responseObj = jsonResponse.object();
-        if (responseObj.contains("choices")) {
-            QJsonArray choices = responseObj["choices"].toArray();
-            if (!choices.isEmpty()) {
-                QJsonObject choice = choices.first().toObject();
-                QJsonObject delta = choice["delta"].toObject();
-                if (delta.contains("content")) {
-                    QString completion = delta["content"].toString();
-
-                    accumulatedResponse += completion;
-                }
-                if (choice["finish_reason"].toString() == "stop") {
-                    isComplete = true;
-                    break;
-                }
-            }
-        }
+    QByteArray data = reply->readAll();
+    if (data.isEmpty()) {
+        return false;
     }
-    return isComplete;
+
+    auto message = LLMCore::OpenAIMessage::fromJson(data);
+    if (message.hasError()) {
+        LOG_MESSAGE("Error in OpenAI response: " + message.error);
+        return false;
+    }
+
+    accumulatedResponse += message.getContent();
+    return message.isDone();
 }
 
 QList<QString> LMStudioProvider::getInstalledModels(const QString &url)
