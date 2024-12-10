@@ -35,6 +35,7 @@ public:
     // Auto Completion Settings
     Utils::BoolAspect autoCompletion{this};
     Utils::BoolAspect multiLineCompletion{this};
+    Utils::BoolAspect stream{this};
 
     Utils::IntegerAspect startSuggestionTimer{this};
     Utils::IntegerAspect autoCompletionCharThreshold{this};

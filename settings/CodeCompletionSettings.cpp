@@ -51,6 +51,10 @@ CodeCompletionSettings::CodeCompletionSettings()
     multiLineCompletion.setDefaultValue(false);
     multiLineCompletion.setLabelText(Tr::tr("Enable Multiline Completion(experimental)"));
 
+    stream.setSettingsKey(Constants::CC_STREAM);
+    stream.setDefaultValue(true);
+    stream.setLabelText(Tr::tr("Enable stream option"));
+
     startSuggestionTimer.setSettingsKey(Constants::СС_START_SUGGESTION_TIMER);
     startSuggestionTimer.setLabelText(Tr::tr("with delay(ms)"));
     startSuggestionTimer.setRange(10, 10000);
@@ -213,31 +217,35 @@ CodeCompletionSettings::CodeCompletionSettings()
                                   Row{useFilePathInContext, Stretch{1}},
                                   Row{useProjectChangesCache, maxChangesCacheSize, Stretch{1}}};
 
-        return Column{Row{Stretch{1}, resetToDefaults},
-                      Space{8},
-                      Group{title(Tr::tr("Auto Completion Settings")),
-                            Column{autoCompletion,
-                                   Space{8},
-                                   multiLineCompletion,
-                                   Row{autoCompletionCharThreshold,
-                                       autoCompletionTypingInterval,
-                                       startSuggestionTimer,
-                                       Stretch{1}}}},
-                      Space{8},
-                      Group{title(Tr::tr("General Parameters")),
-                            Column{
-                                Row{genGrid, Stretch{1}},
-                            }},
-                      Space{8},
-                      Group{title(Tr::tr("Advanced Parameters")),
-                            Column{Row{advancedGrid, Stretch{1}}}},
-                      Space{8},
-                      Group{title(Tr::tr("Context Settings")), contextItem},
-                      Space{8},
-                      Group{title(Tr::tr("Ollama Settings")), Column{Row{ollamaGrid, Stretch{1}}}},
-                      Space{8},
-                      Group{title(Tr::tr("API Configuration")), Column{apiKey}},
-                      Stretch{1}};
+        return Column{
+            Row{Stretch{1}, resetToDefaults},
+            Space{8},
+            Group{
+                title(TrConstants::AUTO_COMPLETION_SETTINGS),
+                Column{
+                    autoCompletion,
+                    Space{8},
+                    multiLineCompletion,
+                    stream,
+                    Row{autoCompletionCharThreshold,
+                        autoCompletionTypingInterval,
+                        startSuggestionTimer,
+                        Stretch{1}}}},
+            Space{8},
+            Group{
+                title(Tr::tr("General Parameters")),
+                Column{
+                    Row{genGrid, Stretch{1}},
+                }},
+            Space{8},
+            Group{title(Tr::tr("Advanced Parameters")), Column{Row{advancedGrid, Stretch{1}}}},
+            Space{8},
+            Group{title(Tr::tr("Context Settings")), contextItem},
+            Space{8},
+            Group{title(Tr::tr("Ollama Settings")), Column{Row{ollamaGrid, Stretch{1}}}},
+            Space{8},
+            Group{title(Tr::tr("API Configuration")), Column{apiKey}},
+            Stretch{1}};
     });
 }
 
@@ -275,6 +283,7 @@ void CodeCompletionSettings::resetSettingsToDefaults()
     if (reply == QMessageBox::Yes) {
         resetAspect(autoCompletion);
         resetAspect(multiLineCompletion);
+        resetAspect(stream);
         resetAspect(temperature);
         resetAspect(maxTokens);
         resetAspect(useTopP);

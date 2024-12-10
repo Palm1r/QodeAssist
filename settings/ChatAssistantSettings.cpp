@@ -54,6 +54,10 @@ ChatAssistantSettings::ChatAssistantSettings()
     sharingCurrentFile.setLabelText(Tr::tr("Share Current File With Assistant by Default"));
     sharingCurrentFile.setDefaultValue(true);
 
+    stream.setSettingsKey(Constants::CA_STREAM);
+    stream.setDefaultValue(true);
+    stream.setLabelText(Tr::tr("Enable stream option"));
+
     // General Parameters Settings
     temperature.setSettingsKey(Constants::CA_TEMPERATURE);
     temperature.setLabelText(Tr::tr("Temperature:"));
@@ -158,28 +162,30 @@ ChatAssistantSettings::ChatAssistantSettings()
         ollamaGrid.addRow({ollamaLivetime});
         ollamaGrid.addRow({contextWindow});
 
-        return Column{Row{Stretch{1}, resetToDefaults},
-                      Space{8},
-                      Group{title(Tr::tr("Chat Settings")),
-                            Column{Row{chatTokensThreshold, Stretch{1}}, sharingCurrentFile}},
-                      Space{8},
-                      Group{
-                          title(Tr::tr("General Parameters")),
-                          Row{genGrid, Stretch{1}},
-                      },
-                      Space{8},
-                      Group{title(Tr::tr("Advanced Parameters")),
-                            Column{Row{advancedGrid, Stretch{1}}}},
-                      Space{8},
-                      Group{title(Tr::tr("Context Settings")),
-                            Column{
-                                Row{useSystemPrompt, Stretch{1}},
-                                systemPrompt,
-                            }},
-                      Group{title(Tr::tr("Ollama Settings")), Column{Row{ollamaGrid, Stretch{1}}}},
-                      Space{8},
-                      Group{title(Tr::tr("API Configuration")), Column{apiKey}},
-                      Stretch{1}};
+        return Column{
+            Row{Stretch{1}, resetToDefaults},
+            Space{8},
+            Group{
+                title(Tr::tr("Chat Settings")),
+                Column{Row{chatTokensThreshold, Stretch{1}}, sharingCurrentFile, stream}},
+            Space{8},
+            Group{
+                title(Tr::tr("General Parameters")),
+                Row{genGrid, Stretch{1}},
+            },
+            Space{8},
+            Group{title(Tr::tr("Advanced Parameters")), Column{Row{advancedGrid, Stretch{1}}}},
+            Space{8},
+            Group{
+                title(Tr::tr("Context Settings")),
+                Column{
+                    Row{useSystemPrompt, Stretch{1}},
+                    systemPrompt,
+                }},
+            Group{title(Tr::tr("Ollama Settings")), Column{Row{ollamaGrid, Stretch{1}}}},
+            Space{8},
+            Group{title(Tr::tr("API Configuration")), Column{apiKey}},
+            Stretch{1}};
     });
 }
 
@@ -201,6 +207,7 @@ void ChatAssistantSettings::resetSettingsToDefaults()
         QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
+        resetAspect(stream);
         resetAspect(chatTokensThreshold);
         resetAspect(temperature);
         resetAspect(maxTokens);

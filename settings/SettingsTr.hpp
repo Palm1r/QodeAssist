@@ -79,6 +79,8 @@ inline const char PREDEFINED_URL[]
 inline const char CUSTOM_URL[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Enter custom URL");
 inline const char ENTER_MODEL_MANUALLY_BUTTON[]
     = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Enter Model Name Manually");
+inline const char AUTO_COMPLETION_SETTINGS[]
+    = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Auto Completion Settings");
 
 } // namespace TrConstants
 

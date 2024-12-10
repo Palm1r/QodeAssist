@@ -174,7 +174,9 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         QString("%1%2").arg(Settings::generalSettings().ccUrl(), provider->completionEndpoint()));
     config.apiKey = Settings::codeCompletionSettings().apiKey();
 
-    config.providerRequest = {{"model", Settings::generalSettings().ccModel()}, {"stream", true}};
+    config.providerRequest
+        = {{"model", Settings::generalSettings().ccModel()},
+           {"stream", Settings::codeCompletionSettings().stream()}};
 
     config.multiLineCompletion = completeSettings.multiLineCompletion();
 

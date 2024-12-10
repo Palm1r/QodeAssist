@@ -106,7 +106,7 @@ void ClientInterface::sendMessage(const QString &message, bool includeCurrentFil
 
     QJsonObject providerRequest;
     providerRequest["model"] = Settings::generalSettings().caModel();
-    providerRequest["stream"] = true;
+    providerRequest["stream"] = chatAssistantSettings.stream();
     providerRequest["messages"] = m_chatModel->prepareMessagesForRequest(systemPrompt);
 
     if (promptTemplate)
