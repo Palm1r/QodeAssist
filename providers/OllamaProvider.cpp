@@ -25,6 +25,7 @@
 #include <QNetworkReply>
 #include <QtCore/qeventloop.h>
 
+#include "OllamaMessage.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -87,53 +88,41 @@ void OllamaProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType t
 
 bool OllamaProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
 {
-    QString endpoint = reply->url().path();
+    const QString endpoint = reply->url().path();
+    auto messageType = endpoint == completionEndpoint() ? OllamaMessage::Type::Generate
+                                                        : OllamaMessage::Type::Chat;
 
-    bool isComplete = false;
-    while (reply->canReadLine()) {
-        QByteArray line = reply->readLine().trimmed();
-        if (line.isEmpty()) {
-            continue;
-        }
-
-        QJsonDocument doc = QJsonDocument::fromJson(line);
-        if (doc.isNull()) {
-            LOG_MESSAGE("Invalid JSON response from Ollama: " + QString::fromUtf8(line));
-            continue;
-        }
-
-        QJsonObject responseObj = doc.object();
-
-        if (responseObj.contains("error")) {
-            QString errorMessage = responseObj["error"].toString();
-            LOG_MESSAGE("Error in Ollama response: " + errorMessage);
-            return false;
-        }
-
-        if (endpoint == completionEndpoint()) {
-            if (responseObj.contains("response")) {
-                QString completion = responseObj["response"].toString();
-                accumulatedResponse += completion;
+    auto processMessage =
+        [&accumulatedResponse](const QJsonDocument &doc, OllamaMessage::Type messageType) {
+            if (doc.isNull()) {
+                LOG_MESSAGE("Invalid JSON response from Ollama");
+                return false;
             }
-        } else if (endpoint == chatEndpoint()) {
-            if (responseObj.contains("message")) {
-                QJsonObject message = responseObj["message"].toObject();
-                if (message.contains("content")) {
-                    QString content = message["content"].toString();
-                    accumulatedResponse += content;
-                }
-            }
-        } else {
-            LOG_MESSAGE("Unknown endpoint: " + endpoint);
-        }
 
-        if (responseObj.contains("done") && responseObj["done"].toBool()) {
-            isComplete = true;
-            break;
+            auto message = OllamaMessage::fromJson(doc.object(), messageType);
+            if (message.hasError()) {
+                LOG_MESSAGE("Error in Ollama response: " + message.error);
+                return false;
+            }
+
+            accumulatedResponse += message.getContent();
+            return message.done;
+        };
+
+    if (reply->canReadLine()) {
+        while (reply->canReadLine()) {
+            QByteArray line = reply->readLine().trimmed();
+            if (line.isEmpty())
+                continue;
+
+            if (processMessage(QJsonDocument::fromJson(line), messageType)) {
+                return true;
+            }
         }
+        return false;
+    } else {
+        return processMessage(QJsonDocument::fromJson(reply->readAll()), messageType);
     }
-
-    return isComplete;
 }
 
 QList<QString> OllamaProvider::getInstalledModels(const QString &url)
