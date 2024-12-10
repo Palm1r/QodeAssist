@@ -17,7 +17,7 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "OpenAICompatProvider.hpp"
+#include "OpenRouterProvider.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
 
@@ -31,34 +31,19 @@
 
 namespace QodeAssist::Providers {
 
-OpenAICompatProvider::OpenAICompatProvider() {}
+OpenRouterProvider::OpenRouterProvider() {}
 
-QString OpenAICompatProvider::name() const
+QString OpenRouterProvider::name() const
 {
-    return "OpenAI Compatible";
+    return "OpenRouter";
 }
 
-QString OpenAICompatProvider::url() const
+QString OpenRouterProvider::url() const
 {
-    return "http://localhost:1234";
+    return "https://openrouter.ai/api";
 }
 
-QString OpenAICompatProvider::completionEndpoint() const
-{
-    return "/v1/chat/completions";
-}
-
-QString OpenAICompatProvider::chatEndpoint() const
-{
-    return "/v1/chat/completions";
-}
-
-bool OpenAICompatProvider::supportsModelListing() const
-{
-    return false;
-}
-
-void OpenAICompatProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType type)
+void OpenRouterProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType type)
 {
     auto prepareMessages = [](QJsonObject &req) -> QJsonArray {
         QJsonArray messages;
@@ -99,7 +84,7 @@ void OpenAICompatProvider::prepareRequest(QJsonObject &request, LLMCore::Request
     }
 }
 
-bool OpenAICompatProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
+bool OpenRouterProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
 {
     QByteArray data = reply->readAll();
     if (data.isEmpty()) {
@@ -108,7 +93,8 @@ bool OpenAICompatProvider::handleResponse(QNetworkReply *reply, QString &accumul
 
     QByteArrayList chunks = data.split('\n');
     for (const QByteArray &chunk : chunks) {
-        if (chunk.trimmed().isEmpty() || chunk == "data: [DONE]") {
+        if (chunk.trimmed().isEmpty() || chunk.contains("OPENROUTER PROCESSING")
+            || chunk == "data: [DONE]") {
             continue;
         }
 
@@ -126,7 +112,7 @@ bool OpenAICompatProvider::handleResponse(QNetworkReply *reply, QString &accumul
 
         auto message = LLMCore::OpenAIMessage::fromJson(doc.object());
         if (message.hasError()) {
-            LOG_MESSAGE("Error in OpenAI response: " + message.error);
+            LOG_MESSAGE("Error in OpenRouter response: " + message.error);
             continue;
         }
 
@@ -135,11 +121,6 @@ bool OpenAICompatProvider::handleResponse(QNetworkReply *reply, QString &accumul
     }
 
     return false;
-}
-
-QList<QString> OpenAICompatProvider::getInstalledModels(const QString &url)
-{
-    return QStringList();
 }
 
 } // namespace QodeAssist::Providers

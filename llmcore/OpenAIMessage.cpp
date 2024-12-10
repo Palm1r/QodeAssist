@@ -20,45 +20,12 @@
 #include "OpenAIMessage.hpp"
 #include <QJsonArray>
 #include <QJsonDocument>
-#include <QJsonObject>
 
 namespace QodeAssist::LLMCore {
 
-OpenAIMessage OpenAIMessage::fromJson(const QByteArray &data)
+OpenAIMessage OpenAIMessage::fromJson(const QJsonObject &obj)
 {
     OpenAIMessage msg;
-
-    QByteArrayList lines = data.split('\n');
-    QByteArray jsonData;
-
-    for (const QByteArray &line : lines) {
-        if (line.trimmed().isEmpty()) {
-            continue;
-        }
-
-        if (line.trimmed() == "data: [DONE]") {
-            msg.done = true;
-            continue;
-        }
-
-        if (line.startsWith("data: ")) {
-            jsonData = line.mid(6);
-            break;
-        }
-    }
-
-    if (jsonData.isEmpty()) {
-        jsonData = data;
-    }
-
-    QJsonParseError error;
-    QJsonDocument doc = QJsonDocument::fromJson(jsonData, &error);
-    if (doc.isNull()) {
-        msg.error = QString("Invalid JSON response: %1").arg(error.errorString());
-        return msg;
-    }
-
-    QJsonObject obj = doc.object();
 
     if (obj.contains("error")) {
         msg.error = obj["error"].toObject()["message"].toString();
@@ -70,10 +37,12 @@ OpenAIMessage OpenAIMessage::fromJson(const QByteArray &data)
         if (!choices.isEmpty()) {
             auto choiceObj = choices[0].toObject();
 
-            if (choiceObj.contains("message")) {
-                msg.choice.content = choiceObj["message"].toObject()["content"].toString();
-            } else if (choiceObj.contains("delta")) {
-                msg.choice.content = choiceObj["delta"].toObject()["content"].toString();
+            if (choiceObj.contains("delta")) {
+                QJsonObject delta = choiceObj["delta"].toObject();
+                msg.choice.content = delta["content"].toString();
+            } else if (choiceObj.contains("message")) {
+                QJsonObject message = choiceObj["message"].toObject();
+                msg.choice.content = message["content"].toString();
             }
 
             msg.choice.finishReason = choiceObj["finish_reason"].toString();

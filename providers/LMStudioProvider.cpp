@@ -107,14 +107,35 @@ bool LMStudioProvider::handleResponse(QNetworkReply *reply, QString &accumulated
         return false;
     }
 
-    auto message = LLMCore::OpenAIMessage::fromJson(data);
-    if (message.hasError()) {
-        LOG_MESSAGE("Error in OpenAI response: " + message.error);
-        return false;
+    QByteArrayList chunks = data.split('\n');
+    for (const QByteArray &chunk : chunks) {
+        if (chunk.trimmed().isEmpty() || chunk == "data: [DONE]") {
+            continue;
+        }
+
+        QByteArray jsonData = chunk;
+        if (chunk.startsWith("data: ")) {
+            jsonData = chunk.mid(6);
+        }
+
+        QJsonParseError error;
+        QJsonDocument doc = QJsonDocument::fromJson(jsonData, &error);
+
+        if (doc.isNull()) {
+            continue;
+        }
+
+        auto message = LLMCore::OpenAIMessage::fromJson(doc.object());
+        if (message.hasError()) {
+            LOG_MESSAGE("Error in LMStudioProvider response: " + message.error);
+            continue;
+        }
+
+        accumulatedResponse += message.getContent();
+        return message.isDone();
     }
 
-    accumulatedResponse += message.getContent();
-    return message.isDone();
+    return false;
 }
 
 QList<QString> LMStudioProvider::getInstalledModels(const QString &url)

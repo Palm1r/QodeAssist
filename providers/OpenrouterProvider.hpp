@@ -19,38 +19,20 @@
 
 #pragma once
 
-#include <QByteArray>
-#include <QJsonObject>
-#include <QString>
+#include "llmcore/Provider.hpp"
+#include "providers/OpenAICompatProvider.hpp"
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::Providers {
 
-class OpenAIMessage
+class OpenRouterProvider : public OpenAICompatProvider
 {
 public:
-    struct Choice
-    {
-        QString content;
-        QString finishReason;
-    };
+    OpenRouterProvider();
 
-    struct Usage
-    {
-        int promptTokens{0};
-        int completionTokens{0};
-        int totalTokens{0};
-    };
-
-    Choice choice;
-    QString error;
-    bool done{false};
-    Usage usage;
-
-    QString getContent() const;
-    bool hasError() const;
-    bool isDone() const;
-
-    static OpenAIMessage fromJson(const QJsonObject &obj);
+    QString name() const override;
+    QString url() const override;
+    void prepareRequest(QJsonObject &request, LLMCore::RequestType type) override;
+    bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) override;
 };
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::Providers
