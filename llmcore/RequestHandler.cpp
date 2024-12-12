@@ -38,8 +38,7 @@ void RequestHandler::sendLLMRequest(const LLMConfig &config, const QJsonObject &
                             QJsonDocument(config.providerRequest).toJson(QJsonDocument::Indented))));
 
     QNetworkRequest networkRequest(config.url);
-    if (!config.apiKey.isEmpty())
-        prepareNetworkRequest(networkRequest, config.apiKey);
+    prepareNetworkRequest(networkRequest, config.apiKey);
 
     QNetworkReply *reply = m_manager->post(networkRequest,
                                            QJsonDocument(config.providerRequest).toJson());
@@ -114,7 +113,10 @@ void RequestHandler::prepareNetworkRequest(
     QNetworkRequest &networkRequest, const QString &apiKey) const
 {
     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    networkRequest.setRawHeader("Authorization", QString("Bearer %1").arg(apiKey).toUtf8());
+
+    if (!apiKey.isEmpty()) {
+        networkRequest.setRawHeader("Authorization", QString("Bearer %1").arg(apiKey).toUtf8());
+    }
 }
 
 bool RequestHandler::processSingleLineCompletion(
