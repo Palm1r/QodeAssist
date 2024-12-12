@@ -37,7 +37,7 @@ public:
     Utils::BoolAspect enableLogging{this};
     ButtonAspect resetToDefaults{this};
 
-    // code completion setttings
+    // code completion settings
     Utils::StringAspect ccProvider{this};
     ButtonAspect ccSelectProvider{this};
 
