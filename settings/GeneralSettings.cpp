@@ -119,14 +119,12 @@ GeneralSettings::GeneralSettings()
         ccGrid.addRow({ccUrl, ccSetUrl});
         ccGrid.addRow({ccModel, ccSelectModel});
         ccGrid.addRow({ccTemplate, ccSelectTemplate});
-        ccGrid.addRow({ccStatus, ccTest});
 
         auto caGrid = Grid{};
         caGrid.addRow({caProvider, caSelectProvider});
         caGrid.addRow({caUrl, caSetUrl});
         caGrid.addRow({caModel, caSelectModel});
         caGrid.addRow({caTemplate, caSelectTemplate});
-        caGrid.addRow({caStatus, caTest});
 
         auto ccGroup = Group{title(TrConstants::CODE_COMPLETION), ccGrid};
         auto caGroup = Group{title(TrConstants::CHAT_ASSISTANT), caGrid};
