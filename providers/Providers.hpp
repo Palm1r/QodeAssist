@@ -23,7 +23,7 @@
 #include "providers/LMStudioProvider.hpp"
 #include "providers/OllamaProvider.hpp"
 #include "providers/OpenAICompatProvider.hpp"
-#include "providers/OpenRouterProvider.hpp"
+#include "providers/OpenRouterAIProvider.hpp"
 
 namespace QodeAssist::Providers {
 

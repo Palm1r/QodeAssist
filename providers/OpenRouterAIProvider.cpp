@@ -17,7 +17,7 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "OpenRouterProvider.hpp"
+#include "OpenRouterAIProvider.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
 
