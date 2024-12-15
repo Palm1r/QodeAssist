@@ -18,39 +18,78 @@
  */
 
 #include "CodeHandler.hpp"
+#include <QHash>
 
 namespace QodeAssist {
 
 QString CodeHandler::processText(QString text)
 {
-    return removeCodeBlockWrappers(text);
+    QString result;
+    QStringList lines = text.split('\n');
+    bool inCodeBlock = false;
+    QString pendingComments;
+    QString currentLanguage;
+
+    for (const QString &line : lines) {
+        if (line.trimmed().startsWith("```")) {
+            if (!inCodeBlock) {
+                currentLanguage = detectLanguage(line);
+            }
+            inCodeBlock = !inCodeBlock;
+            continue;
+        }
+
+        if (inCodeBlock) {
+            if (!pendingComments.isEmpty()) {
+                QStringList commentLines = pendingComments.split('\n');
+                QString commentPrefix = getCommentPrefix(currentLanguage);
+
+                for (const QString &commentLine : commentLines) {
+                    if (!commentLine.trimmed().isEmpty()) {
+                        result += commentPrefix + " " + commentLine.trimmed() + "\n";
+                    } else {
+                        result += "\n";
+                    }
+                }
+                pendingComments.clear();
+            }
+            result += line + "\n";
+        } else {
+            QString trimmed = line.trimmed();
+            if (!trimmed.isEmpty()) {
+                pendingComments += trimmed + "\n";
+            } else {
+                pendingComments += "\n";
+            }
+        }
+    }
+
+    return result;
 }
 
-QString CodeHandler::removeCodeBlockWrappers(QString text)
+QString CodeHandler::getCommentPrefix(const QString &language)
 {
-    QRegularExpressionMatchIterator matchIterator = getFullCodeBlockRegex().globalMatch(text);
-    while (matchIterator.hasNext()) {
-        QRegularExpressionMatch match = matchIterator.next();
-        QString codeBlock = match.captured(0);
-        QString codeContent = match.captured(1).trimmed();
-        text.replace(codeBlock, codeContent);
+    static const QHash<QString, QString> commentPrefixes
+        = {{"python", "#"},  {"py", "#"},          {"lua", "--"},   {"javascript", "//"},
+           {"js", "//"},     {"typescript", "//"}, {"ts", "//"},    {"cpp", "//"},
+           {"c++", "//"},    {"c", "//"},          {"java", "//"},  {"csharp", "//"},
+           {"cs", "//"},     {"php", "//"},        {"ruby", "#"},   {"rb", "#"},
+           {"rust", "//"},   {"rs", "//"},         {"go", "//"},    {"swift", "//"},
+           {"kotlin", "//"}, {"kt", "//"},         {"scala", "//"}, {"r", "#"},
+           {"shell", "#"},   {"bash", "#"},        {"sh", "#"},     {"perl", "#"},
+           {"pl", "#"},      {"haskell", "--"},    {"hs", "--"}};
+
+    return commentPrefixes.value(language.toLower(), "//");
+}
+
+QString CodeHandler::detectLanguage(const QString &line)
+{
+    QString trimmed = line.trimmed();
+    if (trimmed.length() <= 3) { // Если только ```
+        return QString();
     }
 
-    QRegularExpressionMatch startMatch = getPartialStartBlockRegex().match(text);
-    if (startMatch.hasMatch()) {
-        QString partialBlock = startMatch.captured(0);
-        QString codeContent = startMatch.captured(1).trimmed();
-        text.replace(partialBlock, codeContent);
-    }
-
-    QRegularExpressionMatch endMatch = getPartialEndBlockRegex().match(text);
-    if (endMatch.hasMatch()) {
-        QString partialBlock = endMatch.captured(0);
-        QString codeContent = endMatch.captured(1).trimmed();
-        text.replace(partialBlock, codeContent);
-    }
-
-    return text;
+    return trimmed.mid(3).trimmed();
 }
 
 const QRegularExpression &CodeHandler::getFullCodeBlockRegex()

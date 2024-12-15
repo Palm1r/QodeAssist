@@ -31,7 +31,8 @@ public:
     static QString processText(QString text);
 
 private:
-    static QString removeCodeBlockWrappers(QString text);
+    static QString getCommentPrefix(const QString &language);
+    static QString detectLanguage(const QString &line);
 
     static const QRegularExpression &getFullCodeBlockRegex();
     static const QRegularExpression &getPartialStartBlockRegex();

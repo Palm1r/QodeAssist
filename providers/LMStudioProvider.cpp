@@ -104,7 +104,6 @@ void LMStudioProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType
 bool LMStudioProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
 {
     QByteArray data = reply->readAll();
-    qDebug() << "handleResponse" << data;
     if (data.isEmpty()) {
         return false;
     }
