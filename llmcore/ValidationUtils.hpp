@@ -19,24 +19,23 @@
 
 #pragma once
 
-#include "llmcore/Provider.hpp"
+#include <QJsonObject>
+#include <QStringList>
 
-namespace QodeAssist::Providers {
+namespace QodeAssist::LLMCore {
 
-class OpenAICompatProvider : public LLMCore::Provider
+class ValidationUtils
 {
 public:
-    OpenAICompatProvider();
+    static QStringList validateRequestFields(
+        const QJsonObject &request, const QJsonObject &templateObj);
 
-    QString name() const override;
-    QString url() const override;
-    QString completionEndpoint() const override;
-    QString chatEndpoint() const override;
-    bool supportsModelListing() const override;
-    void prepareRequest(QJsonObject &request, LLMCore::RequestType type) override;
-    bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) override;
-    QList<QString> getInstalledModels(const QString &url) override;
-    QList<QString> validateRequest(const QJsonObject &request, LLMCore::TemplateType type) override;
+private:
+    static void validateFields(
+        const QJsonObject &request, const QJsonObject &templateObj, QStringList &errors);
+
+    static void validateNestedObjects(
+        const QJsonObject &request, const QJsonObject &templateObj, QStringList &errors);
 };
 
-} // namespace QodeAssist::Providers
+} // namespace QodeAssist::LLMCore

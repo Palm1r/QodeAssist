@@ -20,8 +20,10 @@
 #pragma once
 
 #include <QString>
-#include "RequestType.hpp"
 #include <utils/environment.h>
+
+#include "PromptTemplate.hpp"
+#include "RequestType.hpp"
 
 class QNetworkReply;
 class QJsonObject;
@@ -42,6 +44,7 @@ public:
     virtual void prepareRequest(QJsonObject &request, RequestType type) = 0;
     virtual bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) = 0;
     virtual QList<QString> getInstalledModels(const QString &url) = 0;
+    virtual QList<QString> validateRequest(const QJsonObject &request, TemplateType type) = 0;
 };
 
 } // namespace QodeAssist::LLMCore

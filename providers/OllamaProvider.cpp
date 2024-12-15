@@ -26,6 +26,7 @@
 #include <QtCore/qeventloop.h>
 
 #include "llmcore/OllamaMessage.hpp"
+#include "llmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -136,5 +137,41 @@ QList<QString> OllamaProvider::getInstalledModels(const QString &url)
     reply->deleteLater();
     return models;
 }
+
+QList<QString> OllamaProvider::validateRequest(const QJsonObject &request, LLMCore::TemplateType type)
+{
+    const auto fimReq = QJsonObject{
+        {"keep_alive", {}},
+        {"model", {}},
+        {"stream", {}},
+        {"prompt", {}},
+        {"suffix", {}},
+        {"system", {}},
+        {"options",
+         QJsonObject{
+             {"temperature", {}},
+             {"top_p", {}},
+             {"top_k", {}},
+             {"num_predict", {}},
+             {"frequency_penalty", {}},
+             {"presence_penalty", {}}}}};
+
+    const auto messageReq = QJsonObject{
+        {"keep_alive", {}},
+        {"model", {}},
+        {"stream", {}},
+        {"messages", QJsonArray{{QJsonObject{{"role", {}}, {"content", {}}}}}},
+        {"options",
+         QJsonObject{
+             {"temperature", {}},
+             {"top_p", {}},
+             {"top_k", {}},
+             {"num_predict", {}},
+             {"frequency_penalty", {}},
+             {"presence_penalty", {}}}}};
+
+    return LLMCore::ValidationUtils::validateRequestFields(
+        request, type == LLMCore::TemplateType::Fim ? fimReq : messageReq);
+};
 
 } // namespace QodeAssist::Providers

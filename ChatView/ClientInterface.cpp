@@ -131,6 +131,13 @@ void ClientInterface::sendMessage(const QString &message, bool includeCurrentFil
     QJsonObject request;
     request["id"] = QUuid::createUuid().toString();
 
+    auto errors = config.provider->validateRequest(config.providerRequest, promptTemplate->type());
+    if (!errors.isEmpty()) {
+        LOG_MESSAGE("Validate errors for chat request:");
+        LOG_MESSAGES(errors);
+        return;
+    }
+
     m_requestHandler->sendLLMRequest(config, request);
 }
 

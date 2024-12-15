@@ -9,6 +9,7 @@ add_library(LLMCore STATIC
     RequestHandler.hpp RequestHandler.cpp
     OllamaMessage.hpp OllamaMessage.cpp
     OpenAIMessage.hpp OpenAIMessage.cpp
+    ValidationUtils.hpp ValidationUtils.cpp
 )
 
 target_link_libraries(LLMCore

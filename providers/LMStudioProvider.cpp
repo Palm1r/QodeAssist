@@ -26,6 +26,7 @@
 #include <QNetworkReply>
 
 #include "llmcore/OpenAIMessage.hpp"
+#include "llmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -167,6 +168,24 @@ QList<QString> LMStudioProvider::getInstalledModels(const QString &url)
 
     reply->deleteLater();
     return models;
+}
+
+QList<QString> LMStudioProvider::validateRequest(
+    const QJsonObject &request, LLMCore::TemplateType type)
+{
+    const auto templateReq = QJsonObject{
+        {"model", {}},
+        {"messages", QJsonArray{{QJsonObject{{"role", {}}, {"content", {}}}}}},
+        {"temperature", {}},
+        {"max_tokens", {}},
+        {"top_p", {}},
+        {"top_k", {}},
+        {"frequency_penalty", {}},
+        {"presence_penalty", {}},
+        {"stop", QJsonArray{}},
+        {"stream", {}}};
+
+    return LLMCore::ValidationUtils::validateRequestFields(request, templateReq);
 }
 
 } // namespace QodeAssist::Providers

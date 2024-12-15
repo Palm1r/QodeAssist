@@ -195,6 +195,12 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     config.promptTemplate->prepareRequest(config.providerRequest, updatedContext);
     config.provider->prepareRequest(config.providerRequest, LLMCore::RequestType::Fim);
 
+    auto errors = config.provider->validateRequest(config.providerRequest, promptTemplate->type());
+    if (!errors.isEmpty()) {
+        LOG_MESSAGE("Validate errors for fim request:");
+        LOG_MESSAGES(errors);
+        return;
+    }
     m_requestHandler.sendLLMRequest(config, request);
 }
 

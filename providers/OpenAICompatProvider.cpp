@@ -27,6 +27,7 @@
 #include <QNetworkReply>
 
 #include "llmcore/OpenAIMessage.hpp"
+#include "llmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
 
 namespace QodeAssist::Providers {
@@ -140,6 +141,24 @@ bool OpenAICompatProvider::handleResponse(QNetworkReply *reply, QString &accumul
 QList<QString> OpenAICompatProvider::getInstalledModels(const QString &url)
 {
     return QStringList();
+}
+
+QList<QString> OpenAICompatProvider::validateRequest(
+    const QJsonObject &request, LLMCore::TemplateType type)
+{
+    const auto templateReq = QJsonObject{
+        {"model", {}},
+        {"messages", QJsonArray{{QJsonObject{{"role", {}}, {"content", {}}}}}},
+        {"temperature", {}},
+        {"max_tokens", {}},
+        {"top_p", {}},
+        {"top_k", {}},
+        {"frequency_penalty", {}},
+        {"presence_penalty", {}},
+        {"stop", QJsonArray{}},
+        {"stream", {}}};
+
+    return LLMCore::ValidationUtils::validateRequestFields(request, templateReq);
 }
 
 } // namespace QodeAssist::Providers
