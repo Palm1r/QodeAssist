@@ -80,7 +80,7 @@ void OllamaProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType t
         request["keep_alive"] = settings.ollamaLivetime();
     };
 
-    if (type == LLMCore::RequestType::Fim) {
+    if (type == LLMCore::RequestType::CodeCompletion) {
         applySettings(Settings::codeCompletionSettings());
     } else {
         applySettings(Settings::chatAssistantSettings());

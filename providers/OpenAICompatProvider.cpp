@@ -93,7 +93,7 @@ void OpenAICompatProvider::prepareRequest(QJsonObject &request, LLMCore::Request
         request["messages"] = std::move(messages);
     }
 
-    if (type == LLMCore::RequestType::Fim) {
+    if (type == LLMCore::RequestType::CodeCompletion) {
         applyModelParams(Settings::codeCompletionSettings());
     } else {
         applyModelParams(Settings::chatAssistantSettings());

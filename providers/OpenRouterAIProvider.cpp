@@ -77,7 +77,7 @@ void OpenRouterProvider::prepareRequest(QJsonObject &request, LLMCore::RequestTy
         request["messages"] = std::move(messages);
     }
 
-    if (type == LLMCore::RequestType::Fim) {
+    if (type == LLMCore::RequestType::CodeCompletion) {
         applyModelParams(Settings::codeCompletionSettings());
     } else {
         applyModelParams(Settings::chatAssistantSettings());

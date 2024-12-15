@@ -26,7 +26,9 @@
 #include <llmcore/RequestConfig.hpp>
 #include <texteditor/textdocument.h>
 
+#include "CodeHandler.hpp"
 #include "DocumentContextReader.hpp"
+#include "llmcore/MessageBuilder.hpp"
 #include "llmcore/PromptTemplateManager.hpp"
 #include "llmcore/ProvidersManager.hpp"
 #include "logger/Logger.hpp"
@@ -167,11 +169,13 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     }
 
     LLMCore::LLMConfig config;
-    config.requestType = LLMCore::RequestType::Fim;
+    config.requestType = LLMCore::RequestType::CodeCompletion;
     config.provider = provider;
     config.promptTemplate = promptTemplate;
-    config.url = QUrl(
-        QString("%1%2").arg(Settings::generalSettings().ccUrl(), provider->completionEndpoint()));
+    config.url = QUrl(QString("%1%2").arg(
+        Settings::generalSettings().ccUrl(),
+        promptTemplate->type() == LLMCore::TemplateType::Fim ? provider->completionEndpoint()
+                                                             : provider->chatEndpoint()));
     config.apiKey = Settings::codeCompletionSettings().apiKey();
 
     config.providerRequest
@@ -180,20 +184,27 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
 
     config.multiLineCompletion = completeSettings.multiLineCompletion();
 
+    const auto stopWords = QJsonArray::fromStringList(config.promptTemplate->stopWords());
+    if (!stopWords.isEmpty())
+        config.providerRequest["stop"] = stopWords;
+
     QString systemPrompt;
     if (completeSettings.useSystemPrompt())
         systemPrompt.append(completeSettings.systemPrompt());
     if (!updatedContext.fileContext.isEmpty())
         systemPrompt.append(updatedContext.fileContext);
-    if (!systemPrompt.isEmpty())
-        config.providerRequest["system"] = systemPrompt;
 
-    const auto stopWords = QJsonArray::fromStringList(config.promptTemplate->stopWords());
-    if (!stopWords.isEmpty())
-        config.providerRequest["stop"] = stopWords;
+    auto message = LLMCore::MessageBuilder()
+                       .addSystemMessage(systemPrompt)
+                       .addUserMessage(updatedContext.prefix)
+                       .addSuffix(updatedContext.suffix)
+                       .addtTokenizer(promptTemplate);
 
-    config.promptTemplate->prepareRequest(config.providerRequest, updatedContext);
-    config.provider->prepareRequest(config.providerRequest, LLMCore::RequestType::Fim);
+    message.saveTo(
+        config.providerRequest,
+        providerName == "Ollama" ? LLMCore::ProvidersApi::Ollama : LLMCore::ProvidersApi::OpenAI);
+
+    config.provider->prepareRequest(config.providerRequest, LLMCore::RequestType::CodeCompletion);
 
     auto errors = config.provider->validateRequest(config.providerRequest, promptTemplate->type());
     if (!errors.isEmpty()) {
@@ -237,14 +248,18 @@ void LLMClientInterface::sendCompletionToClient(const QString &completion,
     QJsonObject response;
     response["jsonrpc"] = "2.0";
     response[LanguageServerProtocol::idKey] = request["id"];
+
     QJsonObject result;
     QJsonArray completions;
     QJsonObject completionItem;
-    completionItem[LanguageServerProtocol::textKey] = completion;
+
+    QString processedCompletion = CodeHandler::processText(completion);
+
+    completionItem[LanguageServerProtocol::textKey] = processedCompletion;
     QJsonObject range;
     range["start"] = position;
     QJsonObject end = position;
-    end["character"] = position["character"].toInt() + completion.length();
+    end["character"] = position["character"].toInt() + processedCompletion.length();
     range["end"] = end;
     completionItem[LanguageServerProtocol::rangeKey] = range;
     completionItem[LanguageServerProtocol::positionKey] = position;

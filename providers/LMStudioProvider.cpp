@@ -94,7 +94,7 @@ void LMStudioProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType
         request["messages"] = std::move(messages);
     }
 
-    if (type == LLMCore::RequestType::Fim) {
+    if (type == LLMCore::RequestType::CodeCompletion) {
         applyModelParams(Settings::codeCompletionSettings());
     } else {
         applyModelParams(Settings::chatAssistantSettings());
@@ -104,6 +104,7 @@ void LMStudioProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType
 bool LMStudioProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
 {
     QByteArray data = reply->readAll();
+    qDebug() << "handleResponse" << data;
     if (data.isEmpty()) {
         return false;
     }

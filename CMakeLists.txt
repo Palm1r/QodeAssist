@@ -67,4 +67,5 @@ add_qtc_plugin(QodeAssist
     chat/ChatOutputPane.h chat/ChatOutputPane.cpp
     chat/NavigationPanel.hpp chat/NavigationPanel.cpp
     ConfigurationManager.hpp ConfigurationManager.cpp
+    CodeHandler.hpp CodeHandler.cpp
 )
