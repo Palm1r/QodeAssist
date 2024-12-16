@@ -1,8 +1,13 @@
-/* 
+/*
+ * Copyright (C) 2023 The Qt Company Ltd.
  * Copyright (C) 2024 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
+ * The Qt Company portions:
+ * SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0+ OR GPL-3.0 WITH Qt-GPL-exception-1.0
+ *
+ * Petr Mironychev portions:
  * QodeAssist is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -18,27 +23,25 @@
  */
 
 #include "LLMSuggestion.hpp"
-
-#include <QTextCursor>
-#include <QtWidgets/qtoolbar.h>
 #include <texteditor/texteditor.h>
 #include <utils/stringutils.h>
 #include <utils/tooltip/tooltip.h>
 
 namespace QodeAssist {
 
-LLMSuggestion::LLMSuggestion(const TextEditor::TextSuggestion::Data &data, QTextDocument *origin)
-    : TextEditor::TextSuggestion(data, origin)
-    , m_linesCount(0)
-    , m_suggestion(data)
+LLMSuggestion::LLMSuggestion(
+    const QList<Data> &suggestions, QTextDocument *sourceDocument, int currentCompletion)
+    : TextEditor::CyclicSuggestion(suggestions, sourceDocument, currentCompletion)
 {
-    int startPos = data.range.begin.toPositionInDocument(origin);
-    int endPos = data.range.end.toPositionInDocument(origin);
+    const auto &data = suggestions[currentCompletion];
 
-    startPos = qBound(0, startPos, origin->characterCount() - 1);
-    endPos = qBound(startPos, endPos, origin->characterCount() - 1);
+    int startPos = data.range.begin.toPositionInDocument(sourceDocument);
+    int endPos = data.range.end.toPositionInDocument(sourceDocument);
 
-    QTextCursor cursor(origin);
+    startPos = qBound(0, startPos, sourceDocument->characterCount() - 1);
+    endPos = qBound(startPos, endPos, sourceDocument->characterCount() - 1);
+
+    QTextCursor cursor(sourceDocument);
     cursor.setPosition(startPos);
     cursor.setPosition(endPos, QTextCursor::KeepAnchor);
 
@@ -49,64 +52,56 @@ LLMSuggestion::LLMSuggestion(const TextEditor::TextSuggestion::Data &data, QText
     int endPosInBlock = endPos - block.position();
 
     blockText.replace(startPosInBlock, endPosInBlock - startPosInBlock, data.text);
-
     replacementDocument()->setPlainText(blockText);
-}
-
-bool LLMSuggestion::apply()
-{
-    return TextEditor::TextSuggestion::apply();
 }
 
 bool LLMSuggestion::applyWord(TextEditor::TextEditorWidget *widget)
 {
-    return TextEditor::TextSuggestion::applyWord(widget);
+    return applyPart(Word, widget);
 }
 
 bool LLMSuggestion::applyLine(TextEditor::TextEditorWidget *widget)
 {
-    return TextEditor::TextSuggestion::applyLine(widget);
+    return applyPart(Line, widget);
 }
 
-void LLMSuggestion::reset()
+bool LLMSuggestion::applyPart(Part part, TextEditor::TextEditorWidget *widget)
 {
-    reset();
-    m_linesCount = 0;
-}
+    const Utils::Text::Range range = suggestions()[currentSuggestion()].range;
+    const QTextCursor cursor = range.begin.toTextCursor(sourceDocument());
+    QTextCursor currentCursor = widget->textCursor();
+    const QString text = suggestions()[currentSuggestion()].text;
 
-void LLMSuggestion::onCounterFinished(int count)
-{
-    Utils::ToolTip::hide();
-    m_linesCount = 0;
-    QTextCursor cursor = m_completion.range().toSelection(m_start.document());
-    cursor.beginEditBlock();
-    cursor.removeSelectedText();
+    const int startPos = currentCursor.positionInBlock() - cursor.positionInBlock()
+                         + (cursor.selectionEnd() - cursor.selectionStart());
 
-    QStringList lines = m_completion.text().split('\n');
-    QString textToInsert = lines.mid(0, count).join('\n');
+    int next = part == Word ? Utils::endOfNextWord(text, startPos) : text.indexOf('\n', startPos);
 
-    cursor.insertText(textToInsert);
-    cursor.endEditBlock();
-}
+    if (next == -1)
+        return apply();
 
-// void LLMSuggestion::reset()
-// {
-//     m_start.removeSelectedText();
-// }
+    if (part == Line)
+        ++next;
 
-// int LLMSuggestion::position()
-// {
-//     return m_start.position();
-// }
+    QString subText = text.mid(startPos, next - startPos);
+    if (subText.isEmpty())
+        return false;
 
-void LLMSuggestion::showTooltip(TextEditor::TextEditorWidget *widget, int count)
-{
-    // Utils::ToolTip::hide();
-    // QPoint pos = widget->mapToGlobal(widget->cursorRect().topRight());
-    // pos += QPoint(-10, -50);
-    // m_counterTooltip = new CounterTooltip(count);
-    // Utils::ToolTip::show(pos, m_counterTooltip, widget);
-    // connect(m_counterTooltip, &CounterTooltip::finished, this, &LLMSuggestion::onCounterFinished);
+    currentCursor.insertText(subText);
+
+    if (const int seperatorPos = subText.lastIndexOf('\n'); seperatorPos >= 0) {
+        const QString newCompletionText = text.mid(startPos + seperatorPos + 1);
+        if (!newCompletionText.isEmpty()) {
+            const Utils::Text::Position newStart{int(range.begin.line + subText.count('\n')), 0};
+            const Utils::Text::Position
+                newEnd{newStart.line, int(subText.length() - seperatorPos - 1)};
+            const Utils::Text::Range newRange{newStart, newEnd};
+            const QList<Data> newSuggestion{{newRange, newEnd, newCompletionText}};
+            widget->insertSuggestion(
+                std::make_unique<LLMSuggestion>(newSuggestion, widget->document(), 0));
+        }
+    }
+    return false;
 }
 
 } // namespace QodeAssist

@@ -193,8 +193,8 @@ void QodeAssistClient::handleCompletions(const GetCompletionRequest::Response &r
         auto isValidCompletion = [](const Completion &completion) {
             return completion.isValid() && !completion.text().trimmed().isEmpty();
         };
-        QList<Completion> completions = Utils::filtered(result->completions().toListOrEmpty(),
-                                                        isValidCompletion);
+        QList<Completion> completions
+            = Utils::filtered(result->completions().toListOrEmpty(), isValidCompletion);
 
         // remove trailing whitespaces from the end of the completions
         for (Completion &completion : completions) {
@@ -211,9 +211,6 @@ void QodeAssistClient::handleCompletions(const GetCompletionRequest::Response &r
             if (delta > 0)
                 completion.setText(completionText.chopped(delta));
         }
-        if (completions.isEmpty())
-            return;
-
         auto suggestions = Utils::transform(completions, [](const Completion &c) {
             auto toTextPos = [](const LanguageServerProtocol::Position pos) {
                 return Text::Position{pos.line() + 1, pos.character()};
@@ -223,9 +220,9 @@ void QodeAssistClient::handleCompletions(const GetCompletionRequest::Response &r
             Text::Position pos{toTextPos(c.position())};
             return TextSuggestion::Data{range, pos, c.text()};
         });
-
-        editor->insertSuggestion(
-            std::make_unique<LLMSuggestion>(suggestions.first(), editor->document()));
+        if (completions.isEmpty())
+            return;
+        editor->insertSuggestion(std::make_unique<LLMSuggestion>(suggestions, editor->document()));
     }
 }
 

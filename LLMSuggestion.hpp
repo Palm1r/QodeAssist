@@ -1,8 +1,13 @@
-/* 
+/*
+ * Copyright (C) 2023 The Qt Company Ltd.
  * Copyright (C) 2024 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
+ * The Qt Company portions:
+ * SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0+ OR GPL-3.0 WITH Qt-GPL-exception-1.0
+ *
+ * Petr Mironychev portions:
  * QodeAssist is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
@@ -19,36 +24,21 @@
 
 #pragma once
 
-#include <QObject>
-#include "LSPCompletion.hpp"
-#include <texteditor/textdocumentlayout.h>
-
-#include "utils/CounterTooltip.hpp"
+#include <texteditor/texteditor.h>
+#include <texteditor/textsuggestion.h>
 
 namespace QodeAssist {
 
-class LLMSuggestion final : public QObject, public TextEditor::TextSuggestion
+class LLMSuggestion : public TextEditor::CyclicSuggestion
 {
-    Q_OBJECT
 public:
-    LLMSuggestion(const TextEditor::TextSuggestion::Data &data, QTextDocument *origin);
+    enum Part { Word, Line };
 
-    bool apply() override;
+    LLMSuggestion(
+        const QList<Data> &suggestions, QTextDocument *sourceDocument, int currentCompletion = 0);
+
     bool applyWord(TextEditor::TextEditorWidget *widget) override;
     bool applyLine(TextEditor::TextEditorWidget *widget) override;
-    void reset();
-
-    void showTooltip(TextEditor::TextEditorWidget *widget, int count);
-    void onCounterFinished(int count);
-
-private:
-    Completion m_completion;
-    QTextCursor m_start;
-    int m_linesCount;
-
-    CounterTooltip *m_counterTooltip = nullptr;
-    int m_startPosition;
-    TextEditor::TextSuggestion::Data m_suggestion;
+    bool applyPart(Part part, TextEditor::TextEditorWidget *widget);
 };
-
 } // namespace QodeAssist
