@@ -1,7 +1,7 @@
 {
     "Id" : "qodeassist",
     "Name" : "QodeAssist",
-    "Version" : "0.4.0",
+    "Version" : "0.4.1",
     "Vendor" : "Petr Mironychev",
     "VendorId" : "petrmironychev",
     "Copyright" : "(C) ${IDE_COPYRIGHT_YEAR} Petr Mironychev, (C) ${IDE_COPYRIGHT_YEAR} The Qt Company Ltd",
