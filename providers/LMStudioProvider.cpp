@@ -94,7 +94,7 @@ void LMStudioProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType
         request["messages"] = std::move(messages);
     }
 
-    if (type == LLMCore::RequestType::Fim) {
+    if (type == LLMCore::RequestType::CodeCompletion) {
         applyModelParams(Settings::codeCompletionSettings());
     } else {
         applyModelParams(Settings::chatAssistantSettings());

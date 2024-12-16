@@ -66,6 +66,7 @@ void OllamaProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType t
         QJsonObject options;
         options["num_predict"] = settings.maxTokens();
         options["temperature"] = settings.temperature();
+        options["stop"] = request.take("stop");
 
         if (settings.useTopP())
             options["top_p"] = settings.topP();
@@ -80,7 +81,7 @@ void OllamaProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType t
         request["keep_alive"] = settings.ollamaLivetime();
     };
 
-    if (type == LLMCore::RequestType::Fim) {
+    if (type == LLMCore::RequestType::CodeCompletion) {
         applySettings(Settings::codeCompletionSettings());
     } else {
         applySettings(Settings::chatAssistantSettings());
@@ -150,6 +151,7 @@ QList<QString> OllamaProvider::validateRequest(const QJsonObject &request, LLMCo
         {"options",
          QJsonObject{
              {"temperature", {}},
+             {"stop", {}},
              {"top_p", {}},
              {"top_k", {}},
              {"num_predict", {}},
@@ -164,6 +166,7 @@ QList<QString> OllamaProvider::validateRequest(const QJsonObject &request, LLMCo
         {"options",
          QJsonObject{
              {"temperature", {}},
+             {"stop", {}},
              {"top_p", {}},
              {"top_k", {}},
              {"num_predict", {}},

@@ -75,7 +75,7 @@ void RequestHandler::handleLLMResponse(QNetworkReply *reply,
 
     bool isComplete = config.provider->handleResponse(reply, accumulatedResponse);
 
-    if (config.requestType == RequestType::Fim) {
+    if (config.requestType == RequestType::CodeCompletion) {
         if (!config.multiLineCompletion
             && processSingleLineCompletion(reply, request, accumulatedResponse, config)) {
             return;
@@ -84,7 +84,6 @@ void RequestHandler::handleLLMResponse(QNetworkReply *reply,
         if (isComplete) {
             auto cleanedCompletion = removeStopWords(accumulatedResponse,
                                                      config.promptTemplate->stopWords());
-            removeCodeBlockWrappers(cleanedCompletion);
 
             emit completionReceived(cleanedCompletion, request, true);
         }
@@ -126,7 +125,6 @@ bool RequestHandler::processSingleLineCompletion(
     const LLMConfig &config)
 {
     QString cleanedResponse = accumulatedResponse;
-    removeCodeBlockWrappers(cleanedResponse);
 
     int newlinePos = cleanedResponse.indexOf('\n');
     if (newlinePos != -1) {

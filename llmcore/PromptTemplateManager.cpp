@@ -40,7 +40,6 @@ QStringList PromptTemplateManager::chatTemplatesNames() const
 PromptTemplateManager::~PromptTemplateManager()
 {
     qDeleteAll(m_fimTemplates);
-    qDeleteAll(m_chatTemplates);
 }
 
 PromptTemplate *PromptTemplateManager::getFimTemplateByName(const QString &templateName)

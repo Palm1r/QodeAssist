@@ -39,9 +39,8 @@ public:
                       "T must inherit from PromptTemplate");
         T *template_ptr = new T();
         QString name = template_ptr->name();
-        if (template_ptr->type() == TemplateType::Fim) {
-            m_fimTemplates[name] = template_ptr;
-        } else if (template_ptr->type() == TemplateType::Chat) {
+        m_fimTemplates[name] = template_ptr;
+        if (template_ptr->type() == TemplateType::Chat) {
             m_chatTemplates[name] = template_ptr;
         }
     }
