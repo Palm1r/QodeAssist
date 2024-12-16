@@ -48,12 +48,16 @@ CodeCompletionSettings::CodeCompletionSettings()
     autoCompletion.setDefaultValue(true);
 
     multiLineCompletion.setSettingsKey(Constants::CC_MULTILINE_COMPLETION);
-    multiLineCompletion.setDefaultValue(false);
-    multiLineCompletion.setLabelText(Tr::tr("Enable Multiline Completion(experimental)"));
+    multiLineCompletion.setDefaultValue(true);
+    multiLineCompletion.setLabelText(Tr::tr("Enable Multiline Completion"));
 
     stream.setSettingsKey(Constants::CC_STREAM);
     stream.setDefaultValue(true);
     stream.setLabelText(Tr::tr("Enable stream option"));
+
+    smartProcessInstuctText.setSettingsKey(Constants::CC_SMART_PROCESS_INSTRUCT_TEXT);
+    smartProcessInstuctText.setDefaultValue(true);
+    smartProcessInstuctText.setLabelText(Tr::tr("Enable smart process text from instruct model"));
 
     startSuggestionTimer.setSettingsKey(Constants::СС_START_SUGGESTION_TIMER);
     startSuggestionTimer.setLabelText(Tr::tr("with delay(ms)"));
@@ -147,8 +151,8 @@ CodeCompletionSettings::CodeCompletionSettings()
 
     systemPrompt.setSettingsKey(Constants::CC_SYSTEM_PROMPT);
     systemPrompt.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
-    systemPrompt.setDefaultValue("You are an expert C++, Qt, and QML code completion AI. ANSWER "
-                                 "should be SHORT and in CODE");
+    systemPrompt.setDefaultValue("You are an expert C++, Qt, and QML code completion AI. Answer "
+                                 "should be ONLY in CODE and without repeating current.");
 
     useFilePathInContext.setSettingsKey(Constants::CC_USE_FILE_PATH_IN_CONTEXT);
     useFilePathInContext.setDefaultValue(true);
@@ -227,6 +231,7 @@ CodeCompletionSettings::CodeCompletionSettings()
                     Space{8},
                     multiLineCompletion,
                     stream,
+                    smartProcessInstuctText,
                     Row{autoCompletionCharThreshold,
                         autoCompletionTypingInterval,
                         startSuggestionTimer,

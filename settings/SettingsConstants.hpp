@@ -50,6 +50,7 @@ const char СС_AUTO_COMPLETION_TYPING_INTERVAL[] = "QodeAssist.autoCompletionTy
 const char MAX_FILE_THRESHOLD[] = "QodeAssist.maxFileThreshold";
 const char CC_MULTILINE_COMPLETION[] = "QodeAssist.ccMultilineCompletion";
 const char CC_STREAM[] = "QodeAssist.ccStream";
+const char CC_SMART_PROCESS_INSTRUCT_TEXT[] = "QodeAssist.ccSmartProcessInstructText";
 const char CUSTOM_JSON_TEMPLATE[] = "QodeAssist.customJsonTemplate";
 const char CA_TOKENS_THRESHOLD[] = "QodeAssist.caTokensThreshold";
 const char CA_SHARING_CURRENT_FILE[] = "QodeAssist.caSharingCurrentFile";

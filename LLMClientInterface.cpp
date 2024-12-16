@@ -243,6 +243,10 @@ void LLMClientInterface::sendCompletionToClient(const QString &completion,
                                                 const QJsonObject &request,
                                                 bool isComplete)
 {
+    auto templateName = Settings::generalSettings().ccTemplate();
+    auto promptTemplate = LLMCore::PromptTemplateManager::instance().getFimTemplateByName(
+        templateName);
+
     QJsonObject position = request["params"].toObject()["doc"].toObject()["position"].toObject();
 
     QJsonObject response;
@@ -253,7 +257,11 @@ void LLMClientInterface::sendCompletionToClient(const QString &completion,
     QJsonArray completions;
     QJsonObject completionItem;
 
-    QString processedCompletion = CodeHandler::processText(completion);
+    QString processedCompletion
+        = promptTemplate->type() == LLMCore::TemplateType::Chat
+                  && Settings::codeCompletionSettings().smartProcessInstuctText()
+              ? CodeHandler::processText(completion)
+              : completion;
 
     completionItem[LanguageServerProtocol::textKey] = processedCompletion;
     QJsonObject range;
