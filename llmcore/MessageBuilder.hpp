@@ -47,76 +47,17 @@ struct Message
 class MessageBuilder
 {
 public:
-    MessageBuilder &addSystemMessage(const QString &content)
-    {
-        m_systemMessage = content;
-        return *this;
-    }
+    MessageBuilder &addSystemMessage(const QString &content);
 
-    MessageBuilder &addUserMessage(const QString &content)
-    {
-        m_messages.append({MessageRole::User, content});
-        return *this;
-    }
+    MessageBuilder &addUserMessage(const QString &content);
 
-    MessageBuilder &addSuffix(const QString &content)
-    {
-        m_suffix = content;
-        return *this;
-    }
+    MessageBuilder &addSuffix(const QString &content);
 
-    MessageBuilder &addtTokenizer(PromptTemplate *promptTemplate)
-    {
-        m_promptTemplate = promptTemplate;
-        return *this;
-    }
+    MessageBuilder &addtTokenizer(PromptTemplate *promptTemplate);
 
-    QString roleToString(MessageRole role) const
-    {
-        switch (role) {
-        case MessageRole::System:
-            return ROLE_SYSTEM;
-        case MessageRole::User:
-            return ROLE_USER;
-        case MessageRole::Assistant:
-            return ROLE_ASSISTANT;
-        default:
-            return ROLE_USER;
-        }
-    }
+    QString roleToString(MessageRole role) const;
 
-    void saveTo(QJsonObject &request, ProvidersApi api)
-    {
-        if (!m_promptTemplate) {
-            return;
-        }
-
-        if (api == ProvidersApi::Ollama) {
-            ContextData context{
-                m_messages.isEmpty() ? QString() : m_messages.last().content,
-                m_suffix,
-                m_systemMessage};
-
-            if (m_promptTemplate->type() == TemplateType::Fim) {
-                m_promptTemplate->prepareRequest(request, context);
-            } else {
-                QJsonArray messages;
-
-                messages.append(QJsonObject{{"role", "system"}, {"content", m_systemMessage}});
-                messages.append(
-                    QJsonObject{{"role", "user"}, {"content", m_messages.last().content}});
-                request["messages"] = messages;
-                m_promptTemplate->prepareRequest(request, {});
-            }
-        } else if (api == ProvidersApi::OpenAI) {
-            QJsonArray messages;
-
-            messages.append(QJsonObject{{"role", "system"}, {"content", m_systemMessage}});
-            messages.append(QJsonObject{{"role", "user"}, {"content", m_messages.last().content}});
-            request["messages"] = messages;
-            m_promptTemplate->prepareRequest(request, {});
-        }
-    }
+    void saveTo(QJsonObject &request, ProvidersApi api);
 
 private:
     QString m_systemMessage;
