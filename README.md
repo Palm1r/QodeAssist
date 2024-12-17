@@ -41,6 +41,11 @@
 </details>
 
 <details>
+  <summary>Multiline Code completion: (click to expand)</summary>
+  <img src="https://github.com/user-attachments/assets/c18dfbd2-8c54-4a7b-90d1-66e3bb51adb0" width="600" alt="QodeAssistPreview">
+</details>
+
+<details>
   <summary>Chat with LLM models in side panels: (click to expand)</summary>
   <img src="https://github.com/user-attachments/assets/ead5a5d9-b40a-4f17-af05-77fa2bcb3a61" width="600" alt="QodeAssistChat">
 </details>
@@ -93,8 +98,9 @@ You're all set! QodeAssist is now ready to use in Qt Creator.
 ## Supported LLM Providers
 QodeAssist currently supports the following LLM (Large Language Model) providers:
 - [Ollama](https://ollama.com)
-- [LM Studio](https://lmstudio.ai) (experimental)
-- OpenAI compatible providers (experimental)
+- [LM Studio](https://lmstudio.ai)
+- [OpenRouter](https://openrouter.ai)
+- OpenAI compatible providers
 
 ## Recommended Models:
 QodeAssist has been thoroughly tested and optimized for use with the following language models:
@@ -104,6 +110,14 @@ QodeAssist has been thoroughly tested and optimized for use with the following l
 - StarCoder2
 - DeepSeek-Coder-V2
 
+### Model Types
+
+FIM models (codellama:7b-code, starcoder2:7b, etc.) - Optimized for code completion and suggestions
+
+Instruct models (codellama:7b-instruct, starcoder2:instruct, etc.) - Better for chat assistance, explanations, and code review
+
+For best results, use FIM models with code completion and Instruct models with chat features.
+
 ### Ollama:
 ### For autocomplete(FIM)
 ```
@@ -112,7 +126,7 @@ ollama run starcoder2:7b
 ollama run qwen2.5-coder:7b-base
 ollama run deepseek-coder-v2:16b-lite-base-q3_K_M
 ```
-### For chat
+### For chat and instruct
 ```
 ollama run codellama:7b-instruct
 ollama run starcoder2:instruct
@@ -163,9 +177,7 @@ ollama run deepseek-coder-v2
     - on Mac: Option + Command + Q
     - on Windows: Ctrl + Alt + Q
 - To insert the full suggestion, you can use the TAB key
-- To insert line by line, you can use the "Move cursor word right" shortcut:
-    - On Mac: Option + Right Arrow
-    - On Windows: Alt + Right Arrow
+- To insert word of suggistion, you can use Alt + Right Arrow for Win/Lin, or Option + Right Arrow for Mac
     
 ## Troubleshooting
 
