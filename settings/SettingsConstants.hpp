@@ -77,6 +77,17 @@ const char QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY[] = "Qode Assist";
 
 const char QODE_ASSIST_REQUEST_SUGGESTION[] = "QodeAssist.RequestSuggestion";
 
+// Provider Settings Page ID
+const char QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID[] = "QodeAssist.5ProviderSettingsPageId";
+
+// Provider API Keys
+const char OPEN_ROUTER_API_KEY[] = "QodeAssist.openRouterApiKey";
+const char OPEN_ROUTER_API_KEY_HISTORY[] = "QodeAssist.openRouterApiKeyHistory";
+const char OPEN_AI_COMPAT_API_KEY[] = "QodeAssist.openAiCompatApiKey";
+const char OPEN_AI_COMPAT_API_KEY_HISTORY[] = "QodeAssist.openAiCompatApiKeyHistory";
+const char CLAUDE_API_KEY[] = "QodeAssist.claudeApiKey";
+const char CLAUDE_API_KEY_HISTORY[] = "QodeAssist.claudeApiKeyHistory";
+
 // context settings
 const char CC_READ_FULL_FILE[] = "QodeAssist.ccReadFullFile";
 const char CC_READ_STRINGS_BEFORE_CURSOR[] = "QodeAssist.ccReadStringsBeforeCursor";
