@@ -45,6 +45,7 @@ public:
     virtual bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) = 0;
     virtual QList<QString> getInstalledModels(const QString &url) = 0;
     virtual QList<QString> validateRequest(const QJsonObject &request, TemplateType type) = 0;
+    virtual QString apiKey() const = 0;
 };
 
 } // namespace QodeAssist::LLMCore

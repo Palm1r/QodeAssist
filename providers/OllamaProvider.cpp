@@ -175,6 +175,11 @@ QList<QString> OllamaProvider::validateRequest(const QJsonObject &request, LLMCo
 
     return LLMCore::ValidationUtils::validateRequestFields(
         request, type == LLMCore::TemplateType::Fim ? fimReq : messageReq);
+}
+
+QString OllamaProvider::apiKey() const
+{
+    return {};
 };
 
 } // namespace QodeAssist::Providers

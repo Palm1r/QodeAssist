@@ -23,10 +23,10 @@
 
 namespace QodeAssist::Providers {
 
-class OpenAICompatProvider : public LLMCore::Provider
+class ClaudeProvider : public LLMCore::Provider
 {
 public:
-    OpenAICompatProvider();
+    ClaudeProvider();
 
     QString name() const override;
     QString url() const override;

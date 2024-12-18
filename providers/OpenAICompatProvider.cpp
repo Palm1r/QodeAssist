@@ -18,8 +18,10 @@
  */
 
 #include "OpenAICompatProvider.hpp"
+
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
+#include "settings/ProviderSettings.hpp"
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -159,6 +161,11 @@ QList<QString> OpenAICompatProvider::validateRequest(
         {"stream", {}}};
 
     return LLMCore::ValidationUtils::validateRequestFields(request, templateReq);
+}
+
+QString OpenAICompatProvider::apiKey() const
+{
+    return Settings::providerSettings().openAiCompatApiKey();
 }
 
 } // namespace QodeAssist::Providers

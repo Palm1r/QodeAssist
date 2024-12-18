@@ -20,6 +20,7 @@
 #pragma once
 
 #include "llmcore/ProvidersManager.hpp"
+#include "providers/ClaudeProvider.hpp"
 #include "providers/LMStudioProvider.hpp"
 #include "providers/OllamaProvider.hpp"
 #include "providers/OpenAICompatProvider.hpp"
@@ -34,6 +35,7 @@ inline void registerProviders()
     providerManager.registerProvider<LMStudioProvider>();
     providerManager.registerProvider<OpenAICompatProvider>();
     providerManager.registerProvider<OpenRouterProvider>();
+    providerManager.registerProvider<ClaudeProvider>();
 }
 
 } // namespace QodeAssist::Providers

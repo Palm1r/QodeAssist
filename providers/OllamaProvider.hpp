@@ -37,6 +37,7 @@ public:
     bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) override;
     QList<QString> getInstalledModels(const QString &url) override;
     QList<QString> validateRequest(const QJsonObject &request, LLMCore::TemplateType type) override;
+    QString apiKey() const override;
 };
 
 } // namespace QodeAssist::Providers

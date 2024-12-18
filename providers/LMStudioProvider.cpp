@@ -188,4 +188,9 @@ QList<QString> LMStudioProvider::validateRequest(
     return LLMCore::ValidationUtils::validateRequestFields(request, templateReq);
 }
 
+QString LMStudioProvider::apiKey() const
+{
+    return {};
+}
+
 } // namespace QodeAssist::Providers
