@@ -38,12 +38,19 @@ ProjectSettings::ProjectSettings(ProjectExplorer::Project *project)
     enableQodeAssist.setLabelText(Tr::tr("Enable Qode Assist"));
     enableQodeAssist.setDefaultValue(false);
 
+    chatHistoryPath.setSettingsKey(Constants::QODE_ASSIST_CHAT_HISTORY_PATH);
+    chatHistoryPath.setExpectedKind(Utils::PathChooser::ExistingDirectory);
+    chatHistoryPath.setLabelText(Tr::tr("Chat History Path:"));
+    chatHistoryPath.setDefaultValue(
+        project->projectDirectory().toString() + "/.qodeassist/chat_history");
+
     Utils::Store map = Utils::storeFromVariant(
         project->namedSettings(Constants::QODE_ASSIST_PROJECT_SETTINGS_ID));
     fromMap(map);
 
     enableQodeAssist.addOnChanged(this, [this, project] { save(project); });
     useGlobalSettings.addOnChanged(this, [this, project] { save(project); });
+    chatHistoryPath.addOnChanged(this, [this, project] { save(project); });
 }
 
 void ProjectSettings::setUseGlobalSettings(bool useGlobal)
@@ -64,8 +71,6 @@ void ProjectSettings::save(ProjectExplorer::Project *project)
     toMap(map);
     project
         ->setNamedSettings(Constants::QODE_ASSIST_PROJECT_SETTINGS_ID, Utils::variantFromStore(map));
-
-    // This triggers a restart
     generalSettings().apply();
 }
 

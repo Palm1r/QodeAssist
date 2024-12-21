@@ -66,6 +66,8 @@ static ProjectSettingsWidget *createProjectPanel(Project *project)
 
     Column{
         settings->enableQodeAssist,
+        Space{8},
+        settings->chatHistoryPath,
     }
         .attachTo(widget);
 

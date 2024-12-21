@@ -29,6 +29,7 @@ const char MENU_ID[] = "QodeAssist.Menu";
 const char QODE_ASSIST_PROJECT_SETTINGS_ID[] = "QodeAssist.ProjectSettings";
 const char QODE_ASSIST_USE_GLOBAL_SETTINGS[] = "QodeAssist.UseGlobalSettings";
 const char QODE_ASSIST_ENABLE_IN_PROJECT[] = "QodeAssist.EnableInProject";
+const char QODE_ASSIST_CHAT_HISTORY_PATH[] = "QodeAssist.ChatHistoryPath";
 
 // new settings
 const char CC_PROVIDER[] = "QodeAssist.ccProvider";
