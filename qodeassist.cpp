@@ -43,6 +43,7 @@
 #include "QodeAssistClient.hpp"
 #include "chat/ChatOutputPane.h"
 #include "chat/NavigationPanel.hpp"
+#include "settings/ProjectSettingsPanel.hpp"
 
 #include "providers/Providers.hpp"
 #include "templates/Templates.hpp"
@@ -101,6 +102,8 @@ public:
 
         m_chatOutputPane = new Chat::ChatOutputPane(this);
         m_navigationPanel = new Chat::NavigationPanel();
+
+        Settings::setupProjectPanel();
 
         ConfigurationManager::instance().init();
     }

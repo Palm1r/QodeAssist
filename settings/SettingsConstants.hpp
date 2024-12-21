@@ -24,6 +24,12 @@ namespace QodeAssist::Constants {
 const char ACTION_ID[] = "QodeAssist.Action";
 const char MENU_ID[] = "QodeAssist.Menu";
 
+// project settings
+
+const char QODE_ASSIST_PROJECT_SETTINGS_ID[] = "QodeAssist.ProjectSettings";
+const char QODE_ASSIST_USE_GLOBAL_SETTINGS[] = "QodeAssist.UseGlobalSettings";
+const char QODE_ASSIST_ENABLE_IN_PROJECT[] = "QodeAssist.EnableInProject";
+
 // new settings
 const char CC_PROVIDER[] = "QodeAssist.ccProvider";
 const char CC_MODEL[] = "QodeAssist.ccModel";

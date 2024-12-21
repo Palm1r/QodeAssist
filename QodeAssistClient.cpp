@@ -34,6 +34,7 @@
 #include "core/ChangesManager.h"
 #include "settings/CodeCompletionSettings.hpp"
 #include "settings/GeneralSettings.hpp"
+#include "settings/ProjectSettings.hpp"
 
 using namespace LanguageServerProtocol;
 using namespace TextEditor;
@@ -237,7 +238,11 @@ void QodeAssistClient::cancelRunningRequest(TextEditor::TextEditorWidget *editor
 
 bool QodeAssistClient::isEnabled(ProjectExplorer::Project *project) const
 {
-    return Settings::generalSettings().enableQodeAssist();
+    if (!project)
+        return Settings::generalSettings().enableQodeAssist();
+
+    Settings::ProjectSettings settings(project);
+    return settings.isEnabled();
 }
 
 void QodeAssistClient::setupConnections()
