@@ -29,10 +29,6 @@ namespace QodeAssist::Chat {
 class ChatRootView : public QQuickItem
 {
     Q_OBJECT
-    // Possibly Qt bug: QTBUG-131004
-    // The class type name must be fully qualified
-    // including the namespace.
-    // Otherwise qmlls can't find it.
     Q_PROPERTY(QodeAssist::Chat::ChatModel *chatModel READ chatModel NOTIFY chatModelChanged FINAL)
     Q_PROPERTY(QString currentTemplate READ currentTemplate NOTIFY currentTemplateChanged FINAL)
     Q_PROPERTY(QColor backgroundColor READ backgroundColor CONSTANT FINAL)
@@ -57,6 +53,12 @@ public:
 
     bool isSharingCurrentFile() const;
 
+    void saveHistory(const QString &filePath);
+    void loadHistory(const QString &filePath);
+
+    Q_INVOKABLE void showSaveDialog();
+    Q_INVOKABLE void showLoadDialog();
+
 public slots:
     void sendMessage(const QString &message, bool sharingCurrentFile = false) const;
     void copyToClipboard(const QString &text);
@@ -74,6 +76,9 @@ private:
                          float hueShift,
                          float saturationMod,
                          float lightnessMod);
+
+    QString getChatsHistoryDir() const;
+    QString getSuggestedFileName() const;
 
     ChatModel *m_chatModel;
     ClientInterface *m_clientInterface;

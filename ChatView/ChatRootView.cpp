@@ -18,12 +18,22 @@
  */
 
 #include "ChatRootView.hpp"
-#include <QtGui/qclipboard.h>
+
+#include <QClipboard>
+#include <QFileDialog>
+
+#include <coreplugin/icore.h>
+#include <projectexplorer/project.h>
+#include <projectexplorer/projectexplorer.h>
+#include <projectexplorer/projectmanager.h>
 #include <utils/theme/theme.h>
 #include <utils/utilsicons.h>
 
 #include "ChatAssistantSettings.hpp"
+#include "ChatSerializer.hpp"
 #include "GeneralSettings.hpp"
+#include "Logger.hpp"
+#include "ProjectSettings.hpp"
 
 namespace QodeAssist::Chat {
 
@@ -115,6 +125,26 @@ QColor ChatRootView::generateColor(const QColor &baseColor,
     return QColor::fromHslF(h, s, l, a);
 }
 
+QString ChatRootView::getChatsHistoryDir() const
+{
+    QString path;
+
+    if (auto project = ProjectExplorer::ProjectManager::startupProject()) {
+        Settings::ProjectSettings projectSettings(project);
+        path = projectSettings.chatHistoryPath().toString();
+    } else {
+        path = QString("%1/qodeassist/chat_history").arg(Core::ICore::userResourcePath().toString());
+    }
+
+    QDir dir(path);
+    if (!dir.exists() && !dir.mkpath(".")) {
+        LOG_MESSAGE(QString("Failed to create directory: %1").arg(path));
+        return QString();
+    }
+
+    return path;
+}
+
 QString ChatRootView::currentTemplate() const
 {
     auto &settings = Settings::generalSettings();
@@ -139,6 +169,96 @@ QColor ChatRootView::codeColor() const
 bool ChatRootView::isSharingCurrentFile() const
 {
     return Settings::chatAssistantSettings().sharingCurrentFile();
+}
+
+void ChatRootView::saveHistory(const QString &filePath)
+{
+    auto result = ChatSerializer::saveToFile(m_chatModel, filePath);
+    if (!result.success) {
+        LOG_MESSAGE(QString("Failed to save chat history: %1").arg(result.errorMessage));
+    }
+}
+
+void ChatRootView::loadHistory(const QString &filePath)
+{
+    auto result = ChatSerializer::loadFromFile(m_chatModel, filePath);
+    if (!result.success) {
+        LOG_MESSAGE(QString("Failed to load chat history: %1").arg(result.errorMessage));
+    }
+}
+
+void ChatRootView::showSaveDialog()
+{
+    QString initialDir = getChatsHistoryDir();
+
+    QFileDialog *dialog = new QFileDialog(nullptr, tr("Save Chat History"));
+    dialog->setAcceptMode(QFileDialog::AcceptSave);
+    dialog->setFileMode(QFileDialog::AnyFile);
+    dialog->setNameFilter(tr("JSON files (*.json)"));
+    dialog->setDefaultSuffix("json");
+    if (!initialDir.isEmpty()) {
+        dialog->setDirectory(initialDir);
+        dialog->selectFile(getSuggestedFileName() + ".json");
+    }
+
+    connect(dialog, &QFileDialog::finished, this, [this, dialog](int result) {
+        if (result == QFileDialog::Accepted) {
+            QStringList files = dialog->selectedFiles();
+            if (!files.isEmpty()) {
+                saveHistory(files.first());
+            }
+        }
+        dialog->deleteLater();
+    });
+
+    dialog->open();
+}
+
+void ChatRootView::showLoadDialog()
+{
+    QString initialDir = getChatsHistoryDir();
+
+    QFileDialog *dialog = new QFileDialog(nullptr, tr("Load Chat History"));
+    dialog->setAcceptMode(QFileDialog::AcceptOpen);
+    dialog->setFileMode(QFileDialog::ExistingFile);
+    dialog->setNameFilter(tr("JSON files (*.json)"));
+    if (!initialDir.isEmpty()) {
+        dialog->setDirectory(initialDir);
+    }
+
+    connect(dialog, &QFileDialog::finished, this, [this, dialog](int result) {
+        if (result == QFileDialog::Accepted) {
+            QStringList files = dialog->selectedFiles();
+            if (!files.isEmpty()) {
+                loadHistory(files.first());
+            }
+        }
+        dialog->deleteLater();
+    });
+
+    dialog->open();
+}
+
+QString ChatRootView::getSuggestedFileName() const
+{
+    QStringList parts;
+
+    if (auto project = ProjectExplorer::ProjectManager::startupProject()) {
+        QString projectName = project->projectDirectory().fileName();
+        parts << projectName;
+    }
+
+    if (m_chatModel->rowCount() > 0) {
+        QString firstMessage
+            = m_chatModel->data(m_chatModel->index(0), ChatModel::Content).toString();
+        QString shortMessage = firstMessage.split('\n').first().simplified().left(30);
+        shortMessage.replace(QRegularExpression("[^a-zA-Z0-9_-]"), "_");
+        parts << shortMessage;
+    }
+
+    parts << QDateTime::currentDateTime().toString("yyyy-MM-dd_HH-mm");
+
+    return parts.join("_");
 }
 
 } // namespace QodeAssist::Chat

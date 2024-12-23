@@ -23,7 +23,6 @@
 #include <qqmlintegration.h>
 
 namespace QodeAssist::Chat {
-// Q_NAMESPACE
 
 class ChatUtils : public QObject
 {

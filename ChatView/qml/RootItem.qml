@@ -147,6 +147,22 @@ ChatRootView {
                 text: "Share current file with models"
                 checked: root.isSharingCurrentFile
             }
+
+            Button {
+                id: saveChat
+
+                Layout.alignment: Qt.AlignBottom
+                text: qsTr("Save Chat")
+                onClicked: root.showSaveDialog()
+            }
+
+            Button {
+                id: loadChat
+
+                Layout.alignment: Qt.AlignBottom
+                text: qsTr("Load Chat")
+                onClicked: root.showLoadDialog()
+            }
         }
     }
 
@@ -168,6 +184,7 @@ ChatRootView {
             color: root.codeColor
             fontColor: root.primaryColor.hslLightness > 0.5 ? "black" : "white"
         }
+
     }
 
     function clearChat() {
