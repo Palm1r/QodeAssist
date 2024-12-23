@@ -71,6 +71,7 @@ public:
 signals:
     void totalTokensChanged();
     void tokensThresholdChanged();
+    void modelReseted();
 
 private:
     void trim();

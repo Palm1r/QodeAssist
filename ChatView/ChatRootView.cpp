@@ -60,6 +60,8 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         this,
         &ChatRootView::autosave);
 
+    connect(m_chatModel, &ChatModel::modelReseted, [this]() { m_recentFilePath = QString(); });
+
     generateColors();
 }
 
@@ -250,11 +252,6 @@ void ChatRootView::showLoadDialog()
 QString ChatRootView::getSuggestedFileName() const
 {
     QStringList parts;
-
-    if (auto project = ProjectExplorer::ProjectManager::startupProject()) {
-        QString projectName = project->projectDirectory().fileName();
-        parts << projectName;
-    }
 
     if (m_chatModel->rowCount() > 0) {
         QString firstMessage

@@ -22,6 +22,7 @@
 #include "GeneralSettings.hpp"
 #include "SettingsConstants.hpp"
 #include "SettingsTr.hpp"
+#include <coreplugin/icore.h>
 #include <projectexplorer/project.h>
 
 namespace QodeAssist::Settings {
@@ -41,8 +42,11 @@ ProjectSettings::ProjectSettings(ProjectExplorer::Project *project)
     chatHistoryPath.setSettingsKey(Constants::QODE_ASSIST_CHAT_HISTORY_PATH);
     chatHistoryPath.setExpectedKind(Utils::PathChooser::ExistingDirectory);
     chatHistoryPath.setLabelText(Tr::tr("Chat History Path:"));
-    chatHistoryPath.setDefaultValue(
-        project->projectDirectory().toString() + "/.qodeassist/chat_history");
+
+    QString projectChatHistoryPath
+        = QString("%1/qodeassist/chat_history").arg(Core::ICore::userResourcePath().toString());
+
+    chatHistoryPath.setDefaultValue(projectChatHistoryPath);
 
     Utils::Store map = Utils::storeFromVariant(
         project->namedSettings(Constants::QODE_ASSIST_PROJECT_SETTINGS_ID));

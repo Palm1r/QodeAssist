@@ -121,6 +121,7 @@ void ChatModel::clear()
     m_totalTokens = 0;
     endResetModel();
     emit totalTokensChanged();
+    emit modelReseted();
 }
 
 QList<MessagePart> ChatModel::processMessageContent(const QString &content) const
