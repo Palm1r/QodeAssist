@@ -72,6 +72,7 @@ void QodeAssist::LLMCore::MessageBuilder::saveTo(QJsonObject &request, Providers
 
     if (api == ProvidersApi::Ollama) {
         if (m_promptTemplate->type() == TemplateType::Fim) {
+            request["system"] = m_systemMessage;
             m_promptTemplate->prepareRequest(request, context);
         } else {
             QJsonArray messages;

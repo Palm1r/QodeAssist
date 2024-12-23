@@ -64,6 +64,19 @@ QString CodeHandler::processText(QString text)
         }
     }
 
+    if (!pendingComments.isEmpty()) {
+        QStringList commentLines = pendingComments.split('\n');
+        QString commentPrefix = getCommentPrefix(currentLanguage);
+
+        for (const QString &commentLine : commentLines) {
+            if (!commentLine.trimmed().isEmpty()) {
+                result += commentPrefix + " " + commentLine.trimmed() + "\n";
+            } else {
+                result += "\n";
+            }
+        }
+    }
+
     return result;
 }
 

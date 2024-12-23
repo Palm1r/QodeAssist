@@ -23,6 +23,7 @@
 #include "templates/Alpaca.hpp"
 #include "templates/BasicChat.hpp"
 #include "templates/ChatML.hpp"
+#include "templates/Claude.hpp"
 #include "templates/CodeLlamaFim.hpp"
 #include "templates/CustomFimTemplate.hpp"
 #include "templates/DeepSeekCoderFim.hpp"
@@ -49,6 +50,8 @@ inline void registerTemplates()
     templateManager.registerTemplate<ChatML>();
     templateManager.registerTemplate<Alpaca>();
     templateManager.registerTemplate<Llama2>();
+    templateManager.registerTemplate<ClaudeCodeCompletion>();
+    templateManager.registerTemplate<ClaudeChat>();
 }
 
 } // namespace QodeAssist::Templates

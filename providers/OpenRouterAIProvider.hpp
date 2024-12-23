@@ -33,6 +33,7 @@ public:
     QString url() const override;
     void prepareRequest(QJsonObject &request, LLMCore::RequestType type) override;
     bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) override;
+    QString apiKey() const override;
 };
 
 } // namespace QodeAssist::Providers

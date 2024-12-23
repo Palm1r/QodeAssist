@@ -175,6 +175,16 @@ QList<QString> OllamaProvider::validateRequest(const QJsonObject &request, LLMCo
 
     return LLMCore::ValidationUtils::validateRequestFields(
         request, type == LLMCore::TemplateType::Fim ? fimReq : messageReq);
+}
+
+QString OllamaProvider::apiKey() const
+{
+    return {};
+}
+
+void OllamaProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
+{
+    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 };
 
 } // namespace QodeAssist::Providers

@@ -188,4 +188,14 @@ QList<QString> LMStudioProvider::validateRequest(
     return LLMCore::ValidationUtils::validateRequestFields(request, templateReq);
 }
 
+QString LMStudioProvider::apiKey() const
+{
+    return {};
+}
+
+void LMStudioProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
+{
+    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+}
+
 } // namespace QodeAssist::Providers

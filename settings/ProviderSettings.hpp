@@ -19,23 +19,29 @@
 
 #pragma once
 
-#include "llmcore/ProvidersManager.hpp"
-#include "providers/ClaudeProvider.hpp"
-#include "providers/LMStudioProvider.hpp"
-#include "providers/OllamaProvider.hpp"
-#include "providers/OpenAICompatProvider.hpp"
-#include "providers/OpenRouterAIProvider.hpp"
+#include <utils/aspects.h>
 
-namespace QodeAssist::Providers {
+#include "ButtonAspect.hpp"
 
-inline void registerProviders()
+namespace QodeAssist::Settings {
+
+class ProviderSettings : public Utils::AspectContainer
 {
-    auto &providerManager = LLMCore::ProvidersManager::instance();
-    providerManager.registerProvider<OllamaProvider>();
-    providerManager.registerProvider<LMStudioProvider>();
-    providerManager.registerProvider<OpenAICompatProvider>();
-    providerManager.registerProvider<OpenRouterProvider>();
-    providerManager.registerProvider<ClaudeProvider>();
-}
+public:
+    ProviderSettings();
 
-} // namespace QodeAssist::Providers
+    ButtonAspect resetToDefaults{this};
+
+    // API Keys
+    Utils::StringAspect openRouterApiKey{this};
+    Utils::StringAspect openAiCompatApiKey{this};
+    Utils::StringAspect claudeApiKey{this};
+
+private:
+    void setupConnections();
+    void resetSettingsToDefaults();
+};
+
+ProviderSettings &providerSettings();
+
+} // namespace QodeAssist::Settings

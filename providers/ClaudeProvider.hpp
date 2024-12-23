@@ -23,10 +23,10 @@
 
 namespace QodeAssist::Providers {
 
-class LMStudioProvider : public LLMCore::Provider
+class ClaudeProvider : public LLMCore::Provider
 {
 public:
-    LMStudioProvider();
+    ClaudeProvider();
 
     QString name() const override;
     QString url() const override;

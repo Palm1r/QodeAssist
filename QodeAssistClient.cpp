@@ -71,48 +71,62 @@ void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
         return;
 
     Client::openDocument(document);
-    connect(document,
-            &TextDocument::contentsChangedWithPosition,
-            this,
-            [this, document](int position, int charsRemoved, int charsAdded) {
-                Q_UNUSED(charsRemoved)
-                if (!Settings::codeCompletionSettings().autoCompletion())
-                    return;
+    connect(
+        document,
+        &TextDocument::contentsChangedWithPosition,
+        this,
+        [this, document](int position, int charsRemoved, int charsAdded) {
+            if (!Settings::codeCompletionSettings().autoCompletion())
+                return;
 
-                auto project = ProjectManager::projectForFile(document->filePath());
-                if (!isEnabled(project))
-                    return;
+            auto project = ProjectManager::projectForFile(document->filePath());
+            if (!isEnabled(project))
+                return;
 
-                auto textEditor = BaseTextEditor::currentTextEditor();
-                if (!textEditor || textEditor->document() != document)
-                    return;
+            auto textEditor = BaseTextEditor::currentTextEditor();
+            if (!textEditor || textEditor->document() != document)
+                return;
 
-                if (Settings::codeCompletionSettings().useProjectChangesCache())
-                    ChangesManager::instance().addChange(document,
-                                                         position,
-                                                         charsRemoved,
-                                                         charsAdded);
+            if (Settings::codeCompletionSettings().useProjectChangesCache())
+                ChangesManager::instance().addChange(document, position, charsRemoved, charsAdded);
 
-                TextEditorWidget *widget = textEditor->editorWidget();
-                if (widget->isReadOnly() || widget->multiTextCursor().hasMultipleCursors())
-                    return;
-                const int cursorPosition = widget->textCursor().position();
-                if (cursorPosition < position || cursorPosition > position + charsAdded)
-                    return;
+            TextEditorWidget *widget = textEditor->editorWidget();
+            if (widget->isReadOnly() || widget->multiTextCursor().hasMultipleCursors())
+                return;
 
-                m_recentCharCount += charsAdded;
+            const int cursorPosition = widget->textCursor().position();
+            if (cursorPosition < position || cursorPosition > position + charsAdded)
+                return;
 
-                if (m_typingTimer.elapsed()
-                    > Settings::codeCompletionSettings().autoCompletionTypingInterval()) {
-                    m_recentCharCount = charsAdded;
-                    m_typingTimer.restart();
-                }
+            if (charsRemoved > 0 || charsAdded <= 0) {
+                m_recentCharCount = 0;
+                m_typingTimer.restart();
+                return;
+            }
 
-                if (m_recentCharCount
-                    > Settings::codeCompletionSettings().autoCompletionCharThreshold()) {
-                    scheduleRequest(widget);
-                }
-            });
+            QTextCursor cursor = widget->textCursor();
+            cursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, 1);
+            QString lastChar = cursor.selectedText();
+
+            if (lastChar.isEmpty() || lastChar[0].isPunct()) {
+                m_recentCharCount = 0;
+                m_typingTimer.restart();
+                return;
+            }
+
+            m_recentCharCount += charsAdded;
+
+            if (m_typingTimer.elapsed()
+                > Settings::codeCompletionSettings().autoCompletionTypingInterval()) {
+                m_recentCharCount = charsAdded;
+                m_typingTimer.restart();
+            }
+
+            if (m_recentCharCount
+                > Settings::codeCompletionSettings().autoCompletionCharThreshold()) {
+                scheduleRequest(widget);
+            }
+        });
 }
 
 bool QodeAssistClient::canOpenProject(ProjectExplorer::Project *project)

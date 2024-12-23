@@ -62,7 +62,7 @@ CodeCompletionSettings::CodeCompletionSettings()
     startSuggestionTimer.setSettingsKey(Constants::СС_START_SUGGESTION_TIMER);
     startSuggestionTimer.setLabelText(Tr::tr("with delay(ms)"));
     startSuggestionTimer.setRange(10, 10000);
-    startSuggestionTimer.setDefaultValue(500);
+    startSuggestionTimer.setDefaultValue(350);
 
     autoCompletionCharThreshold.setSettingsKey(Constants::СС_AUTO_COMPLETION_CHAR_THRESHOLD);
     autoCompletionCharThreshold.setLabelText(Tr::tr("AI suggestion triggers after typing"));
@@ -70,7 +70,7 @@ CodeCompletionSettings::CodeCompletionSettings()
         Tr::tr("The number of characters that need to be typed within the typing interval "
                "before an AI suggestion request is sent."));
     autoCompletionCharThreshold.setRange(0, 10);
-    autoCompletionCharThreshold.setDefaultValue(0);
+    autoCompletionCharThreshold.setDefaultValue(1);
 
     autoCompletionTypingInterval.setSettingsKey(Constants::СС_AUTO_COMPLETION_TYPING_INTERVAL);
     autoCompletionTypingInterval.setLabelText(Tr::tr("character(s) within(ms)"));
@@ -78,7 +78,7 @@ CodeCompletionSettings::CodeCompletionSettings()
         Tr::tr("The time window (in milliseconds) during which the character threshold "
                "must be met to trigger an AI suggestion request."));
     autoCompletionTypingInterval.setRange(500, 5000);
-    autoCompletionTypingInterval.setDefaultValue(2000);
+    autoCompletionTypingInterval.setDefaultValue(1200);
 
     // General Parameters Settings
     temperature.setSettingsKey(Constants::CC_TEMPERATURE);
@@ -151,8 +151,10 @@ CodeCompletionSettings::CodeCompletionSettings()
 
     systemPrompt.setSettingsKey(Constants::CC_SYSTEM_PROMPT);
     systemPrompt.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
-    systemPrompt.setDefaultValue("You are an expert C++, Qt, and QML code completion AI. Answer "
-                                 "should be ONLY in CODE and without repeating current.");
+    systemPrompt.setDefaultValue(
+        "You are an expert C++, Qt, and QML. You insert the code into the areas where the user "
+        "specifies. In answer should be ONLY code suggestions in code block, without comments or "
+        "description. Don't repeat existing code. Complete ONLY one logic expression.");
 
     useFilePathInContext.setSettingsKey(Constants::CC_USE_FILE_PATH_IN_CONTEXT);
     useFilePathInContext.setDefaultValue(true);
