@@ -50,14 +50,6 @@ public:
 
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
-        QJsonArray messages = request["messages"].toArray();
-
-        QJsonObject newMessage;
-        newMessage["role"] = "user";
-        newMessage["content"] = context.prefix;
-        messages.append(newMessage);
-
-        request["messages"] = messages;
     }
     QString description() const override { return "template will take from ollama modelfile"; }
 };
