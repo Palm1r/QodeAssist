@@ -8,9 +8,16 @@
 
 ![qodeassist-icon](https://github.com/user-attachments/assets/dc336712-83cb-440d-8761-8d0a31de898d) QodeAssist is an AI-powered coding assistant plugin for Qt Creator. It provides intelligent code completion and suggestions for C++ and QML, leveraging large language models through local providers like Ollama. Enhance your coding productivity with context-aware AI assistance directly in your Qt development environment.
 
+⚠️ **Important Notice About Paid Providers**
+> When using paid providers like Claude, OpenRouter or OpenAI-compatible services:
+> - These services will consume API tokens which may result in charges to your account
+> - The QodeAssist developer bears no responsibility for any charges incurred
+> - Please carefully review the provider's pricing and your account settings before use
+
 ## Table of Contents
 1. [Overview](#overview)
-2. [Installation](#installation)
+2. [Installation for using Ollama](#installation-for-using-Ollama)
+3. [Installation for using Claude](#installation-for-using-Claude)
 3. [Configure Plugin](#configure-plugin)
 4. [Supported LLM Providers](#supported-llm-providers)
 5. [Recommended Models](#recommended-models)
@@ -29,6 +36,7 @@
   - Side and Bottom panels
 - Support for multiple LLM providers:
   - Ollama
+  - Claude
   - LM Studio
   - OpenAI-compatible providers(eg. https://openrouter.ai)
 - Extensive library of model-specific templates
@@ -55,7 +63,7 @@
   <img width="326" alt="QodeAssistBottomPanel" src="https://github.com/user-attachments/assets/4cc64c23-a294-4df8-9153-39ad6fdab34b">
 </details>
 
-## Installation
+## Installation for using Ollama
 
 1. Install Latest QtCreator
 2. Install [Ollama](https://ollama.com). Make sure to review the system requirements before installation.
@@ -79,6 +87,21 @@ ollama run qwen2.5-coder:32b
            Windows\Linux: Help -> About Plugins...
    - Click on "Install Plugin..."
    - Select the downloaded QodeAssist plugin archive file
+
+## Installation for using Claude
+
+1. Install Latest QtCreator
+2. Download the QodeAssist plugin for your QtCreator.
+3. Launch Qt Creator and install the plugin:
+   - Go to MacOS: Qt Creator -> About Plugins...
+           Windows\Linux: Help -> About Plugins...
+   - Click on "Install Plugin..."
+   - Select the downloaded QodeAssist plugin archive file
+4. Select Claude provider
+5. Select Claude api
+6. Fill in api key for Claude
+5. Select Claude templates for code completion and chat
+6. Enjoy!
 
 ## Configure Plugin
 
