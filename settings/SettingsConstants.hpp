@@ -62,6 +62,7 @@ const char CUSTOM_JSON_TEMPLATE[] = "QodeAssist.customJsonTemplate";
 const char CA_TOKENS_THRESHOLD[] = "QodeAssist.caTokensThreshold";
 const char CA_SHARING_CURRENT_FILE[] = "QodeAssist.caSharingCurrentFile";
 const char CA_STREAM[] = "QodeAssist.caStream";
+const char CA_AUTOSAVE[] = "QodeAssist.caAutosave";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
 const char QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID[] = "QodeAssist.1GeneralSettingsPageId";

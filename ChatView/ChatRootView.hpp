@@ -61,6 +61,7 @@ public:
 
     void autosave();
     QString getAutosaveFilePath() const;
+
 public slots:
     void sendMessage(const QString &message, bool sharingCurrentFile = false) const;
     void copyToClipboard(const QString &text);

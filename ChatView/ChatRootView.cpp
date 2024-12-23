@@ -271,7 +271,7 @@ QString ChatRootView::getSuggestedFileName() const
 
 void ChatRootView::autosave()
 {
-    if (m_chatModel->rowCount() == 0) {
+    if (m_chatModel->rowCount() == 0 || !Settings::chatAssistantSettings().autosave()) {
         return;
     }
 
