@@ -54,6 +54,12 @@ ChatRootView::ChatRootView(QQuickItem *parent)
             this,
             &ChatRootView::isSharingCurrentFileChanged);
 
+    connect(
+        m_clientInterface,
+        &ClientInterface::messageReceivedCompletely,
+        this,
+        &ChatRootView::autosave);
+
     generateColors();
 }
 
@@ -184,6 +190,8 @@ void ChatRootView::loadHistory(const QString &filePath)
     auto result = ChatSerializer::loadFromFile(m_chatModel, filePath);
     if (!result.success) {
         LOG_MESSAGE(QString("Failed to load chat history: %1").arg(result.errorMessage));
+    } else {
+        m_recentFilePath = filePath;
     }
 }
 
@@ -259,6 +267,33 @@ QString ChatRootView::getSuggestedFileName() const
     parts << QDateTime::currentDateTime().toString("yyyy-MM-dd_HH-mm");
 
     return parts.join("_");
+}
+
+void ChatRootView::autosave()
+{
+    if (m_chatModel->rowCount() == 0) {
+        return;
+    }
+
+    QString filePath = getAutosaveFilePath();
+    if (!filePath.isEmpty()) {
+        ChatSerializer::saveToFile(m_chatModel, filePath);
+        m_recentFilePath = filePath;
+    }
+}
+
+QString ChatRootView::getAutosaveFilePath() const
+{
+    if (!m_recentFilePath.isEmpty()) {
+        return m_recentFilePath;
+    }
+
+    QString dir = getChatsHistoryDir();
+    if (dir.isEmpty()) {
+        return QString();
+    }
+
+    return QDir(dir).filePath(getSuggestedFileName() + ".json");
 }
 
 } // namespace QodeAssist::Chat

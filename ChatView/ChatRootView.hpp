@@ -59,6 +59,8 @@ public:
     Q_INVOKABLE void showSaveDialog();
     Q_INVOKABLE void showLoadDialog();
 
+    void autosave();
+    QString getAutosaveFilePath() const;
 public slots:
     void sendMessage(const QString &message, bool sharingCurrentFile = false) const;
     void copyToClipboard(const QString &text);
@@ -86,6 +88,7 @@ private:
     QColor m_primaryColor;
     QColor m_secondaryColor;
     QColor m_codeColor;
+    QString m_recentFilePath;
 };
 
 } // namespace QodeAssist::Chat

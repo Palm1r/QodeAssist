@@ -166,6 +166,7 @@ void ClientInterface::handleLLMResponse(const QString &response,
         if (isComplete) {
             LOG_MESSAGE(
                 "Message completed. Final response for message " + messageId + ": " + response);
+            emit messageReceivedCompletely();
         }
     }
 }
