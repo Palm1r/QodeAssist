@@ -26,9 +26,11 @@
 #include <QNetworkReply>
 #include <QUrlQuery>
 
+#include "llmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
+#include "settings/GeneralSettings.hpp"
 #include "settings/ProviderSettings.hpp"
 
 namespace QodeAssist::Providers {
@@ -62,30 +64,56 @@ bool ClaudeProvider::supportsModelListing() const
 
 void ClaudeProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType type)
 {
-    auto applySettings = [&request](const auto &settings) {
+    auto prepareMessages = [](QJsonObject &req) -> QJsonArray {
+        QJsonArray messages;
+        if (req.contains("messages")) {
+            QJsonArray origMessages = req["messages"].toArray();
+            for (const auto &msg : origMessages) {
+                QJsonObject message = msg.toObject();
+                if (message["role"].toString() == "system") {
+                    req["system"] = message["content"];
+                } else {
+                    messages.append(message);
+                }
+            }
+        } else {
+            if (req.contains("system")) {
+                req["system"] = req["system"].toString();
+            }
+            if (req.contains("prompt")) {
+                messages.append(
+                    QJsonObject{{"role", "user"}, {"content", req.take("prompt").toString()}});
+            }
+        }
+        return messages;
+    };
+
+    auto applyModelParams = [&request](const auto &settings) {
         request["max_tokens"] = settings.maxTokens();
         request["temperature"] = settings.temperature();
-
         if (settings.useTopP())
             request["top_p"] = settings.topP();
-        if (settings.useFrequencyPenalty())
-            request["frequency_penalty"] = settings.frequencyPenalty();
-
-        request["anthropic-version"] = "2023-06-01";
+        if (settings.useTopK())
+            request["top_k"] = settings.topK();
         request["stream"] = true;
     };
 
+    QJsonArray messages = prepareMessages(request);
+    if (!messages.isEmpty()) {
+        request["messages"] = std::move(messages);
+    }
+
     if (type == LLMCore::RequestType::CodeCompletion) {
-        applySettings(Settings::codeCompletionSettings());
+        applyModelParams(Settings::codeCompletionSettings());
     } else {
-        applySettings(Settings::chatAssistantSettings());
+        applyModelParams(Settings::chatAssistantSettings());
     }
 }
 
 bool ClaudeProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
 {
     bool isComplete = false;
-    QString tempResponse = accumulatedResponse;
+    QString tempResponse;
 
     while (reply->canReadLine()) {
         QByteArray line = reply->readLine().trimmed();
@@ -99,53 +127,31 @@ bool ClaudeProvider::handleResponse(QNetworkReply *reply, QString &accumulatedRe
 
         line = line.mid(6);
 
-        if (line == "[DONE]") {
-            isComplete = true;
-            break;
-        }
-
         QJsonDocument jsonResponse = QJsonDocument::fromJson(line);
         if (jsonResponse.isNull()) {
-            LOG_MESSAGE("Invalid JSON response from Claude: " + QString::fromUtf8(line));
             continue;
         }
 
         QJsonObject responseObj = jsonResponse.object();
+        QString eventType = responseObj["type"].toString();
 
-        if (responseObj.contains("error")) {
-            LOG_MESSAGE(
-                "Claude error: "
-                + QString::fromUtf8(QJsonDocument(responseObj).toJson(QJsonDocument::Indented)));
-            return false;
-        }
-
-        if (responseObj.contains("type") && responseObj["type"].toString() == "message_delta") {
+        if (eventType == "message_delta") {
             if (responseObj.contains("delta")) {
                 QJsonObject delta = responseObj["delta"].toObject();
-                if (delta.contains("text")) {
-                    QString text = delta["text"].toString();
-                    if (!text.isEmpty()) {
-                        tempResponse += text;
-                    }
+                if (delta.contains("stop_reason")) {
+                    isComplete = true;
                 }
             }
-
-            if (responseObj.contains("usage")) {
-                QJsonObject usage = responseObj["usage"].toObject();
-                LOG_MESSAGE(QString("Token usage - Input: %1, Output: %2")
-                                .arg(usage["input_tokens"].toInt())
-                                .arg(usage["output_tokens"].toInt()));
+        } else if (eventType == "content_block_delta") {
+            QJsonObject delta = responseObj["delta"].toObject();
+            if (delta["type"].toString() == "text_delta") {
+                tempResponse += delta["text"].toString();
             }
-        }
-
-        if (responseObj.contains("message")
-            && responseObj["message"].toObject()["status"].toString() == "complete") {
-            isComplete = true;
         }
     }
 
     if (!tempResponse.isEmpty()) {
-        accumulatedResponse = tempResponse;
+        accumulatedResponse += tempResponse;
     }
 
     return isComplete;
@@ -198,11 +204,35 @@ QList<QString> ClaudeProvider::getInstalledModels(const QString &baseUrl)
 }
 
 QList<QString> ClaudeProvider::validateRequest(const QJsonObject &request, LLMCore::TemplateType type)
-{}
+{
+    const auto templateReq = QJsonObject{
+        {"model", {}},
+        {"system", {}},
+        {"messages", QJsonArray{{QJsonObject{{"role", {}}, {"content", {}}}}}},
+        {"temperature", {}},
+        {"max_tokens", {}},
+        {"anthropic-version", {}},
+        {"top_p", {}},
+        {"top_k", {}},
+        {"stop", QJsonArray{}},
+        {"stream", {}}};
+
+    return LLMCore::ValidationUtils::validateRequestFields(request, templateReq);
+}
 
 QString ClaudeProvider::apiKey() const
 {
     return Settings::providerSettings().claudeApiKey();
+}
+
+void ClaudeProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
+{
+    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+
+    if (!apiKey().isEmpty()) {
+        networkRequest.setRawHeader("x-api-key", apiKey().toUtf8());
+        networkRequest.setRawHeader("anthropic-version", "2023-06-01");
+    }
 }
 
 } // namespace QodeAssist::Providers

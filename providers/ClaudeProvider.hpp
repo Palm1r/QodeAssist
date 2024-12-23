@@ -38,6 +38,7 @@ public:
     QList<QString> getInstalledModels(const QString &url) override;
     QList<QString> validateRequest(const QJsonObject &request, LLMCore::TemplateType type) override;
     QString apiKey() const override;
+    void prepareNetworkRequest(QNetworkRequest &networkRequest) const override;
 };
 
 } // namespace QodeAssist::Providers

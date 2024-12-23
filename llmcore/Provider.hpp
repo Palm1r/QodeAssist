@@ -19,8 +19,9 @@
 
 #pragma once
 
-#include <QString>
 #include <utils/environment.h>
+#include <QNetworkRequest>
+#include <QString>
 
 #include "PromptTemplate.hpp"
 #include "RequestType.hpp"
@@ -46,6 +47,7 @@ public:
     virtual QList<QString> getInstalledModels(const QString &url) = 0;
     virtual QList<QString> validateRequest(const QJsonObject &request, TemplateType type) = 0;
     virtual QString apiKey() const = 0;
+    virtual void prepareNetworkRequest(QNetworkRequest &networkRequest) const = 0;
 };
 
 } // namespace QodeAssist::LLMCore

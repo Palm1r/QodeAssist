@@ -180,6 +180,11 @@ QList<QString> OllamaProvider::validateRequest(const QJsonObject &request, LLMCo
 QString OllamaProvider::apiKey() const
 {
     return {};
+}
+
+void OllamaProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
+{
+    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 };
 
 } // namespace QodeAssist::Providers

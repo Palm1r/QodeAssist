@@ -176,7 +176,7 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         Settings::generalSettings().ccUrl(),
         promptTemplate->type() == LLMCore::TemplateType::Fim ? provider->completionEndpoint()
                                                              : provider->chatEndpoint()));
-    config.apiKey = Settings::codeCompletionSettings().apiKey();
+    config.apiKey = provider->apiKey();
 
     config.providerRequest
         = {{"model", Settings::generalSettings().ccModel()},

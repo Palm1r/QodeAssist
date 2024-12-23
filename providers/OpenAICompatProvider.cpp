@@ -168,4 +168,13 @@ QString OpenAICompatProvider::apiKey() const
     return Settings::providerSettings().openAiCompatApiKey();
 }
 
+void OpenAICompatProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
+{
+    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+
+    if (!apiKey().isEmpty()) {
+        networkRequest.setRawHeader("Authorization", QString("Bearer %1").arg(apiKey()).toUtf8());
+    }
+}
+
 } // namespace QodeAssist::Providers
