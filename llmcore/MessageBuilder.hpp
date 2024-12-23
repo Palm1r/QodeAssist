@@ -32,7 +32,7 @@ enum class MessageRole { System, User, Assistant };
 
 enum class OllamaFormat { Messages, Completions };
 
-enum class ProvidersApi { Ollama, OpenAI };
+enum class ProvidersApi { Ollama, OpenAI, Claude };
 
 static const QString ROLE_SYSTEM = "system";
 static const QString ROLE_USER = "user";
