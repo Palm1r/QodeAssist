@@ -58,6 +58,10 @@ ChatAssistantSettings::ChatAssistantSettings()
     stream.setDefaultValue(true);
     stream.setLabelText(Tr::tr("Enable stream option"));
 
+    autosave.setSettingsKey(Constants::CA_AUTOSAVE);
+    autosave.setDefaultValue(true);
+    autosave.setLabelText(Tr::tr("Enable autosave when message received"));
+
     // General Parameters Settings
     temperature.setSettingsKey(Constants::CA_TEMPERATURE);
     temperature.setLabelText(Tr::tr("Temperature:"));
@@ -167,7 +171,7 @@ ChatAssistantSettings::ChatAssistantSettings()
             Space{8},
             Group{
                 title(Tr::tr("Chat Settings")),
-                Column{Row{chatTokensThreshold, Stretch{1}}, sharingCurrentFile, stream}},
+                Column{Row{chatTokensThreshold, Stretch{1}}, sharingCurrentFile, stream, autosave}},
             Space{8},
             Group{
                 title(Tr::tr("General Parameters")),

@@ -19,37 +19,38 @@
 
 #pragma once
 
-#include <QObject>
+#include <QJsonArray>
+#include <QJsonObject>
 #include <QString>
-#include <QVector>
 
 #include "ChatModel.hpp"
-#include "RequestHandler.hpp"
 
 namespace QodeAssist::Chat {
 
-class ClientInterface : public QObject
+struct SerializationResult
 {
-    Q_OBJECT
+    bool success{false};
+    QString errorMessage;
+};
 
+class ChatSerializer
+{
 public:
-    explicit ClientInterface(ChatModel *chatModel, QObject *parent = nullptr);
-    ~ClientInterface();
+    static SerializationResult saveToFile(const ChatModel *model, const QString &filePath);
+    static SerializationResult loadFromFile(ChatModel *model, const QString &filePath);
 
-    void sendMessage(const QString &message, bool includeCurrentFile = false);
-    void clearMessages();
-    void cancelRequest();
-
-signals:
-    void errorOccurred(const QString &error);
-    void messageReceivedCompletely();
+    // Public for testing purposes
+    static QJsonObject serializeMessage(const ChatModel::Message &message);
+    static ChatModel::Message deserializeMessage(const QJsonObject &json);
+    static QJsonObject serializeChat(const ChatModel *model);
+    static bool deserializeChat(ChatModel *model, const QJsonObject &json);
 
 private:
-    void handleLLMResponse(const QString &response, const QJsonObject &request, bool isComplete);
-    QString getCurrentFileContext() const;
+    static const QString VERSION;
+    static constexpr int CURRENT_VERSION = 1;
 
-    LLMCore::RequestHandler *m_requestHandler;
-    ChatModel *m_chatModel;
+    static bool ensureDirectoryExists(const QString &filePath);
+    static bool validateVersion(const QString &version);
 };
 
 } // namespace QodeAssist::Chat

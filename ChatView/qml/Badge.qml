@@ -25,10 +25,10 @@ Rectangle {
     property alias text: badgeText.text
     property alias fontColor: badgeText.color
 
-    width: badgeText.implicitWidth + radius
-    height: badgeText.implicitHeight + 6
+    implicitWidth: badgeText.implicitWidth + root.radius
+    implicitHeight: badgeText.implicitHeight + 6
     color: "lightgreen"
-    radius: height / 2
+    radius: root.height / 2
     border.width: 1
     border.color: "gray"
 

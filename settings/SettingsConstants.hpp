@@ -29,6 +29,7 @@ const char MENU_ID[] = "QodeAssist.Menu";
 const char QODE_ASSIST_PROJECT_SETTINGS_ID[] = "QodeAssist.ProjectSettings";
 const char QODE_ASSIST_USE_GLOBAL_SETTINGS[] = "QodeAssist.UseGlobalSettings";
 const char QODE_ASSIST_ENABLE_IN_PROJECT[] = "QodeAssist.EnableInProject";
+const char QODE_ASSIST_CHAT_HISTORY_PATH[] = "QodeAssist.ChatHistoryPath";
 
 // new settings
 const char CC_PROVIDER[] = "QodeAssist.ccProvider";
@@ -61,6 +62,7 @@ const char CUSTOM_JSON_TEMPLATE[] = "QodeAssist.customJsonTemplate";
 const char CA_TOKENS_THRESHOLD[] = "QodeAssist.caTokensThreshold";
 const char CA_SHARING_CURRENT_FILE[] = "QodeAssist.caSharingCurrentFile";
 const char CA_STREAM[] = "QodeAssist.caStream";
+const char CA_AUTOSAVE[] = "QodeAssist.caAutosave";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
 const char QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID[] = "QodeAssist.1GeneralSettingsPageId";

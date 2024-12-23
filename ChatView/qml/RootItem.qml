@@ -35,10 +35,40 @@ ChatRootView {
     }
 
     ColumnLayout {
-        anchors {
-            fill: parent
+        anchors.fill: parent
+
+        RowLayout {
+            id: topBar
+
+            Layout.leftMargin: 5
+            Layout.rightMargin: 5
+            spacing: 10
+
+            Button {
+                text: qsTr("Save")
+                onClicked: root.showSaveDialog()
+            }
+
+            Button {
+                text: qsTr("Load")
+                onClicked: root.showLoadDialog()
+            }
+
+            Button {
+                text: qsTr("Clear")
+                onClicked: root.clearChat()
+            }
+
+            Item {
+                Layout.fillWidth: true
+            }
+
+            Badge {
+                text: qsTr("tokens:%1/%2").arg(root.chatModel.totalTokens).arg(root.chatModel.tokensThreshold)
+                color: root.codeColor
+                fontColor: root.primaryColor.hslLightness > 0.5 ? "black" : "white"
+            }
         }
-        spacing: 10
 
         ListView {
             id: chatListView
@@ -133,40 +163,12 @@ ChatRootView {
                 onClicked: root.cancelRequest()
             }
 
-            Button {
-                id: clearButton
-
-                Layout.alignment: Qt.AlignBottom
-                text: qsTr("Clear Chat")
-                onClicked: root.clearChat()
-            }
-
             CheckBox {
                 id: sharingCurrentFile
 
                 text: "Share current file with models"
                 checked: root.isSharingCurrentFile
             }
-        }
-    }
-
-    Row {
-        id: bar
-
-        layoutDirection: Qt.RightToLeft
-
-        anchors {
-            left: parent.left
-            leftMargin: 5
-            right: parent.right
-            rightMargin: scroll.width
-        }
-        spacing: 10
-
-        Badge {
-            text: qsTr("tokens:%1/%2").arg(root.chatModel.totalTokens).arg(root.chatModel.tokensThreshold)
-            color: root.codeColor
-            fontColor: root.primaryColor.hslLightness > 0.5 ? "black" : "white"
         }
     }
 
