@@ -184,7 +184,7 @@ CodeCompletionSettings::CodeCompletionSettings()
 
     // API Configuration Settings
     apiKey.setSettingsKey(Constants::CC_API_KEY);
-    apiKey.setLabelText(Tr::tr("API Key:"));
+    apiKey.setLabelText(Tr::tr("[Deprecated, see Provider Settings]API Key:"));
     apiKey.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
     apiKey.setPlaceHolderText(Tr::tr("Enter your API key here"));
 
