@@ -31,10 +31,10 @@
 
 #include "LLMClientInterface.hpp"
 #include "LLMSuggestion.hpp"
-#include "core/ChangesManager.h"
 #include "settings/CodeCompletionSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProjectSettings.hpp"
+#include <context/ChangesManager.h>
 
 using namespace LanguageServerProtocol;
 using namespace TextEditor;

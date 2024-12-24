@@ -16,6 +16,7 @@ add_subdirectory(llmcore)
 add_subdirectory(settings)
 add_subdirectory(logger)
 add_subdirectory(ChatView)
+add_subdirectory(context)
 
 add_qtc_plugin(QodeAssist
   PLUGIN_DEPENDS
@@ -63,9 +64,6 @@ add_qtc_plugin(QodeAssist
     LSPCompletion.hpp
     LLMSuggestion.hpp LLMSuggestion.cpp
     QodeAssistClient.hpp QodeAssistClient.cpp
-    DocumentContextReader.hpp DocumentContextReader.cpp
-    utils/CounterTooltip.hpp utils/CounterTooltip.cpp
-    core/ChangesManager.h core/ChangesManager.cpp
     chat/ChatOutputPane.h chat/ChatOutputPane.cpp
     chat/NavigationPanel.hpp chat/NavigationPanel.cpp
     ConfigurationManager.hpp ConfigurationManager.cpp

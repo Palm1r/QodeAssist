@@ -19,8 +19,8 @@
 
 #pragma once
 
-#include <QTextDocument>
 #include <texteditor/textdocument.h>
+#include <QTextDocument>
 
 #include <llmcore/ContextData.hpp>
 

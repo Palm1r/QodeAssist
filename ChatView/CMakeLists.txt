@@ -33,6 +33,7 @@ target_link_libraries(QodeAssistChatView
     QtCreator::Utils
     LLMCore
     QodeAssistSettings
+    Context
 )
 
 target_include_directories(QodeAssistChatView

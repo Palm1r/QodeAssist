@@ -27,7 +27,7 @@
 #include <texteditor/textdocument.h>
 
 #include "CodeHandler.hpp"
-#include "DocumentContextReader.hpp"
+#include "context/DocumentContextReader.hpp"
 #include "llmcore/MessageBuilder.hpp"
 #include "llmcore/PromptTemplateManager.hpp"
 #include "llmcore/ProvidersManager.hpp"

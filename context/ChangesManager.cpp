@@ -18,7 +18,7 @@
  */
 
 #include "ChangesManager.h"
-#include "settings/CodeCompletionSettings.hpp"
+#include "CodeCompletionSettings.hpp"
 
 namespace QodeAssist {
 
