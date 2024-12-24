@@ -37,7 +37,7 @@ jobs:
           }
         - {
             name: "Ubuntu Latest GCC", artifact: "Linux-x64",
-            os: ubuntu-latest,
+            os: ubuntu-22.04,
             platform: linux_x64,
             cc: "gcc", cxx: "g++"
           }
