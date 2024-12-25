@@ -42,9 +42,10 @@ public:
             QString content = message["content"].toString();
 
             if (message["role"] == "user") {
-                message["content"] = QString("Complete the code ONLY between these "
-                                             "parts:\nBefore: %1\nAfter: %2\n")
-                                         .arg(context.prefix, context.suffix);
+                message["content"]
+                    = QString("Here is the code context with insertion points: <code_context>"
+                              "\nBefore: %1\nAfter: %2\n </code_context>")
+                          .arg(context.prefix, context.suffix);
             } else {
                 message["content"] = QString("%1").arg(content);
             }
