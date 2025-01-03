@@ -26,6 +26,8 @@
 #include <QJsonArray>
 #include <QtQmlIntegration>
 
+#include "context/ContentFile.hpp"
+
 namespace QodeAssist::Chat {
 
 class ChatModel : public QAbstractListModel
@@ -36,10 +38,10 @@ class ChatModel : public QAbstractListModel
     QML_ELEMENT
 
 public:
-    enum Roles { RoleType = Qt::UserRole, Content };
-
     enum ChatRole { System, User, Assistant };
     Q_ENUM(ChatRole)
+
+    enum Roles { RoleType = Qt::UserRole, Content, Attachments };
 
     struct Message
     {
@@ -47,6 +49,8 @@ public:
         QString content;
         int tokenCount;
         QString id;
+
+        QList<Context::ContentFile> attachments;
     };
 
     explicit ChatModel(QObject *parent = nullptr);
@@ -55,7 +59,11 @@ public:
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    Q_INVOKABLE void addMessage(const QString &content, ChatRole role, const QString &id);
+    Q_INVOKABLE void addMessage(
+        const QString &content,
+        ChatRole role,
+        const QString &id,
+        const QList<Context::ContentFile> &attachments = {});
     Q_INVOKABLE void clear();
     Q_INVOKABLE QList<MessagePart> processMessageContent(const QString &content) const;
 

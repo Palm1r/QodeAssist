@@ -84,8 +84,10 @@ ChatRootView {
 
             delegate: ChatItem {
                 required property var model
+
                 width: ListView.view.width - scroll.width
                 msgModel: root.chatModel.processMessageContent(model.content)
+                messageAttachments: model.attachments
                 color: model.roleType === ChatModel.User ? root.primaryColor : root.secondaryColor
                 fontColor: root.primaryColor.hslLightness > 0.5 ? "black" : "white"
                 codeBgColor: root.codeColor
@@ -143,14 +145,86 @@ ChatRootView {
             }
         }
 
+        Flow {
+            Layout.fillWidth: true
+            leftPadding: 10
+            rightPadding: 10
+            spacing: 5
+
+            Repeater {
+                id: attachRepeater
+
+                model: root.attachmentFiles
+                delegate: Rectangle {
+                    required property int index
+                    required property string modelData
+
+                    height: 30
+                    width: fileNameText.width + closeButton.width + 20
+                    radius: 4
+                    color: root.primaryColor
+
+                    Row {
+                        spacing: 5
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.left: parent.left
+                        anchors.leftMargin: 5
+
+                        Text {
+                            id: fileNameText
+
+                            anchors.verticalCenter: parent.verticalCenter
+                            color: root.primaryColor.hslLightness > 0.5 ? "black" : "white"
+
+                            text: {
+                                const parts = modelData.split('/');
+                                return parts[parts.length - 1];
+                            }
+                        }
+
+                        MouseArea {
+                            id: closeButton
+
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: closeIcon.width
+                            height: closeButton.width
+
+                            onClicked: {
+                                const newList = [...root.attachmentFiles];
+                                newList.splice(index, 1);
+                                root.attachmentFiles = newList;
+                            }
+
+                            Image {
+                                id: closeIcon
+
+                                source: root.primaryColor.hslLightness > 0.5 ? "qrc:/qt/qml/ChatView/icons/close-dark.svg"
+                                                                             : "qrc:/qt/qml/ChatView/icons/close-light.svg"
+                                width: 6
+                                height: 6
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         RowLayout {
             Layout.fillWidth: true
             spacing: 5
 
             Button {
+                icon {
+                    source: "qrc:/qt/qml/ChatView/icons/attach-file.svg"
+                    height: sendButton.font.pointSize
+                    width: sendButton.font.pointSize / 2
+                }
+                onClicked: root.showAttachFilesDialog()
+            }
+
+            Button {
                 id: sendButton
 
-                Layout.alignment: Qt.AlignBottom
                 text: qsTr("Send")
                 onClicked: root.sendChatMessage()
             }
@@ -158,7 +232,6 @@ ChatRootView {
             Button {
                 id: stopButton
 
-                Layout.alignment: Qt.AlignBottom
                 text: qsTr("Stop")
                 onClicked: root.cancelRequest()
             }

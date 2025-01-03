@@ -88,7 +88,8 @@ void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
                 return;
 
             if (Settings::codeCompletionSettings().useProjectChangesCache())
-                ChangesManager::instance().addChange(document, position, charsRemoved, charsAdded);
+                Context::ChangesManager::instance()
+                    .addChange(document, position, charsRemoved, charsAdded);
 
             TextEditorWidget *widget = textEditor->editorWidget();
             if (widget->isReadOnly() || widget->multiTextCursor().hasMultipleCursors())

@@ -20,7 +20,7 @@
 #include "ChangesManager.h"
 #include "CodeCompletionSettings.hpp"
 
-namespace QodeAssist {
+namespace QodeAssist::Context {
 
 ChangesManager &ChangesManager::instance()
 {
@@ -79,4 +79,4 @@ QString ChangesManager::getRecentChangesContext(const TextEditor::TextDocument *
     return context;
 }
 
-} // namespace QodeAssist
+} // namespace QodeAssist::Context

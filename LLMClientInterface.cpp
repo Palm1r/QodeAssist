@@ -235,7 +235,7 @@ LLMCore::ContextData LLMClientInterface::prepareContext(const QJsonObject &reque
     int cursorPosition = position["character"].toInt();
     int lineNumber = position["line"].toInt();
 
-    DocumentContextReader reader(textDocument);
+    Context::DocumentContextReader reader(textDocument);
     return reader.prepareContext(lineNumber, cursorPosition);
 }
 

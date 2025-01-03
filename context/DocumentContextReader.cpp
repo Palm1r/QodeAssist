@@ -47,7 +47,7 @@ const QRegularExpression &getCommentRegex()
     return commentRegex;
 }
 
-namespace QodeAssist {
+namespace QodeAssist::Context {
 
 DocumentContextReader::DocumentContextReader(TextEditor::TextDocument *textDocument)
     : m_textDocument(textDocument)
@@ -247,4 +247,4 @@ QString DocumentContextReader::getContextAfter(int lineNumber, int cursorPositio
     }
 }
 
-} // namespace QodeAssist
+} // namespace QodeAssist::Context

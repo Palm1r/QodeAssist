@@ -21,38 +21,26 @@
 
 #include <QObject>
 #include <QString>
-#include <QVector>
 
-#include "ChatModel.hpp"
-#include "RequestHandler.hpp"
+#include "ContentFile.hpp"
 
-namespace QodeAssist::Chat {
+namespace QodeAssist::Context {
 
-class ClientInterface : public QObject
+class ContextManager : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit ClientInterface(ChatModel *chatModel, QObject *parent = nullptr);
-    ~ClientInterface();
-
-    void sendMessage(
-        const QString &message,
-        const QList<QString> &attachments = {},
-        bool includeCurrentFile = false);
-    void clearMessages();
-    void cancelRequest();
-
-signals:
-    void errorOccurred(const QString &error);
-    void messageReceivedCompletely();
+    static ContextManager &instance();
+    QString readFile(const QString &filePath) const;
+    QList<ContentFile> getContentFiles(const QStringList &filePaths) const;
 
 private:
-    void handleLLMResponse(const QString &response, const QJsonObject &request, bool isComplete);
-    QString getCurrentFileContext() const;
-
-    LLMCore::RequestHandler *m_requestHandler;
-    ChatModel *m_chatModel;
+    explicit ContextManager(QObject *parent = nullptr);
+    ~ContextManager() = default;
+    ContextManager(const ContextManager &) = delete;
+    ContextManager &operator=(const ContextManager &) = delete;
+    ContentFile createContentFile(const QString &filePath) const;
 };
 
-} // namespace QodeAssist::Chat
+} // namespace QodeAssist::Context

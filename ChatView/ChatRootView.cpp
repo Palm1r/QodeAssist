@@ -21,6 +21,7 @@
 
 #include <QClipboard>
 #include <QFileDialog>
+#include <QMessageBox>
 
 #include <coreplugin/icore.h>
 #include <projectexplorer/project.h>
@@ -75,9 +76,10 @@ QColor ChatRootView::backgroundColor() const
     return Utils::creatorColor(Utils::Theme::BackgroundColorNormal);
 }
 
-void ChatRootView::sendMessage(const QString &message, bool sharingCurrentFile) const
+void ChatRootView::sendMessage(const QString &message, bool sharingCurrentFile)
 {
-    m_clientInterface->sendMessage(message, sharingCurrentFile);
+    m_clientInterface->sendMessage(message, m_attachmentFiles, sharingCurrentFile);
+    clearAttachmentFiles();
 }
 
 void ChatRootView::copyToClipboard(const QString &text)
@@ -88,6 +90,14 @@ void ChatRootView::copyToClipboard(const QString &text)
 void ChatRootView::cancelRequest()
 {
     m_clientInterface->cancelRequest();
+}
+
+void ChatRootView::clearAttachmentFiles()
+{
+    if (!m_attachmentFiles.isEmpty()) {
+        m_attachmentFiles.clear();
+        emit attachmentFilesChanged();
+    }
 }
 
 void ChatRootView::generateColors()
@@ -291,6 +301,24 @@ QString ChatRootView::getAutosaveFilePath() const
     }
 
     return QDir(dir).filePath(getSuggestedFileName() + ".json");
+}
+
+void ChatRootView::showAttachFilesDialog()
+{
+    QFileDialog dialog(nullptr, tr("Select Files to Attach"));
+    dialog.setFileMode(QFileDialog::ExistingFiles);
+
+    if (auto project = ProjectExplorer::ProjectManager::startupProject()) {
+        dialog.setDirectory(project->projectDirectory().toString());
+    }
+
+    if (dialog.exec() == QDialog::Accepted) {
+        QStringList filePaths = dialog.selectedFiles();
+        if (!filePaths.isEmpty()) {
+            m_attachmentFiles = filePaths;
+            emit attachmentFilesChanged();
+        }
+    }
 }
 
 } // namespace QodeAssist::Chat

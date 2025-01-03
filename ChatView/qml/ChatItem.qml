@@ -21,24 +21,26 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import ChatView
+import QtQuick.Layouts
 import "./dialog"
 
 Rectangle {
     id: root
 
     property alias msgModel: msgCreator.model
+    property alias messageAttachments: attachmentsModel.model
     property color fontColor
     property color codeBgColor
     property color selectionColor
 
-    height: msgColumn.height
+    height: msgColumn.implicitHeight + 10
     radius: 8
 
-    Column {
+    ColumnLayout {
         id: msgColumn
 
-        anchors.verticalCenter: parent.verticalCenter
         width: parent.width
+        anchors.verticalCenter: parent.verticalCenter
         spacing: 5
 
         Repeater {
@@ -76,6 +78,38 @@ Rectangle {
                     id: codeBlockComponent
                     CodeBlockComponent {
                         itemData: msgCreatorDelegate.modelData
+                    }
+                }
+            }
+        }
+
+        Flow {
+            id: attachmentsFlow
+
+            Layout.fillWidth: true
+            visible: attachmentsModel.model && attachmentsModel.model.length > 0
+            leftPadding: 10
+            rightPadding: 10
+            spacing: 5
+
+            Repeater {
+                id: attachmentsModel
+
+                delegate: Rectangle {
+                    required property int index
+                    required property var modelData
+
+                    height: attachText.implicitHeight + 8
+                    width: attachText.implicitWidth + 16
+                    radius: 4
+                    color: root.codeBgColor
+
+                    Text {
+                        id: attachText
+
+                        anchors.centerIn: parent
+                        text: modelData
+                        color: root.fontColor
                     }
                 }
             }

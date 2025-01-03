@@ -1,8 +1,8 @@
 qt_add_library(QodeAssistChatView STATIC)
 
 qt_policy(SET QTP0001 NEW)
+qt_policy(SET QTP0004 NEW)
 
-# URI name should match the subdirectory name to suppress the warning
 qt_add_qml_module(QodeAssistChatView
     URI ChatView
     VERSION 1.0
@@ -13,6 +13,10 @@ qt_add_qml_module(QodeAssistChatView
     qml/Badge.qml
     qml/dialog/CodeBlock.qml
     qml/dialog/TextBlock.qml
+    RESOURCES
+    icons/attach-file.svg
+    icons/close-dark.svg
+    icons/close-light.svg
     SOURCES
     ChatWidget.hpp ChatWidget.cpp
     ChatModel.hpp ChatModel.cpp

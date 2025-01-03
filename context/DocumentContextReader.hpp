@@ -24,7 +24,7 @@
 
 #include <llmcore/ContextData.hpp>
 
-namespace QodeAssist {
+namespace QodeAssist::Context {
 
 struct CopyrightInfo
 {
@@ -61,4 +61,4 @@ private:
     CopyrightInfo m_copyrightInfo;
 };
 
-} // namespace QodeAssist
+} // namespace QodeAssist::Context

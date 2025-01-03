@@ -25,7 +25,7 @@
 #include <QTimer>
 #include <texteditor/textdocument.h>
 
-namespace QodeAssist {
+namespace QodeAssist::Context {
 
 class ChangesManager : public QObject
 {
@@ -58,4 +58,4 @@ private:
     QHash<TextEditor::TextDocument *, QQueue<ChangeInfo>> m_documentChanges;
 };
 
-} // namespace QodeAssist
+} // namespace QodeAssist::Context
