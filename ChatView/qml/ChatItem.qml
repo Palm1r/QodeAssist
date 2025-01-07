@@ -17,8 +17,6 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pragma ComponentBehavior: Bound
-
 import QtQuick
 import ChatView
 import QtQuick.Layouts

@@ -23,18 +23,18 @@ Rectangle {
     id: root
 
     property alias text: badgeText.text
-    property alias fontColor: badgeText.color
 
     implicitWidth: badgeText.implicitWidth + root.radius
     implicitHeight: badgeText.implicitHeight + 6
-    color: "lightgreen"
+    color: palette.button
     radius: root.height / 2
+    border.color: palette.mid
     border.width: 1
-    border.color: "gray"
 
     Text {
         id: badgeText
 
         anchors.centerIn: parent
+        color: palette.buttonText
     }
 }

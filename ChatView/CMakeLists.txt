@@ -13,6 +13,10 @@ qt_add_qml_module(QodeAssistChatView
     qml/Badge.qml
     qml/dialog/CodeBlock.qml
     qml/dialog/TextBlock.qml
+    qml/controls/QoAButton.qml
+    qml/parts/TopBar.qml
+    qml/parts/BottomBar.qml
+    qml/parts/AttachedFilesPlace.qml
     RESOURCES
     icons/attach-file.svg
     icons/close-dark.svg
