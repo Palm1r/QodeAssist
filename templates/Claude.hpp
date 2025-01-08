@@ -25,48 +25,15 @@
 
 namespace QodeAssist::Templates {
 
-class ClaudeCodeCompletion : public LLMCore::PromptTemplate
+class Claude : public LLMCore::PromptTemplate
 {
 public:
     LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
-    QString name() const override { return "Claude Code Completion"; }
-    QString promptTemplate() const override { return {}; }
-    QStringList stopWords() const override { return QStringList(); }
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
-    {
-        QJsonArray messages = request["messages"].toArray();
-
-        for (int i = 0; i < messages.size(); ++i) {
-            QJsonObject message = messages[i].toObject();
-            QString role = message["role"].toString();
-            QString content = message["content"].toString();
-
-            if (message["role"] == "user") {
-                message["content"]
-                    = QString("Here is the code context with insertion points: <code_context>"
-                              "\nBefore: %1\nAfter: %2\n </code_context>")
-                          .arg(context.prefix, context.suffix);
-            } else {
-                message["content"] = QString("%1").arg(content);
-            }
-
-            messages[i] = message;
-        }
-
-        request["messages"] = messages;
-    }
-    QString description() const override { return "Claude Chat for code completion"; }
-};
-
-class ClaudeChat : public LLMCore::PromptTemplate
-{
-public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
-    QString name() const override { return "Claude Chat"; }
+    QString name() const override { return "Claude"; }
     QString promptTemplate() const override { return {}; }
     QStringList stopWords() const override { return QStringList(); }
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override {}
-    QString description() const override { return "Claude Chat"; }
+    QString description() const override { return "Claude"; }
 };
 
 } // namespace QodeAssist::Templates

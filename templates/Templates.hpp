@@ -50,8 +50,7 @@ inline void registerTemplates()
     templateManager.registerTemplate<ChatML>();
     templateManager.registerTemplate<Alpaca>();
     templateManager.registerTemplate<Llama2>();
-    templateManager.registerTemplate<ClaudeCodeCompletion>();
-    templateManager.registerTemplate<ClaudeChat>();
+    templateManager.registerTemplate<Claude>();
 }
 
 } // namespace QodeAssist::Templates
