@@ -47,7 +47,7 @@ ChatAssistantSettings::ChatAssistantSettings()
     chatTokensThreshold.setLabelText(Tr::tr("Chat History Token Limit:"));
     chatTokensThreshold.setToolTip(Tr::tr("Maximum number of tokens in chat history. When "
                                           "exceeded, oldest messages will be removed."));
-    chatTokensThreshold.setRange(1000, 200000);
+    chatTokensThreshold.setRange(1, 900000);
     chatTokensThreshold.setDefaultValue(8000);
 
     sharingCurrentFile.setSettingsKey(Constants::CA_SHARING_CURRENT_FILE);

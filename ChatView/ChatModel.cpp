@@ -109,27 +109,12 @@ void ChatModel::addMessage(
         endInsertRows();
     }
 
-    trim();
     emit totalTokensChanged();
 }
 
 QVector<ChatModel::Message> ChatModel::getChatHistory() const
 {
     return m_messages;
-}
-
-void ChatModel::trim()
-{
-    while (m_totalTokens > tokensThreshold()) {
-        if (!m_messages.isEmpty()) {
-            m_totalTokens -= m_messages.first().tokenCount;
-            beginRemoveRows(QModelIndex(), 0, 0);
-            m_messages.removeFirst();
-            endRemoveRows();
-        } else {
-            break;
-        }
-    }
 }
 
 int ChatModel::estimateTokenCount(const QString &text) const

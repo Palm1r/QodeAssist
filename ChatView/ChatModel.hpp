@@ -82,7 +82,6 @@ signals:
     void modelReseted();
 
 private:
-    void trim();
     int estimateTokenCount(const QString &text) const;
 
     QVector<Message> m_messages;

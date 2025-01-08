@@ -78,6 +78,22 @@ QColor ChatRootView::backgroundColor() const
 
 void ChatRootView::sendMessage(const QString &message, bool sharingCurrentFile)
 {
+    if (m_chatModel->totalTokens() > m_chatModel->tokensThreshold()) {
+        QMessageBox::StandardButton reply = QMessageBox::question(
+            Core::ICore::dialogParent(),
+            tr("Token Limit Exceeded"),
+            tr("The chat history has exceeded the token limit.\n"
+               "Would you like to create new chat?"),
+            QMessageBox::Yes | QMessageBox::No);
+
+        if (reply == QMessageBox::Yes) {
+            autosave();
+            m_chatModel->clear();
+            m_recentFilePath = QString{};
+            return;
+        }
+    }
+
     m_clientInterface->sendMessage(message, m_attachmentFiles, sharingCurrentFile);
     clearAttachmentFiles();
 }
