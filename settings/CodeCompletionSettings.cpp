@@ -89,7 +89,7 @@ CodeCompletionSettings::CodeCompletionSettings()
 
     maxTokens.setSettingsKey(Constants::CC_MAX_TOKENS);
     maxTokens.setLabelText(Tr::tr("Max Tokens:"));
-    maxTokens.setRange(-1, 10000);
+    maxTokens.setRange(-1, 900000);
     maxTokens.setDefaultValue(50);
 
     // Advanced Parameters
@@ -164,6 +164,15 @@ CodeCompletionSettings::CodeCompletionSettings()
         "a code block using triple backticks. 6. Do not include any comments or descriptions with "
         "your code suggestion. Remember to include only the new code to be inserted.");
 
+    useUserMessageTemplateForCC.setSettingsKey(Constants::CC_USE_USER_TEMPLATE);
+    useUserMessageTemplateForCC.setDefaultValue(true);
+    useUserMessageTemplateForCC.setLabelText(Tr::tr("Use User Template for code completion message for non-FIM models"));
+
+    userMessageTemplateForCC.setSettingsKey(Constants::CC_USER_TEMPLATE);
+    userMessageTemplateForCC.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
+    userMessageTemplateForCC.setDefaultValue("Here is the code context with insertion points: <code_context>"
+                                             "\nBefore: %1After: %2\n </code_context>");
+
     useFilePathInContext.setSettingsKey(Constants::CC_USE_FILE_PATH_IN_CONTEXT);
     useFilePathInContext.setDefaultValue(true);
     useFilePathInContext.setLabelText(Tr::tr("Use File Path in Context"));
@@ -228,6 +237,8 @@ CodeCompletionSettings::CodeCompletionSettings()
         auto contextItem = Column{Row{contextGrid, Stretch{1}},
                                   Row{useSystemPrompt, Stretch{1}},
                                   systemPrompt,
+                                  Row{useUserMessageTemplateForCC, Stretch{1}},
+                                  userMessageTemplateForCC,
                                   Row{useFilePathInContext, Stretch{1}},
                                   Row{useProjectChangesCache, maxChangesCacheSize, Stretch{1}}};
 

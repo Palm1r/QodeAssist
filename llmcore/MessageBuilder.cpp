@@ -40,7 +40,7 @@ QodeAssist::LLMCore::MessageBuilder &QodeAssist::LLMCore::MessageBuilder::addSuf
     return *this;
 }
 
-QodeAssist::LLMCore::MessageBuilder &QodeAssist::LLMCore::MessageBuilder::addtTokenizer(
+QodeAssist::LLMCore::MessageBuilder &QodeAssist::LLMCore::MessageBuilder::addTokenizer(
     PromptTemplate *promptTemplate)
 {
     m_promptTemplate = promptTemplate;

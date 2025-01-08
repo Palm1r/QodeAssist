@@ -37,6 +37,8 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(QColor codeColor READ codeColor CONSTANT FINAL)
     Q_PROPERTY(bool isSharingCurrentFile READ isSharingCurrentFile NOTIFY
                    isSharingCurrentFileChanged FINAL)
+    Q_PROPERTY(QStringList attachmentFiles MEMBER m_attachmentFiles NOTIFY attachmentFilesChanged)
+
     QML_ELEMENT
 
 public:
@@ -62,16 +64,19 @@ public:
     void autosave();
     QString getAutosaveFilePath() const;
 
+    Q_INVOKABLE void showAttachFilesDialog();
+
 public slots:
-    void sendMessage(const QString &message, bool sharingCurrentFile = false) const;
+    void sendMessage(const QString &message, bool sharingCurrentFile = false);
     void copyToClipboard(const QString &text);
     void cancelRequest();
+    void clearAttachmentFiles();
 
 signals:
     void chatModelChanged();
     void currentTemplateChanged();
-
     void isSharingCurrentFileChanged();
+    void attachmentFilesChanged();
 
 private:
     void generateColors();
@@ -90,6 +95,7 @@ private:
     QColor m_secondaryColor;
     QColor m_codeColor;
     QString m_recentFilePath;
+    QStringList m_attachmentFiles;
 };
 
 } // namespace QodeAssist::Chat

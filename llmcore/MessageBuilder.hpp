@@ -53,7 +53,7 @@ public:
 
     MessageBuilder &addSuffix(const QString &content);
 
-    MessageBuilder &addtTokenizer(PromptTemplate *promptTemplate);
+    MessageBuilder &addTokenizer(PromptTemplate *promptTemplate);
 
     QString roleToString(MessageRole role) const;
 

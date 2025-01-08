@@ -33,6 +33,7 @@
 #include <texteditor/texteditor.h>
 
 #include "ChatAssistantSettings.hpp"
+#include "ContextManager.hpp"
 #include "GeneralSettings.hpp"
 #include "Logger.hpp"
 #include "PromptTemplateManager.hpp"
@@ -64,11 +65,13 @@ ClientInterface::ClientInterface(ChatModel *chatModel, QObject *parent)
 
 ClientInterface::~ClientInterface() = default;
 
-void ClientInterface::sendMessage(const QString &message, bool includeCurrentFile)
+void ClientInterface::sendMessage(
+    const QString &message, const QList<QString> &attachments, bool includeCurrentFile)
 {
     cancelRequest();
 
-    m_chatModel->addMessage(message, ChatModel::ChatRole::User, "");
+    auto attachFiles = Context::ContextManager::instance().getContentFiles(attachments);
+    m_chatModel->addMessage(message, ChatModel::ChatRole::User, "", attachFiles);
 
     auto &chatAssistantSettings = Settings::chatAssistantSettings();
 

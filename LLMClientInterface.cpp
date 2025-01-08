@@ -194,11 +194,18 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     if (!updatedContext.fileContext.isEmpty())
         systemPrompt.append(updatedContext.fileContext);
 
+    QString userMessage;
+    if (completeSettings.useUserMessageTemplateForCC() && promptTemplate->type() == LLMCore::TemplateType::Chat) {
+        userMessage = completeSettings.userMessageTemplateForCC().arg(updatedContext.prefix, updatedContext.suffix);
+    } else {
+        userMessage = updatedContext.prefix;
+    }
+
     auto message = LLMCore::MessageBuilder()
                        .addSystemMessage(systemPrompt)
-                       .addUserMessage(updatedContext.prefix)
+                       .addUserMessage(userMessage)
                        .addSuffix(updatedContext.suffix)
-                       .addtTokenizer(promptTemplate);
+                       .addTokenizer(promptTemplate);
 
     message.saveTo(
         config.providerRequest,
@@ -235,7 +242,7 @@ LLMCore::ContextData LLMClientInterface::prepareContext(const QJsonObject &reque
     int cursorPosition = position["character"].toInt();
     int lineNumber = position["line"].toInt();
 
-    DocumentContextReader reader(textDocument);
+    Context::DocumentContextReader reader(textDocument);
     return reader.prepareContext(lineNumber, cursorPosition);
 }
 

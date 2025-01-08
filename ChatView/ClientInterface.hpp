@@ -36,7 +36,10 @@ public:
     explicit ClientInterface(ChatModel *chatModel, QObject *parent = nullptr);
     ~ClientInterface();
 
-    void sendMessage(const QString &message, bool includeCurrentFile = false);
+    void sendMessage(
+        const QString &message,
+        const QList<QString> &attachments = {},
+        bool includeCurrentFile = false);
     void clearMessages();
     void cancelRequest();
 

@@ -17,56 +17,59 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-pragma ComponentBehavior: Bound
-
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Controls.Basic as QQC
 import QtQuick.Layouts
 import ChatView
+import "./controls"
+import "./parts"
 
 ChatRootView {
     id: root
 
+    property SystemPalette sysPalette: SystemPalette {
+        colorGroup: SystemPalette.Active
+    }
+
+    palette {
+        window: sysPalette.window
+        windowText: sysPalette.windowText
+        base: sysPalette.base
+        alternateBase: sysPalette.alternateBase
+        text: sysPalette.text
+        button: sysPalette.button
+        buttonText: sysPalette.buttonText
+        highlight: sysPalette.highlight
+        highlightedText: sysPalette.highlightedText
+        light: sysPalette.light
+        mid: sysPalette.mid
+        dark: sysPalette.dark
+        shadow: sysPalette.shadow
+        brightText: sysPalette.brightText
+    }
+
     Rectangle {
         id: bg
+
         anchors.fill: parent
-        color: root.backgroundColor
+        color: palette.window
     }
 
     ColumnLayout {
         anchors.fill: parent
 
-        RowLayout {
+        TopBar {
             id: topBar
 
-            Layout.leftMargin: 5
-            Layout.rightMargin: 5
-            spacing: 10
+            Layout.preferredWidth: parent.width
+            Layout.preferredHeight: 40
 
-            Button {
-                text: qsTr("Save")
-                onClicked: root.showSaveDialog()
-            }
-
-            Button {
-                text: qsTr("Load")
-                onClicked: root.showLoadDialog()
-            }
-
-            Button {
-                text: qsTr("Clear")
-                onClicked: root.clearChat()
-            }
-
-            Item {
-                Layout.fillWidth: true
-            }
-
-            Badge {
+            saveButton.onClicked: root.showSaveDialog()
+            loadButton.onClicked: root.showLoadDialog()
+            clearButton.onClicked: root.clearChat()
+            tokensBadge {
                 text: qsTr("tokens:%1/%2").arg(root.chatModel.totalTokens).arg(root.chatModel.tokensThreshold)
-                color: root.codeColor
-                fontColor: root.primaryColor.hslLightness > 0.5 ? "black" : "white"
             }
         }
 
@@ -84,8 +87,10 @@ ChatRootView {
 
             delegate: ChatItem {
                 required property var model
+
                 width: ListView.view.width - scroll.width
                 msgModel: root.chatModel.processMessageContent(model.content)
+                messageAttachments: model.attachments
                 color: model.roleType === ChatModel.User ? root.primaryColor : root.secondaryColor
                 fontColor: root.primaryColor.hslLightness > 0.5 ? "black" : "white"
                 codeBgColor: root.codeColor
@@ -143,32 +148,23 @@ ChatRootView {
             }
         }
 
-        RowLayout {
+        AttachedFilesPlace {
+            id: attachedFilesPlace
+
             Layout.fillWidth: true
-            spacing: 5
+            attachedFilesModel: root.attachmentFiles
+        }
 
-            Button {
-                id: sendButton
+        BottomBar {
+            id: bottomBar
 
-                Layout.alignment: Qt.AlignBottom
-                text: qsTr("Send")
-                onClicked: root.sendChatMessage()
-            }
+            Layout.preferredWidth: parent.width
+            Layout.preferredHeight: 40
 
-            Button {
-                id: stopButton
-
-                Layout.alignment: Qt.AlignBottom
-                text: qsTr("Stop")
-                onClicked: root.cancelRequest()
-            }
-
-            CheckBox {
-                id: sharingCurrentFile
-
-                text: "Share current file with models"
-                checked: root.isSharingCurrentFile
-            }
+            sendButton.onClicked: root.sendChatMessage()
+            stopButton.onClicked: root.cancelRequest()
+            sharingCurrentFile.checked: root.isSharingCurrentFile
+            attachFiles.onClicked: root.showAttachFilesDialog()
         }
     }
 
@@ -181,7 +177,7 @@ ChatRootView {
     }
 
     function sendChatMessage() {
-        root.sendMessage(messageInput.text, sharingCurrentFile.checked)
+        root.sendMessage(messageInput.text, bottomBar.sharingCurrentFile.checked)
         messageInput.text = ""
         scrollToBottom()
     }

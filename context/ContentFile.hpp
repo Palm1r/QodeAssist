@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -19,21 +19,14 @@
 
 #pragma once
 
-#include <QJsonArray>
+#include <QString>
 
-#include "llmcore/PromptTemplate.hpp"
+namespace QodeAssist::Context {
 
-namespace QodeAssist::Templates {
-
-class Claude : public LLMCore::PromptTemplate
+struct ContentFile
 {
-public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
-    QString name() const override { return "Claude"; }
-    QString promptTemplate() const override { return {}; }
-    QStringList stopWords() const override { return QStringList(); }
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override {}
-    QString description() const override { return "Claude"; }
+    QString filename;
+    QString content;
 };
 
-} // namespace QodeAssist::Templates
+} // namespace QodeAssist::Context

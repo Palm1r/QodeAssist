@@ -19,21 +19,28 @@
 
 #pragma once
 
-#include <QJsonArray>
+#include <QObject>
+#include <QString>
 
-#include "llmcore/PromptTemplate.hpp"
+#include "ContentFile.hpp"
 
-namespace QodeAssist::Templates {
+namespace QodeAssist::Context {
 
-class Claude : public LLMCore::PromptTemplate
+class ContextManager : public QObject
 {
+    Q_OBJECT
+
 public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
-    QString name() const override { return "Claude"; }
-    QString promptTemplate() const override { return {}; }
-    QStringList stopWords() const override { return QStringList(); }
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override {}
-    QString description() const override { return "Claude"; }
+    static ContextManager &instance();
+    QString readFile(const QString &filePath) const;
+    QList<ContentFile> getContentFiles(const QStringList &filePaths) const;
+
+private:
+    explicit ContextManager(QObject *parent = nullptr);
+    ~ContextManager() = default;
+    ContextManager(const ContextManager &) = delete;
+    ContextManager &operator=(const ContextManager &) = delete;
+    ContentFile createContentFile(const QString &filePath) const;
 };
 
-} // namespace QodeAssist::Templates
+} // namespace QodeAssist::Context

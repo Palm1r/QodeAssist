@@ -55,6 +55,13 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
     case Roles::Content: {
         return message.content;
     }
+    case Roles::Attachments: {
+        QStringList filenames;
+        for (const auto &attachment : message.attachments) {
+            filenames << attachment.filename;
+        }
+        return filenames;
+    }
     default:
         return QVariant();
     }
@@ -65,48 +72,49 @@ QHash<int, QByteArray> ChatModel::roleNames() const
     QHash<int, QByteArray> roles;
     roles[Roles::RoleType] = "roleType";
     roles[Roles::Content] = "content";
+    roles[Roles::Attachments] = "attachments";
     return roles;
 }
 
-void ChatModel::addMessage(const QString &content, ChatRole role, const QString &id)
+void ChatModel::addMessage(
+    const QString &content,
+    ChatRole role,
+    const QString &id,
+    const QList<Context::ContentFile> &attachments)
 {
-    int tokenCount = estimateTokenCount(content);
+    QString fullContent = content;
+    if (!attachments.isEmpty()) {
+        fullContent += "\n\nAttached files list:";
+        for (const auto &attachment : attachments) {
+            fullContent += QString("\nname: %1\nfile content:\n%2")
+                               .arg(attachment.filename, attachment.content);
+        }
+    }
+    int tokenCount = estimateTokenCount(fullContent);
 
     if (!m_messages.isEmpty() && !id.isEmpty() && m_messages.last().id == id) {
         Message &lastMessage = m_messages.last();
         int oldTokenCount = lastMessage.tokenCount;
         lastMessage.content = content;
+        lastMessage.attachments = attachments;
         lastMessage.tokenCount = tokenCount;
         m_totalTokens += (tokenCount - oldTokenCount);
         emit dataChanged(index(m_messages.size() - 1), index(m_messages.size() - 1));
     } else {
         beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());
-        m_messages.append({role, content, tokenCount, id});
+        Message newMessage{role, content, tokenCount, id};
+        newMessage.attachments = attachments;
+        m_messages.append(newMessage);
         m_totalTokens += tokenCount;
         endInsertRows();
     }
 
-    trim();
     emit totalTokensChanged();
 }
 
 QVector<ChatModel::Message> ChatModel::getChatHistory() const
 {
     return m_messages;
-}
-
-void ChatModel::trim()
-{
-    while (m_totalTokens > tokensThreshold()) {
-        if (!m_messages.isEmpty()) {
-            m_totalTokens -= m_messages.first().tokenCount;
-            beginRemoveRows(QModelIndex(), 0, 0);
-            m_messages.removeFirst();
-            endRemoveRows();
-        } else {
-            break;
-        }
-    }
 }
 
 int ChatModel::estimateTokenCount(const QString &text) const
@@ -156,7 +164,6 @@ QList<MessagePart> ChatModel::processMessageContent(const QString &content) cons
 QJsonArray ChatModel::prepareMessagesForRequest(const QString &systemPrompt) const
 {
     QJsonArray messages;
-
     messages.append(QJsonObject{{"role", "system"}, {"content", systemPrompt}});
 
     for (const auto &message : m_messages) {
@@ -171,7 +178,22 @@ QJsonArray ChatModel::prepareMessagesForRequest(const QString &systemPrompt) con
         default:
             continue;
         }
-        messages.append(QJsonObject{{"role", role}, {"content", message.content}});
+
+        QString content
+            = message.attachments.isEmpty()
+                  ? message.content
+                  : message.content + "\n\nAttached files list:"
+                        + std::accumulate(
+                            message.attachments.begin(),
+                            message.attachments.end(),
+                            QString(),
+                            [](QString acc, const Context::ContentFile &attachment) {
+                                return acc
+                                       + QString("\nname: %1\nfile content:\n%2")
+                                             .arg(attachment.filename, attachment.content);
+                            });
+
+        messages.append(QJsonObject{{"role", role}, {"content", content}});
     }
 
     return messages;

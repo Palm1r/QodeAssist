@@ -1,6 +1,8 @@
 add_library(Context STATIC
     DocumentContextReader.hpp DocumentContextReader.cpp
     ChangesManager.h ChangesManager.cpp
+    ContextManager.hpp ContextManager.cpp
+    ContentFile.hpp
 )
 
 target_link_libraries(Context
