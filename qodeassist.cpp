@@ -19,6 +19,8 @@
 
 #include "QodeAssistConstants.hpp"
 #include "QodeAssisttr.h"
+#include "settings/PluginUpdater.hpp"
+#include "settings/UpdateDialog.hpp"
 
 #include <coreplugin/actionmanager/actioncontainer.h>
 #include <coreplugin/actionmanager/actionmanager.h>
@@ -32,19 +34,21 @@
 #include <extensionsystem/iplugin.h>
 #include <languageclient/languageclientmanager.h>
 
+#include <texteditor/texteditor.h>
+#include <utils/icon.h>
 #include <QAction>
 #include <QMainWindow>
 #include <QMenu>
 #include <QMessageBox>
-#include <texteditor/texteditor.h>
-#include <utils/icon.h>
 
 #include "ConfigurationManager.hpp"
 #include "QodeAssistClient.hpp"
 #include "chat/ChatOutputPane.h"
 #include "chat/NavigationPanel.hpp"
+#include "settings/GeneralSettings.hpp"
 #include "settings/ProjectSettingsPanel.hpp"
 
+#include "UpdateStatusWidget.hpp"
 #include "providers/Providers.hpp"
 #include "templates/Templates.hpp"
 
@@ -61,8 +65,8 @@ class QodeAssistPlugin final : public ExtensionSystem::IPlugin
 
 public:
     QodeAssistPlugin()
-    {
-    }
+        : m_updater(new PluginUpdater(this))
+    {}
 
     ~QodeAssistPlugin() final
     {
@@ -96,33 +100,36 @@ public:
             }
         });
 
-        auto toggleButton = new QToolButton;
-        toggleButton->setDefaultAction(requestAction.contextAction());
-        StatusBarManager::addStatusBarWidget(toggleButton, StatusBarManager::RightCorner);
+        m_statusWidget = new UpdateStatusWidget;
+        m_statusWidget->setDefaultAction(requestAction.contextAction());
+        StatusBarManager::addStatusBarWidget(m_statusWidget, StatusBarManager::RightCorner);
+
+        connect(m_statusWidget->updateButton(), &QPushButton::clicked, this, [this]() {
+            UpdateDialog::checkForUpdatesAndShow(Core::ICore::mainWindow());
+        });
 
         m_chatOutputPane = new Chat::ChatOutputPane(this);
         m_navigationPanel = new Chat::NavigationPanel();
 
         Settings::setupProjectPanel();
-
         ConfigurationManager::instance().init();
+
+        if (Settings::generalSettings().enableCheckUpdate()) {
+            QTimer::singleShot(3000, this, &QodeAssistPlugin::checkForUpdates);
+        }
     }
 
-    void extensionsInitialized() final
-    {
-    }
+    void extensionsInitialized() final {}
 
     void restartClient()
     {
         LanguageClient::LanguageClientManager::shutdownClient(m_qodeAssistClient);
-
         m_qodeAssistClient = new QodeAssistClient();
     }
 
     bool delayedInitialize() final
     {
         restartClient();
-
         return true;
     }
 
@@ -130,17 +137,36 @@ public:
     {
         if (!m_qodeAssistClient)
             return SynchronousShutdown;
-        connect(m_qodeAssistClient,
-                &QObject::destroyed,
-                this,
-                &IPlugin::asynchronousShutdownFinished);
+        connect(m_qodeAssistClient, &QObject::destroyed, this, &IPlugin::asynchronousShutdownFinished);
         return AsynchronousShutdown;
     }
 
 private:
+    void checkForUpdates()
+    {
+        connect(
+            m_updater,
+            &PluginUpdater::updateCheckFinished,
+            this,
+            &QodeAssistPlugin::handleUpdateCheckResult,
+            Qt::UniqueConnection);
+        m_updater->checkForUpdates();
+    }
+
+    void handleUpdateCheckResult(const PluginUpdater::UpdateInfo &info)
+    {
+        if (!info.isUpdateAvailable)
+            return;
+
+        if (m_statusWidget)
+            m_statusWidget->showUpdateAvailable(info.version);
+    }
+
     QPointer<QodeAssistClient> m_qodeAssistClient;
     QPointer<Chat::ChatOutputPane> m_chatOutputPane;
     QPointer<Chat::NavigationPanel> m_navigationPanel;
+    QPointer<PluginUpdater> m_updater;
+    UpdateStatusWidget *m_statusWidget{nullptr};
 };
 
 } // namespace QodeAssist::Internal

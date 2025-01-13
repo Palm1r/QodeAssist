@@ -35,6 +35,8 @@ public:
 
     Utils::BoolAspect enableQodeAssist{this};
     Utils::BoolAspect enableLogging{this};
+    Utils::BoolAspect enableCheckUpdate{this};
+    ButtonAspect checkUpdate{this};
     ButtonAspect resetToDefaults{this};
 
     // code completion setttings

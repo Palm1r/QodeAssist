@@ -28,6 +28,7 @@ inline const char *ENABLE_QODE_ASSIST = QT_TRANSLATE_NOOP("QtC::QodeAssist", "En
 inline const char *GENERAL = QT_TRANSLATE_NOOP("QtC::QodeAssist", "General");
 inline const char *RESET_TO_DEFAULTS = QT_TRANSLATE_NOOP("QtC::QodeAssist",
                                                          "Reset Page to Defaults");
+inline const char *CHECK_UPDATE = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Check Update");
 inline const char *SELECT = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Select...");
 inline const char *PROVIDER = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Provider:");
 inline const char *MODEL = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Model:");
@@ -36,6 +37,9 @@ inline const char *URL = QT_TRANSLATE_NOOP("QtC::QodeAssist", "URL:");
 inline const char *STATUS = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Status:");
 inline const char *TEST = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Test");
 inline const char *ENABLE_LOG = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Enable Logging");
+inline const char *ENABLE_CHECK_UPDATE_ON_START
+    = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Check for updates when Qt Creator starts");
+
 inline const char *CODE_COMPLETION = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Code Completion");
 inline const char *CHAT_ASSISTANT = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Chat Assistant");
 inline const char *RESET_SETTINGS = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Reset Settings");
