@@ -50,6 +50,8 @@ const char CA_URL_HISTORY[] = "QodeAssist.caUrlHistory";
 const char ENABLE_QODE_ASSIST[] = "QodeAssist.enableQodeAssist";
 const char CC_AUTO_COMPLETION[] = "QodeAssist.ccAutoCompletion";
 const char ENABLE_LOGGING[] = "QodeAssist.enableLogging";
+const char ENABLE_CHECK_UPDATE[] = "QodeAssist.enableCheckUpdate";
+
 const char PROVIDER_PATHS[] = "QodeAssist.providerPaths";
 const char СС_START_SUGGESTION_TIMER[] = "QodeAssist.startSuggestionTimer";
 const char СС_AUTO_COMPLETION_CHAR_THRESHOLD[] = "QodeAssist.autoCompletionCharThreshold";

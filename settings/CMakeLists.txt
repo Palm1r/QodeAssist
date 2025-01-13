@@ -11,6 +11,8 @@ add_library(QodeAssistSettings STATIC
     ProjectSettings.hpp ProjectSettings.cpp
     ProjectSettingsPanel.hpp ProjectSettingsPanel.cpp
     ProviderSettings.hpp ProviderSettings.cpp
+    PluginUpdater.hpp PluginUpdater.cpp
+    UpdateDialog.hpp UpdateDialog.cpp
 )
 
 target_link_libraries(QodeAssistSettings
