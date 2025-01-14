@@ -31,10 +31,6 @@ class ChatRootView : public QQuickItem
     Q_OBJECT
     Q_PROPERTY(QodeAssist::Chat::ChatModel *chatModel READ chatModel NOTIFY chatModelChanged FINAL)
     Q_PROPERTY(QString currentTemplate READ currentTemplate NOTIFY currentTemplateChanged FINAL)
-    Q_PROPERTY(QColor backgroundColor READ backgroundColor CONSTANT FINAL)
-    Q_PROPERTY(QColor primaryColor READ primaryColor CONSTANT FINAL)
-    Q_PROPERTY(QColor secondaryColor READ secondaryColor CONSTANT FINAL)
-    Q_PROPERTY(QColor codeColor READ codeColor CONSTANT FINAL)
     Q_PROPERTY(bool isSharingCurrentFile READ isSharingCurrentFile NOTIFY
                    isSharingCurrentFileChanged FINAL)
     Q_PROPERTY(QStringList attachmentFiles MEMBER m_attachmentFiles NOTIFY attachmentFilesChanged)
@@ -46,12 +42,6 @@ public:
 
     ChatModel *chatModel() const;
     QString currentTemplate() const;
-
-    QColor backgroundColor() const;
-    QColor primaryColor() const;
-    QColor secondaryColor() const;
-
-    QColor codeColor() const;
 
     bool isSharingCurrentFile() const;
 
@@ -79,21 +69,12 @@ signals:
     void attachmentFilesChanged();
 
 private:
-    void generateColors();
-    QColor generateColor(const QColor &baseColor,
-                         float hueShift,
-                         float saturationMod,
-                         float lightnessMod);
-
     QString getChatsHistoryDir() const;
     QString getSuggestedFileName() const;
 
     ChatModel *m_chatModel;
     ClientInterface *m_clientInterface;
     QString m_currentTemplate;
-    QColor m_primaryColor;
-    QColor m_secondaryColor;
-    QColor m_codeColor;
     QString m_recentFilePath;
     QStringList m_attachmentFiles;
 };

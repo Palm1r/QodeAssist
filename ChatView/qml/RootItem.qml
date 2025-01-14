@@ -58,6 +58,7 @@ ChatRootView {
 
     ColumnLayout {
         anchors.fill: parent
+        spacing: 0
 
         TopBar {
             id: topBar
@@ -91,12 +92,8 @@ ChatRootView {
                 width: ListView.view.width - scroll.width
                 msgModel: root.chatModel.processMessageContent(model.content)
                 messageAttachments: model.attachments
-                color: model.roleType === ChatModel.User ? root.primaryColor : root.secondaryColor
-                fontColor: root.primaryColor.hslLightness > 0.5 ? "black" : "white"
-                codeBgColor: root.codeColor
-                selectionColor: root.primaryColor.hslLightness > 0.5 ? Qt.darker(root.primaryColor, 1.5)
-                                                                     : Qt.lighter(root.primaryColor, 1.5)
-
+                color: model.roleType === ChatModel.User ? palette.alternateBase
+                                                         : palette.base
             }
 
             header: Item {
@@ -130,15 +127,26 @@ ChatRootView {
                 id: messageInput
 
                 placeholderText: qsTr("Type your message here...")
-                placeholderTextColor: "#888"
-                color: root.primaryColor.hslLightness > 0.5 ? "black" : "white"
+                placeholderTextColor: palette.mid
+                color: palette.text
                 background: Rectangle {
                     radius: 2
-                    color: root.primaryColor
-                    border.color: root.primaryColor.hslLightness > 0.5 ? Qt.lighter(root.primaryColor, 1.5)
-                                                                       : Qt.darker(root.primaryColor, 1.5)
+                    color: palette.base
+                    border.color:  messageInput.activeFocus ? palette.highlight : palette.button
                     border.width: 1
+
+                    Behavior on border.color {
+                        ColorAnimation { duration: 150 }
+                    }
+
+                    Rectangle {
+                        anchors.fill: parent
+                        color: palette.highlight
+                        opacity: messageInput.hovered ? 0.1 : 0
+                        radius: parent.radius
+                    }
                 }
+
                 Keys.onPressed: function(event) {
                     if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && !(event.modifiers & Qt.ShiftModifier)) {
                         root.sendChatMessage()

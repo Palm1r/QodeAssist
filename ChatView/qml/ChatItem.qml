@@ -27,9 +27,6 @@ Rectangle {
 
     property alias msgModel: msgCreator.model
     property alias messageAttachments: attachmentsModel.model
-    property color fontColor
-    property color codeBgColor
-    property color selectionColor
 
     height: msgColumn.implicitHeight + 10
     radius: 8
@@ -100,14 +97,16 @@ Rectangle {
                     height: attachText.implicitHeight + 8
                     width: attachText.implicitWidth + 16
                     radius: 4
-                    color: root.codeBgColor
+                    color: palette.button
+                    border.width: 1
+                    border.color: palette.mid
 
                     Text {
                         id: attachText
 
                         anchors.centerIn: parent
                         text: modelData
-                        color: root.fontColor
+                        color: palette.text
                     }
                 }
             }
@@ -120,8 +119,6 @@ Rectangle {
         verticalAlignment: Text.AlignVCenter
         leftPadding: 10
         text: itemData.text
-        color: root.fontColor
-        selectionColor: root.selectionColor
     }
 
 
@@ -136,8 +133,5 @@ Rectangle {
 
         code: itemData.text
         language: itemData.language
-        color: root.codeBgColor
-        selectionColor: root.selectionColor
     }
-
 }

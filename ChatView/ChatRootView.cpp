@@ -62,18 +62,11 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         &ChatRootView::autosave);
 
     connect(m_chatModel, &ChatModel::modelReseted, [this]() { m_recentFilePath = QString(); });
-
-    generateColors();
 }
 
 ChatModel *ChatRootView::chatModel() const
 {
     return m_chatModel;
-}
-
-QColor ChatRootView::backgroundColor() const
-{
-    return Utils::creatorColor(Utils::Theme::BackgroundColorNormal);
 }
 
 void ChatRootView::sendMessage(const QString &message, bool sharingCurrentFile)
@@ -116,49 +109,6 @@ void ChatRootView::clearAttachmentFiles()
     }
 }
 
-void ChatRootView::generateColors()
-{
-    QColor baseColor = backgroundColor();
-    bool isDarkTheme = baseColor.lightness() < 128;
-
-    if (isDarkTheme) {
-        m_primaryColor = generateColor(baseColor, 0.1, 1.2, 1.4);
-        m_secondaryColor = generateColor(baseColor, -0.1, 1.1, 1.2);
-        m_codeColor = generateColor(baseColor, 0.05, 0.8, 1.1);
-    } else {
-        m_primaryColor = generateColor(baseColor, 0.05, 1.05, 1.1);
-        m_secondaryColor = generateColor(baseColor, -0.05, 1.1, 1.2);
-        m_codeColor = generateColor(baseColor, 0.02, 0.95, 1.05);
-    }
-}
-
-QColor ChatRootView::generateColor(const QColor &baseColor,
-                                   float hueShift,
-                                   float saturationMod,
-                                   float lightnessMod)
-{
-    float h, s, l, a;
-    baseColor.getHslF(&h, &s, &l, &a);
-    bool isDarkTheme = l < 0.5;
-
-    h = fmod(h + hueShift + 1.0, 1.0);
-
-    s = qBound(0.0f, s * saturationMod, 1.0f);
-
-    if (isDarkTheme) {
-        l = qBound(0.0f, l * lightnessMod, 1.0f);
-    } else {
-        l = qBound(0.0f, l / lightnessMod, 1.0f);
-    }
-
-    h = qBound(0.0f, h, 1.0f);
-    s = qBound(0.0f, s, 1.0f);
-    l = qBound(0.0f, l, 1.0f);
-    a = qBound(0.0f, a, 1.0f);
-
-    return QColor::fromHslF(h, s, l, a);
-}
-
 QString ChatRootView::getChatsHistoryDir() const
 {
     QString path;
@@ -183,21 +133,6 @@ QString ChatRootView::currentTemplate() const
 {
     auto &settings = Settings::generalSettings();
     return settings.caModel();
-}
-
-QColor ChatRootView::primaryColor() const
-{
-    return m_primaryColor;
-}
-
-QColor ChatRootView::secondaryColor() const
-{
-    return m_secondaryColor;
-}
-
-QColor ChatRootView::codeColor() const
-{
-    return m_codeColor;
 }
 
 bool ChatRootView::isSharingCurrentFile() const

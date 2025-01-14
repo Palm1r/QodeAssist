@@ -26,4 +26,6 @@ TextEdit {
     selectByMouse: true
     wrapMode: Text.WordWrap
     textFormat: Text.StyledText
+    selectionColor: palette.highlight
+    color: palette.text
 }

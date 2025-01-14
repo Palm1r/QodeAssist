@@ -30,6 +30,8 @@ Flow {
     spacing: 5
     leftPadding: 5
     rightPadding: 5
+    topPadding: attachRepeater.model.length > 0 ? 2 : 0
+    bottomPadding: attachRepeater.model.length > 0 ? 2 : 0
     
     Repeater {
         id: attachRepeater
@@ -42,6 +44,8 @@ Flow {
             width: fileNameText.width + closeButton.width + 20
             radius: 4
             color: palette.button
+            border.width: 1
+            border.color: palette.mid
             
             Row {
                 spacing: 5
