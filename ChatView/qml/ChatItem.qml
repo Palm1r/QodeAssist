@@ -46,7 +46,7 @@ Rectangle {
                 // why does `required property MessagePart modelData` not work?
                 required property var modelData
 
-                width: parent.width
+                Layout.preferredWidth: root.width
                 sourceComponent: {
                     // If `required property MessagePart modelData` is used
                     // and conversion to MessagePart fails, you're left
