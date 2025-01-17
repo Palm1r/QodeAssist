@@ -53,13 +53,15 @@ add_qtc_plugin(QodeAssist
     templates/ChatML.hpp
     templates/Alpaca.hpp
     templates/Llama2.hpp
-    providers/Providers.hpp
     templates/Claude.hpp
+    templates/OpenAI.hpp
+    providers/Providers.hpp
     providers/OllamaProvider.hpp providers/OllamaProvider.cpp
     providers/LMStudioProvider.hpp providers/LMStudioProvider.cpp
     providers/OpenAICompatProvider.hpp providers/OpenAICompatProvider.cpp
     providers/OpenRouterAIProvider.hpp providers/OpenRouterAIProvider.cpp
     providers/ClaudeProvider.hpp providers/ClaudeProvider.cpp
+    providers/OpenAIProvider.hpp providers/OpenAIProvider.cpp
     QodeAssist.qrc
     LSPCompletion.hpp
     LLMSuggestion.hpp LLMSuggestion.cpp

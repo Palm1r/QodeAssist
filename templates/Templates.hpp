@@ -30,6 +30,7 @@
 #include "templates/Llama2.hpp"
 #include "templates/Llama3.hpp"
 #include "templates/Ollama.hpp"
+#include "templates/OpenAI.hpp"
 #include "templates/Qwen.hpp"
 #include "templates/StarCoder2Fim.hpp"
 
@@ -51,6 +52,7 @@ inline void registerTemplates()
     templateManager.registerTemplate<Alpaca>();
     templateManager.registerTemplate<Llama2>();
     templateManager.registerTemplate<Claude>();
+    templateManager.registerTemplate<OpenAI>();
 }
 
 } // namespace QodeAssist::Templates

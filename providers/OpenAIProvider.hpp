@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -19,25 +19,26 @@
 
 #pragma once
 
-#include "llmcore/ProvidersManager.hpp"
-#include "providers/ClaudeProvider.hpp"
-#include "providers/LMStudioProvider.hpp"
-#include "providers/OllamaProvider.hpp"
-#include "providers/OpenAICompatProvider.hpp"
-#include "providers/OpenAIProvider.hpp"
-#include "providers/OpenRouterAIProvider.hpp"
+#include "llmcore/Provider.hpp"
 
 namespace QodeAssist::Providers {
 
-inline void registerProviders()
+class OpenAIProvider : public LLMCore::Provider
 {
-    auto &providerManager = LLMCore::ProvidersManager::instance();
-    providerManager.registerProvider<OllamaProvider>();
-    providerManager.registerProvider<LMStudioProvider>();
-    providerManager.registerProvider<OpenAICompatProvider>();
-    providerManager.registerProvider<OpenRouterProvider>();
-    providerManager.registerProvider<ClaudeProvider>();
-    providerManager.registerProvider<OpenAIProvider>();
-}
+public:
+    OpenAIProvider();
+
+    QString name() const override;
+    QString url() const override;
+    QString completionEndpoint() const override;
+    QString chatEndpoint() const override;
+    bool supportsModelListing() const override;
+    void prepareRequest(QJsonObject &request, LLMCore::RequestType type) override;
+    bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) override;
+    QList<QString> getInstalledModels(const QString &url) override;
+    QList<QString> validateRequest(const QJsonObject &request, LLMCore::TemplateType type) override;
+    QString apiKey() const override;
+    void prepareNetworkRequest(QNetworkRequest &networkRequest) const override;
+};
 
 } // namespace QodeAssist::Providers
