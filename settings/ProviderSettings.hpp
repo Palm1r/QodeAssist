@@ -36,6 +36,7 @@ public:
     Utils::StringAspect openRouterApiKey{this};
     Utils::StringAspect openAiCompatApiKey{this};
     Utils::StringAspect claudeApiKey{this};
+    Utils::StringAspect openAiApiKey{this};
 
 private:
     void setupConnections();

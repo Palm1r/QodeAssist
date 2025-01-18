@@ -69,6 +69,14 @@ ProviderSettings::ProviderSettings()
     claudeApiKey.setDefaultValue("");
     claudeApiKey.setAutoApply(true);
 
+    openAiApiKey.setSettingsKey(Constants::OPEN_AI_API_KEY);
+    openAiApiKey.setLabelText(Tr::tr("OpenAI API Key:"));
+    openAiApiKey.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    openAiApiKey.setPlaceHolderText(Tr::tr("Enter your API key here"));
+    openAiApiKey.setHistoryCompleter(Constants::OPEN_AI_API_KEY_HISTORY);
+    openAiApiKey.setDefaultValue("");
+    openAiApiKey.setAutoApply(true);
+
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
 
     readSettings();
@@ -82,6 +90,8 @@ ProviderSettings::ProviderSettings()
             Row{Stretch{1}, resetToDefaults},
             Space{8},
             Group{title(Tr::tr("OpenRouter Settings")), Column{openRouterApiKey}},
+            Space{8},
+            Group{title(Tr::tr("OpenAI Settings")), Column{openAiApiKey}},
             Space{8},
             Group{title(Tr::tr("OpenAI Compatible Settings")), Column{openAiCompatApiKey}},
             Space{8},
@@ -101,6 +111,7 @@ void ProviderSettings::setupConnections()
         openAiCompatApiKey.writeSettings();
     });
     connect(&claudeApiKey, &ButtonAspect::changed, this, [this]() { claudeApiKey.writeSettings(); });
+    connect(&openAiApiKey, &ButtonAspect::changed, this, [this]() { openAiApiKey.writeSettings(); });
 }
 
 void ProviderSettings::resetSettingsToDefaults()
@@ -116,6 +127,7 @@ void ProviderSettings::resetSettingsToDefaults()
         resetAspect(openRouterApiKey);
         resetAspect(openAiCompatApiKey);
         resetAspect(claudeApiKey);
+        resetAspect(openAiApiKey);
     }
 }
 

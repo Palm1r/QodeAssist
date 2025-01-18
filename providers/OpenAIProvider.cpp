@@ -214,7 +214,7 @@ QList<QString> OpenAIProvider::validateRequest(const QJsonObject &request, LLMCo
 
 QString OpenAIProvider::apiKey() const
 {
-    return Settings::providerSettings().openAiCompatApiKey();
+    return Settings::providerSettings().openAiApiKey();
 }
 
 void OpenAIProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const

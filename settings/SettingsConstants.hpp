@@ -89,6 +89,8 @@ const char OPEN_AI_COMPAT_API_KEY[] = "QodeAssist.openAiCompatApiKey";
 const char OPEN_AI_COMPAT_API_KEY_HISTORY[] = "QodeAssist.openAiCompatApiKeyHistory";
 const char CLAUDE_API_KEY[] = "QodeAssist.claudeApiKey";
 const char CLAUDE_API_KEY_HISTORY[] = "QodeAssist.claudeApiKeyHistory";
+const char OPEN_AI_API_KEY[] = "QodeAssist.openAiApiKey";
+const char OPEN_AI_API_KEY_HISTORY[] = "QodeAssist.openAiApiKeyHistory";
 
 // context settings
 const char CC_READ_FULL_FILE[] = "QodeAssist.ccReadFullFile";
