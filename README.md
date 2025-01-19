@@ -15,18 +15,17 @@
 
 ## Table of Contents
 1. [Overview](#overview)
-2. [Installation for using Ollama](#installation-for-using-Ollama)
-3. [Installation for using Claude](#installation-for-using-Claude)
-3. [Configure Plugin](#configure-plugin)
-4. [Supported LLM Providers](#supported-llm-providers)
-5. [Recommended Models](#recommended-models)
-   - [Ollama](#ollama)
-6. [QtCreator Version Compatibility](#qtcreator-version-compatibility)
-7. [Development Progress](#development-progress)
-8. [Hotkeys](#hotkeys)
-9. [Troubleshooting](#troubleshooting)
-10. [Support the Development](#support-the-development-of-qodeassist)
-11. [How to Build](#how-to-build)
+2. [Install plugin to QtCreator](#install-plugin-to-qtcreator)
+3. [Configure for Anthropic Claude](#configure-for-anthropic-claude)
+4. [Configure for OpenAI](#configure-for-openai)
+5. [Configure for using Ollama](#configure-for-using-ollama)
+6. [Template-Model Compatibility](#template-model-compatibility)
+7. [QtCreator Version Compatibility](#qtcreator-version-compatibility)
+8. [Development Progress](#development-progress)
+9. [Hotkeys](#hotkeys)
+10. [Troubleshooting](#troubleshooting)
+11. [Support the Development](#support-the-development-of-qodeassist)
+12. [How to Build](#how-to-build)
 
 ## Overview
 
@@ -35,7 +34,8 @@
   - Side and Bottom panels
 - Support for multiple LLM providers:
   - Ollama
-  - Claude
+  - OpenAI
+  - Anthropic Claude
   - LM Studio
   - OpenAI-compatible providers(eg. https://openrouter.ai)
 - Extensive library of model-specific templates
@@ -62,11 +62,46 @@
   <img width="326" alt="QodeAssistBottomPanel" src="https://github.com/user-attachments/assets/4cc64c23-a294-4df8-9153-39ad6fdab34b">
 </details>
 
-## Installation for using Ollama
+## Install plugin to QtCreator
+1. Install Latest Qt Creator
+2. Download the QodeAssist plugin for your Qt Creator
+3. Launch Qt Creator and install the plugin:
+   - Go to: 
+     - MacOS: Qt Creator -> About Plugins...
+     - Windows\Linux: Help -> About Plugins...
+   - Click on "Install Plugin..."
+   - Select the downloaded QodeAssist plugin archive file
 
-1. Install Latest QtCreator
-2. Install [Ollama](https://ollama.com). Make sure to review the system requirements before installation.
-3. Install a language models in Ollama via terminal. For example, you can run:
+## Configure for Anthropic Claude
+1. Open Qt Creator settings and navigate to the QodeAssist section
+2. Go to Provider Settings tab and configure Claude api key
+3. Return to General tab and configure:
+   - Set "Claude" as the provider for code completion or/and chat assistant
+   - Set the Claude URL (https://api.anthropic.com)
+   - Select your preferred model (e.g., claude-3-5-sonnet-20241022)
+   - Choose the Claude template for code completion or/and chat
+<details>
+  <summary>Example of Claude settings: (click to expand)</summary>
+<img width="823" alt="Claude Settings" src="https://github.com/user-attachments/assets/828e09ea-e271-4a7a-8271-d3d5dd5c13fd" />
+</details>
+
+## Configure for OpenAI
+1. Open Qt Creator settings and navigate to the QodeAssist section
+2. Go to Provider Settings tab and configure OpenAI api key
+3. Return to General tab and configure:
+   - Set "OpenAI" as the provider for code completion or/and chat assistant
+   - Set the OpenAI URL (https://api.openai.com)
+   - Select your preferred model (e.g., gpt-4o)
+   - Choose the OpenAI template for code completion or/and chat
+<details>
+  <summary>Example of OpenAI settings: (click to expand)</summary>
+  <img width="829" alt="OpenAI Settings" src="https://github.com/user-attachments/assets/4716f790-6159-44d0-a8f4-565ccb6eb713" />
+</details>
+
+## Configure for using Ollama
+
+1. Install [Ollama](https://ollama.com). Make sure to review the system requirements before installation.
+2. Install a language models in Ollama via terminal. For example, you can run:
 
 For standard computers (minimum 8GB RAM):
 ```
@@ -80,31 +115,6 @@ For high-end systems (32GB+ RAM):
 ```
 ollama run qwen2.5-coder:32b
 ```
-4. Download the QodeAssist plugin for your QtCreator.
-5. Launch Qt Creator and install the plugin:
-   - Go to MacOS: Qt Creator -> About Plugins...
-           Windows\Linux: Help -> About Plugins...
-   - Click on "Install Plugin..."
-   - Select the downloaded QodeAssist plugin archive file
-
-## Installation for using Claude
-
-1. Install Latest QtCreator
-2. Download the QodeAssist plugin for your QtCreator.
-3. Launch Qt Creator and install the plugin:
-   - Go to MacOS: Qt Creator -> About Plugins...
-           Windows\Linux: Help -> About Plugins...
-   - Click on "Install Plugin..."
-   - Select the downloaded QodeAssist plugin archive file
-4. Select Claude provider
-5. Select Claude api
-6. Fill in api key for Claude
-5. Select Claude templates for code completion and chat
-6. Enjoy!
-
-## Configure Plugin
-
-QodeAssist comes with default settings that should work immediately after installing a language model. The plugin is pre-configured to use Ollama with standard templates, so you may only need to verify the settings.
 
 1. Open Qt Creator settings (Edit > Preferences on Linux/Windows, Qt Creator > Preferences on macOS)
 2. Navigate to the "Qode Assist" tab
@@ -112,51 +122,16 @@ QodeAssist comes with default settings that should work immediately after instal
     - Ollama is selected as your LLM provider
     - The URL is set to http://localhost:11434
     - Your installed model appears in the model selection
-    - The prompt template is Ollama Auto FIM
+    - The prompt template is Ollama Auto FIM or Ollama Auto Chat for chat assistance. You can specify template if it is not work correct
 4. Click Apply if you made any changes
 
 You're all set! QodeAssist is now ready to use in Qt Creator.
+<details>
+  <summary>Example of Ollama settings: (click to expand)</summary>
+  <img width="824" alt="Ollama Settings" src="https://github.com/user-attachments/assets/ed64e03a-a923-467a-aa44-4f790e315b53" />
+</details>
 
-## Supported LLM Providers
-QodeAssist currently supports the following LLM (Large Language Model) providers:
-- [Ollama](https://ollama.com)
-- [LM Studio](https://lmstudio.ai)
-- [OpenRouter](https://openrouter.ai)
-- OpenAI compatible providers
-
-## Recommended Models:
-QodeAssist has been thoroughly tested and optimized for use with the following language models:
-
-- Qwen2.5-coder
-- CodeLlama
-- StarCoder2
-- DeepSeek-Coder-V2
-
-### Model Types
-
-FIM models (codellama:7b-code, starcoder2:7b, etc.) - Optimized for code completion and suggestions
-
-Instruct models (codellama:7b-instruct, starcoder2:instruct, etc.) - Better for chat assistance, explanations, and code review
-
-For best results, use FIM models with code completion and Instruct models with chat features.
-
-### Ollama:
-### For autocomplete(FIM)
-```
-ollama run codellama:7b-code
-ollama run starcoder2:7b
-ollama run qwen2.5-coder:7b-base
-ollama run deepseek-coder-v2:16b-lite-base-q3_K_M
-```
-### For chat and instruct
-```
-ollama run codellama:7b-instruct
-ollama run starcoder2:instruct
-ollama run qwen2.5-coder:7b-instruct
-ollama run deepseek-coder-v2
-```
-
-### Template-Model Compatibility
+## Template-Model Compatibility
 
 | Template | Compatible Models | Purpose |
 |----------|------------------|----------|
@@ -171,12 +146,6 @@ ollama run deepseek-coder-v2
 | Llama2 | `llama2 model family`, `codellama:instruct` | Chat assistance |
 | Llama3 | `llama3 model family` | Chat assistance |
 | Ollama Auto Chat | `Any Ollama chat model` | Chat assistance |
-
-> Note: 
-> - FIM (Fill-in-Middle) templates are optimized for code completion
-> - Chat templates are designed for interactive dialogue
-> - The Ollama Auto templates automatically adapt to most Ollama models
-> - Custom Template allows you to define your own prompt format
 
 ## QtCreator Version Compatibility
 
