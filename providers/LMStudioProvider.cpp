@@ -108,15 +108,22 @@ bool LMStudioProvider::handleResponse(QNetworkReply *reply, QString &accumulated
         return false;
     }
 
-    QByteArrayList chunks = data.split('\n');
-    for (const QByteArray &chunk : chunks) {
-        if (chunk.trimmed().isEmpty() || chunk == "data: [DONE]") {
+    bool isDone = false;
+    QByteArrayList lines = data.split('\n');
+
+    for (const QByteArray &line : lines) {
+        if (line.trimmed().isEmpty()) {
             continue;
         }
 
-        QByteArray jsonData = chunk;
-        if (chunk.startsWith("data: ")) {
-            jsonData = chunk.mid(6);
+        if (line == "data: [DONE]") {
+            isDone = true;
+            continue;
+        }
+
+        QByteArray jsonData = line;
+        if (line.startsWith("data: ")) {
+            jsonData = line.mid(6);
         }
 
         QJsonParseError error;
@@ -128,15 +135,21 @@ bool LMStudioProvider::handleResponse(QNetworkReply *reply, QString &accumulated
 
         auto message = LLMCore::OpenAIMessage::fromJson(doc.object());
         if (message.hasError()) {
-            LOG_MESSAGE("Error in LMStudioProvider response: " + message.error);
+            LOG_MESSAGE("Error in OpenAI response: " + message.error);
             continue;
         }
 
-        accumulatedResponse += message.getContent();
-        return message.isDone();
+        QString content = message.getContent();
+        if (!content.isEmpty()) {
+            accumulatedResponse += content;
+        }
+
+        if (message.isDone()) {
+            isDone = true;
+        }
     }
 
-    return false;
+    return isDone;
 }
 
 QList<QString> LMStudioProvider::getInstalledModels(const QString &url)

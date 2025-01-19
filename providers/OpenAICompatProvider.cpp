@@ -109,15 +109,22 @@ bool OpenAICompatProvider::handleResponse(QNetworkReply *reply, QString &accumul
         return false;
     }
 
-    QByteArrayList chunks = data.split('\n');
-    for (const QByteArray &chunk : chunks) {
-        if (chunk.trimmed().isEmpty() || chunk == "data: [DONE]") {
+    bool isDone = false;
+    QByteArrayList lines = data.split('\n');
+
+    for (const QByteArray &line : lines) {
+        if (line.trimmed().isEmpty()) {
             continue;
         }
 
-        QByteArray jsonData = chunk;
-        if (chunk.startsWith("data: ")) {
-            jsonData = chunk.mid(6);
+        if (line == "data: [DONE]") {
+            isDone = true;
+            continue;
+        }
+
+        QByteArray jsonData = line;
+        if (line.startsWith("data: ")) {
+            jsonData = line.mid(6);
         }
 
         QJsonParseError error;
@@ -133,11 +140,17 @@ bool OpenAICompatProvider::handleResponse(QNetworkReply *reply, QString &accumul
             continue;
         }
 
-        accumulatedResponse += message.getContent();
-        return message.isDone();
+        QString content = message.getContent();
+        if (!content.isEmpty()) {
+            accumulatedResponse += content;
+        }
+
+        if (message.isDone()) {
+            isDone = true;
+        }
     }
 
-    return false;
+    return isDone;
 }
 
 QList<QString> OpenAICompatProvider::getInstalledModels(const QString &url)

@@ -93,16 +93,22 @@ bool OpenRouterProvider::handleResponse(QNetworkReply *reply, QString &accumulat
         return false;
     }
 
-    QByteArrayList chunks = data.split('\n');
-    for (const QByteArray &chunk : chunks) {
-        if (chunk.trimmed().isEmpty() || chunk.contains("OPENROUTER PROCESSING")
-            || chunk == "data: [DONE]") {
+    bool isDone = false;
+    QByteArrayList lines = data.split('\n');
+
+    for (const QByteArray &line : lines) {
+        if (line.trimmed().isEmpty() || line.contains("OPENROUTER PROCESSING")) {
             continue;
         }
 
-        QByteArray jsonData = chunk;
-        if (chunk.startsWith("data: ")) {
-            jsonData = chunk.mid(6);
+        if (line == "data: [DONE]") {
+            isDone = true;
+            continue;
+        }
+
+        QByteArray jsonData = line;
+        if (line.startsWith("data: ")) {
+            jsonData = line.mid(6);
         }
 
         QJsonParseError error;
@@ -114,15 +120,21 @@ bool OpenRouterProvider::handleResponse(QNetworkReply *reply, QString &accumulat
 
         auto message = LLMCore::OpenAIMessage::fromJson(doc.object());
         if (message.hasError()) {
-            LOG_MESSAGE("Error in OpenRouter response: " + message.error);
+            LOG_MESSAGE("Error in OpenAI response: " + message.error);
             continue;
         }
 
-        accumulatedResponse += message.getContent();
-        return message.isDone();
+        QString content = message.getContent();
+        if (!content.isEmpty()) {
+            accumulatedResponse += content;
+        }
+
+        if (message.isDone()) {
+            isDone = true;
+        }
     }
 
-    return false;
+    return isDone;
 }
 
 QString OpenRouterProvider::apiKey() const
