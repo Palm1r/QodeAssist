@@ -19,13 +19,14 @@
 3. [Configure for Anthropic Claude](#configure-for-anthropic-claude)
 4. [Configure for OpenAI](#configure-for-openai)
 5. [Configure for using Ollama](#configure-for-using-ollama)
-6. [Template-Model Compatibility](#template-model-compatibility)
-7. [QtCreator Version Compatibility](#qtcreator-version-compatibility)
-8. [Development Progress](#development-progress)
-9. [Hotkeys](#hotkeys)
-10. [Troubleshooting](#troubleshooting)
-11. [Support the Development](#support-the-development-of-qodeassist)
-12. [How to Build](#how-to-build)
+6. [System Prompt Configuration](#system-prompt-configuration)
+7. [Template-Model Compatibility](#template-model-compatibility)
+8. [QtCreator Version Compatibility](#qtcreator-version-compatibility)
+9. [Development Progress](#development-progress)
+10. [Hotkeys](#hotkeys)
+11. [Troubleshooting](#troubleshooting)
+12. [Support the Development](#support-the-development-of-qodeassist)
+13. [How to Build](#how-to-build)
 
 ## Overview
 
@@ -130,6 +131,10 @@ You're all set! QodeAssist is now ready to use in Qt Creator.
   <summary>Example of Ollama settings: (click to expand)</summary>
   <img width="824" alt="Ollama Settings" src="https://github.com/user-attachments/assets/ed64e03a-a923-467a-aa44-4f790e315b53" />
 </details>
+
+## System Prompt Configuration
+
+The plugin comes with default system prompts optimized for chat and instruct models, as these currently provide better results for code assistance. If you prefer using FIM (Fill-in-Middle) models, you can easily customize the system prompt in the settings.
 
 ## Template-Model Compatibility
 
