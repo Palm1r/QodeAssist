@@ -264,10 +264,18 @@ void ChatRootView::showAttachFilesDialog()
     }
 
     if (dialog.exec() == QDialog::Accepted) {
-        QStringList filePaths = dialog.selectedFiles();
-        if (!filePaths.isEmpty()) {
-            m_attachmentFiles = filePaths;
-            emit attachmentFilesChanged();
+        QStringList newFilePaths = dialog.selectedFiles();
+        if (!newFilePaths.isEmpty()) {
+            bool filesAdded = false;
+            for (const QString &filePath : newFilePaths) {
+                if (!m_attachmentFiles.contains(filePath)) {
+                    m_attachmentFiles.append(filePath);
+                    filesAdded = true;
+                }
+            }
+            if (filesAdded) {
+                emit attachmentFilesChanged();
+            }
         }
     }
 }
