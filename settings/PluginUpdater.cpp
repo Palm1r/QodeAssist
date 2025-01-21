@@ -90,7 +90,7 @@ void PluginUpdater::handleUpdateResponse(QNetworkReply *reply)
 #elif defined(Q_OS_MACOS)
             if (name.contains("macOS"))
 #else
-            if (name.contains("Linux"))
+            if (name.contains("Linux") && !name.contains("experimental"))
 #endif
             {
                 info.downloadUrl = asset.toObject()["browser_download_url"].toString();
