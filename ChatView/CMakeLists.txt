@@ -18,9 +18,12 @@ qt_add_qml_module(QodeAssistChatView
     qml/parts/BottomBar.qml
     qml/parts/AttachedFilesPlace.qml
     RESOURCES
-    icons/attach-file.svg
+    icons/attach-file-light.svg
+    icons/attach-file-dark.svg
     icons/close-dark.svg
     icons/close-light.svg
+    icons/link-file-light.svg
+    icons/link-file-dark.svg
     SOURCES
     ChatWidget.hpp ChatWidget.cpp
     ChatModel.hpp ChatModel.cpp

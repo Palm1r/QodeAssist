@@ -87,7 +87,7 @@ void ChatRootView::sendMessage(const QString &message, bool sharingCurrentFile)
         }
     }
 
-    m_clientInterface->sendMessage(message, m_attachmentFiles, sharingCurrentFile);
+    m_clientInterface->sendMessage(message, m_attachmentFiles, m_linkedFiles, sharingCurrentFile);
     clearAttachmentFiles();
 }
 
@@ -106,6 +106,14 @@ void ChatRootView::clearAttachmentFiles()
     if (!m_attachmentFiles.isEmpty()) {
         m_attachmentFiles.clear();
         emit attachmentFilesChanged();
+    }
+}
+
+void ChatRootView::clearLinkedFiles()
+{
+    if (!m_linkedFiles.isEmpty()) {
+        m_linkedFiles.clear();
+        emit linkedFilesChanged();
     }
 }
 
@@ -254,6 +262,16 @@ QString ChatRootView::getAutosaveFilePath() const
     return QDir(dir).filePath(getSuggestedFileName() + ".json");
 }
 
+QStringList ChatRootView::attachmentFiles() const
+{
+    return m_attachmentFiles;
+}
+
+QStringList ChatRootView::linkedFiles() const
+{
+    return m_linkedFiles;
+}
+
 void ChatRootView::showAttachFilesDialog()
 {
     QFileDialog dialog(nullptr, tr("Select Files to Attach"));
@@ -277,6 +295,48 @@ void ChatRootView::showAttachFilesDialog()
                 emit attachmentFilesChanged();
             }
         }
+    }
+}
+
+void ChatRootView::removeFileFromAttachList(int index)
+{
+    if (index >= 0 && index < m_attachmentFiles.size()) {
+        m_attachmentFiles.removeAt(index);
+        emit attachmentFilesChanged();
+    }
+}
+
+void ChatRootView::showLinkFilesDialog()
+{
+    QFileDialog dialog(nullptr, tr("Select Files to Attach"));
+    dialog.setFileMode(QFileDialog::ExistingFiles);
+
+    if (auto project = ProjectExplorer::ProjectManager::startupProject()) {
+        dialog.setDirectory(project->projectDirectory().toString());
+    }
+
+    if (dialog.exec() == QDialog::Accepted) {
+        QStringList newFilePaths = dialog.selectedFiles();
+        if (!newFilePaths.isEmpty()) {
+            bool filesAdded = false;
+            for (const QString &filePath : newFilePaths) {
+                if (!m_linkedFiles.contains(filePath)) {
+                    m_linkedFiles.append(filePath);
+                    filesAdded = true;
+                }
+            }
+            if (filesAdded) {
+                emit linkedFilesChanged();
+            }
+        }
+    }
+}
+
+void ChatRootView::removeFileFromLinkList(int index)
+{
+    if (index >= 0 && index < m_linkedFiles.size()) {
+        m_linkedFiles.removeAt(index);
+        emit linkedFilesChanged();
     }
 }
 

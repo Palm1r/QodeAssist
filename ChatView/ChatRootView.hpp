@@ -33,7 +33,8 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(QString currentTemplate READ currentTemplate NOTIFY currentTemplateChanged FINAL)
     Q_PROPERTY(bool isSharingCurrentFile READ isSharingCurrentFile NOTIFY
                    isSharingCurrentFileChanged FINAL)
-    Q_PROPERTY(QStringList attachmentFiles MEMBER m_attachmentFiles NOTIFY attachmentFilesChanged)
+    Q_PROPERTY(QStringList attachmentFiles READ attachmentFiles NOTIFY attachmentFilesChanged FINAL)
+    Q_PROPERTY(QStringList linkedFiles READ linkedFiles NOTIFY linkedFilesChanged FINAL)
 
     QML_ELEMENT
 
@@ -54,19 +55,27 @@ public:
     void autosave();
     QString getAutosaveFilePath() const;
 
+    QStringList attachmentFiles() const;
+    QStringList linkedFiles() const;
+
     Q_INVOKABLE void showAttachFilesDialog();
+    Q_INVOKABLE void removeFileFromAttachList(int index);
+    Q_INVOKABLE void showLinkFilesDialog();
+    Q_INVOKABLE void removeFileFromLinkList(int index);
 
 public slots:
     void sendMessage(const QString &message, bool sharingCurrentFile = false);
     void copyToClipboard(const QString &text);
     void cancelRequest();
     void clearAttachmentFiles();
+    void clearLinkedFiles();
 
 signals:
     void chatModelChanged();
     void currentTemplateChanged();
     void isSharingCurrentFileChanged();
     void attachmentFilesChanged();
+    void linkedFilesChanged();
 
 private:
     QString getChatsHistoryDir() const;
@@ -77,6 +86,7 @@ private:
     QString m_currentTemplate;
     QString m_recentFilePath;
     QStringList m_attachmentFiles;
+    QStringList m_linkedFiles;
 };
 
 } // namespace QodeAssist::Chat
