@@ -29,29 +29,10 @@ jobs:
       matrix:
         config:
         - {
-            name: "Windows Latest MSVC", artifact: "Windows-x64",
-            os: windows-latest,
-            platform: windows_x64,
-            cc: "cl", cxx: "cl",
-            environment_script: "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvars64.bat",
-          }
-        - {
-            name: "Ubuntu Latest GCC", artifact: "Linux-x64",
-            os: ubuntu-latest,
+            name: "Ubuntu 20.04 GCC", artifact: "Ubuntu-20.04-experimental",
+            os: ubuntu-20.04,
             platform: linux_x64,
             cc: "gcc", cxx: "g++"
-          }
-        - {
-            name: "Ubuntu 22.04 GCC", artifact: "Linux-x64(Ubuntu-22.04-experimental)",
-            os: ubuntu-22.04,
-            platform: linux_x64,
-            cc: "gcc", cxx: "g++"
-          }
-        - {
-            name: "macOS Latest Clang", artifact: "macOS-universal",
-            os: macos-latest,
-            platform: mac_x64,
-            cc: "clang", cxx: "clang++"
           }
 
     steps:
@@ -243,78 +224,3 @@ jobs:
       with:
         path: ./${{ env.PLUGIN_NAME }}-${{ env.QT_CREATOR_VERSION }}-${{ matrix.config.artifact }}.7z
         name: ${{ env.PLUGIN_NAME}}-${{ env.QT_CREATOR_VERSION }}-${{ matrix.config.artifact }}.7z
-
-    # The json is the same for all platforms, but we need to save one
-    - name: Upload plugin json
-      if: matrix.config.os == 'ubuntu-latest'
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.PLUGIN_NAME }}-origin-json
-        path: ./build/build/${{ env.PLUGIN_NAME }}.json
-
-  update_json:
-    if: contains(github.ref, 'tags/v')
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-
-    - name: Download the JSON file
-      uses: actions/download-artifact@v4
-      with:
-        name: ${{ env.PLUGIN_NAME }}-origin-json
-        path: ./${{ env.PLUGIN_NAME }}-origin
-
-    - name: Store Release upload_url
-      run: |
-        RELEASE_HTML_URL=$(echo "${{github.event.repository.html_url}}/releases/download/v${{ needs.build.outputs.tag }}")
-        echo "RELEASE_HTML_URL=${RELEASE_HTML_URL}" >> $GITHUB_ENV
-
-    - name: Run the Node.js script to update JSON
-      env:
-        QT_TOKEN: ${{ secrets.TOKEN }}
-        API_URL: ${{ secrets.API_URL }}
-      run: |
-        node .github/scripts/registerPlugin.js         ${{ env.RELEASE_HTML_URL }} ${{ env.PLUGIN_NAME }}         ${{ env.QT_CREATOR_VERSION }} ${{ env.QT_CREATOR_VERSION_INTERNAL }}         ${{ env.QT_TOKEN }} ${{ env.API_URL }}
-
-    - name: Delete previous json artifacts
-      uses: geekyeggo/delete-artifact@v5
-      with:
-        name: ${{ env.PLUGIN_NAME }}*-json
-
-    - name: Upload the modified JSON file as an artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: plugin-json
-        path: .github/scripts/${{ env.PLUGIN_NAME }}.json
-
-  release:
-    if: contains(github.ref, 'tags/v')
-    runs-on: ubuntu-latest
-    needs: [build, update_json]
-
-    steps:
-    - name: Download artifacts
-      uses: actions/download-artifact@v4
-      with:
-        path: release-with-dirs
-
-    - name: Fixup artifacts
-      run: |
-        mkdir release
-        mv release-with-dirs/*/* release/
-
-    - name: Create Release
-      id: create_release
-      uses: softprops/action-gh-release@v2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: v${{ needs.build.outputs.tag }}
-        files: release/*
-        draft: false
-        prerelease: false
