@@ -29,6 +29,7 @@
 #include <projectexplorer/projectmanager.h>
 #include <utils/theme/theme.h>
 #include <utils/utilsicons.h>
+#include <coreplugin/editormanager/editormanager.h>
 
 #include "ChatAssistantSettings.hpp"
 #include "ChatSerializer.hpp"
@@ -45,17 +46,19 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     , m_chatModel(new ChatModel(this))
     , m_clientInterface(new ClientInterface(m_chatModel, this))
 {
+    m_isSyncOpenFiles = Settings::chatAssistantSettings().linkOpenFiles();
+    connect(&Settings::chatAssistantSettings().linkOpenFiles, &Utils::BaseAspect::changed,
+            this,
+            [this](){
+                setIsSyncOpenFiles(Settings::chatAssistantSettings().linkOpenFiles());
+            });
+
     auto &settings = Settings::generalSettings();
 
     connect(&settings.caModel,
             &Utils::BaseAspect::changed,
             this,
             &ChatRootView::currentTemplateChanged);
-
-    connect(&Settings::chatAssistantSettings().sharingCurrentFile,
-            &Utils::BaseAspect::changed,
-            this,
-            &ChatRootView::isSharingCurrentFileChanged);
 
     connect(
         m_clientInterface,
@@ -76,6 +79,13 @@ ChatRootView::ChatRootView(QQuickItem *parent)
             this, &ChatRootView::updateInputTokensCount);
     connect(&Settings::chatAssistantSettings().systemPrompt, &Utils::BaseAspect::changed,
             this, &ChatRootView::updateInputTokensCount);
+
+    auto editors = Core::EditorManager::instance();
+
+    connect(editors, &Core::EditorManager::editorOpened, this, &ChatRootView::onEditorOpened);
+    connect(editors, &Core::EditorManager::editorAboutToClose, this, &ChatRootView::onEditorAboutToClose);
+    connect(editors, &Core::EditorManager::editorsClosed, this, &ChatRootView::onEditorsClosed);
+
     updateInputTokensCount();
 }
 
@@ -84,7 +94,7 @@ ChatModel *ChatRootView::chatModel() const
     return m_chatModel;
 }
 
-void ChatRootView::sendMessage(const QString &message, bool sharingCurrentFile)
+void ChatRootView::sendMessage(const QString &message)
 {
     if (m_inputTokensCount > m_chatModel->tokensThreshold()) {
         QMessageBox::StandardButton reply = QMessageBox::question(
@@ -102,7 +112,7 @@ void ChatRootView::sendMessage(const QString &message, bool sharingCurrentFile)
         }
     }
 
-    m_clientInterface->sendMessage(message, m_attachmentFiles, m_linkedFiles, sharingCurrentFile);
+    m_clientInterface->sendMessage(message, m_attachmentFiles, m_linkedFiles);
     clearAttachmentFiles();
 }
 
@@ -156,11 +166,6 @@ QString ChatRootView::currentTemplate() const
 {
     auto &settings = Settings::generalSettings();
     return settings.caModel();
-}
-
-bool ChatRootView::isSharingCurrentFile() const
-{
-    return Settings::chatAssistantSettings().sharingCurrentFile();
 }
 
 void ChatRootView::saveHistory(const QString &filePath)
@@ -362,6 +367,14 @@ void ChatRootView::calculateMessageTokensCount(const QString &message)
     updateInputTokensCount();
 }
 
+void ChatRootView::setIsSyncOpenFiles(bool state)
+{
+    if (m_isSyncOpenFiles != state) {
+        m_isSyncOpenFiles = state;
+        emit isSyncOpenFilesChanged();
+    }
+}
+
 void ChatRootView::updateInputTokensCount()
 {
     int inputTokens = m_messageTokensCount;
@@ -394,6 +407,44 @@ void ChatRootView::updateInputTokensCount()
 int ChatRootView::inputTokensCount() const
 {
     return m_inputTokensCount;
+}
+
+bool ChatRootView::isSyncOpenFiles() const
+{
+    return m_isSyncOpenFiles;
+}
+
+void ChatRootView::onEditorOpened(Core::IEditor *editor)
+{
+    if (auto document = editor->document(); document && isSyncOpenFiles()) {
+        QString filePath = document->filePath().toString();
+        if (!m_linkedFiles.contains(filePath)) {
+            m_linkedFiles.append(filePath);
+            emit linkedFilesChanged();
+        }
+    }
+}
+
+void ChatRootView::onEditorAboutToClose(Core::IEditor *editor)
+{
+    if (auto document = editor->document(); document && isSyncOpenFiles()) {
+        QString filePath = document->filePath().toString();
+        m_linkedFiles.removeOne(filePath);
+        emit linkedFilesChanged();
+    }
+}
+
+void ChatRootView::onEditorsClosed(QList<Core::IEditor *> editors)
+{
+    if (isSyncOpenFiles()) {
+        for (Core::IEditor *editor : editors) {
+            if (auto document = editor->document()) {
+                QString filePath = document->filePath().toString();
+                m_linkedFiles.removeOne(filePath);
+            }
+        }
+        emit linkedFilesChanged();
+    }
 }
 
 } // namespace QodeAssist::Chat

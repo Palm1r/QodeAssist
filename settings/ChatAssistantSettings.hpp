@@ -34,7 +34,7 @@ public:
 
     // Chat settings
     Utils::IntegerAspect chatTokensThreshold{this};
-    Utils::BoolAspect sharingCurrentFile{this};
+    Utils::BoolAspect linkOpenFiles{this};
     Utils::BoolAspect stream{this};
     Utils::BoolAspect autosave{this};
 

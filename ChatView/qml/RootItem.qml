@@ -188,7 +188,10 @@ ChatRootView {
 
             sendButton.onClicked: root.sendChatMessage()
             stopButton.onClicked: root.cancelRequest()
-            sharingCurrentFile.checked: root.isSharingCurrentFile
+            syncOpenFiles {
+                checked: root.isSyncOpenFiles
+                onCheckedChanged: root.setIsSyncOpenFiles(bottomBar.syncOpenFiles.checked)
+            }
             attachFiles.onClicked: root.showAttachFilesDialog()
             linkFiles.onClicked: root.showLinkFilesDialog()
         }
@@ -197,7 +200,6 @@ ChatRootView {
     function clearChat() {
         root.chatModel.clear()
         root.clearAttachmentFiles()
-        root.clearLinkedFiles()
     }
 
     function scrollToBottom() {
@@ -205,7 +207,7 @@ ChatRootView {
     }
 
     function sendChatMessage() {
-        root.sendMessage(messageInput.text, bottomBar.sharingCurrentFile.checked)
+        root.sendMessage(messageInput.text)
         messageInput.text = ""
         scrollToBottom()
     }

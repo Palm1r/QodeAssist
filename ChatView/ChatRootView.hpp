@@ -23,6 +23,7 @@
 
 #include "ChatModel.hpp"
 #include "ClientInterface.hpp"
+#include <coreplugin/editormanager/editormanager.h>
 
 namespace QodeAssist::Chat {
 
@@ -31,8 +32,7 @@ class ChatRootView : public QQuickItem
     Q_OBJECT
     Q_PROPERTY(QodeAssist::Chat::ChatModel *chatModel READ chatModel NOTIFY chatModelChanged FINAL)
     Q_PROPERTY(QString currentTemplate READ currentTemplate NOTIFY currentTemplateChanged FINAL)
-    Q_PROPERTY(bool isSharingCurrentFile READ isSharingCurrentFile NOTIFY
-                   isSharingCurrentFileChanged FINAL)
+    Q_PROPERTY(bool isSyncOpenFiles READ isSyncOpenFiles NOTIFY isSyncOpenFilesChanged FINAL)
     Q_PROPERTY(QStringList attachmentFiles READ attachmentFiles NOTIFY attachmentFilesChanged FINAL)
     Q_PROPERTY(QStringList linkedFiles READ linkedFiles NOTIFY linkedFilesChanged FINAL)
     Q_PROPERTY(int inputTokensCount READ inputTokensCount NOTIFY inputTokensCountChanged FINAL)
@@ -44,8 +44,6 @@ public:
 
     ChatModel *chatModel() const;
     QString currentTemplate() const;
-
-    bool isSharingCurrentFile() const;
 
     void saveHistory(const QString &filePath);
     void loadHistory(const QString &filePath);
@@ -64,12 +62,19 @@ public:
     Q_INVOKABLE void showLinkFilesDialog();
     Q_INVOKABLE void removeFileFromLinkList(int index);
     Q_INVOKABLE void calculateMessageTokensCount(const QString &message);
+    Q_INVOKABLE void setIsSyncOpenFiles(bool state);
 
     void updateInputTokensCount();
     int inputTokensCount() const;
 
+    bool isSyncOpenFiles() const;
+
+    void onEditorOpened(Core::IEditor *editor);
+    void onEditorAboutToClose(Core::IEditor *editor);
+    void onEditorsClosed(QList<Core::IEditor *> editors);
+
 public slots:
-    void sendMessage(const QString &message, bool sharingCurrentFile = false);
+    void sendMessage(const QString &message);
     void copyToClipboard(const QString &text);
     void cancelRequest();
     void clearAttachmentFiles();
@@ -78,10 +83,10 @@ public slots:
 signals:
     void chatModelChanged();
     void currentTemplateChanged();
-    void isSharingCurrentFileChanged();
     void attachmentFilesChanged();
     void linkedFilesChanged();
     void inputTokensCountChanged();
+    void isSyncOpenFilesChanged();
 
 private:
     QString getChatsHistoryDir() const;
@@ -95,6 +100,7 @@ private:
     QStringList m_linkedFiles;
     int m_messageTokensCount{0};
     int m_inputTokensCount{0};
+    bool m_isSyncOpenFiles;
 };
 
 } // namespace QodeAssist::Chat

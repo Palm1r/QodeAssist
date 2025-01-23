@@ -27,7 +27,7 @@ Rectangle {
 
     property alias sendButton: sendButtonId
     property alias stopButton: stopButtonId
-    property alias sharingCurrentFile: sharingCurrentFileId
+    property alias syncOpenFiles: syncOpenFilesId
     property alias attachFiles: attachFilesId
     property alias linkFiles: linkFilesId
 
@@ -61,9 +61,9 @@ Rectangle {
         }
 
         CheckBox {
-            id: sharingCurrentFileId
+            id: syncOpenFilesId
 
-            text: qsTr("Share current file with models")
+            text: qsTr("Sync open files with model context")
         }
 
         QoAButton {

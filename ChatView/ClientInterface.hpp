@@ -39,8 +39,7 @@ public:
     void sendMessage(
         const QString &message,
         const QList<QString> &attachments = {},
-        const QList<QString> &linkedFiles = {},
-        bool includeCurrentFile = false);
+        const QList<QString> &linkedFiles = {});
     void clearMessages();
     void cancelRequest();
 

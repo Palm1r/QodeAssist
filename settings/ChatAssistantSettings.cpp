@@ -44,15 +44,15 @@ ChatAssistantSettings::ChatAssistantSettings()
 
     // Chat Settings
     chatTokensThreshold.setSettingsKey(Constants::CA_TOKENS_THRESHOLD);
-    chatTokensThreshold.setLabelText(Tr::tr("Chat History Token Limit:"));
+    chatTokensThreshold.setLabelText(Tr::tr("Chat history token limit:"));
     chatTokensThreshold.setToolTip(Tr::tr("Maximum number of tokens in chat history. When "
                                           "exceeded, oldest messages will be removed."));
     chatTokensThreshold.setRange(1, 900000);
     chatTokensThreshold.setDefaultValue(8000);
 
-    sharingCurrentFile.setSettingsKey(Constants::CA_SHARING_CURRENT_FILE);
-    sharingCurrentFile.setLabelText(Tr::tr("Share Current File With Assistant by Default"));
-    sharingCurrentFile.setDefaultValue(true);
+    linkOpenFiles.setSettingsKey(Constants::CA_LINK_OPEN_FILES);
+    linkOpenFiles.setLabelText(Tr::tr("Sync open files with assistant by default"));
+    linkOpenFiles.setDefaultValue(false);
 
     stream.setSettingsKey(Constants::CA_STREAM);
     stream.setDefaultValue(true);
@@ -171,7 +171,7 @@ ChatAssistantSettings::ChatAssistantSettings()
             Space{8},
             Group{
                 title(Tr::tr("Chat Settings")),
-                Column{Row{chatTokensThreshold, Stretch{1}}, sharingCurrentFile, stream, autosave}},
+                Column{Row{chatTokensThreshold, Stretch{1}}, linkOpenFiles, stream, autosave}},
             Space{8},
             Group{
                 title(Tr::tr("General Parameters")),
@@ -227,6 +227,7 @@ void ChatAssistantSettings::resetSettingsToDefaults()
         resetAspect(systemPrompt);
         resetAspect(ollamaLivetime);
         resetAspect(contextWindow);
+        resetAspect(linkOpenFiles);
     }
 }
 

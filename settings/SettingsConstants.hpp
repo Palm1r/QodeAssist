@@ -62,7 +62,7 @@ const char CC_STREAM[] = "QodeAssist.ccStream";
 const char CC_SMART_PROCESS_INSTRUCT_TEXT[] = "QodeAssist.ccSmartProcessInstructText";
 const char CUSTOM_JSON_TEMPLATE[] = "QodeAssist.customJsonTemplate";
 const char CA_TOKENS_THRESHOLD[] = "QodeAssist.caTokensThreshold";
-const char CA_SHARING_CURRENT_FILE[] = "QodeAssist.caSharingCurrentFile";
+const char CA_LINK_OPEN_FILES[] = "QodeAssist.caLinkOpenFiles";
 const char CA_STREAM[] = "QodeAssist.caStream";
 const char CA_AUTOSAVE[] = "QodeAssist.caAutosave";
 

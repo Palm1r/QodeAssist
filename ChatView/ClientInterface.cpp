@@ -66,7 +66,7 @@ ClientInterface::ClientInterface(ChatModel *chatModel, QObject *parent)
 ClientInterface::~ClientInterface() = default;
 
 void ClientInterface::sendMessage(
-    const QString &message, const QList<QString> &attachments, const QList<QString> &linkedFiles, bool includeCurrentFile)
+    const QString &message, const QList<QString> &attachments, const QList<QString> &linkedFiles)
 {
     cancelRequest();
 
@@ -99,13 +99,6 @@ void ClientInterface::sendMessage(
     QString systemPrompt;
     if (chatAssistantSettings.useSystemPrompt())
         systemPrompt = chatAssistantSettings.systemPrompt();
-
-    if (includeCurrentFile) {
-        QString fileContext = getCurrentFileContext();
-        if (!fileContext.isEmpty()) {
-            systemPrompt = systemPrompt.append(fileContext);
-        }
-    }
 
     if (!linkedFiles.isEmpty()) {
         systemPrompt = getSystemPromptWithLinkedFiles(systemPrompt, linkedFiles);
