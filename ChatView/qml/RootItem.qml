@@ -70,7 +70,7 @@ ChatRootView {
             loadButton.onClicked: root.showLoadDialog()
             clearButton.onClicked: root.clearChat()
             tokensBadge {
-                text: qsTr("tokens:%1/%2").arg(root.chatModel.totalTokens).arg(root.chatModel.tokensThreshold)
+                text: qsTr("tokens:%1/%2").arg(root.inputTokensCount).arg(root.chatModel.tokensThreshold)
             }
         }
 
@@ -146,6 +146,8 @@ ChatRootView {
                         radius: parent.radius
                     }
                 }
+
+                onTextChanged: root.calculateMessageTokensCount(messageInput.text)
 
                 Keys.onPressed: function(event) {
                     if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && !(event.modifiers & Qt.ShiftModifier)) {

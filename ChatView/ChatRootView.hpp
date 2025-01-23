@@ -35,6 +35,7 @@ class ChatRootView : public QQuickItem
                    isSharingCurrentFileChanged FINAL)
     Q_PROPERTY(QStringList attachmentFiles READ attachmentFiles NOTIFY attachmentFilesChanged FINAL)
     Q_PROPERTY(QStringList linkedFiles READ linkedFiles NOTIFY linkedFilesChanged FINAL)
+    Q_PROPERTY(int inputTokensCount READ inputTokensCount NOTIFY inputTokensCountChanged FINAL)
 
     QML_ELEMENT
 
@@ -62,6 +63,10 @@ public:
     Q_INVOKABLE void removeFileFromAttachList(int index);
     Q_INVOKABLE void showLinkFilesDialog();
     Q_INVOKABLE void removeFileFromLinkList(int index);
+    Q_INVOKABLE void calculateMessageTokensCount(const QString &message);
+
+    void updateInputTokensCount();
+    int inputTokensCount() const;
 
 public slots:
     void sendMessage(const QString &message, bool sharingCurrentFile = false);
@@ -76,6 +81,7 @@ signals:
     void isSharingCurrentFileChanged();
     void attachmentFilesChanged();
     void linkedFilesChanged();
+    void inputTokensCountChanged();
 
 private:
     QString getChatsHistoryDir() const;
@@ -87,6 +93,8 @@ private:
     QString m_recentFilePath;
     QStringList m_attachmentFiles;
     QStringList m_linkedFiles;
+    int m_messageTokensCount{0};
+    int m_inputTokensCount{0};
 };
 
 } // namespace QodeAssist::Chat

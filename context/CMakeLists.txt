@@ -3,6 +3,7 @@ add_library(Context STATIC
     ChangesManager.h ChangesManager.cpp
     ContextManager.hpp ContextManager.cpp
     ContentFile.hpp
+    TokenUtils.hpp TokenUtils.cpp
 )
 
 target_link_libraries(Context
