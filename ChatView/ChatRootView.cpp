@@ -72,7 +72,7 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         this,
         &ChatRootView::updateInputTokensCount);
 
-    connect(m_chatModel, &ChatModel::modelReseted, [this]() { m_recentFilePath = QString(); });
+    connect(m_chatModel, &ChatModel::modelReseted, [this]() { setRecentFilePath(QString{}); });
     connect(this, &ChatRootView::attachmentFilesChanged, &ChatRootView::updateInputTokensCount);
     connect(this, &ChatRootView::linkedFilesChanged, &ChatRootView::updateInputTokensCount);
     connect(&Settings::chatAssistantSettings().useSystemPrompt, &Utils::BaseAspect::changed,
@@ -107,7 +107,7 @@ void ChatRootView::sendMessage(const QString &message)
         if (reply == QMessageBox::Yes) {
             autosave();
             m_chatModel->clear();
-            m_recentFilePath = QString{};
+            setRecentFilePath(QString{});
             return;
         }
     }
@@ -182,7 +182,7 @@ void ChatRootView::loadHistory(const QString &filePath)
     if (!result.success) {
         LOG_MESSAGE(QString("Failed to load chat history: %1").arg(result.errorMessage));
     } else {
-        m_recentFilePath = filePath;
+        setRecentFilePath(filePath);
     }
     updateInputTokensCount();
 }
@@ -265,7 +265,7 @@ void ChatRootView::autosave()
     QString filePath = getAutosaveFilePath();
     if (!filePath.isEmpty()) {
         ChatSerializer::saveToFile(m_chatModel, filePath);
-        m_recentFilePath = filePath;
+        setRecentFilePath(filePath);
     }
 }
 
@@ -444,6 +444,19 @@ void ChatRootView::onEditorsClosed(QList<Core::IEditor *> editors)
             }
         }
         emit linkedFilesChanged();
+    }
+}
+
+QString ChatRootView::chatFileName() const
+{
+    return QFileInfo(m_recentFilePath).baseName();
+}
+
+void ChatRootView::setRecentFilePath(const QString &filePath)
+{
+    if (m_recentFilePath != filePath) {
+        m_recentFilePath = filePath;
+        emit chatFileNameChanged();
     }
 }
 

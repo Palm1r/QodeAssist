@@ -28,6 +28,7 @@ Rectangle {
     property alias loadButton: loadButtonId
     property alias clearButton: clearButtonId
     property alias tokensBadge: tokensBadgeId
+    property alias recentPath: recentPathId
 
     color: palette.window.hslLightness > 0.5 ?
                Qt.darker(palette.window, 1.1) :
@@ -60,6 +61,14 @@ Rectangle {
             id: clearButtonId
 
             text: qsTr("Clear")
+        }
+
+        Text {
+            id: recentPathId
+
+            Layout.fillWidth: true
+            elide: Text.ElideMiddle
+            color: palette.text
         }
 
         Item {

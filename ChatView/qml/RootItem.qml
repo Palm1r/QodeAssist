@@ -72,6 +72,9 @@ ChatRootView {
             tokensBadge {
                 text: qsTr("tokens:%1/%2").arg(root.inputTokensCount).arg(root.chatModel.tokensThreshold)
             }
+            recentPath {
+                text: qsTr("Latest chat file name: %1").arg(root.chatFileName.length > 0 ? root.chatFileName : "Unsaved")
+            }
         }
 
         ListView {

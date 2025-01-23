@@ -36,6 +36,7 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(QStringList attachmentFiles READ attachmentFiles NOTIFY attachmentFilesChanged FINAL)
     Q_PROPERTY(QStringList linkedFiles READ linkedFiles NOTIFY linkedFilesChanged FINAL)
     Q_PROPERTY(int inputTokensCount READ inputTokensCount NOTIFY inputTokensCountChanged FINAL)
+    Q_PROPERTY(QString chatFileName READ chatFileName NOTIFY chatFileNameChanged FINAL)
 
     QML_ELEMENT
 
@@ -73,6 +74,9 @@ public:
     void onEditorAboutToClose(Core::IEditor *editor);
     void onEditorsClosed(QList<Core::IEditor *> editors);
 
+    QString chatFileName() const;
+    void setRecentFilePath(const QString &filePath);
+
 public slots:
     void sendMessage(const QString &message);
     void copyToClipboard(const QString &text);
@@ -87,6 +91,7 @@ signals:
     void linkedFilesChanged();
     void inputTokensCountChanged();
     void isSyncOpenFilesChanged();
+    void chatFileNameChanged();
 
 private:
     QString getChatsHistoryDir() const;
