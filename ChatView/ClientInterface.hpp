@@ -39,6 +39,7 @@ public:
     void sendMessage(
         const QString &message,
         const QList<QString> &attachments = {},
+        const QList<QString> &linkedFiles = {},
         bool includeCurrentFile = false);
     void clearMessages();
     void cancelRequest();
@@ -50,6 +51,9 @@ signals:
 private:
     void handleLLMResponse(const QString &response, const QJsonObject &request, bool isComplete);
     QString getCurrentFileContext() const;
+    QString getSystemPromptWithLinkedFiles(
+        const QString &basePrompt,
+        const QList<QString> &linkedFiles) const;
 
     LLMCore::RequestHandler *m_requestHandler;
     ChatModel *m_chatModel;

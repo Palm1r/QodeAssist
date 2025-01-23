@@ -23,9 +23,13 @@ import QtQuick.Layouts
 import ChatView
 
 Flow {
-    id: attachFilesPlace
+    id: root
     
     property alias attachedFilesModel: attachRepeater.model
+    property color accentColor: palette.mid
+    property string iconPath
+
+    signal removeFileFromListByIndex(index: int)
 
     spacing: 5
     leftPadding: 5
@@ -41,17 +45,32 @@ Flow {
             required property string modelData
             
             height: 30
-            width: fileNameText.width + closeButton.width + 20
+            width: contentRow.width + 10
             radius: 4
             color: palette.button
             border.width: 1
-            border.color: palette.mid
+            border.color: mouse.hovered ? palette.highlight : root.accentColor
+
+            HoverHandler {
+                id: mouse
+            }
             
             Row {
+                id: contentRow
+
                 spacing: 5
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.left: parent.left
                 anchors.leftMargin: 5
+
+                Image {
+                    id: icon
+
+                    anchors.verticalCenter: parent.verticalCenter
+                    source: root.iconPath
+                    sourceSize.width: 8
+                    sourceSize.height: 15
+                }
                 
                 Text {
                     id: fileNameText
@@ -69,14 +88,10 @@ Flow {
                     id: closeButton
                     
                     anchors.verticalCenter: parent.verticalCenter
-                    width: closeIcon.width
-                    height: closeButton.width
+                    width: closeIcon.width + 5
+                    height: closeButton.width + 5
                     
-                    onClicked: {
-                        const newList = [...root.attachmentFiles];
-                        newList.splice(index, 1);
-                        root.attachmentFiles = newList;
-                    }
+                    onClicked: root.removeFileFromListByIndex(index)
                     
                     Image {
                         id: closeIcon

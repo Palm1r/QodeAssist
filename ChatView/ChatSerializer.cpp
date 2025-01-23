@@ -82,7 +82,6 @@ QJsonObject ChatSerializer::serializeMessage(const ChatModel::Message &message)
     QJsonObject messageObj;
     messageObj["role"] = static_cast<int>(message.role);
     messageObj["content"] = message.content;
-    messageObj["tokenCount"] = message.tokenCount;
     messageObj["id"] = message.id;
     return messageObj;
 }
@@ -92,7 +91,6 @@ ChatModel::Message ChatSerializer::deserializeMessage(const QJsonObject &json)
     ChatModel::Message message;
     message.role = static_cast<ChatModel::ChatRole>(json["role"].toInt());
     message.content = json["content"].toString();
-    message.tokenCount = json["tokenCount"].toInt();
     message.id = json["id"].toString();
     return message;
 }
@@ -107,7 +105,6 @@ QJsonObject ChatSerializer::serializeChat(const ChatModel *model)
     QJsonObject root;
     root["version"] = VERSION;
     root["messages"] = messagesArray;
-    root["totalTokens"] = model->totalTokens();
 
     return root;
 }

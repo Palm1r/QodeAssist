@@ -28,7 +28,6 @@ namespace QodeAssist::Chat {
 
 ChatModel::ChatModel(QObject *parent)
     : QAbstractListModel(parent)
-    , m_totalTokens(0)
 {
     auto &settings = Settings::chatAssistantSettings();
 
@@ -90,26 +89,19 @@ void ChatModel::addMessage(
                                .arg(attachment.filename, attachment.content);
         }
     }
-    int tokenCount = estimateTokenCount(fullContent);
 
     if (!m_messages.isEmpty() && !id.isEmpty() && m_messages.last().id == id) {
         Message &lastMessage = m_messages.last();
-        int oldTokenCount = lastMessage.tokenCount;
         lastMessage.content = content;
         lastMessage.attachments = attachments;
-        lastMessage.tokenCount = tokenCount;
-        m_totalTokens += (tokenCount - oldTokenCount);
         emit dataChanged(index(m_messages.size() - 1), index(m_messages.size() - 1));
     } else {
         beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());
-        Message newMessage{role, content, tokenCount, id};
+        Message newMessage{role, content, id};
         newMessage.attachments = attachments;
         m_messages.append(newMessage);
-        m_totalTokens += tokenCount;
         endInsertRows();
     }
-
-    emit totalTokensChanged();
 }
 
 QVector<ChatModel::Message> ChatModel::getChatHistory() const
@@ -117,18 +109,11 @@ QVector<ChatModel::Message> ChatModel::getChatHistory() const
     return m_messages;
 }
 
-int ChatModel::estimateTokenCount(const QString &text) const
-{
-    return text.length() / 4;
-}
-
 void ChatModel::clear()
 {
     beginResetModel();
     m_messages.clear();
-    m_totalTokens = 0;
     endResetModel();
-    emit totalTokensChanged();
     emit modelReseted();
 }
 
@@ -197,11 +182,6 @@ QJsonArray ChatModel::prepareMessagesForRequest(const QString &systemPrompt) con
     }
 
     return messages;
-}
-
-int ChatModel::totalTokens() const
-{
-    return m_totalTokens;
 }
 
 int ChatModel::tokensThreshold() const

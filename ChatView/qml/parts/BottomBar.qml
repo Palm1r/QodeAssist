@@ -29,6 +29,7 @@ Rectangle {
     property alias stopButton: stopButtonId
     property alias sharingCurrentFile: sharingCurrentFileId
     property alias attachFiles: attachFilesId
+    property alias linkFiles: linkFilesId
 
     color: palette.window.hslLightness > 0.5 ?
                Qt.darker(palette.window, 1.1) :
@@ -69,11 +70,22 @@ Rectangle {
             id: attachFilesId
 
             icon {
-                source: "qrc:/qt/qml/ChatView/icons/attach-file.svg"
+                source: "qrc:/qt/qml/ChatView/icons/attach-file-dark.svg"
                 height: 15
                 width: 8
             }
             text: qsTr("Attach files")
+        }
+
+        QoAButton {
+            id: linkFilesId
+
+            icon {
+                source: "qrc:/qt/qml/ChatView/icons/link-file-dark.svg"
+                height: 15
+                width: 8
+            }
+            text: qsTr("Link files")
         }
 
         Item {

@@ -70,7 +70,7 @@ ChatRootView {
             loadButton.onClicked: root.showLoadDialog()
             clearButton.onClicked: root.clearChat()
             tokensBadge {
-                text: qsTr("tokens:%1/%2").arg(root.chatModel.totalTokens).arg(root.chatModel.tokensThreshold)
+                text: qsTr("tokens:%1/%2").arg(root.inputTokensCount).arg(root.chatModel.tokensThreshold)
             }
         }
 
@@ -147,6 +147,8 @@ ChatRootView {
                     }
                 }
 
+                onTextChanged: root.calculateMessageTokensCount(messageInput.text)
+
                 Keys.onPressed: function(event) {
                     if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && !(event.modifiers & Qt.ShiftModifier)) {
                         root.sendChatMessage()
@@ -161,6 +163,21 @@ ChatRootView {
 
             Layout.fillWidth: true
             attachedFilesModel: root.attachmentFiles
+            iconPath: palette.window.hslLightness > 0.5 ? "qrc:/qt/qml/ChatView/icons/attach-file-dark.svg"
+                                                        : "qrc:/qt/qml/ChatView/icons/attach-file-light.svg"
+            accentColor: Qt.tint(palette.mid, Qt.rgba(0, 0.8, 0.3, 0.4))
+            onRemoveFileFromListByIndex: (index) => root.removeFileFromAttachList(index)
+        }
+
+        AttachedFilesPlace {
+            id: linkedFilesPlace
+
+            Layout.fillWidth: true
+            attachedFilesModel: root.linkedFiles
+            iconPath: palette.window.hslLightness > 0.5 ? "qrc:/qt/qml/ChatView/icons/link-file-dark.svg"
+                                                        : "qrc:/qt/qml/ChatView/icons/link-file-light.svg"
+            accentColor: Qt.tint(palette.mid, Qt.rgba(0, 0.3, 0.8, 0.4))
+            onRemoveFileFromListByIndex: (index) => root.removeFileFromLinkList(index)
         }
 
         BottomBar {
@@ -173,11 +190,14 @@ ChatRootView {
             stopButton.onClicked: root.cancelRequest()
             sharingCurrentFile.checked: root.isSharingCurrentFile
             attachFiles.onClicked: root.showAttachFilesDialog()
+            linkFiles.onClicked: root.showLinkFilesDialog()
         }
     }
 
     function clearChat() {
         root.chatModel.clear()
+        root.clearAttachmentFiles()
+        root.clearLinkedFiles()
     }
 
     function scrollToBottom() {

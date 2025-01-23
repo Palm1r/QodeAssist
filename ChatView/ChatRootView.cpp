@@ -35,6 +35,8 @@
 #include "GeneralSettings.hpp"
 #include "Logger.hpp"
 #include "ProjectSettings.hpp"
+#include "context/TokenUtils.hpp"
+#include "context/ContextManager.hpp"
 
 namespace QodeAssist::Chat {
 
@@ -61,7 +63,20 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         this,
         &ChatRootView::autosave);
 
+    connect(
+        m_clientInterface,
+        &ClientInterface::messageReceivedCompletely,
+        this,
+        &ChatRootView::updateInputTokensCount);
+
     connect(m_chatModel, &ChatModel::modelReseted, [this]() { m_recentFilePath = QString(); });
+    connect(this, &ChatRootView::attachmentFilesChanged, &ChatRootView::updateInputTokensCount);
+    connect(this, &ChatRootView::linkedFilesChanged, &ChatRootView::updateInputTokensCount);
+    connect(&Settings::chatAssistantSettings().useSystemPrompt, &Utils::BaseAspect::changed,
+            this, &ChatRootView::updateInputTokensCount);
+    connect(&Settings::chatAssistantSettings().systemPrompt, &Utils::BaseAspect::changed,
+            this, &ChatRootView::updateInputTokensCount);
+    updateInputTokensCount();
 }
 
 ChatModel *ChatRootView::chatModel() const
@@ -71,7 +86,7 @@ ChatModel *ChatRootView::chatModel() const
 
 void ChatRootView::sendMessage(const QString &message, bool sharingCurrentFile)
 {
-    if (m_chatModel->totalTokens() > m_chatModel->tokensThreshold()) {
+    if (m_inputTokensCount > m_chatModel->tokensThreshold()) {
         QMessageBox::StandardButton reply = QMessageBox::question(
             Core::ICore::dialogParent(),
             tr("Token Limit Exceeded"),
@@ -87,7 +102,7 @@ void ChatRootView::sendMessage(const QString &message, bool sharingCurrentFile)
         }
     }
 
-    m_clientInterface->sendMessage(message, m_attachmentFiles, sharingCurrentFile);
+    m_clientInterface->sendMessage(message, m_attachmentFiles, m_linkedFiles, sharingCurrentFile);
     clearAttachmentFiles();
 }
 
@@ -106,6 +121,14 @@ void ChatRootView::clearAttachmentFiles()
     if (!m_attachmentFiles.isEmpty()) {
         m_attachmentFiles.clear();
         emit attachmentFilesChanged();
+    }
+}
+
+void ChatRootView::clearLinkedFiles()
+{
+    if (!m_linkedFiles.isEmpty()) {
+        m_linkedFiles.clear();
+        emit linkedFilesChanged();
     }
 }
 
@@ -156,6 +179,7 @@ void ChatRootView::loadHistory(const QString &filePath)
     } else {
         m_recentFilePath = filePath;
     }
+    updateInputTokensCount();
 }
 
 void ChatRootView::showSaveDialog()
@@ -254,6 +278,16 @@ QString ChatRootView::getAutosaveFilePath() const
     return QDir(dir).filePath(getSuggestedFileName() + ".json");
 }
 
+QStringList ChatRootView::attachmentFiles() const
+{
+    return m_attachmentFiles;
+}
+
+QStringList ChatRootView::linkedFiles() const
+{
+    return m_linkedFiles;
+}
+
 void ChatRootView::showAttachFilesDialog()
 {
     QFileDialog dialog(nullptr, tr("Select Files to Attach"));
@@ -278,6 +312,88 @@ void ChatRootView::showAttachFilesDialog()
             }
         }
     }
+}
+
+void ChatRootView::removeFileFromAttachList(int index)
+{
+    if (index >= 0 && index < m_attachmentFiles.size()) {
+        m_attachmentFiles.removeAt(index);
+        emit attachmentFilesChanged();
+    }
+}
+
+void ChatRootView::showLinkFilesDialog()
+{
+    QFileDialog dialog(nullptr, tr("Select Files to Attach"));
+    dialog.setFileMode(QFileDialog::ExistingFiles);
+
+    if (auto project = ProjectExplorer::ProjectManager::startupProject()) {
+        dialog.setDirectory(project->projectDirectory().toString());
+    }
+
+    if (dialog.exec() == QDialog::Accepted) {
+        QStringList newFilePaths = dialog.selectedFiles();
+        if (!newFilePaths.isEmpty()) {
+            bool filesAdded = false;
+            for (const QString &filePath : newFilePaths) {
+                if (!m_linkedFiles.contains(filePath)) {
+                    m_linkedFiles.append(filePath);
+                    filesAdded = true;
+                }
+            }
+            if (filesAdded) {
+                emit linkedFilesChanged();
+            }
+        }
+    }
+}
+
+void ChatRootView::removeFileFromLinkList(int index)
+{
+    if (index >= 0 && index < m_linkedFiles.size()) {
+        m_linkedFiles.removeAt(index);
+        emit linkedFilesChanged();
+    }
+}
+
+void ChatRootView::calculateMessageTokensCount(const QString &message)
+{
+    m_messageTokensCount = Context::TokenUtils::estimateTokens(message);
+    updateInputTokensCount();
+}
+
+void ChatRootView::updateInputTokensCount()
+{
+    int inputTokens = m_messageTokensCount;
+    auto& settings = Settings::chatAssistantSettings();
+
+    if (settings.useSystemPrompt()) {
+        inputTokens += Context::TokenUtils::estimateTokens(settings.systemPrompt());
+    }
+
+    if (!m_attachmentFiles.isEmpty()) {
+        auto attachFiles = Context::ContextManager::instance().getContentFiles(m_attachmentFiles);
+        inputTokens += Context::TokenUtils::estimateFilesTokens(attachFiles);
+    }
+
+    if (!m_linkedFiles.isEmpty()) {
+        auto linkFiles = Context::ContextManager::instance().getContentFiles(m_linkedFiles);
+        inputTokens += Context::TokenUtils::estimateFilesTokens(linkFiles);
+    }
+
+    const auto& history = m_chatModel->getChatHistory();
+    for (const auto& message : history) {
+        inputTokens += Context::TokenUtils::estimateTokens(message.content);
+        inputTokens += 4; // + role
+    }
+
+    m_inputTokensCount = inputTokens;
+    emit inputTokensCountChanged();
+}
+
+int ChatRootView::inputTokensCount() const
+{
+    return m_inputTokensCount;
 }
 
 } // namespace QodeAssist::Chat

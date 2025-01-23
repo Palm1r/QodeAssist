@@ -66,7 +66,7 @@ ClientInterface::ClientInterface(ChatModel *chatModel, QObject *parent)
 ClientInterface::~ClientInterface() = default;
 
 void ClientInterface::sendMessage(
-    const QString &message, const QList<QString> &attachments, bool includeCurrentFile)
+    const QString &message, const QList<QString> &attachments, const QList<QString> &linkedFiles, bool includeCurrentFile)
 {
     cancelRequest();
 
@@ -105,6 +105,10 @@ void ClientInterface::sendMessage(
         if (!fileContext.isEmpty()) {
             systemPrompt = systemPrompt.append(fileContext);
         }
+    }
+
+    if (!linkedFiles.isEmpty()) {
+        systemPrompt = getSystemPromptWithLinkedFiles(systemPrompt, linkedFiles);
     }
 
     QJsonObject providerRequest;
@@ -196,6 +200,23 @@ QString ClientInterface::getCurrentFileContext() const
     LOG_MESSAGE(QString("Got context from file: %1").arg(textDocument->filePath().toString()));
 
     return QString("Current file context:\n%1\nFile content:\n%2").arg(fileInfo, content);
+}
+
+QString ClientInterface::getSystemPromptWithLinkedFiles(const QString &basePrompt, const QList<QString> &linkedFiles) const
+{
+    QString updatedPrompt = basePrompt;
+
+    if (!linkedFiles.isEmpty()) {
+        updatedPrompt += "\n\nLinked files for reference:\n";
+
+        auto contentFiles = Context::ContextManager::instance().getContentFiles(linkedFiles);
+        for (const auto &file : contentFiles) {
+            updatedPrompt += QString("\nFile: %1\nContent:\n%2\n")
+            .arg(file.filename, file.content);
+        }
+    }
+
+    return updatedPrompt;
 }
 
 } // namespace QodeAssist::Chat

@@ -33,7 +33,6 @@ namespace QodeAssist::Chat {
 class ChatModel : public QAbstractListModel
 {
     Q_OBJECT
-    Q_PROPERTY(int totalTokens READ totalTokens NOTIFY totalTokensChanged FINAL)
     Q_PROPERTY(int tokensThreshold READ tokensThreshold NOTIFY tokensThresholdChanged FINAL)
     QML_ELEMENT
 
@@ -47,7 +46,6 @@ public:
     {
         ChatRole role;
         QString content;
-        int tokenCount;
         QString id;
 
         QList<Context::ContentFile> attachments;
@@ -70,22 +68,17 @@ public:
     QVector<Message> getChatHistory() const;
     QJsonArray prepareMessagesForRequest(const QString &systemPrompt) const;
 
-    int totalTokens() const;
     int tokensThreshold() const;
 
     QString currentModel() const;
     QString lastMessageId() const;
 
 signals:
-    void totalTokensChanged();
     void tokensThresholdChanged();
     void modelReseted();
 
 private:
-    int estimateTokenCount(const QString &text) const;
-
     QVector<Message> m_messages;
-    int m_totalTokens = 0;
 };
 
 } // namespace QodeAssist::Chat
