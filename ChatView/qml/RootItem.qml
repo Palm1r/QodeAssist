@@ -104,7 +104,7 @@ ChatRootView {
                 height: 30
             }
 
-            ScrollBar.vertical: ScrollBar {
+            ScrollBar.vertical: QQC.ScrollBar {
                 id: scroll
             }
 
