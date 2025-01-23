@@ -153,16 +153,16 @@ CodeCompletionSettings::CodeCompletionSettings()
     systemPrompt.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
     systemPrompt.setDefaultValue(
         "You are an expert in C++, Qt, and QML programming. Your task is to provide code "
-        "suggestions that seamlessly integrate with existing code. You will receive a code context "
-        "with specified insertion points. Your goal is to complete only one logic expression "
-        "within these points."
+        "suggestions that seamlessly integrate with existing code. Do not repeat code from position "
+        "before or after <cursor>. You will receive a code context with specified insertion points. "
+        "Your goal is to complete only one code block."
         "Here is the code context with insertion points:<code_context>Before: {{variable}}After: "
         "{{variable}}</code_context> Instructions: 1. Carefully analyze the provided code context. "
         "2. Consider the existing code and the specified insertion points.3. Generate a code "
         "suggestion that completes one logic expression between the 'Before' and 'After' points. "
         "4. Ensure your suggestion does not repeat any existing code. 5. Format your suggestion as "
         "a code block using triple backticks. 6. Do not include any comments or descriptions with "
-        "your code suggestion. Remember to include only the new code to be inserted.");
+        "your code suggestion.");
 
     useUserMessageTemplateForCC.setSettingsKey(Constants::CC_USE_USER_TEMPLATE);
     useUserMessageTemplateForCC.setDefaultValue(true);
@@ -310,6 +310,7 @@ void CodeCompletionSettings::resetSettingsToDefaults()
         resetAspect(autoCompletion);
         resetAspect(multiLineCompletion);
         resetAspect(stream);
+        resetAspect(smartProcessInstuctText);
         resetAspect(temperature);
         resetAspect(maxTokens);
         resetAspect(useTopP);
