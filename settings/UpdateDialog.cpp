@@ -81,7 +81,7 @@ UpdateDialog::UpdateDialog(QWidget *parent)
     m_layout->addWidget(m_progress);
 
     auto *buttonLayout = new QHBoxLayout;
-    m_downloadButton = new QPushButton(tr("Download and Install"), this);
+    m_downloadButton = new QPushButton(tr("Download"), this);
     m_downloadButton->setEnabled(false);
     buttonLayout->addWidget(m_downloadButton);
 
@@ -166,11 +166,7 @@ void UpdateDialog::updateProgress(qint64 received, qint64 total)
 void UpdateDialog::handleDownloadFinished(const QString &path)
 {
     m_progress->setVisible(false);
-    QMessageBox::information(
-        this,
-        tr("Update Successful"),
-        tr("Update has been downloaded and installed. "
-           "Please restart Qt Creator to apply changes."));
+    QMessageBox::information(this, tr("Update Successful"), tr("Update has been downloaded."));
     accept();
 }
 

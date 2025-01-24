@@ -159,9 +159,7 @@ void PluginUpdater::handleDownloadFinished()
         return;
     }
 
-    QString downloadPath = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation)
-                           + QDir::separator() + "qodeassisttemp";
-    QDir().mkpath(downloadPath);
+    QString downloadPath = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
 
     QString filePath = downloadPath + "/" + m_lastUpdateInfo.fileName;
     QFile file(filePath);
@@ -175,16 +173,7 @@ void PluginUpdater::handleDownloadFinished()
     file.write(reply->readAll());
     file.close();
 
-    if (!Core::executePluginInstallWizard(Utils::FilePath::fromString(filePath))) {
-        emit downloadError(tr("Failed to install the update"));
-    } else {
-        emit downloadFinished(filePath);
-    }
-
-    auto tempDir = QDir(downloadPath);
-    if (tempDir.exists()) {
-        tempDir.removeRecursively();
-    }
+    emit downloadFinished(filePath);
 
     reply->deleteLater();
 }
