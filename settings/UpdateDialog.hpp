@@ -52,6 +52,7 @@ private:
     QVBoxLayout *m_layout;
     QLabel *m_titleLabel;
     QLabel *m_versionLabel;
+    QLabel *m_releaseLink;
     QLabel *m_changelogLabel{nullptr};
     QTextEdit *m_changelogText{nullptr};
     QProgressBar *m_progress;
