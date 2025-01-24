@@ -60,6 +60,12 @@ UpdateDialog::UpdateDialog(QWidget *parent)
     m_versionLabel->setAlignment(Qt::AlignCenter);
     m_layout->addWidget(m_versionLabel);
 
+    m_releaseLink = new QLabel(this);
+    m_releaseLink->setOpenExternalLinks(true);
+    m_releaseLink->setTextFormat(Qt::RichText);
+    m_releaseLink->setAlignment(Qt::AlignCenter);
+    m_layout->addWidget(m_releaseLink);
+
     if (!m_changelogLabel) {
         m_changelogLabel = new QLabel(tr("Release Notes:"), this);
         m_layout->addWidget(m_changelogLabel);
@@ -104,6 +110,10 @@ void UpdateDialog::checkForUpdatesAndShow(QWidget *parent)
 
 void UpdateDialog::handleUpdateInfo(const PluginUpdater::UpdateInfo &info)
 {
+    m_releaseLink->setText(
+        tr("<a href='https://github.com/Palm1r/QodeAssist/releases'>You can also download "
+           "from GitHub Releases</a>"));
+
     if (info.incompatibleIdeVersion) {
         m_titleLabel->setText(tr("Incompatible Qt Creator Version"));
         m_versionLabel->setText(tr("This update requires Qt Creator %1, current is %2.\n"
