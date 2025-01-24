@@ -65,7 +65,7 @@ public:
     Q_INVOKABLE void calculateMessageTokensCount(const QString &message);
     Q_INVOKABLE void setIsSyncOpenFiles(bool state);
 
-    void updateInputTokensCount();
+    Q_INVOKABLE void updateInputTokensCount();
     int inputTokensCount() const;
 
     bool isSyncOpenFiles() const;

@@ -203,6 +203,7 @@ ChatRootView {
     function clearChat() {
         root.chatModel.clear()
         root.clearAttachmentFiles()
+        root.updateInputTokensCount()
     }
 
     function scrollToBottom() {
