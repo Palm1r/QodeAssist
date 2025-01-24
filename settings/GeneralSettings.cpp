@@ -290,8 +290,8 @@ void GeneralSettings::showUrlSelectionDialog(
     auto cancelButton = new QPushButton(TrConstants::CANCEL);
     connect(cancelButton, &QPushButton::clicked, &dialog, &QDialog::reject);
 
-    dialog.buttonLayout()->addWidget(okButton);
     dialog.buttonLayout()->addWidget(cancelButton);
+    dialog.buttonLayout()->addWidget(okButton);
 
     urlList->setFocus();
     dialog.exec();

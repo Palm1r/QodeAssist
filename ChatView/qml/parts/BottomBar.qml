@@ -60,12 +60,6 @@ Rectangle {
             text: qsTr("Stop")
         }
 
-        CheckBox {
-            id: syncOpenFilesId
-
-            text: qsTr("Sync open files with model context")
-        }
-
         QoAButton {
             id: attachFilesId
 
@@ -86,6 +80,15 @@ Rectangle {
                 width: 8
             }
             text: qsTr("Link files")
+        }
+
+        CheckBox {
+            id: syncOpenFilesId
+
+            text: qsTr("Sync open files")
+
+            ToolTip.visible: syncOpenFilesId.hovered
+            ToolTip.text: qsTr("Automatically synchronize currently opened files with the model context")
         }
 
         Item {
