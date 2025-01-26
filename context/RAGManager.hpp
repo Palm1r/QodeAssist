@@ -40,11 +40,28 @@ class RAGManager : public QObject
 public:
     static RAGManager &instance();
 
+    struct SearchResult
+    {
+        QString filePath;
+        float l2Score;
+        float cosineScore;
+
+        bool operator<(const SearchResult &other) const;
+    };
+
+    // Process and vectorize files
     QFuture<void> processFiles(ProjectExplorer::Project *project, const QStringList &filePaths);
     std::optional<RAGVector> loadVectorFromStorage(
         ProjectExplorer::Project *project, const QString &filePath);
     QStringList getStoredFiles(ProjectExplorer::Project *project) const;
     bool isFileStorageOutdated(ProjectExplorer::Project *project, const QString &filePath) const;
+    RAGVectorizer *getVectorizer() const { return m_vectorizer.get(); }
+
+    // Search functionality
+    QFuture<QList<SearchResult>> search(
+        const QString &text, ProjectExplorer::Project *project, int topK = 5);
+    void searchSimilarDocuments(const QString &text, ProjectExplorer::Project *project, int topK = 5);
+    void logSearchResults(const QList<SearchResult> &results) const;
 
 signals:
     void vectorizationProgress(int processed, int total);
@@ -53,6 +70,8 @@ signals:
 private:
     RAGManager(QObject *parent = nullptr);
     ~RAGManager();
+    RAGManager(const RAGManager &) = delete;
+    RAGManager &operator=(const RAGManager &) = delete;
 
     QFuture<bool> processFile(ProjectExplorer::Project *project, const QString &filePath);
     void processNextBatch(

@@ -19,36 +19,19 @@
 
 #pragma once
 
-#include "ContentFile.hpp"
-#include <QObject>
-#include <QString>
-
-namespace ProjectExplorer {
-class Project;
-}
+#include "RAGData.hpp"
 
 namespace QodeAssist::Context {
 
-class ContextManager : public QObject
+class RAGSimilaritySearch
 {
-    Q_OBJECT
-
 public:
-    static ContextManager &instance();
+    static float l2Distance(const RAGVector &v1, const RAGVector &v2);
 
-    QString readFile(const QString &filePath) const;
-    QList<ContentFile> getContentFiles(const QStringList &filePaths) const;
-    QStringList getProjectSourceFiles(ProjectExplorer::Project *project) const;
+    static float cosineSimilarity(const RAGVector &v1, const RAGVector &v2);
 
 private:
-    explicit ContextManager(QObject *parent = nullptr);
-    ~ContextManager() = default;
-    ContextManager(const ContextManager &) = delete;
-    ContextManager &operator=(const ContextManager &) = delete;
-
-    ContentFile createContentFile(const QString &filePath) const;
-    bool shouldProcessFile(const QString &filePath) const;
-    bool isInBuildDirectory(const QString &filePath) const;
+    RAGSimilaritySearch() = delete;
 };
 
 } // namespace QodeAssist::Context

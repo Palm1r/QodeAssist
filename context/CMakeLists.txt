@@ -9,6 +9,7 @@ add_library(Context STATIC
     RAGStorage.hpp RAGStorage.cpp
     RAGData.hpp
     RAGVectorizer.hpp RAGVectorizer.cpp
+    RAGSimilaritySearch.hpp RAGSimilaritySearch.cpp
 )
 
 target_link_libraries(Context

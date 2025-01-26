@@ -452,17 +452,36 @@ void ChatRootView::openChatHistoryFolder()
 void ChatRootView::testRAG()
 {
     auto project = ProjectExplorer::ProjectTree::currentProject();
-    if (project) {
-        auto files = Context::ContextManager::instance().getProjectSourceFiles(project);
-        auto future = Context::RAGManager::instance().processFiles(project, files);
-        connect(
-            &Context::RAGManager::instance(),
-            &Context::RAGManager::vectorizationProgress,
-            this,
-            [](int processed, int total) {
-                qDebug() << "Processed" << processed << "of" << total << "files";
-            });
+    if (!project) {
+        qDebug() << "No active project found";
+        return;
     }
+
+    const QString TEST_QUERY = "";
+
+    qDebug() << "Starting RAG test with query:";
+    qDebug() << TEST_QUERY;
+    qDebug() << "\nFirst, processing project files...";
+
+    auto files = Context::ContextManager::instance().getProjectSourceFiles(project);
+    auto future = Context::RAGManager::instance().processFiles(project, files);
+
+    connect(
+        &Context::RAGManager::instance(),
+        &Context::RAGManager::vectorizationProgress,
+        this,
+        [](int processed, int total) {
+            qDebug() << QString("Vectorization progress: %1 of %2 files").arg(processed).arg(total);
+        });
+
+    connect(
+        &Context::RAGManager::instance(),
+        &Context::RAGManager::vectorizationFinished,
+        this,
+        [this, project, TEST_QUERY]() {
+            qDebug() << "\nVectorization completed. Starting similarity search...\n";
+            Context::RAGManager::instance().searchSimilarDocuments(TEST_QUERY, project, 5);
+        });
 }
 
 void ChatRootView::updateInputTokensCount()

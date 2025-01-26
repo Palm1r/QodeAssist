@@ -67,6 +67,28 @@ ContentFile ContextManager::createContentFile(const QString &filePath) const
     return contentFile;
 }
 
+bool ContextManager::isInBuildDirectory(const QString &filePath) const
+{
+    static const QStringList buildDirPatterns
+        = {"/build/",
+           "/Build/",
+           "/BUILD/",
+           "/debug/",
+           "/Debug/",
+           "/DEBUG/",
+           "/release/",
+           "/Release/",
+           "/RELEASE/",
+           "/builds/"};
+
+    for (const QString &pattern : buildDirPatterns) {
+        if (filePath.contains(pattern)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 QStringList ContextManager::getProjectSourceFiles(ProjectExplorer::Project *project) const
 {
     QStringList sourceFiles;
@@ -79,8 +101,11 @@ QStringList ContextManager::getProjectSourceFiles(ProjectExplorer::Project *proj
 
     projectNode->forEachNode(
         [&sourceFiles, this](ProjectExplorer::FileNode *fileNode) {
-            if (fileNode && shouldProcessFile(fileNode->filePath().toString())) {
-                sourceFiles.append(fileNode->filePath().toString());
+            if (fileNode) {
+                QString filePath = fileNode->filePath().toString();
+                if (shouldProcessFile(filePath) && !isInBuildDirectory(filePath)) {
+                    sourceFiles.append(filePath);
+                }
             }
         },
         nullptr);

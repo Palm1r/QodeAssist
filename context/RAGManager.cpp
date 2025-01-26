@@ -18,11 +18,14 @@
  */
 
 #include "RAGManager.hpp"
+#include "RAGSimilaritySearch.hpp"
+#include "logger/Logger.hpp"
 
 #include <coreplugin/icore.h>
 #include <projectexplorer/project.h>
 #include <QFile>
 #include <QtConcurrent>
+#include <queue>
 
 namespace QodeAssist::Context {
 
@@ -38,6 +41,13 @@ RAGManager::RAGManager(QObject *parent)
 {}
 
 RAGManager::~RAGManager() {}
+
+bool RAGManager::SearchResult::operator<(const SearchResult &other) const
+{
+    if (cosineScore != other.cosineScore)
+        return cosineScore > other.cosineScore;
+    return l2Score < other.l2Score;
+}
 
 QString RAGManager::getStoragePath(ProjectExplorer::Project *project) const
 {
@@ -165,7 +175,11 @@ QFuture<bool> RAGManager::processFile(ProjectExplorer::Project *project, const Q
         return promise->future();
     }
 
-    auto vectorFuture = m_vectorizer->vectorizeText(QString::fromUtf8(file.readAll()));
+    QFileInfo fileInfo(filePath);
+    QString fileName = fileInfo.fileName();
+    QString content = QString("// %1\n%2").arg(fileName, QString::fromUtf8(file.readAll()));
+
+    auto vectorFuture = m_vectorizer->vectorizeText(content);
     vectorFuture.then([promise, filePath, this](const RAGVector &vector) {
         if (vector.empty()) {
             promise->addResult(false);
@@ -212,6 +226,69 @@ bool RAGManager::isFileStorageOutdated(
         return tempStorage.needsUpdate(filePath);
     }
     return m_currentStorage->needsUpdate(filePath);
+}
+
+QFuture<QList<RAGManager::SearchResult>> RAGManager::search(
+    const QString &text, ProjectExplorer::Project *project, int topK)
+{
+    auto promise = std::make_shared<QPromise<QList<SearchResult>>>();
+    promise->start();
+
+    auto queryVectorFuture = m_vectorizer->vectorizeText(text);
+    queryVectorFuture.then([this, promise, project, topK](const RAGVector &queryVector) {
+        if (queryVector.empty()) {
+            LOG_MESSAGE("Failed to vectorize query text");
+            promise->addResult(QList<SearchResult>());
+            promise->finish();
+            return;
+        }
+
+        auto storedFiles = getStoredFiles(project);
+        std::priority_queue<SearchResult> results;
+
+        for (const auto &filePath : storedFiles) {
+            auto storedVector = loadVectorFromStorage(project, filePath);
+            if (!storedVector.has_value())
+                continue;
+
+            float l2Score = RAGSimilaritySearch::l2Distance(queryVector, storedVector.value());
+            float cosineScore
+                = RAGSimilaritySearch::cosineSimilarity(queryVector, storedVector.value());
+
+            results.push(SearchResult{filePath, l2Score, cosineScore});
+        }
+
+        QList<SearchResult> resultsList;
+        int count = 0;
+        while (!results.empty() && count < topK) {
+            resultsList.append(results.top());
+            results.pop();
+            count++;
+        }
+
+        promise->addResult(resultsList);
+        promise->finish();
+    });
+
+    return promise->future();
+}
+
+void RAGManager::searchSimilarDocuments(
+    const QString &text, ProjectExplorer::Project *project, int topK)
+{
+    auto future = search(text, project, topK);
+    future.then([this](const QList<SearchResult> &results) { logSearchResults(results); });
+}
+
+void RAGManager::logSearchResults(const QList<SearchResult> &results) const
+{
+    qDebug() << QString("\nTop %1 similar documents:").arg(results.size());
+
+    for (const auto &result : results) {
+        qDebug() << QString("File: %1").arg(result.filePath);
+        qDebug() << QString("  Cosine Similarity: %1").arg(result.cosineScore);
+        qDebug() << QString("  L2 Distance: %1\n").arg(result.l2Score);
+    }
 }
 
 } // namespace QodeAssist::Context
