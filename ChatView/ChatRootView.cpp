@@ -82,9 +82,20 @@ ChatRootView::ChatRootView(QQuickItem *parent)
 
     auto editors = Core::EditorManager::instance();
 
-    connect(editors, &Core::EditorManager::editorOpened, this, &ChatRootView::onEditorOpened);
-    connect(editors, &Core::EditorManager::editorAboutToClose, this, &ChatRootView::onEditorAboutToClose);
-    connect(editors, &Core::EditorManager::editorsClosed, this, &ChatRootView::onEditorsClosed);
+    connect(editors, &Core::EditorManager::editorCreated, this, &ChatRootView::onEditorCreated);
+    connect(
+        editors,
+        &Core::EditorManager::editorAboutToClose,
+        this,
+        &ChatRootView::onEditorAboutToClose);
+
+    connect(editors, &Core::EditorManager::currentEditorAboutToChange, this, [this]() {
+        if (m_isSyncOpenFiles) {
+            for (auto editor : m_currentEditors) {
+                onAppendLinkFileFromEditor(editor);
+            }
+        }
+    });
 
     updateInputTokensCount();
 }
@@ -375,6 +386,12 @@ void ChatRootView::setIsSyncOpenFiles(bool state)
         m_isSyncOpenFiles = state;
         emit isSyncOpenFilesChanged();
     }
+
+    if (m_isSyncOpenFiles) {
+        for (auto editor : m_currentEditors) {
+            onAppendLinkFileFromEditor(editor);
+        }
+    }
 }
 
 void ChatRootView::updateInputTokensCount()
@@ -416,7 +433,20 @@ bool ChatRootView::isSyncOpenFiles() const
     return m_isSyncOpenFiles;
 }
 
-void ChatRootView::onEditorOpened(Core::IEditor *editor)
+void ChatRootView::onEditorAboutToClose(Core::IEditor *editor)
+{
+    if (auto document = editor->document(); document && isSyncOpenFiles()) {
+        QString filePath = document->filePath().toString();
+        m_linkedFiles.removeOne(filePath);
+        emit linkedFilesChanged();
+    }
+
+    if (editor) {
+        m_currentEditors.removeOne(editor);
+    }
+}
+
+void ChatRootView::onAppendLinkFileFromEditor(Core::IEditor *editor)
 {
     if (auto document = editor->document(); document && isSyncOpenFiles()) {
         QString filePath = document->filePath().toString();
@@ -427,25 +457,10 @@ void ChatRootView::onEditorOpened(Core::IEditor *editor)
     }
 }
 
-void ChatRootView::onEditorAboutToClose(Core::IEditor *editor)
+void ChatRootView::onEditorCreated(Core::IEditor *editor, const Utils::FilePath &filePath)
 {
-    if (auto document = editor->document(); document && isSyncOpenFiles()) {
-        QString filePath = document->filePath().toString();
-        m_linkedFiles.removeOne(filePath);
-        emit linkedFilesChanged();
-    }
-}
-
-void ChatRootView::onEditorsClosed(QList<Core::IEditor *> editors)
-{
-    if (isSyncOpenFiles()) {
-        for (Core::IEditor *editor : editors) {
-            if (auto document = editor->document()) {
-                QString filePath = document->filePath().toString();
-                m_linkedFiles.removeOne(filePath);
-            }
-        }
-        emit linkedFilesChanged();
+    if (editor && editor->document()) {
+        m_currentEditors.append(editor);
     }
 }
 

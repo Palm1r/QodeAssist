@@ -70,9 +70,9 @@ public:
 
     bool isSyncOpenFiles() const;
 
-    void onEditorOpened(Core::IEditor *editor);
     void onEditorAboutToClose(Core::IEditor *editor);
-    void onEditorsClosed(QList<Core::IEditor *> editors);
+    void onAppendLinkFileFromEditor(Core::IEditor *editor);
+    void onEditorCreated(Core::IEditor *editor, const Utils::FilePath &filePath);
 
     QString chatFileName() const;
     void setRecentFilePath(const QString &filePath);
@@ -106,6 +106,7 @@ private:
     int m_messageTokensCount{0};
     int m_inputTokensCount{0};
     bool m_isSyncOpenFiles;
+    QList<Core::IEditor *> m_currentEditors;
 };
 
 } // namespace QodeAssist::Chat
