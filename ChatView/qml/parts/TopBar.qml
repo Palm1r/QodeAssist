@@ -29,6 +29,7 @@ Rectangle {
     property alias clearButton: clearButtonId
     property alias tokensBadge: tokensBadgeId
     property alias recentPath: recentPathId
+    property alias openChatHistory: openChatHistoryId
 
     color: palette.window.hslLightness > 0.5 ?
                Qt.darker(palette.window, 1.1) :
@@ -66,9 +67,14 @@ Rectangle {
         Text {
             id: recentPathId
 
-            Layout.fillWidth: true
             elide: Text.ElideMiddle
             color: palette.text
+        }
+
+        QoAButton {
+            id: openChatHistoryId
+
+            text: qsTr("Show in system")
         }
 
         Item {

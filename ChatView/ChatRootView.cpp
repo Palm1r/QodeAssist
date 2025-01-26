@@ -20,6 +20,7 @@
 #include "ChatRootView.hpp"
 
 #include <QClipboard>
+#include <QDesktopServices>
 #include <QFileDialog>
 #include <QMessageBox>
 
@@ -72,7 +73,7 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         this,
         &ChatRootView::updateInputTokensCount);
 
-    connect(m_chatModel, &ChatModel::modelReseted, [this]() { setRecentFilePath(QString{}); });
+    connect(m_chatModel, &ChatModel::modelReseted, this, [this]() { setRecentFilePath(QString{}); });
     connect(this, &ChatRootView::attachmentFilesChanged, &ChatRootView::updateInputTokensCount);
     connect(this, &ChatRootView::linkedFilesChanged, &ChatRootView::updateInputTokensCount);
     connect(&Settings::chatAssistantSettings().useSystemPrompt, &Utils::BaseAspect::changed,
@@ -91,7 +92,7 @@ ChatRootView::ChatRootView(QQuickItem *parent)
 
     connect(editors, &Core::EditorManager::currentEditorAboutToChange, this, [this]() {
         if (m_isSyncOpenFiles) {
-            for (auto editor : m_currentEditors) {
+            for (auto editor : std::as_const(m_currentEditors)) {
                 onAppendLinkFileFromEditor(editor);
             }
         }
@@ -256,17 +257,50 @@ QString ChatRootView::getSuggestedFileName() const
 {
     QStringList parts;
 
+    static const QRegularExpression saitizeSymbols = QRegularExpression("[\\/:*?\"<>|\\s]");
+    static const QRegularExpression underSymbols = QRegularExpression("_+");
+
     if (m_chatModel->rowCount() > 0) {
         QString firstMessage
             = m_chatModel->data(m_chatModel->index(0), ChatModel::Content).toString();
         QString shortMessage = firstMessage.split('\n').first().simplified().left(30);
-        shortMessage.replace(QRegularExpression("[^a-zA-Z0-9_-]"), "_");
-        parts << shortMessage;
+
+        QString sanitizedMessage = shortMessage;
+        sanitizedMessage.replace(saitizeSymbols, "_");
+        sanitizedMessage.replace(underSymbols, "_");
+        sanitizedMessage = sanitizedMessage.trimmed();
+
+        if (!sanitizedMessage.isEmpty()) {
+            if (sanitizedMessage.startsWith('_')) {
+                sanitizedMessage.remove(0, 1);
+            }
+            if (sanitizedMessage.endsWith('_')) {
+                sanitizedMessage.chop(1);
+            }
+
+            QString targetDir = getChatsHistoryDir();
+            QString fullPath = QDir(targetDir).filePath(sanitizedMessage);
+
+            QFileInfo fileInfo(fullPath);
+            if (!fileInfo.exists() && QFileInfo(fileInfo.path()).isWritable()) {
+                parts << sanitizedMessage;
+            }
+        }
     }
 
     parts << QDateTime::currentDateTime().toString("yyyy-MM-dd_HH-mm");
 
-    return parts.join("_");
+    QString fileName = parts.join("_");
+
+    QString fullPath = QDir(getChatsHistoryDir()).filePath(fileName);
+    QFileInfo finalCheck(fullPath);
+
+    if (fileName.isEmpty() || finalCheck.exists() || !QFileInfo(finalCheck.path()).isWritable()) {
+        fileName = QString("chat_%1").arg(
+            QDateTime::currentDateTime().toString("yyyy-MM-dd_HH-mm"));
+    }
+
+    return fileName;
 }
 
 void ChatRootView::autosave()
@@ -319,7 +353,7 @@ void ChatRootView::showAttachFilesDialog()
         QStringList newFilePaths = dialog.selectedFiles();
         if (!newFilePaths.isEmpty()) {
             bool filesAdded = false;
-            for (const QString &filePath : newFilePaths) {
+            for (const QString &filePath : std::as_const(newFilePaths)) {
                 if (!m_attachmentFiles.contains(filePath)) {
                     m_attachmentFiles.append(filePath);
                     filesAdded = true;
@@ -353,7 +387,7 @@ void ChatRootView::showLinkFilesDialog()
         QStringList newFilePaths = dialog.selectedFiles();
         if (!newFilePaths.isEmpty()) {
             bool filesAdded = false;
-            for (const QString &filePath : newFilePaths) {
+            for (const QString &filePath : std::as_const(newFilePaths)) {
                 if (!m_linkedFiles.contains(filePath)) {
                     m_linkedFiles.append(filePath);
                     filesAdded = true;
@@ -388,10 +422,29 @@ void ChatRootView::setIsSyncOpenFiles(bool state)
     }
 
     if (m_isSyncOpenFiles) {
-        for (auto editor : m_currentEditors) {
+        for (auto editor : std::as_const(m_currentEditors)) {
             onAppendLinkFileFromEditor(editor);
         }
     }
+}
+
+void ChatRootView::openChatHistoryFolder()
+{
+    QString path;
+    if (auto project = ProjectExplorer::ProjectManager::startupProject()) {
+        Settings::ProjectSettings projectSettings(project);
+        path = projectSettings.chatHistoryPath().toString();
+    } else {
+        path = QString("%1/qodeassist/chat_history").arg(Core::ICore::userResourcePath().toString());
+    }
+
+    QDir dir(path);
+    if (!dir.exists()) {
+        dir.mkpath(".");
+    }
+
+    QUrl url = QUrl::fromLocalFile(dir.absolutePath());
+    QDesktopServices::openUrl(url);
 }
 
 void ChatRootView::updateInputTokensCount()

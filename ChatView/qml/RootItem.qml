@@ -75,6 +75,7 @@ ChatRootView {
             recentPath {
                 text: qsTr("Latest chat file name: %1").arg(root.chatFileName.length > 0 ? root.chatFileName : "Unsaved")
             }
+            openChatHistory.onClicked: root.openChatHistoryFolder()
         }
 
         ListView {
