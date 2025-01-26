@@ -2,7 +2,7 @@
 [![Build plugin](https://github.com/Palm1r/QodeAssist/actions/workflows/build_cmake.yml/badge.svg?branch=main)](https://github.com/Palm1r/QodeAssist/actions/workflows/build_cmake.yml)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Palm1r/QodeAssist/total?color=41%2C173%2C71)
 ![GitHub Tag](https://img.shields.io/github/v/tag/Palm1r/QodeAssist)
-![Static Badge](https://img.shields.io/badge/QtCreator-15.0.0-brightgreen)
+![Static Badge](https://img.shields.io/badge/QtCreator-15.0.1-brightgreen)
 ![Static Badge](https://img.shields.io/badge/donations:0-brightgreen)
 
 ![qodeassist-icon](https://github.com/user-attachments/assets/dc336712-83cb-440d-8761-8d0a31de898d) QodeAssist is an AI-powered coding assistant plugin for Qt Creator. It provides intelligent code completion and suggestions for C++ and QML, leveraging large language models through local providers like Ollama. Enhance your coding productivity with context-aware AI assistance directly in your Qt development environment.
@@ -142,19 +142,20 @@ The plugin comes with default system prompts optimized for chat and instruct mod
 |----------|------------------|----------|
 | CodeLlama FIM | `codellama:code` | Code completion |
 | DeepSeekCoder FIM | `deepseek-coder-v2`, `deepseek-v2.5` | Code completion |
-| Ollama Auto FIM | `Any Ollama base model` | Code completion |
-| Qwen FIM | `Qwen 2.5 models` | Code completion |
+| Ollama Auto FIM | `Any Ollama base/fim models` | Code completion |
+| Qwen FIM | `Qwen 2.5 models(exclude instruct)` | Code completion |
 | StarCoder2 FIM | `starcoder2 base model` | Code completion |
 | Alpaca | `starcoder2:instruct` | Chat assistance |
 | Basic Chat| `Messages without tokens` | Chat assistance |
-| ChatML | `Qwen 2.5 models` | Chat assistance |
+| ChatML | `Qwen 2.5 models(exclude base models)` | Chat assistance |
 | Llama2 | `llama2 model family`, `codellama:instruct` | Chat assistance |
 | Llama3 | `llama3 model family` | Chat assistance |
-| Ollama Auto Chat | `Any Ollama chat model` | Chat assistance |
+| Ollama Auto Chat | `Any Ollama chat/instruct models` | Chat assistance |
 
 ## QtCreator Version Compatibility
 
-- QtCreator 15.0.0 - 0.4.x 
+- QtCreator 15.0.1 - 0.4.8 - 0.4.x
+- QtCreator 15.0.0 - 0.4.0 - 0.4.7 
 - QtCreator 14.0.2 - 0.2.3 - 0.3.x 
 - QtCreator 14.0.1 - 0.2.2 plugin version and below
 
