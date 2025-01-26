@@ -23,6 +23,9 @@
 #include <QFileInfo>
 #include <QTextStream>
 
+#include <projectexplorer/project.h>
+#include <projectexplorer/projectnodes.h>
+
 namespace QodeAssist::Context {
 
 ContextManager &ContextManager::instance()
@@ -62,6 +65,36 @@ ContentFile ContextManager::createContentFile(const QString &filePath) const
     contentFile.filename = fileInfo.fileName();
     contentFile.content = readFile(filePath);
     return contentFile;
+}
+
+QStringList ContextManager::getProjectSourceFiles(ProjectExplorer::Project *project) const
+{
+    QStringList sourceFiles;
+    if (!project)
+        return sourceFiles;
+
+    auto projectNode = project->rootProjectNode();
+    if (!projectNode)
+        return sourceFiles;
+
+    projectNode->forEachNode(
+        [&sourceFiles, this](ProjectExplorer::FileNode *fileNode) {
+            if (fileNode && shouldProcessFile(fileNode->filePath().toString())) {
+                sourceFiles.append(fileNode->filePath().toString());
+            }
+        },
+        nullptr);
+
+    return sourceFiles;
+}
+
+bool ContextManager::shouldProcessFile(const QString &filePath) const
+{
+    static const QStringList supportedExtensions
+        = {"cpp", "hpp", "c", "h", "cc", "hh", "cxx", "hxx", "qml", "js", "py"};
+
+    QFileInfo fileInfo(filePath);
+    return supportedExtensions.contains(fileInfo.suffix().toLower());
 }
 
 } // namespace QodeAssist::Context

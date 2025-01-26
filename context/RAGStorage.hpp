@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -19,35 +19,40 @@
 
 #pragma once
 
-#include "ContentFile.hpp"
+#include <QDateTime>
 #include <QObject>
+#include <QSqlDatabase>
 #include <QString>
 
-namespace ProjectExplorer {
-class Project;
-}
+#include <RAGData.hpp>
 
 namespace QodeAssist::Context {
 
-class ContextManager : public QObject
+class RAGStorage : public QObject
 {
     Q_OBJECT
-
 public:
-    static ContextManager &instance();
+    explicit RAGStorage(const QString &dbPath, QObject *parent = nullptr);
+    ~RAGStorage();
 
-    QString readFile(const QString &filePath) const;
-    QList<ContentFile> getContentFiles(const QStringList &filePaths) const;
-    QStringList getProjectSourceFiles(ProjectExplorer::Project *project) const;
+    bool init();
+    bool storeVector(const QString &filePath, const RAGVector &vector);
+    bool updateVector(const QString &filePath, const RAGVector &vector);
+    std::optional<RAGVector> getVector(const QString &filePath);
+    bool needsUpdate(const QString &filePath);
+    QStringList getAllFiles();
+
+    QString dbPath() const;
 
 private:
-    explicit ContextManager(QObject *parent = nullptr);
-    ~ContextManager() = default;
-    ContextManager(const ContextManager &) = delete;
-    ContextManager &operator=(const ContextManager &) = delete;
+    bool createTables();
+    bool openDatabase();
+    QDateTime getFileLastModified(const QString &filePath);
+    RAGVector blobToVector(const QByteArray &blob);
+    QByteArray vectorToBlob(const RAGVector &vector);
 
-    ContentFile createContentFile(const QString &filePath) const;
-    bool shouldProcessFile(const QString &filePath) const;
+    QSqlDatabase m_db;
+    QString m_dbPath;
 };
 
 } // namespace QodeAssist::Context

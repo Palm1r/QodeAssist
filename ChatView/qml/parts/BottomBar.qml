@@ -30,6 +30,7 @@ Rectangle {
     property alias syncOpenFiles: syncOpenFilesId
     property alias attachFiles: attachFilesId
     property alias linkFiles: linkFilesId
+    property alias testRag: testRagId
 
     color: palette.window.hslLightness > 0.5 ?
                Qt.darker(palette.window, 1.1) :
@@ -89,6 +90,12 @@ Rectangle {
 
             ToolTip.visible: syncOpenFilesId.hovered
             ToolTip.text: qsTr("Automatically synchronize currently opened files with the model context")
+        }
+
+        QoAButton {
+            id: testRagId
+
+            text: qsTr("Test RAG")
         }
 
         Item {

@@ -24,21 +24,23 @@
 #include <QFileDialog>
 #include <QMessageBox>
 
+#include <coreplugin/editormanager/editormanager.h>
 #include <coreplugin/icore.h>
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectexplorer.h>
 #include <projectexplorer/projectmanager.h>
+#include <projectexplorer/projecttree.h>
 #include <utils/theme/theme.h>
 #include <utils/utilsicons.h>
-#include <coreplugin/editormanager/editormanager.h>
 
 #include "ChatAssistantSettings.hpp"
 #include "ChatSerializer.hpp"
 #include "GeneralSettings.hpp"
 #include "Logger.hpp"
 #include "ProjectSettings.hpp"
-#include "context/TokenUtils.hpp"
 #include "context/ContextManager.hpp"
+#include "context/RAGManager.hpp"
+#include "context/TokenUtils.hpp"
 
 namespace QodeAssist::Chat {
 
@@ -445,6 +447,22 @@ void ChatRootView::openChatHistoryFolder()
 
     QUrl url = QUrl::fromLocalFile(dir.absolutePath());
     QDesktopServices::openUrl(url);
+}
+
+void ChatRootView::testRAG()
+{
+    auto project = ProjectExplorer::ProjectTree::currentProject();
+    if (project) {
+        auto files = Context::ContextManager::instance().getProjectSourceFiles(project);
+        auto future = Context::RAGManager::instance().processFiles(project, files);
+        connect(
+            &Context::RAGManager::instance(),
+            &Context::RAGManager::vectorizationProgress,
+            this,
+            [](int processed, int total) {
+                qDebug() << "Processed" << processed << "of" << total << "files";
+            });
+    }
 }
 
 void ChatRootView::updateInputTokensCount()

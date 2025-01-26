@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -19,35 +19,32 @@
 
 #pragma once
 
-#include "ContentFile.hpp"
+#include <QFuture>
+#include <QNetworkAccessManager>
 #include <QObject>
-#include <QString>
 
-namespace ProjectExplorer {
-class Project;
-}
+#include <RAGData.hpp>
 
 namespace QodeAssist::Context {
 
-class ContextManager : public QObject
+class RAGVectorizer : public QObject
 {
     Q_OBJECT
-
 public:
-    static ContextManager &instance();
+    explicit RAGVectorizer(const QString &providerUrl = "http://localhost:11434",
+                           const QString &modelName = "all-minilm",
+                           QObject *parent = nullptr);
+    ~RAGVectorizer();
 
-    QString readFile(const QString &filePath) const;
-    QList<ContentFile> getContentFiles(const QStringList &filePaths) const;
-    QStringList getProjectSourceFiles(ProjectExplorer::Project *project) const;
+    QFuture<RAGVector> vectorizeText(const QString &text);
 
 private:
-    explicit ContextManager(QObject *parent = nullptr);
-    ~ContextManager() = default;
-    ContextManager(const ContextManager &) = delete;
-    ContextManager &operator=(const ContextManager &) = delete;
+    QJsonObject prepareEmbeddingRequest(const QString &text) const;
+    RAGVector parseEmbeddingResponse(const QByteArray &response) const;
 
-    ContentFile createContentFile(const QString &filePath) const;
-    bool shouldProcessFile(const QString &filePath) const;
+    QNetworkAccessManager *m_network;
+    QString m_embedProviderUrl;
+    QString m_model;
 };
 
 } // namespace QodeAssist::Context

@@ -5,11 +5,16 @@ add_library(Context STATIC
     ContentFile.hpp
     TokenUtils.hpp TokenUtils.cpp
     ProgrammingLanguage.hpp ProgrammingLanguage.cpp
+    RAGManager.hpp RAGManager.cpp
+    RAGStorage.hpp RAGStorage.cpp
+    RAGData.hpp
+    RAGVectorizer.hpp RAGVectorizer.cpp
 )
 
 target_link_libraries(Context
     PUBLIC
     Qt::Core
+    Qt::Sql
     QtCreator::Core
     QtCreator::TextEditor
     QtCreator::Utils

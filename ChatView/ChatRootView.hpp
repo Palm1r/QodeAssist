@@ -64,7 +64,7 @@ public:
     Q_INVOKABLE void removeFileFromLinkList(int index);
     Q_INVOKABLE void calculateMessageTokensCount(const QString &message);
     Q_INVOKABLE void setIsSyncOpenFiles(bool state);
-    Q_INVOKABLE void openChatHistoryFolder();
+    Q_INVOKABLE void testRAG();
 
     Q_INVOKABLE void updateInputTokensCount();
     int inputTokensCount() const;
