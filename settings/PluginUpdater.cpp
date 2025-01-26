@@ -159,11 +159,19 @@ void PluginUpdater::handleDownloadFinished()
         return;
     }
 
-    QString downloadPath = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation);
+    QString downloadPath = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation)
+                           + QDir::separator() + "QodeAssist_v" + m_lastUpdateInfo.version;
+    QDir().mkpath(downloadPath);
 
-    QString filePath = downloadPath + "/" + m_lastUpdateInfo.fileName;
+    QString filePath = downloadPath + QDir::separator() + m_lastUpdateInfo.fileName;
+
+    if (QFile::exists(filePath)) {
+        emit downloadError(tr("Update file already exists: %1").arg(filePath));
+        reply->deleteLater();
+        return;
+    }
+
     QFile file(filePath);
-
     if (!file.open(QIODevice::WriteOnly)) {
         emit downloadError(tr("Could not save the update file"));
         reply->deleteLater();
@@ -174,7 +182,6 @@ void PluginUpdater::handleDownloadFinished()
     file.close();
 
     emit downloadFinished(filePath);
-
     reply->deleteLater();
 }
 

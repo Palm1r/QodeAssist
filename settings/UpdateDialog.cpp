@@ -19,6 +19,11 @@
 
 #include "UpdateDialog.hpp"
 
+#include <coreplugin/icore.h>
+#include <extensionsystem/pluginmanager.h>
+#include <extensionsystem/pluginspec.h>
+#include <QDesktopServices>
+
 namespace QodeAssist {
 
 UpdateDialog::UpdateDialog(QWidget *parent)
@@ -166,7 +171,32 @@ void UpdateDialog::updateProgress(qint64 received, qint64 total)
 void UpdateDialog::handleDownloadFinished(const QString &path)
 {
     m_progress->setVisible(false);
-    QMessageBox::information(this, tr("Update Successful"), tr("Update has been downloaded."));
+
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle(tr("Update Downloaded"));
+    msgBox.setText(tr("The update has been downloaded successfully.\n"
+                      "Would you like to close Qt Creator now and open the plugin folder?"));
+    msgBox.setInformativeText(tr("To complete the update:\n\n"
+                                 "1. Close Qt Creator completely\n"
+                                 "2. Navigate to the plugin folder\n"
+                                 "3. Remove the old version of QodeAssist plugin\n"
+                                 "4. Install plugin as usual via About plugin menu"));
+    msgBox.setStandardButtons(QMessageBox::Yes | QMessageBox::No);
+    msgBox.setDefaultButton(QMessageBox::Yes);
+    msgBox.setIcon(QMessageBox::Information);
+
+    if (msgBox.exec() == QMessageBox::Yes) {
+        const auto pluginSpecs = ExtensionSystem::PluginManager::plugins();
+        for (const ExtensionSystem::PluginSpec *spec : pluginSpecs) {
+            if (spec->name() == QLatin1String("QodeAssist")) {
+                const auto pluginPath = spec->filePath().path();
+                QFileInfo fileInfo(pluginPath);
+                QDesktopServices::openUrl(QUrl::fromLocalFile(fileInfo.absolutePath()));
+                Core::ICore::exit();
+                break;
+            }
+        }
+    }
     accept();
 }
 
