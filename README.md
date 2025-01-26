@@ -20,19 +20,25 @@
 4. [Configure for OpenAI](#configure-for-openai)
 5. [Configure for using Ollama](#configure-for-using-ollama)
 6. [System Prompt Configuration](#system-prompt-configuration)
-7. [Template-Model Compatibility](#template-model-compatibility)
-8. [QtCreator Version Compatibility](#qtcreator-version-compatibility)
-9. [Development Progress](#development-progress)
-10. [Hotkeys](#hotkeys)
-11. [Troubleshooting](#troubleshooting)
-12. [Support the Development](#support-the-development-of-qodeassist)
-13. [How to Build](#how-to-build)
+7. [File Context Features](#file-context-features)
+8. [Template-Model Compatibility](#template-model-compatibility)
+9. [QtCreator Version Compatibility](#qtcreator-version-compatibility)
+10. [Development Progress](#development-progress)
+11. [Hotkeys](#hotkeys)
+12. [Troubleshooting](#troubleshooting)
+13. [Support the Development](#support-the-development-of-qodeassist)
+14. [How to Build](#how-to-build)
 
 ## Overview
 
 - AI-powered code completion
 - Chat functionality:
   - Side and Bottom panels
+  - Chat history autosave and restore
+  - Token usage monitoring and management
+  - Attach files for one-time code analysis
+  - Link files for persistent context with auto update in conversations
+  - Automatic syncing with open editor files (optional)
 - Support for multiple LLM providers:
   - Ollama
   - OpenAI
@@ -63,9 +69,15 @@
   <img width="326" alt="QodeAssistBottomPanel" src="https://github.com/user-attachments/assets/4cc64c23-a294-4df8-9153-39ad6fdab34b">
 </details>
 
+<details>
+  <summary>Automatic syncing with open editor files: (click to expand)</summary>
+  <img width="600" alt="OpenedDocumentsSync" src="https://github.com/user-attachments/assets/08efda2f-dc4d-44c3-927c-e6a975090d2f">
+</details>
+
 ## Install plugin to QtCreator
 1. Install Latest Qt Creator
 2. Download the QodeAssist plugin for your Qt Creator
+   - Remove old version plugin if already was installed
 3. Launch Qt Creator and install the plugin:
    - Go to: 
      - MacOS: Qt Creator -> About Plugins...
@@ -135,6 +147,39 @@ You're all set! QodeAssist is now ready to use in Qt Creator.
 ## System Prompt Configuration
 
 The plugin comes with default system prompts optimized for chat and instruct models, as these currently provide better results for code assistance. If you prefer using FIM (Fill-in-Middle) models, you can easily customize the system prompt in the settings.
+
+## File Context Features
+
+QodeAssist provides two powerful ways to include source code files in your chat conversations: Attachments and Linked Files. Each serves a distinct purpose and helps provide better context for the AI assistant.
+
+### Attached Files
+
+Attachments are designed for one-time code analysis and specific queries:
+  - Files are included only in the current message
+  - Content is discarded after the message is processed
+  - Ideal for:
+    - Getting specific feedback on code changes
+    - Code review requests
+    - Analyzing isolated code segments
+    - Quick implementation questions
+  - Files can be attached using the paperclip icon in the chat interface
+  - Multiple files can be attached to a single message
+
+### Linked Files
+
+Linked files provide persistent context throughout the conversation:
+
+  - Files remain accessible for the entire chat session
+  - Content is included in every message exchange
+  - Files are automatically refreshed - always using latest content from disk
+  - Perfect for:
+    - Long-term refactoring discussions
+    - Complex architectural changes
+    - Multi-file implementations
+    - Maintaining context across related questions
+  - Can be managed using the link icon in the chat interface
+  - Supports automatic syncing with open editor files (can be enabled in settings)
+  - Files can be added/removed at any time during the conversation
 
 ## Template-Model Compatibility
 
