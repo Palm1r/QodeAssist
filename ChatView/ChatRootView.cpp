@@ -173,6 +173,8 @@ void ChatRootView::saveHistory(const QString &filePath)
     auto result = ChatSerializer::saveToFile(m_chatModel, filePath);
     if (!result.success) {
         LOG_MESSAGE(QString("Failed to save chat history: %1").arg(result.errorMessage));
+    } else {
+        setRecentFilePath(filePath);
     }
 }
 
