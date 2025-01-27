@@ -449,7 +449,7 @@ void ChatRootView::openChatHistoryFolder()
     QDesktopServices::openUrl(url);
 }
 
-void ChatRootView::testRAG()
+void ChatRootView::testRAG(const QString &message)
 {
     auto project = ProjectExplorer::ProjectTree::currentProject();
     if (!project) {
@@ -457,7 +457,7 @@ void ChatRootView::testRAG()
         return;
     }
 
-    const QString TEST_QUERY = "";
+    const QString TEST_QUERY = message;
 
     qDebug() << "Starting RAG test with query:";
     qDebug() << TEST_QUERY;
