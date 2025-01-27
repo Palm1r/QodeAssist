@@ -10,6 +10,8 @@ add_library(Context STATIC
     RAGData.hpp
     RAGVectorizer.hpp RAGVectorizer.cpp
     RAGSimilaritySearch.hpp RAGSimilaritySearch.cpp
+    RAGPreprocessor.hpp RAGPreprocessor.cpp
+    EnhancedRAGSimilaritySearch.hpp EnhancedRAGSimilaritySearch.cpp
 )
 
 target_link_libraries(Context

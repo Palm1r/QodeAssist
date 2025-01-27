@@ -40,13 +40,25 @@ class RAGManager : public QObject
 public:
     static RAGManager &instance();
 
+    // struct SearchResult
+    // {
+    //     QString filePath;
+    //     float l2Score;
+    //     float cosineScore;
+
+    //     bool operator<(const SearchResult &other) const;
+    // };
     struct SearchResult
     {
         QString filePath;
-        float l2Score;
-        float cosineScore;
+        float semantic_similarity;
+        float structural_similarity;
+        float combined_score;
 
-        bool operator<(const SearchResult &other) const;
+        bool operator<(const SearchResult &other) const
+        {
+            return combined_score > other.combined_score;
+        }
     };
 
     // Process and vectorize files
@@ -86,6 +98,7 @@ private:
     std::unique_ptr<RAGVectorizer> m_vectorizer;
     std::unique_ptr<RAGStorage> m_currentStorage;
     ProjectExplorer::Project *m_currentProject{nullptr};
+    std::optional<QString> loadFileContent(const QString &filePath);
 };
 
 } // namespace QodeAssist::Context

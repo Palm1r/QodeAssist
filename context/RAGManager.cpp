@@ -27,6 +27,9 @@
 #include <QtConcurrent>
 #include <queue>
 
+#include <EnhancedRAGSimilaritySearch.hpp>
+#include <RAGPreprocessor.hpp>
+
 namespace QodeAssist::Context {
 
 RAGManager &RAGManager::instance()
@@ -42,17 +45,37 @@ RAGManager::RAGManager(QObject *parent)
 
 RAGManager::~RAGManager() {}
 
-bool RAGManager::SearchResult::operator<(const SearchResult &other) const
-{
-    if (cosineScore != other.cosineScore)
-        return cosineScore > other.cosineScore;
-    return l2Score < other.l2Score;
-}
+// bool RAGManager::SearchResult::operator<(const SearchResult &other) const
+// {
+//     if (cosineScore != other.cosineScore)
+//         return cosineScore > other.cosineScore;
+//     return l2Score < other.l2Score;
+// }
 
 QString RAGManager::getStoragePath(ProjectExplorer::Project *project) const
 {
     return QString("%1/qodeassist/%2/rag/vectors.db")
         .arg(Core::ICore::userResourcePath().toString(), project->displayName());
+}
+
+std::optional<QString> RAGManager::loadFileContent(const QString &filePath)
+{
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qDebug() << "ERROR: Failed to open file for reading:" << filePath
+                 << "Error:" << file.errorString();
+        return std::nullopt;
+    }
+
+    QFileInfo fileInfo(filePath);
+    qDebug() << "Loading content from file:" << fileInfo.fileName() << "Size:" << fileInfo.size()
+             << "bytes";
+
+    QString content = QString::fromUtf8(file.readAll());
+    if (content.isEmpty()) {
+        qDebug() << "WARNING: Empty content read from file:" << filePath;
+    }
+    return content;
 }
 
 void RAGManager::ensureStorageForProject(ProjectExplorer::Project *project)
@@ -110,6 +133,93 @@ QFuture<void> RAGManager::processFiles(
     return promise->future();
 }
 
+void RAGManager::searchSimilarDocuments(
+    const QString &text, ProjectExplorer::Project *project, int topK)
+{
+    qDebug() << "\nStarting similarity search with parameters:";
+    qDebug() << "Query length:" << text.length();
+    qDebug() << "Project:" << project->displayName();
+    qDebug() << "Top K:" << topK;
+
+    // Предобработка текста запроса
+    QString processedText = RAGPreprocessor::preprocessCode(text);
+    qDebug() << "Preprocessed query length:" << processedText.length();
+
+    auto future = m_vectorizer->vectorizeText(processedText);
+    qDebug() << "Started query vectorization";
+
+    future.then([this, project, processedText, topK, text](const RAGVector &queryVector) {
+        if (queryVector.empty()) {
+            qDebug() << "ERROR: Query vectorization failed - empty vector";
+            return;
+        }
+        qDebug() << "Query vector generated, size:" << queryVector.size();
+
+        auto storedFiles = getStoredFiles(project);
+        qDebug() << "Found" << storedFiles.size() << "stored files to compare";
+
+        QList<SearchResult> results;
+        results.reserve(storedFiles.size());
+
+        int processedFiles = 0;
+        int skippedFiles = 0;
+
+        for (const auto &filePath : storedFiles) {
+            // Загружаем и обрабатываем содержимое файла
+            auto storedCode = loadFileContent(filePath);
+            if (!storedCode.has_value()) {
+                qDebug() << "ERROR: Failed to load content for file:" << filePath;
+                skippedFiles++;
+                continue;
+            }
+
+            // Получаем вектор из хранилища
+            auto storedVector = loadVectorFromStorage(project, filePath);
+            if (!storedVector.has_value()) {
+                qDebug() << "ERROR: Failed to load vector for file:" << filePath;
+                skippedFiles++;
+                continue;
+            }
+
+            // Предобработка содержимого файла
+            QString processedStoredCode = RAGPreprocessor::preprocessCode(storedCode.value());
+
+            // Используем улучшенное сравнение
+            auto similarity = EnhancedRAGSimilaritySearch::calculateSimilarity(
+                queryVector, storedVector.value(), processedText, processedStoredCode);
+
+            results.append(
+                {filePath,
+                 similarity.semantic_similarity,
+                 similarity.structural_similarity,
+                 similarity.combined_score});
+
+            processedFiles++;
+            if (processedFiles % 100 == 0) {
+                qDebug() << "Processed" << processedFiles << "files...";
+            }
+        }
+
+        qDebug() << "\nSearch statistics:";
+        qDebug() << "Total files processed:" << processedFiles;
+        qDebug() << "Files skipped:" << skippedFiles;
+        qDebug() << "Total results before filtering:" << results.size();
+
+        // Оптимизированная сортировка топ K результатов
+        if (results.size() > topK) {
+            qDebug() << "Performing partial sort for top" << topK << "results";
+            std::partial_sort(results.begin(), results.begin() + topK, results.end());
+            results = results.mid(0, topK);
+        } else {
+            qDebug() << "Performing full sort for" << results.size() << "results";
+            std::sort(results.begin(), results.end());
+        }
+
+        qDebug() << "Sorting completed, logging final results...";
+        logSearchResults(results);
+    });
+}
+
 void RAGManager::processNextBatch(
     std::shared_ptr<QPromise<void>> promise,
     ProjectExplorer::Project *project,
@@ -158,11 +268,14 @@ void RAGManager::processNextBatch(
 
 QFuture<bool> RAGManager::processFile(ProjectExplorer::Project *project, const QString &filePath)
 {
+    qDebug() << "Starting to process file:" << filePath;
+
     auto promise = std::make_shared<QPromise<bool>>();
     promise->start();
 
     ensureStorageForProject(project);
     if (!m_currentStorage) {
+        qDebug() << "ERROR: Storage not initialized for project" << project->displayName();
         promise->addResult(false);
         promise->finish();
         return promise->future();
@@ -170,6 +283,7 @@ QFuture<bool> RAGManager::processFile(ProjectExplorer::Project *project, const Q
 
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {
+        qDebug() << "ERROR: Failed to open file for reading:" << filePath;
         promise->addResult(false);
         promise->finish();
         return promise->future();
@@ -177,14 +291,29 @@ QFuture<bool> RAGManager::processFile(ProjectExplorer::Project *project, const Q
 
     QFileInfo fileInfo(filePath);
     QString fileName = fileInfo.fileName();
-    QString content = QString("// %1\n%2").arg(fileName, QString::fromUtf8(file.readAll()));
+    QString content = QString::fromUtf8(file.readAll());
 
-    auto vectorFuture = m_vectorizer->vectorizeText(content);
-    vectorFuture.then([promise, filePath, this](const RAGVector &vector) {
+    qDebug() << "File" << fileName << "read, content size:" << content.size() << "bytes";
+
+    // Предобработка контента
+    QString processedContent = RAGPreprocessor::preprocessCode(content);
+    qDebug() << "Preprocessed content size:" << processedContent.size() << "bytes";
+
+    auto vectorFuture = m_vectorizer->vectorizeText(processedContent);
+    qDebug() << "Started vectorization for file:" << fileName;
+
+    vectorFuture.then([promise, filePath, fileName, this](const RAGVector &vector) {
         if (vector.empty()) {
+            qDebug() << "ERROR: Vectorization failed for file:" << fileName << "- empty vector";
             promise->addResult(false);
         } else {
+            qDebug() << "Vector generated for file:" << fileName << "size:" << vector.size();
             bool success = m_currentStorage->storeVector(filePath, vector);
+            if (!success) {
+                qDebug() << "ERROR: Failed to store vector for file:" << fileName;
+            } else {
+                qDebug() << "Successfully stored vector for file:" << fileName;
+            }
             promise->addResult(success);
         }
         promise->finish();
@@ -273,22 +402,35 @@ QFuture<QList<RAGManager::SearchResult>> RAGManager::search(
     return promise->future();
 }
 
-void RAGManager::searchSimilarDocuments(
-    const QString &text, ProjectExplorer::Project *project, int topK)
-{
-    auto future = search(text, project, topK);
-    future.then([this](const QList<SearchResult> &results) { logSearchResults(results); });
-}
+// void RAGManager::searchSimilarDocuments(
+//     const QString &text, ProjectExplorer::Project *project, int topK)
+// {
+//     auto future = search(text, project, topK);
+//     future.then([this](const QList<SearchResult> &results) { logSearchResults(results); });
+// }
 
 void RAGManager::logSearchResults(const QList<SearchResult> &results) const
 {
-    qDebug() << QString("\nTop %1 similar documents:").arg(results.size());
+    qDebug() << "\n=== Search Results ===";
+    qDebug() << "Number of results:" << results.size();
 
-    for (const auto &result : results) {
-        qDebug() << QString("File: %1").arg(result.filePath);
-        qDebug() << QString("  Cosine Similarity: %1").arg(result.cosineScore);
-        qDebug() << QString("  L2 Distance: %1\n").arg(result.l2Score);
+    if (results.empty()) {
+        qDebug() << "No similar documents found.";
+        return;
     }
+
+    for (int i = 0; i < results.size(); ++i) {
+        const auto &result = results[i];
+        QFileInfo fileInfo(result.filePath);
+        qDebug() << "\nResult #" << (i + 1);
+        qDebug() << "File:" << fileInfo.fileName();
+        qDebug() << "Full path:" << result.filePath;
+        qDebug() << "Semantic similarity:" << QString::number(result.semantic_similarity, 'f', 4);
+        qDebug() << "Structural similarity:"
+                 << QString::number(result.structural_similarity, 'f', 4);
+        qDebug() << "Combined score:" << QString::number(result.combined_score, 'f', 4);
+    }
+    qDebug() << "\n=== End of Results ===\n";
 }
 
 } // namespace QodeAssist::Context

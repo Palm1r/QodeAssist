@@ -31,9 +31,10 @@ class RAGVectorizer : public QObject
 {
     Q_OBJECT
 public:
-    explicit RAGVectorizer(const QString &providerUrl = "http://localhost:11434",
-                           const QString &modelName = "all-minilm",
-                           QObject *parent = nullptr);
+    explicit RAGVectorizer(
+        const QString &providerUrl = "http://localhost:11434",
+        const QString &modelName = "all-minilm:33m-l12-v2-fp16",
+        QObject *parent = nullptr);
     ~RAGVectorizer();
 
     QFuture<RAGVector> vectorizeText(const QString &text);
