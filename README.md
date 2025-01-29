@@ -13,6 +13,15 @@
 > - The QodeAssist developer bears no responsibility for any charges incurred
 > - Please carefully review the provider's pricing and your account settings before use
 
+⚠️ **Commercial Support and Custom Development**
+> The QodeAssist developer offers commercial services for:
+> - Adapting the plugin for specific Qt Creator versions
+> - Custom development for particular operating systems
+> - Integration with specific language models
+> - Implementing custom features and modifications
+>
+> For commercial inquiries, please contact: qodeassist.dev@pm.me
+
 ## Table of Contents
 1. [Overview](#overview)
 2. [Install plugin to QtCreator](#install-plugin-to-qtcreator)
