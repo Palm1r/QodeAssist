@@ -55,6 +55,7 @@ add_qtc_plugin(QodeAssist
     templates/Llama2.hpp
     templates/Claude.hpp
     templates/OpenAI.hpp
+    templates/CodeLlamaQMLFim.hpp
     providers/Providers.hpp
     providers/OllamaProvider.hpp providers/OllamaProvider.cpp
     providers/LMStudioProvider.hpp providers/LMStudioProvider.cpp

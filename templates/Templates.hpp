@@ -25,6 +25,7 @@
 #include "templates/ChatML.hpp"
 #include "templates/Claude.hpp"
 #include "templates/CodeLlamaFim.hpp"
+#include "templates/CodeLlamaQMLFim.hpp"
 #include "templates/CustomFimTemplate.hpp"
 #include "templates/DeepSeekCoderFim.hpp"
 #include "templates/Llama2.hpp"
@@ -53,6 +54,7 @@ inline void registerTemplates()
     templateManager.registerTemplate<Llama2>();
     templateManager.registerTemplate<Claude>();
     templateManager.registerTemplate<OpenAI>();
+    templateManager.registerTemplate<CodeLlamaQMLFim>();
 }
 
 } // namespace QodeAssist::Templates
