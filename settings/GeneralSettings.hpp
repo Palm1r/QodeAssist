@@ -55,6 +55,23 @@ public:
     Utils::StringAspect ccStatus{this};
     ButtonAspect ccTest{this};
 
+    // TODO create dynamic presets system
+    // preset1 for code completion settings
+    Utils::BoolAspect specifyPreset1{this};
+    Utils::SelectionAspect preset1Language{this};
+
+    Utils::StringAspect ccPreset1Provider{this};
+    ButtonAspect ccPreset1SelectProvider{this};
+
+    Utils::StringAspect ccPreset1Url{this};
+    ButtonAspect ccPreset1SetUrl{this};
+
+    Utils::StringAspect ccPreset1Model{this};
+    ButtonAspect ccPreset1SelectModel{this};
+
+    Utils::StringAspect ccPreset1Template{this};
+    ButtonAspect ccPreset1SelectTemplate{this};
+
     // chat assistant settings
     Utils::StringAspect caProvider{this};
     ButtonAspect caSelectProvider{this};
@@ -81,6 +98,8 @@ public:
     void showModelsNotSupportedDialog(Utils::StringAspect &aspect);
 
     void showUrlSelectionDialog(Utils::StringAspect &aspect, const QStringList &predefinedUrls);
+
+    void updatePreset1Visiblity(bool state);
 
 private:
     void setupConnections();

@@ -57,6 +57,13 @@ void ConfigurationManager::setupConnections()
     connect(&m_generalSettings.caSelectTemplate, &Button::clicked, this, &Config::selectTemplate);
     connect(&m_generalSettings.ccSetUrl, &Button::clicked, this, &Config::selectUrl);
     connect(&m_generalSettings.caSetUrl, &Button::clicked, this, &Config::selectUrl);
+
+    connect(
+        &m_generalSettings.ccPreset1SelectProvider, &Button::clicked, this, &Config::selectProvider);
+    connect(&m_generalSettings.ccPreset1SetUrl, &Button::clicked, this, &Config::selectUrl);
+    connect(&m_generalSettings.ccPreset1SelectModel, &Button::clicked, this, &Config::selectModel);
+    connect(
+        &m_generalSettings.ccPreset1SelectTemplate, &Button::clicked, this, &Config::selectTemplate);
 }
 
 void ConfigurationManager::selectProvider()
@@ -69,6 +76,8 @@ void ConfigurationManager::selectProvider()
 
     auto &targetSettings = (settingsButton == &m_generalSettings.ccSelectProvider)
                                ? m_generalSettings.ccProvider
+                           : settingsButton == &m_generalSettings.ccPreset1SelectProvider
+                               ? m_generalSettings.ccPreset1Provider
                                : m_generalSettings.caProvider;
 
     QTimer::singleShot(0, this, [this, providersList, &targetSettings] {
@@ -86,14 +95,19 @@ void ConfigurationManager::selectModel()
         return;
 
     const bool isCodeCompletion = (settingsButton == &m_generalSettings.ccSelectModel);
+    const bool isPreset1 = (settingsButton == &m_generalSettings.ccPreset1SelectModel);
 
     const QString providerName = isCodeCompletion ? m_generalSettings.ccProvider.volatileValue()
-                                                  : m_generalSettings.caProvider.volatileValue();
+                                 : isPreset1 ? m_generalSettings.ccPreset1Provider.volatileValue()
+                                             : m_generalSettings.caProvider.volatileValue();
 
     const auto providerUrl = isCodeCompletion ? m_generalSettings.ccUrl.volatileValue()
+                             : isPreset1      ? m_generalSettings.ccPreset1Url.volatileValue()
                                               : m_generalSettings.caUrl.volatileValue();
 
-    auto &targetSettings = isCodeCompletion ? m_generalSettings.ccModel : m_generalSettings.caModel;
+    auto &targetSettings = isCodeCompletion ? m_generalSettings.ccModel
+                           : isPreset1      ? m_generalSettings.ccPreset1Model
+                                            : m_generalSettings.caModel;
 
     if (auto provider = m_providersManager.getProviderByName(providerName)) {
         if (!provider->supportsModelListing()) {
@@ -122,11 +136,13 @@ void ConfigurationManager::selectTemplate()
         return;
 
     const bool isCodeCompletion = (settingsButton == &m_generalSettings.ccSelectTemplate);
+    const bool isPreset1 = (settingsButton == &m_generalSettings.ccPreset1SelectTemplate);
 
-    const auto templateList = isCodeCompletion ? m_templateManger.fimTemplatesNames()
-                                               : m_templateManger.chatTemplatesNames();
+    const auto templateList = isCodeCompletion || isPreset1 ? m_templateManger.fimTemplatesNames()
+                                                            : m_templateManger.chatTemplatesNames();
 
     auto &targetSettings = isCodeCompletion ? m_generalSettings.ccTemplate
+                           : isPreset1      ? m_generalSettings.ccPreset1Template
                                             : m_generalSettings.caTemplate;
 
     QTimer::singleShot(0, &m_generalSettings, [this, templateList, &targetSettings]() {
@@ -150,8 +166,9 @@ void ConfigurationManager::selectUrl()
             urls.append(url);
     }
 
-    auto &targetSettings = (settingsButton == &m_generalSettings.ccSetUrl)
-                               ? m_generalSettings.ccUrl
+    auto &targetSettings = (settingsButton == &m_generalSettings.ccSetUrl) ? m_generalSettings.ccUrl
+                           : settingsButton == &m_generalSettings.ccPreset1SetUrl
+                               ? m_generalSettings.ccPreset1Url
                                : m_generalSettings.caUrl;
 
     QTimer::singleShot(0, &m_generalSettings, [this, urls, &targetSettings]() {

@@ -86,6 +86,9 @@ inline const char ENTER_MODEL_MANUALLY_BUTTON[]
 inline const char AUTO_COMPLETION_SETTINGS[]
     = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Auto Completion Settings");
 
+inline const char ADD_NEW_PRESET[]
+    = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Add new preset for language");
+
 } // namespace TrConstants
 
 struct Tr

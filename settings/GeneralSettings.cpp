@@ -89,6 +89,39 @@ GeneralSettings::GeneralSettings()
     ccStatus.setDefaultValue("");
     ccTest.m_buttonText = TrConstants::TEST;
 
+    // preset1
+    specifyPreset1.setSettingsKey(Constants::CC_SPECIFY_PRESET1);
+    specifyPreset1.setLabelText(TrConstants::ADD_NEW_PRESET);
+    specifyPreset1.setDefaultValue(false);
+
+    preset1Language.setSettingsKey(Constants::CC_PRESET1_LANGUAGE);
+    preset1Language.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+    // see ProgrammingLanguageUtils
+    preset1Language.addOption("qml");
+    preset1Language.addOption("c/c++");
+    preset1Language.addOption("python");
+
+    initStringAspect(
+        ccPreset1Provider, Constants::CC_PRESET1_PROVIDER, TrConstants::PROVIDER, "Ollama");
+    ccPreset1Provider.setReadOnly(true);
+    ccPreset1SelectProvider.m_buttonText = TrConstants::SELECT;
+
+    initStringAspect(
+        ccPreset1Url, Constants::CC_PRESET1_URL, TrConstants::URL, "http://localhost:11434");
+    ccPreset1Url.setHistoryCompleter(Constants::CC_PRESET1_URL_HISTORY);
+    ccPreset1SetUrl.m_buttonText = TrConstants::SELECT;
+
+    initStringAspect(
+        ccPreset1Model, Constants::CC_PRESET1_MODEL, TrConstants::MODEL, "qwen2.5-coder:7b");
+    ccPreset1Model.setHistoryCompleter(Constants::CC_PRESET1_MODEL_HISTORY);
+    ccPreset1SelectModel.m_buttonText = TrConstants::SELECT;
+
+    initStringAspect(
+        ccPreset1Template, Constants::CC_PRESET1_TEMPLATE, TrConstants::TEMPLATE, "Ollama Auto FIM");
+    ccPreset1Template.setReadOnly(true);
+    ccPreset1SelectTemplate.m_buttonText = TrConstants::SELECT;
+
+    // chat assistance
     initStringAspect(caProvider, Constants::CA_PROVIDER, TrConstants::PROVIDER, "Ollama");
     caProvider.setReadOnly(true);
     caSelectProvider.m_buttonText = TrConstants::SELECT;
@@ -117,6 +150,8 @@ GeneralSettings::GeneralSettings()
 
     setupConnections();
 
+    updatePreset1Visiblity(specifyPreset1.value());
+
     setLayouter([this]() {
         using namespace Layouting;
 
@@ -126,13 +161,21 @@ GeneralSettings::GeneralSettings()
         ccGrid.addRow({ccModel, ccSelectModel});
         ccGrid.addRow({ccTemplate, ccSelectTemplate});
 
+        auto ccPreset1Grid = Grid{};
+        ccPreset1Grid.addRow({ccPreset1Provider, ccPreset1SelectProvider});
+        ccPreset1Grid.addRow({ccPreset1Url, ccPreset1SetUrl});
+        ccPreset1Grid.addRow({ccPreset1Model, ccPreset1SelectModel});
+        ccPreset1Grid.addRow({ccPreset1Template, ccPreset1SelectTemplate});
+
         auto caGrid = Grid{};
         caGrid.addRow({caProvider, caSelectProvider});
         caGrid.addRow({caUrl, caSetUrl});
         caGrid.addRow({caModel, caSelectModel});
         caGrid.addRow({caTemplate, caSelectTemplate});
 
-        auto ccGroup = Group{title(TrConstants::CODE_COMPLETION), ccGrid};
+        auto ccGroup = Group{
+            title(TrConstants::CODE_COMPLETION),
+            Column{ccGrid, Row{specifyPreset1, preset1Language, Stretch{1}}, ccPreset1Grid}};
         auto caGroup = Group{title(TrConstants::CHAT_ASSISTANT), caGrid};
 
         auto rootLayout = Column{
@@ -267,9 +310,11 @@ void GeneralSettings::showUrlSelectionDialog(
     dialog.addSpacing();
 
     QStringList allUrls = predefinedUrls;
-    QString key
-        = QString("CompleterHistory/")
-              .append((&aspect == &ccUrl) ? Constants::CC_URL_HISTORY : Constants::CA_URL_HISTORY);
+    QString key = QString("CompleterHistory/")
+                      .append(
+                          (&aspect == &ccUrl)          ? Constants::CC_URL_HISTORY
+                          : (&aspect == &ccPreset1Url) ? Constants::CC_PRESET1_URL_HISTORY
+                                                       : Constants::CA_URL_HISTORY);
     QStringList historyList = qtcSettings()->value(Utils::Key(key.toLocal8Bit())).toStringList();
     allUrls.append(historyList);
     allUrls.removeDuplicates();
@@ -297,6 +342,18 @@ void GeneralSettings::showUrlSelectionDialog(
     dialog.exec();
 }
 
+void GeneralSettings::updatePreset1Visiblity(bool state)
+{
+    ccPreset1Provider.setVisible(specifyPreset1.volatileValue());
+    ccPreset1SelectProvider.updateVisibility(specifyPreset1.volatileValue());
+    ccPreset1Url.setVisible(specifyPreset1.volatileValue());
+    ccPreset1SetUrl.updateVisibility(specifyPreset1.volatileValue());
+    ccPreset1Model.setVisible(specifyPreset1.volatileValue());
+    ccPreset1SelectModel.updateVisibility(specifyPreset1.volatileValue());
+    ccPreset1Template.setVisible(specifyPreset1.volatileValue());
+    ccPreset1SelectTemplate.updateVisibility(specifyPreset1.volatileValue());
+}
+
 void GeneralSettings::setupConnections()
 {
     connect(&enableLogging, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
@@ -305,6 +362,10 @@ void GeneralSettings::setupConnections()
     connect(&resetToDefaults, &ButtonAspect::clicked, this, &GeneralSettings::resetPageToDefaults);
     connect(&checkUpdate, &ButtonAspect::clicked, this, [this]() {
         QodeAssist::UpdateDialog::checkForUpdatesAndShow(Core::ICore::dialogParent());
+    });
+
+    connect(&specifyPreset1, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
+        updatePreset1Visiblity(specifyPreset1.volatileValue());
     });
 }
 
@@ -328,6 +389,12 @@ void GeneralSettings::resetPageToDefaults()
         resetAspect(caTemplate);
         resetAspect(caUrl);
         resetAspect(enableCheckUpdate);
+        resetAspect(specifyPreset1);
+        resetAspect(preset1Language);
+        resetAspect(ccPreset1Provider);
+        resetAspect(ccPreset1Model);
+        resetAspect(ccPreset1Template);
+        resetAspect(ccPreset1Url);
         writeSettings();
     }
 }

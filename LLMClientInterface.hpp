@@ -22,6 +22,7 @@
 #include <languageclient/languageclientinterface.h>
 #include <texteditor/texteditor.h>
 
+#include <context/ProgrammingLanguage.hpp>
 #include <llmcore/ContextData.hpp>
 #include <llmcore/RequestHandler.hpp>
 
@@ -58,8 +59,10 @@ private:
     void handleExit(const QJsonObject &request);
     void handleCancelRequest(const QJsonObject &request);
 
-    LLMCore::ContextData prepareContext(const QJsonObject &request,
-                                        const QStringView &accumulatedCompletion = QString{});
+    LLMCore::ContextData prepareContext(
+        const QJsonObject &request, const QStringView &accumulatedCompletion = QString{});
+    Context::ProgrammingLanguage getDocumentLanguage(const QJsonObject &request) const;
+    bool isSpecifyCompletion(const QJsonObject &request);
 
     LLMCore::RequestHandler m_requestHandler;
     QElapsedTimer m_completionTimer;

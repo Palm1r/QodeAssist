@@ -35,11 +35,26 @@ public:
     void addToLayoutImpl(Layouting::Layout &parent) override
     {
         auto button = new QPushButton(m_buttonText);
+        button->setVisible(m_visible);
         connect(button, &QPushButton::clicked, this, &ButtonAspect::clicked);
+        connect(this, &ButtonAspect::visibleChanged, button, &QPushButton::setVisible);
         parent.addItem(button);
     }
 
+    void updateVisibility(bool visible)
+    {
+        if (m_visible == visible)
+            return;
+        m_visible = visible;
+        emit visibleChanged(visible);
+    }
+
     QString m_buttonText;
+
 signals:
     void clicked();
+    void visibleChanged(bool state);
+
+private:
+    bool m_visible = true;
 };

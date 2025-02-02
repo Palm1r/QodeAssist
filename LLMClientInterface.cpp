@@ -146,20 +146,41 @@ void LLMClientInterface::handleExit(const QJsonObject &request)
     emit finished();
 }
 
+bool QodeAssist::LLMClientInterface::isSpecifyCompletion(const QJsonObject &request)
+{
+    auto &generalSettings = Settings::generalSettings();
+
+    Context::ProgrammingLanguage documentLanguage = getDocumentLanguage(request);
+    Context::ProgrammingLanguage preset1Language = Context::ProgrammingLanguageUtils::fromString(
+        generalSettings.preset1Language.displayForIndex(generalSettings.preset1Language()));
+
+    return generalSettings.specifyPreset1() && documentLanguage == preset1Language;
+}
+
 void LLMClientInterface::handleCompletion(const QJsonObject &request)
 {
-    auto updatedContext = prepareContext(request);
+    const auto updatedContext = prepareContext(request);
     auto &completeSettings = Settings::codeCompletionSettings();
+    auto &generalSettings = Settings::generalSettings();
 
-    auto providerName = Settings::generalSettings().ccProvider();
-    auto provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
+    bool isPreset1Active = isSpecifyCompletion(request);
+
+    const auto providerName = !isPreset1Active ? generalSettings.ccProvider()
+                                               : generalSettings.ccPreset1Provider();
+    const auto modelName = !isPreset1Active ? generalSettings.ccModel()
+                                            : generalSettings.ccPreset1Model();
+    const auto url = !isPreset1Active ? generalSettings.ccUrl() : generalSettings.ccPreset1Url();
+
+    const auto provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
     if (!provider) {
         LOG_MESSAGE(QString("No provider found with name: %1").arg(providerName));
         return;
     }
 
-    auto templateName = Settings::generalSettings().ccTemplate();
+    auto templateName = !isPreset1Active ? generalSettings.ccTemplate()
+                                         : generalSettings.ccPreset1Template();
+
     auto promptTemplate = LLMCore::PromptTemplateManager::instance().getFimTemplateByName(
         templateName);
 
@@ -168,19 +189,18 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         return;
     }
 
+    // TODO refactor to dynamic presets system
     LLMCore::LLMConfig config;
     config.requestType = LLMCore::RequestType::CodeCompletion;
     config.provider = provider;
     config.promptTemplate = promptTemplate;
     config.url = QUrl(QString("%1%2").arg(
-        Settings::generalSettings().ccUrl(),
+        url,
         promptTemplate->type() == LLMCore::TemplateType::Fim ? provider->completionEndpoint()
                                                              : provider->chatEndpoint()));
     config.apiKey = provider->apiKey();
 
-    config.providerRequest
-        = {{"model", Settings::generalSettings().ccModel()},
-           {"stream", Settings::codeCompletionSettings().stream()}};
+    config.providerRequest = {{"model", modelName}, {"stream", completeSettings.stream()}};
 
     config.multiLineCompletion = completeSettings.multiLineCompletion();
 
@@ -246,11 +266,33 @@ LLMCore::ContextData LLMClientInterface::prepareContext(const QJsonObject &reque
     return reader.prepareContext(lineNumber, cursorPosition);
 }
 
+Context::ProgrammingLanguage LLMClientInterface::getDocumentLanguage(const QJsonObject &request) const
+{
+    QJsonObject params = request["params"].toObject();
+    QJsonObject doc = params["doc"].toObject();
+    QString uri = doc["uri"].toString();
+
+    Utils::FilePath filePath = Utils::FilePath::fromString(QUrl(uri).toLocalFile());
+    TextEditor::TextDocument *textDocument = TextEditor::TextDocument::textDocumentForFilePath(
+        filePath);
+
+    if (!textDocument) {
+        LOG_MESSAGE("Error: Document is not available for" + filePath.toString());
+        return Context::ProgrammingLanguage::Unknown;
+    }
+
+    return Context::ProgrammingLanguageUtils::fromMimeType(textDocument->mimeType());
+}
+
 void LLMClientInterface::sendCompletionToClient(const QString &completion,
                                                 const QJsonObject &request,
                                                 bool isComplete)
 {
-    auto templateName = Settings::generalSettings().ccTemplate();
+    bool isPreset1Active = isSpecifyCompletion(request);
+
+    auto templateName = !isPreset1Active ? Settings::generalSettings().ccTemplate()
+                                         : Settings::generalSettings().ccPreset1Template();
+
     auto promptTemplate = LLMCore::PromptTemplateManager::instance().getFimTemplateByName(
         templateName);
 

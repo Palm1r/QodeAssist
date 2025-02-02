@@ -46,6 +46,15 @@ const char CA_TEMPLATE[] = "QodeAssist.caTemplate";
 const char CA_URL[] = "QodeAssist.caUrl";
 const char CA_URL_HISTORY[] = "QodeAssist.caUrlHistory";
 
+const char CC_SPECIFY_PRESET1[] = "QodeAssist.ccSpecifyPreset1";
+const char CC_PRESET1_LANGUAGE[] = "QodeAssist.ccPreset1Language";
+const char CC_PRESET1_PROVIDER[] = "QodeAssist.ccPreset1Provider";
+const char CC_PRESET1_MODEL[] = "QodeAssist.ccPreset1Model";
+const char CC_PRESET1_MODEL_HISTORY[] = "QodeAssist.ccPreset1ModelHistory";
+const char CC_PRESET1_TEMPLATE[] = "QodeAssist.ccPreset1Template";
+const char CC_PRESET1_URL[] = "QodeAssist.ccPreset1Url";
+const char CC_PRESET1_URL_HISTORY[] = "QodeAssist.ccPreset1UrlHistory";
+
 // settings
 const char ENABLE_QODE_ASSIST[] = "QodeAssist.enableQodeAssist";
 const char CC_AUTO_COMPLETION[] = "QodeAssist.ccAutoCompletion";

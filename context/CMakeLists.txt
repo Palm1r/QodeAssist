@@ -4,6 +4,7 @@ add_library(Context STATIC
     ContextManager.hpp ContextManager.cpp
     ContentFile.hpp
     TokenUtils.hpp TokenUtils.cpp
+    ProgrammingLanguage.hpp ProgrammingLanguage.cpp
 )
 
 target_link_libraries(Context
