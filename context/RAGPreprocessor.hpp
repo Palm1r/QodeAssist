@@ -30,19 +30,18 @@ public:
         }
 
         try {
-            // Прямое разделение без промежуточной копии
             QStringList lines = code.split('\n', Qt::SkipEmptyParts);
             return processLines(lines);
         } catch (const std::exception &e) {
             LOG_MESSAGE(QString("Error preprocessing code: %1").arg(e.what()));
-            return code; // Возвращаем оригинальный код в случае ошибки
+            return code;
         }
     }
 
 private:
     static QString processLines(const QStringList &lines)
     {
-        const int estimatedAvgLength = 80; // Примерная средняя длина строки
+        const int estimatedAvgLength = 80;
         QString result;
         result.reserve(lines.size() * estimatedAvgLength);
 
@@ -54,7 +53,6 @@ private:
             }
         }
 
-        // Убираем последний перенос строки, если он есть
         if (result.endsWith('\n')) {
             result.chop(1);
         }

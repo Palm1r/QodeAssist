@@ -32,17 +32,14 @@
 
 namespace QodeAssist::Context {
 
-/**
- * @brief Структура для хранения информации о чанке файла
- */
 struct FileChunkData
 {
-    QString filePath;    ///< Путь к файлу
-    int startLine;       ///< Начальная строка чанка
-    int endLine;         ///< Конечная строка чанка
-    QString content;     ///< Содержимое чанка
-    QDateTime createdAt; ///< Время создания
-    QDateTime updatedAt; ///< Время последнего обновления
+    QString filePath;
+    int startLine;
+    int endLine;
+    QString content;
+    QDateTime createdAt;
+    QDateTime updatedAt;
 
     bool isValid() const
     {
@@ -50,32 +47,23 @@ struct FileChunkData
     }
 };
 
-/**
- * @brief Структура для настройки хранилища
- */
 struct StorageOptions
 {
-    int maxChunkSize = 1024 * 1024; ///< Максимальный размер чанка в байтах
-    int maxVectorSize = 1024;       ///< Максимальный размер вектора
-    bool useCompression = false;    ///< Использовать сжатие данных
-    bool enableLogging = false;     ///< Включить журналирование
+    int maxChunkSize = 1024 * 1024;
+    int maxVectorSize = 1024;
+    bool useCompression = false;
+    bool enableLogging = false;
 };
 
-/**
- * @brief Структура для хранения статистики
- */
 struct StorageStatistics
 {
-    int totalChunks;      ///< Общее количество чанков
-    int totalVectors;     ///< Общее количество векторов
-    int totalFiles;       ///< Общее количество файлов
-    qint64 totalSize;     ///< Общий размер данных
-    QDateTime lastUpdate; ///< Время последнего обновления
+    int totalChunks;
+    int totalVectors;
+    int totalFiles;
+    qint64 totalSize;
+    QDateTime lastUpdate;
 };
 
-/**
- * @brief Класс для работы с хранилищем RAG данных
- */
 class RAGStorage : public QObject
 {
     Q_OBJECT
@@ -84,6 +72,13 @@ public:
     static constexpr int CURRENT_VERSION = 1;
 
     enum class Status { Ok, DatabaseError, ValidationError, VersionError, ConnectionError };
+
+    struct ValidationResult
+    {
+        bool isValid;
+        QString errorMessage;
+        Status errorStatus;
+    };
 
     struct Error
     {
@@ -99,26 +94,22 @@ public:
         QObject *parent = nullptr);
     ~RAGStorage();
 
-    // Инициализация и проверка состояния
     bool init();
     Status status() const;
     Error lastError() const;
     bool isReady() const;
     QString dbPath() const;
 
-    // Управление транзакциями
     bool beginTransaction();
     bool commitTransaction();
     bool rollbackTransaction();
 
-    // Операции с векторами
     bool storeVector(const QString &filePath, const RAGVector &vector);
     bool updateVector(const QString &filePath, const RAGVector &vector);
     std::optional<RAGVector> getVector(const QString &filePath);
     bool needsUpdate(const QString &filePath);
     QStringList getAllFiles();
 
-    // Операции с чанками
     bool storeChunk(const FileChunkData &chunk);
     bool storeChunks(const QList<FileChunkData> &chunks);
     bool updateChunk(const FileChunkData &chunk);
@@ -128,7 +119,6 @@ public:
     QList<FileChunkData> getChunksForFile(const QString &filePath);
     bool chunkExists(const QString &filePath, int startLine, int endLine);
 
-    // Обслуживание
     int getChunkCount(const QString &filePath);
     bool deleteOldChunks(const QString &filePath, const QDateTime &olderThan);
     bool deleteAllChunks();
@@ -138,10 +128,10 @@ public:
     bool restore(const QString &backupPath);
     StorageStatistics getStatistics() const;
 
-    // Версионирование
     int getStorageVersion() const;
     bool isVersionCompatible() const;
 
+    bool applyMigration(int version);
 signals:
     void errorOccurred(const Error &error);
     void operationCompleted(const QString &operation);
@@ -164,8 +154,8 @@ private:
     void setError(const QString &message, Status status = Status::DatabaseError);
     void clearError();
     bool prepareStatements();
-    bool validateChunk(const FileChunkData &chunk) const;
-    bool validateVector(const RAGVector &vector) const;
+    ValidationResult validateChunk(const FileChunkData &chunk) const;
+    ValidationResult validateVector(const RAGVector &vector) const;
 
 private:
     QSqlDatabase m_db;
@@ -175,7 +165,6 @@ private:
     Error m_lastError;
     Status m_status;
 
-    // Подготовленные запросы
     QSqlQuery m_insertChunkQuery;
     QSqlQuery m_updateChunkQuery;
     QSqlQuery m_insertVectorQuery;

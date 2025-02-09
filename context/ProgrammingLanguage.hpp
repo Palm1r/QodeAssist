@@ -24,8 +24,8 @@
 namespace QodeAssist::Context {
 
 enum class ProgrammingLanguage {
-    QML, // QML/JavaScript
-    Cpp, // C/C++
+    QML,
+    Cpp,
     Python,
     Unknown,
 };

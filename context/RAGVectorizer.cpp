@@ -45,31 +45,65 @@ QJsonObject RAGVectorizer::prepareEmbeddingRequest(const QString &text) const
 RAGVector RAGVectorizer::parseEmbeddingResponse(const QByteArray &response) const
 {
     QJsonDocument doc = QJsonDocument::fromJson(response);
-    QJsonArray array = doc.object()["embedding"].toArray();
+    if (doc.isNull()) {
+        qDebug() << "Failed to parse JSON response";
+        return RAGVector();
+    }
+
+    QJsonObject obj = doc.object();
+    if (!obj.contains("embedding")) {
+        qDebug() << "Response does not contain 'embedding' field";
+        // qDebug() << "Response content:" << response;
+        return RAGVector();
+    }
+
+    QJsonArray array = obj["embedding"].toArray();
+    if (array.isEmpty()) {
+        qDebug() << "Embedding array is empty";
+        return RAGVector();
+    }
 
     RAGVector result;
     result.reserve(array.size());
     for (const auto &value : array) {
         result.push_back(value.toDouble());
     }
+
+    qDebug() << "Successfully parsed vector with size:" << result.size();
     return result;
 }
 
 QFuture<RAGVector> RAGVectorizer::vectorizeText(const QString &text)
 {
+    qDebug() << "Vectorizing text, length:" << text.length();
+    qDebug() << "Using embedding provider:" << m_embedProviderUrl;
+
     auto promise = std::make_shared<QPromise<RAGVector>>();
     promise->start();
 
     QNetworkRequest request(QUrl(m_embedProviderUrl + "/api/embeddings"));
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
-    auto reply = m_network->post(request, QJsonDocument(prepareEmbeddingRequest(text)).toJson());
+    QJsonObject requestData = prepareEmbeddingRequest(text);
+    QByteArray jsonData = QJsonDocument(requestData).toJson();
+    qDebug() << "Sending request to embeddings API:" << jsonData;
+
+    auto reply = m_network->post(request, jsonData);
 
     connect(reply, &QNetworkReply::finished, this, [promise, reply, this]() {
         if (reply->error() == QNetworkReply::NoError) {
-            promise->addResult(parseEmbeddingResponse(reply->readAll()));
+            QByteArray response = reply->readAll();
+            // qDebug() << "Received response from embeddings API:" << response;
+
+            auto vector = parseEmbeddingResponse(response);
+            qDebug() << "Parsed vector size:" << vector.size();
+            promise->addResult(vector);
         } else {
-            // TODO check error setException
+            qDebug() << "Network error:" << reply->errorString();
+            qDebug() << "HTTP status code:"
+                     << reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+            qDebug() << "Response:" << reply->readAll();
+
             promise->addResult(RAGVector());
         }
         promise->finish();

@@ -450,6 +450,8 @@ void ChatRootView::openChatHistoryFolder()
     QDesktopServices::openUrl(url);
 }
 
+// ChatRootView.cpp
+
 void ChatRootView::testRAG(const QString &message)
 {
     auto project = ProjectExplorer::ProjectTree::currentProject();
@@ -465,7 +467,9 @@ void ChatRootView::testRAG(const QString &message)
     qDebug() << "\nFirst, processing project files...";
 
     auto files = Context::ContextManager::instance().getProjectSourceFiles(project);
-    auto future = Context::RAGManager::instance().processFiles(project, files);
+    // Было: auto future = Context::RAGManager::instance().processFiles(project, files);
+    // Стало:
+    auto future = Context::RAGManager::instance().processProjectFiles(project, files);
 
     connect(
         &Context::RAGManager::instance(),
@@ -481,7 +485,19 @@ void ChatRootView::testRAG(const QString &message)
         this,
         [this, project, TEST_QUERY]() {
             qDebug() << "\nVectorization completed. Starting similarity search...\n";
-            Context::RAGManager::instance().searchSimilarDocuments(TEST_QUERY, project, 5);
+            // Было: Context::RAGManager::instance().searchSimilarDocuments(TEST_QUERY, project, 5);
+            // Стало:
+            auto future = Context::RAGManager::instance().findRelevantChunks(TEST_QUERY, project, 5);
+            future.then([](const QList<Context::RAGManager::ChunkSearchResult> &results) {
+                qDebug() << "Found" << results.size() << "relevant chunks:";
+                for (const auto &result : results) {
+                    qDebug() << "File:" << result.filePath;
+                    qDebug() << "Lines:" << result.startLine << "-" << result.endLine;
+                    qDebug() << "Score:" << result.combinedScore;
+                    qDebug() << "Content:" << result.content;
+                    qDebug() << "---";
+                }
+            });
         });
 }
 

@@ -20,10 +20,12 @@
 // RAGStorage.cpp
 #include "RAGStorage.hpp"
 #include <QDebug>
+#include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QSqlError>
 #include <QSqlQuery>
+#include <QUuid>
 
 namespace QodeAssist::Context {
 
@@ -45,43 +47,61 @@ RAGStorage::~RAGStorage()
 bool RAGStorage::init()
 {
     QMutexLocker locker(&m_mutex);
+    qDebug() << "Initializing RAGStorage at path:" << m_dbPath;
 
     if (!openDatabase()) {
+        qDebug() << "Failed to open database";
         return false;
     }
+    qDebug() << "Database opened successfully";
 
     if (!createTables()) {
+        qDebug() << "Failed to create tables";
         return false;
     }
+    qDebug() << "Tables created successfully";
 
     if (!createIndices()) {
+        qDebug() << "Failed to create indices";
         return false;
     }
+    qDebug() << "Indices created successfully";
 
     int version = getStorageVersion();
+    qDebug() << "Current storage version:" << version;
+
     if (version < CURRENT_VERSION) {
+        qDebug() << "Upgrading storage from version" << version << "to" << CURRENT_VERSION;
         if (!upgradeStorage(version)) {
+            qDebug() << "Failed to upgrade storage";
             return false;
         }
+        qDebug() << "Storage upgraded successfully";
     }
 
     if (!prepareStatements()) {
+        qDebug() << "Failed to prepare statements";
         return false;
     }
+    qDebug() << "Statements prepared successfully";
 
     m_status = Status::Ok;
+    qDebug() << "RAGStorage initialized successfully";
     return true;
 }
 
 bool RAGStorage::openDatabase()
 {
+    qDebug() << "Opening database at:" << m_dbPath;
+
     QDir dir(QFileInfo(m_dbPath).absolutePath());
     if (!dir.exists() && !dir.mkpath(".")) {
         setError("Failed to create database directory", Status::DatabaseError);
         return false;
     }
 
-    m_db = QSqlDatabase::addDatabase("QSQLITE", "rag_storage");
+    QString connectionName = QString("rag_storage_%1").arg(QUuid::createUuid().toString());
+    m_db = QSqlDatabase::addDatabase("QSQLITE", connectionName);
     m_db.setDatabaseName(m_dbPath);
 
     if (!m_db.open()) {
@@ -89,14 +109,41 @@ bool RAGStorage::openDatabase()
         return false;
     }
 
+    QSqlQuery query(m_db);
+    if (!query.exec("PRAGMA journal_mode=WAL")) {
+        qDebug() << "Failed to set journal mode:" << query.lastError().text();
+    }
+
+    if (!query.exec("PRAGMA synchronous=NORMAL")) {
+        qDebug() << "Failed to set synchronous mode:" << query.lastError().text();
+    }
+
+    qDebug() << "Database opened successfully";
     return true;
 }
 
 bool RAGStorage::createTables()
 {
-    if (!createVersionTable() || !createVectorsTable() || !createChunksTable()) {
+    qDebug() << "Creating tables...";
+
+    if (!createVersionTable()) {
+        qDebug() << "Failed to create version table";
         return false;
     }
+    qDebug() << "Version table created";
+
+    if (!createVectorsTable()) {
+        qDebug() << "Failed to create vectors table";
+        return false;
+    }
+    qDebug() << "Vectors table created";
+
+    if (!createChunksTable()) {
+        qDebug() << "Failed to create chunks table";
+        return false;
+    }
+    qDebug() << "Chunks table created";
+
     return true;
 }
 
@@ -120,12 +167,34 @@ bool RAGStorage::createIndices()
 
 bool RAGStorage::createVersionTable()
 {
+    qDebug() << "Creating version table...";
+
     QSqlQuery query(m_db);
-    return query.exec("CREATE TABLE IF NOT EXISTS storage_version ("
-                      "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-                      "version INTEGER NOT NULL,"
-                      "created_at DATETIME DEFAULT CURRENT_TIMESTAMP"
-                      ")");
+    bool success = query.exec("CREATE TABLE IF NOT EXISTS storage_version ("
+                              "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                              "version INTEGER NOT NULL,"
+                              "created_at DATETIME DEFAULT CURRENT_TIMESTAMP"
+                              ")");
+
+    if (!success) {
+        qDebug() << "Failed to create version table:" << query.lastError().text();
+        return false;
+    }
+
+    query.exec("SELECT COUNT(*) FROM storage_version");
+    if (query.next() && query.value(0).toInt() == 0) {
+        qDebug() << "Inserting initial version record";
+        QSqlQuery insertQuery(m_db);
+        success = insertQuery.exec(
+            QString("INSERT INTO storage_version (version) VALUES (%1)").arg(CURRENT_VERSION));
+        if (!success) {
+            qDebug() << "Failed to insert initial version:" << insertQuery.lastError().text();
+            return false;
+        }
+    }
+
+    qDebug() << "Version table ready";
+    return true;
 }
 
 bool RAGStorage::createVectorsTable()
@@ -158,6 +227,8 @@ bool RAGStorage::createChunksTable()
 
 bool RAGStorage::prepareStatements()
 {
+    qDebug() << "Preparing SQL statements...";
+
     m_insertChunkQuery = QSqlQuery(m_db);
     if (!m_insertChunkQuery.prepare(
             "INSERT INTO file_chunks (file_path, start_line, end_line, content) "
@@ -178,7 +249,7 @@ bool RAGStorage::prepareStatements()
     if (!m_insertVectorQuery.prepare(
             "INSERT INTO file_vectors (file_path, vector_data, last_modified) "
             "VALUES (:path, :vector, :modified)")) {
-        setError("Failed to prepare insert vector query");
+        setError("Failed to prepare insert vector query: " + m_insertVectorQuery.lastError().text());
         return false;
     }
 
@@ -186,7 +257,7 @@ bool RAGStorage::prepareStatements()
     if (!m_updateVectorQuery.prepare(
             "UPDATE file_vectors SET vector_data = :vector, last_modified = :modified, "
             "updated_at = CURRENT_TIMESTAMP WHERE file_path = :path")) {
-        setError("Failed to prepare update vector query");
+        setError("Failed to prepare update vector query: " + m_updateVectorQuery.lastError().text());
         return false;
     }
 
@@ -197,7 +268,9 @@ bool RAGStorage::storeChunk(const FileChunkData &chunk)
 {
     QMutexLocker locker(&m_mutex);
 
-    if (!validateChunk(chunk)) {
+    auto validation = validateChunk(chunk);
+    if (!validation.isValid) {
+        setError(validation.errorMessage, validation.errorStatus);
         return false;
     }
 
@@ -228,7 +301,9 @@ bool RAGStorage::storeChunks(const QList<FileChunkData> &chunks)
     }
 
     for (const auto &chunk : chunks) {
-        if (!validateChunk(chunk)) {
+        auto validation = validateChunk(chunk);
+        if (!validation.isValid) {
+            setError(validation.errorMessage, validation.errorStatus);
             rollbackTransaction();
             return false;
         }
@@ -248,34 +323,30 @@ bool RAGStorage::storeChunks(const QList<FileChunkData> &chunks)
     return commitTransaction();
 }
 
-bool RAGStorage::validateChunk(const FileChunkData &chunk) const
+RAGStorage::ValidationResult RAGStorage::validateChunk(const FileChunkData &chunk) const
 {
     if (!chunk.isValid()) {
-        setError("Invalid chunk data", Status::ValidationError);
-        return false;
+        return {false, "Invalid chunk data", Status::ValidationError};
     }
 
     if (chunk.content.size() > m_options.maxChunkSize) {
-        setError("Chunk content exceeds maximum size", Status::ValidationError);
-        return false;
+        return {false, "Chunk content exceeds maximum size", Status::ValidationError};
     }
 
-    return true;
+    return {true, QString(), Status::Ok};
 }
 
-bool RAGStorage::validateVector(const RAGVector &vector) const
+RAGStorage::ValidationResult RAGStorage::validateVector(const RAGVector &vector) const
 {
     if (vector.empty()) {
-        setError("Empty vector data", Status::ValidationError);
-        return false;
+        return {false, "Empty vector data", Status::ValidationError};
     }
 
     if (vector.size() > m_options.maxVectorSize) {
-        setError("Vector size exceeds maximum limit", Status::ValidationError);
-        return false;
+        return {false, "Vector size exceeds maximum limit", Status::ValidationError};
     }
 
-    return true;
+    return {true, QString(), Status::Ok};
 }
 
 bool RAGStorage::beginTransaction()
@@ -296,8 +367,11 @@ bool RAGStorage::rollbackTransaction()
 bool RAGStorage::storeVector(const QString &filePath, const RAGVector &vector)
 {
     QMutexLocker locker(&m_mutex);
+    qDebug() << "Storing vector for file:" << filePath;
 
-    if (!validateVector(vector)) {
+    auto validation = validateVector(vector);
+    if (!validation.isValid) {
+        setError(validation.errorMessage, validation.errorStatus);
         return false;
     }
 
@@ -307,17 +381,31 @@ bool RAGStorage::storeVector(const QString &filePath, const RAGVector &vector)
 
     QDateTime lastModified = getFileLastModified(filePath);
     QByteArray blob = vectorToBlob(vector);
+    qDebug() << "Vector converted to blob, size:" << blob.size() << "bytes";
+
+    m_updateVectorQuery.bindValue(":path", filePath);
+    m_updateVectorQuery.bindValue(":vector", blob);
+    m_updateVectorQuery.bindValue(":modified", lastModified);
+
+    if (m_updateVectorQuery.exec()) {
+        if (m_updateVectorQuery.numRowsAffected() > 0) {
+            qDebug() << "Vector updated successfully";
+            return commitTransaction();
+        }
+    }
 
     m_insertVectorQuery.bindValue(":path", filePath);
     m_insertVectorQuery.bindValue(":vector", blob);
     m_insertVectorQuery.bindValue(":modified", lastModified);
 
     if (!m_insertVectorQuery.exec()) {
+        qDebug() << "Failed to store vector:" << m_insertVectorQuery.lastError().text();
         rollbackTransaction();
         setError("Failed to store vector: " + m_insertVectorQuery.lastError().text());
         return false;
     }
 
+    qDebug() << "Vector stored successfully";
     return commitTransaction();
 }
 
@@ -325,7 +413,9 @@ bool RAGStorage::updateVector(const QString &filePath, const RAGVector &vector)
 {
     QMutexLocker locker(&m_mutex);
 
-    if (!validateVector(vector)) {
+    auto validation = validateVector(vector);
+    if (!validation.isValid) {
+        setError(validation.errorMessage, validation.errorStatus);
         return false;
     }
 
@@ -391,19 +481,42 @@ QDateTime RAGStorage::getFileLastModified(const QString &filePath)
 
 RAGVector RAGStorage::blobToVector(const QByteArray &blob)
 {
-    // Реализация конвертации из QByteArray в RAGVector
-    // Зависит от конкретной реализации RAGVector
     RAGVector vector;
-    // TODO: Implement conversion
+    QDataStream stream(blob);
+    stream.setVersion(QDataStream::Qt_6_0);
+    stream.setFloatingPointPrecision(QDataStream::DoublePrecision);
+
+    qint32 size;
+    stream >> size;
+
+    vector.resize(size);
+    for (int i = 0; i < size; ++i) {
+        double value;
+        stream >> value;
+        vector[i] = value;
+    }
+
+    qDebug() << "Vector restored from blob, size:" << vector.size();
+
     return vector;
 }
 
 QByteArray RAGStorage::vectorToBlob(const RAGVector &vector)
 {
-    // Реализация конвертации из RAGVector в QByteArray
-    // Зависит от конкретной реализации RAGVector
     QByteArray blob;
-    // TODO: Implement conversion
+    QDataStream stream(&blob, QIODevice::WriteOnly);
+    stream.setVersion(QDataStream::Qt_6_0);
+    stream.setFloatingPointPrecision(QDataStream::DoublePrecision);
+
+    stream << static_cast<qint32>(vector.size());
+
+    for (double value : vector) {
+        stream << value;
+    }
+
+    qDebug() << "Vector converted to blob, vector size:" << vector.size()
+             << "blob size:" << blob.size();
+
     return blob;
 }
 
@@ -420,12 +533,12 @@ void RAGStorage::clearError()
     m_status = Status::Ok;
 }
 
-Status RAGStorage::status() const
+RAGStorage::Status RAGStorage::status() const
 {
     return m_status;
 }
 
-Error RAGStorage::lastError() const
+RAGStorage::Error RAGStorage::lastError() const
 {
     return m_lastError;
 }
@@ -482,7 +595,6 @@ bool RAGStorage::backup(const QString &backupPath)
         return false;
     }
 
-    // Создаем резервную копию через SQLite backup API
     QFile::copy(m_dbPath, backupPath);
 
     return true;
@@ -495,7 +607,6 @@ StorageStatistics RAGStorage::getStatistics() const
     StorageStatistics stats;
     QSqlQuery query(m_db);
 
-    // Получаем статистику по чанкам
     if (query.exec("SELECT COUNT(*), SUM(LENGTH(content)) FROM file_chunks")) {
         if (query.next()) {
             stats.totalChunks = query.value(0).toInt();
@@ -503,7 +614,6 @@ StorageStatistics RAGStorage::getStatistics() const
         }
     }
 
-    // Получаем статистику по векторам
     if (query.exec("SELECT COUNT(*) FROM file_vectors")) {
         if (query.next()) {
             stats.totalVectors = query.value(0).toInt();
@@ -518,7 +628,6 @@ StorageStatistics RAGStorage::getStatistics() const
         }
     }
 
-    // Получаем время последнего обновления
     if (query.exec("SELECT MAX(updated_at) FROM ("
                    "SELECT updated_at FROM file_chunks "
                    "UNION "
@@ -610,7 +719,8 @@ bool RAGStorage::updateChunk(const FileChunkData &chunk)
 {
     QMutexLocker locker(&m_mutex);
 
-    if (!validateChunk(chunk)) {
+    auto validation = validateChunk(chunk);
+    if (!validation.isValid) {
         return false;
     }
 
@@ -641,7 +751,8 @@ bool RAGStorage::updateChunks(const QList<FileChunkData> &chunks)
     }
 
     for (const auto &chunk : chunks) {
-        if (!validateChunk(chunk)) {
+        auto validation = validateChunk(chunk);
+        if (!validation.isValid) {
             rollbackTransaction();
             return false;
         }
@@ -739,14 +850,24 @@ bool RAGStorage::chunkExists(const QString &filePath, int startLine, int endLine
 
 int RAGStorage::getStorageVersion() const
 {
-    QMutexLocker locker(&m_mutex);
+    qDebug() << "Getting storage version...";
 
     QSqlQuery query(m_db);
-    if (query.exec("SELECT version FROM storage_version ORDER BY id DESC LIMIT 1")) {
-        if (query.next()) {
-            return query.value(0).toInt();
-        }
+    qDebug() << "Created query object";
+
+    if (!query.exec("SELECT version FROM storage_version ORDER BY id DESC LIMIT 1")) {
+        qDebug() << "Failed to execute version query:" << query.lastError().text();
+        return 0;
     }
+    qDebug() << "Version query executed";
+
+    if (query.next()) {
+        int version = query.value(0).toInt();
+        qDebug() << "Current version:" << version;
+        return version;
+    }
+
+    qDebug() << "No version found, assuming version 0";
     return 0;
 }
 
@@ -764,7 +885,6 @@ bool RAGStorage::upgradeStorage(int fromVersion)
         return false;
     }
 
-    // Выполняем последовательные миграции от текущей версии до последней
     for (int version = fromVersion + 1; version <= CURRENT_VERSION; ++version) {
         if (!applyMigration(version)) {
             rollbackTransaction();
@@ -773,7 +893,6 @@ bool RAGStorage::upgradeStorage(int fromVersion)
         }
     }
 
-    // Обновляем версию в БД
     QSqlQuery query(m_db);
     query.prepare("INSERT INTO storage_version (version) VALUES (:version)");
     query.bindValue(":version", CURRENT_VERSION);
@@ -793,15 +912,13 @@ bool RAGStorage::applyMigration(int version)
 
     switch (version) {
     case 1:
-        // Миграция на версию 1
         if (!query.exec("ALTER TABLE file_chunks ADD COLUMN metadata TEXT")) {
             return false;
         }
         break;
 
-        // Добавляем новые кейсы для будущих версий
         // case 2:
-        //     // Миграция на версию 2
+        //     //
         //     break;
 
     default:
@@ -816,7 +933,6 @@ bool RAGStorage::validateSchema() const
 {
     QMutexLocker locker(&m_mutex);
 
-    // Проверяем наличие всех необходимых таблиц
     QStringList requiredTables = {"storage_version", "file_vectors", "file_chunks"};
 
     QSqlQuery query(m_db);
@@ -833,7 +949,6 @@ bool RAGStorage::validateSchema() const
         }
     }
 
-    // Проверяем структуру таблиц
     struct ColumnInfo
     {
         QString name;
@@ -875,7 +990,6 @@ bool RAGStorage::validateSchema() const
             return false;
         }
 
-        // Проверяем каждую колонку
         for (int i = 0; i < actualColumns.size(); ++i) {
             const auto &expected = it.value()[i];
             const auto &actual = actualColumns[i];
@@ -894,23 +1008,19 @@ bool RAGStorage::restore(const QString &backupPath)
 {
     QMutexLocker locker(&m_mutex);
 
-    // Закрываем текущее соединение
     if (m_db.isOpen()) {
         m_db.close();
     }
 
-    // Копируем файл бэкапа
     if (!QFile::remove(m_dbPath) || !QFile::copy(backupPath, m_dbPath)) {
         setError("Failed to restore from backup");
         return false;
     }
 
-    // Переоткрываем БД
     if (!openDatabase()) {
         return false;
     }
 
-    // Проверяем валидность схемы
     if (!validateSchema()) {
         setError("Invalid schema in backup file");
         return false;

@@ -29,13 +29,13 @@ class FileChunker : public QObject
 public:
     struct ChunkingConfig
     {
-        int maxLinesPerChunk = 80;     // Размер чанка (было 200)
-        int minLinesPerChunk = 40;     // Минимальный размер для начала чанкинга
-        int overlapLines = 20;         // Перекрытие между чанками
-        bool skipEmptyLines = true;    // Пропускать пустые строки
-        bool preserveFunctions = true; // Сохранять функции целиком
-        bool preserveClasses = true;   // Сохранять классы целиком
-        int batchSize = 10;            // Количество файлов для параллельной обработки
+        int maxLinesPerChunk = 80;
+        int minLinesPerChunk = 40;
+        int overlapLines = 20;
+        bool skipEmptyLines = true;
+        bool preserveFunctions = true;
+        bool preserveClasses = true;
+        int batchSize = 10;
     };
 
     explicit FileChunker(QObject *parent = nullptr);
