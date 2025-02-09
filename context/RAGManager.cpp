@@ -89,7 +89,16 @@ void RAGManager::ensureStorageForProject(ProjectExplorer::Project *project)
 
     if (project) {
         m_currentStorage = std::make_unique<RAGStorage>(getStoragePath(project), this);
-        m_currentStorage->init();
+        if (!m_currentStorage->init()) {
+            qDebug() << "Failed to initialize storage";
+            m_currentStorage.reset();
+            return;
+        }
+
+        if (!m_currentStorage->isVersionCompatible()) {
+            qDebug() << "Storage version is incompatible, needs rebuild";
+            // todo recreate db or show error
+        }
     }
 }
 
@@ -111,13 +120,15 @@ QFuture<void> RAGManager::processFiles(
 
     const int batchSize = 10;
 
-    QStringList filesToProcess;
+    QSet<QString> uniqueFiles;
     for (const QString &filePath : filePaths) {
         if (isFileStorageOutdated(project, filePath)) {
             qDebug() << "File needs processing:" << filePath;
-            filesToProcess.append(filePath);
+            uniqueFiles.insert(filePath);
         }
     }
+
+    QStringList filesToProcess = uniqueFiles.values();
 
     if (filesToProcess.isEmpty()) {
         qDebug() << "No files need processing";
@@ -141,7 +152,6 @@ void RAGManager::searchSimilarDocuments(
     qDebug() << "Project:" << project->displayName();
     qDebug() << "Top K:" << topK;
 
-    // Предобработка текста запроса
     QString processedText = RAGPreprocessor::preprocessCode(text);
     qDebug() << "Preprocessed query length:" << processedText.length();
 
@@ -165,7 +175,6 @@ void RAGManager::searchSimilarDocuments(
         int skippedFiles = 0;
 
         for (const auto &filePath : storedFiles) {
-            // Загружаем и обрабатываем содержимое файла
             auto storedCode = loadFileContent(filePath);
             if (!storedCode.has_value()) {
                 qDebug() << "ERROR: Failed to load content for file:" << filePath;
@@ -173,7 +182,6 @@ void RAGManager::searchSimilarDocuments(
                 continue;
             }
 
-            // Получаем вектор из хранилища
             auto storedVector = loadVectorFromStorage(project, filePath);
             if (!storedVector.has_value()) {
                 qDebug() << "ERROR: Failed to load vector for file:" << filePath;
@@ -181,10 +189,8 @@ void RAGManager::searchSimilarDocuments(
                 continue;
             }
 
-            // Предобработка содержимого файла
             QString processedStoredCode = RAGPreprocessor::preprocessCode(storedCode.value());
 
-            // Используем улучшенное сравнение
             auto similarity = EnhancedRAGSimilaritySearch::calculateSimilarity(
                 queryVector, storedVector.value(), processedText, processedStoredCode);
 
@@ -205,7 +211,6 @@ void RAGManager::searchSimilarDocuments(
         qDebug() << "Files skipped:" << skippedFiles;
         qDebug() << "Total results before filtering:" << results.size();
 
-        // Оптимизированная сортировка топ K результатов
         if (results.size() > topK) {
             qDebug() << "Performing partial sort for top" << topK << "results";
             std::partial_sort(results.begin(), results.begin() + topK, results.end());
@@ -295,7 +300,6 @@ QFuture<bool> RAGManager::processFile(ProjectExplorer::Project *project, const Q
 
     qDebug() << "File" << fileName << "read, content size:" << content.size() << "bytes";
 
-    // Предобработка контента
     QString processedContent = RAGPreprocessor::preprocessCode(content);
     qDebug() << "Preprocessed content size:" << processedContent.size() << "bytes";
 

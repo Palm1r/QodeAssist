@@ -32,6 +32,8 @@ class RAGStorage : public QObject
 {
     Q_OBJECT
 public:
+    static constexpr int CURRENT_VERSION = 1;
+
     explicit RAGStorage(const QString &dbPath, QObject *parent = nullptr);
     ~RAGStorage();
 
@@ -41,12 +43,18 @@ public:
     std::optional<RAGVector> getVector(const QString &filePath);
     bool needsUpdate(const QString &filePath);
     QStringList getAllFiles();
-
     QString dbPath() const;
+
+    // Новые методы для работы с версией
+    int getStorageVersion() const;
+    bool isVersionCompatible() const { return getStorageVersion() == CURRENT_VERSION; }
 
 private:
     bool createTables();
+    bool createVersionTable();
     bool openDatabase();
+    bool initializeNewStorage();
+    bool upgradeStorage(int fromVersion);
     QDateTime getFileLastModified(const QString &filePath);
     RAGVector blobToVector(const QByteArray &blob);
     QByteArray vectorToBlob(const RAGVector &vector);

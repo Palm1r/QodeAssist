@@ -40,14 +40,6 @@ class RAGManager : public QObject
 public:
     static RAGManager &instance();
 
-    // struct SearchResult
-    // {
-    //     QString filePath;
-    //     float l2Score;
-    //     float cosineScore;
-
-    //     bool operator<(const SearchResult &other) const;
-    // };
     struct SearchResult
     {
         QString filePath;

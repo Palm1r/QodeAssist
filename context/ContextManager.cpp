@@ -70,22 +70,30 @@ ContentFile ContextManager::createContentFile(const QString &filePath) const
 bool ContextManager::isInBuildDirectory(const QString &filePath) const
 {
     static const QStringList buildDirPatterns
-        = {"/build/",
-           "/Build/",
-           "/BUILD/",
-           "/debug/",
-           "/Debug/",
-           "/DEBUG/",
-           "/release/",
-           "/Release/",
-           "/RELEASE/",
-           "/builds/"};
+        = {QString(QDir::separator()) + QLatin1String("build") + QDir::separator(),
+           QString(QDir::separator()) + QLatin1String("Build") + QDir::separator(),
+           QString(QDir::separator()) + QLatin1String("BUILD") + QDir::separator(),
+           QString(QDir::separator()) + QLatin1String("debug") + QDir::separator(),
+           QString(QDir::separator()) + QLatin1String("Debug") + QDir::separator(),
+           QString(QDir::separator()) + QLatin1String("DEBUG") + QDir::separator(),
+           QString(QDir::separator()) + QLatin1String("release") + QDir::separator(),
+           QString(QDir::separator()) + QLatin1String("Release") + QDir::separator(),
+           QString(QDir::separator()) + QLatin1String("RELEASE") + QDir::separator(),
+           QString(QDir::separator()) + QLatin1String("builds") + QDir::separator()};
 
+    // Нормализуем путь
+    QString normalizedPath = QDir::fromNativeSeparators(filePath);
+
+    // Проверяем, содержит ли путь паттерны build-директории
     for (const QString &pattern : buildDirPatterns) {
-        if (filePath.contains(pattern)) {
+        // Сравниваем с нормализованным паттерном
+        QString normalizedPattern = QDir::fromNativeSeparators(pattern);
+        if (normalizedPath.contains(normalizedPattern)) {
+            qDebug() << "Skipping build file:" << filePath;
             return true;
         }
     }
+
     return false;
 }
 

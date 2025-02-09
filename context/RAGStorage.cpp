@@ -41,9 +41,23 @@ RAGStorage::~RAGStorage()
 bool RAGStorage::init()
 {
     if (!openDatabase()) {
+        qDebug() << "Failed to open database";
         return false;
     }
-    return createTables();
+
+    if (!createTables()) {
+        qDebug() << "Failed to create tables";
+        return false;
+    }
+
+    // check version
+    int version = getStorageVersion();
+    if (version < CURRENT_VERSION) {
+        qDebug() << "Storage version" << version << "needs upgrade to" << CURRENT_VERSION;
+        return upgradeStorage(version);
+    }
+
+    return true;
 }
 
 bool RAGStorage::openDatabase()
@@ -59,9 +73,25 @@ bool RAGStorage::openDatabase()
     return m_db.open();
 }
 
+bool RAGStorage::createVersionTable()
+{
+    QSqlQuery query(m_db);
+    return query.exec("CREATE TABLE IF NOT EXISTS storage_version ("
+                      "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                      "version INTEGER NOT NULL,"
+                      "created_at DATETIME DEFAULT CURRENT_TIMESTAMP"
+                      ")");
+}
+
 bool RAGStorage::createTables()
 {
     QSqlQuery query(m_db);
+
+    if (!createVersionTable()) {
+        qDebug() << "Failed to create version table";
+        return false;
+    }
+
     return query.exec("CREATE TABLE IF NOT EXISTS file_vectors ("
                       "id INTEGER PRIMARY KEY AUTOINCREMENT,"
                       "file_path TEXT UNIQUE NOT NULL,"
@@ -70,6 +100,56 @@ bool RAGStorage::createTables()
                       "created_at DATETIME DEFAULT CURRENT_TIMESTAMP,"
                       "updated_at DATETIME DEFAULT CURRENT_TIMESTAMP"
                       ")");
+}
+
+int RAGStorage::getStorageVersion() const
+{
+    QSqlQuery query(m_db);
+    query.exec("SELECT version FROM storage_version ORDER BY id DESC LIMIT 1");
+
+    if (query.next()) {
+        return query.value(0).toInt();
+    }
+    return 0;
+}
+
+bool RAGStorage::initializeNewStorage()
+{
+    QSqlQuery query(m_db);
+    query.prepare("INSERT INTO storage_version (version) VALUES (:version)");
+    query.bindValue(":version", CURRENT_VERSION);
+    return query.exec();
+}
+
+bool RAGStorage::upgradeStorage(int fromVersion)
+{
+    if (fromVersion >= CURRENT_VERSION) {
+        return true;
+    }
+
+    m_db.transaction();
+
+    try {
+        // migration
+        switch (fromVersion) {
+        case 0:
+            // new db initialize
+            if (!initializeNewStorage()) {
+                throw std::runtime_error("Failed to initialize version");
+            }
+            break;
+            // new versions will be here
+            // case 1: // upgrade from 1 to 2
+            //     break;
+        }
+
+        m_db.commit();
+        return true;
+    } catch (const std::exception &e) {
+        m_db.rollback();
+        qDebug() << "Failed to upgrade storage:" << e.what();
+        return false;
+    }
 }
 
 bool RAGStorage::storeVector(const QString &filePath, const RAGVector &vector)
