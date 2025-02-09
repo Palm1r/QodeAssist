@@ -39,6 +39,7 @@
 #include "Logger.hpp"
 #include "ProjectSettings.hpp"
 #include "context/ContextManager.hpp"
+#include "context/FileChunker.hpp"
 #include "context/RAGManager.hpp"
 #include "context/TokenUtils.hpp"
 
@@ -482,6 +483,18 @@ void ChatRootView::testRAG(const QString &message)
             qDebug() << "\nVectorization completed. Starting similarity search...\n";
             Context::RAGManager::instance().searchSimilarDocuments(TEST_QUERY, project, 5);
         });
+}
+
+void ChatRootView::testChunking()
+{
+    auto project = ProjectExplorer::ProjectTree::currentProject();
+    if (!project) {
+        qDebug() << "No active project found";
+        return;
+    }
+
+    Context::FileChunker::ChunkingConfig config;
+    Context::ContextManager::instance().testProjectChunks(project, config);
 }
 
 void ChatRootView::updateInputTokensCount()

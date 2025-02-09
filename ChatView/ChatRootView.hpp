@@ -66,6 +66,7 @@ public:
     Q_INVOKABLE void setIsSyncOpenFiles(bool state);
     Q_INVOKABLE void openChatHistoryFolder();
     Q_INVOKABLE void testRAG(const QString &message);
+    Q_INVOKABLE void testChunking();
 
     Q_INVOKABLE void updateInputTokensCount();
     int inputTokensCount() const;

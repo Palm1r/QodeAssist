@@ -12,6 +12,7 @@ add_library(Context STATIC
     RAGSimilaritySearch.hpp RAGSimilaritySearch.cpp
     RAGPreprocessor.hpp RAGPreprocessor.cpp
     EnhancedRAGSimilaritySearch.hpp EnhancedRAGSimilaritySearch.cpp
+    FileChunker.hpp FileChunker.cpp
 )
 
 target_link_libraries(Context

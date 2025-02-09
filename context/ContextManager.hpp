@@ -20,8 +20,11 @@
 #pragma once
 
 #include "ContentFile.hpp"
+
 #include <QObject>
 #include <QString>
+
+#include "FileChunker.hpp"
 
 namespace ProjectExplorer {
 class Project;
@@ -39,6 +42,9 @@ public:
     QString readFile(const QString &filePath) const;
     QList<ContentFile> getContentFiles(const QStringList &filePaths) const;
     QStringList getProjectSourceFiles(ProjectExplorer::Project *project) const;
+
+    void testProjectChunks(
+        ProjectExplorer::Project *project, const FileChunker::ChunkingConfig &config);
 
 private:
     explicit ContextManager(QObject *parent = nullptr);

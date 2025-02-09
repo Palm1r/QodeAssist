@@ -26,6 +26,8 @@
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectnodes.h>
 
+#include "FileChunker.hpp"
+
 namespace QodeAssist::Context {
 
 ContextManager &ContextManager::instance()
@@ -128,6 +130,47 @@ bool ContextManager::shouldProcessFile(const QString &filePath) const
 
     QFileInfo fileInfo(filePath);
     return supportedExtensions.contains(fileInfo.suffix().toLower());
+}
+
+void ContextManager::testProjectChunks(
+    ProjectExplorer::Project *project, const FileChunker::ChunkingConfig &config)
+{
+    if (!project) {
+        qDebug() << "No project provided";
+        return;
+    }
+
+    qDebug() << "\nStarting test chunking for project:" << project->displayName();
+
+    // Get source files
+    QStringList sourceFiles = getProjectSourceFiles(project);
+    qDebug() << "Found" << sourceFiles.size() << "source files";
+
+    // Create chunker
+    auto chunker = new FileChunker(config, this);
+
+    // Connect progress and error signals
+    connect(chunker, &FileChunker::progressUpdated, this, [](int processed, int total) {
+        qDebug() << "Progress:" << processed << "/" << total << "files";
+    });
+
+    connect(chunker, &FileChunker::error, this, [](const QString &error) {
+        qDebug() << "Error:" << error;
+    });
+
+    // Start chunking and handle results
+    auto future = chunker->chunkFiles(sourceFiles);
+
+    // Используем QFutureWatcher для обработки результатов
+    auto watcher = new QFutureWatcher<QList<FileChunk>>(this);
+
+    connect(watcher, &QFutureWatcher<QList<FileChunk>>::finished, this, [watcher, chunker]() {
+        // Очистка
+        watcher->deleteLater();
+        chunker->deleteLater();
+    });
+
+    watcher->setFuture(future);
 }
 
 } // namespace QodeAssist::Context

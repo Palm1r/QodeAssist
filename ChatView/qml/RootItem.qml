@@ -199,6 +199,7 @@ ChatRootView {
             attachFiles.onClicked: root.showAttachFilesDialog()
             linkFiles.onClicked: root.showLinkFilesDialog()
             testRag.onClicked: root.testRAG(messageInput.text)
+            testChunks.onClicked: root.testChunking()
         }
     }
 

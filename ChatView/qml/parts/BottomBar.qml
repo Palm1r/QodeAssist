@@ -31,6 +31,7 @@ Rectangle {
     property alias attachFiles: attachFilesId
     property alias linkFiles: linkFilesId
     property alias testRag: testRagId
+    property alias testChunks: testChunksId
 
     color: palette.window.hslLightness > 0.5 ?
                Qt.darker(palette.window, 1.1) :
@@ -96,6 +97,12 @@ Rectangle {
             id: testRagId
 
             text: qsTr("Test RAG")
+        }
+
+        QoAButton {
+            id: testChunksId
+
+            text: qsTr("Test Chunks")
         }
 
         Item {
