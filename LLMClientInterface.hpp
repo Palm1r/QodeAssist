@@ -71,6 +71,8 @@ private:
     void startTimeMeasurement(const QString &requestId);
     void endTimeMeasurement(const QString &requestId);
     void logPerformance(const QString &requestId, const QString &operation, qint64 elapsedMs);
+    QString processMessageToFIM(
+        const QString &templateText, const QString &prefix, const QString &suffix);
 };
 
 } // namespace QodeAssist

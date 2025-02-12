@@ -90,7 +90,7 @@ CodeCompletionSettings::CodeCompletionSettings()
     maxTokens.setSettingsKey(Constants::CC_MAX_TOKENS);
     maxTokens.setLabelText(Tr::tr("Max Tokens:"));
     maxTokens.setRange(-1, 900000);
-    maxTokens.setDefaultValue(50);
+    maxTokens.setDefaultValue(100);
 
     // Advanced Parameters
     useTopP.setSettingsKey(Constants::CC_USE_TOP_P);
@@ -180,7 +180,7 @@ CodeCompletionSettings::CodeCompletionSettings()
     userMessageTemplateForCC.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
     userMessageTemplateForCC.setDefaultValue(
         "Here is the code context with insertion points: "
-        "<code_context>\nBefore:%1\n<cursor>\nAfter:%2\n</code_context>\n\n");
+        "<code_context>\nBefore:${prefix}\n<cursor>\nAfter:${suffix}\n</code_context>\n\n");
 
     useProjectChangesCache.setSettingsKey(Constants::CC_USE_PROJECT_CHANGES_CACHE);
     useProjectChangesCache.setDefaultValue(true);
