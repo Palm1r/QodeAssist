@@ -106,7 +106,6 @@ const char CC_READ_FULL_FILE[] = "QodeAssist.ccReadFullFile";
 const char CC_READ_STRINGS_BEFORE_CURSOR[] = "QodeAssist.ccReadStringsBeforeCursor";
 const char CC_READ_STRINGS_AFTER_CURSOR[] = "QodeAssist.ccReadStringsAfterCursor";
 const char CC_USE_SYSTEM_PROMPT[] = "QodeAssist.ccUseSystemPrompt";
-const char CC_USE_FILE_PATH_IN_CONTEXT[] = "QodeAssist.ccUseFilePathInContext";
 const char CC_SYSTEM_PROMPT[] = "QodeAssist.ccSystemPrompt";
 const char CC_USE_USER_TEMPLATE[] = "QodeAssist.ccUseUserTemplate";
 const char CC_USER_TEMPLATE[] = "QodeAssist.ccUserTemplate";

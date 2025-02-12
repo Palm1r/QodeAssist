@@ -153,16 +153,24 @@ CodeCompletionSettings::CodeCompletionSettings()
     systemPrompt.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
     systemPrompt.setDefaultValue(
         "You are an expert in C++, Qt, and QML programming. Your task is to provide code "
-        "suggestions that seamlessly integrate with existing code. Do not repeat code from position "
-        "before or after <cursor>. You will receive a code context with specified insertion points. "
-        "Your goal is to complete only one code block."
-        "Here is the code context with insertion points:<code_context>Before: {{variable}}After: "
-        "{{variable}}</code_context> Instructions: 1. Carefully analyze the provided code context. "
-        "2. Consider the existing code and the specified insertion points.3. Generate a code "
-        "suggestion that completes one logic expression between the 'Before' and 'After' points. "
-        "4. Ensure your suggestion does not repeat any existing code. 5. Format your suggestion as "
-        "a code block using triple backticks. 6. Do not include any comments or descriptions with "
-        "your code suggestion.");
+        "completion by continuing exactly from the cursor position, without repeating any "
+        "characters that are already typed before the cursor. For example, if \"fo\" is typed and "
+        "cursor is after \"fo\", suggest only \"r\" to complete \"for\", not the full word.\n\n"
+        "Rules:\n"
+        "1. Continue the code exactly from the cursor position\n"
+        "2. Never repeat characters that appear before the cursor\n"
+        "3. Complete up to the first unmatched closing parenthesis or semicolon\n"
+        "4. Provide only the new characters needed to complete the code\n"
+        "5. Format your suggestion as a code block\n\n"
+        "Context format:\n"
+        "<code_context>\n"
+        "Before:{{code before cursor}}\n"
+        "<cursor>\n"
+        "After:{{code after cursor}}\n"
+        "</code_context>\n\n"
+        "Output format: Format your suggestion as a code block with language. Do not include any "
+        "comments or "
+        "descriptions with your code suggestion.");
 
     useUserMessageTemplateForCC.setSettingsKey(Constants::CC_USE_USER_TEMPLATE);
     useUserMessageTemplateForCC.setDefaultValue(true);
@@ -170,12 +178,9 @@ CodeCompletionSettings::CodeCompletionSettings()
 
     userMessageTemplateForCC.setSettingsKey(Constants::CC_USER_TEMPLATE);
     userMessageTemplateForCC.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
-    userMessageTemplateForCC.setDefaultValue("Here is the code context with insertion points: <code_context>"
-                                             "\nBefore: %1After: %2\n </code_context>");
-
-    useFilePathInContext.setSettingsKey(Constants::CC_USE_FILE_PATH_IN_CONTEXT);
-    useFilePathInContext.setDefaultValue(true);
-    useFilePathInContext.setLabelText(Tr::tr("Use File Path in Context"));
+    userMessageTemplateForCC.setDefaultValue(
+        "Here is the code context with insertion points: "
+        "<code_context>\nBefore:%1\n<cursor>\nAfter:%2\n</code_context>\n\n");
 
     useProjectChangesCache.setSettingsKey(Constants::CC_USE_PROJECT_CHANGES_CACHE);
     useProjectChangesCache.setDefaultValue(true);
@@ -239,7 +244,6 @@ CodeCompletionSettings::CodeCompletionSettings()
                                   systemPrompt,
                                   Row{useUserMessageTemplateForCC, Stretch{1}},
                                   userMessageTemplateForCC,
-                                  Row{useFilePathInContext, Stretch{1}},
                                   Row{useProjectChangesCache, maxChangesCacheSize, Stretch{1}}};
 
         return Column{
@@ -327,11 +331,12 @@ void CodeCompletionSettings::resetSettingsToDefaults()
         resetAspect(readStringsAfterCursor);
         resetAspect(useSystemPrompt);
         resetAspect(systemPrompt);
-        resetAspect(useFilePathInContext);
         resetAspect(useProjectChangesCache);
         resetAspect(maxChangesCacheSize);
         resetAspect(ollamaLivetime);
         resetAspect(contextWindow);
+        resetAspect(useUserMessageTemplateForCC);
+        resetAspect(userMessageTemplateForCC);
     }
 }
 

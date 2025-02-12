@@ -68,7 +68,6 @@ public:
     Utils::StringAspect systemPrompt{this};
     Utils::BoolAspect useUserMessageTemplateForCC{this};
     Utils::StringAspect userMessageTemplateForCC{this};
-    Utils::BoolAspect useFilePathInContext{this};
     Utils::BoolAspect useProjectChangesCache{this};
     Utils::IntegerAspect maxChangesCacheSize{this};
 

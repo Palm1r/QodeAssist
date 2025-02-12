@@ -306,6 +306,8 @@ void LLMClientInterface::sendCompletionToClient(const QString &completion,
     QJsonArray completions;
     QJsonObject completionItem;
 
+    LOG_MESSAGE(QString("Completions before filter: \n%1").arg(completion));
+
     QString processedCompletion
         = promptTemplate->type() == LLMCore::TemplateType::Chat
                   && Settings::codeCompletionSettings().smartProcessInstuctText()
