@@ -78,6 +78,8 @@ public:
     // API Configuration Settings
     Utils::StringAspect apiKey{this};
 
+    QString processMessageToFIM(const QString &prefix, const QString &suffix);
+
 private:
     void setupConnections();
     void resetSettingsToDefaults();

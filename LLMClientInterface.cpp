@@ -217,10 +217,8 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     QString userMessage;
     if (completeSettings.useUserMessageTemplateForCC()
         && promptTemplate->type() == LLMCore::TemplateType::Chat) {
-        userMessage = processMessageToFIM(
-            completeSettings.userMessageTemplateForCC(),
-            updatedContext.prefix,
-            updatedContext.suffix);
+        userMessage
+            = completeSettings.processMessageToFIM(updatedContext.prefix, updatedContext.suffix);
     } else {
         userMessage = updatedContext.prefix;
     }
@@ -244,15 +242,6 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         return;
     }
     m_requestHandler.sendLLMRequest(config, request);
-}
-
-QString LLMClientInterface::processMessageToFIM(
-    const QString &templateText, const QString &prefix, const QString &suffix)
-{
-    QString result = templateText;
-    result.replace("${prefix}", prefix);
-    result.replace("${suffix}", suffix);
-    return result;
 }
 
 LLMCore::ContextData LLMClientInterface::prepareContext(const QJsonObject &request,

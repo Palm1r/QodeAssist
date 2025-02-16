@@ -152,25 +152,26 @@ CodeCompletionSettings::CodeCompletionSettings()
     systemPrompt.setSettingsKey(Constants::CC_SYSTEM_PROMPT);
     systemPrompt.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
     systemPrompt.setDefaultValue(
-        "You are an expert in C++, Qt, and QML programming. Your task is to provide code "
-        "completion by continuing exactly from the cursor position, without repeating any "
-        "characters that are already typed before the cursor. For example, if \"fo\" is typed and "
-        "cursor is after \"fo\", suggest only \"r\" to complete \"for\", not the full word.\n\n"
-        "Rules:\n"
-        "1. Continue the code exactly from the cursor position\n"
-        "2. Never repeat characters that appear before the cursor\n"
-        "3. Complete up to the first unmatched closing parenthesis or semicolon\n"
-        "4. Provide only the new characters needed to complete the code\n"
-        "5. Format your suggestion as a code block\n\n"
-        "Context format:\n"
+        "You are an expert C++, Qt, and QML code completion assistant. Your task is to provide "
+        "precise and contextually appropriate code completions.\n\n"
+        "Core Requirements:\n"
+        "1. Continue code exactly from the cursor position, ensuring it properly connects with any "
+        "existing code after the cursor\n"
+        "2. Never repeat existing code before or after the cursor\n"
+        "Specific Guidelines:\n"
+        "- For function calls: Complete parameters with appropriate types and names\n"
+        "- For class members: Respect access modifiers and class conventions\n"
+        "- Respect existing indentation and formatting\n"
+        "- Consider scope and visibility of referenced symbols\n"
+        "- Ensure seamless integration with code both before and after the cursor\n\n"
+        "Context Format:\n"
         "<code_context>\n"
-        "Before:{{code before cursor}}\n"
-        "<cursor>\n"
-        "After:{{code after cursor}}\n"
+        "{{code before cursor}}<cursor>{{code after cursor}}\n"
         "</code_context>\n\n"
-        "Output format: Format your suggestion as a code block with language. Do not include any "
-        "comments or "
-        "descriptions with your code suggestion.");
+        "Response Format:\n"
+        "- No explanations or comments\n"
+        "- Only include new characters needed to create valid code\n"
+        "- Should be codeblock with language\n");
 
     useUserMessageTemplateForCC.setSettingsKey(Constants::CC_USE_USER_TEMPLATE);
     useUserMessageTemplateForCC.setDefaultValue(true);
@@ -179,8 +180,8 @@ CodeCompletionSettings::CodeCompletionSettings()
     userMessageTemplateForCC.setSettingsKey(Constants::CC_USER_TEMPLATE);
     userMessageTemplateForCC.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
     userMessageTemplateForCC.setDefaultValue(
-        "Here is the code context with insertion points: "
-        "<code_context>\nBefore:${prefix}\n<cursor>\nAfter:${suffix}\n</code_context>\n\n");
+        "Here is the code context with insertion points:\n"
+        "<code_context>\n${prefix}<cursor>${suffix}\n</code_context>\n");
 
     useProjectChangesCache.setSettingsKey(Constants::CC_USE_PROJECT_CHANGES_CACHE);
     useProjectChangesCache.setDefaultValue(true);
@@ -338,6 +339,14 @@ void CodeCompletionSettings::resetSettingsToDefaults()
         resetAspect(useUserMessageTemplateForCC);
         resetAspect(userMessageTemplateForCC);
     }
+}
+
+QString CodeCompletionSettings::processMessageToFIM(const QString &prefix, const QString &suffix)
+{
+    QString result = userMessageTemplateForCC();
+    result.replace("${prefix}", prefix);
+    result.replace("${suffix}", suffix);
+    return result;
 }
 
 class CodeCompletionSettingsPage : public Core::IOptionsPage
