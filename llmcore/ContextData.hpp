@@ -20,14 +20,23 @@
 #pragma once
 
 #include <QString>
+#include <QVector>
 
 namespace QodeAssist::LLMCore {
 
+struct Message
+{
+    QString role;
+    QString content;
+};
+
 struct ContextData
 {
-    QString prefix;
-    QString suffix;
-    QString fileContext;
+    std::optional<QString> systemPrompt;
+    std::optional<QString> prefix;
+    std::optional<QString> suffix;
+    std::optional<QString> fileContext;
+    std::optional<QVector<Message>> history;
 };
 
 } // namespace QodeAssist::LLMCore

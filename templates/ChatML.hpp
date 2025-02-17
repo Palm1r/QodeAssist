@@ -30,23 +30,28 @@ class ChatML : public LLMCore::PromptTemplate
 public:
     QString name() const override { return "ChatML"; }
     LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
-    QString promptTemplate() const override { return {}; }
     QStringList stopWords() const override
     {
         return QStringList() << "<|im_start|>" << "<|im_end|>";
     }
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
-        QJsonArray messages = request["messages"].toArray();
+        QJsonArray messages;
 
-        for (int i = 0; i < messages.size(); ++i) {
-            QJsonObject message = messages[i].toObject();
-            QString role = message["role"].toString();
-            QString content = message["content"].toString();
+        if (context.systemPrompt) {
+            messages.append(QJsonObject{
+                {"role", "system"},
+                {"content",
+                 QString("<|im_start|>system\n%2\n<|im_end|>").arg(context.systemPrompt.value())}});
+        }
 
-            message["content"] = QString("<|im_start|>%1\n%2\n<|im_end|>").arg(role, content);
-
-            messages[i] = message;
+        if (context.history) {
+            for (const auto &msg : context.history.value()) {
+                messages.append(QJsonObject{
+                    {"role", msg.role},
+                    {"content",
+                     QString("<|im_start|>%1\n%2\n<|im_end|>").arg(msg.role, msg.content)}});
+            }
         }
 
         request["messages"] = messages;

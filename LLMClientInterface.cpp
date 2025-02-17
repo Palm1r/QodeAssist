@@ -28,7 +28,6 @@
 
 #include "CodeHandler.hpp"
 #include "context/DocumentContextReader.hpp"
-#include "llmcore/MessageBuilder.hpp"
 #include "llmcore/PromptTemplateManager.hpp"
 #include "llmcore/ProvidersManager.hpp"
 #include "logger/Logger.hpp"
@@ -159,7 +158,7 @@ bool QodeAssist::LLMClientInterface::isSpecifyCompletion(const QJsonObject &requ
 
 void LLMClientInterface::handleCompletion(const QJsonObject &request)
 {
-    const auto updatedContext = prepareContext(request);
+    auto updatedContext = prepareContext(request);
     auto &completeSettings = Settings::codeCompletionSettings();
     auto &generalSettings = Settings::generalSettings();
 
@@ -196,7 +195,7 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     config.promptTemplate = promptTemplate;
     config.url = QUrl(QString("%1%2").arg(
         url,
-        promptTemplate->type() == LLMCore::TemplateType::Fim ? provider->completionEndpoint()
+        promptTemplate->type() == LLMCore::TemplateType::FIM ? provider->completionEndpoint()
                                                              : provider->chatEndpoint()));
     config.apiKey = provider->apiKey();
 
@@ -211,29 +210,30 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     QString systemPrompt;
     if (completeSettings.useSystemPrompt())
         systemPrompt.append(completeSettings.systemPrompt());
-    if (!updatedContext.fileContext.isEmpty())
-        systemPrompt.append(updatedContext.fileContext);
+    if (updatedContext.fileContext.has_value())
+        systemPrompt.append(updatedContext.fileContext.value());
 
-    QString userMessage;
-    if (completeSettings.useUserMessageTemplateForCC()
-        && promptTemplate->type() == LLMCore::TemplateType::Chat) {
-        userMessage
-            = completeSettings.processMessageToFIM(updatedContext.prefix, updatedContext.suffix);
-    } else {
-        userMessage = updatedContext.prefix;
+    updatedContext.systemPrompt = systemPrompt;
+
+    if (promptTemplate->type() == LLMCore::TemplateType::Chat) {
+        QString userMessage;
+        if (completeSettings.useUserMessageTemplateForCC()) {
+            userMessage = completeSettings.processMessageToFIM(
+                updatedContext.prefix.value_or(""), updatedContext.suffix.value_or(""));
+        } else {
+            userMessage = updatedContext.prefix.value_or("") + updatedContext.suffix.value_or("");
+        }
+
+        QVector<LLMCore::Message> messages;
+        messages.append({"user", userMessage});
+        updatedContext.history = messages;
     }
 
-    auto message = LLMCore::MessageBuilder()
-                       .addSystemMessage(systemPrompt)
-                       .addUserMessage(userMessage)
-                       .addSuffix(updatedContext.suffix)
-                       .addTokenizer(promptTemplate);
-
-    message.saveTo(
+    config.provider->prepareRequest(
         config.providerRequest,
-        providerName == "Ollama" ? LLMCore::ProvidersApi::Ollama : LLMCore::ProvidersApi::OpenAI);
-
-    config.provider->prepareRequest(config.providerRequest, LLMCore::RequestType::CodeCompletion);
+        promptTemplate,
+        updatedContext,
+        LLMCore::RequestType::CodeCompletion);
 
     auto errors = config.provider->validateRequest(config.providerRequest, promptTemplate->type());
     if (!errors.isEmpty()) {

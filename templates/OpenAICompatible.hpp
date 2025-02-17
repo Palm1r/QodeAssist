@@ -25,15 +25,29 @@
 
 namespace QodeAssist::Templates {
 
-class BasicChat : public LLMCore::PromptTemplate
+class OpenAICompatible : public LLMCore::PromptTemplate
 {
 public:
     LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
-    QString name() const override { return "Basic Chat"; }
-    QString promptTemplate() const override { return {}; }
+    QString name() const override { return "OpenAI Compatible"; }
     QStringList stopWords() const override { return QStringList(); }
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
-    {}
+    {
+        QJsonArray messages;
+
+        if (context.systemPrompt) {
+            messages.append(
+                QJsonObject{{"role", "system"}, {"content", context.systemPrompt.value()}});
+        }
+
+        if (context.history) {
+            for (const auto &msg : context.history.value()) {
+                messages.append(QJsonObject{{"role", msg.role}, {"content", msg.content}});
+            }
+        }
+
+        request["messages"] = messages;
+    }
     QString description() const override { return "chat without tokens"; }
 };
 

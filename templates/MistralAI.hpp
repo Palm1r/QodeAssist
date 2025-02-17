@@ -25,44 +25,45 @@
 
 namespace QodeAssist::Templates {
 
-class Llama3 : public LLMCore::PromptTemplate
+class MistralAIFim : public LLMCore::PromptTemplate
 {
 public:
-    QString name() const override { return "Llama 3"; }
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
-    QStringList stopWords() const override
+    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::FIM; }
+    QString name() const override { return "Mistral AI FIM"; }
+    QStringList stopWords() const override { return QStringList(); }
+    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
-        return QStringList() << "<|start_header_id|>" << "<|end_header_id|>" << "<|eot_id|>";
+        request["prompt"] = context.prefix.value_or("");
+        request["suffix"] = context.suffix.value_or("");
     }
+    QString description() const override { return "template will take from ollama modelfile"; }
+};
+
+class MistralAIChat : public LLMCore::PromptTemplate
+{
+public:
+    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
+    QString name() const override { return "Mistral AI Chat"; }
+    QStringList stopWords() const override { return QStringList(); }
+
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
         QJsonArray messages;
 
         if (context.systemPrompt) {
-            messages.append(QJsonObject{
-                {"role", "system"},
-                {"content",
-                 QString("<|start_header_id|>system<|end_header_id|>%2<|eot_id|>")
-                     .arg(context.systemPrompt.value())}});
+            messages.append(
+                QJsonObject{{"role", "system"}, {"content", context.systemPrompt.value()}});
         }
 
         if (context.history) {
             for (const auto &msg : context.history.value()) {
-                messages.append(QJsonObject{
-                    {"role", msg.role},
-                    {"content",
-                     QString("<|start_header_id|>%1<|end_header_id|>%2<|eot_id|>")
-                         .arg(msg.role, msg.content)}});
+                messages.append(QJsonObject{{"role", msg.role}, {"content", msg.content}});
             }
         }
 
         request["messages"] = messages;
     }
-    QString description() const override
-    {
-        return "The message will contain the following tokens: "
-               "<|start_header_id|>%1<|end_header_id|>%2<|eot_id|>";
-    }
+    QString description() const override { return "template will take from ollama modelfile"; }
 };
 
 } // namespace QodeAssist::Templates

@@ -26,14 +26,16 @@ namespace QodeAssist::Providers {
 class OpenAICompatProvider : public LLMCore::Provider
 {
 public:
-    OpenAICompatProvider();
-
     QString name() const override;
     QString url() const override;
     QString completionEndpoint() const override;
     QString chatEndpoint() const override;
     bool supportsModelListing() const override;
-    void prepareRequest(QJsonObject &request, LLMCore::RequestType type) override;
+    void prepareRequest(
+        QJsonObject &request,
+        LLMCore::PromptTemplate *prompt,
+        LLMCore::ContextData context,
+        LLMCore::RequestType type) override;
     bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) override;
     QList<QString> getInstalledModels(const QString &url) override;
     QList<QString> validateRequest(const QJsonObject &request, LLMCore::TemplateType type) override;

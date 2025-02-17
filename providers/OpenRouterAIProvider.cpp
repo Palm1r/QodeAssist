@@ -33,8 +33,6 @@
 
 namespace QodeAssist::Providers {
 
-OpenRouterProvider::OpenRouterProvider() {}
-
 QString OpenRouterProvider::name() const
 {
     return "OpenRouter";
@@ -43,47 +41,6 @@ QString OpenRouterProvider::name() const
 QString OpenRouterProvider::url() const
 {
     return "https://openrouter.ai/api";
-}
-
-void OpenRouterProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType type)
-{
-    auto prepareMessages = [](QJsonObject &req) -> QJsonArray {
-        QJsonArray messages;
-        if (req.contains("system")) {
-            messages.append(
-                QJsonObject{{"role", "system"}, {"content", req.take("system").toString()}});
-        }
-        if (req.contains("prompt")) {
-            messages.append(
-                QJsonObject{{"role", "user"}, {"content", req.take("prompt").toString()}});
-        }
-        return messages;
-    };
-
-    auto applyModelParams = [&request](const auto &settings) {
-        request["max_tokens"] = settings.maxTokens();
-        request["temperature"] = settings.temperature();
-
-        if (settings.useTopP())
-            request["top_p"] = settings.topP();
-        if (settings.useTopK())
-            request["top_k"] = settings.topK();
-        if (settings.useFrequencyPenalty())
-            request["frequency_penalty"] = settings.frequencyPenalty();
-        if (settings.usePresencePenalty())
-            request["presence_penalty"] = settings.presencePenalty();
-    };
-
-    QJsonArray messages = prepareMessages(request);
-    if (!messages.isEmpty()) {
-        request["messages"] = std::move(messages);
-    }
-
-    if (type == LLMCore::RequestType::CodeCompletion) {
-        applyModelParams(Settings::codeCompletionSettings());
-    } else {
-        applyModelParams(Settings::chatAssistantSettings());
-    }
 }
 
 bool OpenRouterProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)

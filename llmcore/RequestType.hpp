@@ -21,5 +21,5 @@
 
 namespace QodeAssist::LLMCore {
 
-enum RequestType { CodeCompletion, Chat };
+enum RequestType { CodeCompletion, Chat, Embedding };
 }

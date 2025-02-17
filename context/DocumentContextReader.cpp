@@ -216,7 +216,7 @@ LLMCore::ContextData DocumentContextReader::prepareContext(int lineNumber, int c
         fileContext.append("\n ").append(
             ChangesManager::instance().getRecentChangesContext(m_textDocument));
 
-    return {contextBefore, contextAfter, fileContext};
+    return {.prefix = contextBefore, .suffix = contextAfter, .fileContext = fileContext};
 }
 
 QString DocumentContextReader::getContextBefore(int lineNumber, int cursorPosition) const

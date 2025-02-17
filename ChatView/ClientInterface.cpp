@@ -93,51 +93,35 @@ void ClientInterface::sendMessage(
     }
 
     LLMCore::ContextData context;
-    context.prefix = message;
-    context.suffix = "";
 
-    QString systemPrompt;
-    if (chatAssistantSettings.useSystemPrompt())
-        systemPrompt = chatAssistantSettings.systemPrompt();
-
-    if (!linkedFiles.isEmpty()) {
-        systemPrompt = getSystemPromptWithLinkedFiles(systemPrompt, linkedFiles);
+    if (chatAssistantSettings.useSystemPrompt()) {
+        QString systemPrompt = chatAssistantSettings.systemPrompt();
+        if (!linkedFiles.isEmpty()) {
+            systemPrompt = getSystemPromptWithLinkedFiles(systemPrompt, linkedFiles);
+        }
+        context.systemPrompt = systemPrompt;
     }
 
-    QJsonObject providerRequest;
-    providerRequest["model"] = Settings::generalSettings().caModel();
-    providerRequest["stream"] = chatAssistantSettings.stream();
-    providerRequest["messages"] = m_chatModel->prepareMessagesForRequest(systemPrompt);
-
-    if (promptTemplate)
-        promptTemplate->prepareRequest(providerRequest, context);
-    else
-        qWarning("No prompt template found");
-
-    if (provider)
-        provider->prepareRequest(providerRequest, LLMCore::RequestType::Chat);
-    else
-        qWarning("No provider found");
+    QVector<LLMCore::Message> messages;
+    for (const auto &msg : m_chatModel->getChatHistory()) {
+        messages.append({msg.role == ChatModel::ChatRole::User ? "user" : "assistant", msg.content});
+    }
+    context.history = messages;
 
     LLMCore::LLMConfig config;
     config.requestType = LLMCore::RequestType::Chat;
     config.provider = provider;
     config.promptTemplate = promptTemplate;
     config.url = QString("%1%2").arg(Settings::generalSettings().caUrl(), provider->chatEndpoint());
-    config.providerRequest = providerRequest;
-    config.multiLineCompletion = false;
     config.apiKey = provider->apiKey();
+    config.providerRequest
+        = {{"model", Settings::generalSettings().caModel()},
+           {"stream", chatAssistantSettings.stream()}};
 
-    QJsonObject request;
-    request["id"] = QUuid::createUuid().toString();
+    config.provider
+        ->prepareRequest(config.providerRequest, promptTemplate, context, LLMCore::RequestType::Chat);
 
-    auto errors = config.provider->validateRequest(config.providerRequest, promptTemplate->type());
-    if (!errors.isEmpty()) {
-        LOG_MESSAGE("Validate errors for chat request:");
-        LOG_MESSAGES(errors);
-        return;
-    }
-
+    QJsonObject request{{"id", QUuid::createUuid().toString()}};
     m_requestHandler->sendLLMRequest(config, request);
 }
 

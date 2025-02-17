@@ -21,17 +21,18 @@
 
 #include "llmcore/PromptTemplateManager.hpp"
 #include "templates/Alpaca.hpp"
-#include "templates/BasicChat.hpp"
 #include "templates/ChatML.hpp"
 #include "templates/Claude.hpp"
 #include "templates/CodeLlamaFim.hpp"
 #include "templates/CodeLlamaQMLFim.hpp"
-#include "templates/CustomFimTemplate.hpp"
-#include "templates/DeepSeekCoderFim.hpp"
-#include "templates/Llama2.hpp"
-#include "templates/Llama3.hpp"
+#include "templates/MistralAI.hpp"
 #include "templates/Ollama.hpp"
 #include "templates/OpenAI.hpp"
+#include "templates/OpenAICompatible.hpp"
+// #include "templates/CustomFimTemplate.hpp"
+// #include "templates/DeepSeekCoderFim.hpp"
+#include "templates/Llama2.hpp"
+#include "templates/Llama3.hpp"
 #include "templates/Qwen.hpp"
 #include "templates/StarCoder2Fim.hpp"
 
@@ -41,20 +42,22 @@ inline void registerTemplates()
 {
     auto &templateManager = LLMCore::PromptTemplateManager::instance();
     templateManager.registerTemplate<CodeLlamaFim>();
-    templateManager.registerTemplate<StarCoder2Fim>();
-    templateManager.registerTemplate<DeepSeekCoderFim>();
-    templateManager.registerTemplate<CustomTemplate>();
-    templateManager.registerTemplate<QwenFim>();
-    templateManager.registerTemplate<OllamaAutoFim>();
-    templateManager.registerTemplate<OllamaAutoChat>();
-    templateManager.registerTemplate<BasicChat>();
-    templateManager.registerTemplate<Llama3>();
-    templateManager.registerTemplate<ChatML>();
-    templateManager.registerTemplate<Alpaca>();
-    templateManager.registerTemplate<Llama2>();
+    templateManager.registerTemplate<OllamaFim>();
+    templateManager.registerTemplate<OllamaChat>();
     templateManager.registerTemplate<Claude>();
     templateManager.registerTemplate<OpenAI>();
+    templateManager.registerTemplate<MistralAIFim>();
+    templateManager.registerTemplate<MistralAIChat>();
     templateManager.registerTemplate<CodeLlamaQMLFim>();
+    templateManager.registerTemplate<ChatML>();
+    templateManager.registerTemplate<Llama2>();
+    templateManager.registerTemplate<Llama3>();
+    templateManager.registerTemplate<StarCoder2Fim>();
+    // templateManager.registerTemplate<DeepSeekCoderFim>();
+    // templateManager.registerTemplate<CustomTemplate>();
+    templateManager.registerTemplate<QwenFim>();
+    templateManager.registerTemplate<OpenAICompatible>();
+    templateManager.registerTemplate<Alpaca>();
 }
 
 } // namespace QodeAssist::Templates

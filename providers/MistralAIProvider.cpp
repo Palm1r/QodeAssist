@@ -1,33 +1,14 @@
-/*
- * Copyright (C) 2024 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
-
-#include "OpenAIProvider.hpp"
+#include "MistralAIProvider.hpp"
 
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
 #include "settings/ProviderSettings.hpp"
 
-#include <QEventLoop>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkReply>
+#include <QtCore/qeventloop.h>
 
 #include "llmcore/OpenAIMessage.hpp"
 #include "llmcore/ValidationUtils.hpp"
@@ -35,65 +16,32 @@
 
 namespace QodeAssist::Providers {
 
-QString OpenAIProvider::name() const
+QString MistralAIProvider::name() const
 {
-    return "OpenAI";
+    return "Mistral AI";
 }
 
-QString OpenAIProvider::url() const
+QString MistralAIProvider::url() const
 {
-    return "https://api.openai.com";
+    return "https://api.mistral.ai";
 }
 
-QString OpenAIProvider::completionEndpoint() const
+QString MistralAIProvider::completionEndpoint() const
+{
+    return "/v1/fim/completions";
+}
+
+QString MistralAIProvider::chatEndpoint() const
 {
     return "/v1/chat/completions";
 }
 
-QString OpenAIProvider::chatEndpoint() const
-{
-    return "/v1/chat/completions";
-}
-
-bool OpenAIProvider::supportsModelListing() const
+bool MistralAIProvider::supportsModelListing() const
 {
     return true;
 }
 
-void OpenAIProvider::prepareRequest(
-    QJsonObject &request,
-    LLMCore::PromptTemplate *prompt,
-    LLMCore::ContextData context,
-    LLMCore::RequestType type)
-{
-    // if (!isSupportedTemplate(prompt->name())) {
-    //     LOG_MESSAGE(QString("Provider doesn't support %1 template").arg(prompt->name()));
-    // }
-
-    prompt->prepareRequest(request, context);
-
-    auto applyModelParams = [&request](const auto &settings) {
-        request["max_tokens"] = settings.maxTokens();
-        request["temperature"] = settings.temperature();
-
-        if (settings.useTopP())
-            request["top_p"] = settings.topP();
-        if (settings.useTopK())
-            request["top_k"] = settings.topK();
-        if (settings.useFrequencyPenalty())
-            request["frequency_penalty"] = settings.frequencyPenalty();
-        if (settings.usePresencePenalty())
-            request["presence_penalty"] = settings.presencePenalty();
-    };
-
-    if (type == LLMCore::RequestType::CodeCompletion) {
-        applyModelParams(Settings::codeCompletionSettings());
-    } else {
-        applyModelParams(Settings::chatAssistantSettings());
-    }
-}
-
-bool OpenAIProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
+bool MistralAIProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
 {
     QByteArray data = reply->readAll();
     if (data.isEmpty()) {
@@ -144,7 +92,7 @@ bool OpenAIProvider::handleResponse(QNetworkReply *reply, QString &accumulatedRe
     return isDone;
 }
 
-QList<QString> OpenAIProvider::getInstalledModels(const QString &url)
+QList<QString> MistralAIProvider::getInstalledModels(const QString &url)
 {
     QList<QString> models;
     QNetworkAccessManager manager;
@@ -165,54 +113,102 @@ QList<QString> OpenAIProvider::getInstalledModels(const QString &url)
         QJsonDocument jsonResponse = QJsonDocument::fromJson(responseData);
         QJsonObject jsonObject = jsonResponse.object();
 
-        if (jsonObject.contains("data")) {
+        if (jsonObject.contains("data") && jsonObject["object"].toString() == "list") {
             QJsonArray modelArray = jsonObject["data"].toArray();
             for (const QJsonValue &value : modelArray) {
                 QJsonObject modelObject = value.toObject();
                 if (modelObject.contains("id")) {
                     QString modelId = modelObject["id"].toString();
-                    if (modelId.startsWith("gpt")) {
-                        models.append(modelId);
-                    }
+                    models.append(modelId);
                 }
             }
         }
     } else {
-        LOG_MESSAGE(QString("Error fetching ChatGPT models: %1").arg(reply->errorString()));
+        LOG_MESSAGE(QString("Error fetching Mistral AI models: %1").arg(reply->errorString()));
     }
 
     reply->deleteLater();
     return models;
 }
 
-QList<QString> OpenAIProvider::validateRequest(const QJsonObject &request, LLMCore::TemplateType type)
+QList<QString> MistralAIProvider::validateRequest(
+    const QJsonObject &request, LLMCore::TemplateType type)
 {
+    const auto fimReq = QJsonObject{
+        {"model", {}},
+        {"max_tokens", {}},
+        {"stream", {}},
+        {"temperature", {}},
+        {"prompt", {}},
+        {"suffix", {}}};
+
     const auto templateReq = QJsonObject{
         {"model", {}},
         {"messages", QJsonArray{{QJsonObject{{"role", {}}, {"content", {}}}}}},
         {"temperature", {}},
         {"max_tokens", {}},
         {"top_p", {}},
-        {"top_k", {}},
         {"frequency_penalty", {}},
         {"presence_penalty", {}},
         {"stop", QJsonArray{}},
         {"stream", {}}};
 
-    return LLMCore::ValidationUtils::validateRequestFields(request, templateReq);
+    return LLMCore::ValidationUtils::validateRequestFields(
+        request, type == LLMCore::TemplateType::FIM ? fimReq : templateReq);
 }
 
-QString OpenAIProvider::apiKey() const
+QString MistralAIProvider::apiKey() const
 {
-    return Settings::providerSettings().openAiApiKey();
+    return Settings::providerSettings().mistralAiApiKey();
 }
 
-void OpenAIProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
+void MistralAIProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
 {
     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
     if (!apiKey().isEmpty()) {
         networkRequest.setRawHeader("Authorization", QString("Bearer %1").arg(apiKey()).toUtf8());
+    }
+}
+
+void MistralAIProvider::prepareRequest(
+    QJsonObject &request,
+    LLMCore::PromptTemplate *prompt,
+    LLMCore::ContextData context,
+    LLMCore::RequestType type)
+{
+    // if (!isSupportedTemplate(prompt->name())) {
+    //     LOG_MESSAGE(QString("Provider doesn't support %1 template").arg(prompt->name()));
+    // }
+
+    prompt->prepareRequest(request, context);
+
+    if (type == LLMCore::RequestType::Chat) {
+        auto &settings = Settings::chatAssistantSettings();
+
+        request["max_tokens"] = settings.maxTokens();
+        request["temperature"] = settings.temperature();
+
+        if (settings.useTopP())
+            request["top_p"] = settings.topP();
+
+        // request["random_seed"] = "";
+
+        if (settings.useFrequencyPenalty())
+            request["frequency_penalty"] = settings.frequencyPenalty();
+        if (settings.usePresencePenalty())
+            request["presence_penalty"] = settings.presencePenalty();
+
+    } else {
+        auto &settings = Settings::codeCompletionSettings();
+
+        request["max_tokens"] = settings.maxTokens();
+        request["temperature"] = settings.temperature();
+
+        if (settings.useTopP())
+            request["top_p"] = settings.topP();
+
+        // request["random_seed"] = "";
     }
 }
 

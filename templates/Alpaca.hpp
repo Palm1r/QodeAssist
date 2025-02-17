@@ -29,32 +29,31 @@ class Alpaca : public LLMCore::PromptTemplate
 public:
     QString name() const override { return "Alpaca"; }
     LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
-    QString promptTemplate() const override { return {}; }
     QStringList stopWords() const override
     {
         return QStringList() << "### Instruction:" << "### Response:";
     }
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
-        QJsonArray messages = request["messages"].toArray();
+        QJsonArray messages;
 
-        for (int i = 0; i < messages.size(); ++i) {
-            QJsonObject message = messages[i].toObject();
-            QString role = message["role"].toString();
-            QString content = message["content"].toString();
+        QString fullContent;
 
-            QString formattedContent;
-            if (role == "system") {
-                formattedContent = content + "\n\n";
-            } else if (role == "user") {
-                formattedContent = "### Instruction:\n" + content + "\n\n";
-            } else if (role == "assistant") {
-                formattedContent = "### Response:\n" + content + "\n\n";
-            }
-
-            message["content"] = formattedContent;
-            messages[i] = message;
+        if (context.systemPrompt) {
+            fullContent += context.systemPrompt.value() + "\n\n";
         }
+
+        if (context.history) {
+            for (const auto &msg : context.history.value()) {
+                if (msg.role == "user") {
+                    fullContent += QString("### Instruction:\n%1\n\n").arg(msg.content);
+                } else if (msg.role == "assistant") {
+                    fullContent += QString("### Response:\n%1\n\n").arg(msg.content);
+                }
+            }
+        }
+
+        messages.append(QJsonObject{{"role", "user"}, {"content", fullContent}});
 
         request["messages"] = messages;
     }

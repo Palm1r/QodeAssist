@@ -58,7 +58,10 @@ void RequestHandler::sendLLMRequest(const LLMConfig &config, const QJsonObject &
         reply->deleteLater();
         m_activeRequests.remove(requestId);
         if (reply->error() != QNetworkReply::NoError) {
-            LOG_MESSAGE(QString("Error in QodeAssist request: %1").arg(reply->errorString()));
+            LOG_MESSAGE(QString("Error details: %1\nStatus code: %2\nResponse: %3")
+                            .arg(reply->errorString())
+                            .arg(reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt())
+                            .arg(QString(reply->readAll())));
             emit requestFinished(requestId, false, reply->errorString());
         } else {
             LOG_MESSAGE("Request finished successfully");

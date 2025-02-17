@@ -33,8 +33,6 @@
 
 namespace QodeAssist::Providers {
 
-OllamaProvider::OllamaProvider() {}
-
 QString OllamaProvider::name() const
 {
     return "Ollama";
@@ -60,8 +58,18 @@ bool OllamaProvider::supportsModelListing() const
     return true;
 }
 
-void OllamaProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType type)
+void OllamaProvider::prepareRequest(
+    QJsonObject &request,
+    LLMCore::PromptTemplate *prompt,
+    LLMCore::ContextData context,
+    LLMCore::RequestType type)
 {
+    // if (!isSupportedTemplate(prompt->name())) {
+    //     LOG_MESSAGE(QString("Provider doesn't support %1 template").arg(prompt->name()));
+    // }
+
+    prompt->prepareRequest(request, context);
+
     auto applySettings = [&request](const auto &settings) {
         QJsonObject options;
         options["num_predict"] = settings.maxTokens();
@@ -192,7 +200,7 @@ QList<QString> OllamaProvider::validateRequest(const QJsonObject &request, LLMCo
              {"presence_penalty", {}}}}};
 
     return LLMCore::ValidationUtils::validateRequestFields(
-        request, type == LLMCore::TemplateType::Fim ? fimReq : messageReq);
+        request, type == LLMCore::TemplateType::FIM ? fimReq : messageReq);
 }
 
 QString OllamaProvider::apiKey() const
@@ -203,6 +211,6 @@ QString OllamaProvider::apiKey() const
 void OllamaProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
 {
     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-};
+}
 
 } // namespace QodeAssist::Providers

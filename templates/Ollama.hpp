@@ -25,31 +25,44 @@
 
 namespace QodeAssist::Templates {
 
-class OllamaAutoFim : public LLMCore::PromptTemplate
+class OllamaFim : public LLMCore::PromptTemplate
 {
 public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Fim; }
-    QString name() const override { return "Ollama Auto FIM"; }
-    QString promptTemplate() const override { return {}; }
+    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::FIM; }
+    QString name() const override { return "Ollama FIM"; }
     QStringList stopWords() const override { return QStringList(); }
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
-        request["prompt"] = context.prefix;
-        request["suffix"] = context.suffix;
+        request["prompt"] = context.prefix.value_or("");
+        request["suffix"] = context.suffix.value_or("");
+        request["system"] = context.systemPrompt.value_or("");
     }
     QString description() const override { return "template will take from ollama modelfile"; }
 };
 
-class OllamaAutoChat : public LLMCore::PromptTemplate
+class OllamaChat : public LLMCore::PromptTemplate
 {
 public:
     LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
-    QString name() const override { return "Ollama Auto Chat"; }
-    QString promptTemplate() const override { return {}; }
+    QString name() const override { return "Ollama Chat"; }
     QStringList stopWords() const override { return QStringList(); }
 
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
+        QJsonArray messages;
+
+        if (context.systemPrompt) {
+            messages.append(
+                QJsonObject{{"role", "system"}, {"content", context.systemPrompt.value()}});
+        }
+
+        if (context.history) {
+            for (const auto &msg : context.history.value()) {
+                messages.append(QJsonObject{{"role", msg.role}, {"content", msg.content}});
+            }
+        }
+
+        request["messages"] = messages;
     }
     QString description() const override { return "template will take from ollama modelfile"; }
 };

@@ -34,8 +34,6 @@
 
 namespace QodeAssist::Providers {
 
-OpenAICompatProvider::OpenAICompatProvider() {}
-
 QString OpenAICompatProvider::name() const
 {
     return "OpenAI Compatible";
@@ -61,20 +59,17 @@ bool OpenAICompatProvider::supportsModelListing() const
     return false;
 }
 
-void OpenAICompatProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType type)
+void OpenAICompatProvider::prepareRequest(
+    QJsonObject &request,
+    LLMCore::PromptTemplate *prompt,
+    LLMCore::ContextData context,
+    LLMCore::RequestType type)
 {
-    auto prepareMessages = [](QJsonObject &req) -> QJsonArray {
-        QJsonArray messages;
-        if (req.contains("system")) {
-            messages.append(
-                QJsonObject{{"role", "system"}, {"content", req.take("system").toString()}});
-        }
-        if (req.contains("prompt")) {
-            messages.append(
-                QJsonObject{{"role", "user"}, {"content", req.take("prompt").toString()}});
-        }
-        return messages;
-    };
+    // if (!isSupportedTemplate(prompt->name())) {
+    //     LOG_MESSAGE(QString("Provider doesn't support %1 template").arg(prompt->name()));
+    // }
+
+    prompt->prepareRequest(request, context);
 
     auto applyModelParams = [&request](const auto &settings) {
         request["max_tokens"] = settings.maxTokens();
@@ -89,11 +84,6 @@ void OpenAICompatProvider::prepareRequest(QJsonObject &request, LLMCore::Request
         if (settings.usePresencePenalty())
             request["presence_penalty"] = settings.presencePenalty();
     };
-
-    QJsonArray messages = prepareMessages(request);
-    if (!messages.isEmpty()) {
-        request["messages"] = std::move(messages);
-    }
 
     if (type == LLMCore::RequestType::CodeCompletion) {
         applyModelParams(Settings::codeCompletionSettings());

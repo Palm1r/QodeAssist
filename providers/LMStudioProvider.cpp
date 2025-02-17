@@ -33,8 +33,6 @@
 
 namespace QodeAssist::Providers {
 
-LMStudioProvider::LMStudioProvider() {}
-
 QString LMStudioProvider::name() const
 {
     return "LM Studio";
@@ -58,47 +56,6 @@ QString LMStudioProvider::chatEndpoint() const
 bool LMStudioProvider::supportsModelListing() const
 {
     return true;
-}
-
-void LMStudioProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType type)
-{
-    auto prepareMessages = [](QJsonObject &req) -> QJsonArray {
-        QJsonArray messages;
-        if (req.contains("system")) {
-            messages.append(
-                QJsonObject{{"role", "system"}, {"content", req.take("system").toString()}});
-        }
-        if (req.contains("prompt")) {
-            messages.append(
-                QJsonObject{{"role", "user"}, {"content", req.take("prompt").toString()}});
-        }
-        return messages;
-    };
-
-    auto applyModelParams = [&request](const auto &settings) {
-        request["max_tokens"] = settings.maxTokens();
-        request["temperature"] = settings.temperature();
-
-        if (settings.useTopP())
-            request["top_p"] = settings.topP();
-        if (settings.useTopK())
-            request["top_k"] = settings.topK();
-        if (settings.useFrequencyPenalty())
-            request["frequency_penalty"] = settings.frequencyPenalty();
-        if (settings.usePresencePenalty())
-            request["presence_penalty"] = settings.presencePenalty();
-    };
-
-    QJsonArray messages = prepareMessages(request);
-    if (!messages.isEmpty()) {
-        request["messages"] = std::move(messages);
-    }
-
-    if (type == LLMCore::RequestType::CodeCompletion) {
-        applyModelParams(Settings::codeCompletionSettings());
-    } else {
-        applyModelParams(Settings::chatAssistantSettings());
-    }
 }
 
 bool LMStudioProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
@@ -209,6 +166,39 @@ QString LMStudioProvider::apiKey() const
 void LMStudioProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
 {
     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+}
+
+void QodeAssist::Providers::LMStudioProvider::prepareRequest(
+    QJsonObject &request,
+    LLMCore::PromptTemplate *prompt,
+    LLMCore::ContextData context,
+    LLMCore::RequestType type)
+{
+    // if (!isSupportedTemplate(prompt->name())) {
+    //     LOG_MESSAGE(QString("Provider doesn't support %1 template").arg(prompt->name()));
+    // }
+
+    prompt->prepareRequest(request, context);
+
+    auto applyModelParams = [&request](const auto &settings) {
+        request["max_tokens"] = settings.maxTokens();
+        request["temperature"] = settings.temperature();
+
+        if (settings.useTopP())
+            request["top_p"] = settings.topP();
+        if (settings.useTopK())
+            request["top_k"] = settings.topK();
+        if (settings.useFrequencyPenalty())
+            request["frequency_penalty"] = settings.frequencyPenalty();
+        if (settings.usePresencePenalty())
+            request["presence_penalty"] = settings.presencePenalty();
+    };
+
+    if (type == LLMCore::RequestType::CodeCompletion) {
+        applyModelParams(Settings::codeCompletionSettings());
+    } else {
+        applyModelParams(Settings::chatAssistantSettings());
+    }
 }
 
 } // namespace QodeAssist::Providers
