@@ -37,6 +37,7 @@ public:
     Utils::StringAspect openAiCompatApiKey{this};
     Utils::StringAspect claudeApiKey{this};
     Utils::StringAspect openAiApiKey{this};
+    Utils::StringAspect mistralAiApiKey{this};
 
 private:
     void setupConnections();

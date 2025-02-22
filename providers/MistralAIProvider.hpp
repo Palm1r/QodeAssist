@@ -23,7 +23,7 @@
 
 namespace QodeAssist::Providers {
 
-class LMStudioProvider : public LLMCore::Provider
+class MistralAIProvider : public LLMCore::Provider
 {
 public:
     QString name() const override;

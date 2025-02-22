@@ -23,6 +23,7 @@
 #include <QNetworkRequest>
 #include <QString>
 
+#include "ContextData.hpp"
 #include "PromptTemplate.hpp"
 #include "RequestType.hpp"
 
@@ -42,7 +43,12 @@ public:
     virtual QString chatEndpoint() const = 0;
     virtual bool supportsModelListing() const = 0;
 
-    virtual void prepareRequest(QJsonObject &request, RequestType type) = 0;
+    virtual void prepareRequest(
+        QJsonObject &request,
+        LLMCore::PromptTemplate *prompt,
+        LLMCore::ContextData context,
+        LLMCore::RequestType type)
+        = 0;
     virtual bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) = 0;
     virtual QList<QString> getInstalledModels(const QString &url) = 0;
     virtual QList<QString> validateRequest(const QJsonObject &request, TemplateType type) = 0;

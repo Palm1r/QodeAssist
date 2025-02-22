@@ -69,6 +69,7 @@ ProviderSettings::ProviderSettings()
     claudeApiKey.setDefaultValue("");
     claudeApiKey.setAutoApply(true);
 
+    // OpenAI Settings
     openAiApiKey.setSettingsKey(Constants::OPEN_AI_API_KEY);
     openAiApiKey.setLabelText(Tr::tr("OpenAI API Key:"));
     openAiApiKey.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
@@ -76,6 +77,15 @@ ProviderSettings::ProviderSettings()
     openAiApiKey.setHistoryCompleter(Constants::OPEN_AI_API_KEY_HISTORY);
     openAiApiKey.setDefaultValue("");
     openAiApiKey.setAutoApply(true);
+
+    // MistralAI Settings
+    mistralAiApiKey.setSettingsKey(Constants::MISTRAL_AI_API_KEY);
+    mistralAiApiKey.setLabelText(Tr::tr("Mistral AI API Key:"));
+    mistralAiApiKey.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    mistralAiApiKey.setPlaceHolderText(Tr::tr("Enter your API key here"));
+    mistralAiApiKey.setHistoryCompleter(Constants::MISTRAL_AI_API_KEY_HISTORY);
+    mistralAiApiKey.setDefaultValue("");
+    mistralAiApiKey.setAutoApply(true);
 
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
 
@@ -96,6 +106,8 @@ ProviderSettings::ProviderSettings()
             Group{title(Tr::tr("OpenAI Compatible Settings")), Column{openAiCompatApiKey}},
             Space{8},
             Group{title(Tr::tr("Claude Settings")), Column{claudeApiKey}},
+            Space{8},
+            Group{title(Tr::tr("Mistral AI Settings")), Column{mistralAiApiKey}},
             Stretch{1}};
     });
 }

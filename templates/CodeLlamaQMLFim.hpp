@@ -26,9 +26,8 @@ namespace QodeAssist::Templates {
 class CodeLlamaQMLFim : public LLMCore::PromptTemplate
 {
 public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Fim; }
+    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::FIM; }
     QString name() const override { return "CodeLlama QML FIM"; }
-    QString promptTemplate() const override { return "<SUF>%1<PRE>%2<MID>"; }
     QStringList stopWords() const override
     {
         return QStringList() << "<SUF>" << "<PRE>" << "</PRE>" << "</SUF>" << "< EOT >" << "\\end"
@@ -36,8 +35,9 @@ public:
     }
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
-        QString formattedPrompt = promptTemplate().arg(context.suffix, context.prefix);
-        request["prompt"] = formattedPrompt;
+        request["prompt"] = QString("<SUF>%1<PRE>%2<MID>")
+                                .arg(context.suffix.value_or(""), context.prefix.value_or(""));
+        request["system"] = context.systemPrompt.value_or("");
     }
     QString description() const override
     {

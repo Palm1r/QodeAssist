@@ -30,9 +30,25 @@ class Claude : public LLMCore::PromptTemplate
 public:
     LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
     QString name() const override { return "Claude"; }
-    QString promptTemplate() const override { return {}; }
     QStringList stopWords() const override { return QStringList(); }
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override {}
+    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
+    {
+        QJsonArray messages;
+
+        if (context.systemPrompt) {
+            request["system"] = context.systemPrompt.value();
+        }
+
+        if (context.history) {
+            for (const auto &msg : context.history.value()) {
+                if (msg.role != "system") {
+                    messages.append(QJsonObject{{"role", msg.role}, {"content", msg.content}});
+                }
+            }
+        }
+
+        request["messages"] = messages;
+    }
     QString description() const override { return "Claude"; }
 };
 

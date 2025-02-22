@@ -28,16 +28,13 @@ class QwenFim : public LLMCore::PromptTemplate
 {
 public:
     QString name() const override { return "Qwen FIM"; }
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Fim; }
-    QString promptTemplate() const override
-    {
-        return "<|fim_prefix|>%1<|fim_suffix|>%2<|fim_middle|>";
-    }
+    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::FIM; }
     QStringList stopWords() const override { return QStringList() << "<|endoftext|>" << "<|EOT|>"; }
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
-        QString formattedPrompt = promptTemplate().arg(context.prefix, context.suffix);
-        request["prompt"] = formattedPrompt;
+        request["prompt"] = QString("<|fim_prefix|>%1<|fim_suffix|>%2<|fim_middle|>")
+                                .arg(context.prefix.value_or(""), context.suffix.value_or(""));
+        request["system"] = context.systemPrompt.value_or("");
     }
     QString description() const override
     {

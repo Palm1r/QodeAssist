@@ -43,26 +43,28 @@ add_qtc_plugin(QodeAssist
     LLMClientInterface.hpp LLMClientInterface.cpp
     templates/Templates.hpp
     templates/CodeLlamaFim.hpp
-    templates/StarCoder2Fim.hpp
-    templates/DeepSeekCoderFim.hpp
-    templates/CustomFimTemplate.hpp
-    templates/Qwen.hpp
     templates/Ollama.hpp
-    templates/BasicChat.hpp
+    templates/Claude.hpp
+    templates/OpenAI.hpp
+    templates/MistralAI.hpp
+    templates/StarCoder2Fim.hpp
+    # templates/DeepSeekCoderFim.hpp
+    # templates/CustomFimTemplate.hpp
+    templates/Qwen.hpp
+    templates/OpenAICompatible.hpp
     templates/Llama3.hpp
     templates/ChatML.hpp
     templates/Alpaca.hpp
     templates/Llama2.hpp
-    templates/Claude.hpp
-    templates/OpenAI.hpp
     templates/CodeLlamaQMLFim.hpp
     providers/Providers.hpp
     providers/OllamaProvider.hpp providers/OllamaProvider.cpp
+    providers/ClaudeProvider.hpp providers/ClaudeProvider.cpp
+    providers/OpenAIProvider.hpp providers/OpenAIProvider.cpp
+    providers/MistralAIProvider.hpp providers/MistralAIProvider.cpp
     providers/LMStudioProvider.hpp providers/LMStudioProvider.cpp
     providers/OpenAICompatProvider.hpp providers/OpenAICompatProvider.cpp
     providers/OpenRouterAIProvider.hpp providers/OpenRouterAIProvider.cpp
-    providers/ClaudeProvider.hpp providers/ClaudeProvider.cpp
-    providers/OpenAIProvider.hpp providers/OpenAIProvider.cpp
     QodeAssist.qrc
     LSPCompletion.hpp
     LLMSuggestion.hpp LLMSuggestion.cpp

@@ -30,12 +30,9 @@
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
-#include "settings/GeneralSettings.hpp"
 #include "settings/ProviderSettings.hpp"
 
 namespace QodeAssist::Providers {
-
-ClaudeProvider::ClaudeProvider() {}
 
 QString ClaudeProvider::name() const
 {
@@ -62,31 +59,17 @@ bool ClaudeProvider::supportsModelListing() const
     return true;
 }
 
-void ClaudeProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType type)
+void ClaudeProvider::prepareRequest(
+    QJsonObject &request,
+    LLMCore::PromptTemplate *prompt,
+    LLMCore::ContextData context,
+    LLMCore::RequestType type)
 {
-    auto prepareMessages = [](QJsonObject &req) -> QJsonArray {
-        QJsonArray messages;
-        if (req.contains("messages")) {
-            QJsonArray origMessages = req["messages"].toArray();
-            for (const auto &msg : origMessages) {
-                QJsonObject message = msg.toObject();
-                if (message["role"].toString() == "system") {
-                    req["system"] = message["content"];
-                } else {
-                    messages.append(message);
-                }
-            }
-        } else {
-            if (req.contains("system")) {
-                req["system"] = req["system"].toString();
-            }
-            if (req.contains("prompt")) {
-                messages.append(
-                    QJsonObject{{"role", "user"}, {"content", req.take("prompt").toString()}});
-            }
-        }
-        return messages;
-    };
+    // if (!isSupportedTemplate(prompt->name())) {
+    //     LOG_MESSAGE(QString("Provider doesn't support %1 template").arg(prompt->name()));
+    // }
+
+    prompt->prepareRequest(request, context);
 
     auto applyModelParams = [&request](const auto &settings) {
         request["max_tokens"] = settings.maxTokens();
@@ -97,11 +80,6 @@ void ClaudeProvider::prepareRequest(QJsonObject &request, LLMCore::RequestType t
             request["top_k"] = settings.topK();
         request["stream"] = true;
     };
-
-    QJsonArray messages = prepareMessages(request);
-    if (!messages.isEmpty()) {
-        request["messages"] = std::move(messages);
-    }
 
     if (type == LLMCore::RequestType::CodeCompletion) {
         applyModelParams(Settings::codeCompletionSettings());

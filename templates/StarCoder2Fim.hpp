@@ -26,9 +26,8 @@ namespace QodeAssist::Templates {
 class StarCoder2Fim : public LLMCore::PromptTemplate
 {
 public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Fim; }
+    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::FIM; }
     QString name() const override { return "StarCoder2 FIM"; }
-    QString promptTemplate() const override { return "<fim_prefix>%1<fim_suffix>%2<fim_middle>"; }
     QStringList stopWords() const override
     {
         return QStringList() << "<|endoftext|>" << "<file_sep>" << "<fim_prefix>" << "<fim_suffix>"
@@ -36,8 +35,9 @@ public:
     }
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
-        QString formattedPrompt = promptTemplate().arg(context.prefix, context.suffix);
-        request["prompt"] = formattedPrompt;
+        request["prompt"] = QString("<fim_prefix>%1<fim_suffix>%2<fim_middle>")
+                                .arg(context.prefix.value_or(""), context.suffix.value_or(""));
+        request["system"] = context.systemPrompt.value_or("");
     }
     QString description() const override
     {

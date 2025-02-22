@@ -26,17 +26,17 @@ namespace QodeAssist::Templates {
 class CodeLlamaFim : public LLMCore::PromptTemplate
 {
 public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Fim; }
+    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::FIM; }
     QString name() const override { return "CodeLlama FIM"; }
-    QString promptTemplate() const override { return "<PRE> %1 <SUF>%2 <MID>"; }
     QStringList stopWords() const override
     {
         return QStringList() << "<EOT>" << "<PRE>" << "<SUF" << "<MID>";
     }
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
-        QString formattedPrompt = promptTemplate().arg(context.prefix, context.suffix);
-        request["prompt"] = formattedPrompt;
+        request["prompt"] = QString("<PRE> %1 <SUF>%2 <MID>")
+                                .arg(context.prefix.value_or(""), context.suffix.value_or(""));
+        request["system"] = context.systemPrompt.value_or("");
     }
     QString description() const override
     {
