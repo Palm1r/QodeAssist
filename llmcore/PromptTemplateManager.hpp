@@ -51,6 +51,9 @@ public:
     QStringList fimTemplatesNames() const;
     QStringList chatTemplatesNames() const;
 
+    QStringList getFimTemplatesForProvider(ProviderID id);
+    QStringList getChatTemplatesForProvider(ProviderID id);
+
 private:
     PromptTemplateManager() = default;
     PromptTemplateManager(const PromptTemplateManager &) = delete;

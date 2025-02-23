@@ -19,8 +19,6 @@
 
 #include "OpenRouterAIProvider.hpp"
 
-#include "settings/ChatAssistantSettings.hpp"
-#include "settings/CodeCompletionSettings.hpp"
 #include "settings/ProviderSettings.hpp"
 
 #include <QJsonArray>
@@ -97,6 +95,11 @@ bool OpenRouterProvider::handleResponse(QNetworkReply *reply, QString &accumulat
 QString OpenRouterProvider::apiKey() const
 {
     return Settings::providerSettings().openRouterApiKey();
+}
+
+LLMCore::ProviderID OpenRouterProvider::providerID() const
+{
+    return LLMCore::ProviderID::OpenRouter;
 }
 
 } // namespace QodeAssist::Providers

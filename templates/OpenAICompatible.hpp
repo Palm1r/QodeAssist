@@ -49,6 +49,17 @@ public:
         request["messages"] = messages;
     }
     QString description() const override { return "chat without tokens"; }
+    bool isSupportProvider(LLMCore::ProviderID id) const override
+    {
+        switch (id) {
+        case QodeAssist::LLMCore::ProviderID::OpenAICompatible:
+        case QodeAssist::LLMCore::ProviderID::OpenRouter:
+        case QodeAssist::LLMCore::ProviderID::LMStudio:
+            return true;
+        default:
+            return false;
+        }
+    }
 };
 
 } // namespace QodeAssist::Templates

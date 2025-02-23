@@ -168,15 +168,20 @@ void LMStudioProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) co
     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 }
 
+LLMCore::ProviderID LMStudioProvider::providerID() const
+{
+    return LLMCore::ProviderID::LMStudio;
+}
+
 void QodeAssist::Providers::LMStudioProvider::prepareRequest(
     QJsonObject &request,
     LLMCore::PromptTemplate *prompt,
     LLMCore::ContextData context,
     LLMCore::RequestType type)
 {
-    // if (!isSupportedTemplate(prompt->name())) {
-    //     LOG_MESSAGE(QString("Provider doesn't support %1 template").arg(prompt->name()));
-    // }
+    if (!prompt->isSupportProvider(providerID())) {
+        LOG_MESSAGE(QString("Template %1 doesn't support %2 provider").arg(name(), prompt->name()));
+    }
 
     prompt->prepareRequest(request, context);
 

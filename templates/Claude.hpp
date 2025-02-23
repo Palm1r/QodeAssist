@@ -50,6 +50,15 @@ public:
         request["messages"] = messages;
     }
     QString description() const override { return "Claude"; }
+    bool isSupportProvider(LLMCore::ProviderID id) const override
+    {
+        switch (id) {
+        case QodeAssist::LLMCore::ProviderID::Claude:
+            return true;
+        default:
+            return false;
+        }
+    }
 };
 
 } // namespace QodeAssist::Templates

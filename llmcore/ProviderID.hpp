@@ -17,31 +17,17 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "ProvidersManager.hpp"
-
 namespace QodeAssist::LLMCore {
 
-ProvidersManager &ProvidersManager::instance()
-{
-    static ProvidersManager instance;
-    return instance;
-}
+enum class ProviderID {
+    Any,
+    Ollama,
+    LMStudio,
+    Claude,
+    OpenAI,
+    OpenAICompatible,
+    MistralAI,
+    OpenRouter
+};
 
-QStringList ProvidersManager::providersNames() const
-{
-    return m_providers.keys();
 }
-
-ProvidersManager::~ProvidersManager()
-{
-    qDeleteAll(m_providers);
-}
-
-Provider *ProvidersManager::getProviderByName(const QString &providerName)
-{
-    if (!m_providers.contains(providerName))
-        return m_providers.first();
-    return m_providers[providerName];
-}
-
-} // namespace QodeAssist::LLMCore

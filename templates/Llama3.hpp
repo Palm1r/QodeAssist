@@ -63,6 +63,18 @@ public:
         return "The message will contain the following tokens: "
                "<|start_header_id|>%1<|end_header_id|>%2<|eot_id|>";
     }
+    bool isSupportProvider(LLMCore::ProviderID id) const override
+    {
+        switch (id) {
+        case QodeAssist::LLMCore::ProviderID::Ollama:
+        case QodeAssist::LLMCore::ProviderID::LMStudio:
+        case QodeAssist::LLMCore::ProviderID::OpenRouter:
+        case QodeAssist::LLMCore::ProviderID::OpenAICompatible:
+            return true;
+        default:
+            return false;
+        }
+    }
 };
 
 } // namespace QodeAssist::Templates

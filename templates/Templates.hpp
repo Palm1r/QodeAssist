@@ -41,9 +41,9 @@ namespace QodeAssist::Templates {
 inline void registerTemplates()
 {
     auto &templateManager = LLMCore::PromptTemplateManager::instance();
-    templateManager.registerTemplate<CodeLlamaFim>();
-    templateManager.registerTemplate<OllamaFim>();
     templateManager.registerTemplate<OllamaChat>();
+    templateManager.registerTemplate<OllamaFim>();
+    templateManager.registerTemplate<CodeLlamaFim>();
     templateManager.registerTemplate<Claude>();
     templateManager.registerTemplate<OpenAI>();
     templateManager.registerTemplate<MistralAIFim>();

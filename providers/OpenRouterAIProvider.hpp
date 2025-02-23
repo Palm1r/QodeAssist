@@ -31,6 +31,7 @@ public:
     QString url() const override;
     bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) override;
     QString apiKey() const override;
+    LLMCore::ProviderID providerID() const override;
 };
 
 } // namespace QodeAssist::Providers

@@ -37,6 +37,32 @@ QStringList PromptTemplateManager::chatTemplatesNames() const
     return m_chatTemplates.keys();
 }
 
+QStringList PromptTemplateManager::getFimTemplatesForProvider(ProviderID id)
+{
+    QStringList templateList;
+
+    for (const auto tmpl : m_fimTemplates) {
+        if (tmpl->isSupportProvider(id)) {
+            templateList.append(tmpl->name());
+        }
+    }
+
+    return templateList;
+}
+
+QStringList PromptTemplateManager::getChatTemplatesForProvider(ProviderID id)
+{
+    QStringList templateList;
+
+    for (const auto tmpl : m_chatTemplates) {
+        if (tmpl->isSupportProvider(id)) {
+            templateList.append(tmpl->name());
+        }
+    }
+
+    return templateList;
+}
+
 PromptTemplateManager::~PromptTemplateManager()
 {
     qDeleteAll(m_fimTemplates);
@@ -44,11 +70,15 @@ PromptTemplateManager::~PromptTemplateManager()
 
 PromptTemplate *PromptTemplateManager::getFimTemplateByName(const QString &templateName)
 {
+    if (!m_fimTemplates.contains(templateName))
+        return m_fimTemplates.first();
     return m_fimTemplates[templateName];
 }
 
 PromptTemplate *PromptTemplateManager::getChatTemplateByName(const QString &templateName)
 {
+    if (!m_chatTemplates.contains(templateName))
+        return m_chatTemplates.first();
     return m_chatTemplates[templateName];
 }
 

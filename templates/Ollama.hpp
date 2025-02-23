@@ -38,6 +38,15 @@ public:
         request["system"] = context.systemPrompt.value_or("");
     }
     QString description() const override { return "template will take from ollama modelfile"; }
+    bool isSupportProvider(LLMCore::ProviderID id) const override
+    {
+        switch (id) {
+        case QodeAssist::LLMCore::ProviderID::Ollama:
+            return true;
+        default:
+            return false;
+        }
+    }
 };
 
 class OllamaChat : public LLMCore::PromptTemplate
@@ -65,6 +74,15 @@ public:
         request["messages"] = messages;
     }
     QString description() const override { return "template will take from ollama modelfile"; }
+    bool isSupportProvider(LLMCore::ProviderID id) const override
+    {
+        switch (id) {
+        case QodeAssist::LLMCore::ProviderID::Ollama:
+            return true;
+        default:
+            return false;
+        }
+    }
 };
 
 } // namespace QodeAssist::Templates

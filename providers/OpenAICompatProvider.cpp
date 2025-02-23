@@ -65,9 +65,9 @@ void OpenAICompatProvider::prepareRequest(
     LLMCore::ContextData context,
     LLMCore::RequestType type)
 {
-    // if (!isSupportedTemplate(prompt->name())) {
-    //     LOG_MESSAGE(QString("Provider doesn't support %1 template").arg(prompt->name()));
-    // }
+    if (!prompt->isSupportProvider(providerID())) {
+        LOG_MESSAGE(QString("Template %1 doesn't support %2 provider").arg(name(), prompt->name()));
+    }
 
     prompt->prepareRequest(request, context);
 
@@ -178,6 +178,11 @@ void OpenAICompatProvider::prepareNetworkRequest(QNetworkRequest &networkRequest
     if (!apiKey().isEmpty()) {
         networkRequest.setRawHeader("Authorization", QString("Bearer %1").arg(apiKey()).toUtf8());
     }
+}
+
+LLMCore::ProviderID OpenAICompatProvider::providerID() const
+{
+    return LLMCore::ProviderID::OpenAICompatible;
 }
 
 } // namespace QodeAssist::Providers

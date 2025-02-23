@@ -65,9 +65,9 @@ void ClaudeProvider::prepareRequest(
     LLMCore::ContextData context,
     LLMCore::RequestType type)
 {
-    // if (!isSupportedTemplate(prompt->name())) {
-    //     LOG_MESSAGE(QString("Provider doesn't support %1 template").arg(prompt->name()));
-    // }
+    if (!prompt->isSupportProvider(providerID())) {
+        LOG_MESSAGE(QString("Template %1 doesn't support %2 provider").arg(name(), prompt->name()));
+    }
 
     prompt->prepareRequest(request, context);
 
@@ -211,6 +211,11 @@ void ClaudeProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) cons
         networkRequest.setRawHeader("x-api-key", apiKey().toUtf8());
         networkRequest.setRawHeader("anthropic-version", "2023-06-01");
     }
+}
+
+LLMCore::ProviderID ClaudeProvider::providerID() const
+{
+    return LLMCore::ProviderID::Claude;
 }
 
 } // namespace QodeAssist::Providers

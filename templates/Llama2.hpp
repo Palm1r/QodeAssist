@@ -59,6 +59,18 @@ public:
     {
         return "The message will contain the following tokens: [INST]%1[/INST]\n";
     }
+    bool isSupportProvider(LLMCore::ProviderID id) const override
+    {
+        switch (id) {
+        case QodeAssist::LLMCore::ProviderID::Ollama:
+        case QodeAssist::LLMCore::ProviderID::LMStudio:
+        case QodeAssist::LLMCore::ProviderID::OpenRouter:
+        case QodeAssist::LLMCore::ProviderID::OpenAICompatible:
+            return true;
+        default:
+            return false;
+        }
+    }
 };
 
 } // namespace QodeAssist::Templates

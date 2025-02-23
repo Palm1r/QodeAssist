@@ -41,6 +41,7 @@ public:
     QList<QString> validateRequest(const QJsonObject &request, LLMCore::TemplateType type) override;
     QString apiKey() const override;
     void prepareNetworkRequest(QNetworkRequest &networkRequest) const override;
+    LLMCore::ProviderID providerID() const override;
 };
 
 } // namespace QodeAssist::Providers

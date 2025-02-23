@@ -41,6 +41,15 @@ public:
         return "The message will contain the following tokens: "
                "<|fim_prefix|>%1<|fim_suffix|>%2<|fim_middle|>";
     }
+    bool isSupportProvider(LLMCore::ProviderID id) const override
+    {
+        switch (id) {
+        case QodeAssist::LLMCore::ProviderID::Ollama:
+            return true;
+        default:
+            return false;
+        }
+    }
 };
 
 } // namespace QodeAssist::Templates

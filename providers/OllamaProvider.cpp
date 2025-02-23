@@ -64,9 +64,9 @@ void OllamaProvider::prepareRequest(
     LLMCore::ContextData context,
     LLMCore::RequestType type)
 {
-    // if (!isSupportedTemplate(prompt->name())) {
-    //     LOG_MESSAGE(QString("Provider doesn't support %1 template").arg(prompt->name()));
-    // }
+    if (!prompt->isSupportProvider(providerID())) {
+        LOG_MESSAGE(QString("Template %1 doesn't support %2 provider").arg(name(), prompt->name()));
+    }
 
     prompt->prepareRequest(request, context);
 
@@ -211,6 +211,11 @@ QString OllamaProvider::apiKey() const
 void OllamaProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
 {
     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+}
+
+LLMCore::ProviderID OllamaProvider::providerID() const
+{
+    return LLMCore::ProviderID::Ollama;
 }
 
 } // namespace QodeAssist::Providers

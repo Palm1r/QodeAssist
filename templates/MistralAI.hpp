@@ -37,6 +37,15 @@ public:
         request["suffix"] = context.suffix.value_or("");
     }
     QString description() const override { return "template will take from ollama modelfile"; }
+    bool isSupportProvider(LLMCore::ProviderID id) const override
+    {
+        switch (id) {
+        case QodeAssist::LLMCore::ProviderID::MistralAI:
+            return true;
+        default:
+            return false;
+        }
+    }
 };
 
 class MistralAIChat : public LLMCore::PromptTemplate
@@ -64,6 +73,15 @@ public:
         request["messages"] = messages;
     }
     QString description() const override { return "template will take from ollama modelfile"; }
+    bool isSupportProvider(LLMCore::ProviderID id) const override
+    {
+        switch (id) {
+        case QodeAssist::LLMCore::ProviderID::MistralAI:
+            return true;
+        default:
+            return false;
+        }
+    }
 };
 
 } // namespace QodeAssist::Templates

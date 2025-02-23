@@ -49,6 +49,15 @@ public:
         request["messages"] = messages;
     }
     QString description() const override { return "OpenAI"; }
+    bool isSupportProvider(LLMCore::ProviderID id) const override
+    {
+        switch (id) {
+        case QodeAssist::LLMCore::ProviderID::OpenAI:
+            return true;
+        default:
+            return false;
+        }
+    }
 };
 
 } // namespace QodeAssist::Templates

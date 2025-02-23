@@ -54,6 +54,7 @@ public:
     virtual QList<QString> validateRequest(const QJsonObject &request, TemplateType type) = 0;
     virtual QString apiKey() const = 0;
     virtual void prepareNetworkRequest(QNetworkRequest &networkRequest) const = 0;
+    virtual ProviderID providerID() const = 0;
 };
 
 } // namespace QodeAssist::LLMCore

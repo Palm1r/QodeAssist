@@ -137,9 +137,14 @@ void ConfigurationManager::selectTemplate()
 
     const bool isCodeCompletion = (settingsButton == &m_generalSettings.ccSelectTemplate);
     const bool isPreset1 = (settingsButton == &m_generalSettings.ccPreset1SelectTemplate);
+    const QString providerName = isCodeCompletion ? m_generalSettings.ccProvider.volatileValue()
+                                 : isPreset1 ? m_generalSettings.ccPreset1Provider.volatileValue()
+                                             : m_generalSettings.caProvider.volatileValue();
+    auto providerID = m_providersManager.getProviderByName(providerName)->providerID();
 
-    const auto templateList = isCodeCompletion || isPreset1 ? m_templateManger.fimTemplatesNames()
-                                                            : m_templateManger.chatTemplatesNames();
+    const auto templateList = isCodeCompletion || isPreset1
+                                  ? m_templateManger.getFimTemplatesForProvider(providerID)
+                                  : m_templateManger.getChatTemplatesForProvider(providerID);
 
     auto &targetSettings = isCodeCompletion ? m_generalSettings.ccTemplate
                            : isPreset1      ? m_generalSettings.ccPreset1Template
