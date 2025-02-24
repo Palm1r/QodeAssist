@@ -122,9 +122,9 @@ Rectangle {
 
         anchors.verticalCenter: parent.verticalCenter
         width: 3
-        height: parent.height - 8
+        height: root.height - root.radius
         color: "#92BD6C"
-        radius: 8
+        radius: root.radius
         visible: root.isUserMessage
     }
 
