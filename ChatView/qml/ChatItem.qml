@@ -27,14 +27,18 @@ Rectangle {
 
     property alias msgModel: msgCreator.model
     property alias messageAttachments: attachmentsModel.model
+    property bool isUserMessage: false
 
     height: msgColumn.implicitHeight + 10
     radius: 8
+    color: isUserMessage ? palette.alternateBase
+                         : palette.base
 
     ColumnLayout {
         id: msgColumn
 
-        width: parent.width
+        x: 5
+        width: parent.width - x
         anchors.verticalCenter: parent.verticalCenter
         spacing: 5
 
@@ -111,6 +115,17 @@ Rectangle {
                 }
             }
         }
+    }
+
+    Rectangle {
+        id: userMessageMarker
+
+        anchors.verticalCenter: parent.verticalCenter
+        width: 3
+        height: parent.height - 8
+        color: "#92BD6C"
+        radius: 8
+        visible: root.isUserMessage
     }
 
     component TextComponent : TextBlock {

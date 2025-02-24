@@ -96,8 +96,7 @@ ChatRootView {
                 width: ListView.view.width - scroll.width
                 msgModel: root.chatModel.processMessageContent(model.content)
                 messageAttachments: model.attachments
-                color: model.roleType === ChatModel.User ? palette.alternateBase
-                                                         : palette.base
+                isUserMessage: model.roleType === ChatModel.User
             }
 
             header: Item {
