@@ -41,8 +41,12 @@ public:
     }
     QString description() const override
     {
-        return "The message will contain the following tokens: "
-               "<fim_prefix>%1<fim_suffix>%2<fim_middle>";
+        return "Template for StarCoder2 with FIM format:\n\n"
+               "{\n"
+               "  \"prompt\": \"<fim_prefix><code prefix><fim_suffix><code suffix><fim_middle>\",\n"
+               "  \"system\": \"<system prompt>\"\n"
+               "}\n\n"
+               "Includes stop words to prevent token duplication.";
     }
     bool isSupportProvider(LLMCore::ProviderID id) const override
     {

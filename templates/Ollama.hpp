@@ -37,7 +37,16 @@ public:
         request["suffix"] = context.suffix.value_or("");
         request["system"] = context.systemPrompt.value_or("");
     }
-    QString description() const override { return "template will take from ollama modelfile"; }
+    QString description() const override
+    {
+        return "Default Ollama FIM (Fill-in-Middle) template with native format:\n\n"
+               "{\n"
+               "  \"prompt\": \"<code prefix>\",\n"
+               "  \"suffix\": \"<code suffix>\",\n"
+               "  \"system\": \"<system prompt>\"\n"
+               "}\n\n"
+               "Recommended for Ollama models with FIM capability.";
+    }
     bool isSupportProvider(LLMCore::ProviderID id) const override
     {
         switch (id) {
@@ -73,7 +82,18 @@ public:
 
         request["messages"] = messages;
     }
-    QString description() const override { return "template will take from ollama modelfile"; }
+    QString description() const override
+    {
+        return "Template for Ollama Chat with message array format:\n\n"
+               "{\n"
+               "  \"messages\": [\n"
+               "    {\"role\": \"system\", \"content\": \"<system prompt>\"},\n"
+               "    {\"role\": \"user\", \"content\": \"<user message>\"},\n"
+               "    {\"role\": \"assistant\", \"content\": \"<assistant response>\"}\n"
+               "  ]\n"
+               "}\n\n"
+               "Recommended for Ollama models with chat capability.";
+    }
     bool isSupportProvider(LLMCore::ProviderID id) const override
     {
         switch (id) {

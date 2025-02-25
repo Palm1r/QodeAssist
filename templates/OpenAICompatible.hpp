@@ -48,7 +48,18 @@ public:
 
         request["messages"] = messages;
     }
-    QString description() const override { return "chat without tokens"; }
+    QString description() const override
+    {
+        return "Generic template for OpenAI API-compatible services:\n\n"
+               "{\n"
+               "  \"messages\": [\n"
+               "    {\"role\": \"system\", \"content\": \"<system prompt>\"},\n"
+               "    {\"role\": \"user\", \"content\": \"<user message>\"},\n"
+               "    {\"role\": \"assistant\", \"content\": \"<assistant response>\"}\n"
+               "  ]\n"
+               "}\n\n"
+               "Works with any service implementing the OpenAI Chat API specification.";
+    }
     bool isSupportProvider(LLMCore::ProviderID id) const override
     {
         switch (id) {

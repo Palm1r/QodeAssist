@@ -48,7 +48,18 @@ public:
 
         request["messages"] = messages;
     }
-    QString description() const override { return "OpenAI"; }
+    QString description() const override
+    {
+        return "Template for OpenAI models (GPT series):\n\n"
+               "{\n"
+               "  \"messages\": [\n"
+               "    {\"role\": \"system\", \"content\": \"<system prompt>\"},\n"
+               "    {\"role\": \"user\", \"content\": \"<user message>\"},\n"
+               "    {\"role\": \"assistant\", \"content\": \"<assistant response>\"}\n"
+               "  ]\n"
+               "}\n\n"
+               "Standard Chat API format for OpenAI.";
+    }
     bool isSupportProvider(LLMCore::ProviderID id) const override
     {
         switch (id) {

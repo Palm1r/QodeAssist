@@ -36,6 +36,9 @@ public:
 
     void init();
 
+    void updateTemplateDescription(const Utils::StringAspect &templateAspect);
+    void updateAllTemplateDescriptions();
+
 public slots:
     void selectProvider();
     void selectModel();

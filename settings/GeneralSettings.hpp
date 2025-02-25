@@ -101,9 +101,15 @@ public:
 
     void updatePreset1Visiblity(bool state);
 
+    void updateCCTemplateDescription(const QString &text);
+    void updateCATemplateDescription(const QString &text);
+
 private:
     void setupConnections();
     void resetPageToDefaults();
+
+    QLabel *m_ccTemplateDescription = nullptr;
+    QLabel *m_caTemplateDescription = nullptr;
 };
 
 GeneralSettings &generalSettings();

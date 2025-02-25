@@ -60,8 +60,22 @@ public:
     }
     QString description() const override
     {
-        return "The message will contain the following tokens: "
-               "<|start_header_id|>%1<|end_header_id|>%2<|eot_id|>";
+        return "Template for Llama 3 models:\n\n"
+               "{\n"
+               "  \"messages\": [\n"
+               "    {\n"
+               "      \"role\": \"system\",\n"
+               "      \"content\": \"<|start_header_id|>system<|end_header_id|><system "
+               "prompt><|eot_id|>\"\n"
+               "    },\n"
+               "    {\n"
+               "      \"role\": \"user\",\n"
+               "      \"content\": \"<|start_header_id|>user<|end_header_id|><user "
+               "message><|eot_id|>\"\n"
+               "    }\n"
+               "  ]\n"
+               "}\n\n"
+               "Compatible with Ollama, LM Studio, and OpenAI-compatible services for Llama 3.";
     }
     bool isSupportProvider(LLMCore::ProviderID id) const override
     {

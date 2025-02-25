@@ -36,7 +36,15 @@ public:
         request["prompt"] = context.prefix.value_or("");
         request["suffix"] = context.suffix.value_or("");
     }
-    QString description() const override { return "template will take from ollama modelfile"; }
+    QString description() const override
+    {
+        return "Template for MistralAI models with FIM support:\n\n"
+               "{\n"
+               "  \"prompt\": \"<code prefix>\",\n"
+               "  \"suffix\": \"<code suffix>\"\n"
+               "}\n\n"
+               "Optimized for code completion with MistralAI models.";
+    }
     bool isSupportProvider(LLMCore::ProviderID id) const override
     {
         switch (id) {
@@ -72,7 +80,18 @@ public:
 
         request["messages"] = messages;
     }
-    QString description() const override { return "template will take from ollama modelfile"; }
+    QString description() const override
+    {
+        return "Template for MistralAI chat-capable models:\n\n"
+               "{\n"
+               "  \"messages\": [\n"
+               "    {\"role\": \"system\", \"content\": \"<system prompt>\"},\n"
+               "    {\"role\": \"user\", \"content\": \"<user message>\"},\n"
+               "    {\"role\": \"assistant\", \"content\": \"<assistant response>\"}\n"
+               "  ]\n"
+               "}\n\n"
+               "Supports system messages and conversation history.";
+    }
     bool isSupportProvider(LLMCore::ProviderID id) const override
     {
         switch (id) {

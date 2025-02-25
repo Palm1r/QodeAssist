@@ -59,9 +59,19 @@ public:
     }
     QString description() const override
     {
-        return "The message will contain the following tokens: ### Instruction:\n### Response:\n";
+        return "Template for models using Alpaca instruction format:\n\n"
+               "{\n"
+               "  \"messages\": [\n"
+               "    {\n"
+               "      \"role\": \"user\",\n"
+               "      \"content\": \"<system prompt>\\n\\n"
+               "### Instruction:\\n<user message>\\n\\n"
+               "### Response:\\n<assistant response>\\n\\n\"\n"
+               "    }\n"
+               "  ]\n"
+               "}\n\n"
+               "Combines all messages into a single formatted prompt.";
     }
-
     bool isSupportProvider(LLMCore::ProviderID id) const override
     {
         switch (id) {

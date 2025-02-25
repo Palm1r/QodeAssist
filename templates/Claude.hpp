@@ -49,7 +49,18 @@ public:
 
         request["messages"] = messages;
     }
-    QString description() const override { return "Claude"; }
+    QString description() const override
+    {
+        return "Template for Anthropic's Claude models:\n\n"
+               "{\n"
+               "  \"system\": \"<system prompt>\",\n"
+               "  \"messages\": [\n"
+               "    {\"role\": \"user\", \"content\": \"<user message>\"},\n"
+               "    {\"role\": \"assistant\", \"content\": \"<assistant response>\"}\n"
+               "  ]\n"
+               "}\n\n"
+               "Formats content according to Claude API specifications.";
+    }
     bool isSupportProvider(LLMCore::ProviderID id) const override
     {
         switch (id) {

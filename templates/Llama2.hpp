@@ -57,7 +57,18 @@ public:
     }
     QString description() const override
     {
-        return "The message will contain the following tokens: [INST]%1[/INST]\n";
+        return "Template for Llama 2 models:\n\n"
+               "{\n"
+               "  \"messages\": [\n"
+               "    {\n"
+               "      \"role\": \"user\",\n"
+               "      \"content\": \"[INST]<<SYS>>\\n<system prompt>\\n<</SYS>>[/INST]\\n"
+               "<assistant response>\\n"
+               "[INST]<user message>[/INST]\\n\"\n"
+               "    }\n"
+               "  ]\n"
+               "}\n\n"
+               "Compatible with Ollama, LM Studio, and other services for Llama 2.";
     }
     bool isSupportProvider(LLMCore::ProviderID id) const override
     {

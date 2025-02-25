@@ -61,7 +61,24 @@ public:
         request["contents"] = contents;
     }
 
-    QString description() const override { return "Google AI (Gemini)"; }
+    QString description() const override
+    {
+        return "Template for Google AI models (Gemini):\n\n"
+               "{\n"
+               "  \"system_instruction\": {\"parts\": {\"text\": \"<system prompt>\"}},\n"
+               "  \"contents\": [\n"
+               "    {\n"
+               "      \"role\": \"user\",\n"
+               "      \"parts\": [{\"text\": \"<user message>\"}]\n"
+               "    },\n"
+               "    {\n"
+               "      \"role\": \"model\",\n"
+               "      \"parts\": [{\"text\": \"<assistant response>\"}]\n"
+               "    }\n"
+               "  ]\n"
+               "}\n\n"
+               "Supports proper role mapping, including model/user roles.";
+    }
 
     bool isSupportProvider(LLMCore::ProviderID id) const override
     {

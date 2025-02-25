@@ -58,7 +58,20 @@ public:
     }
     QString description() const override
     {
-        return "The message will contain the following tokens: <|im_start|>%1\n%2\n<|im_end|>";
+        return "Template for models supporting ChatML format:\n\n"
+               "{\n"
+               "  \"messages\": [\n"
+               "    {\n"
+               "      \"role\": \"system\",\n"
+               "      \"content\": \"<|im_start|>system\\n<system prompt>\\n<|im_end|>\"\n"
+               "    },\n"
+               "    {\n"
+               "      \"role\": \"user\",\n"
+               "      \"content\": \"<|im_start|>user\\n<user message>\\n<|im_end|>\"\n"
+               "    }\n"
+               "  ]\n"
+               "}\n\n"
+               "Compatible with multiple providers supporting the ChatML token format.";
     }
     bool isSupportProvider(LLMCore::ProviderID id) const override
     {

@@ -38,8 +38,13 @@ public:
     }
     QString description() const override
     {
-        return "The message will contain the following tokens: "
-               "<|fim_prefix|>%1<|fim_suffix|>%2<|fim_middle|>";
+        return "Template for Qwen models with FIM support:\n\n"
+               "{\n"
+               "  \"prompt\": \"<|fim_prefix|><code prefix><|fim_suffix|><code "
+               "suffix><|fim_middle|>\",\n"
+               "  \"system\": \"<system prompt>\"\n"
+               "}\n\n"
+               "Ideal for code completion with Qwen models.";
     }
     bool isSupportProvider(LLMCore::ProviderID id) const override
     {

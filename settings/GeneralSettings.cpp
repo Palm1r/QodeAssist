@@ -21,6 +21,7 @@
 
 #include <coreplugin/dialogs/ioptionspage.h>
 #include <coreplugin/icore.h>
+#include <utils/detailswidget.h>
 #include <utils/layoutbuilder.h>
 #include <utils/utilsicons.h>
 #include <QInputDialog>
@@ -144,6 +145,9 @@ GeneralSettings::GeneralSettings()
     caStatus.setDefaultValue("");
     caTest.m_buttonText = TrConstants::TEST;
 
+    m_ccTemplateDescription = new QLabel();
+    m_caTemplateDescription = new QLabel();
+
     readSettings();
 
     Logger::instance().setLoggingEnabled(enableLogging());
@@ -154,6 +158,16 @@ GeneralSettings::GeneralSettings()
 
     setLayouter([this]() {
         using namespace Layouting;
+
+        auto ccTemplateInfoCCSection = new Utils::DetailsWidget();
+        ccTemplateInfoCCSection->setState(Utils::DetailsWidget::Collapsed);
+        ccTemplateInfoCCSection->setSummaryText("Template Format Details");
+        ccTemplateInfoCCSection->setWidget(m_ccTemplateDescription);
+
+        auto caTemplateInfoCASection = new Utils::DetailsWidget();
+        caTemplateInfoCASection->setState(Utils::DetailsWidget::Collapsed);
+        caTemplateInfoCASection->setSummaryText("Template Format Details");
+        caTemplateInfoCASection->setWidget(m_caTemplateDescription);
 
         auto ccGrid = Grid{};
         ccGrid.addRow({ccProvider, ccSelectProvider});
@@ -175,8 +189,13 @@ GeneralSettings::GeneralSettings()
 
         auto ccGroup = Group{
             title(TrConstants::CODE_COMPLETION),
-            Column{ccGrid, Row{specifyPreset1, preset1Language, Stretch{1}}, ccPreset1Grid}};
-        auto caGroup = Group{title(TrConstants::CHAT_ASSISTANT), caGrid};
+            Column{
+                ccGrid,
+                ccTemplateInfoCCSection,
+                Row{specifyPreset1, preset1Language, Stretch{1}},
+                ccPreset1Grid}};
+        auto caGroup
+            = Group{title(TrConstants::CHAT_ASSISTANT), Column{caGrid, caTemplateInfoCASection}};
 
         auto rootLayout = Column{
             Row{enableQodeAssist, Stretch{1}, Row{checkUpdate, resetToDefaults}},
@@ -192,10 +211,8 @@ GeneralSettings::GeneralSettings()
     });
 }
 
-void GeneralSettings::showSelectionDialog(const QStringList &data,
-                                          Utils::StringAspect &aspect,
-                                          const QString &title,
-                                          const QString &text)
+void GeneralSettings::showSelectionDialog(
+    const QStringList &data, Utils::StringAspect &aspect, const QString &title, const QString &text)
 {
     if (data.isEmpty())
         return;
@@ -354,6 +371,18 @@ void GeneralSettings::updatePreset1Visiblity(bool state)
     ccPreset1SelectTemplate.updateVisibility(specifyPreset1.volatileValue());
 }
 
+void GeneralSettings::updateCCTemplateDescription(const QString &text)
+{
+    if (text != m_ccTemplateDescription->text())
+        m_ccTemplateDescription->setText(text);
+}
+
+void GeneralSettings::updateCATemplateDescription(const QString &text)
+{
+    if (text != m_caTemplateDescription->text())
+        m_caTemplateDescription->setText(text);
+}
+
 void GeneralSettings::setupConnections()
 {
     connect(&enableLogging, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
@@ -366,7 +395,7 @@ void GeneralSettings::setupConnections()
 
     connect(&specifyPreset1, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
         updatePreset1Visiblity(specifyPreset1.volatileValue());
-    });
+    });    
 }
 
 void GeneralSettings::resetPageToDefaults()

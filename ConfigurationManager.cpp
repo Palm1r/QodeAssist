@@ -35,6 +35,28 @@ ConfigurationManager &ConfigurationManager::instance()
 void ConfigurationManager::init()
 {
     setupConnections();
+    updateAllTemplateDescriptions();
+}
+
+void ConfigurationManager::updateTemplateDescription(const Utils::StringAspect &templateAspect)
+{
+    LLMCore::PromptTemplate *templ = m_templateManger.getFimTemplateByName(templateAspect.value());
+
+    if (!templ) {
+        return;
+    }
+
+    if (&templateAspect == &m_generalSettings.ccTemplate) {
+        m_generalSettings.updateCCTemplateDescription(templ->description());
+    } else if (&templateAspect == &m_generalSettings.caTemplate) {
+        m_generalSettings.updateCATemplateDescription(templ->description());
+    }
+}
+
+void ConfigurationManager::updateAllTemplateDescriptions()
+{
+    updateTemplateDescription(m_generalSettings.ccTemplate);
+    updateTemplateDescription(m_generalSettings.caTemplate);
 }
 
 ConfigurationManager::ConfigurationManager(QObject *parent)
@@ -64,6 +86,14 @@ void ConfigurationManager::setupConnections()
     connect(&m_generalSettings.ccPreset1SelectModel, &Button::clicked, this, &Config::selectModel);
     connect(
         &m_generalSettings.ccPreset1SelectTemplate, &Button::clicked, this, &Config::selectTemplate);
+
+    connect(&m_generalSettings.ccTemplate, &Utils::StringAspect::changed, this, [this]() {
+        updateTemplateDescription(m_generalSettings.ccTemplate);
+    });
+
+    connect(&m_generalSettings.caTemplate, &Utils::StringAspect::changed, this, [this]() {
+        updateTemplateDescription(m_generalSettings.caTemplate);
+    });
 }
 
 void ConfigurationManager::selectProvider()

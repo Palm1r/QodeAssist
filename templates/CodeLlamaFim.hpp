@@ -40,7 +40,12 @@ public:
     }
     QString description() const override
     {
-        return "The message will contain the following tokens: <PRE> %1 <SUF>%2 <MID>";
+        return "Specialized template for CodeLlama FIM:\n\n"
+               "{\n"
+               "  \"prompt\": \"<PRE> <code prefix> <SUF><code suffix> <MID>\",\n"
+               "  \"system\": \"<system prompt>\"\n"
+               "}\n\n"
+               "Optimized for code completion with CodeLlama models.";
     }
     bool isSupportProvider(LLMCore::ProviderID id) const override
     {
