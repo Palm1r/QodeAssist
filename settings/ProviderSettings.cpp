@@ -135,6 +135,12 @@ void ProviderSettings::setupConnections()
     });
     connect(&claudeApiKey, &ButtonAspect::changed, this, [this]() { claudeApiKey.writeSettings(); });
     connect(&openAiApiKey, &ButtonAspect::changed, this, [this]() { openAiApiKey.writeSettings(); });
+    connect(&mistralAiApiKey, &ButtonAspect::changed, this, [this]() {
+        mistralAiApiKey.writeSettings();
+    });
+    connect(&googleAiApiKey, &ButtonAspect::changed, this, [this]() {
+        googleAiApiKey.writeSettings();
+    });
 }
 
 void ProviderSettings::resetSettingsToDefaults()
