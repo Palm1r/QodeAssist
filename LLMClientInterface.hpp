@@ -61,8 +61,6 @@ private:
 
     LLMCore::ContextData prepareContext(
         const QJsonObject &request, const QStringView &accumulatedCompletion = QString{});
-    Context::ProgrammingLanguage getDocumentLanguage(const QJsonObject &request) const;
-    bool isSpecifyCompletion(const QJsonObject &request);
 
     LLMCore::RequestHandler m_requestHandler;
     QElapsedTimer m_completionTimer;

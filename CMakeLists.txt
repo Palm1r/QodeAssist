@@ -75,3 +75,9 @@ add_qtc_plugin(QodeAssist
     CodeHandler.hpp CodeHandler.cpp
     UpdateStatusWidget.hpp UpdateStatusWidget.cpp
 )
+
+target_sources(QodeAssist
+  PRIVATE
+  providers/GoogleAIProvider.hpp providers/GoogleAIProvider.cpp
+  templates/GoogleAI.hpp
+)

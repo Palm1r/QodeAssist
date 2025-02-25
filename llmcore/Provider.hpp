@@ -42,7 +42,6 @@ public:
     virtual QString completionEndpoint() const = 0;
     virtual QString chatEndpoint() const = 0;
     virtual bool supportsModelListing() const = 0;
-
     virtual void prepareRequest(
         QJsonObject &request,
         LLMCore::PromptTemplate *prompt,

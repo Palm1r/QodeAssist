@@ -21,6 +21,7 @@
 
 #include "llmcore/ProvidersManager.hpp"
 #include "providers/ClaudeProvider.hpp"
+#include "providers/GoogleAIProvider.hpp"
 #include "providers/LMStudioProvider.hpp"
 #include "providers/MistralAIProvider.hpp"
 #include "providers/OllamaProvider.hpp"
@@ -40,6 +41,7 @@ inline void registerProviders()
     providerManager.registerProvider<LMStudioProvider>();
     providerManager.registerProvider<OpenRouterProvider>();
     providerManager.registerProvider<MistralAIProvider>();
+    providerManager.registerProvider<GoogleAIProvider>();
 }
 
 } // namespace QodeAssist::Providers

@@ -87,6 +87,15 @@ ProviderSettings::ProviderSettings()
     mistralAiApiKey.setDefaultValue("");
     mistralAiApiKey.setAutoApply(true);
 
+    // GoogleAI Settings
+    googleAiApiKey.setSettingsKey(Constants::GOOGLE_AI_API_KEY);
+    googleAiApiKey.setLabelText(Tr::tr("Google AI API Key:"));
+    googleAiApiKey.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    googleAiApiKey.setPlaceHolderText(Tr::tr("Enter your API key here"));
+    googleAiApiKey.setHistoryCompleter(Constants::GOOGLE_AI_API_KEY_HISTORY);
+    googleAiApiKey.setDefaultValue("");
+    googleAiApiKey.setAutoApply(true);
+
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
 
     readSettings();
@@ -108,6 +117,8 @@ ProviderSettings::ProviderSettings()
             Group{title(Tr::tr("Claude Settings")), Column{claudeApiKey}},
             Space{8},
             Group{title(Tr::tr("Mistral AI Settings")), Column{mistralAiApiKey}},
+            Space{8},
+            Group{title(Tr::tr("Google AI Settings")), Column{googleAiApiKey}},
             Stretch{1}};
     });
 }
@@ -140,6 +151,8 @@ void ProviderSettings::resetSettingsToDefaults()
         resetAspect(openAiCompatApiKey);
         resetAspect(claudeApiKey);
         resetAspect(openAiApiKey);
+        resetAspect(mistralAiApiKey);
+        resetAspect(googleAiApiKey);
     }
 }
 

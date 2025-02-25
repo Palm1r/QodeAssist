@@ -21,7 +21,13 @@
 
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonObject>
 #include <QTextStream>
+
+#include "GeneralSettings.hpp"
+#include "Logger.hpp"
+#include <texteditor/textdocument.h>
+#include <utils/filepath.h>
 
 namespace QodeAssist::Context {
 
@@ -62,6 +68,35 @@ ContentFile ContextManager::createContentFile(const QString &filePath) const
     contentFile.filename = fileInfo.fileName();
     contentFile.content = readFile(filePath);
     return contentFile;
+}
+
+ProgrammingLanguage ContextManager::getDocumentLanguage(const QJsonObject &request) const
+{
+    QJsonObject params = request["params"].toObject();
+    QJsonObject doc = params["doc"].toObject();
+    QString uri = doc["uri"].toString();
+
+    Utils::FilePath filePath = Utils::FilePath::fromString(QUrl(uri).toLocalFile());
+    TextEditor::TextDocument *textDocument = TextEditor::TextDocument::textDocumentForFilePath(
+        filePath);
+
+    if (!textDocument) {
+        LOG_MESSAGE("Error: Document is not available for" + filePath.toString());
+        return Context::ProgrammingLanguage::Unknown;
+    }
+
+    return Context::ProgrammingLanguageUtils::fromMimeType(textDocument->mimeType());
+}
+
+bool ContextManager::isSpecifyCompletion(const QJsonObject &request)
+{
+    auto &generalSettings = Settings::generalSettings();
+
+    Context::ProgrammingLanguage documentLanguage = getDocumentLanguage(request);
+    Context::ProgrammingLanguage preset1Language = Context::ProgrammingLanguageUtils::fromString(
+        generalSettings.preset1Language.displayForIndex(generalSettings.preset1Language()));
+
+    return generalSettings.specifyPreset1() && documentLanguage == preset1Language;
 }
 
 } // namespace QodeAssist::Context

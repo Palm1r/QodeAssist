@@ -27,6 +27,7 @@
 #include <texteditor/textdocument.h>
 
 #include "CodeHandler.hpp"
+#include "context/ContextManager.hpp"
 #include "context/DocumentContextReader.hpp"
 #include "llmcore/PromptTemplateManager.hpp"
 #include "llmcore/ProvidersManager.hpp"
@@ -145,24 +146,13 @@ void LLMClientInterface::handleExit(const QJsonObject &request)
     emit finished();
 }
 
-bool QodeAssist::LLMClientInterface::isSpecifyCompletion(const QJsonObject &request)
-{
-    auto &generalSettings = Settings::generalSettings();
-
-    Context::ProgrammingLanguage documentLanguage = getDocumentLanguage(request);
-    Context::ProgrammingLanguage preset1Language = Context::ProgrammingLanguageUtils::fromString(
-        generalSettings.preset1Language.displayForIndex(generalSettings.preset1Language()));
-
-    return generalSettings.specifyPreset1() && documentLanguage == preset1Language;
-}
-
 void LLMClientInterface::handleCompletion(const QJsonObject &request)
 {
     auto updatedContext = prepareContext(request);
     auto &completeSettings = Settings::codeCompletionSettings();
     auto &generalSettings = Settings::generalSettings();
 
-    bool isPreset1Active = isSpecifyCompletion(request);
+    bool isPreset1Active = Context::ContextManager::instance().isSpecifyCompletion(request);
 
     const auto providerName = !isPreset1Active ? generalSettings.ccProvider()
                                                : generalSettings.ccPreset1Provider();
@@ -193,14 +183,19 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     config.requestType = LLMCore::RequestType::CodeCompletion;
     config.provider = provider;
     config.promptTemplate = promptTemplate;
-    config.url = QUrl(QString("%1%2").arg(
-        url,
-        promptTemplate->type() == LLMCore::TemplateType::FIM ? provider->completionEndpoint()
-                                                             : provider->chatEndpoint()));
+    // TODO refactor networking
+    if (provider->providerID() == LLMCore::ProviderID::GoogleAI) {
+        QString stream = completeSettings.stream() ? QString{"streamGenerateContent?alt=sse"}
+                                                   : QString{"generateContent?"};
+        config.url = QUrl(QString("%1/models/%2:%3").arg(url, modelName, stream));
+    } else {
+        config.url = QUrl(QString("%1%2").arg(
+            url,
+            promptTemplate->type() == LLMCore::TemplateType::FIM ? provider->completionEndpoint()
+                                                                 : provider->chatEndpoint()));
+        config.providerRequest = {{"model", modelName}, {"stream", completeSettings.stream()}};
+    }
     config.apiKey = provider->apiKey();
-
-    config.providerRequest = {{"model", modelName}, {"stream", completeSettings.stream()}};
-
     config.multiLineCompletion = completeSettings.multiLineCompletion();
 
     const auto stopWords = QJsonArray::fromStringList(config.promptTemplate->stopWords());
@@ -224,6 +219,7 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
             userMessage = updatedContext.prefix.value_or("") + updatedContext.suffix.value_or("");
         }
 
+        // TODO refactor add message
         QVector<LLMCore::Message> messages;
         messages.append({"user", userMessage});
         updatedContext.history = messages;
@@ -268,29 +264,11 @@ LLMCore::ContextData LLMClientInterface::prepareContext(const QJsonObject &reque
     return reader.prepareContext(lineNumber, cursorPosition);
 }
 
-Context::ProgrammingLanguage LLMClientInterface::getDocumentLanguage(const QJsonObject &request) const
-{
-    QJsonObject params = request["params"].toObject();
-    QJsonObject doc = params["doc"].toObject();
-    QString uri = doc["uri"].toString();
-
-    Utils::FilePath filePath = Utils::FilePath::fromString(QUrl(uri).toLocalFile());
-    TextEditor::TextDocument *textDocument = TextEditor::TextDocument::textDocumentForFilePath(
-        filePath);
-
-    if (!textDocument) {
-        LOG_MESSAGE("Error: Document is not available for" + filePath.toString());
-        return Context::ProgrammingLanguage::Unknown;
-    }
-
-    return Context::ProgrammingLanguageUtils::fromMimeType(textDocument->mimeType());
-}
-
 void LLMClientInterface::sendCompletionToClient(const QString &completion,
                                                 const QJsonObject &request,
                                                 bool isComplete)
 {
-    bool isPreset1Active = isSpecifyCompletion(request);
+    bool isPreset1Active = Context::ContextManager::instance().isSpecifyCompletion(request);
 
     auto templateName = !isPreset1Active ? Settings::generalSettings().ccTemplate()
                                          : Settings::generalSettings().ccPreset1Template();
