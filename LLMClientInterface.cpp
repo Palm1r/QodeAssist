@@ -300,9 +300,7 @@ void LLMClientInterface::sendCompletionToClient(const QString &completion,
     completionItem[LanguageServerProtocol::textKey] = processedCompletion;
     QJsonObject range;
     range["start"] = position;
-    QJsonObject end = position;
-    end["character"] = position["character"].toInt() + processedCompletion.length();
-    range["end"] = end;
+    range["end"] = position;
     completionItem[LanguageServerProtocol::rangeKey] = range;
     completionItem[LanguageServerProtocol::positionKey] = position;
     completions.append(completionItem);
