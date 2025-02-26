@@ -151,7 +151,20 @@ CodeCompletionSettings::CodeCompletionSettings()
 
     systemPrompt.setSettingsKey(Constants::CC_SYSTEM_PROMPT);
     systemPrompt.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
+    systemPromptForNonFimModels.setLabelText(Tr::tr("System prompt for FIM models:"));
     systemPrompt.setDefaultValue(
+        "You are an expert C++, Qt, and QML code completion assistant. Your task is to provide "
+        "precise and contextually appropriate code completions.\n\n");
+
+    useUserMessageTemplateForCC.setSettingsKey(Constants::CC_USE_USER_TEMPLATE);
+    useUserMessageTemplateForCC.setDefaultValue(true);
+    useUserMessageTemplateForCC.setLabelText(
+        Tr::tr("Use special system prompt and user message for non FIM models"));
+
+    systemPromptForNonFimModels.setSettingsKey(Constants::CC_SYSTEM_PROMPT_FOR_NON_FIM);
+    systemPromptForNonFimModels.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
+    systemPromptForNonFimModels.setLabelText(Tr::tr("System prompt for non FIM models:"));
+    systemPromptForNonFimModels.setDefaultValue(
         "You are an expert C++, Qt, and QML code completion assistant. Your task is to provide "
         "precise and contextually appropriate code completions.\n\n"
         "Core Requirements:\n"
@@ -173,15 +186,12 @@ CodeCompletionSettings::CodeCompletionSettings()
         "- Only include new characters needed to create valid code\n"
         "- Should be codeblock with language\n");
 
-    useUserMessageTemplateForCC.setSettingsKey(Constants::CC_USE_USER_TEMPLATE);
-    useUserMessageTemplateForCC.setDefaultValue(true);
-    useUserMessageTemplateForCC.setLabelText(Tr::tr("Use User Template for code completion message for non-FIM models"));
-
     userMessageTemplateForCC.setSettingsKey(Constants::CC_USER_TEMPLATE);
     userMessageTemplateForCC.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
+    userMessageTemplateForCC.setLabelText(Tr::tr("User message for non FIM models:"));
     userMessageTemplateForCC.setDefaultValue(
         "Here is the code context with insertion points:\n"
-        "<code_context>\n${prefix}<cursor>${suffix}\n</code_context>\n");
+        "<code_context>\n${prefix}<cursor>${suffix}\n</code_context>\n\n");
 
     useProjectChangesCache.setSettingsKey(Constants::CC_USE_PROJECT_CHANGES_CACHE);
     useProjectChangesCache.setDefaultValue(true);
@@ -242,9 +252,14 @@ CodeCompletionSettings::CodeCompletionSettings()
 
         auto contextItem = Column{Row{contextGrid, Stretch{1}},
                                   Row{useSystemPrompt, Stretch{1}},
-                                  systemPrompt,
-                                  Row{useUserMessageTemplateForCC, Stretch{1}},
-                                  userMessageTemplateForCC,
+                                  Group{title(Tr::tr("Prompts for FIM models")),
+                                        Column{systemPrompt}},
+                                  Group{title(Tr::tr("Prompts for Non FIM models")),
+                                        Column{
+                                            Row{useUserMessageTemplateForCC, Stretch{1}},
+                                            systemPromptForNonFimModels,
+                                            userMessageTemplateForCC,
+                                        }},
                                   Row{useProjectChangesCache, maxChangesCacheSize, Stretch{1}}};
 
         return Column{
@@ -338,6 +353,7 @@ void CodeCompletionSettings::resetSettingsToDefaults()
         resetAspect(contextWindow);
         resetAspect(useUserMessageTemplateForCC);
         resetAspect(userMessageTemplateForCC);
+        resetAspect(systemPromptForNonFimModels);
     }
 }
 

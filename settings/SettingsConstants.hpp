@@ -112,6 +112,7 @@ const char CC_READ_STRINGS_BEFORE_CURSOR[] = "QodeAssist.ccReadStringsBeforeCurs
 const char CC_READ_STRINGS_AFTER_CURSOR[] = "QodeAssist.ccReadStringsAfterCursor";
 const char CC_USE_SYSTEM_PROMPT[] = "QodeAssist.ccUseSystemPrompt";
 const char CC_SYSTEM_PROMPT[] = "QodeAssist.ccSystemPrompt";
+const char CC_SYSTEM_PROMPT_FOR_NON_FIM[] = "QodeAssist.ccSystemPromptForNonFim";
 const char CC_USE_USER_TEMPLATE[] = "QodeAssist.ccUseUserTemplate";
 const char CC_USER_TEMPLATE[] = "QodeAssist.ccUserTemplate";
 const char CC_USE_PROJECT_CHANGES_CACHE[] = "QodeAssist.ccUseProjectChangesCache";

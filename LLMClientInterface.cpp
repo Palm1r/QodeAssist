@@ -204,7 +204,10 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
 
     QString systemPrompt;
     if (completeSettings.useSystemPrompt())
-        systemPrompt.append(completeSettings.systemPrompt());
+        systemPrompt.append(completeSettings.useUserMessageTemplateForCC()
+                                    && promptTemplate->type() == LLMCore::TemplateType::Chat
+                                ? completeSettings.systemPromptForNonFimModels()
+                                : completeSettings.systemPrompt());
     if (updatedContext.fileContext.has_value())
         systemPrompt.append(updatedContext.fileContext.value());
 
@@ -291,8 +294,8 @@ void LLMClientInterface::sendCompletionToClient(const QString &completion,
     QString processedCompletion
         = promptTemplate->type() == LLMCore::TemplateType::Chat
                   && Settings::codeCompletionSettings().smartProcessInstuctText()
-              ? CodeHandler::processText(completion)
-              : completion;
+                                      ? CodeHandler::processText(completion)
+                                      : completion;
 
     completionItem[LanguageServerProtocol::textKey] = processedCompletion;
     QJsonObject range;
@@ -312,7 +315,7 @@ void LLMClientInterface::sendCompletionToClient(const QString &completion,
             .arg(QString::fromUtf8(QJsonDocument(completions).toJson(QJsonDocument::Indented))));
 
     LOG_MESSAGE(QString("Full response: \n%1")
-                   .arg(QString::fromUtf8(QJsonDocument(response).toJson(QJsonDocument::Indented))));
+            .arg(QString::fromUtf8(QJsonDocument(response).toJson(QJsonDocument::Indented))));
 
     QString requestId = request["id"].toString();
     endTimeMeasurement(requestId);
