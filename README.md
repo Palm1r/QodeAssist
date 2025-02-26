@@ -27,10 +27,11 @@
 2. [Install plugin to QtCreator](#install-plugin-to-qtcreator)
 3. [Configure for Anthropic Claude](#configure-for-anthropic-claude)
 4. [Configure for OpenAI](#configure-for-openai)
-5. [Configure for using Ollama](#configure-for-using-ollama)
+4. [Configure for Mistral AI](#configure-for-mistral-ai)
+4. [Configure for Google AI](#configure-for-google-ai)
+5. [Configure for Ollama](#configure-for-ollama)
 6. [System Prompt Configuration](#system-prompt-configuration)
 7. [File Context Features](#file-context-features)
-8. [Template-Model Compatibility](#template-model-compatibility)
 9. [QtCreator Version Compatibility](#qtcreator-version-compatibility)
 10. [Development Progress](#development-progress)
 11. [Hotkeys](#hotkeys)
@@ -53,7 +54,9 @@
   - OpenAI
   - Anthropic Claude
   - LM Studio
-  - OpenAI-compatible providers(eg. https://openrouter.ai)
+  - Mistral AI
+  - Google AI
+  - OpenAI-compatible providers(eg. llama.cpp, https://openrouter.ai)
 - Extensive library of model-specific templates
 - Custom template support
 - Easy configuration and model selection
@@ -120,7 +123,33 @@
   <img width="829" alt="OpenAI Settings" src="https://github.com/user-attachments/assets/4716f790-6159-44d0-a8f4-565ccb6eb713" />
 </details>
 
-## Configure for using Ollama
+## Configure for Mistral AI
+1. Open Qt Creator settings and navigate to the QodeAssist section
+2. Go to Provider Settings tab and configure Mistral AI api key
+3. Return to General tab and configure:
+   - Set "Mistral AI" as the provider for code completion or/and chat assistant
+   - Set the OpenAI URL (https://api.mistral.ai)
+   - Select your preferred model (e.g., mistral-large-latest)
+   - Choose the Mistral AI template for code completion or/and chat
+<details>
+  <summary>Example of Mistral AI settings: (click to expand)</summary>
+  <img width="829" alt="Mistral AI Settings" src="https://github.com/user-attachments/assets/1c5ed13b-a29b-43f7-b33f-2e05fdea540c" />
+</details>
+
+## Configure for Google AI
+1. Open Qt Creator settings and navigate to the QodeAssist section
+2. Go to Provider Settings tab and configure Google AI api key
+3. Return to General tab and configure:
+   - Set "Google AI" as the provider for code completion or/and chat assistant
+   - Set the OpenAI URL (https://generativelanguage.googleapis.com/v1beta)
+   - Select your preferred model (e.g., gemini-2.0-flash)
+   - Choose the Google AI template
+<details>
+  <summary>Example of Google AI settings: (click to expand)</summary>
+  <img width="829" alt="Google AI Settings" src="https://github.com/user-attachments/assets/046ede65-a94d-496c-bc6c-41f3750be12a" />
+</details>
+
+## Configure for Ollama
 
 1. Install [Ollama](https://ollama.com). Make sure to review the system requirements before installation.
 2. Install a language models in Ollama via terminal. For example, you can run:
@@ -190,25 +219,9 @@ Linked files provide persistent context throughout the conversation:
   - Supports automatic syncing with open editor files (can be enabled in settings)
   - Files can be added/removed at any time during the conversation
 
-## Template-Model Compatibility
-
-| Template | Compatible Models | Purpose |
-|----------|------------------|----------|
-| CodeLlama FIM | `codellama:code` | Code completion |
-| DeepSeekCoder FIM | `deepseek-coder-v2`, `deepseek-v2.5` | Code completion |
-| Ollama Auto FIM | `Any Ollama base/fim models` | Code completion |
-| Qwen FIM | `Qwen 2.5 models(exclude instruct)` | Code completion |
-| StarCoder2 FIM | `starcoder2 base model` | Code completion |
-| Alpaca | `starcoder2:instruct` | Chat assistance |
-| Basic Chat| `Messages without tokens` | Chat assistance |
-| ChatML | `Qwen 2.5 models(exclude base models)` | Chat assistance |
-| Llama2 | `llama2 model family`, `codellama:instruct` | Chat assistance |
-| Llama3 | `llama3 model family` | Chat assistance |
-| Ollama Auto Chat | `Any Ollama chat/instruct models` | Chat assistance |
-
 ## QtCreator Version Compatibility
 
-- QtCreator 15.0.1 - 0.4.8 - 0.4.x
+- QtCreator 15.0.1 - 0.4.8 - 0.5.x
 - QtCreator 15.0.0 - 0.4.0 - 0.4.7 
 - QtCreator 14.0.2 - 0.2.3 - 0.3.x 
 - QtCreator 14.0.1 - 0.2.2 plugin version and below
