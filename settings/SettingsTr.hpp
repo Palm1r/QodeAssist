@@ -60,7 +60,8 @@ inline const char CHECK_CONNECTION[] = QT_TRANSLATE_NOOP(
     "Please verify the following:\n"
     "- Server is running and accessible\n"
     "- URL is correct\n"
-    "- Provider is properly configured\n\n"
+    "- Provider is properly configured\n"
+    "- API key is correctly set (if required)\n\n"
     "You can try selecting a different provider or changing the URL:");
 inline const char SELECT_PROVIDER[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Select Provider");
 inline const char SELECT_URL[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Select URL");
@@ -78,6 +79,7 @@ inline const char OK[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "OK");
 inline const char CANCEL[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Cancel");
 inline const char ENTER_MODEL_MANUALLY[]
     = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Enter Model Manually");
+inline const char CONFIGURE_API_KEY[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Configure API Key");
 inline const char URL_SELECTION[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "URL Selection");
 inline const char URL_SELECTION_INFO[] = QT_TRANSLATE_NOOP(
     "QtC::QodeAssist",

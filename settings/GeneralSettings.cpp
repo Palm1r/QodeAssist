@@ -258,6 +258,7 @@ void GeneralSettings::showModelsNotFoundDialog(Utils::StringAspect &aspect)
         auto selectProviderBtn = new QPushButton(TrConstants::SELECT_PROVIDER);
         auto selectUrlBtn = new QPushButton(TrConstants::SELECT_URL);
         auto enterManuallyBtn = new QPushButton(TrConstants::ENTER_MODEL_MANUALLY);
+        auto configureApiKeyBtn = new QPushButton(TrConstants::CONFIGURE_API_KEY);
 
         connect(selectProviderBtn, &QPushButton::clicked, &dialog, [this, providerButton, &dialog]() {
             dialog.close();
@@ -274,9 +275,15 @@ void GeneralSettings::showModelsNotFoundDialog(Utils::StringAspect &aspect)
             showModelsNotSupportedDialog(aspect);
         });
 
+        connect(configureApiKeyBtn, &QPushButton::clicked, &dialog, [&dialog]() {
+            dialog.close();
+            Core::ICore::showOptionsDialog(Constants::QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID);
+        });
+
         dialog.buttonLayout()->addWidget(selectProviderBtn);
         dialog.buttonLayout()->addWidget(selectUrlBtn);
         dialog.buttonLayout()->addWidget(enterManuallyBtn);
+        dialog.buttonLayout()->addWidget(configureApiKeyBtn);
     }
 
     auto closeBtn = new QPushButton(TrConstants::CLOSE);
