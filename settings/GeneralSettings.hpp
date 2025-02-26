@@ -55,6 +55,8 @@ public:
     Utils::StringAspect ccStatus{this};
     ButtonAspect ccTest{this};
 
+    Utils::StringAspect ccTemplateDescription{this};
+
     // TODO create dynamic presets system
     // preset1 for code completion settings
     Utils::BoolAspect specifyPreset1{this};
@@ -88,6 +90,8 @@ public:
     Utils::StringAspect caStatus{this};
     ButtonAspect caTest{this};
 
+    Utils::StringAspect caTemplateDescription{this};
+
     void showSelectionDialog(const QStringList &data,
                              Utils::StringAspect &aspect,
                              const QString &title = {},
@@ -101,15 +105,9 @@ public:
 
     void updatePreset1Visiblity(bool state);
 
-    void updateCCTemplateDescription(const QString &text);
-    void updateCATemplateDescription(const QString &text);
-
 private:
     void setupConnections();
     void resetPageToDefaults();
-
-    QLabel *m_ccTemplateDescription = nullptr;
-    QLabel *m_caTemplateDescription = nullptr;
 };
 
 GeneralSettings &generalSettings();

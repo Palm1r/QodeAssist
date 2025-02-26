@@ -90,6 +90,10 @@ GeneralSettings::GeneralSettings()
     ccStatus.setDefaultValue("");
     ccTest.m_buttonText = TrConstants::TEST;
 
+    ccTemplateDescription.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
+    ccTemplateDescription.setReadOnly(true);
+    ccTemplateDescription.setDefaultValue("");
+
     // preset1
     specifyPreset1.setSettingsKey(Constants::CC_SPECIFY_PRESET1);
     specifyPreset1.setLabelText(TrConstants::ADD_NEW_PRESET);
@@ -145,8 +149,9 @@ GeneralSettings::GeneralSettings()
     caStatus.setDefaultValue("");
     caTest.m_buttonText = TrConstants::TEST;
 
-    m_ccTemplateDescription = new QLabel();
-    m_caTemplateDescription = new QLabel();
+    caTemplateDescription.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
+    caTemplateDescription.setReadOnly(true);
+    caTemplateDescription.setDefaultValue("");
 
     readSettings();
 
@@ -158,16 +163,6 @@ GeneralSettings::GeneralSettings()
 
     setLayouter([this]() {
         using namespace Layouting;
-
-        auto ccTemplateInfoCCSection = new Utils::DetailsWidget();
-        ccTemplateInfoCCSection->setState(Utils::DetailsWidget::Collapsed);
-        ccTemplateInfoCCSection->setSummaryText("Template Format Details");
-        ccTemplateInfoCCSection->setWidget(m_ccTemplateDescription);
-
-        auto caTemplateInfoCASection = new Utils::DetailsWidget();
-        caTemplateInfoCASection->setState(Utils::DetailsWidget::Collapsed);
-        caTemplateInfoCASection->setSummaryText("Template Format Details");
-        caTemplateInfoCASection->setWidget(m_caTemplateDescription);
 
         auto ccGrid = Grid{};
         ccGrid.addRow({ccProvider, ccSelectProvider});
@@ -191,11 +186,11 @@ GeneralSettings::GeneralSettings()
             title(TrConstants::CODE_COMPLETION),
             Column{
                 ccGrid,
-                ccTemplateInfoCCSection,
+                ccTemplateDescription,
                 Row{specifyPreset1, preset1Language, Stretch{1}},
                 ccPreset1Grid}};
         auto caGroup
-            = Group{title(TrConstants::CHAT_ASSISTANT), Column{caGrid, caTemplateInfoCASection}};
+            = Group{title(TrConstants::CHAT_ASSISTANT), Column{caGrid, caTemplateDescription}};
 
         auto rootLayout = Column{
             Row{enableQodeAssist, Stretch{1}, Row{checkUpdate, resetToDefaults}},
@@ -369,18 +364,6 @@ void GeneralSettings::updatePreset1Visiblity(bool state)
     ccPreset1SelectModel.updateVisibility(specifyPreset1.volatileValue());
     ccPreset1Template.setVisible(specifyPreset1.volatileValue());
     ccPreset1SelectTemplate.updateVisibility(specifyPreset1.volatileValue());
-}
-
-void GeneralSettings::updateCCTemplateDescription(const QString &text)
-{
-    if (text != m_ccTemplateDescription->text())
-        m_ccTemplateDescription->setText(text);
-}
-
-void GeneralSettings::updateCATemplateDescription(const QString &text)
-{
-    if (text != m_caTemplateDescription->text())
-        m_caTemplateDescription->setText(text);
 }
 
 void GeneralSettings::setupConnections()

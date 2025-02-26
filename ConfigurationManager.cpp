@@ -47,9 +47,9 @@ void ConfigurationManager::updateTemplateDescription(const Utils::StringAspect &
     }
 
     if (&templateAspect == &m_generalSettings.ccTemplate) {
-        m_generalSettings.updateCCTemplateDescription(templ->description());
+        m_generalSettings.ccTemplateDescription.setValue(templ->description());
     } else if (&templateAspect == &m_generalSettings.caTemplate) {
-        m_generalSettings.updateCATemplateDescription(templ->description());
+        m_generalSettings.caTemplateDescription.setValue(templ->description());
     }
 }
 
