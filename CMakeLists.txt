@@ -58,6 +58,7 @@ add_qtc_plugin(QodeAssist
     templates/Alpaca.hpp
     templates/Llama2.hpp
     templates/CodeLlamaQMLFim.hpp
+    templates/GoogleAI.hpp
     providers/Providers.hpp
     providers/OllamaProvider.hpp providers/OllamaProvider.cpp
     providers/ClaudeProvider.hpp providers/ClaudeProvider.cpp
@@ -66,6 +67,7 @@ add_qtc_plugin(QodeAssist
     providers/LMStudioProvider.hpp providers/LMStudioProvider.cpp
     providers/OpenAICompatProvider.hpp providers/OpenAICompatProvider.cpp
     providers/OpenRouterAIProvider.hpp providers/OpenRouterAIProvider.cpp
+    providers/GoogleAIProvider.hpp providers/GoogleAIProvider.cpp
     QodeAssist.qrc
     LSPCompletion.hpp
     LLMSuggestion.hpp LLMSuggestion.cpp
@@ -75,10 +77,4 @@ add_qtc_plugin(QodeAssist
     ConfigurationManager.hpp ConfigurationManager.cpp
     CodeHandler.hpp CodeHandler.cpp
     UpdateStatusWidget.hpp UpdateStatusWidget.cpp
-)
-
-target_sources(QodeAssist
-  PRIVATE
-  providers/GoogleAIProvider.hpp providers/GoogleAIProvider.cpp
-  templates/GoogleAI.hpp
 )

@@ -97,6 +97,7 @@ GeneralSettings::GeneralSettings()
     ccTemplateDescription.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
     ccTemplateDescription.setReadOnly(true);
     ccTemplateDescription.setDefaultValue("");
+    ccTemplateDescription.setLabelText(TrConstants::CURRENT_TEMPLATE_DESCRIPTION);
 
     // preset1
     specifyPreset1.setSettingsKey(Constants::CC_SPECIFY_PRESET1);
@@ -156,6 +157,7 @@ GeneralSettings::GeneralSettings()
     caTemplateDescription.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
     caTemplateDescription.setReadOnly(true);
     caTemplateDescription.setDefaultValue("");
+    caTemplateDescription.setLabelText(TrConstants::CURRENT_TEMPLATE_DESCRIPTION);
 
     readSettings();
 

@@ -49,6 +49,8 @@ inline const char *RESET_SETTINGS = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Reset 
 inline const char *CONFIRMATION
     = QT_TRANSLATE_NOOP("QtC::QodeAssist",
                         "Are you sure you want to reset all settings to default values?");
+inline const char *CURRENT_TEMPLATE_DESCRIPTION
+    = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Current template description:");
 
 inline const char CONNECTION_ERROR[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Connection Error");
 inline const char NO_MODELS_FOUND[]
