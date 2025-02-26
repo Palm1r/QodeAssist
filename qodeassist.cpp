@@ -108,8 +108,10 @@ public:
             UpdateDialog::checkForUpdatesAndShow(Core::ICore::mainWindow());
         });
 
-        m_chatOutputPane = new Chat::ChatOutputPane(this);
-        m_navigationPanel = new Chat::NavigationPanel();
+        if (Settings::generalSettings().enableChat()) {
+            m_chatOutputPane = new Chat::ChatOutputPane(this);
+            m_navigationPanel = new Chat::NavigationPanel();
+        }
 
         Settings::setupProjectPanel();
         ConfigurationManager::instance().init();

@@ -39,6 +39,9 @@ inline const char *TEST = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Test");
 inline const char *ENABLE_LOG = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Enable Logging");
 inline const char *ENABLE_CHECK_UPDATE_ON_START
     = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Check for updates when Qt Creator starts");
+inline const char *ENABLE_CHAT = QT_TRANSLATE_NOOP(
+    "QtC::QodeAssist",
+    "Enable Chat(If you have performance issues try disabling this, need restart QtC)");
 
 inline const char *CODE_COMPLETION = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Code Completion");
 inline const char *CHAT_ASSISTANT = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Chat Assistant");

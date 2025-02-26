@@ -60,6 +60,7 @@ const char ENABLE_QODE_ASSIST[] = "QodeAssist.enableQodeAssist";
 const char CC_AUTO_COMPLETION[] = "QodeAssist.ccAutoCompletion";
 const char ENABLE_LOGGING[] = "QodeAssist.enableLogging";
 const char ENABLE_CHECK_UPDATE[] = "QodeAssist.enableCheckUpdate";
+const char ENABLE_CHAT[] = "QodeAssist.enableChat";
 
 const char PROVIDER_PATHS[] = "QodeAssist.providerPaths";
 const char СС_START_SUGGESTION_TIMER[] = "QodeAssist.startSuggestionTimer";
