@@ -61,6 +61,8 @@
 - Custom template support
 - Easy configuration and model selection
 
+Join our Discord Community: Have questions or want to discuss QodeAssist? Join our [Discord server](https://discord.gg/BGMkUsXUgf) to connect with other users and get support!
+
 <details>
   <summary>Code completion: (click to expand)</summary>
   <img src="https://github.com/user-attachments/assets/255a52f1-5cc0-4ca3-b05c-c4cf9cdbe25a" width="600" alt="QodeAssistPreview">
