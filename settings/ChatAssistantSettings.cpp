@@ -19,10 +19,10 @@
 
 #include "ChatAssistantSettings.hpp"
 
-#include <QMessageBox>
 #include <coreplugin/dialogs/ioptionspage.h>
 #include <coreplugin/icore.h>
 #include <utils/layoutbuilder.h>
+#include <QMessageBox>
 
 #include "SettingsConstants.hpp"
 #include "SettingsTr.hpp"
@@ -195,10 +195,11 @@ ChatAssistantSettings::ChatAssistantSettings()
 
 void ChatAssistantSettings::setupConnections()
 {
-    connect(&resetToDefaults,
-            &ButtonAspect::clicked,
-            this,
-            &ChatAssistantSettings::resetSettingsToDefaults);
+    connect(
+        &resetToDefaults,
+        &ButtonAspect::clicked,
+        this,
+        &ChatAssistantSettings::resetSettingsToDefaults);
 }
 
 void ChatAssistantSettings::resetSettingsToDefaults()

@@ -23,16 +23,15 @@
 
 namespace QodeAssist::Chat {
 
-NavigationPanel::NavigationPanel() {
+NavigationPanel::NavigationPanel()
+{
     setDisplayName(tr("QodeAssist Chat"));
     setPriority(500);
     setId("QodeAssistChat");
     setActivationSequence(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_C));
 }
 
-NavigationPanel::~NavigationPanel()
-{
-}
+NavigationPanel::~NavigationPanel() {}
 
 Core::NavigationView NavigationPanel::createWidget()
 {
@@ -42,4 +41,4 @@ Core::NavigationView NavigationPanel::createWidget()
     return view;
 }
 
-}
+} // namespace QodeAssist::Chat

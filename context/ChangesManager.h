@@ -19,11 +19,11 @@
 
 #pragma once
 
+#include <texteditor/textdocument.h>
 #include <QDateTime>
 #include <QHash>
 #include <QQueue>
 #include <QTimer>
-#include <texteditor/textdocument.h>
 
 namespace QodeAssist::Context {
 
@@ -41,10 +41,8 @@ public:
 
     static ChangesManager &instance();
 
-    void addChange(TextEditor::TextDocument *document,
-                   int position,
-                   int charsRemoved,
-                   int charsAdded);
+    void addChange(
+        TextEditor::TextDocument *document, int position, int charsRemoved, int charsAdded);
     QString getRecentChangesContext(const TextEditor::TextDocument *currentDocument) const;
 
 private:

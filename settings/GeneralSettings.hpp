@@ -94,10 +94,11 @@ public:
 
     Utils::StringAspect caTemplateDescription{this};
 
-    void showSelectionDialog(const QStringList &data,
-                             Utils::StringAspect &aspect,
-                             const QString &title = {},
-                             const QString &text = {});
+    void showSelectionDialog(
+        const QStringList &data,
+        Utils::StringAspect &aspect,
+        const QString &title = {},
+        const QString &text = {});
 
     void showModelsNotFoundDialog(Utils::StringAspect &aspect);
 

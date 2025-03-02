@@ -40,4 +40,4 @@ void ChatWidget::scrollToBottom()
 {
     QMetaObject::invokeMethod(rootObject(), "scrollToBottom");
 }
-}
+} // namespace QodeAssist::Chat

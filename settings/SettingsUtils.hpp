@@ -19,13 +19,13 @@
 
 #pragma once
 
+#include <utils/aspects.h>
+#include <utils/layoutbuilder.h>
 #include <QCoreApplication>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QPushButton>
 #include <QtCore/qtimer.h>
-#include <utils/aspects.h>
-#include <utils/layoutbuilder.h>
 
 namespace QodeAssist::Settings {
 
@@ -67,10 +67,11 @@ void resetAspect(AspectType &aspect)
     aspect.setVolatileValue(aspect.defaultValue());
 }
 
-inline void initStringAspect(Utils::StringAspect &aspect,
-                             const Utils::Key &settingsKey,
-                             const QString &labelText,
-                             const QString &defaultValue)
+inline void initStringAspect(
+    Utils::StringAspect &aspect,
+    const Utils::Key &settingsKey,
+    const QString &labelText,
+    const QString &defaultValue)
 {
     aspect.setSettingsKey(settingsKey);
     aspect.setLabelText(labelText);

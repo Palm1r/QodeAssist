@@ -19,9 +19,9 @@
 
 #include "DocumentContextReader.hpp"
 
+#include <languageserverprotocol/lsptypes.h>
 #include <QFileInfo>
 #include <QTextBlock>
-#include <languageserverprotocol/lsptypes.h>
 
 #include "CodeCompletionSettings.hpp"
 
@@ -41,9 +41,8 @@ const QRegularExpression &getNameRegex()
 
 const QRegularExpression &getCommentRegex()
 {
-    static const QRegularExpression
-        commentRegex(R"((/\*[\s\S]*?\*/|//.*$|#.*$|//{2,}[\s\S]*?//{2,}))",
-                     QRegularExpression::MultilineOption);
+    static const QRegularExpression commentRegex(
+        R"((/\*[\s\S]*?\*/|//.*$|#.*$|//{2,}[\s\S]*?//{2,}))", QRegularExpression::MultilineOption);
     return commentRegex;
 }
 
@@ -80,9 +79,8 @@ QString DocumentContextReader::getLineText(int lineNumber, int cursorPosition) c
     return QString();
 }
 
-QString DocumentContextReader::getContextBefore(int lineNumber,
-                                                int cursorPosition,
-                                                int linesCount) const
+QString DocumentContextReader::getContextBefore(
+    int lineNumber, int cursorPosition, int linesCount) const
 {
     int effectiveStartLine;
     if (m_copyrightInfo.found) {
@@ -94,9 +92,8 @@ QString DocumentContextReader::getContextBefore(int lineNumber,
     return getContextBetween(effectiveStartLine, lineNumber, cursorPosition);
 }
 
-QString DocumentContextReader::getContextAfter(int lineNumber,
-                                               int cursorPosition,
-                                               int linesCount) const
+QString DocumentContextReader::getContextAfter(
+    int lineNumber, int cursorPosition, int linesCount) const
 {
     int endLine = qMin(m_document->blockCount() - 1, lineNumber + linesCount);
     return getContextBetween(lineNumber + 1, endLine, cursorPosition);
@@ -179,9 +176,7 @@ CopyrightInfo DocumentContextReader::findCopyright()
     return result;
 }
 
-QString DocumentContextReader::getContextBetween(int startLine,
-                                                 int endLine,
-                                                 int cursorPosition) const
+QString DocumentContextReader::getContextBetween(int startLine, int endLine, int cursorPosition) const
 {
     QString context;
     for (int i = startLine; i <= endLine; ++i) {
@@ -240,8 +235,9 @@ QString DocumentContextReader::getContextAfter(int lineNumber, int cursorPositio
     if (Settings::codeCompletionSettings().readFullFile()) {
         return readWholeFileAfter(lineNumber, cursorPosition);
     } else {
-        int endLine = qMin(m_document->blockCount() - 1,
-                           lineNumber + Settings::codeCompletionSettings().readStringsAfterCursor());
+        int endLine = qMin(
+            m_document->blockCount() - 1,
+            lineNumber + Settings::codeCompletionSettings().readStringsAfterCursor());
         return getContextBetween(lineNumber + 1, endLine, -1);
     }
 }

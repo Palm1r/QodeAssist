@@ -30,17 +30,12 @@ ChangesManager &ChangesManager::instance()
 
 ChangesManager::ChangesManager()
     : QObject(nullptr)
-{
-}
+{}
 
-ChangesManager::~ChangesManager()
-{
-}
+ChangesManager::~ChangesManager() {}
 
-void ChangesManager::addChange(TextEditor::TextDocument *document,
-                               int position,
-                               int charsRemoved,
-                               int charsAdded)
+void ChangesManager::addChange(
+    TextEditor::TextDocument *document, int position, int charsRemoved, int charsAdded)
 {
     auto &documentQueue = m_documentChanges[document];
 
@@ -51,9 +46,10 @@ void ChangesManager::addChange(TextEditor::TextDocument *document,
 
     ChangeInfo change{fileName, lineNumber, lineContent};
 
-    auto it = std::find_if(documentQueue.begin(),
-                           documentQueue.end(),
-                           [lineNumber](const ChangeInfo &c) { return c.lineNumber == lineNumber; });
+    auto it
+        = std::find_if(documentQueue.begin(), documentQueue.end(), [lineNumber](const ChangeInfo &c) {
+              return c.lineNumber == lineNumber;
+          });
 
     if (it != documentQueue.end()) {
         it->lineContent = lineContent;

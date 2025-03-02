@@ -33,15 +33,16 @@ RequestHandler::RequestHandler(QObject *parent)
 void RequestHandler::sendLLMRequest(const LLMConfig &config, const QJsonObject &request)
 {
     LOG_MESSAGE(QString("Sending request to llm: \nurl: %1\nRequest body:\n%2")
-                   .arg(config.url.toString(),
+                    .arg(
+                        config.url.toString(),
                         QString::fromUtf8(
                             QJsonDocument(config.providerRequest).toJson(QJsonDocument::Indented))));
 
     QNetworkRequest networkRequest(config.url);
     config.provider->prepareNetworkRequest(networkRequest);
 
-    QNetworkReply *reply = m_manager->post(networkRequest,
-                                           QJsonDocument(config.providerRequest).toJson());
+    QNetworkReply *reply
+        = m_manager->post(networkRequest, QJsonDocument(config.providerRequest).toJson());
     if (!reply) {
         LOG_MESSAGE("Error: Failed to create network reply");
         return;
@@ -70,9 +71,8 @@ void RequestHandler::sendLLMRequest(const LLMConfig &config, const QJsonObject &
     });
 }
 
-void RequestHandler::handleLLMResponse(QNetworkReply *reply,
-                                       const QJsonObject &request,
-                                       const LLMConfig &config)
+void RequestHandler::handleLLMResponse(
+    QNetworkReply *reply, const QJsonObject &request, const LLMConfig &config)
 {
     QString &accumulatedResponse = m_accumulatedResponses[reply];
 
@@ -85,8 +85,8 @@ void RequestHandler::handleLLMResponse(QNetworkReply *reply,
         }
 
         if (isComplete) {
-            auto cleanedCompletion = removeStopWords(accumulatedResponse,
-                                                     config.promptTemplate->stopWords());
+            auto cleanedCompletion
+                = removeStopWords(accumulatedResponse, config.promptTemplate->stopWords());
 
             emit completionReceived(cleanedCompletion, request, true);
         }

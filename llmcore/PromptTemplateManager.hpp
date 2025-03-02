@@ -35,8 +35,7 @@ public:
     template<typename T>
     void registerTemplate()
     {
-        static_assert(std::is_base_of<PromptTemplate, T>::value,
-                      "T must inherit from PromptTemplate");
+        static_assert(std::is_base_of<PromptTemplate, T>::value, "T must inherit from PromptTemplate");
         T *template_ptr = new T();
         QString name = template_ptr->name();
         m_fimTemplates[name] = template_ptr;

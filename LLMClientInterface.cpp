@@ -40,10 +40,11 @@ namespace QodeAssist {
 LLMClientInterface::LLMClientInterface()
     : m_requestHandler(this)
 {
-    connect(&m_requestHandler,
-            &LLMCore::RequestHandler::completionReceived,
-            this,
-            &LLMClientInterface::sendCompletionToClient);
+    connect(
+        &m_requestHandler,
+        &LLMCore::RequestHandler::completionReceived,
+        this,
+        &LLMClientInterface::sendCompletionToClient);
 }
 
 Utils::FilePath LLMClientInterface::serverDeviceTemplate() const
@@ -204,10 +205,11 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
 
     QString systemPrompt;
     if (completeSettings.useSystemPrompt())
-        systemPrompt.append(completeSettings.useUserMessageTemplateForCC()
-                                    && promptTemplate->type() == LLMCore::TemplateType::Chat
-                                ? completeSettings.systemPromptForNonFimModels()
-                                : completeSettings.systemPrompt());
+        systemPrompt.append(
+            completeSettings.useUserMessageTemplateForCC()
+                    && promptTemplate->type() == LLMCore::TemplateType::Chat
+                ? completeSettings.systemPromptForNonFimModels()
+                : completeSettings.systemPrompt());
     if (updatedContext.fileContext.has_value())
         systemPrompt.append(updatedContext.fileContext.value());
 
@@ -243,8 +245,8 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     m_requestHandler.sendLLMRequest(config, request);
 }
 
-LLMCore::ContextData LLMClientInterface::prepareContext(const QJsonObject &request,
-                                                        const QStringView &accumulatedCompletion)
+LLMCore::ContextData LLMClientInterface::prepareContext(
+    const QJsonObject &request, const QStringView &accumulatedCompletion)
 {
     QJsonObject params = request["params"].toObject();
     QJsonObject doc = params["doc"].toObject();
@@ -267,9 +269,8 @@ LLMCore::ContextData LLMClientInterface::prepareContext(const QJsonObject &reque
     return reader.prepareContext(lineNumber, cursorPosition);
 }
 
-void LLMClientInterface::sendCompletionToClient(const QString &completion,
-                                                const QJsonObject &request,
-                                                bool isComplete)
+void LLMClientInterface::sendCompletionToClient(
+    const QString &completion, const QJsonObject &request, bool isComplete)
 {
     bool isPreset1Active = Context::ContextManager::instance().isSpecifyCompletion(request);
 
@@ -294,8 +295,8 @@ void LLMClientInterface::sendCompletionToClient(const QString &completion,
     QString processedCompletion
         = promptTemplate->type() == LLMCore::TemplateType::Chat
                   && Settings::codeCompletionSettings().smartProcessInstuctText()
-                                      ? CodeHandler::processText(completion)
-                                      : completion;
+              ? CodeHandler::processText(completion)
+              : completion;
 
     completionItem[LanguageServerProtocol::textKey] = processedCompletion;
     QJsonObject range;
@@ -312,7 +313,8 @@ void LLMClientInterface::sendCompletionToClient(const QString &completion,
         QString("Completions: \n%1")
             .arg(QString::fromUtf8(QJsonDocument(completions).toJson(QJsonDocument::Indented))));
 
-    LOG_MESSAGE(QString("Full response: \n%1")
+    LOG_MESSAGE(
+        QString("Full response: \n%1")
             .arg(QString::fromUtf8(QJsonDocument(response).toJson(QJsonDocument::Indented))));
 
     QString requestId = request["id"].toString();
@@ -336,9 +338,8 @@ void LLMClientInterface::endTimeMeasurement(const QString &requestId)
     }
 }
 
-void LLMClientInterface::logPerformance(const QString &requestId,
-                                        const QString &operation,
-                                        qint64 elapsedMs)
+void LLMClientInterface::logPerformance(
+    const QString &requestId, const QString &operation, qint64 elapsedMs)
 {
     LOG_MESSAGE(QString("Performance: %1 %2 took %3 ms").arg(requestId, operation).arg(elapsedMs));
 }

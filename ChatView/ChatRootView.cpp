@@ -24,21 +24,21 @@
 #include <QFileDialog>
 #include <QMessageBox>
 
+#include <coreplugin/editormanager/editormanager.h>
 #include <coreplugin/icore.h>
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectexplorer.h>
 #include <projectexplorer/projectmanager.h>
 #include <utils/theme/theme.h>
 #include <utils/utilsicons.h>
-#include <coreplugin/editormanager/editormanager.h>
 
 #include "ChatAssistantSettings.hpp"
 #include "ChatSerializer.hpp"
 #include "GeneralSettings.hpp"
 #include "Logger.hpp"
 #include "ProjectSettings.hpp"
-#include "context/TokenUtils.hpp"
 #include "context/ContextManager.hpp"
+#include "context/TokenUtils.hpp"
 
 namespace QodeAssist::Chat {
 
@@ -48,18 +48,16 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     , m_clientInterface(new ClientInterface(m_chatModel, this))
 {
     m_isSyncOpenFiles = Settings::chatAssistantSettings().linkOpenFiles();
-    connect(&Settings::chatAssistantSettings().linkOpenFiles, &Utils::BaseAspect::changed,
-            this,
-            [this](){
-                setIsSyncOpenFiles(Settings::chatAssistantSettings().linkOpenFiles());
-            });
+    connect(
+        &Settings::chatAssistantSettings().linkOpenFiles,
+        &Utils::BaseAspect::changed,
+        this,
+        [this]() { setIsSyncOpenFiles(Settings::chatAssistantSettings().linkOpenFiles()); });
 
     auto &settings = Settings::generalSettings();
 
-    connect(&settings.caModel,
-            &Utils::BaseAspect::changed,
-            this,
-            &ChatRootView::currentTemplateChanged);
+    connect(
+        &settings.caModel, &Utils::BaseAspect::changed, this, &ChatRootView::currentTemplateChanged);
 
     connect(
         m_clientInterface,
@@ -76,10 +74,16 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     connect(m_chatModel, &ChatModel::modelReseted, this, [this]() { setRecentFilePath(QString{}); });
     connect(this, &ChatRootView::attachmentFilesChanged, &ChatRootView::updateInputTokensCount);
     connect(this, &ChatRootView::linkedFilesChanged, &ChatRootView::updateInputTokensCount);
-    connect(&Settings::chatAssistantSettings().useSystemPrompt, &Utils::BaseAspect::changed,
-            this, &ChatRootView::updateInputTokensCount);
-    connect(&Settings::chatAssistantSettings().systemPrompt, &Utils::BaseAspect::changed,
-            this, &ChatRootView::updateInputTokensCount);
+    connect(
+        &Settings::chatAssistantSettings().useSystemPrompt,
+        &Utils::BaseAspect::changed,
+        this,
+        &ChatRootView::updateInputTokensCount);
+    connect(
+        &Settings::chatAssistantSettings().systemPrompt,
+        &Utils::BaseAspect::changed,
+        this,
+        &ChatRootView::updateInputTokensCount);
 
     auto editors = Core::EditorManager::instance();
 
@@ -450,7 +454,7 @@ void ChatRootView::openChatHistoryFolder()
 void ChatRootView::updateInputTokensCount()
 {
     int inputTokens = m_messageTokensCount;
-    auto& settings = Settings::chatAssistantSettings();
+    auto &settings = Settings::chatAssistantSettings();
 
     if (settings.useSystemPrompt()) {
         inputTokens += Context::TokenUtils::estimateTokens(settings.systemPrompt());
@@ -466,8 +470,8 @@ void ChatRootView::updateInputTokensCount()
         inputTokens += Context::TokenUtils::estimateFilesTokens(linkFiles);
     }
 
-    const auto& history = m_chatModel->getChatHistory();
-    for (const auto& message : history) {
+    const auto &history = m_chatModel->getChatHistory();
+    for (const auto &message : history) {
         inputTokens += Context::TokenUtils::estimateTokens(message.content);
         inputTokens += 4; // + role
     }

@@ -68,9 +68,10 @@ class GetCompletionParams : public LanguageServerProtocol::JsonObject
 public:
     static constexpr LanguageServerProtocol::Key docKey{"doc"};
 
-    GetCompletionParams(const LanguageServerProtocol::TextDocumentIdentifier &document,
-                        int version,
-                        const LanguageServerProtocol::Position &position)
+    GetCompletionParams(
+        const LanguageServerProtocol::TextDocumentIdentifier &document,
+        int version,
+        const LanguageServerProtocol::Position &position)
     {
         setTextDocument(document);
         setVersion(version);

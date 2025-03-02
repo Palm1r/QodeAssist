@@ -18,9 +18,9 @@
  */
 
 #include "ChatModel.hpp"
+#include <utils/aspects.h>
 #include <QtCore/qjsonobject.h>
 #include <QtQml>
-#include <utils/aspects.h>
 
 #include "ChatAssistantSettings.hpp"
 
@@ -31,10 +31,11 @@ ChatModel::ChatModel(QObject *parent)
 {
     auto &settings = Settings::chatAssistantSettings();
 
-    connect(&settings.chatTokensThreshold,
-            &Utils::BaseAspect::changed,
-            this,
-            &ChatModel::tokensThresholdChanged);
+    connect(
+        &settings.chatTokensThreshold,
+        &Utils::BaseAspect::changed,
+        this,
+        &ChatModel::tokensThresholdChanged);
 }
 
 int ChatModel::rowCount(const QModelIndex &parent) const
@@ -127,7 +128,8 @@ QList<MessagePart> ChatModel::processMessageContent(const QString &content) cons
     while (blockMatches.hasNext()) {
         auto match = blockMatches.next();
         if (match.capturedStart() > lastIndex) {
-            QString textBetween = content.mid(lastIndex, match.capturedStart() - lastIndex).trimmed();
+            QString textBetween
+                = content.mid(lastIndex, match.capturedStart() - lastIndex).trimmed();
             if (!textBetween.isEmpty()) {
                 parts.append({MessagePart::Text, textBetween, ""});
             }

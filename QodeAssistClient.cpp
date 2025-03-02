@@ -147,9 +147,10 @@ void QodeAssistClient::requestCompletions(TextEditor::TextEditorWidget *editor)
         return;
 
     const FilePath filePath = editor->textDocument()->filePath();
-    GetCompletionRequest request{{TextDocumentIdentifier(hostPathToServerUri(filePath)),
-                                  documentVersion(filePath),
-                                  Position(cursor.mainCursor())}};
+    GetCompletionRequest request{
+        {TextDocumentIdentifier(hostPathToServerUri(filePath)),
+         documentVersion(filePath),
+         Position(cursor.mainCursor())}};
     request.setResponseCallback([this, editor = QPointer<TextEditorWidget>(editor)](
                                     const GetCompletionRequest::Response &response) {
         QTC_ASSERT(editor, return);
@@ -188,8 +189,8 @@ void QodeAssistClient::scheduleRequest(TextEditor::TextEditorWidget *editor)
     it.value()->setProperty("cursorPosition", editor->textCursor().position());
     it.value()->start(Settings::codeCompletionSettings().startSuggestionTimer());
 }
-void QodeAssistClient::handleCompletions(const GetCompletionRequest::Response &response,
-                                         TextEditor::TextEditorWidget *editor)
+void QodeAssistClient::handleCompletions(
+    const GetCompletionRequest::Response &response, TextEditor::TextEditorWidget *editor)
 {
     if (response.error())
         log(*response.error());
@@ -267,18 +268,13 @@ void QodeAssistClient::setupConnections()
             openDocument(textDocument);
     };
 
-    m_documentOpenedConnection = connect(EditorManager::instance(),
-                                         &EditorManager::documentOpened,
-                                         this,
-                                         openDoc);
-    m_documentClosedConnection = connect(EditorManager::instance(),
-                                         &EditorManager::documentClosed,
-                                         this,
-                                         [this](IDocument *document) {
-                                             if (auto textDocument = qobject_cast<TextDocument *>(
-                                                     document))
-                                                 closeDocument(textDocument);
-                                         });
+    m_documentOpenedConnection
+        = connect(EditorManager::instance(), &EditorManager::documentOpened, this, openDoc);
+    m_documentClosedConnection = connect(
+        EditorManager::instance(), &EditorManager::documentClosed, this, [this](IDocument *document) {
+            if (auto textDocument = qobject_cast<TextDocument *>(document))
+                closeDocument(textDocument);
+        });
 
     for (IDocument *doc : DocumentModel::openedDocuments())
         openDoc(doc);

@@ -19,11 +19,11 @@
 
 #include "ClientInterface.hpp"
 
+#include <texteditor/textdocument.h>
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QUuid>
-#include <texteditor/textdocument.h>
 
 #include <coreplugin/editormanager/editormanager.h>
 #include <coreplugin/editormanager/ieditor.h>
@@ -46,21 +46,23 @@ ClientInterface::ClientInterface(ChatModel *chatModel, QObject *parent)
     , m_requestHandler(new LLMCore::RequestHandler(this))
     , m_chatModel(chatModel)
 {
-    connect(m_requestHandler,
-            &LLMCore::RequestHandler::completionReceived,
-            this,
-            [this](const QString &completion, const QJsonObject &request, bool isComplete) {
-                handleLLMResponse(completion, request, isComplete);
-            });
+    connect(
+        m_requestHandler,
+        &LLMCore::RequestHandler::completionReceived,
+        this,
+        [this](const QString &completion, const QJsonObject &request, bool isComplete) {
+            handleLLMResponse(completion, request, isComplete);
+        });
 
-    connect(m_requestHandler,
-            &LLMCore::RequestHandler::requestFinished,
-            this,
-            [this](const QString &, bool success, const QString &errorString) {
-                if (!success) {
-                    emit errorOccurred(errorString);
-                }
-            });
+    connect(
+        m_requestHandler,
+        &LLMCore::RequestHandler::requestFinished,
+        this,
+        [this](const QString &, bool success, const QString &errorString) {
+            if (!success) {
+                emit errorOccurred(errorString);
+            }
+        });
 }
 
 ClientInterface::~ClientInterface() = default;
@@ -149,9 +151,8 @@ void ClientInterface::cancelRequest()
     m_requestHandler->cancelRequest(id);
 }
 
-void ClientInterface::handleLLMResponse(const QString &response,
-                                        const QJsonObject &request,
-                                        bool isComplete)
+void ClientInterface::handleLLMResponse(
+    const QString &response, const QJsonObject &request, bool isComplete)
 {
     const auto message = response.trimmed();
 
@@ -191,7 +192,8 @@ QString ClientInterface::getCurrentFileContext() const
     return QString("Current file context:\n%1\nFile content:\n%2").arg(fileInfo, content);
 }
 
-QString ClientInterface::getSystemPromptWithLinkedFiles(const QString &basePrompt, const QList<QString> &linkedFiles) const
+QString ClientInterface::getSystemPromptWithLinkedFiles(
+    const QString &basePrompt, const QList<QString> &linkedFiles) const
 {
     QString updatedPrompt = basePrompt;
 
@@ -200,8 +202,7 @@ QString ClientInterface::getSystemPromptWithLinkedFiles(const QString &basePromp
 
         auto contentFiles = Context::ContextManager::instance().getContentFiles(linkedFiles);
         for (const auto &file : contentFiles) {
-            updatedPrompt += QString("\nFile: %1\nContent:\n%2\n")
-            .arg(file.filename, file.content);
+            updatedPrompt += QString("\nFile: %1\nContent:\n%2\n").arg(file.filename, file.content);
         }
     }
 

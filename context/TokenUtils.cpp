@@ -21,7 +21,7 @@
 
 namespace QodeAssist::Context {
 
-int TokenUtils::estimateTokens(const QString& text)
+int TokenUtils::estimateTokens(const QString &text)
 {
     if (text.isEmpty()) {
         return 0;
@@ -31,7 +31,7 @@ int TokenUtils::estimateTokens(const QString& text)
     return text.length() / 4;
 }
 
-int TokenUtils::estimateFileTokens(const Context::ContentFile& file)
+int TokenUtils::estimateFileTokens(const Context::ContentFile &file)
 {
     int total = 0;
 
@@ -42,13 +42,13 @@ int TokenUtils::estimateFileTokens(const Context::ContentFile& file)
     return total;
 }
 
-int TokenUtils::estimateFilesTokens(const QList<Context::ContentFile>& files)
+int TokenUtils::estimateFilesTokens(const QList<Context::ContentFile> &files)
 {
     int total = 0;
-    for (const auto& file : files) {
+    for (const auto &file : files) {
         total += estimateFileTokens(file);
     }
     return total;
 }
 
-}
+} // namespace QodeAssist::Context
