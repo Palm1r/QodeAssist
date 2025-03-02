@@ -26,8 +26,8 @@ namespace QodeAssist::Settings {
 namespace TrConstants {
 inline const char *ENABLE_QODE_ASSIST = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Enable Qode Assist");
 inline const char *GENERAL = QT_TRANSLATE_NOOP("QtC::QodeAssist", "General");
-inline const char *RESET_TO_DEFAULTS = QT_TRANSLATE_NOOP("QtC::QodeAssist",
-                                                         "Reset Page to Defaults");
+inline const char *RESET_TO_DEFAULTS
+    = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Reset Page to Defaults");
 inline const char *CHECK_UPDATE = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Check Update");
 inline const char *SELECT = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Select...");
 inline const char *PROVIDER = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Provider:");
@@ -46,9 +46,8 @@ inline const char *ENABLE_CHAT = QT_TRANSLATE_NOOP(
 inline const char *CODE_COMPLETION = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Code Completion");
 inline const char *CHAT_ASSISTANT = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Chat Assistant");
 inline const char *RESET_SETTINGS = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Reset Settings");
-inline const char *CONFIRMATION
-    = QT_TRANSLATE_NOOP("QtC::QodeAssist",
-                        "Are you sure you want to reset all settings to default values?");
+inline const char *CONFIRMATION = QT_TRANSLATE_NOOP(
+    "QtC::QodeAssist", "Are you sure you want to reset all settings to default values?");
 inline const char *CURRENT_TEMPLATE_DESCRIPTION
     = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Current template description:");
 

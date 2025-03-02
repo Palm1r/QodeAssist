@@ -43,8 +43,8 @@ public:
 
 private:
     void scheduleRequest(TextEditor::TextEditorWidget *editor);
-    void handleCompletions(const GetCompletionRequest::Response &response,
-                           TextEditor::TextEditorWidget *editor);
+    void handleCompletions(
+        const GetCompletionRequest::Response &response, TextEditor::TextEditorWidget *editor);
     void cancelRunningRequest(TextEditor::TextEditorWidget *editor);
     bool isEnabled(ProjectExplorer::Project *project) const;
 

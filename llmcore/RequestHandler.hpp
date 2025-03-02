@@ -37,9 +37,7 @@ public:
     explicit RequestHandler(QObject *parent = nullptr);
 
     void sendLLMRequest(const LLMConfig &config, const QJsonObject &request);
-    void handleLLMResponse(QNetworkReply *reply,
-                           const QJsonObject &request,
-                           const LLMConfig &config);
+    void handleLLMResponse(QNetworkReply *reply, const QJsonObject &request, const LLMConfig &config);
     bool cancelRequest(const QString &id);
 
 signals:
@@ -52,10 +50,11 @@ private:
     QMap<QString, QNetworkReply *> m_activeRequests;
     QMap<QNetworkReply *, QString> m_accumulatedResponses;
 
-    bool processSingleLineCompletion(QNetworkReply *reply,
-                                     const QJsonObject &request,
-                                     const QString &accumulatedResponse,
-                                     const LLMConfig &config);
+    bool processSingleLineCompletion(
+        QNetworkReply *reply,
+        const QJsonObject &request,
+        const QString &accumulatedResponse,
+        const LLMConfig &config);
     QString removeStopWords(const QStringView &completion, const QStringList &stopWords);
     void removeCodeBlockWrappers(QString &response);
 };

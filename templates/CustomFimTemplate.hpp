@@ -77,8 +77,8 @@ private:
         return value;
     }
 
-    QJsonObject processJsonTemplate(const QJsonObject &templateObj,
-                                    const LLMCore::ContextData &context) const
+    QJsonObject processJsonTemplate(
+        const QJsonObject &templateObj, const LLMCore::ContextData &context) const
     {
         QJsonObject result;
         for (auto it = templateObj.begin(); it != templateObj.end(); ++it) {

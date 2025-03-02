@@ -19,8 +19,8 @@
 
 #include "ConfigurationManager.hpp"
 
-#include <QTimer>
 #include <settings/ButtonAspect.hpp>
+#include <QTimer>
 
 #include "QodeAssisttr.h"
 
@@ -111,10 +111,8 @@ void ConfigurationManager::selectProvider()
                                : m_generalSettings.caProvider;
 
     QTimer::singleShot(0, this, [this, providersList, &targetSettings] {
-        m_generalSettings.showSelectionDialog(providersList,
-                                              targetSettings,
-                                              Tr::tr("Select LLM Provider"),
-                                              Tr::tr("Providers:"));
+        m_generalSettings.showSelectionDialog(
+            providersList, targetSettings, Tr::tr("Select LLM Provider"), Tr::tr("Providers:"));
     });
 }
 
@@ -181,10 +179,8 @@ void ConfigurationManager::selectTemplate()
                                             : m_generalSettings.caTemplate;
 
     QTimer::singleShot(0, &m_generalSettings, [this, templateList, &targetSettings]() {
-        m_generalSettings.showSelectionDialog(templateList,
-                                              targetSettings,
-                                              Tr::tr("Select Template"),
-                                              Tr::tr("Templates:"));
+        m_generalSettings.showSelectionDialog(
+            templateList, targetSettings, Tr::tr("Select Template"), Tr::tr("Templates:"));
     });
 }
 

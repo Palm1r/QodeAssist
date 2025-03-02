@@ -21,8 +21,8 @@
 
 #include <QString>
 
-#include <QMap>
 #include "Provider.hpp"
+#include <QMap>
 
 namespace QodeAssist::LLMCore {
 

@@ -40,9 +40,8 @@ public:
 
     Utils::FilePath serverDeviceTemplate() const override;
 
-    void sendCompletionToClient(const QString &completion,
-                                const QJsonObject &request,
-                                bool isComplete);
+    void sendCompletionToClient(
+        const QString &completion, const QJsonObject &request, bool isComplete);
 
     void handleCompletion(const QJsonObject &request);
 

@@ -19,11 +19,11 @@
 
 #pragma once
 
-#include <QJsonObject>
-#include <QUrl>
 #include "PromptTemplate.hpp"
 #include "Provider.hpp"
 #include "RequestType.hpp"
+#include <QJsonObject>
+#include <QUrl>
 
 namespace QodeAssist::LLMCore {
 

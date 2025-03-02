@@ -19,9 +19,9 @@
 
 #pragma once
 
-#include <QPushButton>
 #include <utils/aspects.h>
 #include <utils/layoutbuilder.h>
+#include <QPushButton>
 
 class ButtonAspect : public Utils::BaseAspect
 {

@@ -19,18 +19,18 @@
 
 #pragma once
 
-#include <QString>
 #include "ContentFile.hpp"
 #include <QList>
+#include <QString>
 
 namespace QodeAssist::Context {
 
 class TokenUtils
 {
 public:
-    static int estimateTokens(const QString& text);
-    static int estimateFileTokens(const Context::ContentFile& file);
-    static int estimateFilesTokens(const QList<Context::ContentFile>& files);
+    static int estimateTokens(const QString &text);
+    static int estimateFileTokens(const Context::ContentFile &file);
+    static int estimateFilesTokens(const QList<Context::ContentFile> &files);
 };
 
-}
+} // namespace QodeAssist::Context

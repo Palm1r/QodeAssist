@@ -392,16 +392,17 @@ void GeneralSettings::setupConnections()
 
     connect(&specifyPreset1, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
         updatePreset1Visiblity(specifyPreset1.volatileValue());
-    });    
+    });
 }
 
 void GeneralSettings::resetPageToDefaults()
 {
     QMessageBox::StandardButton reply;
-    reply = QMessageBox::question(Core::ICore::dialogParent(),
-                                  TrConstants::RESET_SETTINGS,
-                                  TrConstants::CONFIRMATION,
-                                  QMessageBox::Yes | QMessageBox::No);
+    reply = QMessageBox::question(
+        Core::ICore::dialogParent(),
+        TrConstants::RESET_SETTINGS,
+        TrConstants::CONFIRMATION,
+        QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
         resetAspect(enableQodeAssist);

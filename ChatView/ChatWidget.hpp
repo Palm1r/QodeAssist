@@ -38,4 +38,4 @@ signals:
     void clearPressed();
 };
 
-}
+} // namespace QodeAssist::Chat

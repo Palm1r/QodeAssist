@@ -19,12 +19,12 @@
 
 #include "CustomPromptSettings.hpp"
 
-#include <QFileDialog>
-#include <QJsonParseError>
-#include <QMessageBox>
 #include <coreplugin/dialogs/ioptionspage.h>
 #include <coreplugin/icore.h>
 #include <utils/layoutbuilder.h>
+#include <QFileDialog>
+#include <QJsonParseError>
+#include <QMessageBox>
 
 #include "SettingsConstants.hpp"
 #include "SettingsTr.hpp"
@@ -86,30 +86,36 @@ CustomPromptSettings::CustomPromptSettings()
 
     setLayouter([this]() {
         using namespace Layouting;
-        return Column{Group{title(Tr::tr("Custom prompt for FIM model")),
-                            Column{Row{customJsonLabel, Stretch{1}, resetToDefaults},
-                                   Row{customJsonTemplate,
-                                       Column{saveCustomTemplateButton,
-                                              loadCustomTemplateButton,
-                                              customJsonLegend,
-                                              Stretch{1}}}}}};
+        return Column{Group{
+            title(Tr::tr("Custom prompt for FIM model")),
+            Column{
+                Row{customJsonLabel, Stretch{1}, resetToDefaults},
+                Row{customJsonTemplate,
+                    Column{
+                        saveCustomTemplateButton,
+                        loadCustomTemplateButton,
+                        customJsonLegend,
+                        Stretch{1}}}}}};
     });
 }
 
 void CustomPromptSettings::setupConnection()
 {
-    connect(&resetToDefaults,
-            &ButtonAspect::clicked,
-            this,
-            &CustomPromptSettings::resetSettingsToDefaults);
-    connect(&saveCustomTemplateButton,
-            &ButtonAspect::clicked,
-            this,
-            &CustomPromptSettings::saveCustomTemplate);
-    connect(&loadCustomTemplateButton,
-            &ButtonAspect::clicked,
-            this,
-            &CustomPromptSettings::loadCustomTemplate);
+    connect(
+        &resetToDefaults,
+        &ButtonAspect::clicked,
+        this,
+        &CustomPromptSettings::resetSettingsToDefaults);
+    connect(
+        &saveCustomTemplateButton,
+        &ButtonAspect::clicked,
+        this,
+        &CustomPromptSettings::saveCustomTemplate);
+    connect(
+        &loadCustomTemplateButton,
+        &ButtonAspect::clicked,
+        this,
+        &CustomPromptSettings::loadCustomTemplate);
 }
 
 void CustomPromptSettings::resetSettingsToDefaults()
@@ -128,10 +134,8 @@ void CustomPromptSettings::resetSettingsToDefaults()
 
 void CustomPromptSettings::saveCustomTemplate()
 {
-    QString fileName = QFileDialog::getSaveFileName(nullptr,
-                                                    Tr::tr("Save JSON Template"),
-                                                    QString(),
-                                                    Tr::tr("JSON Files (*.json)"));
+    QString fileName = QFileDialog::getSaveFileName(
+        nullptr, Tr::tr("Save JSON Template"), QString(), Tr::tr("JSON Files (*.json)"));
     if (fileName.isEmpty())
         return;
 
@@ -140,22 +144,19 @@ void CustomPromptSettings::saveCustomTemplate()
         QTextStream out(&file);
         out << customJsonTemplate.value();
         file.close();
-        QMessageBox::information(nullptr,
-                                 Tr::tr("Save Successful"),
-                                 Tr::tr("JSON template has been saved successfully."));
+        QMessageBox::information(
+            nullptr,
+            Tr::tr("Save Successful"),
+            Tr::tr("JSON template has been saved successfully."));
     } else {
-        QMessageBox::critical(nullptr,
-                              Tr::tr("Save Failed"),
-                              Tr::tr("Failed to save JSON template."));
+        QMessageBox::critical(nullptr, Tr::tr("Save Failed"), Tr::tr("Failed to save JSON template."));
     }
 }
 
 void CustomPromptSettings::loadCustomTemplate()
 {
-    QString fileName = QFileDialog::getOpenFileName(nullptr,
-                                                    Tr::tr("Load JSON Template"),
-                                                    QString(),
-                                                    Tr::tr("JSON Files (*.json)"));
+    QString fileName = QFileDialog::getOpenFileName(
+        nullptr, Tr::tr("Load JSON Template"), QString(), Tr::tr("JSON Files (*.json)"));
     if (fileName.isEmpty())
         return;
 
@@ -169,18 +170,16 @@ void CustomPromptSettings::loadCustomTemplate()
         QJsonDocument jsonDoc = QJsonDocument::fromJson(jsonContent.toUtf8(), &parseError);
         if (parseError.error == QJsonParseError::NoError) {
             customJsonTemplate.setVolatileValue(jsonContent);
-            QMessageBox::information(nullptr,
-                                     Tr::tr("Load Successful"),
-                                     Tr::tr("JSON template has been loaded successfully."));
+            QMessageBox::information(
+                nullptr,
+                Tr::tr("Load Successful"),
+                Tr::tr("JSON template has been loaded successfully."));
         } else {
-            QMessageBox::critical(nullptr,
-                                  Tr::tr("Invalid JSON"),
-                                  Tr::tr("The selected file contains invalid JSON."));
+            QMessageBox::critical(
+                nullptr, Tr::tr("Invalid JSON"), Tr::tr("The selected file contains invalid JSON."));
         }
     } else {
-        QMessageBox::critical(nullptr,
-                              Tr::tr("Load Failed"),
-                              Tr::tr("Failed to load JSON template."));
+        QMessageBox::critical(nullptr, Tr::tr("Load Failed"), Tr::tr("Failed to load JSON template."));
     }
 }
 

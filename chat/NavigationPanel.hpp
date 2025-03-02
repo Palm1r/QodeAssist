@@ -19,8 +19,8 @@
 
 #pragma once
 
-#include <QObject>
 #include <coreplugin/inavigationwidgetfactory.h>
+#include <QObject>
 
 namespace QodeAssist::Chat {
 
@@ -34,4 +34,4 @@ public:
     Core::NavigationView createWidget() override;
 };
 
-}
+} // namespace QodeAssist::Chat

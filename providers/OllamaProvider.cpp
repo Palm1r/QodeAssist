@@ -112,9 +112,8 @@ bool OllamaProvider::handleResponse(QNetworkReply *reply, QString &accumulatedRe
         }
 
         const QString endpoint = reply->url().path();
-        auto messageType = endpoint == completionEndpoint()
-                               ? LLMCore::OllamaMessage::Type::Generate
-                               : LLMCore::OllamaMessage::Type::Chat;
+        auto messageType = endpoint == completionEndpoint() ? LLMCore::OllamaMessage::Type::Generate
+                                                            : LLMCore::OllamaMessage::Type::Chat;
 
         auto message = LLMCore::OllamaMessage::fromJson(line, messageType);
         if (message.hasError()) {
