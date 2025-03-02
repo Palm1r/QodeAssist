@@ -21,9 +21,6 @@
 
 namespace QodeAssist::Constants {
 
-const char ACTION_ID[] = "QodeAssist.Action";
-const char MENU_ID[] = "QodeAssist.Menu";
-
 // project settings
 
 const char QODE_ASSIST_PROJECT_SETTINGS_ID[] = "QodeAssist.ProjectSettings";
@@ -86,8 +83,6 @@ const char QODE_ASSIST_CUSTOM_PROMPT_SETTINGS_PAGE_ID[] = "QodeAssist.4CustomPro
 
 const char QODE_ASSIST_GENERAL_OPTIONS_CATEGORY[] = "QodeAssist.Category";
 const char QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY[] = "Qode Assist";
-
-const char QODE_ASSIST_REQUEST_SUGGESTION[] = "QodeAssist.RequestSuggestion";
 
 // Provider Settings Page ID
 const char QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID[] = "QodeAssist.5ProviderSettingsPageId";
