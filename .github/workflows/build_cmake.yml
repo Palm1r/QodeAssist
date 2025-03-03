@@ -187,6 +187,15 @@ jobs:
         set(ENV{CXX} ${{ matrix.config.cxx }})
         set(ENV{MACOSX_DEPLOYMENT_TARGET} "${{ env.MACOS_DEPLOYMENT_TARGET }}")
 
+        string(REGEX MATCH "^([0-9]+)\\.([0-9]+)\\.([0-9]+)" version_match "$ENV{QT_CREATOR_VERSION}")
+        set(QT_CREATOR_VERSION_MAJOR "${CMAKE_MATCH_1}")
+        set(QT_CREATOR_VERSION_MINOR "${CMAKE_MATCH_2}")
+        set(QT_CREATOR_VERSION_PATCH "${CMAKE_MATCH_3}")
+
+        if(NOT version_match)
+            message(FATAL_ERROR "Failed to parse Qt Creator version string: $ENV{QT_CREATOR_VERSION}")
+        endif()
+
         if ("${{ runner.os }}" STREQUAL "Windows" AND NOT "x${{ matrix.config.environment_script }}" STREQUAL "x")
           execute_process(
             COMMAND "${{ matrix.config.environment_script }}" && set
@@ -223,6 +232,9 @@ jobs:
             --qt-path "${{ steps.qt.outputs.qt_dir }}"
             --qtc-path "${{ steps.qt_creator.outputs.qtc_dir }}"
             --output-path "$ENV{GITHUB_WORKSPACE}"
+            --add-config=-DQODEASSIST_QT_CREATOR_VERSION_MAJOR=${QT_CREATOR_VERSION_MAJOR}
+            --add-config=-DQODEASSIST_QT_CREATOR_VERSION_MINOR=${QT_CREATOR_VERSION_MINOR}
+            --add-config=-DQODEASSIST_QT_CREATOR_VERSION_PATCH=${QT_CREATOR_VERSION_PATCH}
           RESULT_VARIABLE result
         )
         if (NOT result EQUAL 0)
