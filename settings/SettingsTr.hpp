@@ -37,6 +37,8 @@ inline const char *URL = QT_TRANSLATE_NOOP("QtC::QodeAssist", "URL:");
 inline const char *STATUS = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Status:");
 inline const char *TEST = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Test");
 inline const char *ENABLE_LOG = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Enable Logging");
+inline const char *ENABLE_LOG_TOOLTIP
+    = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Log messages are visible in General Messages pane");
 inline const char *ENABLE_CHECK_UPDATE_ON_START
     = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Check for updates when Qt Creator starts");
 inline const char *ENABLE_CHAT = QT_TRANSLATE_NOOP(
