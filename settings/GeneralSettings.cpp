@@ -60,6 +60,7 @@ GeneralSettings::GeneralSettings()
 
     enableLogging.setSettingsKey(Constants::ENABLE_LOGGING);
     enableLogging.setLabelText(TrConstants::ENABLE_LOG);
+    enableLogging.setToolTip(TrConstants::ENABLE_LOG_TOOLTIP);
     enableLogging.setDefaultValue(false);
 
     enableCheckUpdate.setSettingsKey(Constants::ENABLE_CHECK_UPDATE);
