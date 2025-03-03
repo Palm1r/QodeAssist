@@ -42,6 +42,17 @@
 
 namespace QodeAssist::Settings {
 
+void addDialogButtons(QBoxLayout *layout, QAbstractButton *okButton, QAbstractButton *cancelButton)
+{
+#if defined(Q_OS_MACOS)
+    layout->addWidget(cancelButton);
+    layout->addWidget(okButton);
+#else
+    layout->addWidget(okButton);
+    layout->addWidget(cancelButton);
+#endif
+}
+
 GeneralSettings &generalSettings()
 {
     static GeneralSettings settings;
@@ -321,8 +332,7 @@ void GeneralSettings::showModelsNotSupportedDialog(Utils::StringAspect &aspect)
     auto cancelButton = new QPushButton(TrConstants::CANCEL);
     connect(cancelButton, &QPushButton::clicked, &dialog, &QDialog::reject);
 
-    dialog.buttonLayout()->addWidget(cancelButton);
-    dialog.buttonLayout()->addWidget(okButton);
+    addDialogButtons(dialog.buttonLayout(), okButton, cancelButton);
 
     modelList->setFocus();
     dialog.exec();
@@ -361,8 +371,7 @@ void GeneralSettings::showUrlSelectionDialog(
     auto cancelButton = new QPushButton(TrConstants::CANCEL);
     connect(cancelButton, &QPushButton::clicked, &dialog, &QDialog::reject);
 
-    dialog.buttonLayout()->addWidget(cancelButton);
-    dialog.buttonLayout()->addWidget(okButton);
+    addDialogButtons(dialog.buttonLayout(), okButton, cancelButton);
 
     urlList->setFocus();
     dialog.exec();
