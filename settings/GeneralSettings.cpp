@@ -33,13 +33,13 @@
 #include <QtWidgets/qradiobutton.h>
 #include <QtWidgets/qstackedwidget.h>
 
+#include "../Version.hpp"
 #include "Logger.hpp"
 #include "SettingsConstants.hpp"
 #include "SettingsDialog.hpp"
 #include "SettingsTr.hpp"
 #include "SettingsUtils.hpp"
 #include "UpdateDialog.hpp"
-#include "../Version.hpp"
 
 namespace QodeAssist::Settings {
 
