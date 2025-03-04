@@ -39,6 +39,7 @@
 #include "SettingsTr.hpp"
 #include "SettingsUtils.hpp"
 #include "UpdateDialog.hpp"
+#include "../Version.hpp"
 
 namespace QodeAssist::Settings {
 
@@ -444,8 +445,10 @@ public:
         setId(Constants::QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID);
         setDisplayName(TrConstants::GENERAL);
         setCategory(Constants::QODE_ASSIST_GENERAL_OPTIONS_CATEGORY);
+#if QODEASSIST_QT_CREATOR_VERSION < QT_VERSION_CHECK(15, 0, 83)
         setDisplayCategory(Constants::QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY);
         setCategoryIconPath(":/resources/images/qoderassist-icon.png");
+#endif
         setSettingsProvider([] { return &generalSettings(); });
     }
 };

@@ -43,10 +43,12 @@
 
 #include "ConfigurationManager.hpp"
 #include "QodeAssistClient.hpp"
+#include "Version.hpp"
 #include "chat/ChatOutputPane.h"
 #include "chat/NavigationPanel.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProjectSettingsPanel.hpp"
+#include "settings/SettingsConstants.hpp"
 
 #include "UpdateStatusWidget.hpp"
 #include "providers/Providers.hpp"
@@ -77,6 +79,13 @@ public:
 
     void initialize() final
     {
+#if QODEASSIST_QT_CREATOR_VERSION >= QT_VERSION_CHECK(15, 0, 83)
+        Core::IOptionsPage::registerCategory(
+            Constants::QODE_ASSIST_GENERAL_OPTIONS_CATEGORY,
+            Constants::QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY,
+            ":/resources/images/qoderassist-icon.png");
+#endif
+
         Providers::registerProviders();
         Templates::registerTemplates();
 
