@@ -265,7 +265,8 @@ LLMCore::ContextData LLMClientInterface::prepareContext(
     int cursorPosition = position["character"].toInt();
     int lineNumber = position["line"].toInt();
 
-    Context::DocumentContextReader reader(textDocument);
+    Context::DocumentContextReader reader(
+        textDocument->document(), textDocument->mimeType(), textDocument->filePath().toString());
     return reader.prepareContext(lineNumber, cursorPosition);
 }
 

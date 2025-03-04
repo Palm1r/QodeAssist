@@ -48,9 +48,11 @@ const QRegularExpression &getCommentRegex()
 
 namespace QodeAssist::Context {
 
-DocumentContextReader::DocumentContextReader(TextEditor::TextDocument *textDocument)
-    : m_textDocument(textDocument)
-    , m_document(textDocument->document())
+DocumentContextReader::DocumentContextReader(
+    QTextDocument *document, const QString &mimeType, const QString &filePath)
+    : m_document(document)
+    , m_mimeType(mimeType)
+    , m_filePath(filePath)
 {
     m_copyrightInfo = findCopyright();
 }
@@ -120,17 +122,11 @@ QString DocumentContextReader::readWholeFileAfter(int lineNumber, int cursorPosi
 
 QString DocumentContextReader::getLanguageAndFileInfo() const
 {
-    if (!m_textDocument)
-        return QString();
-
-    QString language = LanguageServerProtocol::TextDocumentItem::mimeTypeToLanguageId(
-        m_textDocument->mimeType());
-    QString mimeType = m_textDocument->mimeType();
-    QString filePath = m_textDocument->filePath().toString();
-    QString fileExtension = QFileInfo(filePath).suffix();
+    QString language = LanguageServerProtocol::TextDocumentItem::mimeTypeToLanguageId(m_mimeType);
+    QString fileExtension = QFileInfo(m_filePath).suffix();
 
     return QString("Language: %1 (MIME: %2) filepath: %3(%4)\n\n")
-        .arg(language, mimeType, filePath, fileExtension);
+        .arg(language, m_mimeType, m_filePath, fileExtension);
 }
 
 CopyrightInfo DocumentContextReader::findCopyright()
