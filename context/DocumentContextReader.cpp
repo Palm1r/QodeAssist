@@ -180,10 +180,20 @@ QString DocumentContextReader::getContextBetween(int startLine, int endLine, int
         if (!block.isValid()) {
             break;
         }
-        if (i == endLine) {
+
+        if (i == startLine && cursorPosition >= 0) {
+            QString text = block.text();
+            if (cursorPosition < text.length()) {
+                context += text.mid(cursorPosition);
+            }
+        } else if (i == endLine && cursorPosition >= 0) {
             context += block.text().left(cursorPosition);
         } else {
-            context += block.text() + "\n";
+            context += block.text();
+        }
+
+        if (i < endLine) {
+            context += "\n";
         }
     }
 
@@ -234,7 +244,7 @@ QString DocumentContextReader::getContextAfter(int lineNumber, int cursorPositio
         int endLine = qMin(
             m_document->blockCount() - 1,
             lineNumber + Settings::codeCompletionSettings().readStringsAfterCursor());
-        return getContextBetween(lineNumber + 1, endLine, -1);
+        return getContextBetween(lineNumber, endLine, cursorPosition);
     }
 }
 
