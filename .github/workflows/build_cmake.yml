@@ -70,7 +70,7 @@ jobs:
         cmakeVersion: ${{ env.CMAKE_VERSION }}
         ninjaVersion: ${{ env.NINJA_VERSION }}
 
-    - name: Install system libs
+    - name: Install dependencies
       shell: cmake -P {0}
       run: |
         if ("${{ runner.os }}" STREQUAL "Linux")
@@ -78,7 +78,13 @@ jobs:
             COMMAND sudo apt update
           )
           execute_process(
-            COMMAND sudo apt install libgl1-mesa-dev
+            COMMAND sudo apt install
+              # build dependencies
+              libgl1-mesa-dev libgtest-dev
+              # runtime dependencies for tests (Qt is downloaded outside package manager,
+              # thus minimal dependencies must be installed explicitly)
+              libsecret-1-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-render0
+              libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0 libxcb-xkb1 libxkbcommon-x11-0 xvfb
             RESULT_VARIABLE result
           )
           if (NOT result EQUAL 0)
@@ -257,6 +263,11 @@ jobs:
       with:
         name: ${{ env.PLUGIN_NAME }}-origin-json
         path: ./build/build/${{ env.PLUGIN_NAME }}.json
+
+    - name: Run unit tests
+      if: matrix.config.os == 'ubuntu-latest'
+      run: |
+        xvfb-run ./build/build/test/QodeAssistTest
 
   update_json:
     if: contains(github.ref, 'tags/v')
