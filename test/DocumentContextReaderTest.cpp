@@ -283,15 +283,15 @@ TEST_F(DocumentContextReaderTest, testPrepareContext)
     EXPECT_EQ(
         reader.prepareContext(2, 3, *createSettingsForLines(1, 1)),
         (ContextData{
-            .prefix = "Lin",
-            .suffix = "e 3",
+            .prefix = "Line 2\nLin",
+            .suffix = "e 3\nLine 4",
             .fileContext = "\n Language:  (MIME: text/python) filepath: /path/to/file()\n\n\n "}));
 
     EXPECT_EQ(
         reader.prepareContext(2, 3, *createSettingsForLines(2, 2)),
         (ContextData{
-            .prefix = "Line 2\nLin",
-            .suffix = "e 3\nLine 4",
+            .prefix = "Line 1\nLine 2\nLin",
+            .suffix = "e 3\nLine 4\nLine 5",
             .fileContext = "\n Language:  (MIME: text/python) filepath: /path/to/file()\n\n\n "}));
 }
 
