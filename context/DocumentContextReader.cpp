@@ -91,14 +91,14 @@ QString DocumentContextReader::getContextBefore(
         effectiveStartLine = qMax(0, lineNumber - linesCount);
     }
 
-    return getContextBetween(effectiveStartLine, lineNumber, cursorPosition);
+    return getContextBetween(effectiveStartLine, -1, lineNumber, cursorPosition);
 }
 
 QString DocumentContextReader::getContextAfter(
     int lineNumber, int cursorPosition, int linesCount) const
 {
     int endLine = qMin(m_document->blockCount() - 1, lineNumber + linesCount);
-    return getContextBetween(lineNumber + 1, endLine, cursorPosition);
+    return getContextBetween(lineNumber + 1, cursorPosition, endLine, -1);
 }
 
 QString DocumentContextReader::readWholeFileBefore(int lineNumber, int cursorPosition) const
@@ -110,14 +110,12 @@ QString DocumentContextReader::readWholeFileBefore(int lineNumber, int cursorPos
 
     startLine = qMin(startLine, lineNumber);
 
-    QString result = getContextBetween(startLine, lineNumber, cursorPosition);
-
-    return result;
+    return getContextBetween(startLine, -1, lineNumber, cursorPosition);
 }
 
 QString DocumentContextReader::readWholeFileAfter(int lineNumber, int cursorPosition) const
 {
-    return getContextBetween(lineNumber, m_document->blockCount() - 1, cursorPosition);
+    return getContextBetween(lineNumber, cursorPosition, m_document->blockCount() - 1, -1);
 }
 
 QString DocumentContextReader::getLanguageAndFileInfo() const
@@ -172,18 +170,71 @@ CopyrightInfo DocumentContextReader::findCopyright()
     return result;
 }
 
-QString DocumentContextReader::getContextBetween(int startLine, int endLine, int cursorPosition) const
+QString DocumentContextReader::getContextBetween(
+    int startLine, int startCursorPosition, int endLine, int endCursorPosition) const
 {
     QString context;
-    for (int i = startLine; i <= endLine; ++i) {
-        QTextBlock block = m_document->findBlockByNumber(i);
+
+    if (startLine > endLine) {
+        return context;
+    }
+
+    if (startLine == endLine) {
+        auto block = m_document->findBlockByNumber(startLine);
         if (!block.isValid()) {
-            break;
+            return context;
         }
-        if (i == endLine) {
-            context += block.text().left(cursorPosition);
+
+        auto text = block.text();
+
+        if (startCursorPosition < 0) {
+            startCursorPosition = 0;
+        }
+        if (endCursorPosition < 0) {
+            endCursorPosition = text.size();
+        }
+
+        if (startCursorPosition >= endCursorPosition) {
+            return context;
+        }
+
+        return text.mid(startCursorPosition, endCursorPosition - startCursorPosition);
+    }
+
+    // first line
+    {
+        auto block = m_document->findBlockByNumber(startLine);
+        if (!block.isValid()) {
+            return context;
+        }
+        auto text = block.text();
+        if (startCursorPosition < 0) {
+            context += text + "\n";
         } else {
-            context += block.text() + "\n";
+            context += text.right(text.size() - startCursorPosition) + "\n";
+        }
+    }
+
+    // intermediate lines, if any
+    for (int i = startLine + 1; i <= endLine - 1; ++i) {
+        auto block = m_document->findBlockByNumber(i);
+        if (!block.isValid()) {
+            return context;
+        }
+        context += block.text() + "\n";
+    }
+
+    // last line
+    {
+        auto block = m_document->findBlockByNumber(endLine);
+        if (!block.isValid()) {
+            return context;
+        }
+        auto text = block.text();
+        if (endCursorPosition < 0) {
+            context += text;
+        } else {
+            context += text.left(endCursorPosition);
         }
     }
 
@@ -222,7 +273,7 @@ QString DocumentContextReader::getContextBefore(int lineNumber, int cursorPositi
         } else {
             effectiveStartLine = qMax(0, lineNumber - beforeCursor);
         }
-        return getContextBetween(effectiveStartLine, lineNumber, cursorPosition);
+        return getContextBetween(effectiveStartLine, -1, lineNumber, cursorPosition);
     }
 }
 
@@ -234,7 +285,7 @@ QString DocumentContextReader::getContextAfter(int lineNumber, int cursorPositio
         int endLine = qMin(
             m_document->blockCount() - 1,
             lineNumber + Settings::codeCompletionSettings().readStringsAfterCursor());
-        return getContextBetween(lineNumber + 1, endLine, -1);
+        return getContextBetween(lineNumber + 1, cursorPosition, endLine, -1);
     }
 }
 
