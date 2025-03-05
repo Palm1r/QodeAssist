@@ -93,7 +93,7 @@ TEST_F(DocumentContextReaderTest, testGetContextAfterWithCopyright)
     EXPECT_EQ(reader.getContextAfter(0, -1, 2), "Line 1\nLine 2");
 
     // Test getting context after with copyright skipped
-    EXPECT_EQ(reader.getContextAfter(1, 0, 2), "Line 2\n");
+    EXPECT_EQ(reader.getContextAfter(1, 0, 2), "Line 2\nLine 3");
 }
 
 TEST_F(DocumentContextReaderTest, testReadWholeFile)
@@ -112,7 +112,9 @@ TEST_F(DocumentContextReaderTest, testReadWholeFileWithCopyright)
     EXPECT_EQ(reader.readWholeFileAfter(2, -1), "Line 2\nLine 3\nLine 4");
 
     EXPECT_EQ(reader.readWholeFileBefore(2, 0), "Line 1\n");
-    EXPECT_EQ(reader.readWholeFileAfter(2, 0), "Line 2\nLine 3\n");
+    EXPECT_EQ(reader.readWholeFileAfter(2, 0), "Line 2\nLine 3\nLine 4");
+    EXPECT_EQ(reader.readWholeFileBefore(2, 2), "Line 1\nLi");
+    EXPECT_EQ(reader.readWholeFileAfter(2, 2), "ne 2\nLine 3\nLine 4");
 }
 
 TEST_F(DocumentContextReaderTest, testReadWholeFileWithMultilineCopyright)
@@ -124,8 +126,10 @@ TEST_F(DocumentContextReaderTest, testReadWholeFileWithMultilineCopyright)
     EXPECT_EQ(reader.readWholeFileBefore(6, -1), "Line 1\nLine 2");
     EXPECT_EQ(reader.readWholeFileAfter(5, -1), "Line 1\nLine 2");
 
-    EXPECT_EQ(reader.readWholeFileBefore(6, 4), "Line 1\nLine");
-    EXPECT_EQ(reader.readWholeFileAfter(5, 4), "Line 1\nLine");
+    EXPECT_EQ(reader.readWholeFileBefore(6, 0), "Line 1\n");
+    EXPECT_EQ(reader.readWholeFileAfter(6, 0), "Line 2");
+    EXPECT_EQ(reader.readWholeFileBefore(6, 2), "Line 1\nLi");
+    EXPECT_EQ(reader.readWholeFileAfter(6, 2), "ne 2");
 }
 
 TEST_F(DocumentContextReaderTest, testFindCopyrightSingleLine)
@@ -173,8 +177,17 @@ TEST_F(DocumentContextReaderTest, testGetContextBetween)
 {
     auto reader = createTestReader("Line 1\nLine 2\nLine 3\nLine 4\nLine 5");
 
-    EXPECT_EQ(reader.getContextBetween(1, 3, -1), "Line 2\nLine 3\nLine 4");
-    EXPECT_EQ(reader.getContextBetween(0, 2, 4), "Line 1\nLine 2\nLine");
+    EXPECT_EQ(reader.getContextBetween(2, -1, 0, -1), "");
+    EXPECT_EQ(reader.getContextBetween(0, -1, 0, -1), "Line 1");
+    EXPECT_EQ(reader.getContextBetween(1, -1, 1, -1), "Line 2");
+    EXPECT_EQ(reader.getContextBetween(1, 3, 1, 1), "");
+    EXPECT_EQ(reader.getContextBetween(1, 3, 1, 3), "");
+    EXPECT_EQ(reader.getContextBetween(1, 3, 1, 4), "e");
+
+    EXPECT_EQ(reader.getContextBetween(1, -1, 3, -1), "Line 2\nLine 3\nLine 4");
+    EXPECT_EQ(reader.getContextBetween(1, 2, 3, -1), "ne 2\nLine 3\nLine 4");
+    EXPECT_EQ(reader.getContextBetween(1, -1, 3, 2), "Line 2\nLine 3\nLi");
+    EXPECT_EQ(reader.getContextBetween(1, 2, 3, 2), "ne 2\nLine 3\nLi");
 }
 
 #include "DocumentContextReaderTest.moc"

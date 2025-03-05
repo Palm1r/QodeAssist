@@ -46,7 +46,8 @@ public:
     QString readWholeFileAfter(int lineNumber, int cursorPosition) const;
     QString getLanguageAndFileInfo() const;
     CopyrightInfo findCopyright();
-    QString getContextBetween(int startLine, int endLine, int cursorPosition) const;
+    QString getContextBetween(
+        int startLine, int startCursorPosition, int endLine, int endCursorPosition) const;
 
     CopyrightInfo copyrightInfo() const;
 
