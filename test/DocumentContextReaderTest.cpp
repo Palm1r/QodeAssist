@@ -62,38 +62,56 @@ TEST_F(DocumentContextReaderTest, testGetContextBefore)
 {
     auto reader = createTestReader("Line 1\nLine 2\nLine 3\nLine 4\nLine 5");
 
-    EXPECT_EQ(reader.getContextBefore(2, -1, 2), "Line 1\nLine 2\nLine 3");
-    EXPECT_EQ(reader.getContextBefore(4, -1, 3), "Line 2\nLine 3\nLine 4\nLine 5");
+    EXPECT_EQ(reader.getContextBefore(0, -1, 2), "Line 1");
+    EXPECT_EQ(reader.getContextBefore(1, -1, 2), "Line 1\nLine 2");
+    EXPECT_EQ(reader.getContextBefore(2, -1, 2), "Line 2\nLine 3");
+    EXPECT_EQ(reader.getContextBefore(3, -1, 2), "Line 3\nLine 4");
+    EXPECT_EQ(reader.getContextBefore(0, 1, 2), "L");
+    EXPECT_EQ(reader.getContextBefore(1, 1, 2), "Line 1\nL");
+    EXPECT_EQ(reader.getContextBefore(2, 1, 2), "Line 2\nL");
+    EXPECT_EQ(reader.getContextBefore(3, 1, 2), "Line 3\nL");
 }
 
 TEST_F(DocumentContextReaderTest, testGetContextAfter)
 {
     auto reader = createTestReader("Line 1\nLine 2\nLine 3\nLine 4\nLine 5");
 
-    EXPECT_EQ(reader.getContextAfter(0, -1, 2), "Line 2\nLine 3");
-    EXPECT_EQ(reader.getContextAfter(2, -1, 2), "Line 4\nLine 5");
+    EXPECT_EQ(reader.getContextAfter(0, -1, 2), "Line 1\nLine 2");
+    EXPECT_EQ(reader.getContextAfter(1, -1, 2), "Line 2\nLine 3");
+    EXPECT_EQ(reader.getContextAfter(2, -1, 2), "Line 3\nLine 4");
+    EXPECT_EQ(reader.getContextAfter(3, -1, 2), "Line 4\nLine 5");
+    EXPECT_EQ(reader.getContextAfter(0, 1, 2), "ine 1\nLine 2");
+    EXPECT_EQ(reader.getContextAfter(1, 1, 2), "ine 2\nLine 3");
+    EXPECT_EQ(reader.getContextAfter(2, 1, 2), "ine 3\nLine 4");
+    EXPECT_EQ(reader.getContextAfter(3, 1, 2), "ine 4\nLine 5");
 }
 
 TEST_F(DocumentContextReaderTest, testGetContextBeforeWithCopyright)
 {
     auto reader = createTestReader("/* Copyright (C) 2024 */\nLine 1\nLine 2\nLine 3\nLine 4");
 
-    // Test getting context before with copyright header
+    EXPECT_EQ(reader.getContextBefore(0, -1, 2), "");
+    EXPECT_EQ(reader.getContextBefore(1, -1, 2), "Line 1");
     EXPECT_EQ(reader.getContextBefore(2, -1, 2), "Line 1\nLine 2");
-
-    // Test getting context before skipping copyright
-    EXPECT_EQ(reader.getContextBefore(3, 0, 2), "Line 1\nLine 2\n");
+    EXPECT_EQ(reader.getContextBefore(3, -1, 2), "Line 2\nLine 3");
+    EXPECT_EQ(reader.getContextBefore(0, 1, 2), "");
+    EXPECT_EQ(reader.getContextBefore(1, 1, 2), "L");
+    EXPECT_EQ(reader.getContextBefore(2, 1, 2), "Line 1\nL");
+    EXPECT_EQ(reader.getContextBefore(3, 1, 2), "Line 2\nL");
 }
 
 TEST_F(DocumentContextReaderTest, testGetContextAfterWithCopyright)
 {
     auto reader = createTestReader("/* Copyright (C) 2024 */\nLine 1\nLine 2\nLine 3\nLine 4");
 
-    // Test getting context after copyright header
-    EXPECT_EQ(reader.getContextAfter(0, -1, 2), "Line 1\nLine 2");
-
-    // Test getting context after with copyright skipped
-    EXPECT_EQ(reader.getContextAfter(1, 0, 2), "Line 2\nLine 3");
+    EXPECT_EQ(reader.getContextAfter(0, -1, 2), "/* Copyright (C) 2024 */\nLine 1");
+    EXPECT_EQ(reader.getContextAfter(1, -1, 2), "Line 1\nLine 2");
+    EXPECT_EQ(reader.getContextAfter(2, -1, 2), "Line 2\nLine 3");
+    EXPECT_EQ(reader.getContextAfter(3, -1, 2), "Line 3\nLine 4");
+    EXPECT_EQ(reader.getContextAfter(0, 1, 2), "* Copyright (C) 2024 */\nLine 1");
+    EXPECT_EQ(reader.getContextAfter(1, 1, 2), "ine 1\nLine 2");
+    EXPECT_EQ(reader.getContextAfter(2, 1, 2), "ine 2\nLine 3");
+    EXPECT_EQ(reader.getContextAfter(3, 1, 2), "ine 3\nLine 4");
 }
 
 TEST_F(DocumentContextReaderTest, testReadWholeFile)

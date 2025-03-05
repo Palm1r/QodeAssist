@@ -40,10 +40,31 @@ public:
         QTextDocument *m_document, const QString &mimeType, const QString &filePath);
 
     QString getLineText(int lineNumber, int cursorPosition = -1) const;
+
+    /**
+     * @brief Retrieves @c linesCount lines of context ending at @c lineNumber at
+     * @c cursorPosition in that line. The line at @c lineNumber is inclusive regardless of
+     * @c cursorPosition.
+     */
     QString getContextBefore(int lineNumber, int cursorPosition, int linesCount) const;
+
+    /**
+     * @brief Retrieves @c linesCount lines of context starting at @c lineNumber at
+     * @c cursorPosition in that line. The line at @c lineNumber is inclusive regardless of
+     * @c cursorPosition.
+     */
     QString getContextAfter(int lineNumber, int cursorPosition, int linesCount) const;
+
+    /**
+     * @brief Retrieves whole file ending at @c lineNumber at @c cursorPosition in that line.
+     */
     QString readWholeFileBefore(int lineNumber, int cursorPosition) const;
+
+    /**
+     * @brief Retrieves whole file starting at @c lineNumber at @c cursorPosition in that line.
+     */
     QString readWholeFileAfter(int lineNumber, int cursorPosition) const;
+
     QString getLanguageAndFileInfo() const;
     CopyrightInfo findCopyright();
     QString getContextBetween(
