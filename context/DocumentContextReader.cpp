@@ -244,39 +244,29 @@ CopyrightInfo DocumentContextReader::copyrightInfo() const
     return m_copyrightInfo;
 }
 
-LLMCore::ContextData DocumentContextReader::prepareContext(int lineNumber, int cursorPosition) const
+LLMCore::ContextData DocumentContextReader::prepareContext(
+    int lineNumber, int cursorPosition, const Settings::CodeCompletionSettings &settings) const
 {
-    QString contextBefore = getContextBefore(lineNumber, cursorPosition);
-    QString contextAfter = getContextAfter(lineNumber, cursorPosition);
+    QString contextBefore;
+    QString contextAfter;
+    if (settings.readFullFile()) {
+        contextBefore = readWholeFileBefore(lineNumber, cursorPosition);
+        contextAfter = readWholeFileAfter(lineNumber, cursorPosition);
+    } else {
+        contextBefore
+            = getContextBefore(lineNumber, cursorPosition, settings.readStringsBeforeCursor());
+        contextAfter
+            = getContextAfter(lineNumber, cursorPosition, settings.readStringsAfterCursor());
+    }
 
     QString fileContext;
     fileContext.append("\n ").append(getLanguageAndFileInfo());
 
-    if (Settings::codeCompletionSettings().useProjectChangesCache())
+    if (settings.useProjectChangesCache())
         fileContext.append("\n ").append(
             ChangesManager::instance().getRecentChangesContext(m_textDocument));
 
     return {.prefix = contextBefore, .suffix = contextAfter, .fileContext = fileContext};
-}
-
-QString DocumentContextReader::getContextBefore(int lineNumber, int cursorPosition) const
-{
-    if (Settings::codeCompletionSettings().readFullFile()) {
-        return readWholeFileBefore(lineNumber, cursorPosition);
-    } else {
-        int linesCount = Settings::codeCompletionSettings().readStringsBeforeCursor();
-        return getContextBefore(lineNumber, cursorPosition, linesCount);
-    }
-}
-
-QString DocumentContextReader::getContextAfter(int lineNumber, int cursorPosition) const
-{
-    if (Settings::codeCompletionSettings().readFullFile()) {
-        return readWholeFileAfter(lineNumber, cursorPosition);
-    } else {
-        int linesCount = Settings::codeCompletionSettings().readStringsAfterCursor();
-        return getContextAfter(lineNumber, cursorPosition, linesCount);
-    }
 }
 
 } // namespace QodeAssist::Context
