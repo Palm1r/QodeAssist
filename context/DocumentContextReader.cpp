@@ -253,10 +253,12 @@ LLMCore::ContextData DocumentContextReader::prepareContext(
         contextBefore = readWholeFileBefore(lineNumber, cursorPosition);
         contextAfter = readWholeFileAfter(lineNumber, cursorPosition);
     } else {
+        // Note that readStrings{After,Before}Cursor include current line, but linesCount argument of
+        // getContext{After,Before} do not
         contextBefore
-            = getContextBefore(lineNumber, cursorPosition, settings.readStringsBeforeCursor());
+            = getContextBefore(lineNumber, cursorPosition, settings.readStringsBeforeCursor() + 1);
         contextAfter
-            = getContextAfter(lineNumber, cursorPosition, settings.readStringsAfterCursor());
+            = getContextAfter(lineNumber, cursorPosition, settings.readStringsAfterCursor() + 1);
     }
 
     QString fileContext;
