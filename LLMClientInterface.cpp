@@ -267,7 +267,7 @@ LLMCore::ContextData LLMClientInterface::prepareContext(
 
     Context::DocumentContextReader reader(
         textDocument->document(), textDocument->mimeType(), textDocument->filePath().toString());
-    return reader.prepareContext(lineNumber, cursorPosition);
+    return reader.prepareContext(lineNumber, cursorPosition, Settings::codeCompletionSettings());
 }
 
 void LLMClientInterface::sendCompletionToClient(

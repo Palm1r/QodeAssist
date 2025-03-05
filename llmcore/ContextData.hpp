@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -28,6 +28,10 @@ struct Message
 {
     QString role;
     QString content;
+
+    // clang-format off
+    auto operator<=>(const Message&) const = default;
+    // clang-format on
 };
 
 struct ContextData
@@ -37,6 +41,8 @@ struct ContextData
     std::optional<QString> suffix;
     std::optional<QString> fileContext;
     std::optional<QVector<Message>> history;
+
+    bool operator==(const ContextData &) const = default;
 };
 
 } // namespace QodeAssist::LLMCore

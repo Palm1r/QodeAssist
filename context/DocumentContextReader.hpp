@@ -23,6 +23,7 @@
 #include <QTextDocument>
 
 #include <llmcore/ContextData.hpp>
+#include <settings/CodeCompletionSettings.hpp>
 
 namespace QodeAssist::Context {
 
@@ -72,11 +73,8 @@ public:
 
     CopyrightInfo copyrightInfo() const;
 
-    LLMCore::ContextData prepareContext(int lineNumber, int cursorPosition) const;
-
-private:
-    QString getContextBefore(int lineNumber, int cursorPosition) const;
-    QString getContextAfter(int lineNumber, int cursorPosition) const;
+    LLMCore::ContextData prepareContext(
+        int lineNumber, int cursorPosition, const Settings::CodeCompletionSettings &settings) const;
 
 private:
     TextEditor::TextDocument *m_textDocument;

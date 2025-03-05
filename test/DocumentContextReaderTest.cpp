@@ -20,15 +20,58 @@
 #include "context/DocumentContextReader.hpp"
 
 #include <gtest/gtest.h>
+#include <QSharedPointer>
 #include <QTextDocument>
 
 using namespace QodeAssist::Context;
+using namespace QodeAssist::LLMCore;
+using namespace QodeAssist::Settings;
 
 std::ostream &operator<<(std::ostream &out, const QString &value)
 {
-    out << value.toStdString();
+    out << '"' << value.toStdString() << '"';
     return out;
 }
+
+template<class T>
+std::ostream &operator<<(std::ostream &out, const QVector<T> &value)
+{
+    out << "[";
+    for (const auto &el : value) {
+        out << value << ", ";
+    }
+    out << "]";
+    return out;
+}
+
+template<class T>
+std::ostream &operator<<(std::ostream &out, const std::optional<T> &value)
+{
+    if (value.has_value()) {
+        out << value.value();
+    } else {
+        out << "(no value)";
+    }
+    return out;
+}
+
+namespace QodeAssist::LLMCore {
+std::ostream &operator<<(std::ostream &out, const Message &value)
+{
+    out << "Message{"
+        << "role=" << value.role << "content=" << value.content << "}";
+    return out;
+}
+
+std::ostream &operator<<(std::ostream &out, const ContextData &value)
+{
+    out << "ContextData{"
+        << "\n  systemPrompt=" << value.systemPrompt << "\n  prefix=" << value.prefix
+        << "\n  suffix=" << value.suffix << "\n  fileContext=" << value.fileContext
+        << "\n  history=" << value.history << "\n}";
+    return out;
+}
+} // namespace QodeAssist::LLMCore
 
 class DocumentContextReaderTest : public QObject, public testing::Test
 {
@@ -45,6 +88,24 @@ protected:
     DocumentContextReader createTestReader(const QString &text)
     {
         return DocumentContextReader(createTestDocument(text), "text/python", "/path/to/file");
+    }
+
+    QSharedPointer<CodeCompletionSettings> createSettingsForWholeFile()
+    {
+        // CodeCompletionSettings is noncopyable
+        auto settings = QSharedPointer<CodeCompletionSettings>::create();
+        settings->readFullFile.setValue(true);
+        return settings;
+    }
+
+    QSharedPointer<CodeCompletionSettings> createSettingsForLines(int linesBefore, int linesAfter)
+    {
+        // CodeCompletionSettings is noncopyable
+        auto settings = QSharedPointer<CodeCompletionSettings>::create();
+        settings->readFullFile.setValue(false);
+        settings->readStringsBeforeCursor.setValue(linesBefore);
+        settings->readStringsAfterCursor.setValue(linesAfter);
+        return settings;
     }
 };
 
@@ -206,6 +267,32 @@ TEST_F(DocumentContextReaderTest, testGetContextBetween)
     EXPECT_EQ(reader.getContextBetween(1, 2, 3, -1), "ne 2\nLine 3\nLine 4");
     EXPECT_EQ(reader.getContextBetween(1, -1, 3, 2), "Line 2\nLine 3\nLi");
     EXPECT_EQ(reader.getContextBetween(1, 2, 3, 2), "ne 2\nLine 3\nLi");
+}
+
+TEST_F(DocumentContextReaderTest, testPrepareContext)
+{
+    auto reader = createTestReader("Line 1\nLine 2\nLine 3\nLine 4\nLine 5");
+
+    EXPECT_EQ(
+        reader.prepareContext(2, 3, *createSettingsForWholeFile()),
+        (ContextData{
+            .prefix = "Line 1\nLine 2\nLin",
+            .suffix = "e 3\nLine 4\nLine 5",
+            .fileContext = "\n Language:  (MIME: text/python) filepath: /path/to/file()\n\n\n "}));
+
+    EXPECT_EQ(
+        reader.prepareContext(2, 3, *createSettingsForLines(1, 1)),
+        (ContextData{
+            .prefix = "Lin",
+            .suffix = "e 3",
+            .fileContext = "\n Language:  (MIME: text/python) filepath: /path/to/file()\n\n\n "}));
+
+    EXPECT_EQ(
+        reader.prepareContext(2, 3, *createSettingsForLines(2, 2)),
+        (ContextData{
+            .prefix = "Line 2\nLin",
+            .suffix = "e 3\nLine 4",
+            .fileContext = "\n Language:  (MIME: text/python) filepath: /path/to/file()\n\n\n "}));
 }
 
 #include "DocumentContextReaderTest.moc"
