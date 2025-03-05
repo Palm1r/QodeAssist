@@ -42,6 +42,12 @@ jobs:
             cc: "gcc", cxx: "g++"
           }
         - {
+            name: "Ubuntu 22.04 GCC", artifact: "Ubuntu-22.04-experimental",
+            os: ubuntu-22.04,
+            platform: linux_x64,
+            cc: "gcc", cxx: "g++"
+          }
+        - {
             name: "macOS Latest Clang", artifact: "macOS-universal",
             os: macos-latest,
             platform: mac_x64,
