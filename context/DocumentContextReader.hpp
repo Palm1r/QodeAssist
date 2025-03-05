@@ -36,7 +36,8 @@ struct CopyrightInfo
 class DocumentContextReader
 {
 public:
-    DocumentContextReader(TextEditor::TextDocument *textDocument);
+    DocumentContextReader(
+        QTextDocument *m_document, const QString &mimeType, const QString &filePath);
 
     QString getLineText(int lineNumber, int cursorPosition = -1) const;
     QString getContextBefore(int lineNumber, int cursorPosition, int linesCount) const;
@@ -58,6 +59,8 @@ private:
 private:
     TextEditor::TextDocument *m_textDocument;
     QTextDocument *m_document;
+    QString m_mimeType;
+    QString m_filePath;
     CopyrightInfo m_copyrightInfo;
 };
 
