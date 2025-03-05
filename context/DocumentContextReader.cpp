@@ -264,14 +264,8 @@ QString DocumentContextReader::getContextBefore(int lineNumber, int cursorPositi
     if (Settings::codeCompletionSettings().readFullFile()) {
         return readWholeFileBefore(lineNumber, cursorPosition);
     } else {
-        int effectiveStartLine;
-        int beforeCursor = Settings::codeCompletionSettings().readStringsBeforeCursor();
-        if (m_copyrightInfo.found) {
-            effectiveStartLine = qMax(m_copyrightInfo.endLine + 1, lineNumber - beforeCursor);
-        } else {
-            effectiveStartLine = qMax(0, lineNumber - beforeCursor);
-        }
-        return getContextBetween(effectiveStartLine, -1, lineNumber, cursorPosition);
+        int linesCount = Settings::codeCompletionSettings().readStringsBeforeCursor();
+        return getContextBefore(lineNumber, cursorPosition, linesCount);
     }
 }
 
@@ -280,10 +274,8 @@ QString DocumentContextReader::getContextAfter(int lineNumber, int cursorPositio
     if (Settings::codeCompletionSettings().readFullFile()) {
         return readWholeFileAfter(lineNumber, cursorPosition);
     } else {
-        int endLine = qMin(
-            m_document->blockCount() - 1,
-            lineNumber + Settings::codeCompletionSettings().readStringsAfterCursor());
-        return getContextBetween(lineNumber, cursorPosition, endLine, -1);
+        int linesCount = Settings::codeCompletionSettings().readStringsAfterCursor();
+        return getContextAfter(lineNumber, cursorPosition, linesCount);
     }
 }
 
