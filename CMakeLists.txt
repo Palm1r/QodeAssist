@@ -12,6 +12,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_package(QtCreator REQUIRED COMPONENTS Core)
 find_package(Qt6 COMPONENTS Core Gui Quick Widgets Network REQUIRED)
+find_package(GTest)
 
 add_definitions(
   -DQODEASSIST_QT_CREATOR_VERSION_MAJOR=${QODEASSIST_QT_CREATOR_VERSION_MAJOR}
@@ -24,6 +25,9 @@ add_subdirectory(settings)
 add_subdirectory(logger)
 add_subdirectory(ChatView)
 add_subdirectory(context)
+if(GTest_FOUND)
+  add_subdirectory(test)
+endif()
 
 add_qtc_plugin(QodeAssist
   PLUGIN_DEPENDS
