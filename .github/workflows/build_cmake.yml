@@ -36,8 +36,8 @@ jobs:
             environment_script: "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvars64.bat",
           }
         - {
-            name: "Ubuntu Latest GCC", artifact: "Linux-x64",
-            os: ubuntu-latest,
+            name: "Ubuntu 22.04 GCC", artifact: "Linux-x64",
+            os: ubuntu-22.04,
             platform: linux_x64,
             cc: "gcc", cxx: "g++"
           }
