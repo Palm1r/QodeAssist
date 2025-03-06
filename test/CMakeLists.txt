@@ -1,4 +1,6 @@
 add_executable(QodeAssistTest
+    ../CodeHandler.cpp
+    CodeHandlerTest.cpp
     DocumentContextReaderTest.cpp
     unittest_main.cpp
 )

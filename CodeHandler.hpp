@@ -30,9 +30,10 @@ class CodeHandler
 public:
     static QString processText(QString text);
 
+    static QString detectLanguage(const QString &line);
+
 private:
     static QString getCommentPrefix(const QString &language);
-    static QString detectLanguage(const QString &line);
 
     static const QRegularExpression &getFullCodeBlockRegex();
     static const QRegularExpression &getPartialStartBlockRegex();
