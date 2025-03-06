@@ -28,9 +28,17 @@ namespace QodeAssist {
 class CodeHandler
 {
 public:
-    static QString processText(QString text);
+    static QString processText(QString text, QString currentFileName);
 
-    static QString detectLanguage(const QString &line);
+    /**
+     * Detects language from line, or returns empty string if this was not possible
+     */
+    static QString detectLanguageFromLine(const QString &line);
+
+    /**
+     * Detects language file name, or returns empty string if this was not possible
+     */
+    static QString detectLanguageFromExtension(const QString &extension);
 
 private:
     static QString getCommentPrefix(const QString &language);
