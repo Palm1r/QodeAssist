@@ -111,109 +111,109 @@ protected:
 
 TEST_F(DocumentContextReaderTest, testGetLineText)
 {
-    auto reader = createTestReader("Line 1\nLine 2\nLine 3");
+    auto reader = createTestReader("Line 0\nLine 1\nLine 2");
 
-    EXPECT_EQ(reader.getLineText(0), "Line 1");
-    EXPECT_EQ(reader.getLineText(1), "Line 2");
-    EXPECT_EQ(reader.getLineText(2), "Line 3");
+    EXPECT_EQ(reader.getLineText(0), "Line 0");
+    EXPECT_EQ(reader.getLineText(1), "Line 1");
+    EXPECT_EQ(reader.getLineText(2), "Line 2");
     EXPECT_EQ(reader.getLineText(0, 4), "Line");
 }
 
 TEST_F(DocumentContextReaderTest, testGetContextBefore)
 {
-    auto reader = createTestReader("Line 1\nLine 2\nLine 3\nLine 4\nLine 5");
+    auto reader = createTestReader("Line 0\nLine 1\nLine 2\nLine 3\nLine 4");
 
-    EXPECT_EQ(reader.getContextBefore(0, -1, 2), "Line 1");
-    EXPECT_EQ(reader.getContextBefore(1, -1, 2), "Line 1\nLine 2");
-    EXPECT_EQ(reader.getContextBefore(2, -1, 2), "Line 2\nLine 3");
-    EXPECT_EQ(reader.getContextBefore(3, -1, 2), "Line 3\nLine 4");
-    EXPECT_EQ(reader.getContextBefore(0, 1, 2), "L");
-    EXPECT_EQ(reader.getContextBefore(1, 1, 2), "Line 1\nL");
-    EXPECT_EQ(reader.getContextBefore(2, 1, 2), "Line 2\nL");
-    EXPECT_EQ(reader.getContextBefore(3, 1, 2), "Line 3\nL");
-}
-
-TEST_F(DocumentContextReaderTest, testGetContextAfter)
-{
-    auto reader = createTestReader("Line 1\nLine 2\nLine 3\nLine 4\nLine 5");
-
-    EXPECT_EQ(reader.getContextAfter(0, -1, 2), "Line 1\nLine 2");
-    EXPECT_EQ(reader.getContextAfter(1, -1, 2), "Line 2\nLine 3");
-    EXPECT_EQ(reader.getContextAfter(2, -1, 2), "Line 3\nLine 4");
-    EXPECT_EQ(reader.getContextAfter(3, -1, 2), "Line 4\nLine 5");
-    EXPECT_EQ(reader.getContextAfter(0, 1, 2), "ine 1\nLine 2");
-    EXPECT_EQ(reader.getContextAfter(1, 1, 2), "ine 2\nLine 3");
-    EXPECT_EQ(reader.getContextAfter(2, 1, 2), "ine 3\nLine 4");
-    EXPECT_EQ(reader.getContextAfter(3, 1, 2), "ine 4\nLine 5");
-}
-
-TEST_F(DocumentContextReaderTest, testGetContextBeforeWithCopyright)
-{
-    auto reader = createTestReader("/* Copyright (C) 2024 */\nLine 1\nLine 2\nLine 3\nLine 4");
-
-    EXPECT_EQ(reader.getContextBefore(0, -1, 2), "");
-    EXPECT_EQ(reader.getContextBefore(1, -1, 2), "Line 1");
+    EXPECT_EQ(reader.getContextBefore(0, -1, 2), "Line 0");
+    EXPECT_EQ(reader.getContextBefore(1, -1, 2), "Line 0\nLine 1");
     EXPECT_EQ(reader.getContextBefore(2, -1, 2), "Line 1\nLine 2");
     EXPECT_EQ(reader.getContextBefore(3, -1, 2), "Line 2\nLine 3");
-    EXPECT_EQ(reader.getContextBefore(0, 1, 2), "");
-    EXPECT_EQ(reader.getContextBefore(1, 1, 2), "L");
+    EXPECT_EQ(reader.getContextBefore(0, 1, 2), "L");
+    EXPECT_EQ(reader.getContextBefore(1, 1, 2), "Line 0\nL");
     EXPECT_EQ(reader.getContextBefore(2, 1, 2), "Line 1\nL");
     EXPECT_EQ(reader.getContextBefore(3, 1, 2), "Line 2\nL");
 }
 
-TEST_F(DocumentContextReaderTest, testGetContextAfterWithCopyright)
+TEST_F(DocumentContextReaderTest, testGetContextAfter)
 {
-    auto reader = createTestReader("/* Copyright (C) 2024 */\nLine 1\nLine 2\nLine 3\nLine 4");
+    auto reader = createTestReader("Line 0\nLine 1\nLine 2\nLine 3\nLine 4");
 
-    EXPECT_EQ(reader.getContextAfter(0, -1, 2), "/* Copyright (C) 2024 */\nLine 1");
+    EXPECT_EQ(reader.getContextAfter(0, -1, 2), "Line 0\nLine 1");
     EXPECT_EQ(reader.getContextAfter(1, -1, 2), "Line 1\nLine 2");
     EXPECT_EQ(reader.getContextAfter(2, -1, 2), "Line 2\nLine 3");
     EXPECT_EQ(reader.getContextAfter(3, -1, 2), "Line 3\nLine 4");
-    EXPECT_EQ(reader.getContextAfter(0, 1, 2), "* Copyright (C) 2024 */\nLine 1");
+    EXPECT_EQ(reader.getContextAfter(0, 1, 2), "ine 0\nLine 1");
     EXPECT_EQ(reader.getContextAfter(1, 1, 2), "ine 1\nLine 2");
     EXPECT_EQ(reader.getContextAfter(2, 1, 2), "ine 2\nLine 3");
     EXPECT_EQ(reader.getContextAfter(3, 1, 2), "ine 3\nLine 4");
 }
 
+TEST_F(DocumentContextReaderTest, testGetContextBeforeWithCopyright)
+{
+    auto reader = createTestReader("/* Copyright (C) 2024 */\nLine 0\nLine 1\nLine 2\nLine 3");
+
+    EXPECT_EQ(reader.getContextBefore(0, -1, 2), "");
+    EXPECT_EQ(reader.getContextBefore(1, -1, 2), "Line 0");
+    EXPECT_EQ(reader.getContextBefore(2, -1, 2), "Line 0\nLine 1");
+    EXPECT_EQ(reader.getContextBefore(3, -1, 2), "Line 1\nLine 2");
+    EXPECT_EQ(reader.getContextBefore(0, 1, 2), "");
+    EXPECT_EQ(reader.getContextBefore(1, 1, 2), "L");
+    EXPECT_EQ(reader.getContextBefore(2, 1, 2), "Line 0\nL");
+    EXPECT_EQ(reader.getContextBefore(3, 1, 2), "Line 1\nL");
+}
+
+TEST_F(DocumentContextReaderTest, testGetContextAfterWithCopyright)
+{
+    auto reader = createTestReader("/* Copyright (C) 2024 */\nLine 0\nLine 1\nLine 2\nLine 3");
+
+    EXPECT_EQ(reader.getContextAfter(0, -1, 2), "/* Copyright (C) 2024 */\nLine 0");
+    EXPECT_EQ(reader.getContextAfter(1, -1, 2), "Line 0\nLine 1");
+    EXPECT_EQ(reader.getContextAfter(2, -1, 2), "Line 1\nLine 2");
+    EXPECT_EQ(reader.getContextAfter(3, -1, 2), "Line 2\nLine 3");
+    EXPECT_EQ(reader.getContextAfter(0, 1, 2), "* Copyright (C) 2024 */\nLine 0");
+    EXPECT_EQ(reader.getContextAfter(1, 1, 2), "ine 0\nLine 1");
+    EXPECT_EQ(reader.getContextAfter(2, 1, 2), "ine 1\nLine 2");
+    EXPECT_EQ(reader.getContextAfter(3, 1, 2), "ine 2\nLine 3");
+}
+
 TEST_F(DocumentContextReaderTest, testReadWholeFile)
 {
-    auto reader = createTestReader("Line 1\nLine 2\nLine 3\nLine 4\nLine 5");
+    auto reader = createTestReader("Line 0\nLine 1\nLine 2\nLine 3\nLine 4");
 
-    EXPECT_EQ(reader.readWholeFileBefore(2, -1), "Line 1\nLine 2\nLine 3");
-    EXPECT_EQ(reader.readWholeFileAfter(2, -1), "Line 3\nLine 4\nLine 5");
+    EXPECT_EQ(reader.readWholeFileBefore(2, -1), "Line 0\nLine 1\nLine 2");
+    EXPECT_EQ(reader.readWholeFileAfter(2, -1), "Line 2\nLine 3\nLine 4");
 }
 
 TEST_F(DocumentContextReaderTest, testReadWholeFileWithCopyright)
 {
-    auto reader = createTestReader("/* Copyright (C) 2024 */\nLine 1\nLine 2\nLine 3\nLine 4");
+    auto reader = createTestReader("/* Copyright (C) 2024 */\nLine 0\nLine 1\nLine 2\nLine 3");
 
-    EXPECT_EQ(reader.readWholeFileBefore(2, -1), "Line 1\nLine 2");
-    EXPECT_EQ(reader.readWholeFileAfter(2, -1), "Line 2\nLine 3\nLine 4");
+    EXPECT_EQ(reader.readWholeFileBefore(2, -1), "Line 0\nLine 1");
+    EXPECT_EQ(reader.readWholeFileAfter(2, -1), "Line 1\nLine 2\nLine 3");
 
-    EXPECT_EQ(reader.readWholeFileBefore(2, 0), "Line 1\n");
-    EXPECT_EQ(reader.readWholeFileAfter(2, 0), "Line 2\nLine 3\nLine 4");
-    EXPECT_EQ(reader.readWholeFileBefore(2, 2), "Line 1\nLi");
-    EXPECT_EQ(reader.readWholeFileAfter(2, 2), "ne 2\nLine 3\nLine 4");
+    EXPECT_EQ(reader.readWholeFileBefore(2, 0), "Line 0\n");
+    EXPECT_EQ(reader.readWholeFileAfter(2, 0), "Line 1\nLine 2\nLine 3");
+    EXPECT_EQ(reader.readWholeFileBefore(2, 2), "Line 0\nLi");
+    EXPECT_EQ(reader.readWholeFileAfter(2, 2), "ne 1\nLine 2\nLine 3");
 }
 
 TEST_F(DocumentContextReaderTest, testReadWholeFileWithMultilineCopyright)
 {
     auto reader = createTestReader(
         "/*\n * Copyright (C) 2024\n * \n * This file is part of QodeAssist.\n */\n"
-        "Line 1\nLine 2");
+        "Line 0\nLine 1");
 
-    EXPECT_EQ(reader.readWholeFileBefore(6, -1), "Line 1\nLine 2");
-    EXPECT_EQ(reader.readWholeFileAfter(5, -1), "Line 1\nLine 2");
+    EXPECT_EQ(reader.readWholeFileBefore(6, -1), "Line 0\nLine 1");
+    EXPECT_EQ(reader.readWholeFileAfter(5, -1), "Line 0\nLine 1");
 
-    EXPECT_EQ(reader.readWholeFileBefore(6, 0), "Line 1\n");
-    EXPECT_EQ(reader.readWholeFileAfter(6, 0), "Line 2");
-    EXPECT_EQ(reader.readWholeFileBefore(6, 2), "Line 1\nLi");
-    EXPECT_EQ(reader.readWholeFileAfter(6, 2), "ne 2");
+    EXPECT_EQ(reader.readWholeFileBefore(6, 0), "Line 0\n");
+    EXPECT_EQ(reader.readWholeFileAfter(6, 0), "Line 1");
+    EXPECT_EQ(reader.readWholeFileBefore(6, 2), "Line 0\nLi");
+    EXPECT_EQ(reader.readWholeFileAfter(6, 2), "ne 1");
 }
 
 TEST_F(DocumentContextReaderTest, testFindCopyrightSingleLine)
 {
-    auto reader = createTestReader("/* Copyright (C) 2024 */\nCode line 1\nCode line 2");
+    auto reader = createTestReader("/* Copyright (C) 2024 */\nCode line 0\nCode line 1");
 
     auto info = reader.findCopyright();
     ASSERT_TRUE(info.found);
@@ -224,7 +224,7 @@ TEST_F(DocumentContextReaderTest, testFindCopyrightSingleLine)
 TEST_F(DocumentContextReaderTest, testFindCopyrightMultiLine)
 {
     auto reader = createTestReader(
-        "/*\n * Copyright (C) 2024\n * \n * This file is part of QodeAssist.\n */\nCode line 1");
+        "/*\n * Copyright (C) 2024\n * \n * This file is part of QodeAssist.\n */\nCode line 0");
 
     auto info = reader.findCopyright();
     ASSERT_TRUE(info.found);
@@ -244,7 +244,7 @@ TEST_F(DocumentContextReaderTest, testFindCopyrightMultipleBlocks)
 
 TEST_F(DocumentContextReaderTest, testFindCopyrightNoCopyright)
 {
-    auto reader = createTestReader("/* Just a comment */\nCode line 1");
+    auto reader = createTestReader("/* Just a comment */\nCode line 0");
 
     auto info = reader.findCopyright();
     ASSERT_TRUE(!info.found);
@@ -254,44 +254,44 @@ TEST_F(DocumentContextReaderTest, testFindCopyrightNoCopyright)
 
 TEST_F(DocumentContextReaderTest, testGetContextBetween)
 {
-    auto reader = createTestReader("Line 1\nLine 2\nLine 3\nLine 4\nLine 5");
+    auto reader = createTestReader("Line 0\nLine 1\nLine 2\nLine 3\nLine 4");
 
     EXPECT_EQ(reader.getContextBetween(2, -1, 0, -1), "");
-    EXPECT_EQ(reader.getContextBetween(0, -1, 0, -1), "Line 1");
-    EXPECT_EQ(reader.getContextBetween(1, -1, 1, -1), "Line 2");
+    EXPECT_EQ(reader.getContextBetween(0, -1, 0, -1), "Line 0");
+    EXPECT_EQ(reader.getContextBetween(1, -1, 1, -1), "Line 1");
     EXPECT_EQ(reader.getContextBetween(1, 3, 1, 1), "");
     EXPECT_EQ(reader.getContextBetween(1, 3, 1, 3), "");
     EXPECT_EQ(reader.getContextBetween(1, 3, 1, 4), "e");
 
-    EXPECT_EQ(reader.getContextBetween(1, -1, 3, -1), "Line 2\nLine 3\nLine 4");
-    EXPECT_EQ(reader.getContextBetween(1, 2, 3, -1), "ne 2\nLine 3\nLine 4");
-    EXPECT_EQ(reader.getContextBetween(1, -1, 3, 2), "Line 2\nLine 3\nLi");
-    EXPECT_EQ(reader.getContextBetween(1, 2, 3, 2), "ne 2\nLine 3\nLi");
+    EXPECT_EQ(reader.getContextBetween(1, -1, 3, -1), "Line 1\nLine 2\nLine 3");
+    EXPECT_EQ(reader.getContextBetween(1, 2, 3, -1), "ne 1\nLine 2\nLine 3");
+    EXPECT_EQ(reader.getContextBetween(1, -1, 3, 2), "Line 1\nLine 2\nLi");
+    EXPECT_EQ(reader.getContextBetween(1, 2, 3, 2), "ne 1\nLine 2\nLi");
 }
 
 TEST_F(DocumentContextReaderTest, testPrepareContext)
 {
-    auto reader = createTestReader("Line 1\nLine 2\nLine 3\nLine 4\nLine 5");
+    auto reader = createTestReader("Line 0\nLine 1\nLine 2\nLine 3\nLine 4");
 
     EXPECT_EQ(
         reader.prepareContext(2, 3, *createSettingsForWholeFile()),
         (ContextData{
-            .prefix = "Line 1\nLine 2\nLin",
-            .suffix = "e 3\nLine 4\nLine 5",
+            .prefix = "Line 0\nLine 1\nLin",
+            .suffix = "e 2\nLine 3\nLine 4",
             .fileContext = "\n Language:  (MIME: text/python) filepath: /path/to/file()\n\n\n "}));
 
     EXPECT_EQ(
         reader.prepareContext(2, 3, *createSettingsForLines(1, 1)),
         (ContextData{
-            .prefix = "Line 2\nLin",
-            .suffix = "e 3\nLine 4",
+            .prefix = "Line 1\nLin",
+            .suffix = "e 2\nLine 3",
             .fileContext = "\n Language:  (MIME: text/python) filepath: /path/to/file()\n\n\n "}));
 
     EXPECT_EQ(
         reader.prepareContext(2, 3, *createSettingsForLines(2, 2)),
         (ContextData{
-            .prefix = "Line 1\nLine 2\nLin",
-            .suffix = "e 3\nLine 4\nLine 5",
+            .prefix = "Line 0\nLine 1\nLin",
+            .suffix = "e 2\nLine 3\nLine 4",
             .fileContext = "\n Language:  (MIME: text/python) filepath: /path/to/file()\n\n\n "}));
 }
 
