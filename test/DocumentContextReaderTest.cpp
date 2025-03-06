@@ -27,6 +27,16 @@ using namespace QodeAssist::Context;
 using namespace QodeAssist::LLMCore;
 using namespace QodeAssist::Settings;
 
+QT_BEGIN_NAMESPACE
+
+// gtest can't pick pretty printer when comparing QString
+inline void PrintTo(const QString &value, ::std::ostream *out)
+{
+    *out << '"' << value.toStdString() << '"';
+}
+
+QT_END_NAMESPACE
+
 std::ostream &operator<<(std::ostream &out, const QString &value)
 {
     out << '"' << value.toStdString() << '"';
