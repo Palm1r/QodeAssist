@@ -84,18 +84,22 @@ QString DocumentContextReader::getLineText(int lineNumber, int cursorPosition) c
 QString DocumentContextReader::getContextBefore(
     int lineNumber, int cursorPosition, int linesCount) const
 {
-    int effectiveStartLine = qMax(0, lineNumber - linesCount + 1);
+    int startLine = lineNumber - linesCount + 1;
     if (m_copyrightInfo.found) {
-        effectiveStartLine = qMax(m_copyrightInfo.endLine + 1, effectiveStartLine);
+        startLine = qMax(m_copyrightInfo.endLine + 1, startLine);
     }
 
-    return getContextBetween(effectiveStartLine, -1, lineNumber, cursorPosition);
+    return getContextBetween(startLine, -1, lineNumber, cursorPosition);
 }
 
 QString DocumentContextReader::getContextAfter(
     int lineNumber, int cursorPosition, int linesCount) const
 {
-    int endLine = qMin(m_document->blockCount() - 1, lineNumber + linesCount - 1);
+    int endLine = lineNumber + linesCount - 1;
+    if (m_copyrightInfo.found && m_copyrightInfo.endLine >= lineNumber) {
+        lineNumber = m_copyrightInfo.endLine + 1;
+        cursorPosition = -1;
+    }
     return getContextBetween(lineNumber, cursorPosition, endLine, -1);
 }
 
@@ -106,14 +110,17 @@ QString DocumentContextReader::readWholeFileBefore(int lineNumber, int cursorPos
         startLine = m_copyrightInfo.endLine + 1;
     }
 
-    startLine = qMin(startLine, lineNumber);
-
     return getContextBetween(startLine, -1, lineNumber, cursorPosition);
 }
 
 QString DocumentContextReader::readWholeFileAfter(int lineNumber, int cursorPosition) const
 {
-    return getContextBetween(lineNumber, cursorPosition, m_document->blockCount() - 1, -1);
+    int endLine = m_document->blockCount() - 1;
+    if (m_copyrightInfo.found && m_copyrightInfo.endLine >= lineNumber) {
+        lineNumber = m_copyrightInfo.endLine + 1;
+        cursorPosition = -1;
+    }
+    return getContextBetween(lineNumber, cursorPosition, endLine, -1);
 }
 
 QString DocumentContextReader::getLanguageAndFileInfo() const
@@ -172,6 +179,9 @@ QString DocumentContextReader::getContextBetween(
     int startLine, int startCursorPosition, int endLine, int endCursorPosition) const
 {
     QString context;
+
+    startLine = qMax(startLine, 0);
+    endLine = qMin(endLine, m_document->blockCount() - 1);
 
     if (startLine > endLine) {
         return context;
