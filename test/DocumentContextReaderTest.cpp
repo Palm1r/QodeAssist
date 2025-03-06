@@ -129,59 +129,65 @@ TEST_F(DocumentContextReaderTest, testGetLineText)
     EXPECT_EQ(reader.getLineText(0, 4), "Line");
 }
 
-TEST_F(DocumentContextReaderTest, testGetContextBefore)
+TEST_F(DocumentContextReaderTest, testGetContext)
 {
     auto reader = createTestReader("Line 0\nLine 1\nLine 2\nLine 3\nLine 4");
 
+    // Unknown cursor position
     EXPECT_EQ(reader.getContextBefore(0, -1, 2), "Line 0");
-    EXPECT_EQ(reader.getContextBefore(1, -1, 2), "Line 0\nLine 1");
-    EXPECT_EQ(reader.getContextBefore(2, -1, 2), "Line 1\nLine 2");
-    EXPECT_EQ(reader.getContextBefore(3, -1, 2), "Line 2\nLine 3");
-    EXPECT_EQ(reader.getContextBefore(0, 1, 2), "L");
-    EXPECT_EQ(reader.getContextBefore(1, 1, 2), "Line 0\nL");
-    EXPECT_EQ(reader.getContextBefore(2, 1, 2), "Line 1\nL");
-    EXPECT_EQ(reader.getContextBefore(3, 1, 2), "Line 2\nL");
-}
-
-TEST_F(DocumentContextReaderTest, testGetContextAfter)
-{
-    auto reader = createTestReader("Line 0\nLine 1\nLine 2\nLine 3\nLine 4");
-
     EXPECT_EQ(reader.getContextAfter(0, -1, 2), "Line 0\nLine 1");
+
+    EXPECT_EQ(reader.getContextBefore(1, -1, 2), "Line 0\nLine 1");
     EXPECT_EQ(reader.getContextAfter(1, -1, 2), "Line 1\nLine 2");
+
+    EXPECT_EQ(reader.getContextBefore(2, -1, 2), "Line 1\nLine 2");
     EXPECT_EQ(reader.getContextAfter(2, -1, 2), "Line 2\nLine 3");
+
+    EXPECT_EQ(reader.getContextBefore(3, -1, 2), "Line 2\nLine 3");
     EXPECT_EQ(reader.getContextAfter(3, -1, 2), "Line 3\nLine 4");
+
+    // Known cursor position
+    EXPECT_EQ(reader.getContextBefore(0, 1, 2), "L");
     EXPECT_EQ(reader.getContextAfter(0, 1, 2), "ine 0\nLine 1");
+
+    EXPECT_EQ(reader.getContextBefore(1, 1, 2), "Line 0\nL");
     EXPECT_EQ(reader.getContextAfter(1, 1, 2), "ine 1\nLine 2");
+
+    EXPECT_EQ(reader.getContextBefore(2, 1, 2), "Line 1\nL");
     EXPECT_EQ(reader.getContextAfter(2, 1, 2), "ine 2\nLine 3");
+
+    EXPECT_EQ(reader.getContextBefore(3, 1, 2), "Line 2\nL");
     EXPECT_EQ(reader.getContextAfter(3, 1, 2), "ine 3\nLine 4");
 }
 
-TEST_F(DocumentContextReaderTest, testGetContextBeforeWithCopyright)
+TEST_F(DocumentContextReaderTest, testGetContextWithCopyright)
 {
     auto reader = createTestReader("/* Copyright (C) 2024 */\nLine 0\nLine 1\nLine 2\nLine 3");
 
+    // Unknown cursor position
     EXPECT_EQ(reader.getContextBefore(0, -1, 2), "");
-    EXPECT_EQ(reader.getContextBefore(1, -1, 2), "Line 0");
-    EXPECT_EQ(reader.getContextBefore(2, -1, 2), "Line 0\nLine 1");
-    EXPECT_EQ(reader.getContextBefore(3, -1, 2), "Line 1\nLine 2");
-    EXPECT_EQ(reader.getContextBefore(0, 1, 2), "");
-    EXPECT_EQ(reader.getContextBefore(1, 1, 2), "L");
-    EXPECT_EQ(reader.getContextBefore(2, 1, 2), "Line 0\nL");
-    EXPECT_EQ(reader.getContextBefore(3, 1, 2), "Line 1\nL");
-}
-
-TEST_F(DocumentContextReaderTest, testGetContextAfterWithCopyright)
-{
-    auto reader = createTestReader("/* Copyright (C) 2024 */\nLine 0\nLine 1\nLine 2\nLine 3");
-
     EXPECT_EQ(reader.getContextAfter(0, -1, 2), "/* Copyright (C) 2024 */\nLine 0");
+
+    EXPECT_EQ(reader.getContextBefore(1, -1, 2), "Line 0");
     EXPECT_EQ(reader.getContextAfter(1, -1, 2), "Line 0\nLine 1");
+
+    EXPECT_EQ(reader.getContextBefore(2, -1, 2), "Line 0\nLine 1");
     EXPECT_EQ(reader.getContextAfter(2, -1, 2), "Line 1\nLine 2");
+
+    EXPECT_EQ(reader.getContextBefore(3, -1, 2), "Line 1\nLine 2");
     EXPECT_EQ(reader.getContextAfter(3, -1, 2), "Line 2\nLine 3");
+
+    // Known cursor position
+    EXPECT_EQ(reader.getContextBefore(0, 1, 2), "");
     EXPECT_EQ(reader.getContextAfter(0, 1, 2), "* Copyright (C) 2024 */\nLine 0");
+
+    EXPECT_EQ(reader.getContextBefore(1, 1, 2), "L");
     EXPECT_EQ(reader.getContextAfter(1, 1, 2), "ine 0\nLine 1");
+
+    EXPECT_EQ(reader.getContextBefore(2, 1, 2), "Line 0\nL");
     EXPECT_EQ(reader.getContextAfter(2, 1, 2), "ine 1\nLine 2");
+
+    EXPECT_EQ(reader.getContextBefore(3, 1, 2), "Line 1\nL");
     EXPECT_EQ(reader.getContextAfter(3, 1, 2), "ine 2\nLine 3");
 }
 
@@ -189,36 +195,158 @@ TEST_F(DocumentContextReaderTest, testReadWholeFile)
 {
     auto reader = createTestReader("Line 0\nLine 1\nLine 2\nLine 3\nLine 4");
 
+    // Unknown cursor position
+    EXPECT_EQ(reader.readWholeFileBefore(0, -1), "Line 0");
+    EXPECT_EQ(reader.readWholeFileAfter(0, -1), "Line 0\nLine 1\nLine 2\nLine 3\nLine 4");
+
+    EXPECT_EQ(reader.readWholeFileBefore(1, -1), "Line 0\nLine 1");
+    EXPECT_EQ(reader.readWholeFileAfter(1, -1), "Line 1\nLine 2\nLine 3\nLine 4");
+
     EXPECT_EQ(reader.readWholeFileBefore(2, -1), "Line 0\nLine 1\nLine 2");
     EXPECT_EQ(reader.readWholeFileAfter(2, -1), "Line 2\nLine 3\nLine 4");
+
+    EXPECT_EQ(reader.readWholeFileBefore(3, -1), "Line 0\nLine 1\nLine 2\nLine 3");
+    EXPECT_EQ(reader.readWholeFileAfter(3, -1), "Line 3\nLine 4");
+
+    EXPECT_EQ(reader.readWholeFileBefore(4, -1), "Line 0\nLine 1\nLine 2\nLine 3\nLine 4");
+    EXPECT_EQ(reader.readWholeFileAfter(4, -1), "Line 4");
+
+    // Known cursor position
+    EXPECT_EQ(reader.readWholeFileBefore(0, 1), "L");
+    EXPECT_EQ(reader.readWholeFileAfter(0, 1), "ine 0\nLine 1\nLine 2\nLine 3\nLine 4");
+
+    EXPECT_EQ(reader.readWholeFileBefore(1, 1), "Line 0\nL");
+    EXPECT_EQ(reader.readWholeFileAfter(1, 1), "ine 1\nLine 2\nLine 3\nLine 4");
+
+    EXPECT_EQ(reader.readWholeFileBefore(2, 1), "Line 0\nLine 1\nL");
+    EXPECT_EQ(reader.readWholeFileAfter(2, 1), "ine 2\nLine 3\nLine 4");
+
+    EXPECT_EQ(reader.readWholeFileBefore(3, 1), "Line 0\nLine 1\nLine 2\nL");
+    EXPECT_EQ(reader.readWholeFileAfter(3, 1), "ine 3\nLine 4");
+
+    EXPECT_EQ(reader.readWholeFileBefore(4, 1), "Line 0\nLine 1\nLine 2\nLine 3\nL");
+    EXPECT_EQ(reader.readWholeFileAfter(4, 1), "ine 4");
 }
 
 TEST_F(DocumentContextReaderTest, testReadWholeFileWithCopyright)
 {
     auto reader = createTestReader("/* Copyright (C) 2024 */\nLine 0\nLine 1\nLine 2\nLine 3");
+    // Unknown cursor position
+    EXPECT_EQ(reader.readWholeFileBefore(0, -1), "/* Copyright (C) 2024 */");
+    EXPECT_EQ(
+        reader.readWholeFileAfter(0, -1),
+        "/* Copyright (C) 2024 */\nLine 0\nLine 1\nLine 2\nLine 3");
+
+    EXPECT_EQ(reader.readWholeFileBefore(1, -1), "Line 0");
+    EXPECT_EQ(reader.readWholeFileAfter(1, -1), "Line 0\nLine 1\nLine 2\nLine 3");
 
     EXPECT_EQ(reader.readWholeFileBefore(2, -1), "Line 0\nLine 1");
     EXPECT_EQ(reader.readWholeFileAfter(2, -1), "Line 1\nLine 2\nLine 3");
 
+    EXPECT_EQ(reader.readWholeFileBefore(3, -1), "Line 0\nLine 1\nLine 2");
+    EXPECT_EQ(reader.readWholeFileAfter(3, -1), "Line 2\nLine 3");
+
+    // Known cursor position
+    EXPECT_EQ(reader.readWholeFileBefore(0, 0), "");
+    EXPECT_EQ(
+        reader.readWholeFileAfter(0, 0), "/* Copyright (C) 2024 */\nLine 0\nLine 1\nLine 2\nLine 3");
+
+    EXPECT_EQ(reader.readWholeFileBefore(1, 0), "");
+    EXPECT_EQ(reader.readWholeFileAfter(1, 0), "Line 0\nLine 1\nLine 2\nLine 3");
+
     EXPECT_EQ(reader.readWholeFileBefore(2, 0), "Line 0\n");
     EXPECT_EQ(reader.readWholeFileAfter(2, 0), "Line 1\nLine 2\nLine 3");
-    EXPECT_EQ(reader.readWholeFileBefore(2, 2), "Line 0\nLi");
-    EXPECT_EQ(reader.readWholeFileAfter(2, 2), "ne 1\nLine 2\nLine 3");
+
+    EXPECT_EQ(reader.readWholeFileBefore(3, 0), "Line 0\nLine 1\n");
+    EXPECT_EQ(reader.readWholeFileAfter(3, 0), "Line 2\nLine 3");
+
+    EXPECT_EQ(reader.readWholeFileBefore(0, 1), "/");
+    EXPECT_EQ(
+        reader.readWholeFileAfter(0, 1), "* Copyright (C) 2024 */\nLine 0\nLine 1\nLine 2\nLine 3");
+
+    EXPECT_EQ(reader.readWholeFileBefore(1, 1), "L");
+    EXPECT_EQ(reader.readWholeFileAfter(1, 1), "ine 0\nLine 1\nLine 2\nLine 3");
+
+    EXPECT_EQ(reader.readWholeFileBefore(2, 1), "Line 0\nL");
+    EXPECT_EQ(reader.readWholeFileAfter(2, 1), "ine 1\nLine 2\nLine 3");
+
+    EXPECT_EQ(reader.readWholeFileBefore(3, 1), "Line 0\nLine 1\nL");
+    EXPECT_EQ(reader.readWholeFileAfter(3, 1), "ine 2\nLine 3");
 }
 
 TEST_F(DocumentContextReaderTest, testReadWholeFileWithMultilineCopyright)
 {
     auto reader = createTestReader(
         "/*\n * Copyright (C) 2024\n * \n * This file is part of QodeAssist.\n */\n"
-        "Line 0\nLine 1");
+        "Line 0\nLine 1\nLine 2\nLine 3");
 
-    EXPECT_EQ(reader.readWholeFileBefore(6, -1), "Line 0\nLine 1");
-    EXPECT_EQ(reader.readWholeFileAfter(5, -1), "Line 0\nLine 1");
+    // Unknown cursor position
+    EXPECT_EQ(reader.readWholeFileBefore(0, -1), "/*");
+    EXPECT_EQ(
+        reader.readWholeFileAfter(0, -1),
+        "/*\n * Copyright (C) 2024\n * \n * This file is part of QodeAssist.\n */\nLine 0\nLine "
+        "1\nLine 2\nLine 3");
 
-    EXPECT_EQ(reader.readWholeFileBefore(6, 0), "Line 0\n");
-    EXPECT_EQ(reader.readWholeFileAfter(6, 0), "Line 1");
-    EXPECT_EQ(reader.readWholeFileBefore(6, 2), "Line 0\nLi");
-    EXPECT_EQ(reader.readWholeFileAfter(6, 2), "ne 1");
+    EXPECT_EQ(reader.readWholeFileBefore(1, -1), " * Copyright (C) 2024");
+    EXPECT_EQ(
+        reader.readWholeFileAfter(1, -1),
+        " * Copyright (C) 2024\n * \n * This file is part of QodeAssist.\n */\nLine 0\nLine "
+        "1\nLine 2\nLine 3");
+
+    EXPECT_EQ(reader.readWholeFileBefore(2, -1), " * ");
+    EXPECT_EQ(
+        reader.readWholeFileAfter(2, -1),
+        " * \n * This file is part of QodeAssist.\n */\nLine 0\nLine 1\nLine 2\nLine 3");
+
+    EXPECT_EQ(reader.readWholeFileBefore(3, -1), " * This file is part of QodeAssist.");
+    EXPECT_EQ(
+        reader.readWholeFileAfter(3, -1),
+        " * This file is part of QodeAssist.\n */\nLine 0\nLine 1\nLine 2\nLine 3");
+
+    // Known cursor position
+    EXPECT_EQ(reader.readWholeFileBefore(0, 0), "");
+    EXPECT_EQ(
+        reader.readWholeFileAfter(0, 0),
+        "/*\n * Copyright (C) 2024\n * \n * This file is part of QodeAssist.\n */\nLine 0\nLine "
+        "1\nLine 2\nLine 3");
+
+    EXPECT_EQ(reader.readWholeFileBefore(1, 0), "");
+    EXPECT_EQ(
+        reader.readWholeFileAfter(1, 0),
+        " * Copyright (C) 2024\n * \n * This file is part of QodeAssist.\n */\nLine 0\nLine "
+        "1\nLine 2\nLine 3");
+
+    EXPECT_EQ(reader.readWholeFileBefore(2, 0), "");
+    EXPECT_EQ(
+        reader.readWholeFileAfter(2, 0),
+        " * \n * This file is part of QodeAssist.\n */\nLine 0\nLine 1\nLine 2\nLine 3");
+
+    EXPECT_EQ(reader.readWholeFileBefore(3, 0), "");
+    EXPECT_EQ(
+        reader.readWholeFileAfter(3, 0),
+        " * This file is part of QodeAssist.\n */\nLine 0\nLine 1\nLine 2\nLine 3");
+
+    EXPECT_EQ(reader.readWholeFileBefore(0, 1), "/");
+    EXPECT_EQ(
+        reader.readWholeFileAfter(0, 1),
+        "*\n * Copyright (C) 2024\n * \n * This file is part of QodeAssist.\n */\nLine 0\nLine "
+        "1\nLine 2\nLine 3");
+
+    EXPECT_EQ(reader.readWholeFileBefore(1, 1), " ");
+    EXPECT_EQ(
+        reader.readWholeFileAfter(1, 1),
+        "* Copyright (C) 2024\n * \n * This file is part of QodeAssist.\n */\nLine 0\nLine 1\nLine "
+        "2\nLine 3");
+
+    EXPECT_EQ(reader.readWholeFileBefore(2, 1), " ");
+    EXPECT_EQ(
+        reader.readWholeFileAfter(2, 1),
+        "* \n * This file is part of QodeAssist.\n */\nLine 0\nLine 1\nLine 2\nLine 3");
+
+    EXPECT_EQ(reader.readWholeFileBefore(3, 1), " ");
+    EXPECT_EQ(
+        reader.readWholeFileAfter(3, 1),
+        "* This file is part of QodeAssist.\n */\nLine 0\nLine 1\nLine 2\nLine 3");
 }
 
 TEST_F(DocumentContextReaderTest, testFindCopyrightSingleLine)
