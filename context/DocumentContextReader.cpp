@@ -275,8 +275,8 @@ LLMCore::ContextData DocumentContextReader::prepareContext(
     fileContext.append("\n ").append(getLanguageAndFileInfo());
 
     if (settings.useProjectChangesCache())
-        fileContext.append("\n ").append(
-            ChangesManager::instance().getRecentChangesContext(m_textDocument));
+        fileContext.append("Recent Project Changes Context:\n ")
+            .append(ChangesManager::instance().getRecentChangesContext(m_textDocument));
 
     return {.prefix = contextBefore, .suffix = contextAfter, .fileContext = fileContext};
 }
