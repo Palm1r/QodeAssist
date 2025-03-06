@@ -18,6 +18,7 @@
  */
 
 #include "context/DocumentContextReader.hpp"
+#include "TestUtils.hpp"
 
 #include <gtest/gtest.h>
 #include <QSharedPointer>
@@ -26,62 +27,6 @@
 using namespace QodeAssist::Context;
 using namespace QodeAssist::LLMCore;
 using namespace QodeAssist::Settings;
-
-QT_BEGIN_NAMESPACE
-
-// gtest can't pick pretty printer when comparing QString
-inline void PrintTo(const QString &value, ::std::ostream *out)
-{
-    *out << '"' << value.toStdString() << '"';
-}
-
-QT_END_NAMESPACE
-
-std::ostream &operator<<(std::ostream &out, const QString &value)
-{
-    out << '"' << value.toStdString() << '"';
-    return out;
-}
-
-template<class T>
-std::ostream &operator<<(std::ostream &out, const QVector<T> &value)
-{
-    out << "[";
-    for (const auto &el : value) {
-        out << value << ", ";
-    }
-    out << "]";
-    return out;
-}
-
-template<class T>
-std::ostream &operator<<(std::ostream &out, const std::optional<T> &value)
-{
-    if (value.has_value()) {
-        out << value.value();
-    } else {
-        out << "(no value)";
-    }
-    return out;
-}
-
-namespace QodeAssist::LLMCore {
-std::ostream &operator<<(std::ostream &out, const Message &value)
-{
-    out << "Message{"
-        << "role=" << value.role << "content=" << value.content << "}";
-    return out;
-}
-
-std::ostream &operator<<(std::ostream &out, const ContextData &value)
-{
-    out << "ContextData{"
-        << "\n  systemPrompt=" << value.systemPrompt << "\n  prefix=" << value.prefix
-        << "\n  suffix=" << value.suffix << "\n  fileContext=" << value.fileContext
-        << "\n  history=" << value.history << "\n}";
-    return out;
-}
-} // namespace QodeAssist::LLMCore
 
 class DocumentContextReaderTest : public QObject, public testing::Test
 {
