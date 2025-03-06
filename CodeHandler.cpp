@@ -22,8 +22,12 @@
 
 namespace QodeAssist {
 
-QString CodeHandler::processText(QString text)
+QString CodeHandler::processText(QString text, bool smartProcess)
 {
+    if (!smartProcess) {
+        return text;
+    }
+
     QString result;
     QStringList lines = text.split('\n');
     bool inCodeBlock = false;
