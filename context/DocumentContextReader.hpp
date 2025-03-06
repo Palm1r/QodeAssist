@@ -81,6 +81,11 @@ private:
     QTextDocument *m_document;
     QString m_mimeType;
     QString m_filePath;
+
+    // Used to omit copyright headers from context. If context would otherwise include copyright
+    // header it is excluded by deleting it from the returned context. This means, that the
+    // returned context may contain less information than requested. If the cursor is within copyright
+    // header, then the context may be empty if the context window is small.
     CopyrightInfo m_copyrightInfo;
 };
 
