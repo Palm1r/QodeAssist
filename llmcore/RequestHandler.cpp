@@ -143,36 +143,4 @@ QString RequestHandler::removeStopWords(const QStringView &completion, const QSt
     return filteredCompletion;
 }
 
-void RequestHandler::removeCodeBlockWrappers(QString &response)
-{
-    static const QRegularExpression
-        fullCodeBlockRegex(R"(```[\w\s]*\n([\s\S]*?)```)", QRegularExpression::MultilineOption);
-    static const QRegularExpression
-        partialStartBlockRegex(R"(```[\w\s]*\n([\s\S]*?)$)", QRegularExpression::MultilineOption);
-    static const QRegularExpression
-        partialEndBlockRegex(R"(^([\s\S]*?)```)", QRegularExpression::MultilineOption);
-
-    QRegularExpressionMatchIterator matchIterator = fullCodeBlockRegex.globalMatch(response);
-    while (matchIterator.hasNext()) {
-        QRegularExpressionMatch match = matchIterator.next();
-        QString codeBlock = match.captured(0);
-        QString codeContent = match.captured(1).trimmed();
-        response.replace(codeBlock, codeContent);
-    }
-
-    QRegularExpressionMatch startMatch = partialStartBlockRegex.match(response);
-    if (startMatch.hasMatch()) {
-        QString partialBlock = startMatch.captured(0);
-        QString codeContent = startMatch.captured(1).trimmed();
-        response.replace(partialBlock, codeContent);
-    }
-
-    QRegularExpressionMatch endMatch = partialEndBlockRegex.match(response);
-    if (endMatch.hasMatch()) {
-        QString partialBlock = endMatch.captured(0);
-        QString codeContent = endMatch.captured(1).trimmed();
-        response.replace(partialBlock, codeContent);
-    }
-}
-
 } // namespace QodeAssist::LLMCore
