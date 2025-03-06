@@ -28,7 +28,7 @@ namespace QodeAssist {
 class CodeHandler
 {
 public:
-    static QString processText(QString text);
+    static QString processText(QString text, bool smartProcess = true);
 
     static QString detectLanguage(const QString &line);
 
