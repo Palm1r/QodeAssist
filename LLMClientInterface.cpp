@@ -293,9 +293,11 @@ void LLMClientInterface::sendCompletionToClient(
 
     LOG_MESSAGE(QString("Completions before filter: \n%1").arg(completion));
 
-    bool smartProcess = promptTemplate->type() == LLMCore::TemplateType::Chat
-                        && Settings::codeCompletionSettings().smartProcessInstuctText();
-    QString processedCompletion = CodeHandler::processText(completion, smartProcess);
+    QString processedCompletion
+        = promptTemplate->type() == LLMCore::TemplateType::Chat
+                  && Settings::codeCompletionSettings().smartProcessInstuctText()
+              ? CodeHandler::processText(completion)
+              : completion;
 
     completionItem[LanguageServerProtocol::textKey] = processedCompletion;
     QJsonObject range;
