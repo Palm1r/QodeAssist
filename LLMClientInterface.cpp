@@ -37,6 +37,14 @@
 
 namespace QodeAssist {
 
+QString extractFilePathFromRequest(const QJsonObject &request)
+{
+    QJsonObject params = request["params"].toObject();
+    QJsonObject doc = params["doc"].toObject();
+    QString uri = doc["uri"].toString();
+    return QUrl(uri).toLocalFile();
+}
+
 LLMClientInterface::LLMClientInterface()
     : m_requestHandler(this)
 {
@@ -251,9 +259,8 @@ LLMCore::ContextData LLMClientInterface::prepareContext(
     QJsonObject params = request["params"].toObject();
     QJsonObject doc = params["doc"].toObject();
     QJsonObject position = doc["position"].toObject();
-    QString uri = doc["uri"].toString();
 
-    Utils::FilePath filePath = Utils::FilePath::fromString(QUrl(uri).toLocalFile());
+    Utils::FilePath filePath = Utils::FilePath::fromString(extractFilePathFromRequest(request));
     TextEditor::TextDocument *textDocument = TextEditor::TextDocument::textDocumentForFilePath(
         filePath);
 
@@ -296,7 +303,7 @@ void LLMClientInterface::sendCompletionToClient(
     QString processedCompletion
         = promptTemplate->type() == LLMCore::TemplateType::Chat
                   && Settings::codeCompletionSettings().smartProcessInstuctText()
-              ? CodeHandler::processText(completion)
+              ? CodeHandler::processText(completion, extractFilePathFromRequest(request))
               : completion;
 
     completionItem[LanguageServerProtocol::textKey] = processedCompletion;
