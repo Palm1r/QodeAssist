@@ -33,15 +33,6 @@ class CodeHandlerTest : public QObject, public testing::Test
     Q_OBJECT
 };
 
-TEST_F(CodeHandlerTest, testProcessTextNoProcessWithCodeBlock)
-{
-    QString input = "This is a comment\n"
-                    "```python\nprint('Hello, world!')\n```\n"
-                    "Another comment";
-
-    EXPECT_EQ(CodeHandler::processText(input, false), input);
-}
-
 TEST_F(CodeHandlerTest, testProcessTextWithCodeBlock)
 {
     QString input = "This is a comment\n"
