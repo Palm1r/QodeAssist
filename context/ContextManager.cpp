@@ -81,7 +81,7 @@ ProgrammingLanguage ContextManager::getDocumentLanguage(const QJsonObject &reque
         filePath);
 
     if (!textDocument) {
-        LOG_MESSAGE("Error: Document is not available for" + filePath.toString());
+        LOG_MESSAGE("Error: Document is not available for" + filePath.toFSPathString());
         return Context::ProgrammingLanguage::Unknown;
     }
 

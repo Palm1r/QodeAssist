@@ -183,11 +183,11 @@ QString ClientInterface::getCurrentFileContext() const
     }
 
     QString fileInfo = QString("Language: %1\nFile: %2\n\n")
-                           .arg(textDocument->mimeType(), textDocument->filePath().toString());
+                           .arg(textDocument->mimeType(), textDocument->filePath().toFSPathString());
 
     QString content = textDocument->document()->toPlainText();
 
-    LOG_MESSAGE(QString("Got context from file: %1").arg(textDocument->filePath().toString()));
+    LOG_MESSAGE(QString("Got context from file: %1").arg(textDocument->filePath().toFSPathString()));
 
     return QString("Current file context:\n%1\nFile content:\n%2").arg(fileInfo, content);
 }

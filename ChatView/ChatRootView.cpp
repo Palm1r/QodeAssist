@@ -164,9 +164,10 @@ QString ChatRootView::getChatsHistoryDir() const
 
     if (auto project = ProjectExplorer::ProjectManager::startupProject()) {
         Settings::ProjectSettings projectSettings(project);
-        path = projectSettings.chatHistoryPath().toString();
+        path = projectSettings.chatHistoryPath().toFSPathString();
     } else {
-        path = QString("%1/qodeassist/chat_history").arg(Core::ICore::userResourcePath().toString());
+        path = QString("%1/qodeassist/chat_history")
+                   .arg(Core::ICore::userResourcePath().toFSPathString());
     }
 
     QDir dir(path);
@@ -350,7 +351,7 @@ void ChatRootView::showAttachFilesDialog()
     dialog.setFileMode(QFileDialog::ExistingFiles);
 
     if (auto project = ProjectExplorer::ProjectManager::startupProject()) {
-        dialog.setDirectory(project->projectDirectory().toString());
+        dialog.setDirectory(project->projectDirectory().toFSPathString());
     }
 
     if (dialog.exec() == QDialog::Accepted) {
@@ -384,7 +385,7 @@ void ChatRootView::showLinkFilesDialog()
     dialog.setFileMode(QFileDialog::ExistingFiles);
 
     if (auto project = ProjectExplorer::ProjectManager::startupProject()) {
-        dialog.setDirectory(project->projectDirectory().toString());
+        dialog.setDirectory(project->projectDirectory().toFSPathString());
     }
 
     if (dialog.exec() == QDialog::Accepted) {
@@ -437,9 +438,10 @@ void ChatRootView::openChatHistoryFolder()
     QString path;
     if (auto project = ProjectExplorer::ProjectManager::startupProject()) {
         Settings::ProjectSettings projectSettings(project);
-        path = projectSettings.chatHistoryPath().toString();
+        path = projectSettings.chatHistoryPath().toFSPathString();
     } else {
-        path = QString("%1/qodeassist/chat_history").arg(Core::ICore::userResourcePath().toString());
+        path = QString("%1/qodeassist/chat_history")
+                   .arg(Core::ICore::userResourcePath().toFSPathString());
     }
 
     QDir dir(path);
@@ -493,7 +495,7 @@ bool ChatRootView::isSyncOpenFiles() const
 void ChatRootView::onEditorAboutToClose(Core::IEditor *editor)
 {
     if (auto document = editor->document(); document && isSyncOpenFiles()) {
-        QString filePath = document->filePath().toString();
+        QString filePath = document->filePath().toFSPathString();
         m_linkedFiles.removeOne(filePath);
         emit linkedFilesChanged();
     }
@@ -506,7 +508,7 @@ void ChatRootView::onEditorAboutToClose(Core::IEditor *editor)
 void ChatRootView::onAppendLinkFileFromEditor(Core::IEditor *editor)
 {
     if (auto document = editor->document(); document && isSyncOpenFiles()) {
-        QString filePath = document->filePath().toString();
+        QString filePath = document->filePath().toFSPathString();
         if (!m_linkedFiles.contains(filePath)) {
             m_linkedFiles.append(filePath);
             emit linkedFilesChanged();
