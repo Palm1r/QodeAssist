@@ -151,7 +151,6 @@ CodeCompletionSettings::CodeCompletionSettings()
 
     systemPrompt.setSettingsKey(Constants::CC_SYSTEM_PROMPT);
     systemPrompt.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
-    systemPromptForNonFimModels.setLabelText(Tr::tr("System prompt for FIM models:"));
     systemPrompt.setDefaultValue(
         "You are an expert C++, Qt, and QML code completion assistant. Your task is to provide "
         "precise and contextually appropriate code completions.\n\n");
