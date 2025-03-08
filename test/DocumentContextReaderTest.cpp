@@ -372,21 +372,24 @@ TEST_F(DocumentContextReaderTest, testPrepareContext)
         (ContextData{
             .prefix = "Line 0\nLine 1\nLin",
             .suffix = "e 2\nLine 3\nLine 4",
-            .fileContext = "\n Language:  (MIME: text/python) filepath: /path/to/file()\n\n\n "}));
+            .fileContext = "\n Language:  (MIME: text/python) filepath: /path/to/file()\n\n"
+                           "Recent Project Changes Context:\n "}));
 
     EXPECT_EQ(
         reader.prepareContext(2, 3, *createSettingsForLines(1, 1)),
         (ContextData{
             .prefix = "Line 1\nLin",
             .suffix = "e 2\nLine 3",
-            .fileContext = "\n Language:  (MIME: text/python) filepath: /path/to/file()\n\n\n "}));
+            .fileContext = "\n Language:  (MIME: text/python) filepath: /path/to/file()\n\n"
+                           "Recent Project Changes Context:\n "}));
 
     EXPECT_EQ(
         reader.prepareContext(2, 3, *createSettingsForLines(2, 2)),
         (ContextData{
             .prefix = "Line 0\nLine 1\nLin",
             .suffix = "e 2\nLine 3\nLine 4",
-            .fileContext = "\n Language:  (MIME: text/python) filepath: /path/to/file()\n\n\n "}));
+            .fileContext = "\n Language:  (MIME: text/python) filepath: /path/to/file()\n\n"
+                           "Recent Project Changes Context:\n "}));
 }
 
 #include "DocumentContextReaderTest.moc"
