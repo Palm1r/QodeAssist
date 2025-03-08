@@ -26,6 +26,7 @@
 
 #include "GeneralSettings.hpp"
 #include "Logger.hpp"
+#include "Utils.hpp"
 #include <texteditor/textdocument.h>
 #include <utils/filepath.h>
 
@@ -72,16 +73,12 @@ ContentFile ContextManager::createContentFile(const QString &filePath) const
 
 ProgrammingLanguage ContextManager::getDocumentLanguage(const QJsonObject &request)
 {
-    QJsonObject params = request["params"].toObject();
-    QJsonObject doc = params["doc"].toObject();
-    QString uri = doc["uri"].toString();
-
-    Utils::FilePath filePath = Utils::FilePath::fromString(QUrl(uri).toLocalFile());
+    auto filePath = extractFilePathFromRequest(request);
     TextEditor::TextDocument *textDocument = TextEditor::TextDocument::textDocumentForFilePath(
-        filePath);
+        Utils::FilePath::fromString(filePath));
 
     if (!textDocument) {
-        LOG_MESSAGE("Error: Document is not available for" + filePath.toFSPathString());
+        LOG_MESSAGE("Error: Document is not available for" + filePath);
         return Context::ProgrammingLanguage::Unknown;
     }
 

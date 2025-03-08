@@ -29,6 +29,7 @@
 #include "CodeHandler.hpp"
 #include "context/ContextManager.hpp"
 #include "context/DocumentContextReader.hpp"
+#include "context/Utils.hpp"
 #include "llmcore/PromptTemplateManager.hpp"
 #include "llmcore/ProvidersManager.hpp"
 #include "logger/Logger.hpp"
@@ -36,14 +37,6 @@
 #include "settings/GeneralSettings.hpp"
 
 namespace QodeAssist {
-
-QString extractFilePathFromRequest(const QJsonObject &request)
-{
-    QJsonObject params = request["params"].toObject();
-    QJsonObject doc = params["doc"].toObject();
-    QString uri = doc["uri"].toString();
-    return QUrl(uri).toLocalFile();
-}
 
 LLMClientInterface::LLMClientInterface(
     const Settings::GeneralSettings &generalSettings,
@@ -263,20 +256,20 @@ LLMCore::ContextData LLMClientInterface::prepareContext(
     QJsonObject doc = params["doc"].toObject();
     QJsonObject position = doc["position"].toObject();
 
-    Utils::FilePath filePath = Utils::FilePath::fromString(extractFilePathFromRequest(request));
+    auto filePath = Context::extractFilePathFromRequest(request);
     TextEditor::TextDocument *textDocument = TextEditor::TextDocument::textDocumentForFilePath(
-        filePath);
+        Utils::FilePath::fromString(filePath));
 
     if (!textDocument) {
-        LOG_MESSAGE("Error: Document is not available for" + filePath.toString());
+        LOG_MESSAGE("Error: Document is not available for" + filePath);
         return LLMCore::ContextData{};
     }
 
     int cursorPosition = position["character"].toInt();
     int lineNumber = position["line"].toInt();
 
-    Context::DocumentContextReader reader(
-        textDocument->document(), textDocument->mimeType(), textDocument->filePath().toString());
+    Context::DocumentContextReader
+        reader(textDocument->document(), textDocument->mimeType(), filePath);
     return reader.prepareContext(lineNumber, cursorPosition, m_completeSettings);
 }
 
@@ -306,7 +299,7 @@ void LLMClientInterface::sendCompletionToClient(
     QString processedCompletion
         = promptTemplate->type() == LLMCore::TemplateType::Chat
                   && m_completeSettings.smartProcessInstuctText()
-              ? CodeHandler::processText(completion, extractFilePathFromRequest(request))
+              ? CodeHandler::processText(completion, Context::extractFilePathFromRequest(request))
               : completion;
 
     completionItem[LanguageServerProtocol::textKey] = processedCompletion;
