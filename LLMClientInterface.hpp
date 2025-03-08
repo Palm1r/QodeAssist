@@ -25,6 +25,8 @@
 #include <context/ProgrammingLanguage.hpp>
 #include <llmcore/ContextData.hpp>
 #include <llmcore/RequestHandler.hpp>
+#include <settings/CodeCompletionSettings.hpp>
+#include <settings/GeneralSettings.hpp>
 
 class QNetworkReply;
 class QNetworkAccessManager;
@@ -36,7 +38,9 @@ class LLMClientInterface : public LanguageClient::BaseClientInterface
     Q_OBJECT
 
 public:
-    LLMClientInterface();
+    LLMClientInterface(
+        const Settings::GeneralSettings &generalSettings,
+        const Settings::CodeCompletionSettings &completeSettings);
 
     Utils::FilePath serverDeviceTemplate() const override;
 
@@ -61,6 +65,8 @@ private:
     LLMCore::ContextData prepareContext(
         const QJsonObject &request, const QStringView &accumulatedCompletion = QString{});
 
+    const Settings::CodeCompletionSettings &m_completeSettings;
+    const Settings::GeneralSettings &m_generalSettings;
     LLMCore::RequestHandler m_requestHandler;
     QElapsedTimer m_completionTimer;
     QMap<QString, qint64> m_requestStartTimes;

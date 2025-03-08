@@ -358,7 +358,7 @@ void CodeCompletionSettings::resetSettingsToDefaults()
     }
 }
 
-QString CodeCompletionSettings::processMessageToFIM(const QString &prefix, const QString &suffix)
+QString CodeCompletionSettings::processMessageToFIM(const QString &prefix, const QString &suffix) const
 {
     QString result = userMessageTemplateForCC();
     result.replace("${prefix}", prefix);
