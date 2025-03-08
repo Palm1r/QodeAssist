@@ -43,8 +43,8 @@ ProjectSettings::ProjectSettings(ProjectExplorer::Project *project)
     chatHistoryPath.setExpectedKind(Utils::PathChooser::ExistingDirectory);
     chatHistoryPath.setLabelText(Tr::tr("Chat History Path:"));
 
-    QString projectChatHistoryPath
-        = QString("%1/qodeassist/chat_history").arg(Core::ICore::userResourcePath().toString());
+    QString projectChatHistoryPath = QString("%1/qodeassist/chat_history")
+                                         .arg(Core::ICore::userResourcePath().toFSPathString());
 
     chatHistoryPath.setDefaultValue(projectChatHistoryPath);
 
