@@ -45,7 +45,8 @@ using namespace Core;
 namespace QodeAssist {
 
 QodeAssistClient::QodeAssistClient()
-    : LanguageClient::Client(new LLMClientInterface())
+    : LanguageClient::Client(
+          new LLMClientInterface(Settings::generalSettings(), Settings::codeCompletionSettings()))
     , m_recentCharCount(0)
 {
     setName("Qode Assist");

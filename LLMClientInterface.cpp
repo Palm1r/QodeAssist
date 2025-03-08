@@ -45,8 +45,12 @@ QString extractFilePathFromRequest(const QJsonObject &request)
     return QUrl(uri).toLocalFile();
 }
 
-LLMClientInterface::LLMClientInterface()
+LLMClientInterface::LLMClientInterface(
+    const Settings::GeneralSettings &generalSettings,
+    const Settings::CodeCompletionSettings &completeSettings)
     : m_requestHandler(this)
+    , m_generalSettings(generalSettings)
+    , m_completeSettings(completeSettings)
 {
     connect(
         &m_requestHandler,
@@ -158,16 +162,15 @@ void LLMClientInterface::handleExit(const QJsonObject &request)
 void LLMClientInterface::handleCompletion(const QJsonObject &request)
 {
     auto updatedContext = prepareContext(request);
-    auto &completeSettings = Settings::codeCompletionSettings();
-    auto &generalSettings = Settings::generalSettings();
 
-    bool isPreset1Active = Context::ContextManager::isSpecifyCompletion(request, generalSettings);
+    bool isPreset1Active = Context::ContextManager::isSpecifyCompletion(request, m_generalSettings);
 
-    const auto providerName = !isPreset1Active ? generalSettings.ccProvider()
-                                               : generalSettings.ccPreset1Provider();
-    const auto modelName = !isPreset1Active ? generalSettings.ccModel()
-                                            : generalSettings.ccPreset1Model();
-    const auto url = !isPreset1Active ? generalSettings.ccUrl() : generalSettings.ccPreset1Url();
+    const auto providerName = !isPreset1Active ? m_generalSettings.ccProvider()
+                                               : m_generalSettings.ccPreset1Provider();
+    const auto modelName = !isPreset1Active ? m_generalSettings.ccModel()
+                                            : m_generalSettings.ccPreset1Model();
+    const auto url = !isPreset1Active ? m_generalSettings.ccUrl()
+                                      : m_generalSettings.ccPreset1Url();
 
     const auto provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
@@ -176,8 +179,8 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         return;
     }
 
-    auto templateName = !isPreset1Active ? generalSettings.ccTemplate()
-                                         : generalSettings.ccPreset1Template();
+    auto templateName = !isPreset1Active ? m_generalSettings.ccTemplate()
+                                         : m_generalSettings.ccPreset1Template();
 
     auto promptTemplate = LLMCore::PromptTemplateManager::instance().getFimTemplateByName(
         templateName);
@@ -194,30 +197,30 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     config.promptTemplate = promptTemplate;
     // TODO refactor networking
     if (provider->providerID() == LLMCore::ProviderID::GoogleAI) {
-        QString stream = completeSettings.stream() ? QString{"streamGenerateContent?alt=sse"}
-                                                   : QString{"generateContent?"};
+        QString stream = m_completeSettings.stream() ? QString{"streamGenerateContent?alt=sse"}
+                                                     : QString{"generateContent?"};
         config.url = QUrl(QString("%1/models/%2:%3").arg(url, modelName, stream));
     } else {
         config.url = QUrl(QString("%1%2").arg(
             url,
             promptTemplate->type() == LLMCore::TemplateType::FIM ? provider->completionEndpoint()
                                                                  : provider->chatEndpoint()));
-        config.providerRequest = {{"model", modelName}, {"stream", completeSettings.stream()}};
+        config.providerRequest = {{"model", modelName}, {"stream", m_completeSettings.stream()}};
     }
     config.apiKey = provider->apiKey();
-    config.multiLineCompletion = completeSettings.multiLineCompletion();
+    config.multiLineCompletion = m_completeSettings.multiLineCompletion();
 
     const auto stopWords = QJsonArray::fromStringList(config.promptTemplate->stopWords());
     if (!stopWords.isEmpty())
         config.providerRequest["stop"] = stopWords;
 
     QString systemPrompt;
-    if (completeSettings.useSystemPrompt())
+    if (m_completeSettings.useSystemPrompt())
         systemPrompt.append(
-            completeSettings.useUserMessageTemplateForCC()
+            m_completeSettings.useUserMessageTemplateForCC()
                     && promptTemplate->type() == LLMCore::TemplateType::Chat
-                ? completeSettings.systemPromptForNonFimModels()
-                : completeSettings.systemPrompt());
+                ? m_completeSettings.systemPromptForNonFimModels()
+                : m_completeSettings.systemPrompt());
     if (updatedContext.fileContext.has_value())
         systemPrompt.append(updatedContext.fileContext.value());
 
@@ -225,8 +228,8 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
 
     if (promptTemplate->type() == LLMCore::TemplateType::Chat) {
         QString userMessage;
-        if (completeSettings.useUserMessageTemplateForCC()) {
-            userMessage = completeSettings.processMessageToFIM(
+        if (m_completeSettings.useUserMessageTemplateForCC()) {
+            userMessage = m_completeSettings.processMessageToFIM(
                 updatedContext.prefix.value_or(""), updatedContext.suffix.value_or(""));
         } else {
             userMessage = updatedContext.prefix.value_or("") + updatedContext.suffix.value_or("");
@@ -274,17 +277,16 @@ LLMCore::ContextData LLMClientInterface::prepareContext(
 
     Context::DocumentContextReader reader(
         textDocument->document(), textDocument->mimeType(), textDocument->filePath().toString());
-    return reader.prepareContext(lineNumber, cursorPosition, Settings::codeCompletionSettings());
+    return reader.prepareContext(lineNumber, cursorPosition, m_completeSettings);
 }
 
 void LLMClientInterface::sendCompletionToClient(
     const QString &completion, const QJsonObject &request, bool isComplete)
 {
-    auto &generalSettings = Settings::generalSettings();
-    bool isPreset1Active = Context::ContextManager::isSpecifyCompletion(request, generalSettings);
+    bool isPreset1Active = Context::ContextManager::isSpecifyCompletion(request, m_generalSettings);
 
-    auto templateName = !isPreset1Active ? generalSettings.ccTemplate()
-                                         : generalSettings.ccPreset1Template();
+    auto templateName = !isPreset1Active ? m_generalSettings.ccTemplate()
+                                         : m_generalSettings.ccPreset1Template();
 
     auto promptTemplate = LLMCore::PromptTemplateManager::instance().getFimTemplateByName(
         templateName);
@@ -303,7 +305,7 @@ void LLMClientInterface::sendCompletionToClient(
 
     QString processedCompletion
         = promptTemplate->type() == LLMCore::TemplateType::Chat
-                  && Settings::codeCompletionSettings().smartProcessInstuctText()
+                  && m_completeSettings.smartProcessInstuctText()
               ? CodeHandler::processText(completion, extractFilePathFromRequest(request))
               : completion;
 
