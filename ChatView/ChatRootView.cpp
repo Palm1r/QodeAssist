@@ -45,7 +45,8 @@ namespace QodeAssist::Chat {
 ChatRootView::ChatRootView(QQuickItem *parent)
     : QQuickItem(parent)
     , m_chatModel(new ChatModel(this))
-    , m_clientInterface(new ClientInterface(m_chatModel, this))
+    , m_promptProvider(LLMCore::PromptTemplateManager::instance())
+    , m_clientInterface(new ClientInterface(m_chatModel, &m_promptProvider, this))
 {
     m_isSyncOpenFiles = Settings::chatAssistantSettings().linkOpenFiles();
     connect(

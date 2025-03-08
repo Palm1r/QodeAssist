@@ -24,16 +24,16 @@
 
 #pragma once
 
-#include <languageclient/client.h>
-
 #include "LSPCompletion.hpp"
+#include <languageclient/client.h>
+#include <llmcore/IPromptProvider.hpp>
 
 namespace QodeAssist {
 
 class QodeAssistClient : public LanguageClient::Client
 {
 public:
-    explicit QodeAssistClient();
+    explicit QodeAssistClient(LLMCore::IPromptProvider *promptProvider);
     ~QodeAssistClient() override;
 
     void openDocument(TextEditor::TextDocument *document) override;

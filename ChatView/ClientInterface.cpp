@@ -36,15 +36,16 @@
 #include "ContextManager.hpp"
 #include "GeneralSettings.hpp"
 #include "Logger.hpp"
-#include "PromptTemplateManager.hpp"
 #include "ProvidersManager.hpp"
 
 namespace QodeAssist::Chat {
 
-ClientInterface::ClientInterface(ChatModel *chatModel, QObject *parent)
+ClientInterface::ClientInterface(
+    ChatModel *chatModel, LLMCore::IPromptProvider *promptProvider, QObject *parent)
     : QObject(parent)
     , m_requestHandler(new LLMCore::RequestHandler(this))
     , m_chatModel(chatModel)
+    , m_promptProvider(promptProvider)
 {
     connect(
         m_requestHandler,
@@ -86,8 +87,7 @@ void ClientInterface::sendMessage(
     }
 
     auto templateName = Settings::generalSettings().caTemplate();
-    auto promptTemplate = LLMCore::PromptTemplateManager::instance().getChatTemplateByName(
-        templateName);
+    auto promptTemplate = m_promptProvider->getTemplateByName(templateName);
 
     if (!promptTemplate) {
         LOG_MESSAGE(QString("No template found with name: %1").arg(templateName));

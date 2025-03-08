@@ -46,6 +46,7 @@
 #include "Version.hpp"
 #include "chat/ChatOutputPane.h"
 #include "chat/NavigationPanel.hpp"
+#include "llmcore/PromptProviderFim.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProjectSettingsPanel.hpp"
 #include "settings/SettingsConstants.hpp"
@@ -68,6 +69,7 @@ class QodeAssistPlugin final : public ExtensionSystem::IPlugin
 public:
     QodeAssistPlugin()
         : m_updater(new PluginUpdater(this))
+        , m_promptProvider(LLMCore::PromptTemplateManager::instance())
     {}
 
     ~QodeAssistPlugin() final
@@ -135,7 +137,7 @@ public:
     void restartClient()
     {
         LanguageClient::LanguageClientManager::shutdownClient(m_qodeAssistClient);
-        m_qodeAssistClient = new QodeAssistClient();
+        m_qodeAssistClient = new QodeAssistClient(&m_promptProvider);
     }
 
     bool delayedInitialize() final
@@ -176,6 +178,7 @@ private:
     }
 
     QPointer<QodeAssistClient> m_qodeAssistClient;
+    LLMCore::PromptProviderFim m_promptProvider;
     QPointer<Chat::ChatOutputPane> m_chatOutputPane;
     QPointer<Chat::NavigationPanel> m_navigationPanel;
     QPointer<PluginUpdater> m_updater;
