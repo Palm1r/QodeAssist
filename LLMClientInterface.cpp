@@ -161,7 +161,7 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     auto &completeSettings = Settings::codeCompletionSettings();
     auto &generalSettings = Settings::generalSettings();
 
-    bool isPreset1Active = Context::ContextManager::instance().isSpecifyCompletion(request);
+    bool isPreset1Active = Context::ContextManager::isSpecifyCompletion(request, generalSettings);
 
     const auto providerName = !isPreset1Active ? generalSettings.ccProvider()
                                                : generalSettings.ccPreset1Provider();
@@ -280,10 +280,11 @@ LLMCore::ContextData LLMClientInterface::prepareContext(
 void LLMClientInterface::sendCompletionToClient(
     const QString &completion, const QJsonObject &request, bool isComplete)
 {
-    bool isPreset1Active = Context::ContextManager::instance().isSpecifyCompletion(request);
+    auto &generalSettings = Settings::generalSettings();
+    bool isPreset1Active = Context::ContextManager::isSpecifyCompletion(request, generalSettings);
 
-    auto templateName = !isPreset1Active ? Settings::generalSettings().ccTemplate()
-                                         : Settings::generalSettings().ccPreset1Template();
+    auto templateName = !isPreset1Active ? generalSettings.ccTemplate()
+                                         : generalSettings.ccPreset1Template();
 
     auto promptTemplate = LLMCore::PromptTemplateManager::instance().getFimTemplateByName(
         templateName);

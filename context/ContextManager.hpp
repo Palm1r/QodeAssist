@@ -24,6 +24,7 @@
 
 #include "ContentFile.hpp"
 #include "ProgrammingLanguage.hpp"
+#include "settings/GeneralSettings.hpp"
 
 namespace QodeAssist::Context {
 
@@ -35,8 +36,10 @@ public:
     static ContextManager &instance();
     QString readFile(const QString &filePath) const;
     QList<ContentFile> getContentFiles(const QStringList &filePaths) const;
-    ProgrammingLanguage getDocumentLanguage(const QJsonObject &request) const;
-    bool isSpecifyCompletion(const QJsonObject &request);
+
+    static ProgrammingLanguage getDocumentLanguage(const QJsonObject &request);
+    static bool isSpecifyCompletion(
+        const QJsonObject &request, const Settings::GeneralSettings &generalSettings);
 
 private:
     explicit ContextManager(QObject *parent = nullptr);

@@ -70,7 +70,7 @@ ContentFile ContextManager::createContentFile(const QString &filePath) const
     return contentFile;
 }
 
-ProgrammingLanguage ContextManager::getDocumentLanguage(const QJsonObject &request) const
+ProgrammingLanguage ContextManager::getDocumentLanguage(const QJsonObject &request)
 {
     QJsonObject params = request["params"].toObject();
     QJsonObject doc = params["doc"].toObject();
@@ -88,10 +88,9 @@ ProgrammingLanguage ContextManager::getDocumentLanguage(const QJsonObject &reque
     return Context::ProgrammingLanguageUtils::fromMimeType(textDocument->mimeType());
 }
 
-bool ContextManager::isSpecifyCompletion(const QJsonObject &request)
+bool ContextManager::isSpecifyCompletion(
+    const QJsonObject &request, const Settings::GeneralSettings &generalSettings)
 {
-    auto &generalSettings = Settings::generalSettings();
-
     Context::ProgrammingLanguage documentLanguage = getDocumentLanguage(request);
     Context::ProgrammingLanguage preset1Language = Context::ProgrammingLanguageUtils::fromString(
         generalSettings.preset1Language.displayForIndex(generalSettings.preset1Language()));
