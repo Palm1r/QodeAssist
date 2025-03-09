@@ -34,6 +34,7 @@
 #include "templates/GoogleAI.hpp"
 #include "templates/Llama2.hpp"
 #include "templates/Llama3.hpp"
+#include "templates/LlamaCppFim.hpp"
 #include "templates/Qwen.hpp"
 #include "templates/StarCoder2Fim.hpp"
 
@@ -60,6 +61,7 @@ inline void registerTemplates()
     templateManager.registerTemplate<OpenAICompatible>();
     templateManager.registerTemplate<Alpaca>();
     templateManager.registerTemplate<GoogleAI>();
+    templateManager.registerTemplate<LlamaCppFim>();
 }
 
 } // namespace QodeAssist::Templates

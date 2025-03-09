@@ -63,9 +63,10 @@ public:
     bool isSupportProvider(LLMCore::ProviderID id) const override
     {
         switch (id) {
-        case QodeAssist::LLMCore::ProviderID::OpenAICompatible:
-        case QodeAssist::LLMCore::ProviderID::OpenRouter:
-        case QodeAssist::LLMCore::ProviderID::LMStudio:
+        case LLMCore::ProviderID::OpenAICompatible:
+        case LLMCore::ProviderID::OpenRouter:
+        case LLMCore::ProviderID::LMStudio:
+        case LLMCore::ProviderID::LlamaCpp:
             return true;
         default:
             return false;

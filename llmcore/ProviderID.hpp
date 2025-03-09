@@ -28,6 +28,7 @@ enum class ProviderID {
     OpenAICompatible,
     MistralAI,
     OpenRouter,
-    GoogleAI
+    GoogleAI,
+    LlamaCpp
 };
 }
