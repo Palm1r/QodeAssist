@@ -30,7 +30,7 @@ struct Message
     QString content;
 
     // clang-format off
-    auto operator<=>(const Message&) const = default;
+    bool operator==(const Message&) const = default;
     // clang-format on
 };
 
