@@ -69,6 +69,7 @@ add_qtc_plugin(QodeAssist
     templates/Llama2.hpp
     templates/CodeLlamaQMLFim.hpp
     templates/GoogleAI.hpp
+    templates/LlamaCppFim.hpp
     providers/Providers.hpp
     providers/OllamaProvider.hpp providers/OllamaProvider.cpp
     providers/ClaudeProvider.hpp providers/ClaudeProvider.cpp
@@ -78,6 +79,7 @@ add_qtc_plugin(QodeAssist
     providers/OpenAICompatProvider.hpp providers/OpenAICompatProvider.cpp
     providers/OpenRouterAIProvider.hpp providers/OpenRouterAIProvider.cpp
     providers/GoogleAIProvider.hpp providers/GoogleAIProvider.cpp
+    providers/LlamaCppProvider.hpp providers/LlamaCppProvider.cpp
     QodeAssist.qrc
     LSPCompletion.hpp
     LLMSuggestion.hpp LLMSuggestion.cpp
