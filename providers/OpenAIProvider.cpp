@@ -171,7 +171,9 @@ QList<QString> OpenAIProvider::getInstalledModels(const QString &url)
                 QJsonObject modelObject = value.toObject();
                 if (modelObject.contains("id")) {
                     QString modelId = modelObject["id"].toString();
-                    if (modelId.startsWith("gpt")) {
+                    if (!modelId.contains("dall-e") && !modelId.contains("whisper")
+                        && !modelId.contains("tts") && !modelId.contains("davinci")
+                        && !modelId.contains("babbage") && !modelId.contains("omni")) {
                         models.append(modelId);
                     }
                 }
