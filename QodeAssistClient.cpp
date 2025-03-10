@@ -44,9 +44,13 @@ using namespace Core;
 
 namespace QodeAssist {
 
-QodeAssistClient::QodeAssistClient(LLMCore::IPromptProvider *promptProvider)
+QodeAssistClient::QodeAssistClient(
+    LLMCore::IProviderRegistry &providerRegistry, LLMCore::IPromptProvider *promptProvider)
     : LanguageClient::Client(new LLMClientInterface(
-          Settings::generalSettings(), Settings::codeCompletionSettings(), promptProvider))
+          Settings::generalSettings(),
+          Settings::codeCompletionSettings(),
+          providerRegistry,
+          promptProvider))
     , m_recentCharCount(0)
 {
     setName("Qode Assist");

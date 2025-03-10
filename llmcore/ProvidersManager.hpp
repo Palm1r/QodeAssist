@@ -21,12 +21,12 @@
 
 #include <QString>
 
-#include "Provider.hpp"
+#include "IProviderRegistry.hpp"
 #include <QMap>
 
 namespace QodeAssist::LLMCore {
 
-class ProvidersManager
+class ProvidersManager : public IProviderRegistry
 {
 public:
     static ProvidersManager &instance();
@@ -41,9 +41,9 @@ public:
         m_providers[name] = provider;
     }
 
-    Provider *getProviderByName(const QString &providerName);
+    Provider *getProviderByName(const QString &providerName) override;
 
-    QStringList providersNames() const;
+    QStringList providersNames() const override;
 
 private:
     ProvidersManager() = default;

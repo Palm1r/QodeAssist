@@ -47,6 +47,7 @@
 #include "chat/ChatOutputPane.h"
 #include "chat/NavigationPanel.hpp"
 #include "llmcore/PromptProviderFim.hpp"
+#include "llmcore/ProvidersManager.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProjectSettingsPanel.hpp"
 #include "settings/SettingsConstants.hpp"
@@ -137,7 +138,8 @@ public:
     void restartClient()
     {
         LanguageClient::LanguageClientManager::shutdownClient(m_qodeAssistClient);
-        m_qodeAssistClient = new QodeAssistClient(&m_promptProvider);
+        m_qodeAssistClient
+            = new QodeAssistClient(LLMCore::ProvidersManager::instance(), &m_promptProvider);
     }
 
     bool delayedInitialize() final

@@ -41,10 +41,12 @@ namespace QodeAssist {
 LLMClientInterface::LLMClientInterface(
     const Settings::GeneralSettings &generalSettings,
     const Settings::CodeCompletionSettings &completeSettings,
+    LLMCore::IProviderRegistry &providerRegistry,
     LLMCore::IPromptProvider *promptProvider)
     : m_requestHandler(this)
     , m_generalSettings(generalSettings)
     , m_completeSettings(completeSettings)
+    , m_providerRegistry(providerRegistry)
     , m_promptProvider(promptProvider)
 {
     connect(
@@ -167,7 +169,7 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     const auto url = !isPreset1Active ? m_generalSettings.ccUrl()
                                       : m_generalSettings.ccPreset1Url();
 
-    const auto provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
+    const auto provider = m_providerRegistry.getProviderByName(providerName);
 
     if (!provider) {
         LOG_MESSAGE(QString("No provider found with name: %1").arg(providerName));
