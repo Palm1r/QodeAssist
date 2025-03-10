@@ -58,9 +58,11 @@ public:
 
     void handleCompletion(const QJsonObject &request);
 
+    // exposed for tests
+    void sendData(const QByteArray &data) override;
+
 protected:
     void startImpl() override;
-    void sendData(const QByteArray &data) override;
     void parseCurrentMessage() override;
 
 private:

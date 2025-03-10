@@ -11,7 +11,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_package(QtCreator REQUIRED COMPONENTS Core)
-find_package(Qt6 COMPONENTS Core Gui Quick Widgets Network REQUIRED)
+find_package(Qt6 COMPONENTS Core Gui Quick Widgets Network Test REQUIRED)
 find_package(GTest)
 
 # IDE_VERSION is defined by QtCreator package
