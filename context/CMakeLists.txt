@@ -3,6 +3,8 @@ add_library(Context STATIC
     ChangesManager.h ChangesManager.cpp
     ContextManager.hpp ContextManager.cpp
     ContentFile.hpp
+    DocumentReaderQtCreator.hpp
+    IDocumentReader.hpp
     TokenUtils.hpp TokenUtils.cpp
     ProgrammingLanguage.hpp ProgrammingLanguage.cpp
 )
