@@ -46,6 +46,7 @@ public:
         const Settings::CodeCompletionSettings &completeSettings,
         LLMCore::IProviderRegistry &providerRegistry,
         LLMCore::IPromptProvider *promptProvider,
+        LLMCore::RequestHandlerBase &requestHandler,
         IRequestPerformanceLogger &performanceLogger);
 
     Utils::FilePath serverDeviceTemplate() const override;
@@ -75,7 +76,7 @@ private:
     const Settings::GeneralSettings &m_generalSettings;
     LLMCore::IPromptProvider *m_promptProvider = nullptr;
     LLMCore::IProviderRegistry &m_providerRegistry;
-    LLMCore::RequestHandler m_requestHandler;
+    LLMCore::RequestHandlerBase &m_requestHandler;
     IRequestPerformanceLogger &m_performanceLogger;
     QElapsedTimer m_completionTimer;
 };

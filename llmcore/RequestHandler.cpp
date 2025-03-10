@@ -26,7 +26,7 @@
 namespace QodeAssist::LLMCore {
 
 RequestHandler::RequestHandler(QObject *parent)
-    : QObject(parent)
+    : RequestHandlerBase(parent)
     , m_manager(new QNetworkAccessManager(this))
 {}
 

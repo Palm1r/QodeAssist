@@ -24,26 +24,20 @@
 #include <QObject>
 
 #include "RequestConfig.hpp"
+#include "RequestHandlerBase.hpp"
 
 class QNetworkReply;
 
 namespace QodeAssist::LLMCore {
 
-class RequestHandler : public QObject
+class RequestHandler : public RequestHandlerBase
 {
-    Q_OBJECT
-
 public:
     explicit RequestHandler(QObject *parent = nullptr);
 
-    void sendLLMRequest(const LLMConfig &config, const QJsonObject &request);
+    void sendLLMRequest(const LLMConfig &config, const QJsonObject &request) override;
+    bool cancelRequest(const QString &id) override;
     void handleLLMResponse(QNetworkReply *reply, const QJsonObject &request, const LLMConfig &config);
-    bool cancelRequest(const QString &id);
-
-signals:
-    void completionReceived(const QString &completion, const QJsonObject &request, bool isComplete);
-    void requestFinished(const QString &requestId, bool success, const QString &errorString);
-    void requestCancelled(const QString &id);
 
 private:
     QNetworkAccessManager *m_manager;
