@@ -1,0 +1,3 @@
+[submodule "3rdparty/inja"]
+	path = 3rdparty/inja
+	url = https://github.com/pantor/inja
