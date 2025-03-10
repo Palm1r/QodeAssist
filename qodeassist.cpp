@@ -138,8 +138,11 @@ public:
     void restartClient()
     {
         LanguageClient::LanguageClientManager::shutdownClient(m_qodeAssistClient);
-        m_qodeAssistClient
-            = new QodeAssistClient(LLMCore::ProvidersManager::instance(), &m_promptProvider);
+        m_qodeAssistClient = new QodeAssistClient(new LLMClientInterface(
+            Settings::generalSettings(),
+            Settings::codeCompletionSettings(),
+            LLMCore::ProvidersManager::instance(),
+            &m_promptProvider));
     }
 
     bool delayedInitialize() final
