@@ -26,9 +26,6 @@
 
 #include "GeneralSettings.hpp"
 #include "Logger.hpp"
-#include "Utils.hpp"
-#include <texteditor/textdocument.h>
-#include <utils/filepath.h>
 
 namespace QodeAssist::Context {
 
@@ -71,24 +68,20 @@ ContentFile ContextManager::createContentFile(const QString &filePath) const
     return contentFile;
 }
 
-ProgrammingLanguage ContextManager::getDocumentLanguage(const QJsonObject &request)
+ProgrammingLanguage ContextManager::getDocumentLanguage(const DocumentInfo &documentInfo)
 {
-    auto filePath = extractFilePathFromRequest(request);
-    TextEditor::TextDocument *textDocument = TextEditor::TextDocument::textDocumentForFilePath(
-        Utils::FilePath::fromString(filePath));
-
-    if (!textDocument) {
-        LOG_MESSAGE("Error: Document is not available for" + filePath);
+    if (!documentInfo.document) {
+        LOG_MESSAGE("Error: Document is not available for" + documentInfo.filePath);
         return Context::ProgrammingLanguage::Unknown;
     }
 
-    return Context::ProgrammingLanguageUtils::fromMimeType(textDocument->mimeType());
+    return Context::ProgrammingLanguageUtils::fromMimeType(documentInfo.mimeType);
 }
 
 bool ContextManager::isSpecifyCompletion(
-    const QJsonObject &request, const Settings::GeneralSettings &generalSettings)
+    const DocumentInfo &documentInfo, const Settings::GeneralSettings &generalSettings)
 {
-    Context::ProgrammingLanguage documentLanguage = getDocumentLanguage(request);
+    Context::ProgrammingLanguage documentLanguage = getDocumentLanguage(documentInfo);
     Context::ProgrammingLanguage preset1Language = Context::ProgrammingLanguageUtils::fromString(
         generalSettings.preset1Language.displayForIndex(generalSettings.preset1Language()));
 
