@@ -13,8 +13,6 @@ on:
 env:
   PLUGIN_NAME: QodeAssist
   QT_VERSION: 6.8.2
-  QT_CREATOR_VERSION: 16.0.0
-  QT_CREATOR_VERSION_INTERNAL: 16.0.0
   MACOS_DEPLOYMENT_TARGET: "11.0"
   CMAKE_VERSION: "3.29.6"
   NINJA_VERSION: "1.12.1"
@@ -46,6 +44,17 @@ jobs:
             os: macos-latest,
             platform: mac_x64,
             cc: "clang", cxx: "clang++"
+          }
+        qt_creator:
+        - {
+            version: "15.0.1",
+            version_internal: "15.0.1",
+            latest: false
+          }
+        - {
+            version: "16.0.0",
+            version_internal: "16.0.0",
+            latest: true
           }
 
     steps:
@@ -176,7 +185,7 @@ jobs:
     - name: Download Qt Creator
       uses: qt-creator/install-dev-package@v1.2
       with:
-        version: ${{ env.QT_CREATOR_VERSION }}
+        version: ${{ matrix.qt_creator.version }}
         unzip-to: 'qtcreator'
 
     - name: Extract Qt Creator
@@ -223,7 +232,7 @@ jobs:
           COMMAND python
             -u
             "${{ steps.qt_creator.outputs.qtc_dir }}/${build_plugin_py}"
-            --name "$ENV{PLUGIN_NAME}-$ENV{QT_CREATOR_VERSION}-${{ matrix.config.artifact }}"
+            --name "$ENV{PLUGIN_NAME}-${{ matrix.qt_creator.version }} -${{ matrix.config.artifact }}"
             --src .
             --build build
             --qt-path "${{ steps.qt.outputs.qt_dir }}"
@@ -241,12 +250,12 @@ jobs:
     - name: Upload
       uses: actions/upload-artifact@v4
       with:
-        path: ./${{ env.PLUGIN_NAME }}-${{ env.QT_CREATOR_VERSION }}-${{ matrix.config.artifact }}.7z
-        name: ${{ env.PLUGIN_NAME}}-${{ env.QT_CREATOR_VERSION }}-${{ matrix.config.artifact }}.7z
+        path: ./${{ env.PLUGIN_NAME }}-${{ matrix.qt_creator.version }}-${{ matrix.config.artifact }}.7z
+        name: ${{ env.PLUGIN_NAME}}-${{ matrix.qt_creator.version }}-${{ matrix.config.artifact }}.7z
 
     # The json is the same for all platforms, but we need to save one
     - name: Upload plugin json
-      if: startsWith(matrix.config.os, 'ubuntu')
+      if: startsWith(matrix.config.os, 'ubuntu') && matrix.config.latest
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.PLUGIN_NAME }}-origin-json
@@ -286,7 +295,7 @@ jobs:
         QT_TOKEN: ${{ secrets.TOKEN }}
         API_URL: ${{ secrets.API_URL }}
       run: |
-        node .github/scripts/registerPlugin.js         ${{ env.RELEASE_HTML_URL }} ${{ env.PLUGIN_NAME }}         ${{ env.QT_CREATOR_VERSION }} ${{ env.QT_CREATOR_VERSION_INTERNAL }}         ${{ env.QT_TOKEN }} ${{ env.API_URL }}
+        node .github/scripts/registerPlugin.js         ${{ env.RELEASE_HTML_URL }} ${{ env.PLUGIN_NAME }}         ${{ matrix.qt_creator.version }} ${{ matrix.qt_creator.version_internal }}         ${{ env.QT_TOKEN }} ${{ env.API_URL }}
 
     - name: Delete previous json artifacts
       uses: geekyeggo/delete-artifact@v5
