@@ -23,6 +23,7 @@
 #include <QString>
 
 #include "ContentFile.hpp"
+#include "IDocumentReader.hpp"
 #include "ProgrammingLanguage.hpp"
 #include "settings/GeneralSettings.hpp"
 
@@ -37,9 +38,9 @@ public:
     QString readFile(const QString &filePath) const;
     QList<ContentFile> getContentFiles(const QStringList &filePaths) const;
 
-    static ProgrammingLanguage getDocumentLanguage(const QJsonObject &request);
+    static ProgrammingLanguage getDocumentLanguage(const DocumentInfo &documentInfo);
     static bool isSpecifyCompletion(
-        const QJsonObject &request, const Settings::GeneralSettings &generalSettings);
+        const DocumentInfo &documentInfo, const Settings::GeneralSettings &generalSettings);
 
 private:
     explicit ContextManager(QObject *parent = nullptr);
