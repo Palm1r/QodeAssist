@@ -72,7 +72,7 @@ private:
     void handleCancelRequest(const QJsonObject &request);
 
     LLMCore::ContextData prepareContext(
-        const QJsonObject &request, const QStringView &accumulatedCompletion = QString{});
+        const QJsonObject &request, const Context::DocumentInfo &documentInfo);
 
     const Settings::CodeCompletionSettings &m_completeSettings;
     const Settings::GeneralSettings &m_generalSettings;
