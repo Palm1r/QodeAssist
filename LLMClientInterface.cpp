@@ -170,7 +170,8 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
 
     auto updatedContext = prepareContext(request, documentInfo);
 
-    bool isPreset1Active = Context::ContextManager::isSpecifyCompletion(request, m_generalSettings);
+    bool isPreset1Active
+        = Context::ContextManager::isSpecifyCompletion(documentInfo, m_generalSettings);
 
     const auto providerName = !isPreset1Active ? m_generalSettings.ccProvider()
                                                : m_generalSettings.ccPreset1Provider();
@@ -279,7 +280,10 @@ LLMCore::ContextData LLMClientInterface::prepareContext(
 void LLMClientInterface::sendCompletionToClient(
     const QString &completion, const QJsonObject &request, bool isComplete)
 {
-    bool isPreset1Active = Context::ContextManager::isSpecifyCompletion(request, m_generalSettings);
+    auto filePath = Context::extractFilePathFromRequest(request);
+    auto documentInfo = m_documentReader.readDocument(filePath);
+    bool isPreset1Active
+        = Context::ContextManager::isSpecifyCompletion(documentInfo, m_generalSettings);
 
     auto templateName = !isPreset1Active ? m_generalSettings.ccTemplate()
                                          : m_generalSettings.ccPreset1Template();
