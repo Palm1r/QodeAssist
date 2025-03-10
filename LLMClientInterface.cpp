@@ -23,7 +23,6 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 
-#include <llmcore/RequestConfig.hpp>
 #include <texteditor/textdocument.h>
 
 #include "CodeHandler.hpp"
@@ -35,6 +34,7 @@
 #include "logger/Logger.hpp"
 #include "settings/CodeCompletionSettings.hpp"
 #include "settings/GeneralSettings.hpp"
+#include <llmcore/RequestConfig.hpp>
 
 namespace QodeAssist {
 
@@ -43,12 +43,13 @@ LLMClientInterface::LLMClientInterface(
     const Settings::CodeCompletionSettings &completeSettings,
     LLMCore::IProviderRegistry &providerRegistry,
     LLMCore::IPromptProvider *promptProvider,
+    LLMCore::RequestHandlerBase &requestHandler,
     IRequestPerformanceLogger &performanceLogger)
-    : m_requestHandler(this)
-    , m_generalSettings(generalSettings)
+    : m_generalSettings(generalSettings)
     , m_completeSettings(completeSettings)
     , m_providerRegistry(providerRegistry)
     , m_promptProvider(promptProvider)
+    , m_requestHandler(requestHandler)
     , m_performanceLogger(performanceLogger)
 {
     connect(
