@@ -48,6 +48,7 @@
 #include "chat/NavigationPanel.hpp"
 #include "llmcore/PromptProviderFim.hpp"
 #include "llmcore/ProvidersManager.hpp"
+#include "logger/RequestPerformanceLogger.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProjectSettingsPanel.hpp"
 #include "settings/SettingsConstants.hpp"
@@ -142,7 +143,8 @@ public:
             Settings::generalSettings(),
             Settings::codeCompletionSettings(),
             LLMCore::ProvidersManager::instance(),
-            &m_promptProvider));
+            &m_promptProvider,
+            m_performanceLogger));
     }
 
     bool delayedInitialize() final
@@ -184,6 +186,7 @@ private:
 
     QPointer<QodeAssistClient> m_qodeAssistClient;
     LLMCore::PromptProviderFim m_promptProvider;
+    RequestPerformanceLogger m_performanceLogger;
     QPointer<Chat::ChatOutputPane> m_chatOutputPane;
     QPointer<Chat::NavigationPanel> m_navigationPanel;
     QPointer<PluginUpdater> m_updater;
