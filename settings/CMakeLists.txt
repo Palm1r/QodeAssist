@@ -22,5 +22,6 @@ target_link_libraries(QodeAssistSettings
     QtCreator::Core
     QtCreator::Utils
     QodeAssistLogger
+    inja
 )
 target_include_directories(QodeAssistSettings PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

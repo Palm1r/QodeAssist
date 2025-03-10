@@ -11,7 +11,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_package(QtCreator REQUIRED COMPONENTS Core)
-find_package(Qt6 COMPONENTS Core Gui Quick Widgets Network REQUIRED)
+find_package(Qt6 COMPONENTS Core Gui Quick Widgets Network Test REQUIRED)
 find_package(GTest)
 
 # IDE_VERSION is defined by QtCreator package
@@ -32,6 +32,9 @@ add_definitions(
   -DQODEASSIST_QT_CREATOR_VERSION_PATCH=${QODEASSIST_QT_CREATOR_VERSION_PATCH}
 )
 
+set(INJA_BUILD_TESTS OFF)
+
+add_subdirectory(3rdparty/inja)
 add_subdirectory(llmcore)
 add_subdirectory(settings)
 add_subdirectory(logger)
@@ -56,6 +59,7 @@ add_qtc_plugin(QodeAssist
     QtCreator::ExtensionSystem
     QtCreator::Utils
     QodeAssistChatViewplugin
+    inja
   SOURCES
     .github/workflows/build_cmake.yml
     .github/workflows/README.md

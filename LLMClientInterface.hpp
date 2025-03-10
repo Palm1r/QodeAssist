@@ -58,9 +58,11 @@ public:
 
     void handleCompletion(const QJsonObject &request);
 
+    // exposed for tests
+    void sendData(const QByteArray &data) override;
+
 protected:
     void startImpl() override;
-    void sendData(const QByteArray &data) override;
     void parseCurrentMessage() override;
 
 private:
@@ -70,6 +72,16 @@ private:
     void handleInitialized(const QJsonObject &request);
     void handleExit(const QJsonObject &request);
     void handleCancelRequest(const QJsonObject &request);
+
+    QString buildSystemPrompt(
+        const LLMCore::PromptTemplate *promptTemplate,
+        const Context::DocumentInfo &documentInfo,
+        const std::optional<QString> &fileContext) const;
+
+    QString buildUserMessage(
+        const Context::DocumentInfo &documentInfo,
+        const QString &prefix,
+        const QString &suffix) const;
 
     LLMCore::ContextData prepareContext(
         const QJsonObject &request, const Context::DocumentInfo &documentInfo);

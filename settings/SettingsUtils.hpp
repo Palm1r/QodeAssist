@@ -67,6 +67,15 @@ void resetAspect(AspectType &aspect)
     aspect.setVolatileValue(aspect.defaultValue());
 }
 
+inline bool hasSavedSetting(Utils::BaseAspect *aspect)
+{
+    auto settings = aspect->qtcSettings();
+    if (!settings)
+        return false;
+
+    return settings->contains(aspect->settingsKey());
+}
+
 inline void initStringAspect(
     Utils::StringAspect &aspect,
     const Utils::Key &settingsKey,
