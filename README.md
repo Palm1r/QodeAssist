@@ -27,17 +27,18 @@
 2. [Install plugin to QtCreator](#install-plugin-to-qtcreator)
 3. [Configure for Anthropic Claude](#configure-for-anthropic-claude)
 4. [Configure for OpenAI](#configure-for-openai)
-4. [Configure for Mistral AI](#configure-for-mistral-ai)
-4. [Configure for Google AI](#configure-for-google-ai)
-5. [Configure for Ollama](#configure-for-ollama)
-6. [System Prompt Configuration](#system-prompt-configuration)
-7. [File Context Features](#file-context-features)
-9. [QtCreator Version Compatibility](#qtcreator-version-compatibility)
-10. [Development Progress](#development-progress)
-11. [Hotkeys](#hotkeys)
-12. [Troubleshooting](#troubleshooting)
-13. [Support the Development](#support-the-development-of-qodeassist)
-14. [How to Build](#how-to-build)
+5. [Configure for Mistral AI](#configure-for-mistral-ai)
+6. [Configure for Google AI](#configure-for-google-ai)
+7. [Configure for Ollama](#configure-for-ollama)
+8. [Configure for llama.cpp](#configure-for-llamacpp)
+9. [System Prompt Configuration](#system-prompt-configuration)
+10. [File Context Features](#file-context-features)
+11. [QtCreator Version Compatibility](#qtcreator-version-compatibility)
+12. [Development Progress](#development-progress)
+13. [Hotkeys](#hotkeys)
+14. [Troubleshooting](#troubleshooting)
+15. [Support the Development](#support-the-development-of-qodeassist)
+16. [How to Build](#how-to-build)
 
 ## Overview
 
@@ -51,6 +52,7 @@
   - Automatic syncing with open editor files (optional)
 - Support for multiple LLM providers:
   - Ollama
+  - llama.cpp
   - OpenAI
   - Anthropic Claude
   - LM Studio
@@ -182,6 +184,18 @@ You're all set! QodeAssist is now ready to use in Qt Creator.
 <details>
   <summary>Example of Ollama settings: (click to expand)</summary>
   <img width="824" alt="Ollama Settings" src="https://github.com/user-attachments/assets/ed64e03a-a923-467a-aa44-4f790e315b53" />
+</details>
+
+## Configure for llama.cpp
+1. Open Qt Creator settings and navigate to the QodeAssist section
+2. Go to General tab and configure:
+   - Set "llama.cpp" as the provider for code completion or/and chat assistant
+   - Set the llama.cpp URL (e.g. http://localhost:8080)
+   - Fill in model name
+   - Choose template for model(e.g. llama.cpp FIM for any model with FIM support)
+<details>
+  <summary>Example of llama.cpp settings: (click to expand)</summary>
+  <img width="829" alt="llama.cpp Settings" src="https://github.com/user-attachments/assets/8c75602c-60f3-49ed-a7a9-d3c972061ea2" />
 </details>
 
 ## System Prompt Configuration
