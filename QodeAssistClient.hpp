@@ -27,13 +27,15 @@
 #include "LSPCompletion.hpp"
 #include <languageclient/client.h>
 #include <llmcore/IPromptProvider.hpp>
+#include <llmcore/IProviderRegistry.hpp>
 
 namespace QodeAssist {
 
 class QodeAssistClient : public LanguageClient::Client
 {
 public:
-    explicit QodeAssistClient(LLMCore::IPromptProvider *promptProvider);
+    explicit QodeAssistClient(
+        LLMCore::IProviderRegistry &providerRegistry, LLMCore::IPromptProvider *promptProvider);
     ~QodeAssistClient() override;
 
     void openDocument(TextEditor::TextDocument *document) override;
