@@ -258,20 +258,20 @@ jobs:
 
     # The json is the same for all platforms, but we need to save one
     - name: Upload plugin json
-      if: matrix.config.os == 'ubuntu-latest'
+      if: startsWith(matrix.config.os, 'ubuntu')
       uses: actions/upload-artifact@v4
       with:
         name: ${{ env.PLUGIN_NAME }}-origin-json
         path: ./build/build/${{ env.PLUGIN_NAME }}.json
 
     - name: Run unit tests
-      if: matrix.config.os == 'ubuntu-latest'
+      if: startsWith(matrix.config.os, 'ubuntu')
       run: |
         xvfb-run ./build/build/test/QodeAssistTest
 
   update_json:
     if: contains(github.ref, 'tags/v')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: build
 
     steps:
