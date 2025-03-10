@@ -27,6 +27,7 @@
 #include <llmcore/IPromptProvider.hpp>
 #include <llmcore/IProviderRegistry.hpp>
 #include <llmcore/RequestHandler.hpp>
+#include <logger/IRequestPerformanceLogger.hpp>
 #include <settings/CodeCompletionSettings.hpp>
 #include <settings/GeneralSettings.hpp>
 
@@ -44,7 +45,8 @@ public:
         const Settings::GeneralSettings &generalSettings,
         const Settings::CodeCompletionSettings &completeSettings,
         LLMCore::IProviderRegistry &providerRegistry,
-        LLMCore::IPromptProvider *promptProvider);
+        LLMCore::IPromptProvider *promptProvider,
+        IRequestPerformanceLogger &performanceLogger);
 
     Utils::FilePath serverDeviceTemplate() const override;
 
@@ -74,12 +76,8 @@ private:
     LLMCore::IPromptProvider *m_promptProvider = nullptr;
     LLMCore::IProviderRegistry &m_providerRegistry;
     LLMCore::RequestHandler m_requestHandler;
+    IRequestPerformanceLogger &m_performanceLogger;
     QElapsedTimer m_completionTimer;
-    QMap<QString, qint64> m_requestStartTimes;
-
-    void startTimeMeasurement(const QString &requestId);
-    void endTimeMeasurement(const QString &requestId);
-    void logPerformance(const QString &requestId, const QString &operation, qint64 elapsedMs);
 };
 
 } // namespace QodeAssist

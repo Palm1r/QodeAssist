@@ -42,12 +42,14 @@ LLMClientInterface::LLMClientInterface(
     const Settings::GeneralSettings &generalSettings,
     const Settings::CodeCompletionSettings &completeSettings,
     LLMCore::IProviderRegistry &providerRegistry,
-    LLMCore::IPromptProvider *promptProvider)
+    LLMCore::IPromptProvider *promptProvider,
+    IRequestPerformanceLogger &performanceLogger)
     : m_requestHandler(this)
     , m_generalSettings(generalSettings)
     , m_completeSettings(completeSettings)
     , m_providerRegistry(providerRegistry)
     , m_promptProvider(promptProvider)
+    , m_performanceLogger(performanceLogger)
 {
     connect(
         &m_requestHandler,
@@ -85,7 +87,7 @@ void LLMClientInterface::sendData(const QByteArray &data)
         handleTextDocumentDidOpen(request);
     } else if (method == "getCompletionsCycling") {
         QString requestId = request["id"].toString();
-        startTimeMeasurement(requestId);
+        m_performanceLogger.startTimeMeasurement(requestId);
         handleCompletion(request);
     } else if (method == "$/cancelRequest") {
         handleCancelRequest(request);
@@ -324,30 +326,8 @@ void LLMClientInterface::sendCompletionToClient(
             .arg(QString::fromUtf8(QJsonDocument(response).toJson(QJsonDocument::Indented))));
 
     QString requestId = request["id"].toString();
-    endTimeMeasurement(requestId);
+    m_performanceLogger.endTimeMeasurement(requestId);
     emit messageReceived(LanguageServerProtocol::JsonRpcMessage(response));
-}
-
-void LLMClientInterface::startTimeMeasurement(const QString &requestId)
-{
-    m_requestStartTimes[requestId] = QDateTime::currentMSecsSinceEpoch();
-}
-
-void LLMClientInterface::endTimeMeasurement(const QString &requestId)
-{
-    if (m_requestStartTimes.contains(requestId)) {
-        qint64 startTime = m_requestStartTimes[requestId];
-        qint64 endTime = QDateTime::currentMSecsSinceEpoch();
-        qint64 totalTime = endTime - startTime;
-        logPerformance(requestId, "TotalCompletionTime", totalTime);
-        m_requestStartTimes.remove(requestId);
-    }
-}
-
-void LLMClientInterface::logPerformance(
-    const QString &requestId, const QString &operation, qint64 elapsedMs)
-{
-    LOG_MESSAGE(QString("Performance: %1 %2 took %3 ms").arg(requestId, operation).arg(elapsedMs));
 }
 
 void LLMClientInterface::parseCurrentMessage() {}
