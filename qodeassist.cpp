@@ -46,6 +46,7 @@
 #include "Version.hpp"
 #include "chat/ChatOutputPane.h"
 #include "chat/NavigationPanel.hpp"
+#include "context/DocumentReaderQtCreator.hpp"
 #include "llmcore/PromptProviderFim.hpp"
 #include "llmcore/ProvidersManager.hpp"
 #include "logger/RequestPerformanceLogger.hpp"
@@ -146,6 +147,7 @@ public:
             LLMCore::ProvidersManager::instance(),
             &m_promptProvider,
             m_requestHandler,
+            m_documentReader,
             m_performanceLogger));
     }
 
@@ -189,6 +191,7 @@ private:
     QPointer<QodeAssistClient> m_qodeAssistClient;
     LLMCore::PromptProviderFim m_promptProvider;
     LLMCore::RequestHandler m_requestHandler{this};
+    Context::DocumentReaderQtCreator m_documentReader;
     RequestPerformanceLogger m_performanceLogger;
     QPointer<Chat::ChatOutputPane> m_chatOutputPane;
     QPointer<Chat::NavigationPanel> m_navigationPanel;
