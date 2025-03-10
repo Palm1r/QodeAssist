@@ -80,7 +80,7 @@ jobs:
           execute_process(
             COMMAND sudo apt install
               # build dependencies
-              libgl1-mesa-dev libgtest-dev
+              libgl1-mesa-dev libgtest-dev libgmock-dev
               # runtime dependencies for tests (Qt is downloaded outside package manager,
               # thus minimal dependencies must be installed explicitly)
               libsecret-1-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-render0
