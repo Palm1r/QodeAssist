@@ -32,6 +32,9 @@ add_definitions(
   -DQODEASSIST_QT_CREATOR_VERSION_PATCH=${QODEASSIST_QT_CREATOR_VERSION_PATCH}
 )
 
+set(INJA_BUILD_TESTS OFF)
+
+add_subdirectory(3rdparty/inja)
 add_subdirectory(llmcore)
 add_subdirectory(settings)
 add_subdirectory(logger)
@@ -56,6 +59,7 @@ add_qtc_plugin(QodeAssist
     QtCreator::ExtensionSystem
     QtCreator::Utils
     QodeAssistChatViewplugin
+    inja
   SOURCES
     .github/workflows/build_cmake.yml
     .github/workflows/README.md

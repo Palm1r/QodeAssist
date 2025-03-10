@@ -32,6 +32,8 @@ public:
 
     ButtonAspect resetToDefaults{this};
 
+    Utils::IntegerAspect configVersion{this}; // used to track config version for upgrades
+
     // Auto Completion Settings
     Utils::BoolAspect autoCompletion{this};
     Utils::BoolAspect multiLineCompletion{this};
@@ -65,10 +67,10 @@ public:
     Utils::IntegerAspect readStringsBeforeCursor{this};
     Utils::IntegerAspect readStringsAfterCursor{this};
     Utils::BoolAspect useSystemPrompt{this};
-    Utils::StringAspect systemPrompt{this};
+    Utils::StringAspect systemPromptJinja{this};
     Utils::BoolAspect useUserMessageTemplateForCC{this};
-    Utils::StringAspect systemPromptForNonFimModels{this};
-    Utils::StringAspect userMessageTemplateForCC{this};
+    Utils::StringAspect systemPromptForNonFimModelsJinja{this};
+    Utils::StringAspect userMessageTemplateForCCjinja{this};
     Utils::BoolAspect useProjectChangesCache{this};
     Utils::IntegerAspect maxChangesCacheSize{this};
 
@@ -79,11 +81,17 @@ public:
     // API Configuration Settings
     Utils::StringAspect apiKey{this};
 
-    QString processMessageToFIM(const QString &prefix, const QString &suffix) const;
-
 private:
+    // The aspects below only exist to fetch configuration from settings produced
+    // by old versions of the plugin. This configuration is used to fill in new versions
+    // of these settings so that users do not need to upgrade manually.
+    Utils::StringAspect systemPrompt{this};
+    Utils::StringAspect systemPromptForNonFimModels{this};
+    Utils::StringAspect userMessageTemplateForCC{this};
+
     void setupConnections();
     void resetSettingsToDefaults();
+    void upgradeOldTemplatesToJinja();
 };
 
 CodeCompletionSettings &codeCompletionSettings();

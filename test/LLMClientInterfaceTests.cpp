@@ -114,10 +114,11 @@ protected:
         m_generalSettings.ccTemplate.setValue("mock_template");
         m_generalSettings.ccUrl.setValue("http://localhost:8000");
 
-        m_completeSettings.systemPromptForNonFimModels.setValue("system prompt non fim");
-        m_completeSettings.systemPrompt.setValue("system prompt");
-        m_completeSettings.userMessageTemplateForCC.setValue(
-            "user message template prefix:\n${prefix}\nsuffix:\n${suffix}\n");
+        m_completeSettings.systemPromptForNonFimModelsJinja.setValue(
+            "system prompt non fim for {{ language }} end");
+        m_completeSettings.systemPromptJinja.setValue("system prompt {{ language }} end");
+        m_completeSettings.userMessageTemplateForCCjinja.setValue(
+            "user message template prefix:\n{{ prefix }}\nsuffix:\n{{ suffix }}\n");
 
         m_client = std::make_unique<LLMClientInterface>(
             m_generalSettings,
@@ -223,7 +224,7 @@ if __name__ == "__main__":
     main()
 )",
         "/path/to/file.py",
-        "text/python");
+        "text/x-python");
 
     QSignalSpy spy(m_client.get(), &LanguageClient::BaseClientInterface::messageReceived);
 
@@ -233,8 +234,8 @@ if __name__ == "__main__":
     ASSERT_EQ(m_requestHandler->receivedRequests().size(), 1);
 
     QJsonObject requestJson = m_requestHandler->receivedRequests().at(0).providerRequest;
-    ASSERT_EQ(requestJson["system"].toString(), R"(system prompt
- Language:  (MIME: text/python) filepath: /path/to/file.py(py)
+    ASSERT_EQ(requestJson["system"].toString(), R"(system prompt python end
+ Language: python (MIME: text/x-python) filepath: /path/to/file.py(py)
 
 Recent Project Changes Context:
  )");
@@ -276,7 +277,7 @@ if __name__ == "__main__":
     main()
 )",
         "/path/to/file.py",
-        "text/python");
+        "text/x-python");
 
     m_completeSettings.smartProcessInstuctText.setValue(true);
 
@@ -291,6 +292,12 @@ if __name__ == "__main__":
     ASSERT_EQ(m_requestHandler->receivedRequests().size(), 1);
 
     QJsonObject requestJson = m_requestHandler->receivedRequests().at(0).providerRequest;
+    ASSERT_EQ(requestJson["system"].toString(), R"(system prompt non fim for python end
+ Language: python (MIME: text/x-python) filepath: /path/to/file.py(py)
+
+Recent Project Changes Context:
+ )");
+
     auto messagesJson = requestJson["messages"].toArray();
     ASSERT_EQ(messagesJson.size(), 1);
     ASSERT_EQ(messagesJson.at(0).toObject()["content"].toString(), R"(user message template prefix:

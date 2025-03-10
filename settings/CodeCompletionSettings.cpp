@@ -42,6 +42,9 @@ CodeCompletionSettings::CodeCompletionSettings()
 
     setDisplayName(Tr::tr("Code Completion"));
 
+    configVersion.setSettingsKey(Constants::CC_CONFIG_VERSION);
+    configVersion.setDefaultValue(Constants::CC_CONFIG_VERSION_LATEST);
+
     // Auto Completion Settings
     autoCompletion.setSettingsKey(Constants::CC_AUTO_COMPLETION);
     autoCompletion.setLabelText(Tr::tr("Enable Auto Complete"));
@@ -150,10 +153,16 @@ CodeCompletionSettings::CodeCompletionSettings()
     useSystemPrompt.setLabelText(Tr::tr("Use System Prompt"));
 
     systemPrompt.setSettingsKey(Constants::CC_SYSTEM_PROMPT);
-    systemPrompt.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
-    systemPrompt.setDefaultValue(
-        "You are an expert C++, Qt, and QML code completion assistant. Your task is to provide "
+
+    systemPromptJinja.setSettingsKey(Constants::CC_SYSTEM_PROMPT_JINJA);
+    systemPromptJinja.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
+    systemPromptJinja.setDefaultValue(
+        "You are an expert {{ language }} code completion assistant. Your task is to provide "
         "precise and contextually appropriate code completions.\n\n");
+    systemPromptJinja.setToolTip(
+        Tr::tr("The setting uses Jinja format. The following keys are available:\n"
+               " - language (string): Programming language for the current file\n"
+               " - mime_type (string): MIME type of the current file\n"));
 
     useUserMessageTemplateForCC.setSettingsKey(Constants::CC_USE_USER_TEMPLATE);
     useUserMessageTemplateForCC.setDefaultValue(true);
@@ -161,10 +170,12 @@ CodeCompletionSettings::CodeCompletionSettings()
         Tr::tr("Use special system prompt and user message for non FIM models"));
 
     systemPromptForNonFimModels.setSettingsKey(Constants::CC_SYSTEM_PROMPT_FOR_NON_FIM);
-    systemPromptForNonFimModels.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
-    systemPromptForNonFimModels.setLabelText(Tr::tr("System prompt for non FIM models:"));
-    systemPromptForNonFimModels.setDefaultValue(
-        "You are an expert C++, Qt, and QML code completion assistant. Your task is to provide "
+
+    systemPromptForNonFimModelsJinja.setSettingsKey(Constants::CC_SYSTEM_PROMPT_FOR_NON_FIM_JINJA);
+    systemPromptForNonFimModelsJinja.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
+    systemPromptForNonFimModelsJinja.setLabelText(Tr::tr("System prompt for non FIM models:"));
+    systemPromptForNonFimModelsJinja.setDefaultValue(
+        "You are an expert {{ language }} code completion assistant. Your task is to provide "
         "precise and contextually appropriate code completions.\n\n"
         "Core Requirements:\n"
         "1. Continue code exactly from the cursor position, ensuring it properly connects with any "
@@ -178,19 +189,32 @@ CodeCompletionSettings::CodeCompletionSettings()
         "- Ensure seamless integration with code both before and after the cursor\n\n"
         "Context Format:\n"
         "<code_context>\n"
-        "{{code before cursor}}<cursor>{{code after cursor}}\n"
+        "[[code before cursor]]<cursor>[[code after cursor]]\n"
         "</code_context>\n\n"
         "Response Format:\n"
         "- No explanations or comments\n"
         "- Only include new characters needed to create valid code\n"
         "- Should be codeblock with language\n");
+    systemPromptForNonFimModelsJinja.setToolTip(
+        Tr::tr("The setting uses Jinja format. The following keys are available:\n"
+               " - language (string): Programming language for the current file\n"
+               " - mime_type (string): MIME type of the current file"));
 
     userMessageTemplateForCC.setSettingsKey(Constants::CC_USER_TEMPLATE);
-    userMessageTemplateForCC.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
-    userMessageTemplateForCC.setLabelText(Tr::tr("User message for non FIM models:"));
-    userMessageTemplateForCC.setDefaultValue(
+
+    userMessageTemplateForCCjinja.setSettingsKey(Constants::CC_USER_TEMPLATE_JINJA);
+    userMessageTemplateForCCjinja.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
+    userMessageTemplateForCCjinja.setLabelText(Tr::tr("User message for non FIM models:"));
+    userMessageTemplateForCCjinja.setToolTip(
+        Tr::tr("The setting uses Jinja format. The following keys are available:\n"
+               " - language (string): Programming language for the current file\n"
+               " - mime_type (string): MIME type of the current file\n"
+               " - prefix (string): The code of the current file before the cursor\n"
+               " - suffix (string): The code of the current file after the cursor"));
+
+    userMessageTemplateForCCjinja.setDefaultValue(
         "Here is the code context with insertion points:\n"
-        "<code_context>\n${prefix}<cursor>${suffix}\n</code_context>\n\n");
+        "<code_context>\n{{ prefix }}<cursor>{{ suffix }}\n</code_context>\n\n");
 
     useProjectChangesCache.setSettingsKey(Constants::CC_USE_PROJECT_CHANGES_CACHE);
     useProjectChangesCache.setDefaultValue(true);
@@ -222,7 +246,13 @@ CodeCompletionSettings::CodeCompletionSettings()
 
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
 
+    bool hasSavedConfigVersion = hasSavedSetting(&configVersion);
+
     readSettings();
+
+    if (!hasSavedConfigVersion || configVersion() < Constants::CC_CONFIG_VERSION_1_JINJA_TEMPLATES) {
+        upgradeOldTemplatesToJinja();
+    }
 
     readFileParts.setValue(!readFullFile.value());
 
@@ -252,13 +282,13 @@ CodeCompletionSettings::CodeCompletionSettings()
         auto contextItem = Column{
             Row{contextGrid, Stretch{1}},
             Row{useSystemPrompt, Stretch{1}},
-            Group{title(Tr::tr("Prompts for FIM models")), Column{systemPrompt}},
+            Group{title(Tr::tr("Prompts for FIM models")), Column{systemPromptJinja}},
             Group{
                 title(Tr::tr("Prompts for Non FIM models")),
                 Column{
                     Row{useUserMessageTemplateForCC, Stretch{1}},
-                    systemPromptForNonFimModels,
-                    userMessageTemplateForCC,
+                    systemPromptForNonFimModelsJinja,
+                    userMessageTemplateForCCjinja,
                 }},
             Row{useProjectChangesCache, maxChangesCacheSize, Stretch{1}}};
 
@@ -347,23 +377,38 @@ void CodeCompletionSettings::resetSettingsToDefaults()
         resetAspect(readStringsBeforeCursor);
         resetAspect(readStringsAfterCursor);
         resetAspect(useSystemPrompt);
-        resetAspect(systemPrompt);
+        resetAspect(systemPromptJinja);
         resetAspect(useProjectChangesCache);
         resetAspect(maxChangesCacheSize);
         resetAspect(ollamaLivetime);
         resetAspect(contextWindow);
         resetAspect(useUserMessageTemplateForCC);
-        resetAspect(userMessageTemplateForCC);
-        resetAspect(systemPromptForNonFimModels);
+        resetAspect(userMessageTemplateForCCjinja);
+        resetAspect(systemPromptForNonFimModelsJinja);
     }
 }
 
-QString CodeCompletionSettings::processMessageToFIM(const QString &prefix, const QString &suffix) const
+void CodeCompletionSettings::upgradeOldTemplatesToJinja()
 {
-    QString result = userMessageTemplateForCC();
-    result.replace("${prefix}", prefix);
-    result.replace("${suffix}", suffix);
-    return result;
+    {
+        QString newTemplate = userMessageTemplateForCC();
+        newTemplate.replace("${prefix}", "{{ prefix }}");
+        newTemplate.replace("${suffix}", "{{ suffix }}");
+        userMessageTemplateForCCjinja.setValue(newTemplate);
+    }
+    {
+        QString newTemplate = systemPromptForNonFimModels();
+        newTemplate.replace(
+            "{{code before cursor}}<cursor>{{code after cursor}}",
+            "[[code before cursor]]<cursor>[[code after cursor]]");
+        newTemplate.replace("C++, Qt, and QML", "{{ language }}");
+        systemPromptForNonFimModelsJinja.setValue(newTemplate);
+    }
+    {
+        QString newTemplate = systemPrompt();
+        newTemplate.replace("C++, Qt, and QML", "{{ language }}");
+        systemPromptJinja.setValue(newTemplate);
+    }
 }
 
 class CodeCompletionSettingsPage : public Core::IOptionsPage

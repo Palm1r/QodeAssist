@@ -54,6 +54,7 @@ const char CC_PRESET1_URL_HISTORY[] = "QodeAssist.ccPreset1UrlHistory";
 
 // settings
 const char ENABLE_QODE_ASSIST[] = "QodeAssist.enableQodeAssist";
+const char CC_CONFIG_VERSION[] = "QodeAssist.ccConfigVersion";
 const char CC_AUTO_COMPLETION[] = "QodeAssist.ccAutoCompletion";
 const char ENABLE_LOGGING[] = "QodeAssist.enableLogging";
 const char ENABLE_CHECK_UPDATE[] = "QodeAssist.enableCheckUpdate";
@@ -107,9 +108,12 @@ const char CC_READ_STRINGS_BEFORE_CURSOR[] = "QodeAssist.ccReadStringsBeforeCurs
 const char CC_READ_STRINGS_AFTER_CURSOR[] = "QodeAssist.ccReadStringsAfterCursor";
 const char CC_USE_SYSTEM_PROMPT[] = "QodeAssist.ccUseSystemPrompt";
 const char CC_SYSTEM_PROMPT[] = "QodeAssist.ccSystemPrompt";
+const char CC_SYSTEM_PROMPT_JINJA[] = "QodeAssist.ccSystemPromptJinja";
 const char CC_SYSTEM_PROMPT_FOR_NON_FIM[] = "QodeAssist.ccSystemPromptForNonFim";
+const char CC_SYSTEM_PROMPT_FOR_NON_FIM_JINJA[] = "QodeAssist.ccSystemPromptForNonFimJinja";
 const char CC_USE_USER_TEMPLATE[] = "QodeAssist.ccUseUserTemplate";
 const char CC_USER_TEMPLATE[] = "QodeAssist.ccUserTemplate";
+const char CC_USER_TEMPLATE_JINJA[] = "QodeAssist.ccUserTemplateJinja";
 const char CC_USE_PROJECT_CHANGES_CACHE[] = "QodeAssist.ccUseProjectChangesCache";
 const char CC_MAX_CHANGES_CACHE_SIZE[] = "QodeAssist.ccMaxChangesCacheSize";
 const char CA_USE_SYSTEM_PROMPT[] = "QodeAssist.useChatSystemPrompt";
@@ -142,5 +146,8 @@ const char CA_FREQUENCY_PENALTY[] = "QodeAssist.chatFrequencyPenalty";
 const char CA_OLLAMA_LIVETIME[] = "QodeAssist.chatOllamaLivetime";
 const char CA_OLLAMA_CONTEXT_WINDOW[] = "QodeAssist.caOllamaContextWindow";
 const char CA_API_KEY[] = "QodeAssist.chatApiKey";
+
+const int CC_CONFIG_VERSION_1_JINJA_TEMPLATES = 1;
+const int CC_CONFIG_VERSION_LATEST = CC_CONFIG_VERSION_1_JINJA_TEMPLATES;
 
 } // namespace QodeAssist::Constants

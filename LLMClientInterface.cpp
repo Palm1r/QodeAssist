@@ -34,6 +34,8 @@
 #include "settings/GeneralSettings.hpp"
 #include <llmcore/RequestConfig.hpp>
 
+#include <inja/inja.hpp>
+
 namespace QodeAssist {
 
 LLMClientInterface::LLMClientInterface(
@@ -221,26 +223,12 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     if (!stopWords.isEmpty())
         config.providerRequest["stop"] = stopWords;
 
-    QString systemPrompt;
-    if (m_completeSettings.useSystemPrompt())
-        systemPrompt.append(
-            m_completeSettings.useUserMessageTemplateForCC()
-                    && promptTemplate->type() == LLMCore::TemplateType::Chat
-                ? m_completeSettings.systemPromptForNonFimModels()
-                : m_completeSettings.systemPrompt());
-    if (updatedContext.fileContext.has_value())
-        systemPrompt.append(updatedContext.fileContext.value());
-
-    updatedContext.systemPrompt = systemPrompt;
+    updatedContext.systemPrompt
+        = buildSystemPrompt(promptTemplate, documentInfo, updatedContext.fileContext);
 
     if (promptTemplate->type() == LLMCore::TemplateType::Chat) {
-        QString userMessage;
-        if (m_completeSettings.useUserMessageTemplateForCC()) {
-            userMessage = m_completeSettings.processMessageToFIM(
-                updatedContext.prefix.value_or(""), updatedContext.suffix.value_or(""));
-        } else {
-            userMessage = updatedContext.prefix.value_or("") + updatedContext.suffix.value_or("");
-        }
+        QString userMessage = buildUserMessage(
+            documentInfo, updatedContext.prefix.value_or(""), updatedContext.suffix.value_or(""));
 
         // TODO refactor add message
         QVector<LLMCore::Message> messages;
@@ -261,6 +249,52 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         return;
     }
     m_requestHandler.sendLLMRequest(config, request);
+}
+
+QString LLMClientInterface::buildSystemPrompt(
+    const LLMCore::PromptTemplate *promptTemplate,
+    const Context::DocumentInfo &documentInfo,
+    const std::optional<QString> &fileContext) const
+{
+    QString prompt;
+    if (m_completeSettings.useSystemPrompt()) {
+        auto templateString = m_completeSettings.useUserMessageTemplateForCC()
+                                      && promptTemplate->type() == LLMCore::TemplateType::Chat
+                                  ? m_completeSettings.systemPromptForNonFimModelsJinja()
+                                  : m_completeSettings.systemPromptJinja();
+
+        inja::json json;
+        json["mime_type"] = documentInfo.mimeType.toStdString();
+        json["language"] = Context::ProgrammingLanguageUtils::toString(
+                               Context::ContextManager::getDocumentLanguage(documentInfo))
+                               .toStdString();
+        prompt.append(QString::fromStdString(inja::render(templateString.toStdString(), json)));
+    }
+
+    if (fileContext.has_value()) {
+        prompt.append(fileContext.value());
+    }
+
+    return prompt;
+}
+
+QString LLMClientInterface::buildUserMessage(
+    const Context::DocumentInfo &documentInfo, const QString &prefix, const QString &suffix) const
+{
+    if (!m_completeSettings.useUserMessageTemplateForCC()) {
+        return prefix + suffix;
+    }
+
+    auto templateString = m_completeSettings.userMessageTemplateForCCjinja();
+
+    inja::json json;
+    json["mime_type"] = documentInfo.mimeType.toStdString();
+    json["language"] = Context::ProgrammingLanguageUtils::toString(
+                           Context::ContextManager::getDocumentLanguage(documentInfo))
+                           .toStdString();
+    json["prefix"] = prefix.toStdString();
+    json["suffix"] = suffix.toStdString();
+    return QString::fromStdString(inja::render(templateString.toStdString(), json));
 }
 
 LLMCore::ContextData LLMClientInterface::prepareContext(
