@@ -24,6 +24,7 @@
 
 #include <context/ProgrammingLanguage.hpp>
 #include <llmcore/ContextData.hpp>
+#include <llmcore/IPromptProvider.hpp>
 #include <llmcore/RequestHandler.hpp>
 #include <settings/CodeCompletionSettings.hpp>
 #include <settings/GeneralSettings.hpp>
@@ -40,7 +41,8 @@ class LLMClientInterface : public LanguageClient::BaseClientInterface
 public:
     LLMClientInterface(
         const Settings::GeneralSettings &generalSettings,
-        const Settings::CodeCompletionSettings &completeSettings);
+        const Settings::CodeCompletionSettings &completeSettings,
+        LLMCore::IPromptProvider *promptProvider);
 
     Utils::FilePath serverDeviceTemplate() const override;
 
@@ -67,6 +69,7 @@ private:
 
     const Settings::CodeCompletionSettings &m_completeSettings;
     const Settings::GeneralSettings &m_generalSettings;
+    LLMCore::IPromptProvider *m_promptProvider = nullptr;
     LLMCore::RequestHandler m_requestHandler;
     QElapsedTimer m_completionTimer;
     QMap<QString, qint64> m_requestStartTimes;

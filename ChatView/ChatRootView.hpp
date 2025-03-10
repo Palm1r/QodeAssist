@@ -23,6 +23,7 @@
 
 #include "ChatModel.hpp"
 #include "ClientInterface.hpp"
+#include "llmcore/PromptProviderChat.hpp"
 #include <coreplugin/editormanager/editormanager.h>
 
 namespace QodeAssist::Chat {
@@ -99,6 +100,7 @@ private:
     QString getSuggestedFileName() const;
 
     ChatModel *m_chatModel;
+    LLMCore::PromptProviderChat m_promptProvider;
     ClientInterface *m_clientInterface;
     QString m_currentTemplate;
     QString m_recentFilePath;

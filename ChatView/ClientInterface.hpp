@@ -25,6 +25,7 @@
 
 #include "ChatModel.hpp"
 #include "RequestHandler.hpp"
+#include "llmcore/IPromptProvider.hpp"
 
 namespace QodeAssist::Chat {
 
@@ -33,7 +34,8 @@ class ClientInterface : public QObject
     Q_OBJECT
 
 public:
-    explicit ClientInterface(ChatModel *chatModel, QObject *parent = nullptr);
+    explicit ClientInterface(
+        ChatModel *chatModel, LLMCore::IPromptProvider *promptProvider, QObject *parent = nullptr);
     ~ClientInterface();
 
     void sendMessage(
@@ -53,8 +55,9 @@ private:
     QString getSystemPromptWithLinkedFiles(
         const QString &basePrompt, const QList<QString> &linkedFiles) const;
 
-    LLMCore::RequestHandler *m_requestHandler;
+    LLMCore::IPromptProvider *m_promptProvider = nullptr;
     ChatModel *m_chatModel;
+    LLMCore::RequestHandler *m_requestHandler;
 };
 
 } // namespace QodeAssist::Chat

@@ -3,6 +3,9 @@ add_library(LLMCore STATIC
     Provider.hpp
     ProvidersManager.hpp ProvidersManager.cpp
     ContextData.hpp
+    IPromptProvider.hpp
+    PromptProviderChat.hpp
+    PromptProviderFim.hpp
     PromptTemplate.hpp
     PromptTemplateManager.hpp PromptTemplateManager.cpp
     RequestConfig.hpp
