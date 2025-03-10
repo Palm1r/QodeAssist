@@ -161,7 +161,14 @@ void LLMClientInterface::handleExit(const QJsonObject &request)
 
 void LLMClientInterface::handleCompletion(const QJsonObject &request)
 {
-    auto updatedContext = prepareContext(request);
+    auto filePath = Context::extractFilePathFromRequest(request);
+    auto documentInfo = m_documentReader.readDocument(filePath);
+    if (!documentInfo.document) {
+        LOG_MESSAGE("Error: Document is not available for" + filePath);
+        return;
+    }
+
+    auto updatedContext = prepareContext(request, documentInfo);
 
     bool isPreset1Active = Context::ContextManager::isSpecifyCompletion(request, m_generalSettings);
 
@@ -256,19 +263,11 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
 }
 
 LLMCore::ContextData LLMClientInterface::prepareContext(
-    const QJsonObject &request, const QStringView &accumulatedCompletion)
+    const QJsonObject &request, const Context::DocumentInfo &documentInfo)
 {
     QJsonObject params = request["params"].toObject();
     QJsonObject doc = params["doc"].toObject();
     QJsonObject position = doc["position"].toObject();
-    auto filePath = Context::extractFilePathFromRequest(request);
-
-    auto documentInfo = m_documentReader.readDocument(filePath);
-    if (!documentInfo.document) {
-        LOG_MESSAGE("Error: Document is not available for" + filePath);
-        return LLMCore::ContextData{};
-    }
-
     int cursorPosition = position["character"].toInt();
     int lineNumber = position["line"].toInt();
 
