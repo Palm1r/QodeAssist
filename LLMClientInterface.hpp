@@ -73,6 +73,16 @@ private:
     void handleExit(const QJsonObject &request);
     void handleCancelRequest(const QJsonObject &request);
 
+    QString buildSystemPrompt(
+        const LLMCore::PromptTemplate *promptTemplate,
+        const Context::DocumentInfo &documentInfo,
+        const std::optional<QString> &fileContext) const;
+
+    QString buildUserMessage(
+        const Context::DocumentInfo &documentInfo,
+        const QString &prefix,
+        const QString &suffix) const;
+
     LLMCore::ContextData prepareContext(
         const QJsonObject &request, const Context::DocumentInfo &documentInfo);
 
