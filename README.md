@@ -268,16 +268,13 @@ If QodeAssist is having problems connecting to the LLM provider, please check th
     - For Ollama, the default is usually http://localhost:11434
     - For LM Studio, the default is usually http://localhost:1234
 
-2. Check the endpoint:
+2. Confirm that the selected model and template are compatible:
 
-Make sure the endpoint in the settings matches the one required by your provider
-    - For Ollama, it should be /api/generate
-    - For LM Studio and OpenAI compatible providers, it's usually /v1/chat/completions
+    Ensure you've chosen the correct model in the "Select Models" option
+    Verify that the selected prompt template matches the model you're using
 
-3. Confirm that the selected model and template are compatible:
-
-Ensure you've chosen the correct model in the "Select Models" option
-Verify that the selected prompt template matches the model you're using
+3. On Linux the prebuilt binaries support only ubuntu 22.04+ or simililliar os. 
+If you need compatiblity with another os, you have to build manualy. our experiments and resolution you can check here: https://github.com/Palm1r/QodeAssist/issues/48
 
 If you're still experiencing issues with QodeAssist, you can try resetting the settings to their default values:
 1. Open Qt Creator settings
