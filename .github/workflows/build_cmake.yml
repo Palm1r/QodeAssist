@@ -12,7 +12,6 @@ on:
 
 env:
   PLUGIN_NAME: QodeAssist
-  QT_VERSION: 6.8.1
   MACOS_DEPLOYMENT_TARGET: "11.0"
   CMAKE_VERSION: "3.29.6"
   NINJA_VERSION: "1.12.1"
@@ -48,11 +47,13 @@ jobs:
         qt_creator:
         - {
             version: "15.0.1",
-            version_internal: "15.0.1"
+            version_internal: "15.0.1",
+            by_qt_version: "6.8.1"
           }
         - {
             version: "16.0.0",
-            version_internal: "16.0.0"
+            version_internal: "16.0.0",
+            by_qt_version: "6.8.2"
           }
 
     steps:
@@ -103,7 +104,7 @@ jobs:
       id: qt
       shell: cmake -P {0}
       run: |
-        set(qt_version "$ENV{QT_VERSION}")
+        set(qt_version ${{ matrix.qt_creator.by_qt_version }})
 
         string(REPLACE "." "" qt_version_dotless "${qt_version}")
         if ("${{ runner.os }}" STREQUAL "Windows")
