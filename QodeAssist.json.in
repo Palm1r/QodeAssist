@@ -1,13 +1,13 @@
 {
     "Id" : "qodeassist",
     "Name" : "QodeAssist",
-    "Version" : "0.5.2",
+    "Version" : "0.5.3",
     "Vendor" : "Petr Mironychev",
     "VendorId" : "petrmironychev",
     "Copyright" : "(C) ${IDE_COPYRIGHT_YEAR} Petr Mironychev, (C) ${IDE_COPYRIGHT_YEAR} The Qt Company Ltd",
     "License" : "GPLv3",
     "Description": "QodeAssist is an AI-powered coding assistant for Qt Creator. It provides intelligent code completion and suggestions for your code. Prerequisites: Requires one of the supported LLM providers installed (e.g., Ollama or LM Studio) and a compatible large language model downloaded for your chosen provider (e.g., CodeLlama, StarCoder2).",
     "Url" : "https://github.com/Palm1r/QodeAssist",
-    "DocumentationUrl" : "",
+    "DocumentationUrl" : "https://github.com/Palm1r/QodeAssist",
     ${IDE_PLUGIN_DEPENDENCIES}
 }
