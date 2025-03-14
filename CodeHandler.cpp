@@ -52,6 +52,7 @@ const QVector<LanguageProperties> &getKnownLanguages()
         {"shell", "#", {"shell", "bash", "sh"}, {"sh", "bash"}},
         {"perl", "#", {"pl", "perl"}, {"pl"}},
         {"hs", "--", {"hs", "haskell"}, {"hs"}},
+        {"qml", "//", {"qml"}, {"qml"}},
     };
 
     return knownLanguages;
