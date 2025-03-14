@@ -94,6 +94,8 @@ Join our Discord Community: Have questions or want to discuss QodeAssist? Join o
 1. Install Latest Qt Creator
 2. Download the QodeAssist plugin for your Qt Creator
    - Remove old version plugin if already was installed
+      - on macOS for QtCreator 16: ~/Library/Application Support/QtProject/Qt Creator/plugins/16.0.0/petrmironychev.qodeassist
+      - on windows for QtCreator 16: C:\Users\<user>\AppData\Local\QtProject\qtcreator\plugins\16.0.0\petrmironychev.qodeassist\lib\qtcreator\plugins  
 3. Launch Qt Creator and install the plugin:
    - Go to: 
      - MacOS: Qt Creator -> About Plugins...
