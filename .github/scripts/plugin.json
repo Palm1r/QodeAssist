@@ -13,7 +13,7 @@
         "Linux"
     ],
     "license": "GPLv3",
-    "version": "0.5.2",
+    "version": "0.5.3",
     "status": "draft",
     "is_pack": false,
     "released_at": null,
@@ -25,8 +25,13 @@
         },
         {
             "version": "0.5.2",
-            "is_latest": true,
+            "is_latest": false,
             "released_at": "2025-03-13T17:00:00Z"
+        },
+        {
+            "version": "0.5.3",
+            "is_latest": true,
+            "released_at": "2025-03-14T11:00:00Z"
         }
     ],
     "icon": "https://github.com/user-attachments/assets/dc336712-83cb-440d-8761-8d0a31de898d",
