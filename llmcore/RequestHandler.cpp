@@ -27,7 +27,6 @@ namespace QodeAssist::LLMCore {
 
 RequestHandler::RequestHandler(QObject *parent)
     : RequestHandlerBase(parent)
-    , m_manager(new QNetworkAccessManager(this))
 {}
 
 void RequestHandler::sendLLMRequest(const LLMConfig &config, const QJsonObject &request)
@@ -38,11 +37,12 @@ void RequestHandler::sendLLMRequest(const LLMConfig &config, const QJsonObject &
                         QString::fromUtf8(
                             QJsonDocument(config.providerRequest).toJson(QJsonDocument::Indented))));
 
+    QNetworkAccessManager *manager = new QNetworkAccessManager();
     QNetworkRequest networkRequest(config.url);
     config.provider->prepareNetworkRequest(networkRequest);
 
     QNetworkReply *reply
-        = m_manager->post(networkRequest, QJsonDocument(config.providerRequest).toJson());
+        = manager->post(networkRequest, QJsonDocument(config.providerRequest).toJson());
     if (!reply) {
         LOG_MESSAGE("Error: Failed to create network reply");
         return;
@@ -54,6 +54,7 @@ void RequestHandler::sendLLMRequest(const LLMConfig &config, const QJsonObject &
     connect(reply, &QNetworkReply::readyRead, this, [this, reply, request, config]() {
         handleLLMResponse(reply, request, config);
     });
+    connect(reply, &QNetworkReply::finished, this, [manager]() { manager->deleteLater(); });
 
     connect(reply, &QNetworkReply::finished, this, [this, reply, requestId]() {
         reply->deleteLater();

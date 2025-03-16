@@ -40,7 +40,6 @@ public:
     void handleLLMResponse(QNetworkReply *reply, const QJsonObject &request, const LLMConfig &config);
 
 private:
-    QNetworkAccessManager *m_manager;
     QMap<QString, QNetworkReply *> m_activeRequests;
     QMap<QNetworkReply *, QString> m_accumulatedResponses;
 
