@@ -38,6 +38,8 @@ public:
 
     void updateTemplateDescription(const Utils::StringAspect &templateAspect);
     void updateAllTemplateDescriptions();
+    void checkTemplate(const Utils::StringAspect &templateAspect);
+    void checkAllTemplate();
 
 public slots:
     void selectProvider();
