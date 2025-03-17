@@ -36,6 +36,7 @@ void ConfigurationManager::init()
 {
     setupConnections();
     updateAllTemplateDescriptions();
+    checkAllTemplate();
 }
 
 void ConfigurationManager::updateTemplateDescription(const Utils::StringAspect &templateAspect)
@@ -57,6 +58,26 @@ void ConfigurationManager::updateAllTemplateDescriptions()
 {
     updateTemplateDescription(m_generalSettings.ccTemplate);
     updateTemplateDescription(m_generalSettings.caTemplate);
+}
+
+void ConfigurationManager::checkTemplate(const Utils::StringAspect &templateAspect)
+{
+    LLMCore::PromptTemplate *templ = m_templateManger.getFimTemplateByName(templateAspect.value());
+
+    if (templ->name() == templateAspect.value())
+        return;
+
+    if (&templateAspect == &m_generalSettings.ccTemplate) {
+        m_generalSettings.ccTemplate.setValue(templ->name());
+    } else if (&templateAspect == &m_generalSettings.caTemplate) {
+        m_generalSettings.caTemplate.setValue(templ->name());
+    }
+}
+
+void ConfigurationManager::checkAllTemplate()
+{
+    checkTemplate(m_generalSettings.ccTemplate);
+    checkTemplate(m_generalSettings.caTemplate);
 }
 
 ConfigurationManager::ConfigurationManager(QObject *parent)

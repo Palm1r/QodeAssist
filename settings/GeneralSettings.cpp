@@ -94,7 +94,7 @@ GeneralSettings::GeneralSettings()
     ccModel.setHistoryCompleter(Constants::CC_MODEL_HISTORY);
     ccSelectModel.m_buttonText = TrConstants::SELECT;
 
-    initStringAspect(ccTemplate, Constants::CC_TEMPLATE, TrConstants::TEMPLATE, "Ollama Auto FIM");
+    initStringAspect(ccTemplate, Constants::CC_TEMPLATE, TrConstants::TEMPLATE, "Ollama FIM");
     ccTemplate.setReadOnly(true);
     ccSelectTemplate.m_buttonText = TrConstants::SELECT;
 
@@ -140,7 +140,7 @@ GeneralSettings::GeneralSettings()
     ccPreset1SelectModel.m_buttonText = TrConstants::SELECT;
 
     initStringAspect(
-        ccPreset1Template, Constants::CC_PRESET1_TEMPLATE, TrConstants::TEMPLATE, "Ollama Auto FIM");
+        ccPreset1Template, Constants::CC_PRESET1_TEMPLATE, TrConstants::TEMPLATE, "Ollama FIM");
     ccPreset1Template.setReadOnly(true);
     ccPreset1SelectTemplate.m_buttonText = TrConstants::SELECT;
 
@@ -153,7 +153,7 @@ GeneralSettings::GeneralSettings()
     caModel.setHistoryCompleter(Constants::CA_MODEL_HISTORY);
     caSelectModel.m_buttonText = TrConstants::SELECT;
 
-    initStringAspect(caTemplate, Constants::CA_TEMPLATE, TrConstants::TEMPLATE, "Ollama Auto Chat");
+    initStringAspect(caTemplate, Constants::CA_TEMPLATE, TrConstants::TEMPLATE, "Ollama Chat");
     caTemplate.setReadOnly(true);
 
     caSelectTemplate.m_buttonText = TrConstants::SELECT;
