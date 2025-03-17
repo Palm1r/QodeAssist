@@ -54,21 +54,24 @@ void RequestHandler::sendLLMRequest(const LLMConfig &config, const QJsonObject &
     connect(reply, &QNetworkReply::readyRead, this, [this, reply, request, config]() {
         handleLLMResponse(reply, request, config);
     });
-    connect(reply, &QNetworkReply::finished, this, [manager]() { manager->deleteLater(); });
 
-    connect(reply, &QNetworkReply::finished, this, [this, reply, requestId]() {
-        reply->deleteLater();
+    connect(reply, &QNetworkReply::finished, this, [this, reply, requestId, manager]() {
         m_activeRequests.remove(requestId);
         if (reply->error() != QNetworkReply::NoError) {
-            LOG_MESSAGE(QString("Error details: %1\nStatus code: %2\nResponse: %3")
-                            .arg(reply->errorString())
-                            .arg(reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt())
-                            .arg(QString(reply->readAll())));
-            emit requestFinished(requestId, false, reply->errorString());
+            QString errorMessage = reply->errorString();
+            int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+
+            LOG_MESSAGE(
+                QString("Error details: %1\nStatus code: %2").arg(errorMessage).arg(statusCode));
+
+            emit requestFinished(requestId, false, errorMessage);
         } else {
             LOG_MESSAGE("Request finished successfully");
             emit requestFinished(requestId, true, QString());
         }
+
+        reply->deleteLater();
+        manager->deleteLater();
     });
 }
 
