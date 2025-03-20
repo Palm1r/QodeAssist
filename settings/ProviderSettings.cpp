@@ -96,6 +96,15 @@ ProviderSettings::ProviderSettings()
     googleAiApiKey.setDefaultValue("");
     googleAiApiKey.setAutoApply(true);
 
+    // Ollama with BasicAuth Settings
+    ollamaBasicAuthApiKey.setSettingsKey(Constants::OLLAMA_BASIC_AUTH_API_KEY);
+    ollamaBasicAuthApiKey.setLabelText(Tr::tr("Ollama BasicAuth API Key:"));
+    ollamaBasicAuthApiKey.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    ollamaBasicAuthApiKey.setPlaceHolderText(Tr::tr("Enter your API key here"));
+    ollamaBasicAuthApiKey.setHistoryCompleter(Constants::OLLAMA_BASIC_AUTH_API_KEY_HISTORY);
+    ollamaBasicAuthApiKey.setDefaultValue("");
+    ollamaBasicAuthApiKey.setAutoApply(true);
+
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
 
     readSettings();
@@ -119,6 +128,8 @@ ProviderSettings::ProviderSettings()
             Group{title(Tr::tr("Mistral AI Settings")), Column{mistralAiApiKey}},
             Space{8},
             Group{title(Tr::tr("Google AI Settings")), Column{googleAiApiKey}},
+            Space{8},
+            Group{title(Tr::tr("Ollama Settings")), Column{ollamaBasicAuthApiKey}},
             Stretch{1}};
     });
 }
@@ -141,6 +152,9 @@ void ProviderSettings::setupConnections()
     connect(&googleAiApiKey, &ButtonAspect::changed, this, [this]() {
         googleAiApiKey.writeSettings();
     });
+    connect(&ollamaBasicAuthApiKey, &ButtonAspect::changed, this, [this]() {
+        ollamaBasicAuthApiKey.writeSettings();
+    });
 }
 
 void ProviderSettings::resetSettingsToDefaults()
@@ -159,6 +173,7 @@ void ProviderSettings::resetSettingsToDefaults()
         resetAspect(openAiApiKey);
         resetAspect(mistralAiApiKey);
         resetAspect(googleAiApiKey);
+        resetAspect(ollamaBasicAuthApiKey);
     }
 }
 
