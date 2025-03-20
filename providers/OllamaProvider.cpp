@@ -140,6 +140,7 @@ QList<QString> OllamaProvider::getInstalledModels(const QString &url)
     QList<QString> models;
     QNetworkAccessManager manager;
     QNetworkRequest request(QString("%1%2").arg(url, "/api/tags"));
+    prepareNetworkRequest(request);
     QNetworkReply *reply = manager.get(request);
 
     QEventLoop loop;
