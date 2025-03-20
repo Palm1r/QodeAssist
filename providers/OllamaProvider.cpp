@@ -30,6 +30,7 @@
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
+#include "settings/ProviderSettings.hpp"
 
 namespace QodeAssist::Providers {
 
@@ -210,6 +211,10 @@ QString OllamaProvider::apiKey() const
 void OllamaProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
 {
     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    const auto key = Settings::providerSettings().ollamaBasicAuthApiKey();
+    if (!key.isEmpty()) {
+        networkRequest.setRawHeader("Authorization", "Basic " + key.toLatin1());
+    }
 }
 
 LLMCore::ProviderID OllamaProvider::providerID() const

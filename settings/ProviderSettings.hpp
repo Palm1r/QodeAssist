@@ -39,6 +39,7 @@ public:
     Utils::StringAspect openAiApiKey{this};
     Utils::StringAspect mistralAiApiKey{this};
     Utils::StringAspect googleAiApiKey{this};
+    Utils::StringAspect ollamaBasicAuthApiKey{this};
 
 private:
     void setupConnections();
