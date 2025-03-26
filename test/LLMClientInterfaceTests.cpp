@@ -330,7 +330,7 @@ TEST_F(LLMClientInterfaceTest, cancelRequest)
 
 TEST_F(LLMClientInterfaceTest, ServerDeviceTemplate)
 {
-    EXPECT_EQ(m_client->serverDeviceTemplate().toFSPathString(), "Qode Assist");
+    EXPECT_EQ(m_client->serverDeviceTemplate().toFSPathString(), "QodeAssist");
 }
 
 } // namespace QodeAssist
