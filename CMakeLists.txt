@@ -102,3 +102,20 @@ add_qtc_plugin(QodeAssist
     CodeHandler.hpp CodeHandler.cpp
     UpdateStatusWidget.hpp UpdateStatusWidget.cpp
 )
+
+get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)
+find_program(QtCreatorExecutable
+  NAMES
+    qtcreator "Qt Creator"
+  PATHS
+    "${QtCreatorCorePath}/../../../bin"
+    "${QtCreatorCorePath}/../../../MacOS"
+  NO_DEFAULT_PATH
+)
+if (QtCreatorExecutable)
+  add_custom_target(RunQtCreator
+    COMMAND ${QtCreatorExecutable} -pluginpath $<TARGET_FILE_DIR:QodeAssist>
+    DEPENDS QodeAssist
+  )
+  set_target_properties(RunQtCreator PROPERTIES FOLDER "qtc_runnable")
+endif()
