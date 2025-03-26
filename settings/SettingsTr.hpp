@@ -24,7 +24,7 @@
 namespace QodeAssist::Settings {
 
 namespace TrConstants {
-inline const char *ENABLE_QODE_ASSIST = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Enable Qode Assist");
+inline const char *ENABLE_QODE_ASSIST = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Enable QodeAssist");
 inline const char *GENERAL = QT_TRANSLATE_NOOP("QtC::QodeAssist", "General");
 inline const char *RESET_TO_DEFAULTS
     = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Reset Page to Defaults");

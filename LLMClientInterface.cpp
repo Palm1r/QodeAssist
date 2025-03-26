@@ -61,7 +61,7 @@ LLMClientInterface::LLMClientInterface(
 
 Utils::FilePath LLMClientInterface::serverDeviceTemplate() const
 {
-    return "Qode Assist";
+    return "QodeAssist";
 }
 
 void LLMClientInterface::startImpl()

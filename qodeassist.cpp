@@ -100,7 +100,7 @@ public:
 
         ActionBuilder requestAction(this, Constants::QODE_ASSIST_REQUEST_SUGGESTION);
         requestAction.setToolTip(
-            Tr::tr("Generate Qode Assist suggestion at the current cursor position."));
+            Tr::tr("Generate QodeAssist suggestion at the current cursor position."));
         requestAction.setText(Tr::tr("Request QodeAssist Suggestion"));
         requestAction.setIcon(QCODEASSIST_ICON.icon());
         const QKeySequence defaultShortcut = QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_Q);
@@ -110,7 +110,7 @@ public:
                 if (m_qodeAssistClient && m_qodeAssistClient->reachable()) {
                     m_qodeAssistClient->requestCompletions(editor);
                 } else
-                    qWarning() << "The Qode Assist is not ready. Please check your connection and "
+                    qWarning() << "The QodeAssist is not ready. Please check your connection and "
                                   "settings.";
             }
         });

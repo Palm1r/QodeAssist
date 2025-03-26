@@ -82,7 +82,7 @@ const char QODE_ASSIST_CHAT_ASSISTANT_SETTINGS_PAGE_ID[]
 const char QODE_ASSIST_CUSTOM_PROMPT_SETTINGS_PAGE_ID[] = "QodeAssist.4CustomPromptSettingsPageId";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_CATEGORY[] = "QodeAssist.Category";
-const char QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY[] = "Qode Assist";
+const char QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY[] = "QodeAssist";
 
 // Provider Settings Page ID
 const char QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID[] = "QodeAssist.5ProviderSettingsPageId";

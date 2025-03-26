@@ -35,8 +35,8 @@ ProjectSettings::ProjectSettings(ProjectExplorer::Project *project)
     useGlobalSettings.setDefaultValue(true);
 
     enableQodeAssist.setSettingsKey(Constants::QODE_ASSIST_ENABLE_IN_PROJECT);
-    enableQodeAssist.setDisplayName(Tr::tr("Enable Qode Assist"));
-    enableQodeAssist.setLabelText(Tr::tr("Enable Qode Assist"));
+    enableQodeAssist.setDisplayName(Tr::tr("Enable QodeAssist"));
+    enableQodeAssist.setLabelText(Tr::tr("Enable QodeAssist"));
     enableQodeAssist.setDefaultValue(false);
 
     chatHistoryPath.setSettingsKey(Constants::QODE_ASSIST_CHAT_HISTORY_PATH);

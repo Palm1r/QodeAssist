@@ -174,7 +174,7 @@ ollama run qwen2.5-coder:32b
 ```
 
 1. Open Qt Creator settings (Edit > Preferences on Linux/Windows, Qt Creator > Preferences on macOS)
-2. Navigate to the "Qode Assist" tab
+2. Navigate to the "QodeAssist" tab
 3. On the "General" page, verify:
     - Ollama is selected as your LLM provider
     - The URL is set to http://localhost:11434
@@ -281,7 +281,7 @@ If you need compatiblity with another os, you have to build manualy. our experim
 
 If you're still experiencing issues with QodeAssist, you can try resetting the settings to their default values:
 1. Open Qt Creator settings
-2. Navigate to the "Qode Assist" tab
+2. Navigate to the "QodeAssist" tab
 3. Pick settings page for reset
 4. Click on the "Reset Page to Defaults" button
     - The API key will not reset

@@ -28,7 +28,7 @@ void Logger::log(const QString &message, bool silent)
     if (!m_loggingEnabled)
         return;
 
-    const QString prefixedMessage = QLatin1String("[Qode Assist] ") + message;
+    const QString prefixedMessage = QLatin1String("[QodeAssist] ") + message;
     if (silent) {
         Core::MessageManager::writeSilently(prefixedMessage);
     } else {
@@ -43,7 +43,7 @@ void Logger::logMessages(const QStringList &messages, bool silent)
 
     QStringList prefixedMessages;
     for (const QString &message : messages) {
-        prefixedMessages << (QLatin1String("[Qode Assist] ") + message);
+        prefixedMessages << (QLatin1String("[QodeAssist] ") + message);
     }
 
     if (silent) {

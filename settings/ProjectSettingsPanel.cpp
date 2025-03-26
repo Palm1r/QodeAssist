@@ -80,7 +80,7 @@ public:
     ProjectPanelFactory()
     {
         setPriority(1000);
-        setDisplayName(Tr::tr("Qode Assist"));
+        setDisplayName(Tr::tr("QodeAssist"));
         setCreateWidgetFunction(&createProjectPanel);
     }
 };

@@ -2,7 +2,7 @@
  * Copyright (C) 2023 The Qt Company Ltd.
  * Copyright (C) 2024 Petr Mironychev
  *
- * This file is part of Qode Assist.
+ * This file is part of QodeAssist.
  *
  * The Qt Company portions:
  * SPDX-License-Identifier: LicenseRef-Qt-Commercial OR GPL-3.0+ OR GPL-3.0 WITH Qt-GPL-exception-1.0
@@ -48,7 +48,7 @@ QodeAssistClient::QodeAssistClient(LLMClientInterface *clientInterface)
     : LanguageClient::Client(clientInterface)
     , m_recentCharCount(0)
 {
-    setName("Qode Assist");
+    setName("QodeAssist");
     LanguageClient::LanguageFilter filter;
     filter.mimeTypes = QStringList() << "*";
     setSupportedLanguage(filter);
