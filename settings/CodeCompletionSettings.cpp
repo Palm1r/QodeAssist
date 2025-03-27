@@ -192,6 +192,15 @@ CodeCompletionSettings::CodeCompletionSettings()
         "Here is the code context with insertion points:\n"
         "<code_context>\n${prefix}<cursor>${suffix}\n</code_context>\n\n");
 
+    customLanguages.setSettingsKey(Constants::CC_CUSTOM_LANGUAGES);
+    customLanguages.setLabelText(Tr::tr("Additional Programming Languages for handling:"));
+    customLanguages.setToolTip(Tr::tr("Specify additional programming languages in format: "
+                                      "name,comment_style,model_names,extensions\n"
+                                      "Example: rust,//,rust rs,rs"
+                                      "Fields: language name, comment prefix, names from LLM "
+                                      "(space-separated), file extensions (space-separated)"));
+    customLanguages.setDefaultValue({{"cmake,#,cmake,CMakeLists.txt"}, {"qmake,#,qmake,pro pri"}});
+
     useProjectChangesCache.setSettingsKey(Constants::CC_USE_PROJECT_CHANGES_CACHE);
     useProjectChangesCache.setDefaultValue(true);
     useProjectChangesCache.setLabelText(Tr::tr("Max Changes Cache Size:"));
@@ -249,18 +258,18 @@ CodeCompletionSettings::CodeCompletionSettings()
         contextGrid.addRow({Row{readFullFile}});
         contextGrid.addRow({Row{readFileParts, readStringsBeforeCursor, readStringsAfterCursor}});
 
-        auto contextItem = Column{
-            Row{contextGrid, Stretch{1}},
-            Row{useSystemPrompt, Stretch{1}},
-            Group{title(Tr::tr("Prompts for FIM models")), Column{systemPrompt}},
-            Group{
-                title(Tr::tr("Prompts for Non FIM models")),
-                Column{
-                    Row{useUserMessageTemplateForCC, Stretch{1}},
-                    systemPromptForNonFimModels,
-                    userMessageTemplateForCC,
-                }},
-            Row{useProjectChangesCache, maxChangesCacheSize, Stretch{1}}};
+        auto contextItem = Column{Row{contextGrid, Stretch{1}},
+                                  Row{useSystemPrompt, Stretch{1}},
+                                  Group{title(Tr::tr("Prompts for FIM models")),
+                                        Column{systemPrompt}},
+                                  Group{title(Tr::tr("Prompts for Non FIM models")),
+                                        Column{
+                                            Row{useUserMessageTemplateForCC, Stretch{1}},
+                                            systemPromptForNonFimModels,
+                                            userMessageTemplateForCC,
+                                            customLanguages,
+                                        }},
+                                  Row{useProjectChangesCache, maxChangesCacheSize, Stretch{1}}};
 
         return Column{
             Row{Stretch{1}, resetToDefaults},
@@ -355,6 +364,7 @@ void CodeCompletionSettings::resetSettingsToDefaults()
         resetAspect(useUserMessageTemplateForCC);
         resetAspect(userMessageTemplateForCC);
         resetAspect(systemPromptForNonFimModels);
+        resetAspect(customLanguages);
     }
 }
 

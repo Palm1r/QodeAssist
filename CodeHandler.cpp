@@ -21,6 +21,7 @@
 #include "CodeHandler.hpp"
 #include <QFileInfo>
 #include <QHash>
+#include <settings/CodeCompletionSettings.hpp>
 
 namespace QodeAssist {
 
@@ -31,6 +32,45 @@ struct LanguageProperties
     QVector<QString> namesFromModel;
     QVector<QString> fileExtensions;
 };
+
+const QVector<LanguageProperties> customLanguagesFromSettings()
+{
+    QVector<LanguageProperties> customLanguages;
+
+    const QStringList customLanguagesList = Settings::codeCompletionSettings().customLanguages();
+    for (const QString &entry : customLanguagesList) {
+        if (entry.trimmed().isEmpty()) {
+            continue;
+        }
+
+        QStringList parts = entry.split(',');
+        if (parts.size() < 4) {
+            continue;
+        }
+
+        QString name = parts[0].trimmed();
+        QString commentStyle = parts[1].trimmed();
+        QStringList modelNamesList = parts[2].trimmed().split(' ', Qt::SkipEmptyParts);
+        QStringList extensionsList = parts[3].trimmed().split(' ', Qt::SkipEmptyParts);
+
+        if (!name.isEmpty() && !commentStyle.isEmpty() && !modelNamesList.isEmpty()
+            && !extensionsList.isEmpty()) {
+            QVector<QString> modelNames;
+            for (const auto &modelName : modelNamesList) {
+                modelNames.append(modelName);
+            }
+
+            QVector<QString> extensions;
+            for (const auto &ext : extensionsList) {
+                extensions.append(ext);
+            }
+
+            customLanguages.append({name, commentStyle, modelNames, extensions});
+        }
+    }
+
+    return customLanguages;
+}
 
 const QVector<LanguageProperties> &getKnownLanguages()
 {
@@ -54,6 +94,8 @@ const QVector<LanguageProperties> &getKnownLanguages()
         {"hs", "--", {"hs", "haskell"}, {"hs"}},
         {"qml", "//", {"qml"}, {"qml"}},
     };
+
+    knownLanguages.append(customLanguagesFromSettings());
 
     return knownLanguages;
 }

@@ -72,6 +72,7 @@ const char CA_TOKENS_THRESHOLD[] = "QodeAssist.caTokensThreshold";
 const char CA_LINK_OPEN_FILES[] = "QodeAssist.caLinkOpenFiles";
 const char CA_STREAM[] = "QodeAssist.caStream";
 const char CA_AUTOSAVE[] = "QodeAssist.caAutosave";
+const char CC_CUSTOM_LANGUAGES[] = "QodeAssist.ccCustomLanguages";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
 const char QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID[] = "QodeAssist.1GeneralSettingsPageId";
