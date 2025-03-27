@@ -63,9 +63,6 @@ public:
     Utils::StringAspect ollamaLivetime{this};
     Utils::IntegerAspect contextWindow{this};
 
-    // API Configuration Settings
-    Utils::StringAspect apiKey{this};
-
 private:
     void setupConnections();
     void resetSettingsToDefaults();

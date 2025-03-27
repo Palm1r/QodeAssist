@@ -131,7 +131,6 @@ const char CC_USE_FREQUENCY_PENALTY[] = "QodeAssist.fimUseFrequencyPenalty";
 const char CC_FREQUENCY_PENALTY[] = "QodeAssist.fimFrequencyPenalty";
 const char CC_OLLAMA_LIVETIME[] = "QodeAssist.fimOllamaLivetime";
 const char CC_OLLAMA_CONTEXT_WINDOW[] = "QodeAssist.ccOllamaContextWindow";
-const char CC_API_KEY[] = "QodeAssist.apiKey";
 const char CA_TEMPERATURE[] = "QodeAssist.chatTemperature";
 const char CA_MAX_TOKENS[] = "QodeAssist.chatMaxTokens";
 const char CA_USE_TOP_P[] = "QodeAssist.chatUseTopP";
@@ -144,6 +143,5 @@ const char CA_USE_FREQUENCY_PENALTY[] = "QodeAssist.chatUseFrequencyPenalty";
 const char CA_FREQUENCY_PENALTY[] = "QodeAssist.chatFrequencyPenalty";
 const char CA_OLLAMA_LIVETIME[] = "QodeAssist.chatOllamaLivetime";
 const char CA_OLLAMA_CONTEXT_WINDOW[] = "QodeAssist.caOllamaContextWindow";
-const char CA_API_KEY[] = "QodeAssist.chatApiKey";
 
 } // namespace QodeAssist::Constants

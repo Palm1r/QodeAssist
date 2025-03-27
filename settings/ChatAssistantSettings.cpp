@@ -137,12 +137,6 @@ ChatAssistantSettings::ChatAssistantSettings()
     contextWindow.setRange(-1, 10000);
     contextWindow.setDefaultValue(2048);
 
-    // API Configuration Settings
-    apiKey.setSettingsKey(Constants::CA_API_KEY);
-    apiKey.setLabelText(Tr::tr("[Deprecated, see Provider Settings]API Key:"));
-    apiKey.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
-    apiKey.setPlaceHolderText(Tr::tr("Enter your API key here"));
-
     resetToDefaults.m_buttonText = TrConstants::RESET_TO_DEFAULTS;
 
     readSettings();
@@ -187,8 +181,6 @@ ChatAssistantSettings::ChatAssistantSettings()
                     systemPrompt,
                 }},
             Group{title(Tr::tr("Ollama Settings")), Column{Row{ollamaGrid, Stretch{1}}}},
-            Space{8},
-            Group{title(Tr::tr("API Configuration")), Column{apiKey}},
             Stretch{1}};
     });
 }

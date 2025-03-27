@@ -78,9 +78,6 @@ public:
     Utils::StringAspect ollamaLivetime{this};
     Utils::IntegerAspect contextWindow{this};
 
-    // API Configuration Settings
-    Utils::StringAspect apiKey{this};
-
     QString processMessageToFIM(const QString &prefix, const QString &suffix) const;
 
 private:
