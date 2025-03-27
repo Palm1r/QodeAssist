@@ -258,18 +258,19 @@ CodeCompletionSettings::CodeCompletionSettings()
         contextGrid.addRow({Row{readFullFile}});
         contextGrid.addRow({Row{readFileParts, readStringsBeforeCursor, readStringsAfterCursor}});
 
-        auto contextItem = Column{Row{contextGrid, Stretch{1}},
-                                  Row{useSystemPrompt, Stretch{1}},
-                                  Group{title(Tr::tr("Prompts for FIM models")),
-                                        Column{systemPrompt}},
-                                  Group{title(Tr::tr("Prompts for Non FIM models")),
-                                        Column{
-                                            Row{useUserMessageTemplateForCC, Stretch{1}},
-                                            systemPromptForNonFimModels,
-                                            userMessageTemplateForCC,
-                                            customLanguages,
-                                        }},
-                                  Row{useProjectChangesCache, maxChangesCacheSize, Stretch{1}}};
+        auto contextItem = Column{
+            Row{contextGrid, Stretch{1}},
+            Row{useSystemPrompt, Stretch{1}},
+            Group{title(Tr::tr("Prompts for FIM models")), Column{systemPrompt}},
+            Group{
+                title(Tr::tr("Prompts for Non FIM models")),
+                Column{
+                    Row{useUserMessageTemplateForCC, Stretch{1}},
+                    systemPromptForNonFimModels,
+                    userMessageTemplateForCC,
+                    customLanguages,
+                }},
+            Row{useProjectChangesCache, maxChangesCacheSize, Stretch{1}}};
 
         return Column{
             Row{Stretch{1}, resetToDefaults},

@@ -19,9 +19,9 @@
  */
 
 #include "CodeHandler.hpp"
+#include <settings/CodeCompletionSettings.hpp>
 #include <QFileInfo>
 #include <QHash>
-#include <settings/CodeCompletionSettings.hpp>
 
 namespace QodeAssist {
 
@@ -71,7 +71,6 @@ const QVector<LanguageProperties> customLanguagesFromSettings()
 
     return customLanguages;
 }
-
 const QVector<LanguageProperties> &getKnownLanguages()
 {
     static QVector<LanguageProperties> knownLanguages = {
