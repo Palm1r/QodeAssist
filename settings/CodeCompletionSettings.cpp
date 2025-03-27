@@ -193,10 +193,11 @@ CodeCompletionSettings::CodeCompletionSettings()
         "<code_context>\n${prefix}<cursor>${suffix}\n</code_context>\n\n");
 
     customLanguages.setSettingsKey(Constants::CC_CUSTOM_LANGUAGES);
-    customLanguages.setLabelText(Tr::tr("Additional Programming Languages for handling:"));
+    customLanguages.setLabelText(
+        Tr::tr("Additional Programming Languages for handling: Example: rust,//,rust rs,rs"));
     customLanguages.setToolTip(Tr::tr("Specify additional programming languages in format: "
                                       "name,comment_style,model_names,extensions\n"
-                                      "Example: rust,//,rust rs,rs"
+                                      "Example: rust,//,rust rs,rs\n"
                                       "Fields: language name, comment prefix, names from LLM "
                                       "(space-separated), file extensions (space-separated)"));
     customLanguages.setDefaultValue({{"cmake,#,cmake,CMakeLists.txt"}, {"qmake,#,qmake,pro pri"}});
