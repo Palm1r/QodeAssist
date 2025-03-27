@@ -192,6 +192,16 @@ CodeCompletionSettings::CodeCompletionSettings()
         "Here is the code context with insertion points:\n"
         "<code_context>\n${prefix}<cursor>${suffix}\n</code_context>\n\n");
 
+    customLanguages.setSettingsKey(Constants::CC_CUSTOM_LANGUAGES);
+    customLanguages.setLabelText(
+        Tr::tr("Additional Programming Languages for handling: Example: rust,//,rust rs,rs"));
+    customLanguages.setToolTip(Tr::tr("Specify additional programming languages in format: "
+                                      "name,comment_style,model_names,extensions\n"
+                                      "Example: rust,//,rust rs,rs\n"
+                                      "Fields: language name, comment prefix, names from LLM "
+                                      "(space-separated), file extensions (space-separated)"));
+    customLanguages.setDefaultValue({{"cmake,#,cmake,CMakeLists.txt"}, {"qmake,#,qmake,pro pri"}});
+
     useProjectChangesCache.setSettingsKey(Constants::CC_USE_PROJECT_CHANGES_CACHE);
     useProjectChangesCache.setDefaultValue(true);
     useProjectChangesCache.setLabelText(Tr::tr("Max Changes Cache Size:"));
@@ -259,6 +269,7 @@ CodeCompletionSettings::CodeCompletionSettings()
                     Row{useUserMessageTemplateForCC, Stretch{1}},
                     systemPromptForNonFimModels,
                     userMessageTemplateForCC,
+                    customLanguages,
                 }},
             Row{useProjectChangesCache, maxChangesCacheSize, Stretch{1}}};
 
@@ -355,6 +366,7 @@ void CodeCompletionSettings::resetSettingsToDefaults()
         resetAspect(useUserMessageTemplateForCC);
         resetAspect(userMessageTemplateForCC);
         resetAspect(systemPromptForNonFimModels);
+        resetAspect(customLanguages);
     }
 }
 

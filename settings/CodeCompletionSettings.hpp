@@ -42,6 +42,8 @@ public:
     Utils::IntegerAspect autoCompletionCharThreshold{this};
     Utils::IntegerAspect autoCompletionTypingInterval{this};
 
+    Utils::StringListAspect customLanguages{this};
+
     // General Parameters Settings
     Utils::DoubleAspect temperature{this};
     Utils::IntegerAspect maxTokens{this};
