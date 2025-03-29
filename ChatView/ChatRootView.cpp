@@ -464,12 +464,12 @@ void ChatRootView::updateInputTokensCount()
     }
 
     if (!m_attachmentFiles.isEmpty()) {
-        auto attachFiles = Context::ContextManager::instance().getContentFiles(m_attachmentFiles);
+        auto attachFiles = m_clientInterface->contextManager()->getContentFiles(m_attachmentFiles);
         inputTokens += Context::TokenUtils::estimateFilesTokens(attachFiles);
     }
 
     if (!m_linkedFiles.isEmpty()) {
-        auto linkFiles = Context::ContextManager::instance().getContentFiles(m_linkedFiles);
+        auto linkFiles = m_clientInterface->contextManager()->getContentFiles(m_linkedFiles);
         inputTokens += Context::TokenUtils::estimateFilesTokens(linkFiles);
     }
 

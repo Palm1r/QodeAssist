@@ -23,7 +23,7 @@
 #include <QString>
 
 #include "ContentFile.hpp"
-#include "IContextManager.hpp"
+#include "IDocumentReader.hpp"
 #include "ProgrammingLanguage.hpp"
 
 namespace ProjectExplorer {
@@ -32,21 +32,18 @@ class Project;
 
 namespace QodeAssist::Context {
 
-class ContextManager : public QObject, public IContextManager
+class IContextManager
 {
-    Q_OBJECT
-
 public:
-    explicit ContextManager(QObject *parent = nullptr);
-    ~ContextManager() override = default;
+    virtual ~IContextManager() = default;
 
-    QString readFile(const QString &filePath) const override;
-    QList<ContentFile> getContentFiles(const QStringList &filePaths) const override;
-    QStringList getProjectSourceFiles(ProjectExplorer::Project *project) const override;
-    ContentFile createContentFile(const QString &filePath) const override;
+    virtual QString readFile(const QString &filePath) const = 0;
+    virtual QList<ContentFile> getContentFiles(const QStringList &filePaths) const = 0;
+    virtual QStringList getProjectSourceFiles(ProjectExplorer::Project *project) const = 0;
+    virtual ContentFile createContentFile(const QString &filePath) const = 0;
 
-    ProgrammingLanguage getDocumentLanguage(const DocumentInfo &documentInfo) const override;
-    bool isSpecifyCompletion(const DocumentInfo &documentInfo) const override;
+    virtual ProgrammingLanguage getDocumentLanguage(const DocumentInfo &documentInfo) const = 0;
+    virtual bool isSpecifyCompletion(const DocumentInfo &documentInfo) const = 0;
 };
 
 } // namespace QodeAssist::Context
