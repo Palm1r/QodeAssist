@@ -7,6 +7,7 @@ add_library(Context STATIC
     IDocumentReader.hpp
     TokenUtils.hpp TokenUtils.cpp
     ProgrammingLanguage.hpp ProgrammingLanguage.cpp
+    IContextManager.hpp
 )
 
 target_link_libraries(Context

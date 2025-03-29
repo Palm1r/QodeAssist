@@ -22,6 +22,7 @@
 #include <languageclient/languageclientinterface.h>
 #include <texteditor/texteditor.h>
 
+#include <context/ContextManager.hpp>
 #include <context/IDocumentReader.hpp>
 #include <context/ProgrammingLanguage.hpp>
 #include <llmcore/ContextData.hpp>
@@ -84,6 +85,7 @@ private:
     Context::IDocumentReader &m_documentReader;
     IRequestPerformanceLogger &m_performanceLogger;
     QElapsedTimer m_completionTimer;
+    Context::ContextManager *m_contextManager;
 };
 
 } // namespace QodeAssist

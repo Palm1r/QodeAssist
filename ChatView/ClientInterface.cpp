@@ -33,7 +33,6 @@
 #include <texteditor/texteditor.h>
 
 #include "ChatAssistantSettings.hpp"
-#include "ContextManager.hpp"
 #include "GeneralSettings.hpp"
 #include "Logger.hpp"
 #include "ProvidersManager.hpp"
@@ -46,6 +45,7 @@ ClientInterface::ClientInterface(
     , m_requestHandler(new LLMCore::RequestHandler(this))
     , m_chatModel(chatModel)
     , m_promptProvider(promptProvider)
+    , m_contextManager(new Context::ContextManager(this))
 {
     connect(
         m_requestHandler,
@@ -73,7 +73,7 @@ void ClientInterface::sendMessage(
 {
     cancelRequest();
 
-    auto attachFiles = Context::ContextManager::instance().getContentFiles(attachments);
+    auto attachFiles = m_contextManager->getContentFiles(attachments);
     m_chatModel->addMessage(message, ChatModel::ChatRole::User, "", attachFiles);
 
     auto &chatAssistantSettings = Settings::chatAssistantSettings();
@@ -200,13 +200,18 @@ QString ClientInterface::getSystemPromptWithLinkedFiles(
     if (!linkedFiles.isEmpty()) {
         updatedPrompt += "\n\nLinked files for reference:\n";
 
-        auto contentFiles = Context::ContextManager::instance().getContentFiles(linkedFiles);
+        auto contentFiles = m_contextManager->getContentFiles(linkedFiles);
         for (const auto &file : contentFiles) {
             updatedPrompt += QString("\nFile: %1\nContent:\n%2\n").arg(file.filename, file.content);
         }
     }
 
     return updatedPrompt;
+}
+
+Context::ContextManager *ClientInterface::contextManager() const
+{
+    return m_contextManager;
 }
 
 } // namespace QodeAssist::Chat

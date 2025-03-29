@@ -24,7 +24,6 @@
 #include <QNetworkReply>
 
 #include "CodeHandler.hpp"
-#include "context/ContextManager.hpp"
 #include "context/DocumentContextReader.hpp"
 #include "context/Utils.hpp"
 #include "llmcore/PromptTemplateManager.hpp"
@@ -51,6 +50,7 @@ LLMClientInterface::LLMClientInterface(
     , m_requestHandler(requestHandler)
     , m_documentReader(documentReader)
     , m_performanceLogger(performanceLogger)
+    , m_contextManager(new Context::ContextManager(this))
 {
     connect(
         &m_requestHandler,
@@ -170,8 +170,7 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
 
     auto updatedContext = prepareContext(request, documentInfo);
 
-    bool isPreset1Active
-        = Context::ContextManager::isSpecifyCompletion(documentInfo, m_generalSettings);
+    bool isPreset1Active = m_contextManager->isSpecifyCompletion(documentInfo);
 
     const auto providerName = !isPreset1Active ? m_generalSettings.ccProvider()
                                                : m_generalSettings.ccPreset1Provider();
@@ -282,8 +281,7 @@ void LLMClientInterface::sendCompletionToClient(
 {
     auto filePath = Context::extractFilePathFromRequest(request);
     auto documentInfo = m_documentReader.readDocument(filePath);
-    bool isPreset1Active
-        = Context::ContextManager::isSpecifyCompletion(documentInfo, m_generalSettings);
+    bool isPreset1Active = m_contextManager->isSpecifyCompletion(documentInfo);
 
     auto templateName = !isPreset1Active ? m_generalSettings.ccTemplate()
                                          : m_generalSettings.ccPreset1Template();
