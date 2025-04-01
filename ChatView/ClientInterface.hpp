@@ -26,6 +26,7 @@
 #include "ChatModel.hpp"
 #include "RequestHandler.hpp"
 #include "llmcore/IPromptProvider.hpp"
+#include <context/ContextManager.hpp>
 
 namespace QodeAssist::Chat {
 
@@ -45,6 +46,8 @@ public:
     void clearMessages();
     void cancelRequest();
 
+    Context::ContextManager *contextManager() const;
+
 signals:
     void errorOccurred(const QString &error);
     void messageReceivedCompletely();
@@ -58,6 +61,7 @@ private:
     LLMCore::IPromptProvider *m_promptProvider = nullptr;
     ChatModel *m_chatModel;
     LLMCore::RequestHandler *m_requestHandler;
+    Context::ContextManager *m_contextManager;
 };
 
 } // namespace QodeAssist::Chat

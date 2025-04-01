@@ -24,16 +24,13 @@
 #include <QJsonObject>
 #include <QTextStream>
 
-#include "GeneralSettings.hpp"
+#include "settings/GeneralSettings.hpp"
+#include <projectexplorer/project.h>
+#include <projectexplorer/projectnodes.h>
+
 #include "Logger.hpp"
 
 namespace QodeAssist::Context {
-
-ContextManager &ContextManager::instance()
-{
-    static ContextManager manager;
-    return manager;
-}
 
 ContextManager::ContextManager(QObject *parent)
     : QObject(parent)
@@ -59,6 +56,27 @@ QList<ContentFile> ContextManager::getContentFiles(const QStringList &filePaths)
     return files;
 }
 
+QStringList ContextManager::getProjectSourceFiles(ProjectExplorer::Project *project) const
+{
+    QStringList sourceFiles;
+    if (!project)
+        return sourceFiles;
+
+    auto projectNode = project->rootProjectNode();
+    if (!projectNode)
+        return sourceFiles;
+
+    projectNode->forEachNode(
+        [&sourceFiles, this](ProjectExplorer::FileNode *fileNode) {
+            if (fileNode /*&& shouldProcessFile(fileNode->filePath().toString())*/) {
+                sourceFiles.append(fileNode->filePath().toUrlishString());
+            }
+        },
+        nullptr);
+
+    return sourceFiles;
+}
+
 ContentFile ContextManager::createContentFile(const QString &filePath) const
 {
     ContentFile contentFile;
@@ -68,7 +86,7 @@ ContentFile ContextManager::createContentFile(const QString &filePath) const
     return contentFile;
 }
 
-ProgrammingLanguage ContextManager::getDocumentLanguage(const DocumentInfo &documentInfo)
+ProgrammingLanguage ContextManager::getDocumentLanguage(const DocumentInfo &documentInfo) const
 {
     if (!documentInfo.document) {
         LOG_MESSAGE("Error: Document is not available for" + documentInfo.filePath);
@@ -78,9 +96,10 @@ ProgrammingLanguage ContextManager::getDocumentLanguage(const DocumentInfo &docu
     return Context::ProgrammingLanguageUtils::fromMimeType(documentInfo.mimeType);
 }
 
-bool ContextManager::isSpecifyCompletion(
-    const DocumentInfo &documentInfo, const Settings::GeneralSettings &generalSettings)
+bool ContextManager::isSpecifyCompletion(const DocumentInfo &documentInfo) const
 {
+    const auto &generalSettings = Settings::generalSettings();
+
     Context::ProgrammingLanguage documentLanguage = getDocumentLanguage(documentInfo);
     Context::ProgrammingLanguage preset1Language = Context::ProgrammingLanguageUtils::fromString(
         generalSettings.preset1Language.displayForIndex(generalSettings.preset1Language()));
