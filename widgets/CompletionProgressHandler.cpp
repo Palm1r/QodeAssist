@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2024 Petr Mironychev
+ * Copyright (C) 2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -18,9 +18,20 @@
  */
 
 #include "CompletionProgressHandler.hpp"
-#include <texteditor/texteditor.h>
-#include <utils/tooltip/tooltip.h>
+
+#include <QGraphicsBlurEffect>
+#include <QGraphicsPixmapItem>
+#include <QGraphicsScene>
 #include <QLabel>
+#include <QPainter>
+#include <QVBoxLayout>
+
+#include <texteditor/texteditor.h>
+#include <utils/progressindicator.h>
+#include <utils/theme/theme.h>
+#include <utils/tooltip/tooltip.h>
+
+#include "ProgressWidget.hpp"
 
 namespace QodeAssist {
 
@@ -30,7 +41,6 @@ void CompletionProgressHandler::showProgress(TextEditor::TextEditorWidget *widge
     m_isActive = true;
 
     if (m_widget) {
-        // Используем тот же метод получения позиции что и в TextSuggestion
         const QRect cursorRect = m_widget->cursorRect(m_widget->textCursor());
         m_iconPosition = m_widget->viewport()->mapToGlobal(cursorRect.topLeft())
                          - Utils::ToolTip::offsetFromPosition();
@@ -65,14 +75,12 @@ void CompletionProgressHandler::operateTooltip(
     if (!m_isActive || !editorWidget)
         return;
 
-    auto progressLabel = new QLabel;
-    progressLabel->setPixmap(QPixmap(":/resources/images/qoderassist-icon.png")
-                                 .scaled(16, 16, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+    auto progressWidget = new ProgressWidget(editorWidget);
 
     QPoint showPoint = point;
-    showPoint.ry() -= progressLabel->sizeHint().height();
+    showPoint.ry() -= progressWidget->height();
 
-    Utils::ToolTip::show(showPoint, progressLabel, editorWidget);
+    Utils::ToolTip::show(showPoint, progressWidget, editorWidget);
 }
 
 } // namespace QodeAssist

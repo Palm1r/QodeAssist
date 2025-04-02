@@ -63,7 +63,6 @@ add_qtc_plugin(QodeAssist
     qodeassist.cpp
     QodeAssistConstants.hpp
     QodeAssisttr.h
-    CompletionProgressHandler.hpp CompletionProgressHandler.cpp
     LLMClientInterface.hpp LLMClientInterface.cpp
     templates/Templates.hpp
     templates/CodeLlamaFim.hpp
@@ -102,6 +101,8 @@ add_qtc_plugin(QodeAssist
     ConfigurationManager.hpp ConfigurationManager.cpp
     CodeHandler.hpp CodeHandler.cpp
     UpdateStatusWidget.hpp UpdateStatusWidget.cpp
+    widgets/CompletionProgressHandler.hpp widgets/CompletionProgressHandler.cpp
+    widgets/ProgressWidget.hpp widgets/ProgressWidget.cpp
 )
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)

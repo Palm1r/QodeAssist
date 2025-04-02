@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2024 Petr Mironychev
+ * Copyright (C) 2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -19,27 +19,30 @@
 
 #pragma once
 
-#include <texteditor/basehoverhandler.h>
-#include <QPointer>
+#include <QPainter>
+#include <QTimer>
+#include <QWidget>
+
+#include <utils/progressindicator.h>
+#include <utils/theme/theme.h>
 
 namespace QodeAssist {
 
-class CompletionProgressHandler : public TextEditor::BaseHoverHandler
+class ProgressWidget : public QWidget
 {
 public:
-    void showProgress(TextEditor::TextEditorWidget *widget);
-    void hideProgress();
-    void abort() override {}
+    ProgressWidget(QWidget *parent = nullptr);
+    ~ProgressWidget();
 
 protected:
-    void identifyMatch(
-        TextEditor::TextEditorWidget *editorWidget, int pos, ReportPriority report) override;
-    void operateTooltip(TextEditor::TextEditorWidget *editorWidget, const QPoint &point) override;
+    void paintEvent(QPaintEvent *) override;
 
 private:
-    QPointer<TextEditor::TextEditorWidget> m_widget;
-    QPoint m_iconPosition;
-    bool m_isActive = false;
+    QTimer m_timer;
+    int m_dotPosition;
+    QColor m_textColor;
+    QColor m_backgroundColor;
+    QPixmap m_logoPixmap;
 };
 
 } // namespace QodeAssist

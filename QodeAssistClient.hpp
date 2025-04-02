@@ -24,9 +24,9 @@
 
 #pragma once
 
-#include "CompletionProgressHandler.hpp"
 #include "LLMClientInterface.hpp"
 #include "LSPCompletion.hpp"
+#include "widgets/CompletionProgressHandler.hpp"
 #include <languageclient/client.h>
 #include <llmcore/IPromptProvider.hpp>
 #include <llmcore/IProviderRegistry.hpp>
