@@ -151,7 +151,9 @@ void QodeAssistClient::requestCompletions(TextEditor::TextEditorWidget *editor)
         {TextDocumentIdentifier(hostPathToServerUri(filePath)),
          documentVersion(filePath),
          Position(cursor.mainCursor())}};
-    m_progressHandler.showProgress(editor);
+    if (Settings::codeCompletionSettings().showProgressWidget()) {
+        m_progressHandler.showProgress(editor);
+    }
     request.setResponseCallback([this, editor = QPointer<TextEditorWidget>(editor)](
                                     const GetCompletionRequest::Response &response) {
         QTC_ASSERT(editor, return);

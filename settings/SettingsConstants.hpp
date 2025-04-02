@@ -55,6 +55,7 @@ const char CC_PRESET1_URL_HISTORY[] = "QodeAssist.ccPreset1UrlHistory";
 // settings
 const char ENABLE_QODE_ASSIST[] = "QodeAssist.enableQodeAssist";
 const char CC_AUTO_COMPLETION[] = "QodeAssist.ccAutoCompletion";
+const char CC_SHOW_PROGRESS_WIDGET[] = "QodeAssist.ccShowProgressWidget";
 const char ENABLE_LOGGING[] = "QodeAssist.enableLogging";
 const char ENABLE_CHECK_UPDATE[] = "QodeAssist.enableCheckUpdate";
 const char ENABLE_CHAT[] = "QodeAssist.enableChat";

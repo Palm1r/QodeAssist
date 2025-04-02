@@ -202,6 +202,10 @@ CodeCompletionSettings::CodeCompletionSettings()
                                       "(space-separated), file extensions (space-separated)"));
     customLanguages.setDefaultValue({{"cmake,#,cmake,CMakeLists.txt"}, {"qmake,#,qmake,pro pri"}});
 
+    showProgressWidget.setSettingsKey(Constants::CC_SHOW_PROGRESS_WIDGET);
+    showProgressWidget.setLabelText(Tr::tr("Show progress indicator during code completion"));
+    showProgressWidget.setDefaultValue(true);
+
     useProjectChangesCache.setSettingsKey(Constants::CC_USE_PROJECT_CHANGES_CACHE);
     useProjectChangesCache.setDefaultValue(true);
     useProjectChangesCache.setLabelText(Tr::tr("Max Changes Cache Size:"));
@@ -281,7 +285,8 @@ CodeCompletionSettings::CodeCompletionSettings()
                     Row{autoCompletionCharThreshold,
                         autoCompletionTypingInterval,
                         startSuggestionTimer,
-                        Stretch{1}}}},
+                        Stretch{1}},
+                    showProgressWidget}},
             Space{8},
             Group{
                 title(Tr::tr("General Parameters")),

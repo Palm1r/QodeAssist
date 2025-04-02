@@ -44,6 +44,8 @@ public:
 
     Utils::StringListAspect customLanguages{this};
 
+    Utils::BoolAspect showProgressWidget{this};
+
     // General Parameters Settings
     Utils::DoubleAspect temperature{this};
     Utils::IntegerAspect maxTokens{this};
