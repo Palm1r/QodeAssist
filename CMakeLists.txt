@@ -63,6 +63,7 @@ add_qtc_plugin(QodeAssist
     qodeassist.cpp
     QodeAssistConstants.hpp
     QodeAssisttr.h
+    CompletionProgressHandler.hpp CompletionProgressHandler.cpp
     LLMClientInterface.hpp LLMClientInterface.cpp
     templates/Templates.hpp
     templates/CodeLlamaFim.hpp

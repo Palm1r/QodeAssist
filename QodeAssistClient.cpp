@@ -151,6 +151,7 @@ void QodeAssistClient::requestCompletions(TextEditor::TextEditorWidget *editor)
         {TextDocumentIdentifier(hostPathToServerUri(filePath)),
          documentVersion(filePath),
          Position(cursor.mainCursor())}};
+    m_progressHandler.showProgress(editor);
     request.setResponseCallback([this, editor = QPointer<TextEditorWidget>(editor)](
                                     const GetCompletionRequest::Response &response) {
         QTC_ASSERT(editor, return);
@@ -237,6 +238,7 @@ void QodeAssistClient::handleCompletions(
             Text::Position pos{toTextPos(c.position())};
             return TextSuggestion::Data{range, pos, c.text()};
         });
+        m_progressHandler.hideProgress();
         if (completions.isEmpty())
             return;
         editor->insertSuggestion(std::make_unique<LLMSuggestion>(suggestions, editor->document()));
@@ -248,6 +250,7 @@ void QodeAssistClient::cancelRunningRequest(TextEditor::TextEditorWidget *editor
     const auto it = m_runningRequests.constFind(editor);
     if (it == m_runningRequests.constEnd())
         return;
+    m_progressHandler.hideProgress();
     cancelRequest(it->id());
     m_runningRequests.erase(it);
 }
