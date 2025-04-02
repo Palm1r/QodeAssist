@@ -26,6 +26,7 @@
 
 #include "LLMClientInterface.hpp"
 #include "LSPCompletion.hpp"
+#include "widgets/CompletionProgressHandler.hpp"
 #include <languageclient/client.h>
 #include <llmcore/IPromptProvider.hpp>
 #include <llmcore/IProviderRegistry.hpp>
@@ -60,6 +61,7 @@ private:
 
     QElapsedTimer m_typingTimer;
     int m_recentCharCount;
+    CompletionProgressHandler m_progressHandler;
 };
 
 } // namespace QodeAssist
