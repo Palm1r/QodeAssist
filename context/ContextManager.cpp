@@ -25,6 +25,7 @@
 #include <QTextStream>
 
 #include "settings/GeneralSettings.hpp"
+#include <coreplugin/editormanager/editormanager.h>
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectnodes.h>
 #include <texteditor/textdocument.h>
