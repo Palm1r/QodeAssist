@@ -206,6 +206,10 @@ CodeCompletionSettings::CodeCompletionSettings()
     showProgressWidget.setLabelText(Tr::tr("Show progress indicator during code completion"));
     showProgressWidget.setDefaultValue(true);
 
+    useOpenFilesContext.setSettingsKey(Constants::CC_USE_OPEN_FILES_CONTEXT);
+    useOpenFilesContext.setLabelText(Tr::tr("Include context from open files"));
+    useOpenFilesContext.setDefaultValue(false);
+
     useProjectChangesCache.setSettingsKey(Constants::CC_USE_PROJECT_CHANGES_CACHE);
     useProjectChangesCache.setDefaultValue(true);
     useProjectChangesCache.setLabelText(Tr::tr("Max Changes Cache Size:"));
@@ -286,7 +290,8 @@ CodeCompletionSettings::CodeCompletionSettings()
                         autoCompletionTypingInterval,
                         startSuggestionTimer,
                         Stretch{1}},
-                    showProgressWidget}},
+                    showProgressWidget,
+                    useOpenFilesContext}},
             Space{8},
             Group{
                 title(Tr::tr("General Parameters")),
@@ -364,6 +369,8 @@ void CodeCompletionSettings::resetSettingsToDefaults()
         resetAspect(userMessageTemplateForCC);
         resetAspect(systemPromptForNonFimModels);
         resetAspect(customLanguages);
+        resetAspect(showProgressWidget);
+        resetAspect(useOpenFilesContext);
     }
 }
 

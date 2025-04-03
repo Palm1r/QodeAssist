@@ -27,6 +27,7 @@
 #include "settings/GeneralSettings.hpp"
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectnodes.h>
+#include <texteditor/textdocument.h>
 
 #include "Logger.hpp"
 
@@ -105,6 +106,50 @@ bool ContextManager::isSpecifyCompletion(const DocumentInfo &documentInfo) const
         generalSettings.preset1Language.displayForIndex(generalSettings.preset1Language()));
 
     return generalSettings.specifyPreset1() && documentLanguage == preset1Language;
+}
+
+QList<QPair<QString, QString>> ContextManager::openedFiles(const QStringList excludeFiles) const
+{
+    auto documents = Core::DocumentModel::openedDocuments();
+
+    QList<QPair<QString, QString>> files;
+
+    for (const auto *document : std::as_const(documents)) {
+        auto textDocument = qobject_cast<const TextEditor::TextDocument *>(document);
+        if (!textDocument)
+            continue;
+
+        auto filePath = textDocument->filePath().toUrlishString();
+        if (!excludeFiles.contains(filePath)) {
+            files.append({filePath, textDocument->plainText()});
+        }
+    }
+
+    return files;
+}
+
+QString ContextManager::openedFilesContext(const QStringList excludeFiles)
+{
+    QString context = "User files context:\n";
+
+    auto documents = Core::DocumentModel::openedDocuments();
+
+    for (const auto *document : documents) {
+        auto textDocument = qobject_cast<const TextEditor::TextDocument *>(document);
+        if (!textDocument)
+            continue;
+
+        auto filePath = textDocument->filePath().toUrlishString();
+        if (excludeFiles.contains(filePath))
+            continue;
+
+        context += QString("File: %1\n").arg(filePath);
+        context += textDocument->plainText();
+
+        context += "\n";
+    }
+
+    return context;
 }
 
 } // namespace QodeAssist::Context
