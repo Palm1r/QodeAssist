@@ -23,7 +23,6 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMessageBox>
-#include <QProgressBar>
 #include <QPushButton>
 #include <QTextEdit>
 #include <QVBoxLayout>
@@ -42,21 +41,18 @@ public:
 
 private slots:
     void handleUpdateInfo(const PluginUpdater::UpdateInfo &info);
-    void startDownload();
-    void updateProgress(qint64 received, qint64 total);
-    void handleDownloadFinished(const QString &path);
-    void handleDownloadError(const QString &error);
+    void openReleasePage();
+    void openPluginFolder();
 
 private:
     PluginUpdater *m_updater;
     QVBoxLayout *m_layout;
     QLabel *m_titleLabel;
     QLabel *m_versionLabel;
-    QLabel *m_releaseLink;
-    QLabel *m_changelogLabel{nullptr};
-    QTextEdit *m_changelogText{nullptr};
-    QProgressBar *m_progress;
-    QPushButton *m_downloadButton;
+    QLabel *m_changelogLabel;
+    QTextEdit *m_changelogText;
+    QPushButton *m_buttonOpenReleasePage;
+    QPushButton *m_buttonOpenPluginFolder;
     QPushButton *m_closeButton;
     PluginUpdater::UpdateInfo m_updateInfo;
 };

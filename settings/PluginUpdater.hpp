@@ -20,7 +20,6 @@
 #pragma once
 
 #include <coreplugin/icore.h>
-#include <coreplugin/plugininstallwizard.h>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QObject>
@@ -35,38 +34,27 @@ public:
     struct UpdateInfo
     {
         QString version;
-        QString downloadUrl;
         QString changeLog;
-        QString fileName;
-        bool isUpdateAvailable;
-        bool incompatibleIdeVersion{false};
-        QString targetIdeVersion;
-        QString currentIdeVersion;
+        bool isUpdateAvailable = false;
     };
 
     explicit PluginUpdater(QObject *parent = nullptr);
     ~PluginUpdater() = default;
 
     void checkForUpdates();
-    void downloadUpdate(const QString &url);
     QString currentVersion() const;
     bool isUpdateAvailable() const;
 
 signals:
     void updateCheckFinished(const UpdateInfo &info);
-    void downloadProgress(qint64 bytesReceived, qint64 bytesTotal);
-    void downloadFinished(const QString &filePath);
-    void downloadError(const QString &error);
 
 private:
     void handleUpdateResponse(QNetworkReply *reply);
-    void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
-    void handleDownloadFinished();
     QString getUpdateUrl() const;
 
     QNetworkAccessManager *m_networkManager;
     UpdateInfo m_lastUpdateInfo;
-    bool m_isCheckingUpdate{false};
+    bool m_isCheckingUpdate = false;
 };
 
 } // namespace QodeAssist

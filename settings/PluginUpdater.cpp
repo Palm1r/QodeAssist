@@ -25,7 +25,6 @@
 #include <extensionsystem/pluginspec.h>
 #include <QJsonArray>
 #include <QJsonDocument>
-#include <QStandardPaths>
 
 namespace QodeAssist {
 
@@ -57,7 +56,7 @@ void PluginUpdater::handleUpdateResponse(QNetworkReply *reply)
     UpdateInfo info;
 
     if (reply->error() != QNetworkReply::NoError) {
-        emit downloadError(reply->errorString());
+        emit updateCheckFinished(info);
         return;
     }
 
@@ -68,59 +67,13 @@ void PluginUpdater::handleUpdateResponse(QNetworkReply *reply)
     if (info.version.startsWith('v'))
         info.version.remove(0, 1);
 
-    QString qtcVersionStr = Core::ICore::versionString().split(' ').last();
-    QVersionNumber qtcVersion = QVersionNumber::fromString(qtcVersionStr);
-    info.currentIdeVersion = qtcVersionStr;
-
-    auto assets = obj["assets"].toArray();
-    for (const auto &asset : assets) {
-        QString name = asset.toObject()["name"].toString();
-
-        if (name.startsWith("QodeAssist-")) {
-            QString assetVersionStr = name.section('-', 1, 1);
-            QVersionNumber assetVersion = QVersionNumber::fromString(assetVersionStr);
-            info.targetIdeVersion = assetVersionStr;
-
-            if (assetVersion != qtcVersion) {
-                continue;
-            }
-
-#if defined(Q_OS_WIN)
-            if (name.contains("Windows"))
-#elif defined(Q_OS_MACOS)
-            if (name.contains("macOS"))
-#else
-            if (name.contains("Linux") && !name.contains("experimental"))
-#endif
-            {
-                info.downloadUrl = asset.toObject()["browser_download_url"].toString();
-                info.fileName = name;
-                break;
-            }
-        }
-    }
-
-    if (info.downloadUrl.isEmpty()) {
-        info.incompatibleIdeVersion = true;
-        emit updateCheckFinished(info);
-        return;
-    }
-
     info.changeLog = obj["body"].toString();
+
     info.isUpdateAvailable = QVersionNumber::fromString(info.version)
                              > QVersionNumber::fromString(currentVersion());
 
     m_lastUpdateInfo = info;
     emit updateCheckFinished(info);
-}
-
-void PluginUpdater::downloadUpdate(const QString &url)
-{
-    QNetworkRequest request(url);
-    QNetworkReply *reply = m_networkManager->get(request);
-
-    connect(reply, &QNetworkReply::downloadProgress, this, &PluginUpdater::handleDownloadProgress);
-    connect(reply, &QNetworkReply::finished, this, &PluginUpdater::handleDownloadFinished);
 }
 
 QString PluginUpdater::currentVersion() const
@@ -141,48 +94,6 @@ bool PluginUpdater::isUpdateAvailable() const
 QString PluginUpdater::getUpdateUrl() const
 {
     return "https://api.github.com/repos/Palm1r/qodeassist/releases/latest";
-}
-
-void PluginUpdater::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal)
-{
-    emit downloadProgress(bytesReceived, bytesTotal);
-}
-
-void PluginUpdater::handleDownloadFinished()
-{
-    auto reply = qobject_cast<QNetworkReply *>(sender());
-    QTC_ASSERT(reply, return);
-
-    if (reply->error() != QNetworkReply::NoError) {
-        emit downloadError(reply->errorString());
-        reply->deleteLater();
-        return;
-    }
-
-    QString downloadPath = QStandardPaths::writableLocation(QStandardPaths::DownloadLocation)
-                           + QDir::separator() + "QodeAssist_v" + m_lastUpdateInfo.version;
-    QDir().mkpath(downloadPath);
-
-    QString filePath = downloadPath + QDir::separator() + m_lastUpdateInfo.fileName;
-
-    if (QFile::exists(filePath)) {
-        emit downloadError(tr("Update file already exists: %1").arg(filePath));
-        reply->deleteLater();
-        return;
-    }
-
-    QFile file(filePath);
-    if (!file.open(QIODevice::WriteOnly)) {
-        emit downloadError(tr("Could not save the update file"));
-        reply->deleteLater();
-        return;
-    }
-
-    file.write(reply->readAll());
-    file.close();
-
-    emit downloadFinished(filePath);
-    reply->deleteLater();
 }
 
 } // namespace QodeAssist
