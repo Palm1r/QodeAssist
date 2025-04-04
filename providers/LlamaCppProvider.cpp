@@ -167,6 +167,7 @@ QList<QString> LlamaCppProvider::validateRequest(
             {"model", {}},
             {"input_prefix", {}},
             {"input_suffix", {}},
+            {"input_extra", {}},
             {"prompt", {}},
             {"temperature", {}},
             {"top_p", {}},
