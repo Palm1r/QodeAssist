@@ -52,10 +52,10 @@ void UpdateStatusWidget::setDefaultAction(QAction *action)
 
 void UpdateStatusWidget::showUpdateAvailable(const QString &version)
 {
-    m_versionLabel->setText(tr("new version: v%1").arg(version));
+    m_versionLabel->setText(tr("New version: v%1").arg(version));
     m_versionLabel->setVisible(true);
     m_updateButton->setVisible(true);
-    m_updateButton->setToolTip(tr("Update QodeAssist to version %1").arg(version));
+    m_updateButton->setToolTip(tr("Check update information"));
 }
 
 void UpdateStatusWidget::hideUpdateInfo()

@@ -179,9 +179,7 @@ private:
 
     void handleUpdateCheckResult(const PluginUpdater::UpdateInfo &info)
     {
-        if (!info.isUpdateAvailable
-            || QVersionNumber::fromString(info.currentIdeVersion)
-                   > QVersionNumber::fromString(info.targetIdeVersion))
+        if (!info.isUpdateAvailable)
             return;
 
         if (m_statusWidget)
