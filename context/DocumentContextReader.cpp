@@ -145,9 +145,24 @@ CopyrightInfo DocumentContextReader::findCopyright()
         QRegularExpressionMatch match = matchIterator.next();
         QString matchedText = match.captured().toLower();
 
-        if (matchedText.contains("copyright") || matchedText.contains("(C)")
-            || matchedText.contains("(c)") || matchedText.contains("©")
-            || getYearRegex().match(text).hasMatch() || getNameRegex().match(text).hasMatch()) {
+        bool hasCopyrightIndicator = matchedText.contains("copyright")
+                                     || matchedText.contains("(c)") || matchedText.contains("©")
+                                     || matchedText.contains("copr.")
+                                     || matchedText.contains("all rights reserved")
+                                     || matchedText.contains("proprietary")
+                                     || matchedText.contains("licensed under")
+                                     || matchedText.contains("license:")
+                                     || matchedText.contains("gpl") || matchedText.contains("lgpl")
+                                     || matchedText.contains("mit license")
+                                     || matchedText.contains("apache license")
+                                     || matchedText.contains("bsd license")
+                                     || matchedText.contains("mozilla public license")
+                                     || matchedText.contains("copyleft");
+
+        bool hasYear = getYearRegex().match(matchedText).hasMatch();
+        bool hasName = getNameRegex().match(matchedText).hasMatch();
+
+        if ((hasCopyrightIndicator && (hasYear || hasName)) || (hasYear && hasName)) {
             int startPos = match.capturedStart();
             int endPos = match.capturedEnd();
 
