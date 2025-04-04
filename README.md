@@ -259,6 +259,7 @@ Linked files provide persistent context throughout the conversation:
 - To call manual request to suggestion, you can use or change it in settings
     - on Mac: Option + Command + Q
     - on Windows: Ctrl + Alt + Q
+    - on Linux with KDE Plasma: Ctrl + Alt + Q
 - To insert the full suggestion, you can use the TAB key
 - To insert word of suggistion, you can use Alt + Right Arrow for Win/Lin, or Option + Right Arrow for Mac
     
