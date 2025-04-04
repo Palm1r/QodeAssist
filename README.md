@@ -43,6 +43,7 @@
 ## Overview
 
 - AI-powered code completion
+  - Sharing IDE opened files with model context (disabled by default, need enable in settings)
 - Chat functionality:
   - Side and Bottom panels
   - Chat history autosave and restore
@@ -60,7 +61,6 @@
   - Google AI
   - OpenAI-compatible providers(eg. llama.cpp, https://openrouter.ai)
 - Extensive library of model-specific templates
-- Custom template support
 - Easy configuration and model selection
 
 Join our Discord Community: Have questions or want to discuss QodeAssist? Join our [Discord server](https://discord.gg/BGMkUsXUgf) to connect with other users and get support!
