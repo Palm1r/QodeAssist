@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2023 The Qt Company Ltd.
- * Copyright (C) 2024 Petr Mironychev
+ * Copyright (C) 2024-2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *

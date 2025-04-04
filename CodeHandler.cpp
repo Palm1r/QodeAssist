@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 Petr Mironychev
+ * Copyright (C) 2024-2025 Petr Mironychev
  * Copyright (C) 2025 Povilas Kanapickas  <povilas@radix.lt>
  *
  * This file is part of QodeAssist.
