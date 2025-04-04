@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <QJsonArray>
+
 #include "llmcore/PromptTemplate.hpp"
 
 namespace QodeAssist::Templates {
@@ -34,6 +36,17 @@ public:
     {
         request["input_prefix"] = context.prefix.value_or("");
         request["input_suffix"] = context.suffix.value_or("");
+
+        if (context.filesMetadata && !context.filesMetadata->isEmpty()) {
+            QJsonArray filesArray;
+            for (const auto &file : *context.filesMetadata) {
+                QJsonObject fileObj;
+                fileObj["filename"] = file.filePath;
+                fileObj["text"] = file.content;
+                filesArray.append(fileObj);
+            }
+            request["input_extra"] = filesArray;
+        }
     }
 
     QString description() const override

@@ -64,7 +64,6 @@ public:
 
 protected:
     void startImpl() override;
-    void parseCurrentMessage() override;
 
 private:
     void handleInitialize(const QJsonObject &request);

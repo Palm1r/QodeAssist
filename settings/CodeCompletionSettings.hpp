@@ -45,6 +45,7 @@ public:
     Utils::StringListAspect customLanguages{this};
 
     Utils::BoolAspect showProgressWidget{this};
+    Utils::BoolAspect useOpenFilesContext{this};
 
     // General Parameters Settings
     Utils::DoubleAspect temperature{this};

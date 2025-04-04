@@ -47,6 +47,8 @@ public:
 
     ProgrammingLanguage getDocumentLanguage(const DocumentInfo &documentInfo) const override;
     bool isSpecifyCompletion(const DocumentInfo &documentInfo) const override;
+    QList<QPair<QString, QString>> openedFiles(const QStringList excludeFiles = QStringList{}) const;
+    QString openedFilesContext(const QStringList excludeFiles = QStringList{});
 };
 
 } // namespace QodeAssist::Context

@@ -230,6 +230,19 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     if (updatedContext.fileContext.has_value())
         systemPrompt.append(updatedContext.fileContext.value());
 
+    if (m_completeSettings.useOpenFilesContext()) {
+        if (provider->providerID() == LLMCore::ProviderID::LlamaCpp) {
+            for (const auto openedFilePath : m_contextManager->openedFiles({filePath})) {
+                if (!updatedContext.filesMetadata) {
+                    updatedContext.filesMetadata = QList<LLMCore::FileMetadata>();
+                }
+                updatedContext.filesMetadata->append({openedFilePath.first, openedFilePath.second});
+            }
+        } else {
+            systemPrompt.append(m_contextManager->openedFilesContext({filePath}));
+        }
+    }
+
     updatedContext.systemPrompt = systemPrompt;
 
     if (promptTemplate->type() == LLMCore::TemplateType::Chat) {
@@ -329,7 +342,5 @@ void LLMClientInterface::sendCompletionToClient(
     m_performanceLogger.endTimeMeasurement(requestId);
     emit messageReceived(LanguageServerProtocol::JsonRpcMessage(response));
 }
-
-void LLMClientInterface::parseCurrentMessage() {}
 
 } // namespace QodeAssist
