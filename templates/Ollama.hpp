@@ -30,7 +30,7 @@ class OllamaFim : public LLMCore::PromptTemplate
 public:
     LLMCore::TemplateType type() const override { return LLMCore::TemplateType::FIM; }
     QString name() const override { return "Ollama FIM"; }
-    QStringList stopWords() const override { return QStringList(); }
+    QStringList stopWords() const override { return QStringList() << "<EOT>"; }
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
         request["prompt"] = context.prefix.value_or("");
