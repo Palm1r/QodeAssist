@@ -103,6 +103,8 @@ add_qtc_plugin(QodeAssist
     UpdateStatusWidget.hpp UpdateStatusWidget.cpp
     widgets/CompletionProgressHandler.hpp widgets/CompletionProgressHandler.cpp
     widgets/ProgressWidget.hpp widgets/ProgressWidget.cpp
+    widgets/EditorChatButton.hpp widgets/EditorChatButton.cpp
+    widgets/EditorChatButtonHandler.hpp widgets/EditorChatButtonHandler.cpp
 )
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)

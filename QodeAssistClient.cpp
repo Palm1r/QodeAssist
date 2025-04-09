@@ -128,6 +128,13 @@ void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
                 scheduleRequest(widget);
             }
         });
+
+    // auto editors = BaseTextEditor::textEditorsForDocument(document);
+    // connect(
+    //     editors.first()->editorWidget(),
+    //     &TextEditorWidget::selectionChanged,
+    //     this,
+    //     [this, editors]() { m_chatButtonHandler.showButton(editors.first()->editorWidget()); });
 }
 
 bool QodeAssistClient::canOpenProject(ProjectExplorer::Project *project)
