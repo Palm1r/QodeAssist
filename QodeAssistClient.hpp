@@ -26,6 +26,7 @@
 
 #include "LLMClientInterface.hpp"
 #include "LSPCompletion.hpp"
+#include "QuickRefactorHandler.hpp"
 #include "widgets/CompletionProgressHandler.hpp"
 #include "widgets/EditorChatButtonHandler.hpp"
 #include <languageclient/client.h>
@@ -44,6 +45,8 @@ public:
     bool canOpenProject(ProjectExplorer::Project *project) override;
 
     void requestCompletions(TextEditor::TextEditorWidget *editor);
+    void requestQuickRefactor(
+        TextEditor::TextEditorWidget *editor, const QString &instructions = QString());
 
 private:
     void scheduleRequest(TextEditor::TextEditorWidget *editor);
@@ -54,6 +57,7 @@ private:
 
     void setupConnections();
     void cleanupConnections();
+    void handleRefactoringResult(const RefactorResult &result);
 
     QHash<TextEditor::TextEditorWidget *, GetCompletionRequest> m_runningRequests;
     QHash<TextEditor::TextEditorWidget *, QTimer *> m_scheduledRequests;
@@ -64,6 +68,7 @@ private:
     int m_recentCharCount;
     CompletionProgressHandler m_progressHandler;
     EditorChatButtonHandler m_chatButtonHandler;
+    QuickRefactorHandler *m_refactorHandler{nullptr};
 };
 
 } // namespace QodeAssist
