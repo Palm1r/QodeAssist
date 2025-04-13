@@ -87,9 +87,17 @@ void QuickRefactorHandler::sendRefactorRequest(
         int endLine = endBlock.blockNumber() + 1;
         int endColumn = endPos - endBlock.position();
 
-        range = Utils::Text::Range(
-            Utils::Text::Position(startLine, startColumn),
-            Utils::Text::Position(endLine, endColumn));
+        Utils::Text::Position startPosition;
+        startPosition.line = startLine;
+        startPosition.column = startColumn;
+
+        Utils::Text::Position endPosition;
+        endPosition.line = endLine;
+        endPosition.column = endColumn;
+
+        range = Utils::Text::Range();
+        range.begin = startPosition;
+        range.end = endPosition;
     } else {
         QTextCursor cursor = editor->textCursor();
         int cursorPos = cursor.position();
@@ -98,8 +106,12 @@ void QuickRefactorHandler::sendRefactorRequest(
         int line = block.blockNumber() + 1;
         int column = cursorPos - block.position();
 
-        Utils::Text::Position cursorPosition(line, column);
-        range = Utils::Text::Range(cursorPosition, cursorPosition);
+        Utils::Text::Position cursorPosition;
+        cursorPosition.line = line;
+        cursorPosition.column = column;
+        range = Utils::Text::Range();
+        range.begin = cursorPosition;
+        range.end = cursorPosition;
     }
 
     m_currentRange = range;
