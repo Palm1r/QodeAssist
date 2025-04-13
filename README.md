@@ -35,6 +35,7 @@
 
 - AI-powered code completion
   - Sharing IDE opened files with model context (disabled by default, need enable in settings)
+  - Quick refactor code via fast chat command and opened files
 - Chat functionality:
   - Side and Bottom panels
   - Chat history autosave and restore
@@ -59,6 +60,11 @@ Join our Discord Community: Have questions or want to discuss QodeAssist? Join o
 <details>
   <summary>Code completion: (click to expand)</summary>
   <img src="https://github.com/user-attachments/assets/255a52f1-5cc0-4ca3-b05c-c4cf9cdbe25a" width="600" alt="QodeAssistPreview">
+</details>
+
+<details>
+  <summary>Quick refactor in code: (click to expand)</summary>
+  <img src="https://github.com/user-attachments/assets/4a3a6dab-13e2-46ba-bf75-09f9362f5a6e" width="600" alt="QodeAssistPreview">
 </details>
 
 <details>
