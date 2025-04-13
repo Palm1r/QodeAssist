@@ -24,8 +24,10 @@
 
 #include "QodeAssistClient.hpp"
 
+#include <QInputDialog>
 #include <QTimer>
 
+#include <coreplugin/icore.h>
 #include <languageclient/languageclientsettings.h>
 #include <projectexplorer/projectmanager.h>
 
@@ -35,6 +37,7 @@
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProjectSettings.hpp"
 #include <context/ChangesManager.h>
+#include <logger/Logger.hpp>
 
 using namespace LanguageServerProtocol;
 using namespace TextEditor;
@@ -170,6 +173,27 @@ void QodeAssistClient::requestCompletions(TextEditor::TextEditorWidget *editor)
     sendMessage(request);
 }
 
+void QodeAssistClient::requestQuickRefactor(
+    TextEditor::TextEditorWidget *editor, const QString &instructions)
+{
+    auto project = ProjectManager::projectForFile(editor->textDocument()->filePath());
+
+    if (!isEnabled(project))
+        return;
+
+    if (!m_refactorHandler) {
+        m_refactorHandler = new QuickRefactorHandler(this);
+        connect(
+            m_refactorHandler,
+            &QuickRefactorHandler::refactoringCompleted,
+            this,
+            &QodeAssistClient::handleRefactoringResult);
+    }
+
+    m_progressHandler.showProgress(editor);
+    m_refactorHandler->sendRefactorRequest(editor, instructions);
+}
+
 void QodeAssistClient::scheduleRequest(TextEditor::TextEditorWidget *editor)
 {
     cancelRunningRequest(editor);
@@ -301,4 +325,32 @@ void QodeAssistClient::cleanupConnections()
     m_scheduledRequests.clear();
 }
 
+void QodeAssistClient::handleRefactoringResult(const RefactorResult &result)
+{
+    m_progressHandler.hideProgress();
+    if (!result.success) {
+        LOG_MESSAGE(QString("Refactoring failed: %1").arg(result.errorMessage));
+        return;
+    }
+
+    auto editor = BaseTextEditor::currentTextEditor();
+    if (!editor) {
+        LOG_MESSAGE("Refactoring failed: No active editor found");
+        return;
+    }
+
+    auto editorWidget = editor->editorWidget();
+
+    QTextCursor cursor = editorWidget->textCursor();
+    cursor.beginEditBlock();
+
+    int startPos = result.insertRange.begin.toPositionInDocument(editorWidget->document());
+    int endPos = result.insertRange.end.toPositionInDocument(editorWidget->document());
+
+    cursor.setPosition(startPos);
+    cursor.setPosition(endPos, QTextCursor::KeepAnchor);
+
+    cursor.insertText(result.newText);
+    cursor.endEditBlock();
+}
 } // namespace QodeAssist

@@ -43,6 +43,7 @@
 
 #include "ConfigurationManager.hpp"
 #include "QodeAssistClient.hpp"
+#include "UpdateStatusWidget.hpp"
 #include "Version.hpp"
 #include "chat/ChatOutputPane.h"
 #include "chat/NavigationPanel.hpp"
@@ -50,13 +51,17 @@
 #include "llmcore/PromptProviderFim.hpp"
 #include "llmcore/ProvidersManager.hpp"
 #include "logger/RequestPerformanceLogger.hpp"
+#include "providers/Providers.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProjectSettingsPanel.hpp"
 #include "settings/SettingsConstants.hpp"
-
-#include "UpdateStatusWidget.hpp"
-#include "providers/Providers.hpp"
 #include "templates/Templates.hpp"
+#include <coreplugin/actionmanager/actioncontainer.h>
+#include <coreplugin/actionmanager/actionmanager.h>
+#include <texteditor/textdocument.h>
+#include <texteditor/texteditor.h>
+#include <texteditor/texteditorconstants.h>
+#include <QInputDialog>
 
 using namespace Utils;
 using namespace Core;
@@ -133,6 +138,41 @@ public:
 
         if (Settings::generalSettings().enableCheckUpdate()) {
             QTimer::singleShot(3000, this, &QodeAssistPlugin::checkForUpdates);
+        }
+
+        ActionBuilder quickRefactorAction(this, "QodeAssist.QuickRefactor");
+        const QKeySequence quickRefactorShortcut = QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_R);
+        quickRefactorAction.setDefaultKeySequence(quickRefactorShortcut);
+        quickRefactorAction.setToolTip(Tr::tr("Refactor code using QodeAssist"));
+        quickRefactorAction.setText(Tr::tr("Quick Refactor with QodeAssist"));
+        quickRefactorAction.setIcon(QCODEASSIST_ICON.icon());
+        quickRefactorAction.addOnTriggered(this, [this] {
+            if (auto editor = TextEditor::TextEditorWidget::currentTextEditorWidget()) {
+                bool ok;
+                if (m_qodeAssistClient && m_qodeAssistClient->reachable()) {
+                    QString instructions = QInputDialog::getText(
+                        Core::ICore::dialogParent(),
+                        Tr::tr("Quick Refactor"),
+                        Tr::tr("Enter refactoring instructions:"),
+                        QLineEdit::Normal,
+                        QString(),
+                        &ok);
+                    if (ok)
+                        m_qodeAssistClient->requestQuickRefactor(editor, instructions);
+                } else {
+                    qWarning() << "The QodeAssist is not ready. Please check your connection and "
+                                  "settings.";
+                }
+            }
+        });
+
+        Core::ActionContainer *editorContextMenu = Core::ActionManager::actionContainer(
+            TextEditor::Constants::M_STANDARDCONTEXTMENU);
+        if (editorContextMenu) {
+            editorContextMenu->addSeparator(Core::Context(TextEditor::Constants::C_TEXTEDITOR));
+            editorContextMenu
+                ->addAction(quickRefactorAction.command(), Core::Constants::G_DEFAULT_THREE);
+            editorContextMenu->addAction(requestAction.command(), Core::Constants::G_DEFAULT_THREE);
         }
     }
 
