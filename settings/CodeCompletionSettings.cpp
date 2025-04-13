@@ -218,6 +218,18 @@ CodeCompletionSettings::CodeCompletionSettings()
     maxChangesCacheSize.setRange(2, 1000);
     maxChangesCacheSize.setDefaultValue(10);
 
+    // Quick refactor command settings
+    useOpenFilesInQuickRefactor.setSettingsKey(Constants::CC_USE_OPEN_FILES_IN_QUICK_REFACTOR);
+    useOpenFilesInQuickRefactor.setLabelText(
+        Tr::tr("Include context from open files in quick refactor"));
+    useOpenFilesInQuickRefactor.setDefaultValue(false);
+    quickRefactorSystemPrompt.setSettingsKey(Constants::CC_QUICK_REFACTOR_SYSTEM_PROMPT);
+    quickRefactorSystemPrompt.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
+    quickRefactorSystemPrompt.setDefaultValue(
+        "You are an expert C++, Qt, and QML code completion assistant. Your task is to provide"
+        "precise and contextually appropriate code completions to insert depending on user "
+        "instructions.\n\n");
+
     // Ollama Settings
     ollamaLivetime.setSettingsKey(Constants::CC_OLLAMA_LIVETIME);
     ollamaLivetime.setToolTip(
@@ -303,6 +315,10 @@ CodeCompletionSettings::CodeCompletionSettings()
             Space{8},
             Group{title(Tr::tr("Context Settings")), contextItem},
             Space{8},
+            Group{
+                title(Tr::tr("Quick Refactor Settings")),
+                Column{useOpenFilesInQuickRefactor, quickRefactorSystemPrompt}},
+            Space{8},
             Group{title(Tr::tr("Ollama Settings")), Column{Row{ollamaGrid, Stretch{1}}}},
             Stretch{1}};
     });
@@ -371,6 +387,8 @@ void CodeCompletionSettings::resetSettingsToDefaults()
         resetAspect(customLanguages);
         resetAspect(showProgressWidget);
         resetAspect(useOpenFilesContext);
+        resetAspect(useOpenFilesInQuickRefactor);
+        resetAspect(quickRefactorSystemPrompt);
     }
 }
 

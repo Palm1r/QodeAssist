@@ -120,6 +120,10 @@ const char CC_MAX_CHANGES_CACHE_SIZE[] = "QodeAssist.ccMaxChangesCacheSize";
 const char CA_USE_SYSTEM_PROMPT[] = "QodeAssist.useChatSystemPrompt";
 const char CA_SYSTEM_PROMPT[] = "QodeAssist.chatSystemPrompt";
 
+// quick refactor command settings
+const char CC_QUICK_REFACTOR_SYSTEM_PROMPT[] = "QodeAssist.ccQuickRefactorSystemPrompt";
+const char CC_USE_OPEN_FILES_IN_QUICK_REFACTOR[] = "QodeAssist.ccUseOpenFilesInQuickRefactor";
+
 // preset prompt settings
 const char CC_TEMPERATURE[] = "QodeAssist.ccTemperature";
 const char CC_MAX_TOKENS[] = "QodeAssist.ccMaxTokens";

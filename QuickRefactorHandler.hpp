@@ -50,11 +50,9 @@ public:
     void sendRefactorRequest(TextEditor::TextEditorWidget *editor, const QString &instructions);
 
     void cancelRequest();
-    bool isRefactoringInProgress() const;
 
 signals:
     void refactoringCompleted(const QodeAssist::RefactorResult &result);
-    void refactoringProgress(const QString &partialResult);
 
 private:
     void prepareAndSendRequest(
@@ -63,7 +61,6 @@ private:
         const Utils::Text::Range &range);
 
     void handleLLMResponse(const QString &response, const QJsonObject &request, bool isComplete);
-    QString quickRefactorSystemPrompt() const;
     LLMCore::ContextData prepareContext(
         TextEditor::TextEditorWidget *editor,
         const Utils::Text::Range &range,

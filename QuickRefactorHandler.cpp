@@ -194,7 +194,7 @@ LLMCore::ContextData QuickRefactorHandler::prepareContext(
     QTextCursor cursor = editor->textCursor();
     int cursorPos = cursor.position();
 
-    // TODO add selecting content before and after cursor/selection and from others opened files too
+    // TODO add selecting content before and after cursor/selection
     QString fullContent = documentInfo.document->toPlainText();
     QString taggedContent = fullContent;
 
@@ -209,7 +209,7 @@ LLMCore::ContextData QuickRefactorHandler::prepareContext(
         taggedContent.insert(cursorPos, "<cursor>");
     }
 
-    QString systemPrompt = quickRefactorSystemPrompt();
+    QString systemPrompt = Settings::codeCompletionSettings().quickRefactorSystemPrompt();
     systemPrompt += "\n\nFile information:";
     systemPrompt += "\nLanguage: " + documentInfo.mimeType;
     systemPrompt += "\nFile path: " + documentInfo.filePath;
@@ -226,7 +226,7 @@ LLMCore::ContextData QuickRefactorHandler::prepareContext(
     systemPrompt += "\n- The output should be ready to insert directly into the editor";
     systemPrompt += "\n- Follow the existing code style and indentation patterns";
 
-    if (Settings::codeCompletionSettings().useOpenFilesContext()) {
+    if (Settings::codeCompletionSettings().useOpenFilesInQuickRefactor()) {
         systemPrompt += "\n\n" + m_contextManager.openedFilesContext({documentInfo.filePath});
     }
 
@@ -250,8 +250,6 @@ void QuickRefactorHandler::handleLLMResponse(
     }
 
     if (isComplete) {
-        m_isRefactoringInProgress = false;
-
         QString cleanedResponse = response.trimmed();
         if (cleanedResponse.startsWith("```")) {
             int firstNewLine = cleanedResponse.indexOf('\n');
@@ -276,8 +274,6 @@ void QuickRefactorHandler::handleLLMResponse(
         LOG_MESSAGE("----------- END REFACTORED CODE -----------");
 
         emit refactoringCompleted(result);
-    } else {
-        emit refactoringProgress(response);
     }
 }
 
@@ -292,17 +288,6 @@ void QuickRefactorHandler::cancelRequest()
         result.errorMessage = "Refactoring request was cancelled";
         emit refactoringCompleted(result);
     }
-}
-
-bool QuickRefactorHandler::isRefactoringInProgress() const
-{
-    return m_isRefactoringInProgress;
-}
-
-QString QuickRefactorHandler::quickRefactorSystemPrompt() const
-{
-    return QString("You are an expert code refactoring assistant specializing in C++, Qt, and QML "
-                   "development.");
 }
 
 } // namespace QodeAssist
