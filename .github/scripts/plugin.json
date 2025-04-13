@@ -6,14 +6,14 @@
         "llm",
         "ai"
     ],
-    "compatibility": "Qt 6.8.2",
+    "compatibility": "Qt 6.8.3",
     "platforms": [
         "Windows",
         "macOS",
         "Linux"
     ],
     "license": "GPLv3",
-    "version": "0.5.6",
+    "version": "0.5.7",
     "status": "draft",
     "is_pack": false,
     "released_at": null,
@@ -45,8 +45,13 @@
         },
         {
             "version": "0.5.6",
-            "is_latest": true,
+            "is_latest": false,
             "released_at": "2025-04-04T19:00:00Z"
+        },
+        {
+            "version": "0.5.7",
+            "is_latest": true,
+            "released_at": "2025-04-14T01:00:00Z"
         }
     ],
     "icon": "https://github.com/user-attachments/assets/dc336712-83cb-440d-8761-8d0a31de898d",
