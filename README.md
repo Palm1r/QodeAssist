@@ -236,7 +236,8 @@ Linked files provide persistent context throughout the conversation:
 
 ## QtCreator Version Compatibility
 
-- QtCreator 16.0.0 - 0.5.2 - 0.5.x
+- QtCreator 16.0.0 - 0.5.7 - 0.x.x
+- QtCreator 16.0.0 - 0.5.2 - 0.5.6
 - QtCreator 15.0.1 - 0.4.8 - 0.5.1
 - QtCreator 15.0.0 - 0.4.0 - 0.4.7 
 - QtCreator 14.0.2 - 0.2.3 - 0.3.x 
