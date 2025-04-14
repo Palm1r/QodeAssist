@@ -260,6 +260,10 @@ Linked files provide persistent context throughout the conversation:
     - on Linux with KDE Plasma: Ctrl + Alt + Q
 - To insert the full suggestion, you can use the TAB key
 - To insert word of suggistion, you can use Alt + Right Arrow for Win/Lin, or Option + Right Arrow for Mac
+- To call Quick Refactor dialog, select some code or place cursor and press
+    - on Mac: Option + Command + R
+    - on Windows: Ctrl + Alt + R
+    - on Linux with KDE Plasma: Ctrl + Alt + R
     
 ## Troubleshooting
 
