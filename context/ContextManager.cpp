@@ -27,6 +27,7 @@
 #include "settings/GeneralSettings.hpp"
 #include <coreplugin/editormanager/editormanager.h>
 #include <projectexplorer/project.h>
+#include <projectexplorer/projectmanager.h>
 #include <projectexplorer/projectnodes.h>
 #include <texteditor/textdocument.h>
 
@@ -36,6 +37,7 @@ namespace QodeAssist::Context {
 
 ContextManager::ContextManager(QObject *parent)
     : QObject(parent)
+    , m_ignoreManager(new IgnoreManager(this))
 {}
 
 QString ContextManager::readFile(const QString &filePath) const
@@ -52,6 +54,13 @@ QList<ContentFile> ContextManager::getContentFiles(const QStringList &filePaths)
 {
     QList<ContentFile> files;
     for (const QString &path : filePaths) {
+        auto project = ProjectExplorer::ProjectManager::projectForFile(
+            Utils::FilePath::fromString(path));
+        if (project && m_ignoreManager->shouldIgnore(path, project)) {
+            LOG_MESSAGE(QString("Ignoring file in context due to .qodeassistignore: %1").arg(path));
+            continue;
+        }
+
         ContentFile contentFile = createContentFile(path);
         files.append(contentFile);
     }
@@ -121,6 +130,14 @@ QList<QPair<QString, QString>> ContextManager::openedFiles(const QStringList exc
             continue;
 
         auto filePath = textDocument->filePath().toUrlishString();
+
+        auto project = ProjectExplorer::ProjectManager::projectForFile(textDocument->filePath());
+        if (project && m_ignoreManager->shouldIgnore(filePath, project)) {
+            LOG_MESSAGE(
+                QString("Ignoring file in context due to .qodeassistignore: %1").arg(filePath));
+            continue;
+        }
+
         if (!excludeFiles.contains(filePath)) {
             files.append({filePath, textDocument->plainText()});
         }
@@ -144,6 +161,13 @@ QString ContextManager::openedFilesContext(const QStringList excludeFiles)
         if (excludeFiles.contains(filePath))
             continue;
 
+        auto project = ProjectExplorer::ProjectManager::projectForFile(textDocument->filePath());
+        if (project && m_ignoreManager->shouldIgnore(filePath, project)) {
+            LOG_MESSAGE(
+                QString("Ignoring file in context due to .qodeassistignore: %1").arg(filePath));
+            continue;
+        }
+
         context += QString("File: %1\n").arg(filePath);
         context += textDocument->plainText();
 
@@ -151,6 +175,11 @@ QString ContextManager::openedFilesContext(const QStringList excludeFiles)
     }
 
     return context;
+}
+
+IgnoreManager *ContextManager::ignoreManager() const
+{
+    return m_ignoreManager;
 }
 
 } // namespace QodeAssist::Context

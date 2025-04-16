@@ -24,6 +24,7 @@
 
 #include "ContentFile.hpp"
 #include "IContextManager.hpp"
+#include "IgnoreManager.hpp"
 #include "ProgrammingLanguage.hpp"
 
 namespace ProjectExplorer {
@@ -49,6 +50,11 @@ public:
     bool isSpecifyCompletion(const DocumentInfo &documentInfo) const override;
     QList<QPair<QString, QString>> openedFiles(const QStringList excludeFiles = QStringList{}) const;
     QString openedFilesContext(const QStringList excludeFiles = QStringList{});
+
+    IgnoreManager *ignoreManager() const;
+
+private:
+    IgnoreManager *m_ignoreManager;
 };
 
 } // namespace QodeAssist::Context

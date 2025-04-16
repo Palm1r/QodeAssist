@@ -69,6 +69,7 @@ private:
     CompletionProgressHandler m_progressHandler;
     EditorChatButtonHandler m_chatButtonHandler;
     QuickRefactorHandler *m_refactorHandler{nullptr};
+    LLMClientInterface *m_llmClient;
 };
 
 } // namespace QodeAssist
