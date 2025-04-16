@@ -137,10 +137,18 @@ bool IgnoreManager::matchesIgnorePatterns(const QString &path, const QStringList
 
 QString IgnoreManager::ignoreFilePath(ProjectExplorer::Project *project) const
 {
-    if (!project)
+    if (!project) {
         return QString();
+    }
 
-    return project->projectDirectory().toUrlishString() + "/.qodeassist/qodeassistignore";
+    QString path = project->projectDirectory().toUrlishString() + "/.qodeassist/qodeassistignore";
+
+    QFileInfo fileInfo(path);
+    if (!fileInfo.exists() || !fileInfo.isFile()) {
+        LOG_MESSAGE(QString("File .qodeassistignore not found at path: %1").arg(path));
+    }
+
+    return path;
 }
 
 } // namespace QodeAssist::Context
