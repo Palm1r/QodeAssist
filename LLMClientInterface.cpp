@@ -289,6 +289,11 @@ LLMCore::ContextData LLMClientInterface::prepareContext(
     return reader.prepareContext(lineNumber, cursorPosition, m_completeSettings);
 }
 
+Context::ContextManager *LLMClientInterface::contextManager() const
+{
+    return m_contextManager;
+}
+
 void LLMClientInterface::sendCompletionToClient(
     const QString &completion, const QJsonObject &request, bool isComplete)
 {

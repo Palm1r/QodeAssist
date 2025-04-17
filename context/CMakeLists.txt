@@ -8,6 +8,7 @@ add_library(Context STATIC
     TokenUtils.hpp TokenUtils.cpp
     ProgrammingLanguage.hpp ProgrammingLanguage.cpp
     IContextManager.hpp
+    IgnoreManager.hpp IgnoreManager.cpp
 )
 
 target_link_libraries(Context

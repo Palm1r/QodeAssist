@@ -62,6 +62,8 @@ public:
     // exposed for tests
     void sendData(const QByteArray &data) override;
 
+    Context::ContextManager *contextManager() const;
+
 protected:
     void startImpl() override;
 

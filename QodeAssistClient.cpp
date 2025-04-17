@@ -49,6 +49,7 @@ namespace QodeAssist {
 
 QodeAssistClient::QodeAssistClient(LLMClientInterface *clientInterface)
     : LanguageClient::Client(clientInterface)
+    , m_llmClient(clientInterface)
     , m_recentCharCount(0)
 {
     setName("QodeAssist");
@@ -72,6 +73,14 @@ void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
     auto project = ProjectManager::projectForFile(document->filePath());
     if (!isEnabled(project))
         return;
+
+    if (m_llmClient->contextManager()
+            ->ignoreManager()
+            ->shouldIgnore(document->filePath().toUrlishString(), project)) {
+        LOG_MESSAGE(QString("Ignoring file due to .qodeassistignore: %1")
+                        .arg(document->filePath().toUrlishString()));
+        return;
+    }
 
     Client::openDocument(document);
     connect(
@@ -152,6 +161,14 @@ void QodeAssistClient::requestCompletions(TextEditor::TextEditorWidget *editor)
     if (!isEnabled(project))
         return;
 
+    if (m_llmClient->contextManager()
+            ->ignoreManager()
+            ->shouldIgnore(editor->textDocument()->filePath().toUrlishString(), project)) {
+        LOG_MESSAGE(QString("Ignoring file due to .qodeassistignore: %1")
+                        .arg(editor->textDocument()->filePath().toUrlishString()));
+        return;
+    }
+
     MultiTextCursor cursor = editor->multiTextCursor();
     if (cursor.hasMultipleCursors() || cursor.hasSelection() || editor->suggestionVisible())
         return;
@@ -180,6 +197,14 @@ void QodeAssistClient::requestQuickRefactor(
 
     if (!isEnabled(project))
         return;
+
+    if (m_llmClient->contextManager()
+            ->ignoreManager()
+            ->shouldIgnore(editor->textDocument()->filePath().toUrlishString(), project)) {
+        LOG_MESSAGE(QString("Ignoring file due to .qodeassistignore: %1")
+                        .arg(editor->textDocument()->filePath().toUrlishString()));
+        return;
+    }
 
     if (!m_refactorHandler) {
         m_refactorHandler = new QuickRefactorHandler(this);
