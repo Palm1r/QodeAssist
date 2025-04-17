@@ -352,7 +352,6 @@ void QodeAssistClient::cleanupConnections()
 
 void QodeAssistClient::handleRefactoringResult(const RefactorResult &result)
 {
-    m_progressHandler.hideProgress();
     if (!result.success) {
         LOG_MESSAGE(QString("Refactoring failed: %1").arg(result.errorMessage));
         return;
@@ -377,5 +376,6 @@ void QodeAssistClient::handleRefactoringResult(const RefactorResult &result)
 
     cursor.insertText(result.newText);
     cursor.endEditBlock();
+    m_progressHandler.hideProgress();
 }
 } // namespace QodeAssist

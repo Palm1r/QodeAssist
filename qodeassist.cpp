@@ -56,6 +56,7 @@
 #include "settings/ProjectSettingsPanel.hpp"
 #include "settings/SettingsConstants.hpp"
 #include "templates/Templates.hpp"
+#include "widgets/QuickRefactorDialog.hpp"
 #include <coreplugin/actionmanager/actioncontainer.h>
 #include <coreplugin/actionmanager/actionmanager.h>
 #include <texteditor/textdocument.h>
@@ -148,17 +149,17 @@ public:
         quickRefactorAction.setIcon(QCODEASSIST_ICON.icon());
         quickRefactorAction.addOnTriggered(this, [this] {
             if (auto editor = TextEditor::TextEditorWidget::currentTextEditorWidget()) {
-                bool ok;
                 if (m_qodeAssistClient && m_qodeAssistClient->reachable()) {
-                    QString instructions = QInputDialog::getText(
-                        Core::ICore::dialogParent(),
-                        Tr::tr("Quick Refactor"),
-                        Tr::tr("Enter refactoring instructions:"),
-                        QLineEdit::Normal,
-                        QString(),
-                        &ok);
-                    if (ok)
-                        m_qodeAssistClient->requestQuickRefactor(editor, instructions);
+                    QuickRefactorDialog
+                        dialog(Core::ICore::dialogParent(), m_lastRefactorInstructions);
+
+                    if (dialog.exec() == QDialog::Accepted) {
+                        QString instructions = dialog.instructions();
+                        if (!instructions.isEmpty()) {
+                            m_lastRefactorInstructions = instructions;
+                            m_qodeAssistClient->requestQuickRefactor(editor, instructions);
+                        }
+                    }
                 } else {
                     qWarning() << "The QodeAssist is not ready. Please check your connection and "
                                   "settings.";
@@ -235,6 +236,7 @@ private:
     QPointer<Chat::NavigationPanel> m_navigationPanel;
     QPointer<PluginUpdater> m_updater;
     UpdateStatusWidget *m_statusWidget{nullptr};
+    QString m_lastRefactorInstructions;
 };
 
 } // namespace QodeAssist::Internal
