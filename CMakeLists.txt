@@ -105,6 +105,7 @@ add_qtc_plugin(QodeAssist
     widgets/ProgressWidget.hpp widgets/ProgressWidget.cpp
     widgets/EditorChatButton.hpp widgets/EditorChatButton.cpp
     widgets/EditorChatButtonHandler.hpp widgets/EditorChatButtonHandler.cpp
+    widgets/QuickRefactorDialog.hpp widgets/QuickRefactorDialog.cpp
     QuickRefactorHandler.hpp QuickRefactorHandler.cpp
 )
 

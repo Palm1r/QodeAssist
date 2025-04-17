@@ -2,5 +2,11 @@
     <qresource prefix="/">
         <file>resources/images/qoderassist-icon@2x.png</file>
         <file>resources/images/qoderassist-icon.png</file>
+        <file>resources/images/repeat-last-instruct-icon@2x.png</file>
+        <file>resources/images/repeat-last-instruct-icon.png</file>
+        <file>resources/images/improve-current-code-icon@2x.png</file>
+        <file>resources/images/improve-current-code-icon.png</file>
+        <file>resources/images/suggest-new-icon.png</file>
+        <file>resources/images/suggest-new-icon@2x.png</file>
     </qresource>
 </RCC>
