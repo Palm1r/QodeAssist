@@ -73,6 +73,8 @@ public:
     QString currentModel() const;
     QString lastMessageId() const;
 
+    Q_INVOKABLE void resetModelTo(int index);
+
 signals:
     void tokensThresholdChanged();
     void modelReseted();
