@@ -28,11 +28,18 @@ Rectangle {
     property alias msgModel: msgCreator.model
     property alias messageAttachments: attachmentsModel.model
     property bool isUserMessage: false
+    property int messageIndex: -1
+
+    signal resetChatToMessage(int index)
 
     height: msgColumn.implicitHeight + 10
     radius: 8
     color: isUserMessage ? palette.alternateBase
                          : palette.base
+
+    HoverHandler {
+        id: mouse
+    }
 
     ColumnLayout {
         id: msgColumn
@@ -126,6 +133,22 @@ Rectangle {
         color: "#92BD6C"
         radius: root.radius
         visible: root.isUserMessage
+    }
+
+    QoAButton {
+        id: stopButtonId
+
+        anchors {
+            right: parent.right
+            bottom: parent.bottom
+            bottomMargin: 2
+        }
+
+        text: qsTr("ResetTo")
+        visible: root.isUserMessage && mouse.hovered
+        onClicked: function() {
+            root.resetChatToMessage(root.messageIndex)
+        }
     }
 
     component TextComponent : TextBlock {

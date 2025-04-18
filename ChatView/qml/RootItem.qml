@@ -92,11 +92,19 @@ ChatRootView {
 
             delegate: ChatItem {
                 required property var model
+                required property int index
 
                 width: ListView.view.width - scroll.width
                 msgModel: root.chatModel.processMessageContent(model.content)
                 messageAttachments: model.attachments
                 isUserMessage: model.roleType === ChatModel.User
+                messageIndex: index
+
+                onResetChatToMessage: function(index) {
+                    messageInput.text = model.content
+                    messageInput.cursorPosition = model.content.length
+                    root.chatModel.resetModelTo(index)
+                }
             }
 
             header: Item {

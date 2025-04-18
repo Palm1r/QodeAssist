@@ -197,4 +197,16 @@ QString ChatModel::lastMessageId() const
     return !m_messages.isEmpty() ? m_messages.last().id : "";
 }
 
+void ChatModel::resetModelTo(int index)
+{
+    if (index < 0 || index >= m_messages.size())
+        return;
+
+    if (index < m_messages.size() - 1) {
+        beginRemoveRows(QModelIndex(), index, m_messages.size() - 1);
+        m_messages.remove(index, m_messages.size() - index);
+        endRemoveRows();
+    }
+}
+
 } // namespace QodeAssist::Chat
