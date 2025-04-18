@@ -19,9 +19,9 @@
 
 #pragma once
 
-#include <QFileSystemWatcher>
-#include <QMap>
+#include <QHash>
 #include <QObject>
+#include <QPointer>
 #include <QStringList>
 
 namespace ProjectExplorer {
@@ -41,14 +41,22 @@ public:
     bool shouldIgnore(const QString &filePath, ProjectExplorer::Project *project = nullptr) const;
     void reloadIgnorePatterns(ProjectExplorer::Project *project);
 
+    // Публичный метод для перезагрузки всех шаблонов
+    void reloadAllPatterns();
+
+private slots:
+    void cleanupConnections();
+
 private:
-    QStringList loadIgnorePatterns(ProjectExplorer::Project *project);
     bool matchesIgnorePatterns(const QString &path, const QStringList &patterns) const;
+    bool isPathExcluded(const QString &path, const QStringList &patterns) const;
+    bool matchPathWithPattern(const QString &path, const QString &pattern) const;
+    QStringList loadIgnorePatterns(ProjectExplorer::Project *project);
     QString ignoreFilePath(ProjectExplorer::Project *project) const;
 
-    mutable QMap<ProjectExplorer::Project *, QStringList> m_projectIgnorePatterns;
-    QFileSystemWatcher m_fileWatcher;
-    QMap<ProjectExplorer::Project *, QMetaObject::Connection> m_projectConnections;
+    QHash<ProjectExplorer::Project *, QStringList> m_projectIgnorePatterns;
+    mutable QHash<QString, bool> m_ignoreCache; // Кэш результатов для повышения производительности
+    QHash<ProjectExplorer::Project *, QMetaObject::Connection> m_projectConnections;
 };
 
 } // namespace QodeAssist::Context
