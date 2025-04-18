@@ -43,6 +43,12 @@ IgnoreManager::IgnoreManager(QObject *parent)
             this,
             &IgnoreManager::reloadIgnorePatterns);
 
+        connect(
+            projectManager,
+            &ProjectExplorer::ProjectManager::projectRemoved,
+            this,
+            &IgnoreManager::removeIgnorePatterns);
+
         const QList<ProjectExplorer::Project *> projects = projectManager->projects();
         for (ProjectExplorer::Project *project : projects) {
             if (project) {
@@ -170,8 +176,8 @@ QStringList IgnoreManager::loadIgnorePatterns(ProjectExplorer::Project *project)
 
     QString ignoreFile = ignoreFilePath(project);
     if (ignoreFile.isEmpty() || !QFile::exists(ignoreFile)) {
-        LOG_MESSAGE(
-            QString("No .qodeassistignore file found for project: %1").arg(project->displayName()));
+        // LOG_MESSAGE(
+        //     QString("No .qodeassistignore file found for project: %1").arg(project->displayName()));
         return patterns;
     }
 
@@ -233,6 +239,27 @@ void IgnoreManager::reloadIgnorePatterns(ProjectExplorer::Project *project)
 
         m_projectConnections[project] = connection;
     }
+}
+
+void IgnoreManager::removeIgnorePatterns(ProjectExplorer::Project *project)
+{
+    m_projectIgnorePatterns.remove(project);
+
+    QStringList keysToRemove;
+    for (auto it = m_ignoreCache.begin(); it != m_ignoreCache.end(); ++it) {
+        if (it.key().contains(project->projectDirectory().toUrlishString()))
+            keysToRemove << it.key();
+    }
+
+    for (const QString &key : keysToRemove)
+        m_ignoreCache.remove(key);
+
+    if (m_projectConnections.contains(project)) {
+        disconnect(m_projectConnections[project]);
+        m_projectConnections.remove(project);
+    }
+
+    LOG_MESSAGE(QString("Removed ignore patterns for project: %1").arg(project->displayName()));
 }
 
 void IgnoreManager::reloadAllPatterns()

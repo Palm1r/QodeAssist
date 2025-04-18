@@ -40,8 +40,8 @@ public:
 
     bool shouldIgnore(const QString &filePath, ProjectExplorer::Project *project = nullptr) const;
     void reloadIgnorePatterns(ProjectExplorer::Project *project);
+    void removeIgnorePatterns(ProjectExplorer::Project *project);
 
-    // Публичный метод для перезагрузки всех шаблонов
     void reloadAllPatterns();
 
 private slots:
@@ -55,7 +55,7 @@ private:
     QString ignoreFilePath(ProjectExplorer::Project *project) const;
 
     QHash<ProjectExplorer::Project *, QStringList> m_projectIgnorePatterns;
-    mutable QHash<QString, bool> m_ignoreCache; // Кэш результатов для повышения производительности
+    mutable QHash<QString, bool> m_ignoreCache;
     QHash<ProjectExplorer::Project *, QMetaObject::Connection> m_projectConnections;
 };
 
