@@ -64,7 +64,7 @@ Join our Discord Community: Have questions or want to discuss QodeAssist? Join o
 
 <details>
   <summary>Quick refactor in code: (click to expand)</summary>
-  <img src="https://github.com/user-attachments/assets/4a3a6dab-13e2-46ba-bf75-09f9362f5a6e" width="600" alt="QodeAssistPreview">
+  <img src="https://github.com/user-attachments/assets/4a9092e0-429f-41eb-8723-cbb202fd0a8c" width="600" alt="QodeAssistPreview">
 </details>
 
 <details>
