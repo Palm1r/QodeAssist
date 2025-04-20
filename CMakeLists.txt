@@ -92,6 +92,7 @@ add_qtc_plugin(QodeAssist
     providers/OpenRouterAIProvider.hpp providers/OpenRouterAIProvider.cpp
     providers/GoogleAIProvider.hpp providers/GoogleAIProvider.cpp
     providers/LlamaCppProvider.hpp providers/LlamaCppProvider.cpp
+    providers/CodestralProvider.hpp providers/CodestralProvider.cpp
     QodeAssist.qrc
     LSPCompletion.hpp
     LLMSuggestion.hpp LLMSuggestion.cpp
