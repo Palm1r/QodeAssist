@@ -87,6 +87,14 @@ ProviderSettings::ProviderSettings()
     mistralAiApiKey.setDefaultValue("");
     mistralAiApiKey.setAutoApply(true);
 
+    codestralApiKey.setSettingsKey(Constants::CODESTRAL_API_KEY);
+    codestralApiKey.setLabelText(Tr::tr("Codestral API Key:"));
+    codestralApiKey.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    codestralApiKey.setPlaceHolderText(Tr::tr("Enter your API key here"));
+    codestralApiKey.setHistoryCompleter(Constants::CODESTRAL_API_KEY_HISTORY);
+    codestralApiKey.setDefaultValue("");
+    codestralApiKey.setAutoApply(true);
+
     // GoogleAI Settings
     googleAiApiKey.setSettingsKey(Constants::GOOGLE_AI_API_KEY);
     googleAiApiKey.setLabelText(Tr::tr("Google AI API Key:"));
@@ -125,7 +133,7 @@ ProviderSettings::ProviderSettings()
             Space{8},
             Group{title(Tr::tr("Claude Settings")), Column{claudeApiKey}},
             Space{8},
-            Group{title(Tr::tr("Mistral AI Settings")), Column{mistralAiApiKey}},
+            Group{title(Tr::tr("Mistral AI Settings")), Column{mistralAiApiKey, codestralApiKey}},
             Space{8},
             Group{title(Tr::tr("Google AI Settings")), Column{googleAiApiKey}},
             Space{8},

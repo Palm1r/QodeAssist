@@ -38,6 +38,7 @@ public:
     Utils::StringAspect claudeApiKey{this};
     Utils::StringAspect openAiApiKey{this};
     Utils::StringAspect mistralAiApiKey{this};
+    Utils::StringAspect codestralApiKey{this};
     Utils::StringAspect googleAiApiKey{this};
     Utils::StringAspect ollamaBasicAuthApiKey{this};
 
