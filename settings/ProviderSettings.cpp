@@ -157,6 +157,9 @@ void ProviderSettings::setupConnections()
     connect(&mistralAiApiKey, &ButtonAspect::changed, this, [this]() {
         mistralAiApiKey.writeSettings();
     });
+    connect(&codestralApiKey, &ButtonAspect::changed, this, [this]() {
+        codestralApiKey.writeSettings();
+    });
     connect(&googleAiApiKey, &ButtonAspect::changed, this, [this]() {
         googleAiApiKey.writeSettings();
     });
