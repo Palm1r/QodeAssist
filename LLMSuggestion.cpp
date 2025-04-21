@@ -38,8 +38,8 @@ LLMSuggestion::LLMSuggestion(
     int startPos = data.range.begin.toPositionInDocument(sourceDocument);
     int endPos = data.range.end.toPositionInDocument(sourceDocument);
 
-    startPos = qBound(0, startPos, sourceDocument->characterCount() - 1);
-    endPos = qBound(startPos, endPos, sourceDocument->characterCount() - 1);
+    startPos = qBound(0, startPos, sourceDocument->characterCount());
+    endPos = qBound(startPos, endPos, sourceDocument->characterCount());
 
     QTextCursor cursor(sourceDocument);
     cursor.setPosition(startPos);
