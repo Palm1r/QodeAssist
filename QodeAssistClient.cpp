@@ -74,14 +74,6 @@ void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
     if (!isEnabled(project))
         return;
 
-    if (m_llmClient->contextManager()
-            ->ignoreManager()
-            ->shouldIgnore(document->filePath().toUrlishString(), project)) {
-        LOG_MESSAGE(QString("Ignoring file due to .qodeassistignore: %1")
-                        .arg(document->filePath().toUrlishString()));
-        return;
-    }
-
     Client::openDocument(document);
     connect(
         document,
