@@ -27,6 +27,7 @@
 11. [QtCreator Version Compatibility](#qtcreator-version-compatibility)
 12. [Development Progress](#development-progress)
 13. [Hotkeys](#hotkeys)
+14. [Ignoring Files](#ignoring-files)
 14. [Troubleshooting](#troubleshooting)
 15. [Support the Development](#support-the-development-of-qodeassist)
 16. [How to Build](#how-to-build)
@@ -264,6 +265,42 @@ Linked files provide persistent context throughout the conversation:
     - on Mac: Option + Command + R
     - on Windows: Ctrl + Alt + R
     - on Linux with KDE Plasma: Ctrl + Alt + R
+
+## Ignoring Files
+QodeAssist supports the ability to ignore files in context using a .qodeassistignore file. This allows you to exclude specific files from the context during code completion and in the chat assistant, which is especially useful for large projects.
+
+### How to Use .qodeassistignore
+- Create a .qodeassistignore file in the root directory of your project near CMakeLists.txt or pro.
+- Add patterns for files and directories that should be excluded from the context.
+- QodeAssist will automatically detect this file and apply the exclusion rules.
+
+### .qodeassistignore File Format
+The file format is similar to .gitignore:
+- Each pattern is written on a separate line
+- Empty lines are ignored
+- Lines starting with # are considered comments
+- Standard wildcards work the same as in .gitignore
+- To negate a pattern, use ! at the beginning of the line
+```
+# Ignore all files in the build directory
+build/
+
+# Ignore all temporary files
+*.tmp
+*.temp
+
+# Ignore all files with .log extension
+*.log
+
+# Ignore a specific file
+src/generated/autogen.cpp
+
+# Ignore nested directories
+**/node_modules/
+
+# Negation - DO NOT ignore this file
+!src/important.cpp
+```
     
 ## Troubleshooting
 
