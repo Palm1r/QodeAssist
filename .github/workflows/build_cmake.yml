@@ -223,7 +223,7 @@ jobs:
           COMMAND python
             -u
             "${{ steps.qt_creator.outputs.qtc_dir }}/${build_plugin_py}"
-            --name "$ENV{PLUGIN_NAME}-$ENV{QT_CREATOR_VERSION}-${{ matrix.config.artifact }}"
+            --name "$ENV{PLUGIN_NAME}-v${{ steps.git.outputs.tag }}-QtC$ENV{QT_CREATOR_VERSION}-${{ matrix.config.artifact }}"
             --src .
             --build build
             --qt-path "${{ steps.qt.outputs.qt_dir }}"
@@ -241,8 +241,8 @@ jobs:
     - name: Upload
       uses: actions/upload-artifact@v4
       with:
-        path: ./${{ env.PLUGIN_NAME }}-${{ env.QT_CREATOR_VERSION }}-${{ matrix.config.artifact }}.7z
-        name: ${{ env.PLUGIN_NAME}}-${{ env.QT_CREATOR_VERSION }}-${{ matrix.config.artifact }}.7z
+        path: ./${{ env.PLUGIN_NAME }}-v${{ steps.git.outputs.tag }}-QtC${{ env.QT_CREATOR_VERSION }}-${{ matrix.config.artifact }}.7z
+        name: ${{ env.PLUGIN_NAME}}-v${{ steps.git.outputs.tag }}-QtC${{ env.QT_CREATOR_VERSION }}-${{ matrix.config.artifact }}.7z
 
     # The json is the same for all platforms, but we need to save one
     - name: Upload plugin json
