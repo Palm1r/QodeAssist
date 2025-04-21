@@ -510,7 +510,7 @@ void ChatRootView::onAppendLinkFileFromEditor(Core::IEditor *editor)
 {
     if (auto document = editor->document(); document && isSyncOpenFiles()) {
         QString filePath = document->filePath().toFSPathString();
-        if (!m_linkedFiles.contains(filePath)) {
+        if (!m_linkedFiles.contains(filePath) && !shouldIgnoreFileForAttach(document->filePath())) {
             m_linkedFiles.append(filePath);
             emit linkedFilesChanged();
         }
@@ -535,6 +535,21 @@ void ChatRootView::setRecentFilePath(const QString &filePath)
         m_recentFilePath = filePath;
         emit chatFileNameChanged();
     }
+}
+
+bool ChatRootView::shouldIgnoreFileForAttach(const Utils::FilePath &filePath)
+{
+    auto project = ProjectExplorer::ProjectManager::projectForFile(filePath);
+    if (project
+        && m_clientInterface->contextManager()
+               ->ignoreManager()
+               ->shouldIgnore(filePath.toFSPathString(), project)) {
+        LOG_MESSAGE(QString("Ignoring file for attachment due to .qodeassistignore: %1")
+                        .arg(filePath.toFSPathString()));
+        return true;
+    }
+
+    return false;
 }
 
 } // namespace QodeAssist::Chat

@@ -78,6 +78,7 @@ public:
 
     QString chatFileName() const;
     void setRecentFilePath(const QString &filePath);
+    bool shouldIgnoreFileForAttach(const Utils::FilePath &filePath);
 
 public slots:
     void sendMessage(const QString &message);

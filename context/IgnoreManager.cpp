@@ -39,22 +39,9 @@ IgnoreManager::IgnoreManager(QObject *parent)
     if (projectManager) {
         connect(
             projectManager,
-            &ProjectExplorer::ProjectManager::projectAdded,
-            this,
-            &IgnoreManager::reloadIgnorePatterns);
-
-        connect(
-            projectManager,
             &ProjectExplorer::ProjectManager::projectRemoved,
             this,
             &IgnoreManager::removeIgnorePatterns);
-
-        const QList<ProjectExplorer::Project *> projects = projectManager->projects();
-        for (ProjectExplorer::Project *project : projects) {
-            if (project) {
-                reloadIgnorePatterns(project);
-            }
-        }
     }
 
     connect(
