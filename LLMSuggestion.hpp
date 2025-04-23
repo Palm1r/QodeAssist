@@ -40,5 +40,6 @@ public:
     bool applyWord(TextEditor::TextEditorWidget *widget) override;
     bool applyLine(TextEditor::TextEditorWidget *widget) override;
     bool applyPart(Part part, TextEditor::TextEditorWidget *widget);
+    bool apply() override;
 };
 } // namespace QodeAssist

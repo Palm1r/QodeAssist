@@ -29,6 +29,36 @@
 
 namespace QodeAssist {
 
+QString mergeWithRightText(const QString &suggestion, const QString &rightText)
+{
+    if (suggestion.isEmpty() || rightText.isEmpty()) {
+        return suggestion;
+    }
+
+    int j = 0;
+    QString processed = rightText;
+    QSet<int> matchedPositions;
+
+    for (int i = 0; i < suggestion.length() && j < processed.length(); ++i) {
+        if (suggestion[i] == processed[j]) {
+            matchedPositions.insert(j);
+            ++j;
+        }
+    }
+
+    if (matchedPositions.isEmpty()) {
+        return suggestion + rightText;
+    }
+
+    QList<int> positions = matchedPositions.values();
+    std::sort(positions.begin(), positions.end(), std::greater<int>());
+    for (int pos : positions) {
+        processed.remove(pos, 1);
+    }
+
+    return suggestion;
+}
+
 LLMSuggestion::LLMSuggestion(
     const QList<Data> &suggestions, QTextDocument *sourceDocument, int currentCompletion)
     : TextEditor::CyclicSuggestion(suggestions, sourceDocument, currentCompletion)
@@ -43,16 +73,23 @@ LLMSuggestion::LLMSuggestion(
 
     QTextCursor cursor(sourceDocument);
     cursor.setPosition(startPos);
-    cursor.setPosition(endPos, QTextCursor::KeepAnchor);
-
     QTextBlock block = cursor.block();
     QString blockText = block.text();
 
-    int startPosInBlock = startPos - block.position();
-    int endPosInBlock = endPos - block.position();
+    int cursorPositionInBlock = cursor.positionInBlock();
 
-    blockText.replace(startPosInBlock, endPosInBlock - startPosInBlock, data.text);
-    replacementDocument()->setPlainText(blockText);
+    QString rightText = blockText.mid(cursorPositionInBlock);
+
+    if (!data.text.contains('\n')) {
+        QString processedRightText = mergeWithRightText(data.text, rightText);
+        processedRightText = processedRightText.mid(data.text.length());
+        QString displayText = blockText.left(cursorPositionInBlock) + data.text
+                              + processedRightText;
+        replacementDocument()->setPlainText(displayText);
+    } else {
+        QString displayText = blockText.left(cursorPositionInBlock) + data.text;
+        replacementDocument()->setPlainText(displayText);
+    }
 }
 
 bool LLMSuggestion::applyWord(TextEditor::TextEditorWidget *widget)
@@ -77,31 +114,82 @@ bool LLMSuggestion::applyPart(Part part, TextEditor::TextEditorWidget *widget)
 
     int next = part == Word ? Utils::endOfNextWord(text, startPos) : text.indexOf('\n', startPos);
 
-    if (next == -1)
-        return apply();
+    if (next == -1) {
+        if (part == Line) {
+            next = text.length();
+        } else {
+            return apply();
+        }
+    }
 
     if (part == Line)
         ++next;
 
     QString subText = text.mid(startPos, next - startPos);
-    if (subText.isEmpty())
+
+    if (subText.isEmpty()) {
         return false;
+    }
 
-    currentCursor.insertText(subText);
+    QTextBlock currentBlock = currentCursor.block();
+    QString textAfterCursor = currentBlock.text().mid(currentCursor.positionInBlock());
 
-    if (const int seperatorPos = subText.lastIndexOf('\n'); seperatorPos >= 0) {
-        const QString newCompletionText = text.mid(startPos + seperatorPos + 1);
-        if (!newCompletionText.isEmpty()) {
-            const Utils::Text::Position newStart{int(range.begin.line + subText.count('\n')), 0};
-            const Utils::Text::Position
-                newEnd{newStart.line, int(subText.length() - seperatorPos - 1)};
-            const Utils::Text::Range newRange{newStart, newEnd};
-            const QList<Data> newSuggestion{{newRange, newEnd, newCompletionText}};
-            widget->insertSuggestion(
-                std::make_unique<LLMSuggestion>(newSuggestion, widget->document(), 0));
+    if (!subText.contains('\n')) {
+        QTextCursor deleteCursor = currentCursor;
+        deleteCursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+        deleteCursor.removeSelectedText();
+
+        QString mergedText = mergeWithRightText(subText, textAfterCursor);
+        currentCursor.insertText(mergedText);
+    } else {
+        currentCursor.insertText(subText);
+
+        if (const int seperatorPos = subText.lastIndexOf('\n'); seperatorPos >= 0) {
+            const QString newCompletionText = text.mid(startPos + seperatorPos + 1);
+            if (!newCompletionText.isEmpty()) {
+                const Utils::Text::Position newStart{int(range.begin.line + subText.count('\n')), 0};
+                const Utils::Text::Position newEnd{newStart.line, int(newCompletionText.length())};
+                const Utils::Text::Range newRange{newStart, newEnd};
+                const QList<Data> newSuggestion{{newRange, newEnd, newCompletionText}};
+                widget->insertSuggestion(
+                    std::make_unique<LLMSuggestion>(newSuggestion, widget->document(), 0));
+            }
         }
     }
+
     return false;
+}
+
+bool LLMSuggestion::apply()
+{
+    const Utils::Text::Range range = suggestions()[currentSuggestion()].range;
+    const QTextCursor cursor = range.begin.toTextCursor(sourceDocument());
+    const QString text = suggestions()[currentSuggestion()].text;
+
+    QTextBlock currentBlock = cursor.block();
+    QString textAfterCursor = currentBlock.text().mid(cursor.positionInBlock());
+
+    QTextCursor editCursor = cursor;
+
+    int firstLineEnd = text.indexOf('\n');
+    if (firstLineEnd != -1) {
+        QString firstLine = text.left(firstLineEnd);
+        QString restOfText = text.mid(firstLineEnd);
+
+        editCursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+        editCursor.removeSelectedText();
+
+        QString mergedFirstLine = mergeWithRightText(firstLine, textAfterCursor);
+        editCursor.insertText(mergedFirstLine + restOfText);
+    } else {
+        editCursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+        editCursor.removeSelectedText();
+
+        QString mergedText = mergeWithRightText(text, textAfterCursor);
+        editCursor.insertText(mergedText);
+    }
+
+    return true;
 }
 
 } // namespace QodeAssist
