@@ -140,8 +140,7 @@ Rectangle {
 
         anchors {
             right: parent.right
-            bottom: parent.bottom
-            bottomMargin: 2
+            top: parent.top
         }
 
         text: qsTr("ResetTo")
