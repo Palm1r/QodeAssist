@@ -124,6 +124,7 @@ QList<MessagePart> ChatModel::processMessageContent(const QString &content) cons
     QRegularExpression codeBlockRegex("```(\\w*)\\n?([\\s\\S]*?)```");
     int lastIndex = 0;
     auto blockMatches = codeBlockRegex.globalMatch(content);
+    bool foundCodeBlock = blockMatches.hasNext();
 
     while (blockMatches.hasNext()) {
         auto match = blockMatches.next();
@@ -140,7 +141,19 @@ QList<MessagePart> ChatModel::processMessageContent(const QString &content) cons
 
     if (lastIndex < content.length()) {
         QString remainingText = content.mid(lastIndex).trimmed();
-        if (!remainingText.isEmpty()) {
+
+        QRegularExpression unclosedBlockRegex("```(\\w*)\\n?([\\s\\S]*)$");
+        auto unclosedMatch = unclosedBlockRegex.match(remainingText);
+
+        if (unclosedMatch.hasMatch()) {
+            QString beforeCodeBlock = remainingText.left(unclosedMatch.capturedStart()).trimmed();
+            if (!beforeCodeBlock.isEmpty()) {
+                parts.append({MessagePart::Text, beforeCodeBlock, ""});
+            }
+
+            parts.append(
+                {MessagePart::Code, unclosedMatch.captured(2).trimmed(), unclosedMatch.captured(1)});
+        } else if (!remainingText.isEmpty()) {
             parts.append({MessagePart::Text, remainingText, ""});
         }
     }
