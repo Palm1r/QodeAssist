@@ -47,8 +47,8 @@ ChatAssistantSettings::ChatAssistantSettings()
     chatTokensThreshold.setLabelText(Tr::tr("Chat history token limit:"));
     chatTokensThreshold.setToolTip(Tr::tr("Maximum number of tokens in chat history. When "
                                           "exceeded, oldest messages will be removed."));
-    chatTokensThreshold.setRange(1, std::numeric_limits<qint64>::max());
-    chatTokensThreshold.setDefaultValue(8000);
+    chatTokensThreshold.setRange(1, 99999999);
+    chatTokensThreshold.setDefaultValue(20000);
 
     linkOpenFiles.setSettingsKey(Constants::CA_LINK_OPEN_FILES);
     linkOpenFiles.setLabelText(Tr::tr("Sync open files with assistant by default"));
