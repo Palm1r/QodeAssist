@@ -17,6 +17,7 @@ qt_add_qml_module(QodeAssistChatView
     qml/parts/TopBar.qml
     qml/parts/BottomBar.qml
     qml/parts/AttachedFilesPlace.qml
+    qml/parts/ChatPreviewBar.qml
     RESOURCES
     icons/attach-file-light.svg
     icons/attach-file-dark.svg

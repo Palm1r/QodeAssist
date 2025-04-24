@@ -76,6 +76,10 @@ ChatRootView {
                 text: qsTr("Latest chat file name: %1").arg(root.chatFileName.length > 0 ? root.chatFileName : "Unsaved")
             }
             openChatHistory.onClicked: root.openChatHistoryFolder()
+            expandScrollbar {
+                text: scroll.isPreviewMode ? "»" : "«"
+                onClicked: scroll.isPreviewMode = !scroll.isPreviewMode
+            }
         }
 
         ListView {
@@ -114,6 +118,50 @@ ChatRootView {
 
             ScrollBar.vertical: QQC.ScrollBar {
                 id: scroll
+
+                property bool isPreviewMode: false
+                readonly property int previewWidth: 30
+
+                implicitWidth: isPreviewMode ? scroll.previewWidth : 16
+
+                contentItem: Rectangle {
+                    implicitWidth: scroll.isPreviewMode ? scroll.previewWidth : 6
+                    implicitHeight: 100
+                    radius: 3
+                    color: scroll.pressed ? palette.dark :
+                                            scroll.hovered ? palette.mid :
+                                                             palette.button
+
+                    Behavior on implicitWidth {
+                        NumberAnimation { duration: 150 }
+                    }
+                }
+
+                background: Rectangle {
+                    color: scroll.isPreviewMode ? "transparent" :
+                                                  palette.window.hslLightness > 0.5 ?
+                                                      Qt.darker(palette.window, 1.1) :
+                                                      Qt.lighter(palette.window, 1.1)
+                    radius: 3
+                }
+
+                ChatPreviewBar {
+                    anchors.fill: parent
+                    targetView: chatListView
+                    visible: parent.isPreviewMode
+                    opacity: parent.isPreviewMode ? 1 : 0
+
+                    Behavior on opacity {
+                        NumberAnimation { duration: 150 }
+                    }
+                }
+
+                Behavior on implicitWidth {
+                    NumberAnimation {
+                        duration: 150
+                        easing.type: Easing.InOutQuad
+                    }
+                }
             }
 
             onCountChanged: {

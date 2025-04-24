@@ -30,6 +30,7 @@ Rectangle {
     property alias tokensBadge: tokensBadgeId
     property alias recentPath: recentPathId
     property alias openChatHistory: openChatHistoryId
+    property alias expandScrollbar: expandScrollbarId
 
     color: palette.window.hslLightness > 0.5 ?
                Qt.darker(palette.window, 1.1) :
@@ -83,6 +84,13 @@ Rectangle {
 
         Badge {
             id: tokensBadgeId
+        }
+
+        QoAButton {
+            id: expandScrollbarId
+
+            width: 16
+            height: 16
         }
     }
 }
