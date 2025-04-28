@@ -99,6 +99,7 @@ ChatRootView {
                 messageAttachments: model.attachments
                 isUserMessage: model.roleType === ChatModel.User
                 messageIndex: index
+                listViewContentY: chatListView.contentY
 
                 onResetChatToMessage: function(index) {
                     messageInput.text = model.content

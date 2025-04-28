@@ -27,16 +27,34 @@ Rectangle {
     property string code: ""
     property string language: ""
 
+    property real currentContentY: 0
+    property real blockStart: 0
+
+    readonly property real buttonTopMargin: 5
+    readonly property real blockEnd: blockStart + root.height
+    readonly property real maxButtonOffset: Math.max(0, root.height - copyButton.height - buttonTopMargin)
+
+    readonly property real buttonPosition: {
+        if (currentContentY > blockEnd) {
+            return buttonTopMargin;
+        }
+        else if (currentContentY > blockStart) {
+            let offset = currentContentY - blockStart;
+            return Math.min(offset, maxButtonOffset);
+        }
+        return buttonTopMargin;
+    }
+
     readonly property string monospaceFont: {
         switch (Qt.platform.os) {
-            case "windows":
-                return "Consolas";
-            case "osx":
-                return "Menlo";
-            case "linux":
-                return "DejaVu Sans Mono";
-            default:
-                return "monospace";
+        case "windows":
+            return "Consolas";
+        case "osx":
+            return "Menlo";
+        case "linux":
+            return "DejaVu Sans Mono";
+        default:
+            return "monospace";
         }
     }
 
@@ -45,7 +63,6 @@ Rectangle {
                                                 : Qt.lighter(root.color, 1.3)
     border.width: 2
     radius: 4
-
     implicitWidth: parent.width
     implicitHeight: codeText.implicitHeight + 20
 
@@ -55,7 +72,6 @@ Rectangle {
 
     TextEdit {
         id: codeText
-
         anchors.fill: parent
         anchors.margins: 10
         text: root.code
@@ -81,10 +97,16 @@ Rectangle {
     }
 
     QoAButton {
-        anchors.top: parent.top
-        anchors.right: parent.right
-        anchors.margins: 5
-        text: "Copy"
+        id: copyButton
+
+        anchors {
+            top: parent.top
+            topMargin: root.buttonPosition
+            right: parent.right
+            rightMargin: root.buttonTopMargin
+        }
+
+        text: qsTr("Copy")
         onClicked: {
             utils.copyToClipboard(root.code)
             text = qsTr("Copied")

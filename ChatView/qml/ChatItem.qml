@@ -29,6 +29,7 @@ Rectangle {
     property alias messageAttachments: attachmentsModel.model
     property bool isUserMessage: false
     property int messageIndex: -1
+    property real listViewContentY: 0
 
     signal resetChatToMessage(int index)
 
@@ -84,6 +85,8 @@ Rectangle {
                     id: codeBlockComponent
                     CodeBlockComponent {
                         itemData: msgCreatorDelegate.modelData
+                        blockStart: root.y + msgCreatorDelegate.y
+                        currentContentY: root.listViewContentY
                     }
                 }
             }
@@ -160,6 +163,8 @@ Rectangle {
 
 
     component CodeBlockComponent : CodeBlock {
+        id: codeblock
+
         required property var itemData
         anchors {
             left: parent.left
