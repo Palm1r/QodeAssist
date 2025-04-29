@@ -58,7 +58,8 @@ void RequestHandler::sendLLMRequest(const LLMConfig &config, const QJsonObject &
         try {
             handleLLMResponse(reply, request, config);
         } catch (const std::exception &e) {
-            LOG_MESSAGE(QString("Exception in readyRead handler: %1").arg(e.what()));
+            LOG_MESSAGE(
+                QString("Exception in readyRead handler: %1").arg(QString::fromStdString(e.what())));
         } catch (...) {
             LOG_MESSAGE("Unknown exception in readyRead handler");
         }
