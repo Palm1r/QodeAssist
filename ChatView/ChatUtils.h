@@ -34,6 +34,7 @@ public:
         : QObject(parent) {};
 
     Q_INVOKABLE void copyToClipboard(const QString &text);
+    Q_INVOKABLE QString getSafeMarkdownText(const QString &text) const;
 };
 
 } // namespace QodeAssist::Chat

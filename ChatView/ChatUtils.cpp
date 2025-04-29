@@ -29,4 +29,25 @@ void ChatUtils::copyToClipboard(const QString &text)
     QGuiApplication::clipboard()->setText(text);
 }
 
+QString ChatUtils::getSafeMarkdownText(const QString &text) const
+{
+    // TODO replace to QTextMarkdownImporter after QtC on Qt6.9.0
+    QString safeText;
+    safeText.reserve(text.size());
+
+    for (QChar ch : text) {
+        if (ch.isNull()) {
+            safeText.append(' ');
+        } else if (ch == '\n' || ch == '\t' || ch == '\r' || ch == ' ') {
+            safeText.append(ch);
+        } else if (ch.isPrint()) {
+            safeText.append(ch);
+        } else {
+            safeText.append(QChar(0xFFFD));
+        }
+    }
+
+    return safeText;
+}
+
 } // namespace QodeAssist::Chat

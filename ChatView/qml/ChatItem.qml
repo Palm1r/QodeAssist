@@ -158,9 +158,12 @@ Rectangle {
         height: implicitHeight + 10
         verticalAlignment: Text.AlignVCenter
         leftPadding: 10
-        text: itemData.text
-    }
+        text: utils.getSafeMarkdownText(itemData.text)
 
+        ChatUtils {
+            id: utils
+        }
+    }
 
     component CodeBlockComponent : CodeBlock {
         id: codeblock
