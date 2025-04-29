@@ -78,9 +78,36 @@ void RequestHandler::sendLLMRequest(const LLMConfig &config, const QJsonObject &
 void RequestHandler::handleLLMResponse(
     QNetworkReply *reply, const QJsonObject &request, const LLMConfig &config)
 {
+    if (!reply) {
+        LOG_MESSAGE("Error: Null reply in handleLLMResponse");
+        return;
+    }
+
+    if (!m_accumulatedResponses.contains(reply)) {
+        m_accumulatedResponses[reply] = QString();
+    }
+
     QString &accumulatedResponse = m_accumulatedResponses[reply];
 
-    bool isComplete = config.provider->handleResponse(reply, accumulatedResponse);
+    bool isComplete = false;
+
+    try {
+        if (config.provider) {
+            isComplete = config.provider->handleResponse(reply, accumulatedResponse);
+        } else {
+            LOG_MESSAGE("Error: Provider is null in handleLLMResponse");
+            m_accumulatedResponses.remove(reply);
+            return;
+        }
+    } catch (const std::exception &e) {
+        LOG_MESSAGE(QString("Exception in handleResponse: %1").arg(e.what()));
+        m_accumulatedResponses.remove(reply);
+        return;
+    } catch (...) {
+        LOG_MESSAGE("Unknown exception in handleResponse");
+        m_accumulatedResponses.remove(reply);
+        return;
+    }
 
     if (config.requestType == RequestType::CodeCompletion) {
         if (!config.multiLineCompletion
@@ -89,17 +116,32 @@ void RequestHandler::handleLLMResponse(
         }
 
         if (isComplete) {
-            auto cleanedCompletion
-                = removeStopWords(accumulatedResponse, config.promptTemplate->stopWords());
-
-            emit completionReceived(cleanedCompletion, request, true);
+            try {
+                QStringList stopWords;
+                if (config.promptTemplate) {
+                    stopWords = config.promptTemplate->stopWords();
+                }
+                auto cleanedCompletion = removeStopWords(accumulatedResponse, stopWords);
+                emit completionReceived(cleanedCompletion, request, true);
+            } catch (const std::exception &e) {
+                LOG_MESSAGE(QString("Exception in completion processing: %1").arg(e.what()));
+            } catch (...) {
+                LOG_MESSAGE("Unknown exception in completion processing");
+            }
         }
     } else if (config.requestType == RequestType::Chat) {
-        emit completionReceived(accumulatedResponse, request, isComplete);
+        try {
+            emit completionReceived(accumulatedResponse, request, isComplete);
+        } catch (const std::exception &e) {
+            LOG_MESSAGE(QString("Exception in chat response processing: %1").arg(e.what()));
+        } catch (...) {
+            LOG_MESSAGE("Unknown exception in chat response processing");
+        }
     }
 
-    if (isComplete)
+    if (isComplete) {
         m_accumulatedResponses.remove(reply);
+    }
 }
 
 bool RequestHandler::cancelRequest(const QString &id)
