@@ -39,10 +39,13 @@ void RequestHandler::sendLLMRequest(const LLMConfig &config, const QJsonObject &
 
     QNetworkAccessManager *manager = new QNetworkAccessManager();
     QNetworkRequest networkRequest(config.url);
+    networkRequest.setTransferTimeout(300000);
+
     config.provider->prepareNetworkRequest(networkRequest);
 
-    QNetworkReply *reply
-        = manager->post(networkRequest, QJsonDocument(config.providerRequest).toJson());
+    QByteArray jsonData = QJsonDocument(config.providerRequest).toJson(QJsonDocument::Compact);
+    QNetworkReply *reply = manager->post(networkRequest, jsonData);
+
     if (!reply) {
         LOG_MESSAGE("Error: Failed to create network reply");
         return;
@@ -52,7 +55,20 @@ void RequestHandler::sendLLMRequest(const LLMConfig &config, const QJsonObject &
     m_activeRequests[requestId] = reply;
 
     connect(reply, &QNetworkReply::readyRead, this, [this, reply, request, config]() {
-        handleLLMResponse(reply, request, config);
+        try {
+            handleLLMResponse(reply, request, config);
+        } catch (const std::exception &e) {
+            LOG_MESSAGE(QString("Exception in readyRead handler: %1").arg(e.what()));
+        } catch (...) {
+            LOG_MESSAGE("Unknown exception in readyRead handler");
+        }
+    });
+
+    connect(reply, &QNetworkReply::errorOccurred, this, [](QNetworkReply::NetworkError error) {
+        LOG_MESSAGE(QString("Network error occurred: %1").arg(error));
+        if (error == QNetworkReply::OperationCanceledError) {
+            LOG_MESSAGE("Request was canceled");
+        }
     });
 
     connect(reply, &QNetworkReply::finished, this, [this, reply, requestId, manager]() {
