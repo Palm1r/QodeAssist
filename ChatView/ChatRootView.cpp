@@ -122,6 +122,11 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         &Utils::BaseAspect::changed,
         this,
         &ChatRootView::codeFontSizeChanged);
+    connect(
+        &Settings::chatAssistantSettings().textFormat,
+        &Utils::BaseAspect::changed,
+        this,
+        &ChatRootView::textFormatChanged);
 
     updateInputTokensCount();
 }
@@ -590,6 +595,11 @@ int ChatRootView::codeFontSize() const
 int ChatRootView::textFontSize() const
 {
     return Settings::chatAssistantSettings().textFontSize();
+}
+
+int ChatRootView::textFormat() const
+{
+    return Settings::chatAssistantSettings().textFormat();
 }
 
 } // namespace QodeAssist::Chat

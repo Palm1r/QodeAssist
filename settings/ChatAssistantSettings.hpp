@@ -68,6 +68,7 @@ public:
     Utils::IntegerAspect textFontSize{this};
     Utils::SelectionAspect codeFontFamily{this};
     Utils::IntegerAspect codeFontSize{this};
+    Utils::SelectionAspect textFormat{this};
 
 private:
     void setupConnections();

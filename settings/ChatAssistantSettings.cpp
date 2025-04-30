@@ -190,6 +190,14 @@ ChatAssistantSettings::ChatAssistantSettings()
     codeFontSize.setLabelText(Tr::tr("Code Font Size:"));
     codeFontSize.setDefaultValue(QApplication::font().pointSize());
 
+    textFormat.setSettingsKey(Constants::CA_TEXT_FORMAT);
+    textFormat.setLabelText(Tr::tr("Text Format:"));
+    textFormat.setDefaultValue(0);
+    textFormat.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+    textFormat.addOption("Markdown");
+    textFormat.addOption("HTML");
+    textFormat.addOption("Plain Text");
+
     resetToDefaults.m_buttonText = TrConstants::RESET_TO_DEFAULTS;
 
     readSettings();
@@ -216,6 +224,7 @@ ChatAssistantSettings::ChatAssistantSettings()
         auto chatViewSettingsGrid = Grid{};
         chatViewSettingsGrid.addRow({textFontFamily, textFontSize});
         chatViewSettingsGrid.addRow({codeFontFamily, codeFontSize});
+        chatViewSettingsGrid.addRow({textFormat});
 
         return Column{
             Row{Stretch{1}, resetToDefaults},
@@ -283,6 +292,7 @@ void ChatAssistantSettings::resetSettingsToDefaults()
         resetAspect(codeFontFamily);
         resetAspect(textFontSize);
         resetAspect(codeFontSize);
+        resetAspect(textFormat);
     }
 }
 

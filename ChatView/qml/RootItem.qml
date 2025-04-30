@@ -104,6 +104,7 @@ ChatRootView {
                 codeFontFamily: root.codeFontFamily
                 codeFontSize: root.codeFontSize
                 textFontSize: root.textFontSize
+                textFormat: root.textFormat
 
                 onResetChatToMessage: function(index) {
                     messageInput.text = model.content

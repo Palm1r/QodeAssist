@@ -155,5 +155,6 @@ const char CA_TEXT_FONT_FAMILY[] = "QodeAssist.caTextFontFamily";
 const char CA_TEXT_FONT_SIZE[] = "QodeAssist.caTextFontSize";
 const char CA_CODE_FONT_FAMILY[] = "QodeAssist.caCodeFontFamily";
 const char CA_CODE_FONT_SIZE[] = "QodeAssist.caCodeFontSize";
+const char CA_TEXT_FORMAT[] = "QodeAssist.caTextFormat";
 
 } // namespace QodeAssist::Constants

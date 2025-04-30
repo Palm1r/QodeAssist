@@ -42,6 +42,7 @@ Rectangle {
     }
     property int textFontSize: Qt.application.font.pointSize
     property int codeFontSize: Qt.application.font.pointSize
+    property int textFormat: 0
 
     property bool isUserMessage: false
     property int messageIndex: -1
@@ -174,9 +175,19 @@ Rectangle {
         height: implicitHeight + 10
         verticalAlignment: Text.AlignVCenter
         leftPadding: 10
-        text: utils.getSafeMarkdownText(itemData.text)
+        text: textFormat == Text.MarkdownText ? utils.getSafeMarkdownText(itemData.text)
+                                              : itemData.text
         font.family: root.textFontFamily
         font.pointSize: root.textFontSize
+        textFormat: {
+            if (root.textFormat == 0) {
+                return Text.MarkdownText
+            } else if (root.textFormat == 1) {
+                return Text.RichText
+            } else {
+                return Text.PlainText
+            }
+        }
 
         ChatUtils {
             id: utils

@@ -42,6 +42,7 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(QString codeFontFamily READ codeFontFamily NOTIFY codeFamilyChanged FINAL)
     Q_PROPERTY(int codeFontSize READ codeFontSize NOTIFY codeFontSizeChanged FINAL)
     Q_PROPERTY(int textFontSize READ textFontSize NOTIFY textFontSizeChanged FINAL)
+    Q_PROPERTY(int textFormat READ textFormat NOTIFY textFormatChanged FINAL)
 
     QML_ELEMENT
 
@@ -89,6 +90,7 @@ public:
 
     int codeFontSize() const;
     int textFontSize() const;
+    int textFormat() const;
 
 public slots:
     void sendMessage(const QString &message);
@@ -109,6 +111,7 @@ signals:
     void codeFamilyChanged();
     void codeFontSizeChanged();
     void textFontSizeChanged();
+    void textFormatChanged();
 
 private:
     QString getChatsHistoryDir() const;
