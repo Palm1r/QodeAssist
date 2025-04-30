@@ -31,7 +31,22 @@ void ChatUtils::copyToClipboard(const QString &text)
 
 QString ChatUtils::getSafeMarkdownText(const QString &text) const
 {
-    // TODO replace to QTextMarkdownImporter after QtC on Qt6.9.0
+    if (text.isEmpty()) {
+        return text;
+    }
+
+    bool needsSanitization = false;
+    for (const QChar &ch : text) {
+        if (ch.isNull() || (!ch.isPrint() && ch != '\n' && ch != '\t' && ch != '\r' && ch != ' ')) {
+            needsSanitization = true;
+            break;
+        }
+    }
+
+    if (!needsSanitization) {
+        return text;
+    }
+
     QString safeText;
     safeText.reserve(text.size());
 
