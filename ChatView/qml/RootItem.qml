@@ -100,6 +100,10 @@ ChatRootView {
                 isUserMessage: model.roleType === ChatModel.User
                 messageIndex: index
                 listViewContentY: chatListView.contentY
+                textFontFamily: root.textFontFamily
+                codeFontFamily: root.codeFontFamily
+                codeFontSize: root.codeFontSize
+                textFontSize: root.textFontSize
 
                 onResetChatToMessage: function(index) {
                     messageInput.text = model.content

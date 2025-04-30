@@ -102,6 +102,26 @@ ChatRootView::ChatRootView(QQuickItem *parent)
             }
         }
     });
+    connect(
+        &Settings::chatAssistantSettings().textFontFamily,
+        &Utils::BaseAspect::changed,
+        this,
+        &ChatRootView::textFamilyChanged);
+    connect(
+        &Settings::chatAssistantSettings().codeFontFamily,
+        &Utils::BaseAspect::changed,
+        this,
+        &ChatRootView::codeFamilyChanged);
+    connect(
+        &Settings::chatAssistantSettings().textFontSize,
+        &Utils::BaseAspect::changed,
+        this,
+        &ChatRootView::textFontSizeChanged);
+    connect(
+        &Settings::chatAssistantSettings().codeFontSize,
+        &Utils::BaseAspect::changed,
+        this,
+        &ChatRootView::codeFontSizeChanged);
 
     updateInputTokensCount();
 }
@@ -550,6 +570,26 @@ bool ChatRootView::shouldIgnoreFileForAttach(const Utils::FilePath &filePath)
     }
 
     return false;
+}
+
+QString ChatRootView::textFontFamily() const
+{
+    return Settings::chatAssistantSettings().textFontFamily.stringValue();
+}
+
+QString ChatRootView::codeFontFamily() const
+{
+    return Settings::chatAssistantSettings().codeFontFamily.stringValue();
+}
+
+int ChatRootView::codeFontSize() const
+{
+    return Settings::chatAssistantSettings().codeFontSize();
+}
+
+int ChatRootView::textFontSize() const
+{
+    return Settings::chatAssistantSettings().textFontSize();
 }
 
 } // namespace QodeAssist::Chat

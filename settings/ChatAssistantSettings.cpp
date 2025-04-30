@@ -22,6 +22,8 @@
 #include <coreplugin/dialogs/ioptionspage.h>
 #include <coreplugin/icore.h>
 #include <utils/layoutbuilder.h>
+#include <QApplication>
+#include <QFontDatabase>
 #include <QMessageBox>
 
 #include "SettingsConstants.hpp"
@@ -137,6 +139,57 @@ ChatAssistantSettings::ChatAssistantSettings()
     contextWindow.setRange(-1, 10000);
     contextWindow.setDefaultValue(2048);
 
+    autosave.setDefaultValue(true);
+    autosave.setLabelText(Tr::tr("Enable autosave when message received"));
+
+    textFontFamily.setSettingsKey(Constants::CA_TEXT_FONT_FAMILY);
+    textFontFamily.setLabelText(Tr::tr("Text Font:"));
+    textFontFamily.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+    const QStringList families = QFontDatabase::families();
+    for (const QString &family : families) {
+        textFontFamily.addOption(family);
+    }
+    textFontFamily.setDefaultValue(QApplication::font().family());
+
+    textFontSize.setSettingsKey(Constants::CA_TEXT_FONT_SIZE);
+    textFontSize.setLabelText(Tr::tr("Text Font Size:"));
+    textFontSize.setDefaultValue(QApplication::font().pointSize());
+
+    codeFontFamily.setSettingsKey(Constants::CA_CODE_FONT_FAMILY);
+    codeFontFamily.setLabelText(Tr::tr("Code Font:"));
+    codeFontFamily.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+    const QStringList monospaceFamilies = QFontDatabase::families(QFontDatabase::Latin);
+    for (const QString &family : monospaceFamilies) {
+        if (QFontDatabase::isFixedPitch(family)) {
+            codeFontFamily.addOption(family);
+        }
+    }
+
+    QString defaultMonoFont;
+    QStringList fixedPitchFamilies;
+
+    for (const QString &family : monospaceFamilies) {
+        if (QFontDatabase::isFixedPitch(family)) {
+            fixedPitchFamilies.append(family);
+        }
+    }
+
+    if (fixedPitchFamilies.contains("Consolas")) {
+        defaultMonoFont = "Consolas";
+    } else if (fixedPitchFamilies.contains("Courier New")) {
+        defaultMonoFont = "Courier New";
+    } else if (fixedPitchFamilies.contains("Monospace")) {
+        defaultMonoFont = "Monospace";
+    } else if (!fixedPitchFamilies.isEmpty()) {
+        defaultMonoFont = fixedPitchFamilies.first();
+    } else {
+        defaultMonoFont = QApplication::font().family();
+    }
+    codeFontFamily.setDefaultValue(defaultMonoFont);
+    codeFontSize.setSettingsKey(Constants::CA_CODE_FONT_SIZE);
+    codeFontSize.setLabelText(Tr::tr("Code Font Size:"));
+    codeFontSize.setDefaultValue(QApplication::font().pointSize());
+
     resetToDefaults.m_buttonText = TrConstants::RESET_TO_DEFAULTS;
 
     readSettings();
@@ -160,6 +213,10 @@ ChatAssistantSettings::ChatAssistantSettings()
         ollamaGrid.addRow({ollamaLivetime});
         ollamaGrid.addRow({contextWindow});
 
+        auto chatViewSettingsGrid = Grid{};
+        chatViewSettingsGrid.addRow({textFontFamily, textFontSize});
+        chatViewSettingsGrid.addRow({codeFontFamily, codeFontSize});
+
         return Column{
             Row{Stretch{1}, resetToDefaults},
             Space{8},
@@ -181,6 +238,7 @@ ChatAssistantSettings::ChatAssistantSettings()
                     systemPrompt,
                 }},
             Group{title(Tr::tr("Ollama Settings")), Column{Row{ollamaGrid, Stretch{1}}}},
+            Group{title(Tr::tr("Chat Settings")), Row{chatViewSettingsGrid, Stretch{1}}},
             Stretch{1}};
     });
 }
@@ -221,6 +279,10 @@ void ChatAssistantSettings::resetSettingsToDefaults()
         resetAspect(ollamaLivetime);
         resetAspect(contextWindow);
         resetAspect(linkOpenFiles);
+        resetAspect(textFontFamily);
+        resetAspect(codeFontFamily);
+        resetAspect(textFontSize);
+        resetAspect(codeFontSize);
     }
 }
 

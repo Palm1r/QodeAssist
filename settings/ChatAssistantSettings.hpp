@@ -63,6 +63,12 @@ public:
     Utils::StringAspect ollamaLivetime{this};
     Utils::IntegerAspect contextWindow{this};
 
+    // Visuals settings
+    Utils::SelectionAspect textFontFamily{this};
+    Utils::IntegerAspect textFontSize{this};
+    Utils::SelectionAspect codeFontFamily{this};
+    Utils::IntegerAspect codeFontSize{this};
+
 private:
     void setupConnections();
     void resetSettingsToDefaults();
