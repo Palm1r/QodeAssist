@@ -27,6 +27,22 @@ Rectangle {
 
     property alias msgModel: msgCreator.model
     property alias messageAttachments: attachmentsModel.model
+    property string textFontFamily: Qt.application.font.family
+    property string codeFontFamily: {
+        switch (Qt.platform.os) {
+        case "windows":
+            return "Consolas";
+        case "osx":
+            return "Menlo";
+        case "linux":
+            return "DejaVu Sans Mono";
+        default:
+            return "monospace";
+        }
+    }
+    property int textFontSize: Qt.application.font.pointSize
+    property int codeFontSize: Qt.application.font.pointSize
+
     property bool isUserMessage: false
     property int messageIndex: -1
     property real listViewContentY: 0
@@ -159,6 +175,8 @@ Rectangle {
         verticalAlignment: Text.AlignVCenter
         leftPadding: 10
         text: utils.getSafeMarkdownText(itemData.text)
+        font.family: root.textFontFamily
+        font.pointSize: root.textFontSize
 
         ChatUtils {
             id: utils
@@ -178,5 +196,7 @@ Rectangle {
 
         code: itemData.text
         language: itemData.language
+        codeFontFamily: root.codeFontFamily
+        codeFontSize: root.codeFontSize
     }
 }

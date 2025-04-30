@@ -38,6 +38,10 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(QStringList linkedFiles READ linkedFiles NOTIFY linkedFilesChanged FINAL)
     Q_PROPERTY(int inputTokensCount READ inputTokensCount NOTIFY inputTokensCountChanged FINAL)
     Q_PROPERTY(QString chatFileName READ chatFileName NOTIFY chatFileNameChanged FINAL)
+    Q_PROPERTY(QString textFontFamily READ textFontFamily NOTIFY textFamilyChanged FINAL)
+    Q_PROPERTY(QString codeFontFamily READ codeFontFamily NOTIFY codeFamilyChanged FINAL)
+    Q_PROPERTY(int codeFontSize READ codeFontSize NOTIFY codeFontSizeChanged FINAL)
+    Q_PROPERTY(int textFontSize READ textFontSize NOTIFY textFontSizeChanged FINAL)
 
     QML_ELEMENT
 
@@ -80,6 +84,12 @@ public:
     void setRecentFilePath(const QString &filePath);
     bool shouldIgnoreFileForAttach(const Utils::FilePath &filePath);
 
+    QString textFontFamily() const;
+    QString codeFontFamily() const;
+
+    int codeFontSize() const;
+    int textFontSize() const;
+
 public slots:
     void sendMessage(const QString &message);
     void copyToClipboard(const QString &text);
@@ -95,6 +105,10 @@ signals:
     void inputTokensCountChanged();
     void isSyncOpenFilesChanged();
     void chatFileNameChanged();
+    void textFamilyChanged();
+    void codeFamilyChanged();
+    void codeFontSizeChanged();
+    void textFontSizeChanged();
 
 private:
     QString getChatsHistoryDir() const;

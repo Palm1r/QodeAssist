@@ -30,6 +30,9 @@ Rectangle {
     property real currentContentY: 0
     property real blockStart: 0
 
+    property alias codeFontFamily: codeText.font.family
+    property alias codeFontSize: codeText.font.pointSize
+
     readonly property real buttonTopMargin: 5
     readonly property real blockEnd: blockStart + root.height
     readonly property real maxButtonOffset: Math.max(0, root.height - copyButton.height - buttonTopMargin)
@@ -43,19 +46,6 @@ Rectangle {
             return Math.min(offset, maxButtonOffset);
         }
         return buttonTopMargin;
-    }
-
-    readonly property string monospaceFont: {
-        switch (Qt.platform.os) {
-        case "windows":
-            return "Consolas";
-        case "osx":
-            return "Menlo";
-        case "linux":
-            return "DejaVu Sans Mono";
-        default:
-            return "monospace";
-        }
     }
 
     color: palette.alternateBase
@@ -77,8 +67,6 @@ Rectangle {
         text: root.code
         readOnly: true
         selectByMouse: true
-        font.family: root.monospaceFont
-        font.pointSize: Qt.application.font.pointSize
         color: parent.color.hslLightness > 0.5 ? "black" : "white"
         wrapMode: Text.WordWrap
         selectionColor: palette.highlight
@@ -93,7 +81,7 @@ Rectangle {
         text: root.language
         color: root.color.hslLightness > 0.5 ? Qt.darker(root.color, 1.1)
                                              : Qt.lighter(root.color, 1.1)
-        font.pointSize: 8
+        font.pointSize: codeText.font.pointSize - 4
     }
 
     QoAButton {

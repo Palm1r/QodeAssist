@@ -151,5 +151,9 @@ const char CA_USE_FREQUENCY_PENALTY[] = "QodeAssist.chatUseFrequencyPenalty";
 const char CA_FREQUENCY_PENALTY[] = "QodeAssist.chatFrequencyPenalty";
 const char CA_OLLAMA_LIVETIME[] = "QodeAssist.chatOllamaLivetime";
 const char CA_OLLAMA_CONTEXT_WINDOW[] = "QodeAssist.caOllamaContextWindow";
+const char CA_TEXT_FONT_FAMILY[] = "QodeAssist.caTextFontFamily";
+const char CA_TEXT_FONT_SIZE[] = "QodeAssist.caTextFontSize";
+const char CA_CODE_FONT_FAMILY[] = "QodeAssist.caCodeFontFamily";
+const char CA_CODE_FONT_SIZE[] = "QodeAssist.caCodeFontSize";
 
 } // namespace QodeAssist::Constants
