@@ -38,7 +38,6 @@ protected:
 private:
     QPointer<TextEditor::TextEditorWidget> m_widget;
     QPoint m_iconPosition;
-    bool m_isActive = false;
 };
 
 } // namespace QodeAssist
