@@ -57,6 +57,17 @@ LLMClientInterface::LLMClientInterface(
         &LLMCore::RequestHandler::completionReceived,
         this,
         &LLMClientInterface::sendCompletionToClient);
+
+    // TODO handle error
+    // connect(
+    //     &m_requestHandler,
+    //     &LLMCore::RequestHandler::requestFinished,
+    //     this,
+    //     [this](const QString &, bool success, const QString &errorString) {
+    //         if (!success) {
+    //             emit error(errorString);
+    //         }
+    //     });
 }
 
 Utils::FilePath LLMClientInterface::serverDeviceTemplate() const

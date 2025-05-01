@@ -20,6 +20,7 @@
 #pragma once
 
 #include <QJsonObject>
+#include <QMutex>
 #include <QNetworkAccessManager>
 #include <QObject>
 
@@ -32,16 +33,32 @@ namespace QodeAssist::LLMCore {
 
 class RequestHandler : public RequestHandlerBase
 {
+    Q_OBJECT
 public:
     explicit RequestHandler(QObject *parent = nullptr);
+    ~RequestHandler() override;
 
     void sendLLMRequest(const LLMConfig &config, const QJsonObject &request) override;
     bool cancelRequest(const QString &id) override;
-    void handleLLMResponse(QNetworkReply *reply, const QJsonObject &request, const LLMConfig &config);
+
+signals:
+    void doSendRequest(QodeAssist::LLMCore::LLMConfig config, QJsonObject request);
+    void doCancelRequest(QString id);
+
+private slots:
+    void sendLLMRequestInternal(
+        const QodeAssist::LLMCore::LLMConfig &config, const QJsonObject &request);
+    void cancelRequestInternal(const QString &id);
+    void handleLLMResponse(
+        QNetworkReply *reply,
+        const QJsonObject &request,
+        const QodeAssist::LLMCore::LLMConfig &config);
 
 private:
     QMap<QString, QNetworkReply *> m_activeRequests;
     QMap<QNetworkReply *, QString> m_accumulatedResponses;
+    QNetworkAccessManager *m_manager;
+    QMutex m_mutex;
 
     bool processSingleLineCompletion(
         QNetworkReply *reply,

@@ -38,7 +38,6 @@ namespace QodeAssist {
 void CompletionProgressHandler::showProgress(TextEditor::TextEditorWidget *widget)
 {
     m_widget = widget;
-    m_isActive = true;
 
     if (m_widget) {
         const QRect cursorRect = m_widget->cursorRect(m_widget->textCursor());
@@ -54,14 +53,13 @@ void CompletionProgressHandler::showProgress(TextEditor::TextEditorWidget *widge
 
 void CompletionProgressHandler::hideProgress()
 {
-    m_isActive = false;
-    Utils::ToolTip::hide();
+    Utils::ToolTip::hideImmediately();
 }
 
 void CompletionProgressHandler::identifyMatch(
     TextEditor::TextEditorWidget *editorWidget, int pos, ReportPriority report)
 {
-    if (!m_isActive || !editorWidget) {
+    if (!editorWidget) {
         report(Priority_None);
         return;
     }
@@ -72,7 +70,7 @@ void CompletionProgressHandler::identifyMatch(
 void CompletionProgressHandler::operateTooltip(
     TextEditor::TextEditorWidget *editorWidget, const QPoint &point)
 {
-    if (!m_isActive || !editorWidget)
+    if (!editorWidget)
         return;
 
     auto progressWidget = new ProgressWidget(editorWidget);

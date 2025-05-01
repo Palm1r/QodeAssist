@@ -22,14 +22,51 @@
 
 #include <QJsonDocument>
 #include <QNetworkReply>
+#include <QThread>
 
 namespace QodeAssist::LLMCore {
 
 RequestHandler::RequestHandler(QObject *parent)
     : RequestHandlerBase(parent)
-{}
+    , m_manager(new QNetworkAccessManager(this))
+{
+    connect(
+        this,
+        &RequestHandler::doSendRequest,
+        this,
+        &RequestHandler::sendLLMRequestInternal,
+        Qt::QueuedConnection);
+
+    connect(
+        this,
+        &RequestHandler::doCancelRequest,
+        this,
+        &RequestHandler::cancelRequestInternal,
+        Qt::QueuedConnection);
+}
+
+RequestHandler::~RequestHandler()
+{
+    for (auto reply : m_activeRequests) {
+        reply->abort();
+        reply->deleteLater();
+    }
+    m_activeRequests.clear();
+    m_accumulatedResponses.clear();
+}
 
 void RequestHandler::sendLLMRequest(const LLMConfig &config, const QJsonObject &request)
+{
+    emit doSendRequest(config, request);
+}
+
+bool RequestHandler::cancelRequest(const QString &id)
+{
+    emit doCancelRequest(id);
+    return true;
+}
+
+void RequestHandler::sendLLMRequestInternal(const LLMConfig &config, const QJsonObject &request)
 {
     LOG_MESSAGE(QString("Sending request to llm: \nurl: %1\nRequest body:\n%2")
                     .arg(
@@ -37,12 +74,13 @@ void RequestHandler::sendLLMRequest(const LLMConfig &config, const QJsonObject &
                         QString::fromUtf8(
                             QJsonDocument(config.providerRequest).toJson(QJsonDocument::Indented))));
 
-    QNetworkAccessManager *manager = new QNetworkAccessManager();
     QNetworkRequest networkRequest(config.url);
+    networkRequest.setTransferTimeout(300000);
+
     config.provider->prepareNetworkRequest(networkRequest);
 
     QNetworkReply *reply
-        = manager->post(networkRequest, QJsonDocument(config.providerRequest).toJson());
+        = m_manager->post(networkRequest, QJsonDocument(config.providerRequest).toJson());
     if (!reply) {
         LOG_MESSAGE("Error: Failed to create network reply");
         return;
@@ -55,24 +93,28 @@ void RequestHandler::sendLLMRequest(const LLMConfig &config, const QJsonObject &
         handleLLMResponse(reply, request, config);
     });
 
-    connect(reply, &QNetworkReply::finished, this, [this, reply, requestId, manager]() {
-        m_activeRequests.remove(requestId);
-        if (reply->error() != QNetworkReply::NoError) {
-            QString errorMessage = reply->errorString();
-            int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    connect(
+        reply,
+        &QNetworkReply::finished,
+        this,
+        [this, reply, requestId]() {
+            m_activeRequests.remove(requestId);
+            if (reply->error() != QNetworkReply::NoError) {
+                QString errorMessage = reply->errorString();
+                int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
 
-            LOG_MESSAGE(
-                QString("Error details: %1\nStatus code: %2").arg(errorMessage).arg(statusCode));
+                LOG_MESSAGE(
+                    QString("Error details: %1\nStatus code: %2").arg(errorMessage).arg(statusCode));
 
-            emit requestFinished(requestId, false, errorMessage);
-        } else {
-            LOG_MESSAGE("Request finished successfully");
-            emit requestFinished(requestId, true, QString());
-        }
+                emit requestFinished(requestId, false, errorMessage);
+            } else {
+                LOG_MESSAGE("Request finished successfully");
+                emit requestFinished(requestId, true, QString());
+            }
 
-        reply->deleteLater();
-        manager->deleteLater();
-    });
+            reply->deleteLater();
+        },
+        Qt::QueuedConnection);
 }
 
 void RequestHandler::handleLLMResponse(
@@ -102,17 +144,18 @@ void RequestHandler::handleLLMResponse(
         m_accumulatedResponses.remove(reply);
 }
 
-bool RequestHandler::cancelRequest(const QString &id)
+void RequestHandler::cancelRequestInternal(const QString &id)
 {
+    QMutexLocker locker(&m_mutex);
     if (m_activeRequests.contains(id)) {
         QNetworkReply *reply = m_activeRequests[id];
         reply->abort();
         m_activeRequests.remove(id);
         m_accumulatedResponses.remove(reply);
+        locker.unlock();
+
         emit requestCancelled(id);
-        return true;
     }
-    return false;
 }
 
 bool RequestHandler::processSingleLineCompletion(
