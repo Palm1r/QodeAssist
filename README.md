@@ -296,23 +296,11 @@ The file format is similar to .gitignore:
 - To negate a pattern, use ! at the beginning of the line
 ```
 # Ignore all files in the build directory
-build/
-
-# Ignore all temporary files
+/build
 *.tmp
-*.temp
-
-# Ignore all files with .log extension
-*.log
-
 # Ignore a specific file
 src/generated/autogen.cpp
 
-# Ignore nested directories
-**/node_modules/
-
-# Negation - DO NOT ignore this file
-!src/important.cpp
 ```
     
 ## Troubleshooting
