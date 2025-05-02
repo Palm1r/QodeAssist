@@ -23,11 +23,12 @@
 7. [Configure for Ollama](#configure-for-ollama)
 8. [Configure for llama.cpp](#configure-for-llamacpp)
 9. [System Prompt Configuration](#system-prompt-configuration)
-10. [File Context Features](#file-context-features)
-11. [QtCreator Version Compatibility](#qtcreator-version-compatibility)
-12. [Development Progress](#development-progress)
-13. [Hotkeys](#hotkeys)
-14. [Ignoring Files](#ignoring-files)
+10. [File Context Feature](#file-context-feature)
+11. [Quick Refactoring Feature](#quick-refactoring-feature)
+12. [QtCreator Version Compatibility](#qtcreator-version-compatibility)
+13. [Development Progress](#development-progress)
+14. [Hotkeys](#hotkeys)
+15. [Ignoring Files](#ignoring-files)
 14. [Troubleshooting](#troubleshooting)
 15. [Support the Development](#support-the-development-of-qodeassist)
 16. [How to Build](#how-to-build)
@@ -202,7 +203,7 @@ You're all set! QodeAssist is now ready to use in Qt Creator.
 
 The plugin comes with default system prompts optimized for chat and instruct models, as these currently provide better results for code assistance. If you prefer using FIM (Fill-in-Middle) models, you can easily customize the system prompt in the settings.
 
-## File Context Features
+## File Context Feature
 
 QodeAssist provides two powerful ways to include source code files in your chat conversations: Attachments and Linked Files. Each serves a distinct purpose and helps provide better context for the AI assistant.
 
@@ -234,6 +235,18 @@ Linked files provide persistent context throughout the conversation:
   - Can be managed using the link icon in the chat interface
   - Supports automatic syncing with open editor files (can be enabled in settings)
   - Files can be added/removed at any time during the conversation
+
+## Quick Refactoring Feature
+### Setup
+  Since this is actually a small chat with redirected output, the main settings of the provider, model and template are taken from the chat settings
+### Using
+  The request to model consist of instructions to model, selection code and cursor position
+  The default instruction is: "Refactor the code to improve its quality and maintainability." and sending if text field is empty
+  Also there buttons to quick call instractions:
+  * Repeat latest instruction, will activate after sending first request in QtCreator session
+  * Improve current selection code
+  * Suggestion alternative variant of selection code
+  * Other instructions[TBD]
 
 ## QtCreator Version Compatibility
 
