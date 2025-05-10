@@ -265,6 +265,7 @@ Linked files provide persistent context throughout the conversation:
 - [x] Sharing diff with model
 - [ ] Sharing project source with model
 - [ ] Support for more providers and models
+- [ ] Support MCP
 
 ## Hotkeys
 
