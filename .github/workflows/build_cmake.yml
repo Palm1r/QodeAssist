@@ -13,8 +13,7 @@ on:
 env:
   PLUGIN_NAME: QodeAssist
   QT_VERSION: 6.8.3
-  QT_CREATOR_VERSION: 16.0.1
-  QT_CREATOR_VERSION_INTERNAL: 16.0.1
+  QT_CREATOR_VERSION: 16.0.2
   MACOS_DEPLOYMENT_TARGET: "11.0"
   CMAKE_VERSION: "3.29.6"
   NINJA_VERSION: "1.12.1"
@@ -50,9 +49,6 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/setup-node@v4
-      with:
-        node-version: '20'
 
     - name: Checkout submodules
       id: git
@@ -174,10 +170,11 @@ jobs:
         endif()
 
     - name: Download Qt Creator
-      uses: qt-creator/install-dev-package@v1.2
+      uses: qt-creator/install-dev-package@v2.0
       with:
         version: ${{ env.QT_CREATOR_VERSION }}
         unzip-to: 'qtcreator'
+        platform: ${{ matrix.config.platform }}
 
     - name: Extract Qt Creator
       id: qt_creator
@@ -244,65 +241,15 @@ jobs:
         path: ./${{ env.PLUGIN_NAME }}-v${{ steps.git.outputs.tag }}-QtC${{ env.QT_CREATOR_VERSION }}-${{ matrix.config.artifact }}.7z
         name: ${{ env.PLUGIN_NAME}}-v${{ steps.git.outputs.tag }}-QtC${{ env.QT_CREATOR_VERSION }}-${{ matrix.config.artifact }}.7z
 
-    # The json is the same for all platforms, but we need to save one
-    - name: Upload plugin json
-      if: startsWith(matrix.config.os, 'ubuntu')
-      uses: actions/upload-artifact@v4
-      with:
-        name: ${{ env.PLUGIN_NAME }}-origin-json
-        path: ./build/build/${{ env.PLUGIN_NAME }}.json
-
     - name: Run unit tests
       if: startsWith(matrix.config.os, 'ubuntu')
       run: |
         xvfb-run ./build/build/test/QodeAssistTest
 
-  update_json:
-    if: contains(github.ref, 'tags/v')
-    runs-on: ubuntu-22.04
-    needs: build
-
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        submodules: recursive
-    - uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-
-    - name: Download the JSON file
-      uses: actions/download-artifact@v4
-      with:
-        name: ${{ env.PLUGIN_NAME }}-origin-json
-        path: ./${{ env.PLUGIN_NAME }}-origin
-
-    - name: Store Release upload_url
-      run: |
-        RELEASE_HTML_URL=$(echo "${{github.event.repository.html_url}}/releases/download/v${{ needs.build.outputs.tag }}")
-        echo "RELEASE_HTML_URL=${RELEASE_HTML_URL}" >> $GITHUB_ENV
-
-    - name: Run the Node.js script to update JSON
-      env:
-        QT_TOKEN: ${{ secrets.TOKEN }}
-        API_URL: ${{ secrets.API_URL }}
-      run: |
-        node .github/scripts/registerPlugin.js         ${{ env.RELEASE_HTML_URL }} ${{ env.PLUGIN_NAME }}         ${{ env.QT_CREATOR_VERSION }} ${{ env.QT_CREATOR_VERSION_INTERNAL }}         ${{ env.QT_TOKEN }} ${{ env.API_URL }}
-
-    - name: Delete previous json artifacts
-      uses: geekyeggo/delete-artifact@v5
-      with:
-        name: ${{ env.PLUGIN_NAME }}*-json
-
-    - name: Upload the modified JSON file as an artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: plugin-json
-        path: .github/scripts/${{ env.PLUGIN_NAME }}.json
-
   release:
     if: contains(github.ref, 'tags/v')
-    runs-on: ubuntu-latest
-    needs: [build, update_json]
+    runs-on: ubuntu-22.04
+    needs: [build]
 
     steps:
     - name: Download artifacts
