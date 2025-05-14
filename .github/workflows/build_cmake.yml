@@ -57,7 +57,7 @@ jobs:
         if (${{github.ref}} MATCHES "tags/v(.*)")
             file(APPEND "$ENV{GITHUB_OUTPUT}" "tag=${CMAKE_MATCH_1}")
         else()
-            file(APPEND "$ENV{GITHUB_OUTPUT}" "tag=${{github.run_id}}")
+            file(APPEND "$ENV{GITHUB_OUTPUT}" "tag=${branch_name}-${{github.run_id}}")
         endif()
 
     - name: Download Ninja and CMake
