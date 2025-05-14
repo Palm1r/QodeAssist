@@ -3,6 +3,7 @@
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Palm1r/QodeAssist/total?color=41%2C173%2C71)
 ![GitHub Tag](https://img.shields.io/github/v/tag/Palm1r/QodeAssist)
 ![Static Badge](https://img.shields.io/badge/QtCreator-16.0.1-brightgreen)
+![Static Badge](https://img.shields.io/badge/QtCreator-16.0.2-brightgreen)
 [![](https://dcbadge.limes.pink/api/server/BGMkUsXUgf?style=flat)](https://discord.gg/BGMkUsXUgf)
 
 ![qodeassist-icon](https://github.com/user-attachments/assets/dc336712-83cb-440d-8761-8d0a31de898d) QodeAssist is an AI-powered coding assistant plugin for Qt Creator. It provides intelligent code completion and suggestions for C++ and QML, leveraging large language models through local providers like Ollama. Enhance your coding productivity with context-aware AI assistance directly in your Qt development environment.
@@ -250,6 +251,7 @@ Linked files provide persistent context throughout the conversation:
 
 ## QtCreator Version Compatibility
 
+- QtCreator 16.0.2 - 0.5.13 - 0.x.x
 - QtCreator 16.0.1 - 0.5.7 - 0.x.x
 - QtCreator 16.0.0 - 0.5.2 - 0.5.6
 - QtCreator 15.0.1 - 0.4.8 - 0.5.1
