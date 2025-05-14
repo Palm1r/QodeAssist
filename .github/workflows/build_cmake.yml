@@ -12,15 +12,13 @@ on:
 
 env:
   PLUGIN_NAME: QodeAssist
-  QT_VERSION: 6.8.3
-  QT_CREATOR_VERSION: 16.0.2
   MACOS_DEPLOYMENT_TARGET: "11.0"
   CMAKE_VERSION: "3.29.6"
   NINJA_VERSION: "1.12.1"
 
 jobs:
   build:
-    name: ${{ matrix.config.name }}
+    name: ${{ matrix.config.name }} (Qt ${{ matrix.qt_config.qt_version }}, QtC ${{ matrix.qt_config.qt_creator_version }})
     runs-on: ${{ matrix.config.os }}
     outputs:
         tag: ${{ steps.git.outputs.tag }}
@@ -46,6 +44,15 @@ jobs:
             platform: mac_x64,
             cc: "clang", cxx: "clang++"
           }
+        qt_config:
+        - {
+            qt_version: "6.8.3",
+            qt_creator_version: "16.0.2"
+          }
+        - {
+            qt_version: "6.8.3",
+            qt_creator_version: "16.0.1"
+          }
 
     steps:
     - uses: actions/checkout@v4
@@ -57,7 +64,12 @@ jobs:
         if (${{github.ref}} MATCHES "tags/v(.*)")
             file(APPEND "$ENV{GITHUB_OUTPUT}" "tag=${CMAKE_MATCH_1}")
         else()
-            file(APPEND "$ENV{GITHUB_OUTPUT}" "tag=${branch_name}-${{github.run_id}}")
+            execute_process(
+                COMMAND git rev-parse --short HEAD
+                OUTPUT_VARIABLE short_sha
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+            )
+            file(APPEND "$ENV{GITHUB_OUTPUT}" "tag=${short_sha}")
         endif()
 
     - name: Download Ninja and CMake
@@ -92,7 +104,7 @@ jobs:
       id: qt
       shell: cmake -P {0}
       run: |
-        set(qt_version "$ENV{QT_VERSION}")
+        set(qt_version "${{ matrix.qt_config.qt_version }}")
 
         string(REPLACE "." "" qt_version_dotless "${qt_version}")
         if ("${{ runner.os }}" STREQUAL "Windows")
@@ -172,7 +184,7 @@ jobs:
     - name: Download Qt Creator
       uses: qt-creator/install-dev-package@v2.0
       with:
-        version: ${{ env.QT_CREATOR_VERSION }}
+        version: ${{ matrix.qt_config.qt_creator_version }}
         unzip-to: 'qtcreator'
         platform: ${{ matrix.config.platform }}
 
@@ -220,7 +232,7 @@ jobs:
           COMMAND python
             -u
             "${{ steps.qt_creator.outputs.qtc_dir }}/${build_plugin_py}"
-            --name "$ENV{PLUGIN_NAME}-v${{ steps.git.outputs.tag }}-QtC$ENV{QT_CREATOR_VERSION}-${{ matrix.config.artifact }}"
+            --name "$ENV{PLUGIN_NAME}-v${{ steps.git.outputs.tag }}-QtC${{ matrix.qt_config.qt_creator_version }}-${{ matrix.config.artifact }}"
             --src .
             --build build
             --qt-path "${{ steps.qt.outputs.qt_dir }}"
@@ -238,8 +250,8 @@ jobs:
     - name: Upload
       uses: actions/upload-artifact@v4
       with:
-        path: ./${{ env.PLUGIN_NAME }}-v${{ steps.git.outputs.tag }}-QtC${{ env.QT_CREATOR_VERSION }}-${{ matrix.config.artifact }}.7z
-        name: ${{ env.PLUGIN_NAME}}-v${{ steps.git.outputs.tag }}-QtC${{ env.QT_CREATOR_VERSION }}-${{ matrix.config.artifact }}.7z
+        path: ./${{ env.PLUGIN_NAME }}-v${{ steps.git.outputs.tag }}-QtC${{ matrix.qt_config.qt_creator_version }}-${{ matrix.config.artifact }}.7z
+        name: ${{ env.PLUGIN_NAME}}-v${{ steps.git.outputs.tag }}-QtC${{ matrix.qt_config.qt_creator_version }}-${{ matrix.config.artifact }}.7z
 
     - name: Run unit tests
       if: startsWith(matrix.config.os, 'ubuntu')
