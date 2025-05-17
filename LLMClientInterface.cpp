@@ -218,10 +218,8 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
                                                      : QString{"generateContent?"};
         config.url = QUrl(QString("%1/models/%2:%3").arg(url, modelName, stream));
     } else {
-        config.url = QUrl(QString("%1%2").arg(
-            url,
-            promptTemplate->type() == LLMCore::TemplateType::FIM ? provider->completionEndpoint()
-                                                                 : provider->chatEndpoint()));
+        config.url = QUrl(
+            QString("%1%2").arg(url, endpoint(provider, promptTemplate->type(), isPreset1Active)));
         config.providerRequest = {{"model", modelName}, {"stream", m_completeSettings.stream()}};
     }
     config.apiKey = provider->apiKey();
@@ -298,6 +296,26 @@ LLMCore::ContextData LLMClientInterface::prepareContext(
     Context::DocumentContextReader
         reader(documentInfo.document, documentInfo.mimeType, documentInfo.filePath);
     return reader.prepareContext(lineNumber, cursorPosition, m_completeSettings);
+}
+
+QString LLMClientInterface::endpoint(
+    LLMCore::Provider *provider, LLMCore::TemplateType type, bool isLanguageSpecify)
+{
+    QString endpoint;
+    auto endpointMode = isLanguageSpecify ? m_generalSettings.ccPreset1EndpointMode.stringValue()
+                                          : m_generalSettings.ccEndpointMode.stringValue();
+    if (endpointMode == "Auto") {
+        endpoint = type == LLMCore::TemplateType::FIM ? provider->completionEndpoint()
+                                                      : provider->chatEndpoint();
+    } else if (endpointMode == "Custom") {
+        endpoint = isLanguageSpecify ? m_generalSettings.ccPreset1CustomEndpoint()
+                                     : m_generalSettings.ccCustomEndpoint();
+    } else if (endpointMode == "FIM") {
+        endpoint = provider->completionEndpoint();
+    } else if (endpointMode == "Chat") {
+        endpoint = provider->chatEndpoint();
+    }
+    return endpoint;
 }
 
 Context::ContextManager *LLMClientInterface::contextManager() const

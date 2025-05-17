@@ -35,6 +35,9 @@ const char CC_MODEL_HISTORY[] = "QodeAssist.ccModelHistory";
 const char CC_TEMPLATE[] = "QodeAssist.ccTemplate";
 const char CC_URL[] = "QodeAssist.ccUrl";
 const char CC_URL_HISTORY[] = "QodeAssist.ccUrlHistory";
+const char CC_ENDPOINT_MODE[] = "QodeAssist.ccEndpointMode";
+const char CC_CUSTOM_ENDPOINT[] = "QodeAssist.ccCustomEndpoint";
+const char CC_CUSTOM_ENDPOINT_HISTORY[] = "QodeAssist.ccCustomEndpointHistory";
 
 const char CA_PROVIDER[] = "QodeAssist.caProvider";
 const char CA_MODEL[] = "QodeAssist.caModel";
@@ -42,6 +45,9 @@ const char CA_MODEL_HISTORY[] = "QodeAssist.caModelHistory";
 const char CA_TEMPLATE[] = "QodeAssist.caTemplate";
 const char CA_URL[] = "QodeAssist.caUrl";
 const char CA_URL_HISTORY[] = "QodeAssist.caUrlHistory";
+const char CA_ENDPOINT_MODE[] = "QodeAssist.caEndpointMode";
+const char CA_CUSTOM_ENDPOINT[] = "QodeAssist.caCustomEndpoint";
+const char CA_CUSTOM_ENDPOINT_HISTORY[] = "QodeAssist.caCustomEndpointHistory";
 
 const char CC_SPECIFY_PRESET1[] = "QodeAssist.ccSpecifyPreset1";
 const char CC_PRESET1_LANGUAGE[] = "QodeAssist.ccPreset1Language";
@@ -51,6 +57,9 @@ const char CC_PRESET1_MODEL_HISTORY[] = "QodeAssist.ccPreset1ModelHistory";
 const char CC_PRESET1_TEMPLATE[] = "QodeAssist.ccPreset1Template";
 const char CC_PRESET1_URL[] = "QodeAssist.ccPreset1Url";
 const char CC_PRESET1_URL_HISTORY[] = "QodeAssist.ccPreset1UrlHistory";
+const char CC_PRESET1_ENDPOINT_MODE[] = "QodeAssist.caPreset1EndpointMode";
+const char CC_PRESET1_CUSTOM_ENDPOINT[] = "QodeAssist.caPreset1CustomEndpointHistory";
+const char CC_PRESET1_CUSTOM_ENDPOINT_HISTORY[] = "QodeAssist.caPreset1CustomEndpointHistory";
 
 // settings
 const char ENABLE_QODE_ASSIST[] = "QodeAssist.enableQodeAssist";

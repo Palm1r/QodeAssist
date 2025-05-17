@@ -99,8 +99,19 @@ GeneralSettings::GeneralSettings()
     ccSelectTemplate.m_buttonText = TrConstants::SELECT;
 
     initStringAspect(ccUrl, Constants::CC_URL, TrConstants::URL, "http://localhost:11434");
-    ccUrl.setHistoryCompleter(Constants::CC_URL_HISTORY);
+    ccUrl.setHistoryCompleter(Constants::CC_CUSTOM_ENDPOINT_HISTORY);
     ccSetUrl.m_buttonText = TrConstants::SELECT;
+
+    ccEndpointMode.setSettingsKey(Constants::CC_ENDPOINT_MODE);
+    ccEndpointMode.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+    ccEndpointMode.addOption("Auto");
+    ccEndpointMode.addOption("Custom");
+    ccEndpointMode.addOption("FIM");
+    ccEndpointMode.addOption("Chat");
+    ccEndpointMode.setDefaultValue("Auto");
+
+    initStringAspect(ccCustomEndpoint, Constants::CC_CUSTOM_ENDPOINT, TrConstants::ENDPOINT_MODE, "");
+    ccCustomEndpoint.setHistoryCompleter(Constants::CC_CUSTOM_ENDPOINT_HISTORY);
 
     ccStatus.setDisplayStyle(Utils::StringAspect::LabelDisplay);
     ccStatus.setLabelText(TrConstants::STATUS);
@@ -134,6 +145,21 @@ GeneralSettings::GeneralSettings()
     ccPreset1Url.setHistoryCompleter(Constants::CC_PRESET1_URL_HISTORY);
     ccPreset1SetUrl.m_buttonText = TrConstants::SELECT;
 
+    ccPreset1EndpointMode.setSettingsKey(Constants::CC_PRESET1_ENDPOINT_MODE);
+    ccPreset1EndpointMode.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+    ccPreset1EndpointMode.addOption("Auto");
+    ccPreset1EndpointMode.addOption("Custom");
+    ccPreset1EndpointMode.addOption("FIM");
+    ccPreset1EndpointMode.addOption("Chat");
+    ccPreset1EndpointMode.setDefaultValue("Auto");
+
+    initStringAspect(
+        ccPreset1CustomEndpoint,
+        Constants::CC_PRESET1_CUSTOM_ENDPOINT,
+        TrConstants::ENDPOINT_MODE,
+        "");
+    ccPreset1CustomEndpoint.setHistoryCompleter(Constants::CC_PRESET1_CUSTOM_ENDPOINT_HISTORY);
+
     initStringAspect(
         ccPreset1Model, Constants::CC_PRESET1_MODEL, TrConstants::MODEL, "qwen2.5-coder:7b");
     ccPreset1Model.setHistoryCompleter(Constants::CC_PRESET1_MODEL_HISTORY);
@@ -162,6 +188,17 @@ GeneralSettings::GeneralSettings()
     caUrl.setHistoryCompleter(Constants::CA_URL_HISTORY);
     caSetUrl.m_buttonText = TrConstants::SELECT;
 
+    caEndpointMode.setSettingsKey(Constants::CA_ENDPOINT_MODE);
+    caEndpointMode.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+    caEndpointMode.addOption("Auto");
+    caEndpointMode.addOption("Custom");
+    caEndpointMode.addOption("FIM");
+    caEndpointMode.addOption("Chat");
+    caEndpointMode.setDefaultValue("Auto");
+
+    initStringAspect(caCustomEndpoint, Constants::CA_CUSTOM_ENDPOINT, TrConstants::ENDPOINT_MODE, "");
+    caCustomEndpoint.setHistoryCompleter(Constants::CA_CUSTOM_ENDPOINT_HISTORY);
+
     caStatus.setDisplayStyle(Utils::StringAspect::LabelDisplay);
     caStatus.setLabelText(TrConstants::STATUS);
     caStatus.setDefaultValue("");
@@ -179,6 +216,9 @@ GeneralSettings::GeneralSettings()
     setupConnections();
 
     updatePreset1Visiblity(specifyPreset1.value());
+    ccCustomEndpoint.setEnabled(ccEndpointMode.stringValue() == "Custom");
+    ccPreset1CustomEndpoint.setEnabled(ccPreset1EndpointMode.stringValue() == "Custom");
+    caCustomEndpoint.setEnabled(caEndpointMode.stringValue() == "Custom");
 
     setLayouter([this]() {
         using namespace Layouting;
@@ -186,18 +226,21 @@ GeneralSettings::GeneralSettings()
         auto ccGrid = Grid{};
         ccGrid.addRow({ccProvider, ccSelectProvider});
         ccGrid.addRow({ccUrl, ccSetUrl});
+        ccGrid.addRow({ccCustomEndpoint, ccEndpointMode});
         ccGrid.addRow({ccModel, ccSelectModel});
         ccGrid.addRow({ccTemplate, ccSelectTemplate});
 
         auto ccPreset1Grid = Grid{};
         ccPreset1Grid.addRow({ccPreset1Provider, ccPreset1SelectProvider});
         ccPreset1Grid.addRow({ccPreset1Url, ccPreset1SetUrl});
+        ccPreset1Grid.addRow({ccPreset1CustomEndpoint, ccPreset1EndpointMode});
         ccPreset1Grid.addRow({ccPreset1Model, ccPreset1SelectModel});
         ccPreset1Grid.addRow({ccPreset1Template, ccPreset1SelectTemplate});
 
         auto caGrid = Grid{};
         caGrid.addRow({caProvider, caSelectProvider});
         caGrid.addRow({caUrl, caSetUrl});
+        caGrid.addRow({caCustomEndpoint, caEndpointMode});
         caGrid.addRow({caModel, caSelectModel});
         caGrid.addRow({caTemplate, caSelectTemplate});
 
@@ -389,6 +432,8 @@ void GeneralSettings::updatePreset1Visiblity(bool state)
     ccPreset1SelectModel.updateVisibility(specifyPreset1.volatileValue());
     ccPreset1Template.setVisible(specifyPreset1.volatileValue());
     ccPreset1SelectTemplate.updateVisibility(specifyPreset1.volatileValue());
+    ccPreset1EndpointMode.setVisible(specifyPreset1.volatileValue());
+    ccPreset1CustomEndpoint.setVisible(specifyPreset1.volatileValue());
 }
 
 void GeneralSettings::setupConnections()
@@ -403,6 +448,19 @@ void GeneralSettings::setupConnections()
 
     connect(&specifyPreset1, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
         updatePreset1Visiblity(specifyPreset1.volatileValue());
+    });
+    connect(&ccEndpointMode, &Utils::BaseAspect::volatileValueChanged, this, [this]() {
+        ccCustomEndpoint.setEnabled(
+            ccEndpointMode.volatileValue() == ccEndpointMode.indexForDisplay("Custom"));
+    });
+    connect(&ccPreset1EndpointMode, &Utils::BaseAspect::volatileValueChanged, this, [this]() {
+        ccPreset1CustomEndpoint.setEnabled(
+            ccPreset1EndpointMode.volatileValue()
+            == ccPreset1EndpointMode.indexForDisplay("Custom"));
+    });
+    connect(&caEndpointMode, &Utils::BaseAspect::volatileValueChanged, this, [this]() {
+        caCustomEndpoint.setEnabled(
+            caEndpointMode.volatileValue() == caEndpointMode.indexForDisplay("Custom"));
     });
 }
 
