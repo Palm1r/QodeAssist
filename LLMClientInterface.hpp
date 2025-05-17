@@ -77,6 +77,7 @@ private:
 
     LLMCore::ContextData prepareContext(
         const QJsonObject &request, const Context::DocumentInfo &documentInfo);
+    QString endpoint(LLMCore::Provider *provider, LLMCore::TemplateType type, bool isLanguageSpecify);
 
     const Settings::CodeCompletionSettings &m_completeSettings;
     const Settings::GeneralSettings &m_generalSettings;

@@ -54,6 +54,9 @@ public:
     Utils::StringAspect ccUrl{this};
     ButtonAspect ccSetUrl{this};
 
+    Utils::SelectionAspect ccEndpointMode{this};
+    Utils::StringAspect ccCustomEndpoint{this};
+
     Utils::StringAspect ccStatus{this};
     ButtonAspect ccTest{this};
 
@@ -69,6 +72,9 @@ public:
 
     Utils::StringAspect ccPreset1Url{this};
     ButtonAspect ccPreset1SetUrl{this};
+
+    Utils::SelectionAspect ccPreset1EndpointMode{this};
+    Utils::StringAspect ccPreset1CustomEndpoint{this};
 
     Utils::StringAspect ccPreset1Model{this};
     ButtonAspect ccPreset1SelectModel{this};
@@ -88,6 +94,9 @@ public:
 
     Utils::StringAspect caUrl{this};
     ButtonAspect caSetUrl{this};
+
+    Utils::SelectionAspect caEndpointMode{this};
+    Utils::StringAspect caCustomEndpoint{this};
 
     Utils::StringAspect caStatus{this};
     ButtonAspect caTest{this};
