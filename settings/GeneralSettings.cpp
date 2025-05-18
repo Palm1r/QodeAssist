@@ -491,6 +491,12 @@ void GeneralSettings::resetPageToDefaults()
         resetAspect(ccPreset1Model);
         resetAspect(ccPreset1Template);
         resetAspect(ccPreset1Url);
+        resetAspect(ccEndpointMode);
+        resetAspect(ccCustomEndpoint);
+        resetAspect(ccPreset1EndpointMode);
+        resetAspect(ccPreset1CustomEndpoint);
+        resetAspect(caEndpointMode);
+        resetAspect(caCustomEndpoint);
         writeSettings();
     }
 }
