@@ -278,21 +278,16 @@ bool LLMSuggestion::apply()
             QString restOfText = text.mid(firstLineEnd);
             editCursor.insertText(mergedFirstLine + restOfText);
         } else {
-            for (int i = 0; i < toReplace; ++i)
-                editCursor.movePosition(QTextCursor::Down, QTextCursor::KeepAnchor);
+            editCursor.movePosition(QTextCursor::Down, QTextCursor::KeepAnchor, toReplace);
             editCursor.movePosition(QTextCursor::EndOfLine, QTextCursor::KeepAnchor);
 
             QTextCursor lastLineCursor = editCursor;
-            lastLineCursor.setPosition(lastLineCursor.position(), QTextCursor::MoveAnchor);
-            lastLineCursor.movePosition(QTextCursor::StartOfLine, QTextCursor::KeepAnchor);
+            lastLineCursor.select(QTextCursor::LineUnderCursor);
             QString lastExistingLine = lastLineCursor.selectedText();
 
             QString lastSuggestedLine = text.mid(text.lastIndexOf('\n') + 1);
-            qDebug() << lastExistingLine;
-            qDebug() << lastSuggestedLine;
 
             QString tail = existingTailToKeep(lastSuggestedLine, lastExistingLine);
-            qDebug() << tail;
             editCursor.insertText(text + tail);
         }
     } else {
