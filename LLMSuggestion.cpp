@@ -172,18 +172,31 @@ LLMSuggestion::LLMSuggestion(
 
     int cursorPositionInBlock = cursor.positionInBlock();
 
-    QString rightText = blockText.mid(cursorPositionInBlock);
-
+    QString displayText;
     if (!data.text.contains('\n')) {
+        QString rightText = blockText.mid(cursorPositionInBlock);
         QString processedRightText = mergeWithRightText(data.text, rightText);
         processedRightText = processedRightText.mid(data.text.length());
-        QString displayText = blockText.left(cursorPositionInBlock) + data.text
-                              + processedRightText;
-        replacementDocument()->setPlainText(displayText);
+        displayText = blockText.left(cursorPositionInBlock) + data.text + processedRightText;
     } else {
-        QString displayText = blockText.left(cursorPositionInBlock) + data.text;
-        replacementDocument()->setPlainText(displayText);
+        int toReplace = linesToReplace(data.text, cursor);
+        if (toReplace < 2) {
+            displayText = blockText.left(cursorPositionInBlock) + data.text;
+        } else {
+            QTextCursor lastLineCursor = cursor;
+            lastLineCursor.movePosition(QTextCursor::Down, QTextCursor::KeepAnchor, toReplace);
+            lastLineCursor.select(QTextCursor::LineUnderCursor);
+            QString lastExistingLine = lastLineCursor.selectedText();
+
+            QString lastSuggestedLine = data.text.mid(data.text.lastIndexOf('\n') + 1);
+
+            QString tail = existingTailToKeep(lastSuggestedLine, lastExistingLine);
+
+            displayText = blockText.left(cursorPositionInBlock) + data.text + tail
+                          + QString("\n(replaces %1 lines)").arg(toReplace);
+        }
     }
+    replacementDocument()->setPlainText(displayText);
 }
 
 bool LLMSuggestion::applyWord(TextEditor::TextEditorWidget *widget)
