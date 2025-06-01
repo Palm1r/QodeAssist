@@ -17,11 +17,6 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "QodeAssistConstants.hpp"
-#include "QodeAssisttr.h"
-#include "settings/PluginUpdater.hpp"
-#include "settings/UpdateDialog.hpp"
-
 #include <coreplugin/actionmanager/actioncontainer.h>
 #include <coreplugin/actionmanager/actionmanager.h>
 #include <coreplugin/actionmanager/command.h>
@@ -33,36 +28,41 @@
 #include <coreplugin/statusbarmanager.h>
 #include <extensionsystem/iplugin.h>
 #include <languageclient/languageclientmanager.h>
-
+#include <texteditor/textdocument.h>
 #include <texteditor/texteditor.h>
+#include <texteditor/texteditorconstants.h>
 #include <utils/icon.h>
 #include <QAction>
+#include <QInputDialog>
 #include <QMainWindow>
 #include <QMenu>
 #include <QMessageBox>
+#include <QQuickView>
 
 #include "ConfigurationManager.hpp"
 #include "QodeAssistClient.hpp"
+#include "QodeAssistConstants.hpp"
+#include "QodeAssisttr.h"
 #include "UpdateStatusWidget.hpp"
 #include "Version.hpp"
 #include "chat/ChatOutputPane.h"
 #include "chat/NavigationPanel.hpp"
 #include "context/DocumentReaderQtCreator.hpp"
+#include "floweditor/FlowEditor.hpp"
+#include "flows/Flows.hpp"
+#include "flows/tasks/Tasks.hpp"
 #include "llmcore/PromptProviderFim.hpp"
 #include "llmcore/ProvidersManager.hpp"
 #include "logger/RequestPerformanceLogger.hpp"
 #include "providers/Providers.hpp"
 #include "settings/GeneralSettings.hpp"
+#include "settings/PluginUpdater.hpp"
 #include "settings/ProjectSettingsPanel.hpp"
 #include "settings/SettingsConstants.hpp"
+#include "settings/UpdateDialog.hpp"
+#include "tasks/FlowManager.hpp"
 #include "templates/Templates.hpp"
 #include "widgets/QuickRefactorDialog.hpp"
-#include <coreplugin/actionmanager/actioncontainer.h>
-#include <coreplugin/actionmanager/actionmanager.h>
-#include <texteditor/textdocument.h>
-#include <texteditor/texteditor.h>
-#include <texteditor/texteditorconstants.h>
-#include <QInputDialog>
 
 using namespace Utils;
 using namespace Core;
@@ -80,6 +80,7 @@ public:
         : m_updater(new PluginUpdater(this))
         , m_promptProvider(LLMCore::PromptTemplateManager::instance())
         , m_requestHandler(this)
+        , m_flowManager(new FlowManager(this))
     {}
 
     ~QodeAssistPlugin() final
@@ -87,6 +88,7 @@ public:
         delete m_qodeAssistClient;
         delete m_chatOutputPane;
         delete m_navigationPanel;
+        m_flowEditorView->deleteLater();
     }
 
     void initialize() final
@@ -100,9 +102,28 @@ public:
 
         Providers::registerProviders();
         Templates::registerTemplates();
+        Flows::Tasks::registerTasks(m_flowManager);
+        Flows::registerFlows(m_flowManager);
 
         Utils::Icon QCODEASSIST_ICON(
             {{":/resources/images/qoderassist-icon.png", Utils::Theme::IconsBaseColor}});
+
+        m_flowEditorView = new QQuickView();
+        m_flowEditorView->setResizeMode(QQuickView::SizeRootObjectToView);
+        m_flowEditorView->setSource(QUrl("qrc:/qt/qml/FlowEditor/qml/FlowEditorView.qml"));
+
+        auto *flowEditor = qobject_cast<FlowEditor::FlowEditor *>(m_flowEditorView->rootObject());
+        if (flowEditor) {
+            flowEditor->setFlowManager(m_flowManager);
+        }
+
+        ActionBuilder openFlowEditorAction(this, Constants::QODE_ASSIST_OPEN_FLOW_EDITOR);
+        const QKeySequence openFlowEditorShortcut = QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_F);
+        openFlowEditorAction.setDefaultKeySequence(openFlowEditorShortcut);
+        openFlowEditorAction.setToolTip(Tr::tr("Open the QodeAssist Flow Editor."));
+        openFlowEditorAction.setText(Tr::tr("Open Flow Editor"));
+        openFlowEditorAction.setIcon(QCODEASSIST_ICON.icon());
+        openFlowEditorAction.addOnTriggered(this, [this] { m_flowEditorView->show(); });
 
         ActionBuilder requestAction(this, Constants::QODE_ASSIST_REQUEST_SUGGESTION);
         requestAction.setToolTip(
@@ -150,8 +171,8 @@ public:
         quickRefactorAction.addOnTriggered(this, [this] {
             if (auto editor = TextEditor::TextEditorWidget::currentTextEditorWidget()) {
                 if (m_qodeAssistClient && m_qodeAssistClient->reachable()) {
-                    QuickRefactorDialog
-                        dialog(Core::ICore::dialogParent(), m_lastRefactorInstructions);
+                    QuickRefactorDialog dialog(
+                        m_flowManager, Core::ICore::dialogParent(), m_lastRefactorInstructions);
 
                     if (dialog.exec() == QDialog::Accepted) {
                         QString instructions = dialog.instructions();
@@ -174,6 +195,8 @@ public:
             editorContextMenu
                 ->addAction(quickRefactorAction.command(), Core::Constants::G_DEFAULT_THREE);
             editorContextMenu->addAction(requestAction.command(), Core::Constants::G_DEFAULT_THREE);
+            editorContextMenu
+                ->addAction(openFlowEditorAction.command(), Core::Constants::G_DEFAULT_THREE);
         }
     }
 
@@ -237,6 +260,8 @@ private:
     QPointer<PluginUpdater> m_updater;
     UpdateStatusWidget *m_statusWidget{nullptr};
     QString m_lastRefactorInstructions;
+    QPointer<QQuickView> m_flowEditorView;
+    QPointer<FlowManager> m_flowManager;
 };
 
 } // namespace QodeAssist::Internal

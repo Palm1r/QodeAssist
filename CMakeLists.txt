@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.16)
 
 project(QodeAssist)
 
+set(GTest_ROOT "/opt/homebrew/lib/cmake/GTest")
+list(APPEND CMAKE_PREFIX_PATH "/Users/palm1r/Qt/Qt Creator.app/Contents/Resources/lib/cmake/QtCreator")
+
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
@@ -37,6 +40,8 @@ add_subdirectory(settings)
 add_subdirectory(logger)
 add_subdirectory(ChatView)
 add_subdirectory(context)
+add_subdirectory(tasks)
+add_subdirectory(floweditor)
 if(GTest_FOUND)
   add_subdirectory(test)
 endif()
@@ -56,6 +61,8 @@ add_qtc_plugin(QodeAssist
     QtCreator::ExtensionSystem
     QtCreator::Utils
     QodeAssistChatViewplugin
+    TaskManagement
+    QodeAssistFlowEditorplugin
   SOURCES
     .github/workflows/build_cmake.yml
     .github/workflows/README.md
@@ -93,6 +100,11 @@ add_qtc_plugin(QodeAssist
     providers/GoogleAIProvider.hpp providers/GoogleAIProvider.cpp
     providers/LlamaCppProvider.hpp providers/LlamaCppProvider.cpp
     providers/CodestralProvider.hpp providers/CodestralProvider.cpp
+    flows/Flows.hpp
+    flows/tasks/Tasks.hpp
+    flows/tasks/SimpleTextTask.hpp flows/tasks/SimpleTextTask.cpp
+    flows/tasks/DemoTasks.hpp flows/tasks/DemoTasks.cpp
+    flows/tasks/SimpleLLMTask.hpp flows/tasks/SimpleLLMTask.cpp
     QodeAssist.qrc
     LSPCompletion.hpp
     LLMSuggestion.hpp LLMSuggestion.cpp
@@ -108,6 +120,11 @@ add_qtc_plugin(QodeAssist
     widgets/EditorChatButtonHandler.hpp widgets/EditorChatButtonHandler.cpp
     widgets/QuickRefactorDialog.hpp widgets/QuickRefactorDialog.cpp
     QuickRefactorHandler.hpp QuickRefactorHandler.cpp
+)
+
+target_sources(QodeAssist
+  PRIVATE
+  flows/TestFileFlow.hpp
 )
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)

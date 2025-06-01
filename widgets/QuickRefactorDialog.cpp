@@ -18,27 +18,45 @@
  */
 
 #include "QuickRefactorDialog.hpp"
+#include "FlowRegistry.hpp"
 #include "QodeAssisttr.h"
 
 #include <QApplication>
 #include <QDialogButtonBox>
+#include <QDir>
 #include <QFontMetrics>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPlainTextEdit>
 #include <QScreen>
+#include <QStandardPaths>
 #include <QTimer>
 #include <QToolButton>
 #include <QVBoxLayout>
 
+#include "logger/Logger.hpp"
+#include "tasks/BaseTask.hpp"
+// #include "tasks/DemoTasks.hpp"
+// #include "tasks/SimpleLLMTask.hpp"
+#include <coreplugin/icore.h>
+#include <llmcore/PromptTemplateManager.hpp>
+#include <llmcore/ProvidersManager.hpp>
+#include <llmcore/RequestHandler.hpp>
+#include <settings/ChatAssistantSettings.hpp>
+#include <settings/GeneralSettings.hpp>
 #include <utils/theme/theme.h>
 #include <utils/utilsicons.h>
+#include <QFutureWatcher>
+#include <QQuickView>
+#include <QUuid>
 
 namespace QodeAssist {
 
-QuickRefactorDialog::QuickRefactorDialog(QWidget *parent, const QString &lastInstructions)
+QuickRefactorDialog::QuickRefactorDialog(
+    FlowManager *flowManager, QWidget *parent, const QString &lastInstructions)
     : QDialog(parent)
     , m_lastInstructions(lastInstructions)
+    , m_flowManager(flowManager)
 {
     setWindowTitle(Tr::tr("Quick Refactor"));
     setupUi();
@@ -46,6 +64,10 @@ QuickRefactorDialog::QuickRefactorDialog(QWidget *parent, const QString &lastIns
     QTimer::singleShot(0, this, &QuickRefactorDialog::updateDialogSize);
     m_textEdit->installEventFilter(this);
     updateDialogSize();
+}
+
+QuickRefactorDialog::~QuickRefactorDialog()
+{
 }
 
 void QuickRefactorDialog::setupUi()
@@ -60,6 +82,7 @@ void QuickRefactorDialog::setupUi()
     actionsLayout->addWidget(m_repeatButton);
     actionsLayout->addWidget(m_improveButton);
     actionsLayout->addWidget(m_alternativeButton);
+    actionsLayout->addWidget(m_runTasksButton);
     actionsLayout->addStretch();
     mainLayout->addLayout(actionsLayout);
 
@@ -70,7 +93,7 @@ void QuickRefactorDialog::setupUi()
     m_textEdit->setMinimumHeight(100);
     m_textEdit->setPlaceholderText(Tr::tr("Type your refactoring instructions here..."));
 
-    connect(m_textEdit, &QPlainTextEdit::textChanged, this, &QuickRefactorDialog::updateDialogSize);
+    connect(m_textEdit, &QPlainTextEdit::textChanged, this, &QuickRefactorDialog::onTextChanged);
 
     mainLayout->addWidget(m_textEdit);
 
@@ -109,6 +132,11 @@ void QuickRefactorDialog::createActionButtons()
         &QToolButton::clicked,
         this,
         &QuickRefactorDialog::useAlternativeSolutionTemplate);
+
+    m_runTasksButton = new QToolButton(this);
+    m_runTasksButton->setText("Run Tasks");
+    m_runTasksButton->setToolTip(Tr::tr("Test Task System"));
+    connect(m_runTasksButton, &QToolButton::clicked, this, &QuickRefactorDialog::onRunTasksClicked);
 }
 
 QString QuickRefactorDialog::instructions() const
@@ -124,22 +152,6 @@ void QuickRefactorDialog::setInstructions(const QString &instructions)
 QuickRefactorDialog::Action QuickRefactorDialog::selectedAction() const
 {
     return m_selectedAction;
-}
-
-bool QuickRefactorDialog::eventFilter(QObject *watched, QEvent *event)
-{
-    if (watched == m_textEdit && event->type() == QEvent::KeyPress) {
-        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
-        if (keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter) {
-            if (keyEvent->modifiers() & Qt::ShiftModifier) {
-                return false;
-            }
-
-            accept();
-            return true;
-        }
-    }
-    return QDialog::eventFilter(watched, event);
 }
 
 void QuickRefactorDialog::useLastInstructions()
@@ -212,6 +224,42 @@ void QuickRefactorDialog::updateDialogSize()
     newHeight = qMin(newHeight, screenGeometry.height() * 3 / 4);
 
     resize(newWidth, newHeight);
+}
+
+QString QuickRefactorDialog::getFlowsFilePath() const
+{
+    QString configDir
+        = QString("%1/qodeassist/flows").arg(Core::ICore::userResourcePath().toFSPathString());
+    QDir().mkpath(configDir);
+    return QDir(configDir).filePath("flows.json");
+}
+
+void QuickRefactorDialog::onRunTasksClicked()
+{
+    LOG_MESSAGE("Executing flow using FlowManager...");
+
+    Flow *demoFlow = m_flowManager->flowRegistry()->createFlow("TestFileFlow", m_flowManager);
+
+    LOG_MESSAGE("Starting demo flow execution...");
+
+    QFuture<FlowState> future = demoFlow->executeAsync();
+
+    // Можно использовать watcher для асинхронного выполнения
+    QFutureWatcher<FlowState> *watcher = new QFutureWatcher<FlowState>(this);
+    connect(watcher, &QFutureWatcher<FlowState>::finished, [this, watcher]() {
+        FlowState result = watcher->result();
+        LOG_MESSAGE(
+            QString("Demo flow finished with state: %1").arg(Flow::flowStateAsString(result)));
+        watcher->deleteLater();
+    });
+    watcher->setFuture(future);
+
+    LOG_MESSAGE("Flow execution started asynchronously from FlowManager...");
+}
+
+void QuickRefactorDialog::onTextChanged()
+{
+    updateDialogSize();
 }
 
 } // namespace QodeAssist

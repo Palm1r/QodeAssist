@@ -19,8 +19,11 @@
 
 #pragma once
 
+#include "tasks/Flow.hpp"
+#include "tasks/FlowManager.hpp"
 #include <QDialog>
 #include <QString>
+#include <QtWidgets/qapplication.h>
 
 class QPlainTextEdit;
 class QToolButton;
@@ -36,25 +39,28 @@ public:
     enum class Action { Custom, RepeatLast, ImproveCode, AlternativeSolution };
 
     explicit QuickRefactorDialog(
-        QWidget *parent = nullptr, const QString &lastInstructions = QString());
-    ~QuickRefactorDialog() override = default;
+        FlowManager *flowManager,
+        QWidget *parent = nullptr,
+        const QString &lastInstructions = QString());
+    ~QuickRefactorDialog() override;
 
     QString instructions() const;
     void setInstructions(const QString &instructions);
 
     Action selectedAction() const;
 
-    bool eventFilter(QObject *watched, QEvent *event) override;
-
 private slots:
     void useLastInstructions();
     void useImproveCodeTemplate();
     void useAlternativeSolutionTemplate();
     void updateDialogSize();
+    void onRunTasksClicked();
+    void onTextChanged();
 
 private:
     void setupUi();
     void createActionButtons();
+    QString getFlowsFilePath() const;
 
     QPlainTextEdit *m_textEdit;
     QToolButton *m_repeatButton;
@@ -64,6 +70,9 @@ private:
 
     Action m_selectedAction = Action::Custom;
     QString m_lastInstructions;
+    QToolButton *m_runTasksButton;
+
+    FlowManager *m_flowManager;
 };
 
 } // namespace QodeAssist

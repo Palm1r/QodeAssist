@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2024-2025 Petr Mironychev
+/*
+ * Copyright (C) 2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -19,12 +19,34 @@
 
 #pragma once
 
-namespace QodeAssist::Constants {
+#include "BaseTask.hpp"
 
-const char ACTION_ID[] = "QodeAssist.Action";
-const char MENU_ID[] = "QodeAssist.Menu";
+namespace QodeAssist {
 
-const char QODE_ASSIST_REQUEST_SUGGESTION[] = "QodeAssist.RequestSuggestion";
-const char QODE_ASSIST_OPEN_FLOW_EDITOR[] = "QodeAssist.OpenFlowEditor";
+class Task1 : public BaseTask
+{
+    Q_OBJECT
 
-} // namespace QodeAssist::Constants
+public:
+    explicit Task1(QObject *parent = nullptr);
+
+    QJsonObject toJson() const override;
+    bool fromJson(const QJsonObject &json) override;
+
+    TaskState execute() override;
+};
+
+class Task2 : public BaseTask
+{
+    Q_OBJECT
+
+public:
+    explicit Task2(QObject *parent = nullptr);
+
+    QJsonObject toJson() const override;
+    bool fromJson(const QJsonObject &json) override;
+
+    TaskState execute() override;
+};
+
+} // namespace QodeAssist
