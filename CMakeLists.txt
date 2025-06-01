@@ -37,6 +37,8 @@ add_subdirectory(settings)
 add_subdirectory(logger)
 add_subdirectory(ChatView)
 add_subdirectory(context)
+add_subdirectory(tasks)
+add_subdirectory(floweditor)
 if(GTest_FOUND)
   add_subdirectory(test)
 endif()
@@ -56,6 +58,8 @@ add_qtc_plugin(QodeAssist
     QtCreator::ExtensionSystem
     QtCreator::Utils
     QodeAssistChatViewplugin
+    TaskManagement
+    QodeAssistFlowEditorplugin
   SOURCES
     .github/workflows/build_cmake.yml
     .github/workflows/README.md
