@@ -21,9 +21,9 @@
 #include <QString>
 #include <QVariant>
 
-namespace QodeAssist {
+#include "TaskConnection.hpp"
 
-class TaskConnection;
+namespace QodeAssist {
 
 class TaskPort
 {

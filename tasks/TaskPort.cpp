@@ -18,7 +18,6 @@
  */
 
 #include "TaskPort.hpp"
-#include "TaskConnection.hpp"
 
 namespace QodeAssist {
 

@@ -18,9 +18,12 @@
  */
 
 #include "TaskConnection.hpp"
-#include "BaseTask.hpp"
+
 #include <QJsonObject>
 #include <QStringList>
+
+#include "BaseTask.hpp"
+#include "TaskPort.hpp"
 
 namespace QodeAssist {
 
