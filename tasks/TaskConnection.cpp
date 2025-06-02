@@ -19,6 +19,7 @@
 
 #include "TaskConnection.hpp"
 #include "BaseTask.hpp"
+#include "TaskPort.hpp"
 #include <QJsonObject>
 #include <QStringList>
 

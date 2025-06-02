@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include "TaskPort.hpp"
 #include <QString>
 #include <QVariantMap>
 

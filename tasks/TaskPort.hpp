@@ -18,12 +18,11 @@
  */
 
 #pragma once
+#include "TaskConnection.hpp"
 #include <QString>
 #include <QVariant>
 
 namespace QodeAssist {
-
-class TaskConnection;
 
 class TaskPort
 {
