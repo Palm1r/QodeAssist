@@ -46,12 +46,12 @@ jobs:
           }
         qt_config:
         - {
-            qt_version: "6.8.3",
-            qt_creator_version: "16.0.2"
+            qt_version: "6.9.1",
+            qt_creator_version: "17.0.0"
           }
         - {
             qt_version: "6.8.3",
-            qt_creator_version: "16.0.1"
+            qt_creator_version: "16.0.2"
           }
 
     steps:
@@ -125,7 +125,11 @@ jobs:
           set(url_os "mac_x64")
           set(qt_package_arch_suffix "clang_64")
           set(qt_dir_prefix "${qt_version}/macos")
-          set(qt_package_suffix "-MacOS-MacOS_14-Clang-MacOS-MacOS_14-X86_64-ARM64")
+          if (qt_version VERSION_LESS "6.9.1")
+            set(qt_package_suffix "-MacOS-MacOS_14-Clang-MacOS-MacOS_14-X86_64-ARM64")
+          else()
+            set(qt_package_suffix "-MacOS-MacOS_15-Clang-MacOS-MacOS_15-X86_64-ARM64")
+          endif()
         endif()
 
         set(qt_base_url "https://download.qt.io/online/qtsdkrepository/${url_os}/desktop/qt6_${qt_version_dotless}/qt6_${qt_version_dotless}")
