@@ -131,16 +131,21 @@ bool LLMSuggestion::applyPart(Part part, TextEditor::TextEditorWidget *widget)
         return false;
     }
 
-    QTextBlock currentBlock = currentCursor.block();
-    QString textAfterCursor = currentBlock.text().mid(currentCursor.positionInBlock());
-
     if (!subText.contains('\n')) {
-        QTextCursor deleteCursor = currentCursor;
-        deleteCursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
-        deleteCursor.removeSelectedText();
+        currentCursor.insertText(subText);
 
-        QString mergedText = mergeWithRightText(subText, textAfterCursor);
-        currentCursor.insertText(mergedText);
+        const QString remainingText = text.mid(next);
+        if (!remainingText.isEmpty()) {
+            QTextCursor newCursor = widget->textCursor();
+            const Utils::Text::Position newStart = Utils::Text::Position::fromPositionInDocument(
+                newCursor.document(), newCursor.position());
+            const Utils::Text::Position
+                newEnd{newStart.line, newStart.column + int(remainingText.length())};
+            const Utils::Text::Range newRange{newStart, newEnd};
+            const QList<Data> newSuggestion{{newRange, newStart, remainingText}};
+            widget->insertSuggestion(
+                std::make_unique<LLMSuggestion>(newSuggestion, widget->document(), 0));
+        }
     } else {
         currentCursor.insertText(subText);
 
