@@ -40,6 +40,7 @@
 #include <QMainWindow>
 #include <QMenu>
 #include <QMessageBox>
+#include <QTranslator>
 
 #include "ConfigurationManager.hpp"
 #include "QodeAssistClient.hpp"
@@ -89,6 +90,23 @@ public:
         delete m_navigationPanel;
     }
 
+    void loadTranslations()
+    {
+        const QString langId = Core::ICore::userInterfaceLanguage();
+
+        QTranslator *translator = new QTranslator(qApp);
+        QString resourcePath = QString(":/translations/QodeAssist_%1.qm").arg(langId);
+
+        bool success = translator->load(resourcePath);
+        if (success) {
+            qApp->installTranslator(translator);
+            qDebug() << "Loaded translation from resources:" << resourcePath;
+        } else {
+            delete translator;
+            qDebug() << "No translation found for language:" << langId;
+        }
+    }
+
     void initialize() final
     {
 #if QODEASSIST_QT_CREATOR_VERSION >= QT_VERSION_CHECK(15, 0, 83)
@@ -97,6 +115,7 @@ public:
             Constants::QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY,
             ":/resources/images/qoderassist-icon.png");
 #endif
+        loadTranslations();
 
         Providers::registerProviders();
         Templates::registerTemplates();

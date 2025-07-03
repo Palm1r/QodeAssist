@@ -11,8 +11,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_package(QtCreator REQUIRED COMPONENTS Core)
-find_package(Qt6 COMPONENTS Core Gui Quick Widgets Network Test REQUIRED)
+find_package(Qt6 COMPONENTS Core Gui Quick Widgets Network Test LinguistTools REQUIRED)
 find_package(GTest)
+
+qt_standard_project_setup(I18N_TRANSLATED_LANGUAGES en)
 
 # IDE_VERSION is defined by QtCreator package
 string(REGEX MATCH "([0-9]+)\\.([0-9]+)\\.([0-9]+)" version_match ${IDE_VERSION})
@@ -126,3 +128,9 @@ if (QtCreatorExecutable)
   )
   set_target_properties(RunQtCreator PROPERTIES FOLDER "qtc_runnable")
 endif()
+
+qt_add_translations(TARGETS QodeAssist
+          TS_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/resources/translations
+          RESOURCE_PREFIX "/translations"
+          LUPDATE_OPTIONS -no-obsolete
+)
