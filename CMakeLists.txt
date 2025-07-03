@@ -129,8 +129,9 @@ if (QtCreatorExecutable)
   set_target_properties(RunQtCreator PROPERTIES FOLDER "qtc_runnable")
 endif()
 
+#TODO change to TS_OUTPUT_DIRECTORY after removing Qt6.8
 qt_add_translations(TARGETS QodeAssist
-          TS_OUTPUT_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/resources/translations
+          TS_FILE_DIR ${CMAKE_CURRENT_LIST_DIR}/resources/translations
           RESOURCE_PREFIX "/translations"
           LUPDATE_OPTIONS -no-obsolete
 )
