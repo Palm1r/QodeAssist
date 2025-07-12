@@ -18,11 +18,11 @@
  */
 
 #include "GridBackground.hpp"
-#include <QSGSimpleRectNode>
-#include <QSGSimpleTextureNode>
-#include <QQuickWindow>
 #include <QPainter>
 #include <QPixmap>
+#include <QQuickWindow>
+#include <QSGSimpleRectNode>
+#include <QSGSimpleTextureNode>
 
 namespace QodeAssist::TaskFlow {
 
