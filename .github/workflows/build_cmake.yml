@@ -49,6 +49,10 @@ jobs:
             qt_version: "6.9.1",
             qt_creator_version: "17.0.0"
           }
+        - {
+            qt_version: "6.8.3",
+            qt_creator_version: "16.0.2"
+          }
 
     steps:
     - uses: actions/checkout@v4
