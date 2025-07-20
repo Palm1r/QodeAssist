@@ -64,22 +64,24 @@ void BaseTask::addOutputPort(const QString &name)
 
 TaskPort *BaseTask::inputPort(const QString &name) const
 {
-    for (TaskPort *port : m_inputs) {
-        if (port->name() == name) {
-            return port;
-        }
-    }
-    return nullptr;
+    QMutexLocker locker(&m_tasksMutex);
+
+    auto it = std::find_if(m_inputs.begin(), m_inputs.end(), [&name](const TaskPort *port) {
+        return port->name() == name;
+    });
+
+    return (it != m_inputs.end()) ? *it : nullptr;
 }
 
 TaskPort *BaseTask::outputPort(const QString &name) const
 {
-    for (TaskPort *port : m_outputs) {
-        if (port->name() == name) {
-            return port;
-        }
-    }
-    return nullptr;
+    QMutexLocker locker(&m_tasksMutex);
+
+    auto it = std::find_if(m_outputs.begin(), m_outputs.end(), [&name](const TaskPort *port) {
+        return port->name() == name;
+    });
+
+    return (it != m_outputs.end()) ? *it : nullptr;
 }
 
 QList<TaskPort *> BaseTask::getInputPorts() const

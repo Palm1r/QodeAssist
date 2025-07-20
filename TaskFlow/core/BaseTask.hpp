@@ -51,10 +51,12 @@ public:
     QList<TaskPort *> getInputPorts() const;
     QList<TaskPort *> getOutputPorts() const;
 
-    QFuture<TaskState> executeAsync();
     virtual TaskState execute() = 0;
 
     static QString taskStateAsString(TaskState state);
+
+protected:
+    QFuture<TaskState> executeAsync();
 
 private:
     QString m_taskId;
