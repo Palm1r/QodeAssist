@@ -75,7 +75,7 @@ add_qtc_plugin(QodeAssist
     templates/StarCoder2Fim.hpp
     # templates/DeepSeekCoderFim.hpp
     # templates/CustomFimTemplate.hpp
-    templates/Qwen.hpp
+    templates/Qwen2CoderFIM.hpp
     templates/OpenAICompatible.hpp
     templates/Llama3.hpp
     templates/ChatML.hpp
@@ -84,6 +84,7 @@ add_qtc_plugin(QodeAssist
     templates/CodeLlamaQMLFim.hpp
     templates/GoogleAI.hpp
     templates/LlamaCppFim.hpp
+    templates/Qwen3CoderFIM.hpp
     providers/Providers.hpp
     providers/OllamaProvider.hpp providers/OllamaProvider.cpp
     providers/ClaudeProvider.hpp providers/ClaudeProvider.cpp

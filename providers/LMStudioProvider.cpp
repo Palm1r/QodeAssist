@@ -45,7 +45,7 @@ QString LMStudioProvider::url() const
 
 QString LMStudioProvider::completionEndpoint() const
 {
-    return "/v1/chat/completions";
+    return "/v1/completions";
 }
 
 QString LMStudioProvider::chatEndpoint() const
