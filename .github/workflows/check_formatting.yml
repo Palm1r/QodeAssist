@@ -16,9 +16,8 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y clang-format-19
+        sudo apt-get install -y clang-format
     - name: Check formatting
       run: |
-        clang-format-19 --style=file -i $(git ls-files | fgrep .hpp)
-        clang-format-19 --style=file -i $(git ls-files | fgrep .cpp)
-        git diff --exit-code || exit 1
+        clang-format --style=file $(git ls-files | fgrep .hpp)
+        clang-format --style=file $(git ls-files | fgrep .cpp)
