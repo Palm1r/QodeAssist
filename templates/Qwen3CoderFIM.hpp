@@ -29,7 +29,7 @@ class Qwen3CoderFIM : public LLMCore::PromptTemplate
 {
 public:
     QString name() const override { return "Qwen3 Coder FIM"; }
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
+    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::FIMOnChat; }
     QStringList stopWords() const override { return QStringList() << "<|im_end|>"; }
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
     {
