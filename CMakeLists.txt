@@ -60,7 +60,6 @@ add_qtc_plugin(QodeAssist
     QodeAssistChatViewplugin
   SOURCES
     .github/workflows/build_cmake.yml
-    .github/workflows/check_formatting.yml
     .github/workflows/README.md
     README.md
     qodeassist.cpp
