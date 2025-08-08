@@ -40,6 +40,9 @@ public:
         QString name = template_ptr->name();
         m_fimTemplates[name] = template_ptr;
         if (template_ptr->type() == TemplateType::Chat) {
+            if (name == "Qwen3 Coder FIM")
+                return;
+
             m_chatTemplates[name] = template_ptr;
         }
     }

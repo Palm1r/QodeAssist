@@ -348,7 +348,7 @@ void LLMClientInterface::sendCompletionToClient(
     LOG_MESSAGE(QString("Completions before filter: \n%1").arg(completion));
 
     QString processedCompletion
-        = promptTemplate->type() == LLMCore::TemplateType::Chat
+        = (promptTemplate->type() != LLMCore::TemplateType::FIM)
                   && m_completeSettings.smartProcessInstuctText()
               ? CodeHandler::processText(completion, Context::extractFilePathFromRequest(request))
               : completion;
