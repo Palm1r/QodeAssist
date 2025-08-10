@@ -42,6 +42,7 @@
 #include <QMessageBox>
 #include <QTranslator>
 
+#include <QInputDialog>
 #include "ConfigurationManager.hpp"
 #include "QodeAssistClient.hpp"
 #include "UpdateStatusWidget.hpp"
@@ -53,17 +54,18 @@
 #include "llmcore/ProvidersManager.hpp"
 #include "logger/RequestPerformanceLogger.hpp"
 #include "providers/Providers.hpp"
+#include "settings/ChatAssistantSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProjectSettingsPanel.hpp"
 #include "settings/SettingsConstants.hpp"
 #include "templates/Templates.hpp"
 #include "widgets/QuickRefactorDialog.hpp"
+#include <ChatView/ChatView.hpp>
 #include <coreplugin/actionmanager/actioncontainer.h>
 #include <coreplugin/actionmanager/actionmanager.h>
 #include <texteditor/textdocument.h>
 #include <texteditor/texteditor.h>
 #include <texteditor/texteditorconstants.h>
-#include <QInputDialog>
 
 using namespace Utils;
 using namespace Core;
@@ -86,8 +88,12 @@ public:
     ~QodeAssistPlugin() final
     {
         delete m_qodeAssistClient;
-        delete m_chatOutputPane;
-        delete m_navigationPanel;
+        if (m_chatOutputPane) {
+            delete m_chatOutputPane;
+        }
+        if (m_navigationPanel) {
+            delete m_navigationPanel;
+        }
     }
 
     void loadTranslations()
@@ -120,6 +126,8 @@ public:
         Providers::registerProviders();
         Templates::registerTemplates();
 
+        m_chatView.reset(new Chat::ChatView());
+
         Utils::Icon QCODEASSIST_ICON(
             {{":/resources/images/qoderassist-icon.png", Utils::Theme::IconsBaseColor}});
 
@@ -148,8 +156,10 @@ public:
             UpdateDialog::checkForUpdatesAndShow(Core::ICore::mainWindow());
         });
 
-        if (Settings::generalSettings().enableChat()) {
+        if (Settings::chatAssistantSettings().enableChatInBottomToolBar()) {
             m_chatOutputPane = new Chat::ChatOutputPane(this);
+        }
+        if (Settings::chatAssistantSettings().enableChatInNavigationPanel()) {
             m_navigationPanel = new Chat::NavigationPanel();
         }
 
@@ -256,6 +266,7 @@ private:
     QPointer<PluginUpdater> m_updater;
     UpdateStatusWidget *m_statusWidget{nullptr};
     QString m_lastRefactorInstructions;
+    QScopedPointer<Chat::ChatView> m_chatView;
 };
 
 } // namespace QodeAssist::Internal

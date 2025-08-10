@@ -19,6 +19,7 @@
 
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls
 import ChatView
 
 Rectangle {
@@ -30,6 +31,7 @@ Rectangle {
     property alias tokensBadge: tokensBadgeId
     property alias recentPath: recentPathId
     property alias openChatHistory: openChatHistoryId
+    property alias pinButton: pinButtonId
 
     color: palette.window.hslLightness > 0.5 ?
                Qt.darker(palette.window, 1.1) :
@@ -45,6 +47,13 @@ Rectangle {
         }
 
         spacing: 10
+
+        CheckBox {
+            id: pinButtonId
+
+            text: qsTr("Pin")
+            checkable: true
+        }
 
         QoAButton {
             id: saveButtonId

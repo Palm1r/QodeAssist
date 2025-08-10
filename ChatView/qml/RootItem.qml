@@ -76,6 +76,11 @@ ChatRootView {
                 text: qsTr("Latest chat file name: %1").arg(root.chatFileName.length > 0 ? root.chatFileName : "Unsaved")
             }
             openChatHistory.onClicked: root.openChatHistoryFolder()
+            pinButton {
+                visible: typeof _chatview !== 'undefined'
+                checked: typeof _chatview !== 'undefined' ? _chatview.isPin : false
+                onCheckedChanged: _chatview.isPin = topBar.pinButton.checked
+            }
         }
 
         ListView {
