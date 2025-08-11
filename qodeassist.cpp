@@ -126,8 +126,6 @@ public:
         Providers::registerProviders();
         Templates::registerTemplates();
 
-        m_chatView.reset(new Chat::ChatView());
-
         Utils::Icon QCODEASSIST_ICON(
             {{":/resources/images/qoderassist-icon.png", Utils::Theme::IconsBaseColor}});
 
@@ -196,6 +194,34 @@ public:
             }
         });
 
+        ActionBuilder showChatViewAction(this, "QodeAssist.ShowChatView");
+        const QKeySequence showChatViewShortcut = QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_W);
+        showChatViewAction.setDefaultKeySequence(showChatViewShortcut);
+        showChatViewAction.setToolTip(Tr::tr("Show QodeAssist Chat"));
+        showChatViewAction.setText(Tr::tr("Show QodeAssist Chat"));
+        showChatViewAction.setIcon(QCODEASSIST_ICON.icon());
+        showChatViewAction.addOnTriggered(this, [this] {
+            if (!m_chatView->isVisible()) {
+                m_chatView->show();
+            }
+
+            m_chatView->raise();
+            m_chatView->requestActivate();
+        });
+        m_statusWidget->setChatButtonAction(showChatViewAction.contextAction());
+
+        ActionBuilder closeChatViewAction(this, "QodeAssist.CloseChatView");
+        const QKeySequence closeChatViewShortcut = QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_S);
+        closeChatViewAction.setDefaultKeySequence(closeChatViewShortcut);
+        closeChatViewAction.setToolTip(Tr::tr("Close QodeAssist Chat"));
+        closeChatViewAction.setText(Tr::tr("Close QodeAssist Chat"));
+        closeChatViewAction.setIcon(QCODEASSIST_ICON.icon());
+        closeChatViewAction.addOnTriggered(this, [this] {
+            if (m_chatView->isVisible()) {
+                m_chatView->close();
+            }
+        });
+
         Core::ActionContainer *editorContextMenu = Core::ActionManager::actionContainer(
             TextEditor::Constants::M_STANDARDCONTEXTMENU);
         if (editorContextMenu) {
@@ -203,10 +229,14 @@ public:
             editorContextMenu
                 ->addAction(quickRefactorAction.command(), Core::Constants::G_DEFAULT_THREE);
             editorContextMenu->addAction(requestAction.command(), Core::Constants::G_DEFAULT_THREE);
+            editorContextMenu->addAction(showChatViewAction.command(),
+                                         Core::Constants::G_DEFAULT_THREE);
+            editorContextMenu->addAction(closeChatViewAction.command(),
+                                         Core::Constants::G_DEFAULT_THREE);
         }
     }
 
-    void extensionsInitialized() final {}
+    void extensionsInitialized() final { m_chatView.reset(new Chat::ChatView()); }
 
     void restartClient()
     {

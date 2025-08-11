@@ -36,11 +36,13 @@ public:
     void setDefaultAction(QAction *action);
     void showUpdateAvailable(const QString &version);
     void hideUpdateInfo();
+    void setChatButtonAction(QAction *action);
 
     QPushButton *updateButton() const;
 
 private:
     QToolButton *m_actionButton;
+    QToolButton *m_chatButton;
     QLabel *m_versionLabel;
     QPushButton *m_updateButton;
 };

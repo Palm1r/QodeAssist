@@ -24,6 +24,7 @@
 #include <QSettings>
 #include <QVariantMap>
 
+#include <coreplugin/actionmanager/actionmanager.h>
 #include <logger/Logger.hpp>
 
 namespace {
@@ -43,6 +44,17 @@ ChatView::ChatView()
     setResizeMode(QQuickView::SizeRootObjectToView);
     setMinimumSize({400, 300});
     setFlags(baseFlags);
+
+    if (auto action = Core::ActionManager::command("QodeAssist.CloseChatView")) {
+        m_closeShortcut = new QShortcut(action->keySequence(), this);
+        connect(m_closeShortcut, &QShortcut::activated, this, &QQuickView::close);
+
+        connect(action, &Core::Command::keySequenceChanged, this, [action, this]() {
+            if (m_closeShortcut) {
+                m_closeShortcut->setKey(action->keySequence());
+            }
+        });
+    }
 
     restoreSettings();
 }

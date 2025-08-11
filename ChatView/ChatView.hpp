@@ -20,6 +20,7 @@
 #pragma once
 
 #include <QQuickView>
+#include <QShortcut>
 
 namespace QodeAssist::Chat {
 
@@ -44,6 +45,7 @@ private:
     void restoreSettings();
 
     bool m_isPin;
+    QShortcut *m_closeShortcut;
 };
 
 } // namespace QodeAssist::Chat
