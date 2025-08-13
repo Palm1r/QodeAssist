@@ -48,29 +48,56 @@ Rectangle {
 
         spacing: 10
 
-        CheckBox {
+        QoAButton {
             id: pinButtonId
 
-            text: qsTr("Pin")
             checkable: true
+
+            icon {
+                source: checked ? "qrc:/qt/qml/ChatView/icons/window-lock-v2.svg"
+                                : "qrc:/qt/qml/ChatView/icons/window-unlock-v2.svg"
+                height: 15
+                width: 15
+            }
         }
 
         QoAButton {
             id: saveButtonId
 
-            text: qsTr("Save")
+            icon {
+                source: "qrc:/qt/qml/ChatView/icons/save-chat-dark.svg"
+                height: 15
+                width: 8
+            }
+            ToolTip.visible: hovered
+            ToolTip.delay: 250
+            ToolTip.text: qsTr("Save chat to *.json file")
         }
 
         QoAButton {
             id: loadButtonId
 
-            text: qsTr("Load")
+            icon {
+                source: "qrc:/qt/qml/ChatView/icons/load-chat-dark.svg"
+                height: 15
+                width: 8
+            }
+            ToolTip.visible: hovered
+            ToolTip.delay: 250
+            ToolTip.text: qsTr("Load chat from *.json file")
         }
 
         QoAButton {
             id: clearButtonId
 
-            text: qsTr("Clear")
+            icon {
+                source: "qrc:/qt/qml/ChatView/icons/clean-icon-dark.svg"
+                height: 15
+                width: 8
+            }
+            ToolTip.visible: hovered
+            ToolTip.delay: 250
+            ToolTip.text: qsTr("Clean chat")
         }
 
         Text {
@@ -83,7 +110,14 @@ Rectangle {
         QoAButton {
             id: openChatHistoryId
 
-            text: qsTr("Show in system")
+            icon {
+                source: "qrc:/qt/qml/ChatView/icons/file-in-system-v2.svg"
+                height: 15
+                width: 15
+            }
+            ToolTip.visible: hovered
+            ToolTip.delay: 250
+            ToolTip.text: qsTr("Show in system")
         }
 
         Item {
