@@ -23,6 +23,7 @@ Rectangle {
     id: root
 
     property alias text: badgeText.text
+    property alias hovered: mouse.hovered
 
     implicitWidth: badgeText.implicitWidth + root.radius
     implicitHeight: badgeText.implicitHeight + 6
@@ -36,5 +37,11 @@ Rectangle {
 
         anchors.centerIn: parent
         color: palette.buttonText
+    }
+
+    HoverHandler {
+        id: mouse
+
+        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
     }
 }

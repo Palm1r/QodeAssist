@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include <QObject>
+
 #include "LLMClientInterface.hpp"
 #include "LSPCompletion.hpp"
 #include "QuickRefactorHandler.hpp"
@@ -37,6 +39,7 @@ namespace QodeAssist {
 
 class QodeAssistClient : public LanguageClient::Client
 {
+    Q_OBJECT
 public:
     explicit QodeAssistClient(LLMClientInterface *clientInterface);
     ~QodeAssistClient() override;

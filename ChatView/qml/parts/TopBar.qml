@@ -54,11 +54,16 @@ Rectangle {
             checkable: true
 
             icon {
-                source: checked ? "qrc:/qt/qml/ChatView/icons/window-lock-v2.svg"
-                                : "qrc:/qt/qml/ChatView/icons/window-unlock-v2.svg"
+                source: checked ? "qrc:/qt/qml/ChatView/icons/window-lock.svg"
+                                : "qrc:/qt/qml/ChatView/icons/window-unlock.svg"
+                color: palette.window.hslLightness > 0.5 ? "#000000" : "#FFFFFF"
                 height: 15
                 width: 15
             }
+            ToolTip.visible: hovered
+            ToolTip.delay: 250
+            ToolTip.text: checked ? qsTr("Unpin chat window")
+                                  : qsTr("Pin chat window to the top")
         }
 
         QoAButton {
@@ -111,7 +116,7 @@ Rectangle {
             id: openChatHistoryId
 
             icon {
-                source: "qrc:/qt/qml/ChatView/icons/file-in-system-v2.svg"
+                source: "qrc:/qt/qml/ChatView/icons/file-in-system.svg"
                 height: 15
                 width: 15
             }
@@ -126,6 +131,10 @@ Rectangle {
 
         Badge {
             id: tokensBadgeId
+
+            ToolTip.visible: hovered
+            ToolTip.delay: 250
+            ToolTip.text: qsTr("Current amount tokens in chat and LLM limit threshold")
         }
     }
 }

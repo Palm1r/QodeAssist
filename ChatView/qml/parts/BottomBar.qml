@@ -26,10 +26,11 @@ Rectangle {
     id: root
 
     property alias sendButton: sendButtonId
-    property alias stopButton: stopButtonId
     property alias syncOpenFiles: syncOpenFilesId
     property alias attachFiles: attachFilesId
     property alias linkFiles: linkFilesId
+
+    property bool isRequestInProgress: false
 
     color: palette.window.hslLightness > 0.5 ?
                Qt.darker(palette.window, 1.1) :
@@ -51,13 +52,16 @@ Rectangle {
         QoAButton {
             id: sendButtonId
 
-            text: qsTr("Send")
-        }
-
-        QoAButton {
-            id: stopButtonId
-
-            text: qsTr("Stop")
+            icon {
+                source: !root.isRequestInProgress ? "qrc:/qt/qml/ChatView/icons/chat-icon.svg"
+                                                  : "qrc:/qt/qml/ChatView/icons/chat-pause-icon.svg"
+                height: 15
+                width: 15
+            }
+            ToolTip.visible: hovered
+            ToolTip.delay: 250
+            ToolTip.text: !root.isRequestInProgress ? qsTr("Send message to LLM")
+                                                    : qsTr("Stop")
         }
 
         QoAButton {
@@ -68,7 +72,9 @@ Rectangle {
                 height: 15
                 width: 8
             }
-            text: qsTr("Attach files")
+            ToolTip.visible: hovered
+            ToolTip.delay: 250
+            ToolTip.text: qsTr("Attach file to message")
         }
 
         QoAButton {
@@ -79,7 +85,9 @@ Rectangle {
                 height: 15
                 width: 8
             }
-            text: qsTr("Link files")
+            ToolTip.visible: hovered
+            ToolTip.delay: 250
+            ToolTip.text: qsTr("Link file to context")
         }
 
         CheckBox {

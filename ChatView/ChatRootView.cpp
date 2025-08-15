@@ -66,6 +66,10 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         this,
         &ChatRootView::autosave);
 
+    connect(m_clientInterface, &ClientInterface::messageReceivedCompletely, this, [this]() {
+        this->setRequestProgressStatus(false);
+    });
+
     connect(
         m_clientInterface,
         &ClientInterface::messageReceivedCompletely,
@@ -156,6 +160,7 @@ void ChatRootView::sendMessage(const QString &message)
 
     m_clientInterface->sendMessage(message, m_attachmentFiles, m_linkedFiles);
     clearAttachmentFiles();
+    setRequestProgressStatus(true);
 }
 
 void ChatRootView::copyToClipboard(const QString &text)
@@ -166,6 +171,7 @@ void ChatRootView::copyToClipboard(const QString &text)
 void ChatRootView::cancelRequest()
 {
     m_clientInterface->cancelRequest();
+    setRequestProgressStatus(false);
 }
 
 void ChatRootView::clearAttachmentFiles()
@@ -600,6 +606,19 @@ int ChatRootView::textFontSize() const
 int ChatRootView::textFormat() const
 {
     return Settings::chatAssistantSettings().textFormat();
+}
+
+bool ChatRootView::isRequestInProgress() const
+{
+    return m_isRequestInProgress;
+}
+
+void ChatRootView::setRequestProgressStatus(bool state)
+{
+    if (m_isRequestInProgress == state)
+        return;
+    m_isRequestInProgress = state;
+    emit isRequestInProgressChanged();
 }
 
 } // namespace QodeAssist::Chat

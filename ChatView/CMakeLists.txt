@@ -28,9 +28,11 @@ qt_add_qml_module(QodeAssistChatView
     icons/load-chat-dark.svg
     icons/save-chat-dark.svg
     icons/clean-icon-dark.svg
-    icons/file-in-system-v2.svg
-    icons/window-lock-v2.svg
-    icons/window-unlock-v2.svg
+    icons/file-in-system.svg
+    icons/window-lock.svg
+    icons/window-unlock.svg
+    icons/chat-icon.svg
+    icons/chat-pause-icon.svg
     SOURCES
     ChatWidget.hpp ChatWidget.cpp
     ChatModel.hpp ChatModel.cpp
