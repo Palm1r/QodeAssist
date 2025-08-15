@@ -66,11 +66,11 @@ ChatAssistantSettings::ChatAssistantSettings()
 
     enableChatInBottomToolBar.setSettingsKey(Constants::CA_ENABLE_CHAT_IN_BOTTOM_TOOLBAR);
     enableChatInBottomToolBar.setLabelText(Tr::tr("Enable chat in bottom toolbar"));
-    enableChatInBottomToolBar.setDefaultValue(true);
+    enableChatInBottomToolBar.setDefaultValue(false);
 
     enableChatInNavigationPanel.setSettingsKey(Constants::CA_ENABLE_CHAT_IN_NAVIGATION_PANEL);
     enableChatInNavigationPanel.setLabelText(Tr::tr("Enable chat in navigation panel"));
-    enableChatInNavigationPanel.setDefaultValue(true);
+    enableChatInNavigationPanel.setDefaultValue(false);
 
     // General Parameters Settings
     temperature.setSettingsKey(Constants::CA_TEMPERATURE);
