@@ -149,10 +149,19 @@ void RequestHandler::cancelRequestInternal(const QString &id)
     QMutexLocker locker(&m_mutex);
     if (m_activeRequests.contains(id)) {
         QNetworkReply *reply = m_activeRequests[id];
+
+        disconnect(reply, nullptr, this, nullptr);
+
         reply->abort();
         m_activeRequests.remove(id);
         m_accumulatedResponses.remove(reply);
+
+        reply->deleteLater();
+
         locker.unlock();
+
+        m_manager->clearConnectionCache();
+        m_manager->clearAccessCache();
 
         emit requestCancelled(id);
     }
