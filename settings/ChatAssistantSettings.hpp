@@ -37,6 +37,8 @@ public:
     Utils::BoolAspect linkOpenFiles{this};
     Utils::BoolAspect stream{this};
     Utils::BoolAspect autosave{this};
+    Utils::BoolAspect enableChatInBottomToolBar{this};
+    Utils::BoolAspect enableChatInNavigationPanel{this};
 
     // General Parameters Settings
     Utils::DoubleAspect temperature{this};

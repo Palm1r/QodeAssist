@@ -17,31 +17,35 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import QtQuick
+#pragma once
 
-Rectangle {
-    id: root
+#include <QQuickView>
+#include <QShortcut>
 
-    property alias text: badgeText.text
-    property alias hovered: mouse.hovered
+namespace QodeAssist::Chat {
 
-    implicitWidth: badgeText.implicitWidth + root.radius
-    implicitHeight: badgeText.implicitHeight + 6
-    color: palette.button
-    radius: root.height / 2
-    border.color: palette.mid
-    border.width: 1
+class ChatView : public QQuickView
+{
+    Q_OBJECT
+    Q_PROPERTY(bool isPin READ isPin WRITE setIsPin NOTIFY isPinChanged FINAL)
+public:
+    ChatView();
 
-    Text {
-        id: badgeText
+    bool isPin() const;
+    void setIsPin(bool newIsPin);
 
-        anchors.centerIn: parent
-        color: palette.buttonText
-    }
+signals:
+    void isPinChanged();
 
-    HoverHandler {
-        id: mouse
+protected:
+    void closeEvent(QCloseEvent *event) override;
 
-        acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
-    }
-}
+private:
+    void saveSettings();
+    void restoreSettings();
+
+    bool m_isPin;
+    QShortcut *m_closeShortcut;
+};
+
+} // namespace QodeAssist::Chat

@@ -36,7 +36,6 @@ public:
     Utils::BoolAspect enableQodeAssist{this};
     Utils::BoolAspect enableLogging{this};
     Utils::BoolAspect enableCheckUpdate{this};
-    Utils::BoolAspect enableChat{this};
 
     ButtonAspect checkUpdate{this};
     ButtonAspect resetToDefaults{this};

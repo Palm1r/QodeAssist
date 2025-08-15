@@ -33,6 +33,9 @@ UpdateStatusWidget::UpdateStatusWidget(QWidget *parent)
     m_actionButton = new QToolButton(this);
     m_actionButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
 
+    m_chatButton = new QToolButton(this);
+    m_chatButton->setToolButtonStyle(Qt::ToolButtonIconOnly);
+
     m_versionLabel = new QLabel(this);
     m_versionLabel->setVisible(false);
 
@@ -41,6 +44,7 @@ UpdateStatusWidget::UpdateStatusWidget(QWidget *parent)
     m_updateButton->setStyleSheet("QPushButton { padding: 2px 8px; }");
 
     layout->addWidget(m_actionButton);
+    layout->addWidget(m_chatButton);
     layout->addWidget(m_versionLabel);
     layout->addWidget(m_updateButton);
 }
@@ -62,6 +66,11 @@ void UpdateStatusWidget::hideUpdateInfo()
 {
     m_versionLabel->setVisible(false);
     m_updateButton->setVisible(false);
+}
+
+void UpdateStatusWidget::setChatButtonAction(QAction *action)
+{
+    m_chatButton->setDefaultAction(action);
 }
 
 QPushButton *UpdateStatusWidget::updateButton() const

@@ -64,6 +64,14 @@ ChatAssistantSettings::ChatAssistantSettings()
     autosave.setDefaultValue(true);
     autosave.setLabelText(Tr::tr("Enable autosave when message received"));
 
+    enableChatInBottomToolBar.setSettingsKey(Constants::CA_ENABLE_CHAT_IN_BOTTOM_TOOLBAR);
+    enableChatInBottomToolBar.setLabelText(Tr::tr("Enable chat in bottom toolbar"));
+    enableChatInBottomToolBar.setDefaultValue(false);
+
+    enableChatInNavigationPanel.setSettingsKey(Constants::CA_ENABLE_CHAT_IN_NAVIGATION_PANEL);
+    enableChatInNavigationPanel.setLabelText(Tr::tr("Enable chat in navigation panel"));
+    enableChatInNavigationPanel.setDefaultValue(false);
+
     // General Parameters Settings
     temperature.setSettingsKey(Constants::CA_TEMPERATURE);
     temperature.setLabelText(Tr::tr("Temperature:"));
@@ -226,29 +234,32 @@ ChatAssistantSettings::ChatAssistantSettings()
         chatViewSettingsGrid.addRow({codeFontFamily, codeFontSize});
         chatViewSettingsGrid.addRow({textFormat});
 
-        return Column{
-            Row{Stretch{1}, resetToDefaults},
-            Space{8},
-            Group{
-                title(Tr::tr("Chat Settings")),
-                Column{Row{chatTokensThreshold, Stretch{1}}, linkOpenFiles, stream, autosave}},
-            Space{8},
-            Group{
-                title(Tr::tr("General Parameters")),
-                Row{genGrid, Stretch{1}},
-            },
-            Space{8},
-            Group{title(Tr::tr("Advanced Parameters")), Column{Row{advancedGrid, Stretch{1}}}},
-            Space{8},
-            Group{
-                title(Tr::tr("Context Settings")),
-                Column{
-                    Row{useSystemPrompt, Stretch{1}},
-                    systemPrompt,
-                }},
-            Group{title(Tr::tr("Ollama Settings")), Column{Row{ollamaGrid, Stretch{1}}}},
-            Group{title(Tr::tr("Chat Settings")), Row{chatViewSettingsGrid, Stretch{1}}},
-            Stretch{1}};
+        return Column{Row{Stretch{1}, resetToDefaults},
+                      Space{8},
+                      Group{title(Tr::tr("Chat Settings")),
+                            Column{Row{chatTokensThreshold, Stretch{1}},
+                                   linkOpenFiles,
+                                   stream,
+                                   autosave,
+                                   enableChatInBottomToolBar,
+                                   enableChatInNavigationPanel}},
+                      Space{8},
+                      Group{
+                          title(Tr::tr("General Parameters")),
+                          Row{genGrid, Stretch{1}},
+                      },
+                      Space{8},
+                      Group{title(Tr::tr("Advanced Parameters")),
+                            Column{Row{advancedGrid, Stretch{1}}}},
+                      Space{8},
+                      Group{title(Tr::tr("Context Settings")),
+                            Column{
+                                Row{useSystemPrompt, Stretch{1}},
+                                systemPrompt,
+                            }},
+                      Group{title(Tr::tr("Ollama Settings")), Column{Row{ollamaGrid, Stretch{1}}}},
+                      Group{title(Tr::tr("Chat Settings")), Row{chatViewSettingsGrid, Stretch{1}}},
+                      Stretch{1}};
     });
 }
 

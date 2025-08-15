@@ -70,12 +70,17 @@ ChatRootView {
             loadButton.onClicked: root.showLoadDialog()
             clearButton.onClicked: root.clearChat()
             tokensBadge {
-                text: qsTr("tokens:%1/%2").arg(root.inputTokensCount).arg(root.chatModel.tokensThreshold)
+                text: qsTr("%1/%2").arg(root.inputTokensCount).arg(root.chatModel.tokensThreshold)
             }
             recentPath {
                 text: qsTr("Latest chat file name: %1").arg(root.chatFileName.length > 0 ? root.chatFileName : "Unsaved")
             }
             openChatHistory.onClicked: root.openChatHistoryFolder()
+            pinButton {
+                visible: typeof _chatview !== 'undefined'
+                checked: typeof _chatview !== 'undefined' ? _chatview.isPin : false
+                onCheckedChanged: _chatview.isPin = topBar.pinButton.checked
+            }
         }
 
         ListView {
@@ -203,8 +208,9 @@ ChatRootView {
             Layout.preferredWidth: parent.width
             Layout.preferredHeight: 40
 
-            sendButton.onClicked: root.sendChatMessage()
-            stopButton.onClicked: root.cancelRequest()
+            sendButton.onClicked: !root.isRequestInProgress ? root.sendChatMessage()
+                                                            : root.cancelRequest()
+            isRequestInProgress: root.isRequestInProgress
             syncOpenFiles {
                 checked: root.isSyncOpenFiles
                 onCheckedChanged: root.setIsSyncOpenFiles(bottomBar.syncOpenFiles.checked)
@@ -228,5 +234,9 @@ ChatRootView {
         root.sendMessage(messageInput.text)
         messageInput.text = ""
         scrollToBottom()
+    }
+
+    Component.onCompleted: {
+        messageInput.forceActiveFocus()
     }
 }

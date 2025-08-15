@@ -68,7 +68,6 @@ const char CC_SHOW_PROGRESS_WIDGET[] = "QodeAssist.ccShowProgressWidget";
 const char CC_USE_OPEN_FILES_CONTEXT[] = "QodeAssist.ccUseOpenFilesContext";
 const char ENABLE_LOGGING[] = "QodeAssist.enableLogging";
 const char ENABLE_CHECK_UPDATE[] = "QodeAssist.enableCheckUpdate";
-const char ENABLE_CHAT[] = "QodeAssist.enableChat";
 
 const char PROVIDER_PATHS[] = "QodeAssist.providerPaths";
 const char СС_START_SUGGESTION_TIMER[] = "QodeAssist.startSuggestionTimer";
@@ -84,6 +83,9 @@ const char CA_LINK_OPEN_FILES[] = "QodeAssist.caLinkOpenFiles";
 const char CA_STREAM[] = "QodeAssist.caStream";
 const char CA_AUTOSAVE[] = "QodeAssist.caAutosave";
 const char CC_CUSTOM_LANGUAGES[] = "QodeAssist.ccCustomLanguages";
+
+const char CA_ENABLE_CHAT_IN_BOTTOM_TOOLBAR[] = "QodeAssist.caEnableChatInBottomToolbar";
+const char CA_ENABLE_CHAT_IN_NAVIGATION_PANEL[] = "QodeAssist.caEnableChatInNavigationPanel";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
 const char QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID[] = "QodeAssist.1GeneralSettingsPageId";

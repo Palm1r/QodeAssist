@@ -42,6 +42,7 @@
 #include <QMessageBox>
 #include <QTranslator>
 
+#include <QInputDialog>
 #include "ConfigurationManager.hpp"
 #include "QodeAssistClient.hpp"
 #include "UpdateStatusWidget.hpp"
@@ -53,17 +54,18 @@
 #include "llmcore/ProvidersManager.hpp"
 #include "logger/RequestPerformanceLogger.hpp"
 #include "providers/Providers.hpp"
+#include "settings/ChatAssistantSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProjectSettingsPanel.hpp"
 #include "settings/SettingsConstants.hpp"
 #include "templates/Templates.hpp"
 #include "widgets/QuickRefactorDialog.hpp"
+#include <ChatView/ChatView.hpp>
 #include <coreplugin/actionmanager/actioncontainer.h>
 #include <coreplugin/actionmanager/actionmanager.h>
 #include <texteditor/textdocument.h>
 #include <texteditor/texteditor.h>
 #include <texteditor/texteditorconstants.h>
-#include <QInputDialog>
 
 using namespace Utils;
 using namespace Core;
@@ -86,8 +88,12 @@ public:
     ~QodeAssistPlugin() final
     {
         delete m_qodeAssistClient;
-        delete m_chatOutputPane;
-        delete m_navigationPanel;
+        if (m_chatOutputPane) {
+            delete m_chatOutputPane;
+        }
+        if (m_navigationPanel) {
+            delete m_navigationPanel;
+        }
     }
 
     void loadTranslations()
@@ -148,8 +154,10 @@ public:
             UpdateDialog::checkForUpdatesAndShow(Core::ICore::mainWindow());
         });
 
-        if (Settings::generalSettings().enableChat()) {
+        if (Settings::chatAssistantSettings().enableChatInBottomToolBar()) {
             m_chatOutputPane = new Chat::ChatOutputPane(this);
+        }
+        if (Settings::chatAssistantSettings().enableChatInNavigationPanel()) {
             m_navigationPanel = new Chat::NavigationPanel();
         }
 
@@ -186,6 +194,34 @@ public:
             }
         });
 
+        ActionBuilder showChatViewAction(this, "QodeAssist.ShowChatView");
+        const QKeySequence showChatViewShortcut = QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_W);
+        showChatViewAction.setDefaultKeySequence(showChatViewShortcut);
+        showChatViewAction.setToolTip(Tr::tr("Show QodeAssist Chat"));
+        showChatViewAction.setText(Tr::tr("Show QodeAssist Chat"));
+        showChatViewAction.setIcon(QCODEASSIST_ICON.icon());
+        showChatViewAction.addOnTriggered(this, [this] {
+            if (!m_chatView->isVisible()) {
+                m_chatView->show();
+            }
+
+            m_chatView->raise();
+            m_chatView->requestActivate();
+        });
+        m_statusWidget->setChatButtonAction(showChatViewAction.contextAction());
+
+        ActionBuilder closeChatViewAction(this, "QodeAssist.CloseChatView");
+        const QKeySequence closeChatViewShortcut = QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_S);
+        closeChatViewAction.setDefaultKeySequence(closeChatViewShortcut);
+        closeChatViewAction.setToolTip(Tr::tr("Close QodeAssist Chat"));
+        closeChatViewAction.setText(Tr::tr("Close QodeAssist Chat"));
+        closeChatViewAction.setIcon(QCODEASSIST_ICON.icon());
+        closeChatViewAction.addOnTriggered(this, [this] {
+            if (m_chatView->isVisible()) {
+                m_chatView->close();
+            }
+        });
+
         Core::ActionContainer *editorContextMenu = Core::ActionManager::actionContainer(
             TextEditor::Constants::M_STANDARDCONTEXTMENU);
         if (editorContextMenu) {
@@ -193,10 +229,14 @@ public:
             editorContextMenu
                 ->addAction(quickRefactorAction.command(), Core::Constants::G_DEFAULT_THREE);
             editorContextMenu->addAction(requestAction.command(), Core::Constants::G_DEFAULT_THREE);
+            editorContextMenu->addAction(showChatViewAction.command(),
+                                         Core::Constants::G_DEFAULT_THREE);
+            editorContextMenu->addAction(closeChatViewAction.command(),
+                                         Core::Constants::G_DEFAULT_THREE);
         }
     }
 
-    void extensionsInitialized() final {}
+    void extensionsInitialized() final { m_chatView.reset(new Chat::ChatView()); }
 
     void restartClient()
     {
@@ -256,6 +296,7 @@ private:
     QPointer<PluginUpdater> m_updater;
     UpdateStatusWidget *m_statusWidget{nullptr};
     QString m_lastRefactorInstructions;
+    QScopedPointer<Chat::ChatView> m_chatView;
 };
 
 } // namespace QodeAssist::Internal

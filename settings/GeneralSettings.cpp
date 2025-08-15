@@ -79,10 +79,6 @@ GeneralSettings::GeneralSettings()
     enableCheckUpdate.setLabelText(TrConstants::ENABLE_CHECK_UPDATE_ON_START);
     enableCheckUpdate.setDefaultValue(true);
 
-    enableChat.setSettingsKey(Constants::ENABLE_CHAT);
-    enableChat.setLabelText(TrConstants::ENABLE_CHAT);
-    enableChat.setDefaultValue(true);
-
     resetToDefaults.m_buttonText = TrConstants::RESET_TO_DEFAULTS;
     checkUpdate.m_buttonText = TrConstants::CHECK_UPDATE;
 
@@ -258,7 +254,6 @@ GeneralSettings::GeneralSettings()
             Row{enableQodeAssist, Stretch{1}, Row{checkUpdate, resetToDefaults}},
             Row{enableLogging, Stretch{1}},
             Row{enableCheckUpdate, Stretch{1}},
-            Row{enableChat, Stretch{1}},
             Space{8},
             ccGroup,
             Space{8},
