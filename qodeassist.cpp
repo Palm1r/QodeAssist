@@ -128,6 +128,8 @@ public:
 
         Utils::Icon QCODEASSIST_ICON(
             {{":/resources/images/qoderassist-icon.png", Utils::Theme::IconsBaseColor}});
+        Utils::Icon QCODEASSIST_CHAT_ICON(
+            {{":/resources/images/qode-assist-chat-icon.png", Utils::Theme::IconsBaseColor}});
 
         ActionBuilder requestAction(this, Constants::QODE_ASSIST_REQUEST_SUGGESTION);
         requestAction.setToolTip(
@@ -199,7 +201,7 @@ public:
         showChatViewAction.setDefaultKeySequence(showChatViewShortcut);
         showChatViewAction.setToolTip(Tr::tr("Show QodeAssist Chat"));
         showChatViewAction.setText(Tr::tr("Show QodeAssist Chat"));
-        showChatViewAction.setIcon(QCODEASSIST_ICON.icon());
+        showChatViewAction.setIcon(QCODEASSIST_CHAT_ICON.icon());
         showChatViewAction.addOnTriggered(this, [this] {
             if (!m_chatView->isVisible()) {
                 m_chatView->show();

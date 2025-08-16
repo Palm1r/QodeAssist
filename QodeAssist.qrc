@@ -8,5 +8,7 @@
         <file>resources/images/improve-current-code-icon.png</file>
         <file>resources/images/suggest-new-icon.png</file>
         <file>resources/images/suggest-new-icon@2x.png</file>
+        <file>resources/images/qode-assist-chat-icon.png</file>
+        <file>resources/images/qode-assist-chat-icon@2x.png</file>
     </qresource>
 </RCC>
