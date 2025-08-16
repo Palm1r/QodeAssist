@@ -217,7 +217,7 @@ public:
         closeChatViewAction.setDefaultKeySequence(closeChatViewShortcut);
         closeChatViewAction.setToolTip(Tr::tr("Close QodeAssist Chat"));
         closeChatViewAction.setText(Tr::tr("Close QodeAssist Chat"));
-        closeChatViewAction.setIcon(QCODEASSIST_ICON.icon());
+        closeChatViewAction.setIcon(QCODEASSIST_CHAT_ICON.icon());
         closeChatViewAction.addOnTriggered(this, [this] {
             if (m_chatView->isVisible()) {
                 m_chatView->close();
