@@ -347,11 +347,21 @@ void LLMClientInterface::sendCompletionToClient(
 
     LOG_MESSAGE(QString("Completions before filter: \n%1").arg(completion));
 
-    QString processedCompletion
-        = promptTemplate->type() == LLMCore::TemplateType::Chat
-                  && m_completeSettings.smartProcessInstuctText()
-              ? CodeHandler::processText(completion, Context::extractFilePathFromRequest(request))
-              : completion;
+    QString outputHandler = m_completeSettings.modelOutputHandler.stringValue();
+    QString processedCompletion;
+
+    if (outputHandler == "Raw text") {
+        processedCompletion = completion;
+    } else if (outputHandler == "Force processing") {
+        processedCompletion = CodeHandler::processText(completion,
+                                                       Context::extractFilePathFromRequest(request));
+    } else { // "Auto"
+        processedCompletion = CodeHandler::hasCodeBlocks(completion)
+                                  ? CodeHandler::processText(completion,
+                                                             Context::extractFilePathFromRequest(
+                                                                 request))
+                                  : completion;
+    }
 
     completionItem[LanguageServerProtocol::textKey] = processedCompletion;
     QJsonObject range;

@@ -40,6 +40,11 @@ public:
      */
     static QString detectLanguageFromExtension(const QString &extension);
 
+    /**
+     * Detects if text contains code blocks, or returns false if this was not possible
+     */
+    static bool hasCodeBlocks(const QString &text);
+
 private:
     static QString getCommentPrefix(const QString &language);
 
