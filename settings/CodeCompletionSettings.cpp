@@ -63,9 +63,11 @@ CodeCompletionSettings::CodeCompletionSettings()
     modelOutputHandler.addOption("Raw text");
     modelOutputHandler.setDefaultValue("Auto");
     modelOutputHandler.setToolTip(
-        Tr::tr("Auto: Automatically detects code blocks and applies processing when found\n"
-               "Force Processing: Always processes text with formatting and syntax highlighting\n"
-               "Raw Text: Shows unprocessed text without any formatting or highlighting"));
+        Tr::tr("Auto: Automatically detects codeblock and applies processing when found, other "
+               "text as comments\n"
+               "Force Processing: Always processes text with codeblock formatting and other text "
+               "as comments\n"
+               "Raw Text: Shows unprocessed text without any formatting"));
 
     startSuggestionTimer.setSettingsKey(Constants::СС_START_SUGGESTION_TIMER);
     startSuggestionTimer.setLabelText(Tr::tr("with delay(ms)"));
