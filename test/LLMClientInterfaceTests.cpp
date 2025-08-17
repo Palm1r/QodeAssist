@@ -278,7 +278,7 @@ if __name__ == "__main__":
         "/path/to/file.py",
         "text/python");
 
-    m_completeSettings.smartProcessInstuctText.setValue(true);
+    m_completeSettings.modelOutputHandler.setValue(0);
 
     m_requestHandler->setFakeCompletion(
         "Here's the code: ```cpp\nint main() {\n    return 0;\n}\n```");
