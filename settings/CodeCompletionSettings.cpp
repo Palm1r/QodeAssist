@@ -55,9 +55,19 @@ CodeCompletionSettings::CodeCompletionSettings()
     stream.setDefaultValue(true);
     stream.setLabelText(Tr::tr("Enable stream option"));
 
-    smartProcessInstuctText.setSettingsKey(Constants::CC_SMART_PROCESS_INSTRUCT_TEXT);
-    smartProcessInstuctText.setDefaultValue(true);
-    smartProcessInstuctText.setLabelText(Tr::tr("Enable smart process text from instruct model"));
+    modelOutputHandler.setLabelText(Tr::tr("Text output proccessing mode:"));
+    modelOutputHandler.setSettingsKey(Constants::CC_MODEL_OUTPUT_HANDLER);
+    modelOutputHandler.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+    modelOutputHandler.addOption("Auto");
+    modelOutputHandler.addOption("Force processing");
+    modelOutputHandler.addOption("Raw text");
+    modelOutputHandler.setDefaultValue("Auto");
+    modelOutputHandler.setToolTip(
+        Tr::tr("Auto: Automatically detects codeblock and applies processing when found, other "
+               "text as comments\n"
+               "Force Processing: Always processes text with codeblock formatting and other text "
+               "as comments\n"
+               "Raw Text: Shows unprocessed text without any formatting"));
 
     startSuggestionTimer.setSettingsKey(Constants::СС_START_SUGGESTION_TIMER);
     startSuggestionTimer.setLabelText(Tr::tr("with delay(ms)"));
@@ -287,40 +297,36 @@ CodeCompletionSettings::CodeCompletionSettings()
                 }},
             Row{useProjectChangesCache, maxChangesCacheSize, Stretch{1}}};
 
-        return Column{
-            Row{Stretch{1}, resetToDefaults},
-            Space{8},
-            Group{
-                title(TrConstants::AUTO_COMPLETION_SETTINGS),
-                Column{
-                    autoCompletion,
-                    Space{8},
-                    multiLineCompletion,
-                    stream,
-                    smartProcessInstuctText,
-                    Row{autoCompletionCharThreshold,
-                        autoCompletionTypingInterval,
-                        startSuggestionTimer,
-                        Stretch{1}},
-                    showProgressWidget,
-                    useOpenFilesContext}},
-            Space{8},
-            Group{
-                title(Tr::tr("General Parameters")),
-                Column{
-                    Row{genGrid, Stretch{1}},
-                }},
-            Space{8},
-            Group{title(Tr::tr("Advanced Parameters")), Column{Row{advancedGrid, Stretch{1}}}},
-            Space{8},
-            Group{title(Tr::tr("Context Settings")), contextItem},
-            Space{8},
-            Group{
-                title(Tr::tr("Quick Refactor Settings")),
-                Column{useOpenFilesInQuickRefactor, quickRefactorSystemPrompt}},
-            Space{8},
-            Group{title(Tr::tr("Ollama Settings")), Column{Row{ollamaGrid, Stretch{1}}}},
-            Stretch{1}};
+        return Column{Row{Stretch{1}, resetToDefaults},
+                      Space{8},
+                      Group{title(TrConstants::AUTO_COMPLETION_SETTINGS),
+                            Column{autoCompletion,
+                                   Space{8},
+                                   multiLineCompletion,
+                                   stream,
+                                   Row{modelOutputHandler, Stretch{1}},
+                                   Row{autoCompletionCharThreshold,
+                                       autoCompletionTypingInterval,
+                                       startSuggestionTimer,
+                                       Stretch{1}},
+                                   showProgressWidget,
+                                   useOpenFilesContext}},
+                      Space{8},
+                      Group{title(Tr::tr("General Parameters")),
+                            Column{
+                                Row{genGrid, Stretch{1}},
+                            }},
+                      Space{8},
+                      Group{title(Tr::tr("Advanced Parameters")),
+                            Column{Row{advancedGrid, Stretch{1}}}},
+                      Space{8},
+                      Group{title(Tr::tr("Context Settings")), contextItem},
+                      Space{8},
+                      Group{title(Tr::tr("Quick Refactor Settings")),
+                            Column{useOpenFilesInQuickRefactor, quickRefactorSystemPrompt}},
+                      Space{8},
+                      Group{title(Tr::tr("Ollama Settings")), Column{Row{ollamaGrid, Stretch{1}}}},
+                      Stretch{1}};
     });
 }
 
@@ -360,7 +366,6 @@ void CodeCompletionSettings::resetSettingsToDefaults()
         resetAspect(autoCompletion);
         resetAspect(multiLineCompletion);
         resetAspect(stream);
-        resetAspect(smartProcessInstuctText);
         resetAspect(temperature);
         resetAspect(maxTokens);
         resetAspect(useTopP);
@@ -389,6 +394,7 @@ void CodeCompletionSettings::resetSettingsToDefaults()
         resetAspect(useOpenFilesContext);
         resetAspect(useOpenFilesInQuickRefactor);
         resetAspect(quickRefactorSystemPrompt);
+        resetAspect(modelOutputHandler);
     }
 }
 

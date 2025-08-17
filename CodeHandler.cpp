@@ -99,6 +99,19 @@ const QVector<LanguageProperties> &getKnownLanguages()
     return knownLanguages;
 }
 
+bool CodeHandler::hasCodeBlocks(const QString &text)
+{
+    QStringList lines = text.split('\n');
+
+    for (const QString &line : lines) {
+        if (line.trimmed().startsWith("```")) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 static QHash<QString, QString> buildLanguageToCommentPrefixMap()
 {
     QHash<QString, QString> result;
