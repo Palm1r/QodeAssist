@@ -28,7 +28,7 @@
 
 namespace QodeAssist::LLMCore {
 
-enum class TemplateType { Chat, FIM };
+enum class TemplateType { Chat, FIM, FIMOnChat };
 
 class PromptTemplate
 {
