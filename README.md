@@ -41,6 +41,7 @@
   - Quick refactor code via fast chat command and opened files
 - Chat functionality:
   - Side and Bottom panels
+  - Chat in additional popup window with pinning
   - Chat history autosave and restore
   - Token usage monitoring and management
   - Attach files for one-time code analysis
@@ -83,6 +84,11 @@ Join our Discord Community: Have questions or want to discuss QodeAssist? Join o
 <details>
   <summary>Chat with LLM models in bottom panel: (click to expand)</summary>
   <img width="326" alt="QodeAssistBottomPanel" src="https://github.com/user-attachments/assets/4cc64c23-a294-4df8-9153-39ad6fdab34b">
+</details>
+
+<details>
+  <summary>Chat in addtional window: (click to expand)</summary>
+  <img width="851" height="865" alt="image" src="https://github.com/user-attachments/assets/a68894b7-886e-4501-a61b-7161ae34b427" />
 </details>
 
 <details>
@@ -271,7 +277,12 @@ Linked files provide persistent context throughout the conversation:
 - [ ] Support MCP
 
 ## Hotkeys
-
+All hotkeys available in QtCreator Settings
+Also you can find default hotkeys here:
+- To call chat with llm in separate window, you can use:
+    - on Mac: Option + Command + W
+    - on Windows: Ctrl + Alt + W
+    - on Linux: Ctrl + Alt + W
 - To call manual request to suggestion, you can use or change it in settings
     - on Mac: Option + Command + Q
     - on Windows: Ctrl + Alt + Q
