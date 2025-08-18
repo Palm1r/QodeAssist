@@ -35,7 +35,8 @@
 #include "templates/Llama2.hpp"
 #include "templates/Llama3.hpp"
 #include "templates/LlamaCppFim.hpp"
-#include "templates/Qwen.hpp"
+#include "templates/Qwen25CoderFIM.hpp"
+#include "templates/Qwen3CoderFIM.hpp"
 #include "templates/StarCoder2Fim.hpp"
 
 namespace QodeAssist::Templates {
@@ -57,7 +58,8 @@ inline void registerTemplates()
     templateManager.registerTemplate<StarCoder2Fim>();
     // templateManager.registerTemplate<DeepSeekCoderFim>();
     // templateManager.registerTemplate<CustomTemplate>();
-    templateManager.registerTemplate<QwenFim>();
+    templateManager.registerTemplate<Qwen25CoderFIM>();
+    templateManager.registerTemplate<Qwen3CoderFIM>();
     templateManager.registerTemplate<OpenAICompatible>();
     templateManager.registerTemplate<Alpaca>();
     templateManager.registerTemplate<GoogleAI>();

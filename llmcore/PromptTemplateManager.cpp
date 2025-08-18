@@ -19,6 +19,8 @@
 
 #include "PromptTemplateManager.hpp"
 
+#include <QMessageBox>
+
 namespace QodeAssist::LLMCore {
 
 PromptTemplateManager &PromptTemplateManager::instance()
@@ -70,15 +72,27 @@ PromptTemplateManager::~PromptTemplateManager()
 
 PromptTemplate *PromptTemplateManager::getFimTemplateByName(const QString &templateName)
 {
-    if (!m_fimTemplates.contains(templateName))
+    if (!m_fimTemplates.contains(templateName)) {
+        QMessageBox::warning(
+            nullptr,
+            QObject::tr("Template Not Found"),
+            QObject::tr("Template '%1' was not found or has been updated. Please re-set new one.")
+                .arg(templateName));
         return m_fimTemplates.first();
+    }
     return m_fimTemplates[templateName];
 }
 
 PromptTemplate *PromptTemplateManager::getChatTemplateByName(const QString &templateName)
 {
-    if (!m_chatTemplates.contains(templateName))
+    if (!m_chatTemplates.contains(templateName)) {
+        QMessageBox::warning(
+            nullptr,
+            QObject::tr("Template Not Found"),
+            QObject::tr("Template '%1' was not found or has been updated. Please re-set new one.")
+                .arg(templateName));
         return m_chatTemplates.first();
+    }
     return m_chatTemplates[templateName];
 }
 

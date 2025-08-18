@@ -24,10 +24,10 @@
 
 namespace QodeAssist::Templates {
 
-class QwenFim : public LLMCore::PromptTemplate
+class Qwen25CoderFIM : public LLMCore::PromptTemplate
 {
 public:
-    QString name() const override { return "Qwen FIM"; }
+    QString name() const override { return "Qwen2.5 Coder FIM"; }
     LLMCore::TemplateType type() const override { return LLMCore::TemplateType::FIM; }
     QStringList stopWords() const override { return QStringList() << "<|endoftext|>" << "<|EOT|>"; }
     void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
