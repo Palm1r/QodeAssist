@@ -40,8 +40,8 @@
   - Sharing IDE opened files with model context (disabled by default, need enable in settings)
   - Quick refactor code via fast chat command and opened files
 - Chat functionality:
-  - Side and Bottom panels
-  - Chat in additional popup window with pinning
+  - Side and Bottom panels(enabling in chat settings due stability reason with QQuickWidget problem)
+  - Chat in additional popup window with pinning(recommended)
   - Chat history autosave and restore
   - Token usage monitoring and management
   - Attach files for one-time code analysis
