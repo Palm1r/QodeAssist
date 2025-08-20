@@ -283,6 +283,10 @@ Also you can find default hotkeys here:
     - on Mac: Option + Command + W
     - on Windows: Ctrl + Alt + W
     - on Linux: Ctrl + Alt + W
+- To close chat with llm in separate window, you can use:
+    - on Mac: Option + Command + S
+    - on Windows: Ctrl + Alt + S
+    - on Linux: Ctrl + Alt + S
 - To call manual request to suggestion, you can use or change it in settings
     - on Mac: Option + Command + Q
     - on Windows: Ctrl + Alt + Q
