@@ -16,6 +16,7 @@ add_library(LLMCore STATIC
     OpenAIMessage.hpp OpenAIMessage.cpp
     ValidationUtils.hpp ValidationUtils.cpp
     ProviderID.hpp
+    HttpClient.hpp HttpClient.cpp
 )
 
 target_link_libraries(LLMCore
