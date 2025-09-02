@@ -43,9 +43,18 @@ public:
     void prepareNetworkRequest(QNetworkRequest &networkRequest) const override;
     LLMCore::ProviderID providerID() const override;
 
+    void sendRequest(const QString &requestId, const QUrl &url, const QJsonObject &payload) override;
+
+public slots:
+    void onDataReceived(const QString &requestId, const QByteArray &data) override;
+    void onRequestFinished(const QString &requestId, bool success, const QString &error) override;
+
 private:
-    bool handleStreamResponse(const QByteArray &data, QString &accumulatedResponse);
-    bool handleRegularResponse(const QByteArray &data, QString &accumulatedResponse);
+    QHash<QString, QString> m_accumulatedResponses;
+    bool handleStreamResponse(
+        const QString &requestId, const QByteArray &data, QString &accumulatedResponse);
+    bool handleRegularResponse(
+        const QString &requestId, const QByteArray &data, QString &accumulatedResponse);
 };
 
 } // namespace QodeAssist::Providers
