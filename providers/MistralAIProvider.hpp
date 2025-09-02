@@ -42,6 +42,15 @@ public:
     QString apiKey() const override;
     void prepareNetworkRequest(QNetworkRequest &networkRequest) const override;
     LLMCore::ProviderID providerID() const override;
+
+    void sendRequest(const QString &requestId, const QUrl &url, const QJsonObject &payload) override;
+
+public slots:
+    void onDataReceived(const QString &requestId, const QByteArray &data) override;
+    void onRequestFinished(const QString &requestId, bool success, const QString &error) override;
+
+private:
+    QHash<QString, QString> m_accumulatedResponses;
 };
 
 } // namespace QodeAssist::Providers
