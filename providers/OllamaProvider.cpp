@@ -223,4 +223,100 @@ LLMCore::ProviderID OllamaProvider::providerID() const
     return LLMCore::ProviderID::Ollama;
 }
 
+void OllamaProvider::sendRequest(
+    const QString &requestId, const QUrl &url, const QJsonObject &payload)
+{
+    QNetworkRequest networkRequest;
+    prepareNetworkRequest(networkRequest);
+
+    std::optional<QMap<QString, QString>> headers;
+    const auto rawHeaders = networkRequest.rawHeaderList();
+    if (!rawHeaders.isEmpty()) {
+        QMap<QString, QString> headerMap;
+        for (const auto &header : rawHeaders) {
+            headerMap[QString::fromLatin1(header)] = QString::fromLatin1(
+                networkRequest.rawHeader(header));
+        }
+        headers = headerMap;
+    }
+
+    LLMCore::HttpRequest
+        request{.url = url, .requestId = requestId, .payload = payload, .headers = headers};
+
+    LOG_MESSAGE(QString("OllamaProvider: Sending request %1 to %2").arg(requestId, url.toString()));
+
+    emit httpClient()->sendRequest(request);
+}
+
+void OllamaProvider::onDataReceived(const QString &requestId, const QByteArray &data)
+{
+    QString &accumulatedResponse = m_accumulatedResponses[requestId];
+
+    if (data.isEmpty()) {
+        return;
+    }
+
+    QByteArrayList lines = data.split('\n');
+    bool isDone = false;
+
+    for (const QByteArray &line : lines) {
+        if (line.trimmed().isEmpty()) {
+            continue;
+        }
+
+        QJsonParseError error;
+        QJsonDocument doc = QJsonDocument::fromJson(line, &error);
+        if (doc.isNull()) {
+            continue;
+        }
+
+        QJsonObject obj = doc.object();
+
+        if (obj.contains("error") && !obj["error"].toString().isEmpty()) {
+            LOG_MESSAGE("Error in Ollama response: " + obj["error"].toString());
+            continue;
+        }
+
+        QString content;
+
+        if (obj.contains("response")) {
+            content = obj["response"].toString();
+        } else if (obj.contains("message")) {
+            QJsonObject messageObj = obj["message"].toObject();
+            content = messageObj["content"].toString();
+        }
+
+        if (!content.isEmpty()) {
+            accumulatedResponse += content;
+            emit partialResponseReceived(requestId, content);
+        }
+
+        if (obj["done"].toBool()) {
+            isDone = true;
+        }
+    }
+
+    if (isDone) {
+        emit fullResponseReceived(requestId, accumulatedResponse);
+        m_accumulatedResponses.remove(requestId);
+    }
+}
+
+void OllamaProvider::onRequestFinished(const QString &requestId, bool success, const QString &error)
+{
+    if (!success) {
+        LOG_MESSAGE(QString("OllamaProvider request %1 failed: %2").arg(requestId, error));
+        emit requestFailed(requestId, error);
+    } else {
+        if (m_accumulatedResponses.contains(requestId)) {
+            const QString fullResponse = m_accumulatedResponses[requestId];
+            if (!fullResponse.isEmpty()) {
+                emit fullResponseReceived(requestId, fullResponse);
+            }
+        }
+    }
+
+    m_accumulatedResponses.remove(requestId);
+}
+
 } // namespace QodeAssist::Providers
