@@ -211,4 +211,106 @@ LLMCore::ProviderID LlamaCppProvider::providerID() const
     return LLMCore::ProviderID::LlamaCpp;
 }
 
+void LlamaCppProvider::sendRequest(
+    const QString &requestId, const QUrl &url, const QJsonObject &payload)
+{
+    QNetworkRequest networkRequest(url);
+    prepareNetworkRequest(networkRequest);
+
+    LLMCore::HttpRequest
+        request{.networkRequest = networkRequest, .requestId = requestId, .payload = payload};
+
+    LOG_MESSAGE(
+        QString("LlamaCppProvider: Sending request %1 to %2").arg(requestId, url.toString()));
+
+    emit httpClient()->sendRequest(request);
+}
+
+void LlamaCppProvider::onDataReceived(const QString &requestId, const QByteArray &data)
+{
+    QString &accumulatedResponse = m_accumulatedResponses[requestId];
+
+    if (data.isEmpty()) {
+        return;
+    }
+
+    bool isDone = data.contains("\"stop\":true") || data.contains("data: [DONE]");
+
+    QByteArrayList lines = data.split('\n');
+    for (const QByteArray &line : lines) {
+        if (line.trimmed().isEmpty()) {
+            continue;
+        }
+
+        if (line == "data: [DONE]") {
+            isDone = true;
+            continue;
+        }
+
+        QByteArray jsonData = line;
+        if (line.startsWith("data: ")) {
+            jsonData = line.mid(6);
+        }
+
+        QJsonParseError error;
+        QJsonDocument doc = QJsonDocument::fromJson(jsonData, &error);
+        if (doc.isNull()) {
+            continue;
+        }
+
+        QJsonObject obj = doc.object();
+        QString content;
+
+        if (obj.contains("content")) {
+            content = obj["content"].toString();
+            if (!content.isEmpty()) {
+                accumulatedResponse += content;
+                emit partialResponseReceived(requestId, content);
+            }
+        } else if (obj.contains("choices")) {
+            auto message = LLMCore::OpenAIMessage::fromJson(obj);
+            if (message.hasError()) {
+                LOG_MESSAGE("Error in llama.cpp response: " + message.error);
+                continue;
+            }
+
+            content = message.getContent();
+            if (!content.isEmpty()) {
+                accumulatedResponse += content;
+                emit partialResponseReceived(requestId, content);
+            }
+
+            if (message.isDone()) {
+                isDone = true;
+            }
+        }
+
+        if (obj["stop"].toBool()) {
+            isDone = true;
+        }
+    }
+
+    if (isDone) {
+        emit fullResponseReceived(requestId, accumulatedResponse);
+        m_accumulatedResponses.remove(requestId);
+    }
+}
+
+void LlamaCppProvider::onRequestFinished(const QString &requestId, bool success, const QString &error)
+{
+    if (!success) {
+        LOG_MESSAGE(QString("LlamaCppProvider request %1 failed: %2").arg(requestId, error));
+        emit requestFailed(requestId, error);
+    } else {
+        if (m_accumulatedResponses.contains(requestId)) {
+            const QString fullResponse = m_accumulatedResponses[requestId];
+            if (!fullResponse.isEmpty()) {
+                emit fullResponseReceived(requestId, fullResponse);
+            }
+        }
+    }
+
+    m_accumulatedResponses.remove(requestId);
+}
+
 } // namespace QodeAssist::Providers

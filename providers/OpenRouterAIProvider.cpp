@@ -102,4 +102,78 @@ LLMCore::ProviderID OpenRouterProvider::providerID() const
     return LLMCore::ProviderID::OpenRouter;
 }
 
+void OpenRouterProvider::onDataReceived(const QString &requestId, const QByteArray &data)
+{
+    QString &accumulatedResponse = m_accumulatedResponses[requestId];
+
+    if (data.isEmpty()) {
+        return;
+    }
+
+    bool isDone = false;
+    QByteArrayList lines = data.split('\n');
+
+    for (const QByteArray &line : lines) {
+        if (line.trimmed().isEmpty() || line.contains("OPENROUTER PROCESSING")) {
+            continue;
+        }
+
+        if (line == "data: [DONE]") {
+            isDone = true;
+            continue;
+        }
+
+        QByteArray jsonData = line;
+        if (line.startsWith("data: ")) {
+            jsonData = line.mid(6);
+        }
+
+        QJsonParseError error;
+        QJsonDocument doc = QJsonDocument::fromJson(jsonData, &error);
+
+        if (doc.isNull()) {
+            continue;
+        }
+
+        auto message = LLMCore::OpenAIMessage::fromJson(doc.object());
+        if (message.hasError()) {
+            LOG_MESSAGE("Error in OpenAI response: " + message.error);
+            continue;
+        }
+
+        QString content = message.getContent();
+        if (!content.isEmpty()) {
+            accumulatedResponse += content;
+            emit partialResponseReceived(requestId, content);
+        }
+
+        if (message.isDone()) {
+            isDone = true;
+        }
+    }
+
+    if (isDone) {
+        emit fullResponseReceived(requestId, accumulatedResponse);
+        m_accumulatedResponses.remove(requestId);
+    }
+}
+
+void OpenRouterProvider::onRequestFinished(
+    const QString &requestId, bool success, const QString &error)
+{
+    if (!success) {
+        LOG_MESSAGE(QString("OpenRouterProvider request %1 failed: %2").arg(requestId, error));
+        emit requestFailed(requestId, error);
+    } else {
+        if (m_accumulatedResponses.contains(requestId)) {
+            const QString fullResponse = m_accumulatedResponses[requestId];
+            if (!fullResponse.isEmpty()) {
+                emit fullResponseReceived(requestId, fullResponse);
+            }
+        }
+    }
+
+    m_accumulatedResponses.remove(requestId);
+}
+
 } // namespace QodeAssist::Providers

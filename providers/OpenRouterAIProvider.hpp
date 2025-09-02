@@ -32,6 +32,13 @@ public:
     bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) override;
     QString apiKey() const override;
     LLMCore::ProviderID providerID() const override;
+
+public slots:
+    void onDataReceived(const QString &requestId, const QByteArray &data) override;
+    void onRequestFinished(const QString &requestId, bool success, const QString &error) override;
+
+private:
+    QHash<QString, QString> m_accumulatedResponses;
 };
 
 } // namespace QodeAssist::Providers
