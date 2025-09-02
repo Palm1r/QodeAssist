@@ -28,7 +28,6 @@
 #include <llmcore/ContextData.hpp>
 #include <llmcore/IPromptProvider.hpp>
 #include <llmcore/IProviderRegistry.hpp>
-#include <llmcore/RequestHandler.hpp>
 #include <logger/IRequestPerformanceLogger.hpp>
 #include <settings/CodeCompletionSettings.hpp>
 #include <settings/GeneralSettings.hpp>
@@ -48,7 +47,6 @@ public:
         const Settings::CodeCompletionSettings &completeSettings,
         LLMCore::IProviderRegistry &providerRegistry,
         LLMCore::IPromptProvider *promptProvider,
-        LLMCore::RequestHandlerBase &requestHandler,
         Context::IDocumentReader &documentReader,
         IRequestPerformanceLogger &performanceLogger);
 
@@ -67,6 +65,10 @@ public:
 protected:
     void startImpl() override;
 
+private slots:
+    void handleFullResponse(const QString &requestId, const QString &fullText);
+    void handleRequestFailed(const QString &requestId, const QString &error);
+
 private:
     void handleInitialize(const QJsonObject &request);
     void handleShutdown(const QJsonObject &request);
@@ -74,6 +76,12 @@ private:
     void handleInitialized(const QJsonObject &request);
     void handleExit(const QJsonObject &request);
     void handleCancelRequest(const QJsonObject &request);
+
+    struct RequestContext
+    {
+        QJsonObject originalRequest;
+        LLMCore::Provider *provider;
+    };
 
     LLMCore::ContextData prepareContext(
         const QJsonObject &request, const Context::DocumentInfo &documentInfo);
@@ -83,11 +91,11 @@ private:
     const Settings::GeneralSettings &m_generalSettings;
     LLMCore::IPromptProvider *m_promptProvider = nullptr;
     LLMCore::IProviderRegistry &m_providerRegistry;
-    LLMCore::RequestHandlerBase &m_requestHandler;
     Context::IDocumentReader &m_documentReader;
     IRequestPerformanceLogger &m_performanceLogger;
     QElapsedTimer m_completionTimer;
     Context::ContextManager *m_contextManager;
+    QHash<QString, RequestContext> m_activeRequests;
 };
 
 } // namespace QodeAssist

@@ -82,7 +82,6 @@ public:
     QodeAssistPlugin()
         : m_updater(new PluginUpdater(this))
         , m_promptProvider(LLMCore::PromptTemplateManager::instance())
-        , m_requestHandler(this)
     {}
 
     ~QodeAssistPlugin() final
@@ -248,7 +247,6 @@ public:
             Settings::codeCompletionSettings(),
             LLMCore::ProvidersManager::instance(),
             &m_promptProvider,
-            m_requestHandler,
             m_documentReader,
             m_performanceLogger));
     }
@@ -290,7 +288,6 @@ private:
 
     QPointer<QodeAssistClient> m_qodeAssistClient;
     LLMCore::PromptProviderFim m_promptProvider;
-    LLMCore::RequestHandler m_requestHandler{this};
     Context::DocumentReaderQtCreator m_documentReader;
     RequestPerformanceLogger m_performanceLogger;
     QPointer<Chat::ChatOutputPane> m_chatOutputPane;

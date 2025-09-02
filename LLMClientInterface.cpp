@@ -26,8 +26,6 @@
 #include "CodeHandler.hpp"
 #include "context/DocumentContextReader.hpp"
 #include "context/Utils.hpp"
-#include "llmcore/PromptTemplateManager.hpp"
-#include "llmcore/ProvidersManager.hpp"
 #include "logger/Logger.hpp"
 #include "settings/CodeCompletionSettings.hpp"
 #include "settings/GeneralSettings.hpp"
@@ -40,34 +38,16 @@ LLMClientInterface::LLMClientInterface(
     const Settings::CodeCompletionSettings &completeSettings,
     LLMCore::IProviderRegistry &providerRegistry,
     LLMCore::IPromptProvider *promptProvider,
-    LLMCore::RequestHandlerBase &requestHandler,
     Context::IDocumentReader &documentReader,
     IRequestPerformanceLogger &performanceLogger)
     : m_generalSettings(generalSettings)
     , m_completeSettings(completeSettings)
     , m_providerRegistry(providerRegistry)
     , m_promptProvider(promptProvider)
-    , m_requestHandler(requestHandler)
     , m_documentReader(documentReader)
     , m_performanceLogger(performanceLogger)
     , m_contextManager(new Context::ContextManager(this))
 {
-    connect(
-        &m_requestHandler,
-        &LLMCore::RequestHandler::completionReceived,
-        this,
-        &LLMClientInterface::sendCompletionToClient);
-
-    // TODO handle error
-    // connect(
-    //     &m_requestHandler,
-    //     &LLMCore::RequestHandler::requestFinished,
-    //     this,
-    //     [this](const QString &, bool success, const QString &errorString) {
-    //         if (!success) {
-    //             emit error(errorString);
-    //         }
-    //     });
 }
 
 Utils::FilePath LLMClientInterface::serverDeviceTemplate() const
@@ -78,6 +58,29 @@ Utils::FilePath LLMClientInterface::serverDeviceTemplate() const
 void LLMClientInterface::startImpl()
 {
     emit started();
+}
+
+void LLMClientInterface::handleFullResponse(const QString &requestId, const QString &fullText)
+{
+    auto it = m_activeRequests.find(requestId);
+    if (it == m_activeRequests.end())
+        return;
+
+    const RequestContext &ctx = it.value();
+    sendCompletionToClient(fullText, ctx.originalRequest, true);
+
+    m_activeRequests.erase(it);
+    m_performanceLogger.endTimeMeasurement(requestId);
+}
+
+void LLMClientInterface::handleRequestFailed(const QString &requestId, const QString &error)
+{
+    auto it = m_activeRequests.find(requestId);
+    if (it == m_activeRequests.end())
+        return;
+
+    LOG_MESSAGE(QString("Request %1 failed: %2").arg(requestId, error));
+    m_activeRequests.erase(it);
 }
 
 void LLMClientInterface::sendData(const QByteArray &data)
@@ -112,8 +115,15 @@ void LLMClientInterface::sendData(const QByteArray &data)
 
 void LLMClientInterface::handleCancelRequest(const QJsonObject &request)
 {
-    QString id = request["params"].toObject()["id"].toString();
-    if (m_requestHandler.cancelRequest(id)) {
+    QString id = request["id"].toString();
+
+    auto it = m_activeRequests.find(id);
+    if (it != m_activeRequests.end()) {
+        const RequestContext &ctx = it.value();
+
+        ctx.provider->httpClient()->cancelRequest(id);
+
+        m_activeRequests.erase(it);
         LOG_MESSAGE(QString("Request %1 cancelled successfully").arg(id));
     } else {
         LOG_MESSAGE(QString("Request %1 not found").arg(id));
@@ -281,7 +291,28 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         LOG_MESSAGES(errors);
         return;
     }
-    m_requestHandler.sendLLMRequest(config, request);
+
+    QString requestId = request["id"].toString();
+    m_performanceLogger.startTimeMeasurement(requestId);
+
+    m_activeRequests[requestId] = {request, provider};
+
+    connect(
+        provider,
+        &LLMCore::Provider::fullResponseReceived,
+        this,
+        &LLMClientInterface::handleFullResponse,
+        Qt::UniqueConnection);
+    connect(
+        provider,
+        &LLMCore::Provider::requestFailed,
+        this,
+        &LLMClientInterface::handleRequestFailed,
+        Qt::UniqueConnection);
+
+    QUrl fullUrl
+        = QString("%1%2").arg(url, endpoint(provider, promptTemplate->type(), isPreset1Active));
+    provider->sendRequest(requestId, fullUrl, config.providerRequest);
 }
 
 LLMCore::ContextData LLMClientInterface::prepareContext(

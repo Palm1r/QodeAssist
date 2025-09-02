@@ -1,6 +1,6 @@
 add_library(LLMCore STATIC
     RequestType.hpp
-    Provider.hpp
+    Provider.hpp Provider.cpp
     ProvidersManager.hpp ProvidersManager.cpp
     ContextData.hpp
     IPromptProvider.hpp
