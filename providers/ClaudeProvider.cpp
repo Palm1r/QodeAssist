@@ -206,10 +206,10 @@ QString ClaudeProvider::apiKey() const
 void ClaudeProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
 {
     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    networkRequest.setRawHeader("anthropic-version", "2023-06-01");
 
     if (!apiKey().isEmpty()) {
         networkRequest.setRawHeader("x-api-key", apiKey().toUtf8());
-        networkRequest.setRawHeader("anthropic-version", "2023-06-01");
     }
 }
 
@@ -221,22 +221,11 @@ LLMCore::ProviderID ClaudeProvider::providerID() const
 void ClaudeProvider::sendRequest(
     const QString &requestId, const QUrl &url, const QJsonObject &payload)
 {
-    QNetworkRequest networkRequest;
+    QNetworkRequest networkRequest(url);
     prepareNetworkRequest(networkRequest);
 
-    std::optional<QMap<QString, QString>> headers;
-    const auto rawHeaders = networkRequest.rawHeaderList();
-    if (!rawHeaders.isEmpty()) {
-        QMap<QString, QString> headerMap;
-        for (const auto &header : rawHeaders) {
-            headerMap[QString::fromLatin1(header)] = QString::fromLatin1(
-                networkRequest.rawHeader(header));
-        }
-        headers = headerMap;
-    }
-
     LLMCore::HttpRequest
-        request{.url = url, .requestId = requestId, .payload = payload, .headers = headers};
+        request{.networkRequest = networkRequest, .requestId = requestId, .payload = payload};
 
     LOG_MESSAGE(QString("ClaudeProvider: Sending request %1 to %2").arg(requestId, url.toString()));
 

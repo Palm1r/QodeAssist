@@ -176,22 +176,11 @@ LLMCore::ProviderID LMStudioProvider::providerID() const
 void LMStudioProvider::sendRequest(
     const QString &requestId, const QUrl &url, const QJsonObject &payload)
 {
-    QNetworkRequest networkRequest;
+    QNetworkRequest networkRequest(url);
     prepareNetworkRequest(networkRequest);
 
-    std::optional<QMap<QString, QString>> headers;
-    const auto rawHeaders = networkRequest.rawHeaderList();
-    if (!rawHeaders.isEmpty()) {
-        QMap<QString, QString> headerMap;
-        for (const auto &header : rawHeaders) {
-            headerMap[QString::fromLatin1(header)] = QString::fromLatin1(
-                networkRequest.rawHeader(header));
-        }
-        headers = headerMap;
-    }
-
     LLMCore::HttpRequest
-        request{.url = url, .requestId = requestId, .payload = payload, .headers = headers};
+        request{.networkRequest = networkRequest, .requestId = requestId, .payload = payload};
 
     LOG_MESSAGE(
         QString("LMStudioProvider: Sending request %1 to %2").arg(requestId, url.toString()));

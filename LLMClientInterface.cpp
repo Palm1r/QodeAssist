@@ -310,9 +310,7 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         &LLMClientInterface::handleRequestFailed,
         Qt::UniqueConnection);
 
-    QUrl fullUrl
-        = QString("%1%2").arg(url, endpoint(provider, promptTemplate->type(), isPreset1Active));
-    provider->sendRequest(requestId, fullUrl, config.providerRequest);
+    provider->sendRequest(requestId, config.url, config.providerRequest);
 }
 
 LLMCore::ContextData LLMClientInterface::prepareContext(

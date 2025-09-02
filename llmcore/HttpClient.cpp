@@ -46,24 +46,11 @@ HttpClient::~HttpClient()
 
 void HttpClient::onSendRequest(const HttpRequest &request)
 {
-    QNetworkRequest networkRequest(request.url);
-    networkRequest.setTransferTimeout(300000);
-    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    networkRequest.setRawHeader("Accept", "text/event-stream");
-    networkRequest.setRawHeader("Cache-Control", "no-cache");
-    networkRequest.setRawHeader("Connection", "keep-alive");
-
-    if (request.headers.has_value()) {
-        for (const auto &[headername, value] : request.headers->asKeyValueRange()) {
-            networkRequest.setRawHeader(headername.toUtf8(), value.toUtf8());
-        }
-    }
-
     QJsonDocument doc(request.payload);
-    LOG_MESSAGE(QString("HttpClient: Sending POST to %1").arg(request.url.toString()));
     LOG_MESSAGE(QString("HttpClient: data: %1").arg(doc.toJson(QJsonDocument::Indented)));
 
-    QNetworkReply *reply = m_manager->post(networkRequest, doc.toJson(QJsonDocument::Compact));
+    QNetworkReply *reply
+        = m_manager->post(request.networkRequest, doc.toJson(QJsonDocument::Compact));
     addActiveRequest(reply, request.requestId);
 
     connect(reply, &QNetworkReply::readyRead, this, &HttpClient::onReadyRead);
