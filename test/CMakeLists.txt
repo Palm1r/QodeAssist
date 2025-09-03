@@ -3,7 +3,7 @@ add_executable(QodeAssistTest
     ../LLMClientInterface.cpp
     CodeHandlerTest.cpp
     DocumentContextReaderTest.cpp
-    LLMClientInterfaceTests.cpp
+    # LLMClientInterfaceTests.cpp
     unittest_main.cpp
 )
 

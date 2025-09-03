@@ -32,10 +32,9 @@ namespace QodeAssist::LLMCore {
 
 struct HttpRequest
 {
-    QUrl url;
+    QNetworkRequest networkRequest;
     QString requestId;
     QJsonObject payload;
-    std::optional<QMap<QString, QString>> headers;
 };
 
 class HttpClient : public QObject

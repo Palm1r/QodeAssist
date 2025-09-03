@@ -28,6 +28,7 @@
 #include <context/Utils.hpp>
 #include <llmcore/PromptTemplateManager.hpp>
 #include <llmcore/ProvidersManager.hpp>
+#include <llmcore/RequestConfig.hpp>
 #include <logger/Logger.hpp>
 #include <settings/ChatAssistantSettings.hpp>
 #include <settings/GeneralSettings.hpp>
@@ -36,30 +37,10 @@ namespace QodeAssist {
 
 QuickRefactorHandler::QuickRefactorHandler(QObject *parent)
     : QObject(parent)
-    , m_requestHandler(new LLMCore::RequestHandler(this))
     , m_currentEditor(nullptr)
     , m_isRefactoringInProgress(false)
     , m_contextManager(this)
 {
-    connect(
-        m_requestHandler,
-        &LLMCore::RequestHandler::completionReceived,
-        this,
-        &QuickRefactorHandler::handleLLMResponse);
-
-    connect(
-        m_requestHandler,
-        &LLMCore::RequestHandler::requestFinished,
-        this,
-        [this](const QString &requestId, bool success, const QString &errorString) {
-            if (!success && requestId == m_lastRequestId) {
-                m_isRefactoringInProgress = false;
-                RefactorResult result;
-                result.success = false;
-                result.errorMessage = errorString;
-                emit refactoringCompleted(result);
-            }
-        });
 }
 
 QuickRefactorHandler::~QuickRefactorHandler() {}
@@ -172,7 +153,23 @@ void QuickRefactorHandler::prepareAndSendRequest(
 
     m_isRefactoringInProgress = true;
 
-    m_requestHandler->sendLLMRequest(config, request);
+    m_activeRequests[requestId] = {request, provider};
+
+    connect(
+        provider,
+        &LLMCore::Provider::fullResponseReceived,
+        this,
+        &QuickRefactorHandler::handleFullResponse,
+        Qt::UniqueConnection);
+
+    connect(
+        provider,
+        &LLMCore::Provider::requestFailed,
+        this,
+        &QuickRefactorHandler::handleRequestFailed,
+        Qt::UniqueConnection);
+
+    provider->sendRequest(requestId, config.url, config.providerRequest);
 }
 
 LLMCore::ContextData QuickRefactorHandler::prepareContext(
@@ -280,12 +277,41 @@ void QuickRefactorHandler::handleLLMResponse(
 void QuickRefactorHandler::cancelRequest()
 {
     if (m_isRefactoringInProgress) {
-        m_requestHandler->cancelRequest(m_lastRequestId);
+        auto id = m_lastRequestId;
+
+        for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
+            if (it.key() == id) {
+                const RequestContext &ctx = it.value();
+                ctx.provider->httpClient()->cancelRequest(id);
+                m_activeRequests.erase(it);
+                break;
+            }
+        }
+
         m_isRefactoringInProgress = false;
 
         RefactorResult result;
         result.success = false;
         result.errorMessage = "Refactoring request was cancelled";
+        emit refactoringCompleted(result);
+    }
+}
+
+void QuickRefactorHandler::handleFullResponse(const QString &requestId, const QString &fullText)
+{
+    if (requestId == m_lastRequestId) {
+        QJsonObject request{{"id", requestId}};
+        handleLLMResponse(fullText, request, true);
+    }
+}
+
+void QuickRefactorHandler::handleRequestFailed(const QString &requestId, const QString &error)
+{
+    if (requestId == m_lastRequestId) {
+        m_isRefactoringInProgress = false;
+        RefactorResult result;
+        result.success = false;
+        result.errorMessage = error;
         emit refactoringCompleted(result);
     }
 }

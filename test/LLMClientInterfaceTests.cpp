@@ -101,7 +101,6 @@ protected:
         m_provider = std::make_unique<MockProvider>();
         m_fimTemplate = std::make_unique<Templates::CodeLlamaQMLFim>();
         m_chatTemplate = std::make_unique<Templates::Claude>();
-        m_requestHandler = std::make_unique<LLMCore::MockRequestHandler>(m_client.get());
 
         ON_CALL(m_providerRegistry, getProviderByName(_)).WillByDefault(Return(m_provider.get()));
         ON_CALL(m_promptProvider, getTemplateByName(_)).WillByDefault(Return(m_fimTemplate.get()));
@@ -124,7 +123,6 @@ protected:
             m_completeSettings,
             m_providerRegistry,
             &m_promptProvider,
-            *m_requestHandler,
             m_documentReader,
             m_performanceLogger);
     }
@@ -186,7 +184,6 @@ protected:
     MockDocumentReader m_documentReader;
     EmptyRequestPerformanceLogger m_performanceLogger;
     std::unique_ptr<LLMClientInterface> m_client;
-    std::unique_ptr<LLMCore::MockRequestHandler> m_requestHandler;
     std::unique_ptr<MockProvider> m_provider;
     std::unique_ptr<LLMCore::PromptTemplate> m_fimTemplate;
     std::unique_ptr<LLMCore::PromptTemplate> m_chatTemplate;
@@ -207,125 +204,6 @@ TEST_F(LLMClientInterfaceTest, initialize)
     EXPECT_TRUE(response.contains("result"));
     EXPECT_TRUE(response["result"].toObject().contains("capabilities"));
     EXPECT_TRUE(response["result"].toObject().contains("serverInfo"));
-}
-
-TEST_F(LLMClientInterfaceTest, completionFim)
-{
-    // Set up the mock request handler to return a specific completion
-    m_requestHandler->setFakeCompletion("test completion");
-
-    m_documentReader.setDocumentInfo(
-        R"(
-def main():
-    print("Hello, World!")
-
-if __name__ == "__main__":
-    main()
-)",
-        "/path/to/file.py",
-        "text/python");
-
-    QSignalSpy spy(m_client.get(), &LanguageClient::BaseClientInterface::messageReceived);
-
-    QJsonObject request = createCompletionRequest();
-    m_client->sendData(QJsonDocument(request).toJson());
-
-    ASSERT_EQ(m_requestHandler->receivedRequests().size(), 1);
-
-    QJsonObject requestJson = m_requestHandler->receivedRequests().at(0).providerRequest;
-    ASSERT_EQ(requestJson["system"].toString(), R"(system prompt
- Language:  (MIME: text/python) filepath: /path/to/file.py(py)
-
-Recent Project Changes Context:
- )");
-
-    ASSERT_EQ(requestJson["prompt"].toString(), R"(<SUF>rint("Hello, World!")
-
-if __name__ == "__main__":
-    main()
-<PRE>
-def main():
-    p<MID>)");
-
-    ASSERT_EQ(spy.count(), 1);
-    auto message = spy.takeFirst().at(0).value<LanguageServerProtocol::JsonRpcMessage>();
-    QJsonObject response = message.toJsonObject();
-
-    EXPECT_EQ(response["id"].toString(), "completion-1");
-    EXPECT_TRUE(response.contains("result"));
-
-    QJsonObject result = response["result"].toObject();
-    EXPECT_TRUE(result.contains("completions"));
-    EXPECT_FALSE(result["isIncomplete"].toBool());
-
-    QJsonArray completions = result["completions"].toArray();
-    ASSERT_EQ(completions.size(), 1);
-    EXPECT_EQ(completions[0].toObject()["text"].toString(), "test completion");
-}
-
-TEST_F(LLMClientInterfaceTest, completionChat)
-{
-    ON_CALL(m_promptProvider, getTemplateByName(_)).WillByDefault(Return(m_chatTemplate.get()));
-
-    m_documentReader.setDocumentInfo(
-        R"(
-def main():
-    print("Hello, World!")
-
-if __name__ == "__main__":
-    main()
-)",
-        "/path/to/file.py",
-        "text/python");
-
-    m_completeSettings.modelOutputHandler.setValue(0);
-
-    m_requestHandler->setFakeCompletion(
-        "Here's the code: ```cpp\nint main() {\n    return 0;\n}\n```");
-
-    QSignalSpy spy(m_client.get(), &LanguageClient::BaseClientInterface::messageReceived);
-
-    QJsonObject request = createCompletionRequest();
-    m_client->sendData(QJsonDocument(request).toJson());
-
-    ASSERT_EQ(m_requestHandler->receivedRequests().size(), 1);
-
-    QJsonObject requestJson = m_requestHandler->receivedRequests().at(0).providerRequest;
-    auto messagesJson = requestJson["messages"].toArray();
-    ASSERT_EQ(messagesJson.size(), 1);
-    ASSERT_EQ(messagesJson.at(0).toObject()["content"].toString(), R"(user message template prefix:
-
-def main():
-    p
-suffix:
-rint("Hello, World!")
-
-if __name__ == "__main__":
-    main()
-
-)");
-
-    ASSERT_EQ(spy.count(), 1);
-    auto message = spy.takeFirst().at(0).value<LanguageServerProtocol::JsonRpcMessage>();
-    QJsonObject response = message.toJsonObject();
-
-    QJsonArray completions = response["result"].toObject()["completions"].toArray();
-    ASSERT_EQ(completions.size(), 1);
-
-    QString processedText = completions[0].toObject()["text"].toString();
-    EXPECT_TRUE(processedText.contains("# Here's the code:"));
-    EXPECT_TRUE(processedText.contains("int main()"));
-}
-
-TEST_F(LLMClientInterfaceTest, cancelRequest)
-{
-    QSignalSpy cancelSpy(m_requestHandler.get(), &LLMCore::RequestHandlerBase::requestCancelled);
-
-    QJsonObject cancelRequest = createCancelRequest("completion-1");
-    m_client->sendData(QJsonDocument(cancelRequest).toJson());
-
-    ASSERT_EQ(cancelSpy.count(), 1);
-    EXPECT_EQ(cancelSpy.takeFirst().at(0).toString(), "completion-1");
 }
 
 TEST_F(LLMClientInterfaceTest, ServerDeviceTemplate)

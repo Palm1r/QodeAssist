@@ -36,35 +36,17 @@
 #include "GeneralSettings.hpp"
 #include "Logger.hpp"
 #include "ProvidersManager.hpp"
+#include "RequestConfig.hpp"
 
 namespace QodeAssist::Chat {
 
 ClientInterface::ClientInterface(
     ChatModel *chatModel, LLMCore::IPromptProvider *promptProvider, QObject *parent)
     : QObject(parent)
-    , m_requestHandler(new LLMCore::RequestHandler(this))
     , m_chatModel(chatModel)
     , m_promptProvider(promptProvider)
     , m_contextManager(new Context::ContextManager(this))
-{
-    connect(
-        m_requestHandler,
-        &LLMCore::RequestHandler::completionReceived,
-        this,
-        [this](const QString &completion, const QJsonObject &request, bool isComplete) {
-            handleLLMResponse(completion, request, isComplete);
-        });
-
-    connect(
-        m_requestHandler,
-        &LLMCore::RequestHandler::requestFinished,
-        this,
-        [this](const QString &, bool success, const QString &errorString) {
-            if (!success) {
-                emit errorOccurred(errorString);
-            }
-        });
-}
+{}
 
 ClientInterface::~ClientInterface() = default;
 
@@ -72,6 +54,7 @@ void ClientInterface::sendMessage(
     const QString &message, const QList<QString> &attachments, const QList<QString> &linkedFiles)
 {
     cancelRequest();
+    m_accumulatedResponses.clear();
 
     auto attachFiles = m_contextManager->getContentFiles(attachments);
     m_chatModel->addMessage(message, ChatModel::ChatRole::User, "", attachFiles);
@@ -135,8 +118,31 @@ void ClientInterface::sendMessage(
     config.provider
         ->prepareRequest(config.providerRequest, promptTemplate, context, LLMCore::RequestType::Chat);
 
-    QJsonObject request{{"id", QUuid::createUuid().toString()}};
-    m_requestHandler->sendLLMRequest(config, request);
+    QString requestId = QUuid::createUuid().toString();
+    QJsonObject request{{"id", requestId}};
+
+    m_activeRequests[requestId] = {request, provider};
+
+    connect(
+        provider,
+        &LLMCore::Provider::partialResponseReceived,
+        this,
+        &ClientInterface::handlePartialResponse,
+        Qt::UniqueConnection);
+    connect(
+        provider,
+        &LLMCore::Provider::fullResponseReceived,
+        this,
+        &ClientInterface::handleFullResponse,
+        Qt::UniqueConnection);
+    connect(
+        provider,
+        &LLMCore::Provider::requestFailed,
+        this,
+        &ClientInterface::handleRequestFailed,
+        Qt::UniqueConnection);
+
+    provider->sendRequest(requestId, config.url, config.providerRequest);
 }
 
 void ClientInterface::clearMessages()
@@ -148,7 +154,17 @@ void ClientInterface::clearMessages()
 void ClientInterface::cancelRequest()
 {
     auto id = m_chatModel->lastMessageId();
-    m_requestHandler->cancelRequest(id);
+
+    for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
+        if (it.value().originalRequest["id"].toString() == id) {
+            const RequestContext &ctx = it.value();
+            ctx.provider->httpClient()->cancelRequest(it.key());
+
+            m_activeRequests.erase(it);
+            m_accumulatedResponses.remove(it.key());
+            break;
+        }
+    }
 }
 
 void ClientInterface::handleLLMResponse(
@@ -212,6 +228,46 @@ QString ClientInterface::getSystemPromptWithLinkedFiles(
 Context::ContextManager *ClientInterface::contextManager() const
 {
     return m_contextManager;
+}
+
+void ClientInterface::handlePartialResponse(const QString &requestId, const QString &partialText)
+{
+    auto it = m_activeRequests.find(requestId);
+    if (it == m_activeRequests.end())
+        return;
+
+    m_accumulatedResponses[requestId] += partialText;
+
+    const RequestContext &ctx = it.value();
+    handleLLMResponse(m_accumulatedResponses[requestId], ctx.originalRequest, false);
+}
+
+void ClientInterface::handleFullResponse(const QString &requestId, const QString &fullText)
+{
+    auto it = m_activeRequests.find(requestId);
+    if (it == m_activeRequests.end())
+        return;
+
+    const RequestContext &ctx = it.value();
+
+    QString finalText = !fullText.isEmpty() ? fullText : m_accumulatedResponses[requestId];
+    handleLLMResponse(finalText, ctx.originalRequest, true);
+
+    m_activeRequests.erase(it);
+    m_accumulatedResponses.remove(requestId);
+}
+
+void ClientInterface::handleRequestFailed(const QString &requestId, const QString &error)
+{
+    auto it = m_activeRequests.find(requestId);
+    if (it == m_activeRequests.end())
+        return;
+
+    LOG_MESSAGE(QString("Chat request %1 failed: %2").arg(requestId, error));
+    emit errorOccurred(error);
+
+    m_activeRequests.erase(it);
+    m_accumulatedResponses.remove(requestId);
 }
 
 } // namespace QodeAssist::Chat

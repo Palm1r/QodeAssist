@@ -1,6 +1,6 @@
 add_library(LLMCore STATIC
     RequestType.hpp
-    Provider.hpp
+    Provider.hpp Provider.cpp
     ProvidersManager.hpp ProvidersManager.cpp
     ContextData.hpp
     IPromptProvider.hpp
@@ -10,8 +10,6 @@ add_library(LLMCore STATIC
     PromptTemplate.hpp
     PromptTemplateManager.hpp PromptTemplateManager.cpp
     RequestConfig.hpp
-    RequestHandlerBase.hpp RequestHandlerBase.cpp
-    RequestHandler.hpp RequestHandler.cpp
     OllamaMessage.hpp OllamaMessage.cpp
     OpenAIMessage.hpp OpenAIMessage.cpp
     ValidationUtils.hpp ValidationUtils.cpp

@@ -88,53 +88,6 @@ void ClaudeProvider::prepareRequest(
     }
 }
 
-bool ClaudeProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
-{
-    bool isComplete = false;
-    QString tempResponse;
-
-    while (reply->canReadLine()) {
-        QByteArray line = reply->readLine().trimmed();
-        if (line.isEmpty()) {
-            continue;
-        }
-
-        if (!line.startsWith("data:")) {
-            continue;
-        }
-
-        line = line.mid(6);
-
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(line);
-        if (jsonResponse.isNull()) {
-            continue;
-        }
-
-        QJsonObject responseObj = jsonResponse.object();
-        QString eventType = responseObj["type"].toString();
-
-        if (eventType == "message_delta") {
-            if (responseObj.contains("delta")) {
-                QJsonObject delta = responseObj["delta"].toObject();
-                if (delta.contains("stop_reason")) {
-                    isComplete = true;
-                }
-            }
-        } else if (eventType == "content_block_delta") {
-            QJsonObject delta = responseObj["delta"].toObject();
-            if (delta["type"].toString() == "text_delta") {
-                tempResponse += delta["text"].toString();
-            }
-        }
-    }
-
-    if (!tempResponse.isEmpty()) {
-        accumulatedResponse += tempResponse;
-    }
-
-    return isComplete;
-}
-
 QList<QString> ClaudeProvider::getInstalledModels(const QString &baseUrl)
 {
     QList<QString> models;
@@ -206,16 +159,96 @@ QString ClaudeProvider::apiKey() const
 void ClaudeProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
 {
     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+    networkRequest.setRawHeader("anthropic-version", "2023-06-01");
 
     if (!apiKey().isEmpty()) {
         networkRequest.setRawHeader("x-api-key", apiKey().toUtf8());
-        networkRequest.setRawHeader("anthropic-version", "2023-06-01");
     }
 }
 
 LLMCore::ProviderID ClaudeProvider::providerID() const
 {
     return LLMCore::ProviderID::Claude;
+}
+
+void ClaudeProvider::sendRequest(
+    const QString &requestId, const QUrl &url, const QJsonObject &payload)
+{
+    QNetworkRequest networkRequest(url);
+    prepareNetworkRequest(networkRequest);
+
+    LLMCore::HttpRequest
+        request{.networkRequest = networkRequest, .requestId = requestId, .payload = payload};
+
+    LOG_MESSAGE(QString("ClaudeProvider: Sending request %1 to %2").arg(requestId, url.toString()));
+
+    emit httpClient()->sendRequest(request);
+}
+
+void ClaudeProvider::onDataReceived(const QString &requestId, const QByteArray &data)
+{
+    QString &accumulatedResponse = m_accumulatedResponses[requestId];
+    QString tempResponse;
+    bool isComplete = false;
+
+    QByteArrayList lines = data.split('\n');
+    for (const QByteArray &line : lines) {
+        QByteArray trimmedLine = line.trimmed();
+        if (trimmedLine.isEmpty())
+            continue;
+
+        if (!trimmedLine.startsWith("data:"))
+            continue;
+        trimmedLine = trimmedLine.mid(6);
+
+        QJsonDocument jsonResponse = QJsonDocument::fromJson(trimmedLine);
+        if (jsonResponse.isNull())
+            continue;
+
+        QJsonObject responseObj = jsonResponse.object();
+        QString eventType = responseObj["type"].toString();
+
+        if (eventType == "message_delta") {
+            if (responseObj.contains("delta")) {
+                QJsonObject delta = responseObj["delta"].toObject();
+                if (delta.contains("stop_reason")) {
+                    isComplete = true;
+                }
+            }
+        } else if (eventType == "content_block_delta") {
+            QJsonObject delta = responseObj["delta"].toObject();
+            if (delta["type"].toString() == "text_delta") {
+                tempResponse += delta["text"].toString();
+            }
+        }
+    }
+
+    if (!tempResponse.isEmpty()) {
+        accumulatedResponse += tempResponse;
+        emit partialResponseReceived(requestId, tempResponse);
+    }
+
+    if (isComplete) {
+        emit fullResponseReceived(requestId, accumulatedResponse);
+        m_accumulatedResponses.remove(requestId);
+    }
+}
+
+void ClaudeProvider::onRequestFinished(const QString &requestId, bool success, const QString &error)
+{
+    if (!success) {
+        LOG_MESSAGE(QString("ClaudeProvider request %1 failed: %2").arg(requestId, error));
+        emit requestFailed(requestId, error);
+    } else {
+        if (m_accumulatedResponses.contains(requestId)) {
+            const QString fullResponse = m_accumulatedResponses[requestId];
+            if (!fullResponse.isEmpty()) {
+                emit fullResponseReceived(requestId, fullResponse);
+            }
+        }
+    }
+
+    m_accumulatedResponses.remove(requestId);
 }
 
 } // namespace QodeAssist::Providers

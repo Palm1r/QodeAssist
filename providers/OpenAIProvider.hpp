@@ -36,12 +36,20 @@ public:
         LLMCore::PromptTemplate *prompt,
         LLMCore::ContextData context,
         LLMCore::RequestType type) override;
-    bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) override;
     QList<QString> getInstalledModels(const QString &url) override;
     QList<QString> validateRequest(const QJsonObject &request, LLMCore::TemplateType type) override;
     QString apiKey() const override;
     void prepareNetworkRequest(QNetworkRequest &networkRequest) const override;
     LLMCore::ProviderID providerID() const override;
+
+    void sendRequest(const QString &requestId, const QUrl &url, const QJsonObject &payload) override;
+
+public slots:
+    void onDataReceived(const QString &requestId, const QByteArray &data) override;
+    void onRequestFinished(const QString &requestId, bool success, const QString &error) override;
+
+private:
+    QHash<QString, QString> m_accumulatedResponses;
 };
 
 } // namespace QodeAssist::Providers

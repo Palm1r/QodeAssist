@@ -41,11 +41,22 @@ QString OpenRouterProvider::url() const
     return "https://openrouter.ai/api";
 }
 
-bool OpenRouterProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
+QString OpenRouterProvider::apiKey() const
 {
-    QByteArray data = reply->readAll();
+    return Settings::providerSettings().openRouterApiKey();
+}
+
+LLMCore::ProviderID OpenRouterProvider::providerID() const
+{
+    return LLMCore::ProviderID::OpenRouter;
+}
+
+void OpenRouterProvider::onDataReceived(const QString &requestId, const QByteArray &data)
+{
+    QString &accumulatedResponse = m_accumulatedResponses[requestId];
+
     if (data.isEmpty()) {
-        return false;
+        return;
     }
 
     bool isDone = false;
@@ -82,6 +93,7 @@ bool OpenRouterProvider::handleResponse(QNetworkReply *reply, QString &accumulat
         QString content = message.getContent();
         if (!content.isEmpty()) {
             accumulatedResponse += content;
+            emit partialResponseReceived(requestId, content);
         }
 
         if (message.isDone()) {
@@ -89,17 +101,28 @@ bool OpenRouterProvider::handleResponse(QNetworkReply *reply, QString &accumulat
         }
     }
 
-    return isDone;
+    if (isDone) {
+        emit fullResponseReceived(requestId, accumulatedResponse);
+        m_accumulatedResponses.remove(requestId);
+    }
 }
 
-QString OpenRouterProvider::apiKey() const
+void OpenRouterProvider::onRequestFinished(
+    const QString &requestId, bool success, const QString &error)
 {
-    return Settings::providerSettings().openRouterApiKey();
-}
+    if (!success) {
+        LOG_MESSAGE(QString("OpenRouterProvider request %1 failed: %2").arg(requestId, error));
+        emit requestFailed(requestId, error);
+    } else {
+        if (m_accumulatedResponses.contains(requestId)) {
+            const QString fullResponse = m_accumulatedResponses[requestId];
+            if (!fullResponse.isEmpty()) {
+                emit fullResponseReceived(requestId, fullResponse);
+            }
+        }
+    }
 
-LLMCore::ProviderID OpenRouterProvider::providerID() const
-{
-    return LLMCore::ProviderID::OpenRouter;
+    m_accumulatedResponses.remove(requestId);
 }
 
 } // namespace QodeAssist::Providers

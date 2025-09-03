@@ -24,7 +24,7 @@
 #include <QVector>
 
 #include "ChatModel.hpp"
-#include "RequestHandler.hpp"
+#include "Provider.hpp"
 #include "llmcore/IPromptProvider.hpp"
 #include <context/ContextManager.hpp>
 
@@ -52,16 +52,29 @@ signals:
     void errorOccurred(const QString &error);
     void messageReceivedCompletely();
 
+private slots:
+    void handlePartialResponse(const QString &requestId, const QString &partialText);
+    void handleFullResponse(const QString &requestId, const QString &fullText);
+    void handleRequestFailed(const QString &requestId, const QString &error);
+
 private:
     void handleLLMResponse(const QString &response, const QJsonObject &request, bool isComplete);
     QString getCurrentFileContext() const;
     QString getSystemPromptWithLinkedFiles(
         const QString &basePrompt, const QList<QString> &linkedFiles) const;
 
+    struct RequestContext
+    {
+        QJsonObject originalRequest;
+        LLMCore::Provider *provider;
+    };
+
     LLMCore::IPromptProvider *m_promptProvider = nullptr;
     ChatModel *m_chatModel;
-    LLMCore::RequestHandler *m_requestHandler;
     Context::ContextManager *m_contextManager;
+
+    QHash<QString, RequestContext> m_activeRequests;
+    QHash<QString, QString> m_accumulatedResponses;
 };
 
 } // namespace QodeAssist::Chat
