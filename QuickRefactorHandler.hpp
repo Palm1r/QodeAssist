@@ -27,7 +27,8 @@
 
 #include <context/ContextManager.hpp>
 #include <context/IDocumentReader.hpp>
-#include <llmcore/RequestHandler.hpp>
+#include <llmcore/ContextData.hpp>
+#include <llmcore/Provider.hpp>
 
 namespace QodeAssist {
 
@@ -54,6 +55,10 @@ public:
 signals:
     void refactoringCompleted(const QodeAssist::RefactorResult &result);
 
+private slots:
+    void handleFullResponse(const QString &requestId, const QString &fullText);
+    void handleRequestFailed(const QString &requestId, const QString &error);
+
 private:
     void prepareAndSendRequest(
         TextEditor::TextEditorWidget *editor,
@@ -66,7 +71,13 @@ private:
         const Utils::Text::Range &range,
         const QString &instructions);
 
-    LLMCore::RequestHandler *m_requestHandler;
+    struct RequestContext
+    {
+        QJsonObject originalRequest;
+        LLMCore::Provider *provider;
+    };
+
+    QHash<QString, RequestContext> m_activeRequests;
     TextEditor::TextEditorWidget *m_currentEditor;
     Utils::Text::Range m_currentRange;
     bool m_isRefactoringInProgress;

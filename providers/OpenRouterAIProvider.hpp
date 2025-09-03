@@ -29,7 +29,6 @@ class OpenRouterProvider : public OpenAICompatProvider
 public:
     QString name() const override;
     QString url() const override;
-    bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) override;
     QString apiKey() const override;
     LLMCore::ProviderID providerID() const override;
 

@@ -53,21 +53,20 @@ public:
         LLMCore::ContextData context,
         LLMCore::RequestType type)
         = 0;
-    virtual bool handleResponse(QNetworkReply *reply, QString &accumulatedResponse) = 0;
     virtual QList<QString> getInstalledModels(const QString &url) = 0;
     virtual QList<QString> validateRequest(const QJsonObject &request, TemplateType type) = 0;
     virtual QString apiKey() const = 0;
     virtual void prepareNetworkRequest(QNetworkRequest &networkRequest) const = 0;
     virtual ProviderID providerID() const = 0;
 
-    virtual void sendRequest(const QString &requestId, const QUrl &url, const QJsonObject &payload) {
-    };
+    virtual void sendRequest(const QString &requestId, const QUrl &url, const QJsonObject &payload)
+        = 0;
 
     HttpClient *httpClient() const;
 
 public slots:
-    virtual void onDataReceived(const QString &requestId, const QByteArray &data) {};
-    virtual void onRequestFinished(const QString &requestId, bool success, const QString &error) {};
+    virtual void onDataReceived(const QString &requestId, const QByteArray &data) = 0;
+    virtual void onRequestFinished(const QString &requestId, bool success, const QString &error) = 0;
 
 signals:
     void partialResponseReceived(const QString &requestId, const QString &partialText);

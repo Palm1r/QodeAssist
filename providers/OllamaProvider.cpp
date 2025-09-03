@@ -97,44 +97,6 @@ void OllamaProvider::prepareRequest(
     }
 }
 
-bool OllamaProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
-{
-    QByteArray data = reply->readAll();
-    if (data.isEmpty()) {
-        return false;
-    }
-
-    QByteArrayList lines = data.split('\n');
-    bool isDone = false;
-
-    for (const QByteArray &line : lines) {
-        if (line.trimmed().isEmpty()) {
-            continue;
-        }
-
-        const QString endpoint = reply->url().path();
-        auto messageType = endpoint == completionEndpoint() ? LLMCore::OllamaMessage::Type::Generate
-                                                            : LLMCore::OllamaMessage::Type::Chat;
-
-        auto message = LLMCore::OllamaMessage::fromJson(line, messageType);
-        if (message.hasError()) {
-            LOG_MESSAGE("Error in Ollama response: " + message.error);
-            continue;
-        }
-
-        QString content = message.getContent();
-        if (!content.isEmpty()) {
-            accumulatedResponse += content;
-        }
-
-        if (message.done) {
-            isDone = true;
-        }
-    }
-
-    return isDone;
-}
-
 QList<QString> OllamaProvider::getInstalledModels(const QString &url)
 {
     QList<QString> models;

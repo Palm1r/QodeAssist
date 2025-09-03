@@ -91,11 +91,6 @@ void GoogleAIProvider::prepareRequest(
     }
 }
 
-bool GoogleAIProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
-{
-    return false;
-}
-
 QList<QString> GoogleAIProvider::getInstalledModels(const QString &url)
 {
     QList<QString> models;

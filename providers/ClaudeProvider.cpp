@@ -88,53 +88,6 @@ void ClaudeProvider::prepareRequest(
     }
 }
 
-bool ClaudeProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
-{
-    bool isComplete = false;
-    QString tempResponse;
-
-    while (reply->canReadLine()) {
-        QByteArray line = reply->readLine().trimmed();
-        if (line.isEmpty()) {
-            continue;
-        }
-
-        if (!line.startsWith("data:")) {
-            continue;
-        }
-
-        line = line.mid(6);
-
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(line);
-        if (jsonResponse.isNull()) {
-            continue;
-        }
-
-        QJsonObject responseObj = jsonResponse.object();
-        QString eventType = responseObj["type"].toString();
-
-        if (eventType == "message_delta") {
-            if (responseObj.contains("delta")) {
-                QJsonObject delta = responseObj["delta"].toObject();
-                if (delta.contains("stop_reason")) {
-                    isComplete = true;
-                }
-            }
-        } else if (eventType == "content_block_delta") {
-            QJsonObject delta = responseObj["delta"].toObject();
-            if (delta["type"].toString() == "text_delta") {
-                tempResponse += delta["text"].toString();
-            }
-        }
-    }
-
-    if (!tempResponse.isEmpty()) {
-        accumulatedResponse += tempResponse;
-    }
-
-    return isComplete;
-}
-
 QList<QString> ClaudeProvider::getInstalledModels(const QString &baseUrl)
 {
     QList<QString> models;

@@ -91,69 +91,6 @@ void LlamaCppProvider::prepareRequest(
     }
 }
 
-bool LlamaCppProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
-{
-    QByteArray data = reply->readAll();
-    if (data.isEmpty()) {
-        return false;
-    }
-
-    bool isDone = data.contains("\"stop\":true") || data.contains("data: [DONE]");
-
-    QByteArrayList lines = data.split('\n');
-    for (const QByteArray &line : lines) {
-        if (line.trimmed().isEmpty()) {
-            continue;
-        }
-
-        if (line == "data: [DONE]") {
-            isDone = true;
-            continue;
-        }
-
-        QByteArray jsonData = line;
-        if (line.startsWith("data: ")) {
-            jsonData = line.mid(6);
-        }
-
-        QJsonParseError error;
-        QJsonDocument doc = QJsonDocument::fromJson(jsonData, &error);
-        if (doc.isNull()) {
-            continue;
-        }
-
-        QJsonObject obj = doc.object();
-
-        if (obj.contains("content")) {
-            QString content = obj["content"].toString();
-            if (!content.isEmpty()) {
-                accumulatedResponse += content;
-            }
-        } else if (obj.contains("choices")) {
-            auto message = LLMCore::OpenAIMessage::fromJson(obj);
-            if (message.hasError()) {
-                LOG_MESSAGE("Error in llama.cpp response: " + message.error);
-                continue;
-            }
-
-            QString content = message.getContent();
-            if (!content.isEmpty()) {
-                accumulatedResponse += content;
-            }
-
-            if (message.isDone()) {
-                isDone = true;
-            }
-        }
-
-        if (obj["stop"].toBool()) {
-            isDone = true;
-        }
-    }
-
-    return isDone;
-}
-
 QList<QString> LlamaCppProvider::getInstalledModels(const QString &url)
 {
     return {};

@@ -41,57 +41,6 @@ bool MistralAIProvider::supportsModelListing() const
     return true;
 }
 
-bool MistralAIProvider::handleResponse(QNetworkReply *reply, QString &accumulatedResponse)
-{
-    QByteArray data = reply->readAll();
-    if (data.isEmpty()) {
-        return false;
-    }
-
-    bool isDone = false;
-    QByteArrayList lines = data.split('\n');
-
-    for (const QByteArray &line : lines) {
-        if (line.trimmed().isEmpty()) {
-            continue;
-        }
-
-        if (line == "data: [DONE]") {
-            isDone = true;
-            continue;
-        }
-
-        QByteArray jsonData = line;
-        if (line.startsWith("data: ")) {
-            jsonData = line.mid(6);
-        }
-
-        QJsonParseError error;
-        QJsonDocument doc = QJsonDocument::fromJson(jsonData, &error);
-
-        if (doc.isNull()) {
-            continue;
-        }
-
-        auto message = LLMCore::OpenAIMessage::fromJson(doc.object());
-        if (message.hasError()) {
-            LOG_MESSAGE("Error in OpenAI response: " + message.error);
-            continue;
-        }
-
-        QString content = message.getContent();
-        if (!content.isEmpty()) {
-            accumulatedResponse += content;
-        }
-
-        if (message.isDone()) {
-            isDone = true;
-        }
-    }
-
-    return isDone;
-}
-
 QList<QString> MistralAIProvider::getInstalledModels(const QString &url)
 {
     QList<QString> models;
