@@ -26,13 +26,27 @@
 
 #include "ContextData.hpp"
 #include "HttpClient.hpp"
+#include "IToolsFactory.hpp"
 #include "PromptTemplate.hpp"
 #include "RequestType.hpp"
+#include "SSEBuffer.hpp"
 
 class QNetworkReply;
 class QJsonObject;
 
 namespace QodeAssist::LLMCore {
+
+struct DataBuffers
+{
+    SSEBuffer rawStreamBuffer;
+    QString responseContent;
+
+    void clear()
+    {
+        rawStreamBuffer.clear();
+        responseContent.clear();
+    }
+};
 
 class Provider : public QObject
 {
@@ -62,6 +76,9 @@ public:
     virtual void sendRequest(const QString &requestId, const QUrl &url, const QJsonObject &payload)
         = 0;
 
+    virtual bool supportsTools() const { return false; }
+    virtual IToolsFactory *toolsFactory() const { return nullptr; }
+
     HttpClient *httpClient() const;
 
 public slots:
@@ -72,9 +89,14 @@ signals:
     void partialResponseReceived(const QString &requestId, const QString &partialText);
     void fullResponseReceived(const QString &requestId, const QString &fullText);
     void requestFailed(const QString &requestId, const QString &error);
+    void toolCallsReceived(const QString &requestId, const QJsonArray &toolCalls);
+
+protected:
+    QHash<RequestID, DataBuffers> m_dataBuffers;
+    QHash<RequestID, QUrl> m_requestUrls;
 
 private:
-    std::unique_ptr<HttpClient> m_httpClient;
+    HttpClient *m_httpClient;
 };
 
 } // namespace QodeAssist::LLMCore

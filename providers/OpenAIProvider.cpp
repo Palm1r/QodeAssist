@@ -1,4 +1,4 @@
-/*
+/* 
  * Copyright (C) 2024-2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -19,10 +19,6 @@
 
 #include "OpenAIProvider.hpp"
 
-#include "settings/ChatAssistantSettings.hpp"
-#include "settings/CodeCompletionSettings.hpp"
-#include "settings/ProviderSettings.hpp"
-
 #include <QEventLoop>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -32,8 +28,25 @@
 #include "llmcore/OpenAIMessage.hpp"
 #include "llmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
+#include "settings/ChatAssistantSettings.hpp"
+#include "settings/CodeCompletionSettings.hpp"
+#include "settings/ProviderSettings.hpp"
 
 namespace QodeAssist::Providers {
+
+OpenAIProvider::OpenAIProvider(QObject *parent)
+    : LLMCore::Provider(parent)
+    , m_toolsFactory(std::make_unique<Tools::ToolsFactory>())
+    , m_toolsManager(std::make_unique<OpenAIToolsManager>(this))
+{
+    m_toolsManager->setToolsFactory(m_toolsFactory.get());
+
+    connect(
+        m_toolsManager.get(),
+        &OpenAIToolsManager::requestReadyForContinuation,
+        this,
+        &OpenAIProvider::onToolsRequestReadyForContinuation);
+}
 
 QString OpenAIProvider::name() const
 {
@@ -60,6 +73,16 @@ bool OpenAIProvider::supportsModelListing() const
     return true;
 }
 
+bool OpenAIProvider::supportsTools() const
+{
+    return m_toolsManager->hasToolsSupport();
+}
+
+LLMCore::IToolsFactory *OpenAIProvider::toolsFactory() const
+{
+    return m_toolsFactory.get();
+}
+
 void OpenAIProvider::prepareRequest(
     QJsonObject &request,
     LLMCore::PromptTemplate *prompt,
@@ -84,6 +107,8 @@ void OpenAIProvider::prepareRequest(
             request["frequency_penalty"] = settings.frequencyPenalty();
         if (settings.usePresencePenalty())
             request["presence_penalty"] = settings.presencePenalty();
+
+        request["stream"] = true;
     };
 
     if (type == LLMCore::RequestType::CodeCompletion) {
@@ -91,15 +116,136 @@ void OpenAIProvider::prepareRequest(
     } else {
         applyModelParams(Settings::chatAssistantSettings());
     }
+
+    if (supportsTools() && type == LLMCore::RequestType::Chat) {
+        auto toolsDefinitions = m_toolsManager->getToolsDefinitions();
+        if (!toolsDefinitions.isEmpty()) {
+            request["tools"] = toolsDefinitions;
+            LOG_MESSAGE(QString("Added %1 tools to OpenAI request").arg(toolsDefinitions.size()));
+        }
+    }
 }
 
-QList<QString> OpenAIProvider::getInstalledModels(const QString &url)
+void OpenAIProvider::sendRequest(
+    const QString &requestId, const QUrl &url, const QJsonObject &payload)
+{
+    m_dataBuffers[requestId].clear();
+    m_requestUrls[requestId] = url;
+
+    // Инициализируем tools manager для этого запроса
+    m_toolsManager->initializeRequest(requestId, payload);
+
+    QNetworkRequest networkRequest(url);
+    prepareNetworkRequest(networkRequest);
+
+    LLMCore::HttpRequest
+        request{.networkRequest = networkRequest, .requestId = requestId, .payload = payload};
+
+    LOG_MESSAGE(QString("OpenAIProvider: Sending request %1 to %2").arg(requestId, url.toString()));
+    emit httpClient()->sendRequest(request);
+}
+
+void OpenAIProvider::onDataReceived(const QString &requestId, const QByteArray &data)
+{
+    LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+    QStringList lines = buffers.rawStreamBuffer.processData(data);
+
+    for (const QString &line : lines) {
+        QJsonObject event = parseEventLine(line);
+        if (event.isEmpty())
+            continue;
+
+        // Передаем событие tools manager'у и получаем текст для отправки пользователю
+        QString text = m_toolsManager->processEvent(requestId, event);
+
+        if (!text.isEmpty()) {
+            m_dataBuffers[requestId].responseContent += text;
+            emit partialResponseReceived(requestId, text);
+        }
+
+        // Проверяем на завершение (для случаев без tools)
+        if (event.contains("choices")) {
+            QJsonArray choices = event["choices"].toArray();
+            if (!choices.isEmpty()) {
+                QJsonObject choice = choices[0].toObject();
+                QString finishReason = choice["finish_reason"].toString();
+                if (finishReason == "stop") {
+                    emit fullResponseReceived(requestId, m_dataBuffers[requestId].responseContent);
+                }
+            }
+        }
+    }
+}
+
+void OpenAIProvider::onRequestFinished(const QString &requestId, bool success, const QString &error)
+{
+    if (!success) {
+        LOG_MESSAGE(QString("OpenAI request %1 failed: %2").arg(requestId, error));
+        emit requestFailed(requestId, error);
+    } else {
+        LOG_MESSAGE(QString("OpenAI request %1 completed successfully").arg(requestId));
+
+        // Если нет активных tools, отправляем финальный ответ
+        if (m_dataBuffers.contains(requestId)
+            && !m_dataBuffers[requestId].responseContent.isEmpty()) {
+            // Проверяем, что это не tool execution request
+            bool hasToolsInProgress = false;
+            // Простая проверка - если запрос содержал tools, то возможно есть pending execution
+            // В реальности tools manager должен сам управлять состоянием
+
+            if (!hasToolsInProgress) {
+                emit fullResponseReceived(requestId, m_dataBuffers[requestId].responseContent);
+            }
+        }
+    }
+
+    cleanupRequest(requestId);
+}
+
+QJsonObject OpenAIProvider::parseEventLine(const QString &line)
+{
+    if (line.trimmed().isEmpty() || line == "data: [DONE]") {
+        return QJsonObject();
+    }
+
+    QString jsonStr = line;
+    if (line.startsWith("data: ")) {
+        jsonStr = line.mid(6).trimmed();
+    }
+
+    QJsonParseError error;
+    QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8(), &error);
+
+    if (doc.isNull()) {
+        return QJsonObject();
+    }
+
+    return doc.object();
+}
+
+void OpenAIProvider::onToolsRequestReadyForContinuation(
+    const QString &requestId, const QJsonObject &followUpRequest)
+{
+    LOG_MESSAGE(QString("Sending continuation request for %1").arg(requestId));
+    sendRequest(requestId, m_requestUrls[requestId], followUpRequest);
+}
+
+void OpenAIProvider::cleanupRequest(const QString &requestId)
+{
+    m_dataBuffers.remove(requestId);
+    m_requestUrls.remove(requestId);
+    m_toolsManager->cleanupRequest(requestId);
+}
+
+QList<QString> OpenAIProvider::getInstalledModels(const QString &baseUrl)
 {
     QList<QString> models;
     QNetworkAccessManager manager;
-    QNetworkRequest request(QString("%1/v1/models").arg(url));
 
+    QUrl url(baseUrl + "/v1/models");
+    QNetworkRequest request(url);
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
+
     if (!apiKey().isEmpty()) {
         request.setRawHeader("Authorization", QString("Bearer %1").arg(apiKey()).toUtf8());
     }
@@ -120,16 +266,12 @@ QList<QString> OpenAIProvider::getInstalledModels(const QString &url)
                 QJsonObject modelObject = value.toObject();
                 if (modelObject.contains("id")) {
                     QString modelId = modelObject["id"].toString();
-                    if (!modelId.contains("dall-e") && !modelId.contains("whisper")
-                        && !modelId.contains("tts") && !modelId.contains("davinci")
-                        && !modelId.contains("babbage") && !modelId.contains("omni")) {
-                        models.append(modelId);
-                    }
+                    models.append(modelId);
                 }
             }
         }
     } else {
-        LOG_MESSAGE(QString("Error fetching ChatGPT models: %1").arg(reply->errorString()));
+        LOG_MESSAGE(QString("Error fetching OpenAI models: %1").arg(reply->errorString()));
     }
 
     reply->deleteLater();
@@ -148,7 +290,8 @@ QList<QString> OpenAIProvider::validateRequest(const QJsonObject &request, LLMCo
         {"frequency_penalty", {}},
         {"presence_penalty", {}},
         {"stop", QJsonArray{}},
-        {"stream", {}}};
+        {"stream", {}},
+        {"tools", QJsonArray{}}};
 
     return LLMCore::ValidationUtils::validateRequestFields(request, templateReq);
 }
@@ -170,93 +313,6 @@ void OpenAIProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) cons
 LLMCore::ProviderID OpenAIProvider::providerID() const
 {
     return LLMCore::ProviderID::OpenAI;
-}
-
-void OpenAIProvider::sendRequest(
-    const QString &requestId, const QUrl &url, const QJsonObject &payload)
-{
-    QNetworkRequest networkRequest(url);
-    prepareNetworkRequest(networkRequest);
-
-    LLMCore::HttpRequest
-        request{.networkRequest = networkRequest, .requestId = requestId, .payload = payload};
-
-    LOG_MESSAGE(QString("OpenAIProvider: Sending request %1 to %2").arg(requestId, url.toString()));
-
-    emit httpClient()->sendRequest(request);
-}
-
-void OpenAIProvider::onDataReceived(const QString &requestId, const QByteArray &data)
-{
-    QString &accumulatedResponse = m_accumulatedResponses[requestId];
-
-    if (data.isEmpty()) {
-        return;
-    }
-
-    bool isDone = false;
-    QByteArrayList lines = data.split('\n');
-
-    for (const QByteArray &line : lines) {
-        if (line.trimmed().isEmpty()) {
-            continue;
-        }
-
-        if (line == "data: [DONE]") {
-            isDone = true;
-            continue;
-        }
-
-        QByteArray jsonData = line;
-        if (line.startsWith("data: ")) {
-            jsonData = line.mid(6);
-        }
-
-        QJsonParseError error;
-        QJsonDocument doc = QJsonDocument::fromJson(jsonData, &error);
-
-        if (doc.isNull()) {
-            continue;
-        }
-
-        auto message = LLMCore::OpenAIMessage::fromJson(doc.object());
-        if (message.hasError()) {
-            LOG_MESSAGE("Error in OpenAI response: " + message.error);
-            continue;
-        }
-
-        QString content = message.getContent();
-        if (!content.isEmpty()) {
-            accumulatedResponse += content;
-            emit partialResponseReceived(requestId, content);
-        }
-
-        if (message.isDone()) {
-            isDone = true;
-        }
-    }
-
-    if (isDone) {
-        emit fullResponseReceived(requestId, accumulatedResponse);
-        m_accumulatedResponses.remove(requestId);
-    }
-}
-
-void OpenAIProvider::onRequestFinished(const QString &requestId, bool success, const QString &error)
-{
-    if (!success) {
-        LOG_MESSAGE(QString("OpenAIProvider request %1 failed: %2").arg(requestId, error));
-        emit requestFailed(requestId, error);
-    } else {
-        if (m_accumulatedResponses.contains(requestId)) {
-            const QString fullResponse = m_accumulatedResponses[requestId];
-            if (!fullResponse.isEmpty()) {
-                emit fullResponseReceived(requestId, fullResponse);
-            }
-        }
-    }
-
-    m_accumulatedResponses.remove(requestId);
 }
 
 } // namespace QodeAssist::Providers

@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2024-2025 Petr Mironychev
+ * Copyright (C) 2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -20,10 +20,23 @@
 #pragma once
 
 #include <QString>
+#include <QStringList>
 
 namespace QodeAssist::LLMCore {
 
-enum RequestType { CodeCompletion, Chat, Embedding };
+class SSEBuffer
+{
+public:
+    SSEBuffer() = default;
 
-using RequestID = QString;
-}
+    QStringList processData(const QByteArray &data);
+
+    void clear();
+    QString currentBuffer() const;
+    bool hasIncompleteData() const;
+
+private:
+    QString m_buffer;
+};
+
+} // namespace QodeAssist::LLMCore

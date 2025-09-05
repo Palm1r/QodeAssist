@@ -203,6 +203,10 @@ public:
         showChatViewAction.setIcon(QCODEASSIST_CHAT_ICON.icon());
         showChatViewAction.addOnTriggered(this, [this] {
             if (!m_chatView->isVisible()) {
+                if (m_chatView->status() != QQuickView::Ready) {
+                    qWarning() << "ChatView is not ready, cannot show";
+                    return;
+                }
                 m_chatView->show();
             }
 

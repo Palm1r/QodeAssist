@@ -19,13 +19,21 @@
 
 #pragma once
 
+#include "ClaudeRequestMessage.hpp"
+#include "ClaudeToolHandler.hpp"
 #include "llmcore/Provider.hpp"
+#include "tools/ToolsFactory.hpp"
+#include <QFuture>
+#include <QHash>
 
 namespace QodeAssist::Providers {
 
 class ClaudeProvider : public LLMCore::Provider
 {
+    Q_OBJECT
 public:
+    explicit ClaudeProvider(QObject *parent = nullptr);
+
     QString name() const override;
     QString url() const override;
     QString completionEndpoint() const override;
@@ -44,12 +52,59 @@ public:
 
     void sendRequest(const QString &requestId, const QUrl &url, const QJsonObject &payload) override;
 
+    bool supportsTools() const override;
+    LLMCore::IToolsFactory *toolsFactory() const override;
+
 public slots:
     void onDataReceived(const QString &requestId, const QByteArray &data) override;
     void onRequestFinished(const QString &requestId, bool success, const QString &error) override;
 
+private slots:
+    void onToolCompleted(const QString &requestId, const QString &toolId, const QString &result);
+    void onToolFailed(const QString &requestId, const QString &toolId, const QString &error);
+
+    // ClaudeProvider.hpp - обновляем только нужные части
 private:
-    QHash<QString, QString> m_accumulatedResponses;
+    struct RequestState
+    {
+        QJsonObject originalRequest;
+        QJsonArray originalMessages;
+        QString assistantText;
+        QList<QPair<QString, QJsonObject>> toolCalls; // toolId -> {name, input}
+        QHash<QString, QString> toolResults;          // toolId -> result
+
+        // Временные поля для парсинга
+        QString currentToolId;
+        QString currentToolName;
+        QString accumulatedInput;
+
+        RequestState() = default;
+        RequestState(const QJsonObject &request)
+            : originalRequest(request)
+            , originalMessages(request["messages"].toArray())
+        {}
+
+        bool allToolsCompleted() const { return toolCalls.size() == toolResults.size(); }
+    };
+
+    std::unique_ptr<Tools::ToolsFactory> m_toolsFactory;
+    std::unique_ptr<ClaudeToolHandler> m_toolHandler;
+    QHash<LLMCore::RequestID, RequestState> m_requestStates;
+    QHash<QString, QPromise<QString>> m_toolPromises; // Добавили это поле
+
+    QJsonObject parseEventLine(const QString &line);
+    void handleContentBlockStart(const QString &requestId, const QJsonObject &event);
+    QString handleContentBlockDelta(const QString &requestId, const QJsonObject &event);
+    void handleContentBlockStop(const QString &requestId, const QJsonObject &event);
+    bool handleMessageDelta(const QString &requestId, const QJsonObject &event);
+    void updateResponseAndCheckCompletion(
+        const QString &requestId, const QString &tempResponse, bool messageComplete);
+    void cleanupRequest(const QString &requestId);
+    void executeTool(
+        const QString &requestId,
+        const QString &toolId,
+        const QString &toolName,
+        const QJsonObject &input);
 };
 
 } // namespace QodeAssist::Providers

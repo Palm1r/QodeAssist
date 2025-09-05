@@ -111,6 +111,17 @@ add_qtc_plugin(QodeAssist
     widgets/EditorChatButtonHandler.hpp widgets/EditorChatButtonHandler.cpp
     widgets/QuickRefactorDialog.hpp widgets/QuickRefactorDialog.cpp
     QuickRefactorHandler.hpp QuickRefactorHandler.cpp
+    tools/ToolsFactory.hpp tools/ToolsFactory.cpp
+    tools/ReadCurrentFileTool.hpp tools/ReadCurrentFileTool.cpp
+)
+
+target_sources(QodeAssist
+  PRIVATE
+    providers/ClaudeToolHandler.hpp providers/ClaudeToolHandler.cpp
+    tools/ReadFileByNameTool.hpp tools/ReadFileByNameTool.cpp
+    providers/ClaudeRequestMessage.hpp providers/ClaudeRequestMessage.cpp
+    providers/OpenAIToolsManager.hpp providers/OpenAIToolsManager.cpp
+    providers/OllamaToolsManager.hpp providers/OllamaToolsManager.cpp
 )
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)

@@ -21,6 +21,7 @@
 
 #include <QQmlContext>
 #include <QQmlEngine>
+#include <QQuickItem>
 #include <QSettings>
 #include <QVariantMap>
 
@@ -41,6 +42,10 @@ ChatView::ChatView()
     setTitle("QodeAssist Chat");
     engine()->rootContext()->setContextProperty("_chatview", this);
     setSource(QUrl("qrc:/qt/qml/ChatView/qml/RootItem.qml"));
+    if (status() == QQuickView::Error) {
+        qWarning() << "Failed to load QML file:" << errors();
+        return;
+    }
     setResizeMode(QQuickView::SizeRootObjectToView);
     setMinimumSize({400, 300});
     setFlags(baseFlags);

@@ -19,13 +19,19 @@
 
 #pragma once
 
+#include "OllamaToolsManager.hpp"
 #include "llmcore/Provider.hpp"
+#include "tools/ToolsFactory.hpp"
+#include <QHash>
 
 namespace QodeAssist::Providers {
 
 class OllamaProvider : public LLMCore::Provider
 {
+    Q_OBJECT
 public:
+    explicit OllamaProvider(QObject *parent = nullptr);
+
     QString name() const override;
     QString url() const override;
     QString completionEndpoint() const override;
@@ -44,12 +50,26 @@ public:
 
     void sendRequest(const QString &requestId, const QUrl &url, const QJsonObject &payload) override;
 
+    bool supportsTools() const override;
+    LLMCore::IToolsFactory *toolsFactory() const override;
+
 public slots:
     void onDataReceived(const QString &requestId, const QByteArray &data) override;
     void onRequestFinished(const QString &requestId, bool success, const QString &error) override;
 
+private slots:
+    void onToolsRequestReadyForContinuation(
+        const QString &requestId, const QJsonObject &followUpRequest);
+
 private:
+    bool isModelSupportTools(const QString &modelName) const;
+    QJsonObject parseOllamaLine(const QByteArray &line) const;
+    void cleanupRequest(const QString &requestId);
+
+    std::unique_ptr<Tools::ToolsFactory> m_toolsFactory;
+    std::unique_ptr<OllamaToolsManager> m_toolsManager;
     QHash<QString, QString> m_accumulatedResponses;
+    QHash<QString, QUrl> m_requestUrls;
 };
 
 } // namespace QodeAssist::Providers

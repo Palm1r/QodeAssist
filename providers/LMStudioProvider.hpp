@@ -19,13 +19,19 @@
 
 #pragma once
 
+#include "OpenAIToolsManager.hpp"
 #include "llmcore/Provider.hpp"
+#include "tools/ToolsFactory.hpp"
+#include <QHash>
 
 namespace QodeAssist::Providers {
 
 class LMStudioProvider : public LLMCore::Provider
 {
+    Q_OBJECT
 public:
+    explicit LMStudioProvider(QObject *parent = nullptr);
+
     QString name() const override;
     QString url() const override;
     QString completionEndpoint() const override;
@@ -44,12 +50,24 @@ public:
 
     void sendRequest(const QString &requestId, const QUrl &url, const QJsonObject &payload) override;
 
+    bool supportsTools() const override;
+    LLMCore::IToolsFactory *toolsFactory() const override;
+
 public slots:
     void onDataReceived(const QString &requestId, const QByteArray &data) override;
     void onRequestFinished(const QString &requestId, bool success, const QString &error) override;
 
+private slots:
+    void onToolsRequestReadyForContinuation(
+        const QString &requestId, const QJsonObject &followUpRequest);
+
 private:
-    QHash<QString, QString> m_accumulatedResponses;
+    QJsonObject parseEventLine(const QString &line);
+    void cleanupRequest(const QString &requestId);
+
+    std::unique_ptr<Tools::ToolsFactory> m_toolsFactory;
+    std::unique_ptr<OpenAIToolsManager> m_toolsManager;
+    QHash<QString, QUrl> m_requestUrls;
 };
 
 } // namespace QodeAssist::Providers
