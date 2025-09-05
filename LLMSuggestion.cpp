@@ -59,6 +59,100 @@ QString mergeWithRightText(const QString &suggestion, const QString &rightText)
     return suggestion;
 }
 
+static int levenshteinDistance(const QString &source, const QString &target)
+{
+    if (source == target) {
+        return 0;
+    }
+
+    int sourceCount = source.size();
+    int targetCount = target.size();
+
+    if (sourceCount == 0) {
+        return targetCount;
+    }
+
+    if (targetCount == 0) {
+        return sourceCount;
+    }
+
+    if (sourceCount > targetCount) {
+        return levenshteinDistance(target, source);
+    }
+
+    QVector<int> previousColumn;
+    previousColumn.reserve(targetCount + 1);
+    for (int i = 0; i < targetCount + 1; ++i) {
+        previousColumn.append(i);
+    }
+
+    QVector<int> column(targetCount + 1, 0);
+    for (int i = 0; i < sourceCount; ++i) {
+        column[0] = i + 1;
+        for (int j = 0; j < targetCount; ++j) {
+            column[j + 1] = std::min(
+                {1 + column.at(j),
+                 1 + previousColumn.at(1 + j),
+                 previousColumn.at(j) + ((source.at(i) == target.at(j)) ? 0 : 1)});
+        }
+        column.swap(previousColumn);
+    }
+
+    return previousColumn.at(targetCount);
+}
+
+static int linesToReplace(const QString &suggestion, const QTextCursor &cursor)
+{
+    int suggestedLineCount = 0;
+    for (int idx = suggestion.indexOf('\n'); idx != -1; idx = suggestion.indexOf('\n', idx + 1)) {
+        ++suggestedLineCount;
+    }
+    if (suggestedLineCount == 0) {
+        return 0;
+    }
+
+    QTextCursor lineReadCursor = cursor;
+    lineReadCursor.movePosition(QTextCursor::EndOfLine, QTextCursor::KeepAnchor);
+    int minDifference = 1e6;
+    int bestLineCount = 0;
+
+    for (int i = 0; i < suggestedLineCount; ++i) {
+        lineReadCursor.movePosition(QTextCursor::Down, QTextCursor::KeepAnchor);
+        lineReadCursor.movePosition(QTextCursor::EndOfLine, QTextCursor::KeepAnchor);
+        QString curText = lineReadCursor.selectedText();
+
+        int difference = levenshteinDistance(curText, suggestion);
+        if (difference > minDifference) {
+            continue;
+        }
+
+        bestLineCount = i + 1;
+        minDifference = difference;
+    }
+
+    double minSimilarity = 0.4; // configurable?
+    int threshold = suggestion.length() * minSimilarity;
+
+    return minDifference < threshold ? bestLineCount : 0;
+}
+
+static QString existingTailToKeep(const QString &suggestedLine, const QString &existingLine)
+{
+    int minDifference = 1e6;
+    int bestLength = 0;
+
+    for (int i = 0; i <= existingLine.length(); ++i) {
+        int difference = levenshteinDistance(suggestedLine, existingLine.left(i));
+        if (difference > minDifference) {
+            continue;
+        }
+
+        minDifference = difference;
+        bestLength = i;
+    }
+    return existingLine.mid(bestLength);
+}
+
 LLMSuggestion::LLMSuggestion(
     const QList<Data> &suggestions, QTextDocument *sourceDocument, int currentCompletion)
     : TextEditor::CyclicSuggestion(suggestions, sourceDocument, currentCompletion)
@@ -78,18 +172,31 @@ LLMSuggestion::LLMSuggestion(
 
     int cursorPositionInBlock = cursor.positionInBlock();
 
-    QString rightText = blockText.mid(cursorPositionInBlock);
-
+    QString displayText;
     if (!data.text.contains('\n')) {
+        QString rightText = blockText.mid(cursorPositionInBlock);
         QString processedRightText = mergeWithRightText(data.text, rightText);
         processedRightText = processedRightText.mid(data.text.length());
-        QString displayText = blockText.left(cursorPositionInBlock) + data.text
-                              + processedRightText;
-        replacementDocument()->setPlainText(displayText);
+        displayText = blockText.left(cursorPositionInBlock) + data.text + processedRightText;
     } else {
-        QString displayText = blockText.left(cursorPositionInBlock) + data.text;
-        replacementDocument()->setPlainText(displayText);
+        int toReplace = linesToReplace(data.text, cursor);
+        if (toReplace < 2) {
+            displayText = blockText.left(cursorPositionInBlock) + data.text;
+        } else {
+            QTextCursor lastLineCursor = cursor;
+            lastLineCursor.movePosition(QTextCursor::Down, QTextCursor::KeepAnchor, toReplace);
+            lastLineCursor.select(QTextCursor::LineUnderCursor);
+            QString lastExistingLine = lastLineCursor.selectedText();
+
+            QString lastSuggestedLine = data.text.mid(data.text.lastIndexOf('\n') + 1);
+
+            QString tail = existingTailToKeep(lastSuggestedLine, lastExistingLine);
+
+            displayText = blockText.left(cursorPositionInBlock) + data.text + tail
+                          + QString("\n(replaces %1 lines)").arg(toReplace);
+        }
     }
+    replacementDocument()->setPlainText(displayText);
 }
 
 bool LLMSuggestion::applyWord(TextEditor::TextEditorWidget *widget)
@@ -178,14 +285,29 @@ bool LLMSuggestion::apply()
 
     int firstLineEnd = text.indexOf('\n');
     if (firstLineEnd != -1) {
-        QString firstLine = text.left(firstLineEnd);
-        QString restOfText = text.mid(firstLineEnd);
+        int toReplace = linesToReplace(text, cursor);
 
-        editCursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
-        editCursor.removeSelectedText();
+        if (toReplace == 0) {
+            editCursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+            editCursor.removeSelectedText();
 
-        QString mergedFirstLine = mergeWithRightText(firstLine, textAfterCursor);
-        editCursor.insertText(mergedFirstLine + restOfText);
+            QString firstLine = text.left(firstLineEnd);
+            QString mergedFirstLine = mergeWithRightText(firstLine, textAfterCursor);
+            QString restOfText = text.mid(firstLineEnd);
+            editCursor.insertText(mergedFirstLine + restOfText);
+        } else {
+            editCursor.movePosition(QTextCursor::Down, QTextCursor::KeepAnchor, toReplace);
+            editCursor.movePosition(QTextCursor::EndOfLine, QTextCursor::KeepAnchor);
+
+            QTextCursor lastLineCursor = editCursor;
+            lastLineCursor.select(QTextCursor::LineUnderCursor);
+            QString lastExistingLine = lastLineCursor.selectedText();
+
+            QString lastSuggestedLine = text.mid(text.lastIndexOf('\n') + 1);
+
+            QString tail = existingTailToKeep(lastSuggestedLine, lastExistingLine);
+            editCursor.insertText(text + tail);
+        }
     } else {
         editCursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
         editCursor.removeSelectedText();
