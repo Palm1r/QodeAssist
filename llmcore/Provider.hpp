@@ -26,6 +26,7 @@
 
 #include "ContextData.hpp"
 #include "HttpClient.hpp"
+#include "IToolsFactory.hpp"
 #include "PromptTemplate.hpp"
 #include "RequestType.hpp"
 
@@ -62,6 +63,9 @@ public:
     virtual void sendRequest(const QString &requestId, const QUrl &url, const QJsonObject &payload)
         = 0;
 
+    virtual bool supportsTools() const { return false; }
+    virtual IToolsFactory *toolsFactory() const { return nullptr; }
+
     HttpClient *httpClient() const;
 
 public slots:
@@ -72,6 +76,7 @@ signals:
     void partialResponseReceived(const QString &requestId, const QString &partialText);
     void fullResponseReceived(const QString &requestId, const QString &fullText);
     void requestFailed(const QString &requestId, const QString &error);
+    void toolCallsReceived(const QString &requestId, const QJsonArray &toolCalls);
 
 private:
     std::unique_ptr<HttpClient> m_httpClient;

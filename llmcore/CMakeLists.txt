@@ -15,6 +15,8 @@ add_library(LLMCore STATIC
     ValidationUtils.hpp ValidationUtils.cpp
     ProviderID.hpp
     HttpClient.hpp HttpClient.cpp
+    ITool.hpp
+    IToolsFactory.hpp
 )
 
 target_link_libraries(LLMCore

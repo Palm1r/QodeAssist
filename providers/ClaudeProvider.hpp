@@ -19,13 +19,30 @@
 
 #pragma once
 
+#include "ClaudeToolHandler.hpp"
 #include "llmcore/Provider.hpp"
+#include "tools/ToolsFactory.hpp"
 
 namespace QodeAssist::Providers {
 
+struct StreamingState
+{
+    QString streamBuffer;
+    QString accumulatedResponse;
+
+    void clear()
+    {
+        streamBuffer.clear();
+        accumulatedResponse.clear();
+    }
+};
+
 class ClaudeProvider : public LLMCore::Provider
 {
+    Q_OBJECT
 public:
+    explicit ClaudeProvider(QObject *parent = nullptr);
+
     QString name() const override;
     QString url() const override;
     QString completionEndpoint() const override;
@@ -44,11 +61,23 @@ public:
 
     void sendRequest(const QString &requestId, const QUrl &url, const QJsonObject &payload) override;
 
+    bool supportsTools() const override;
+    LLMCore::IToolsFactory *toolsFactory() const override;
+
 public slots:
     void onDataReceived(const QString &requestId, const QByteArray &data) override;
     void onRequestFinished(const QString &requestId, bool success, const QString &error) override;
 
+private slots:
+    void onToolResultReady(const QString &requestId, const QJsonObject &newRequest);
+
 private:
+    std::unique_ptr<Tools::ToolsFactory> m_toolsFactory;
+    std::unique_ptr<ClaudeToolHandler> m_toolHandler;
+    QHash<QString, QUrl> m_requestUrls;
+
+    // Request state management
+    QHash<QString, QString> m_streamBuffers;
     QHash<QString, QString> m_accumulatedResponses;
 };
 
