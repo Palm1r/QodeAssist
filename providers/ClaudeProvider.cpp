@@ -234,6 +234,8 @@ void ClaudeProvider::onRequestFinished(const QString &requestId, bool success, c
 
 void ClaudeProvider::onToolResultReady(const QString &requestId, const QJsonObject &newRequest)
 {
+    m_accumulatedResponses[requestId] = QString();
+
     QNetworkRequest networkRequest(QUrl(url() + chatEndpoint()));
     prepareNetworkRequest(networkRequest);
 
