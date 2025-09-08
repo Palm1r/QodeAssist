@@ -125,10 +125,10 @@ void ClaudeProvider::prepareRequest(
 void ClaudeProvider::sendRequest(
     const QString &requestId, const QUrl &url, const QJsonObject &payload)
 {
-    // Initialize stream buffer and tool handler state
-    m_streamBuffers[requestId] = QString();
-    m_accumulatedResponses[requestId] = QString();
+    m_dataBuffers[requestId].clear();
     m_toolHandler->initializeRequest(requestId, payload);
+
+    m_requestUrls[requestId] = url;
 
     QNetworkRequest networkRequest(url);
     prepareNetworkRequest(networkRequest);
@@ -143,12 +143,10 @@ void ClaudeProvider::sendRequest(
 
 void ClaudeProvider::onDataReceived(const QString &requestId, const QByteArray &data)
 {
-    m_streamBuffers[requestId] += QString::fromUtf8(data);
+    LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
 
-    QStringList lines = m_streamBuffers[requestId].split('\n');
-    m_streamBuffers[requestId] = lines.takeLast();
+    QStringList lines = buffers.rawStreamBuffer.processData(data);
 
-    QString &accumulatedResponse = m_accumulatedResponses[requestId];
     QString tempResponse;
     bool isComplete = false;
 
@@ -201,49 +199,49 @@ void ClaudeProvider::onDataReceived(const QString &requestId, const QByteArray &
     }
 
     if (!tempResponse.isEmpty()) {
-        accumulatedResponse += tempResponse;
+        buffers.responseContent += tempResponse;
         emit partialResponseReceived(requestId, tempResponse);
     }
 
     if (isComplete) {
-        emit fullResponseReceived(requestId, accumulatedResponse);
-        m_accumulatedResponses.remove(requestId);
-        m_streamBuffers.remove(requestId);
+        emit fullResponseReceived(requestId, buffers.responseContent);
+        m_dataBuffers.remove(requestId);
         m_toolHandler->clearRequest(requestId);
     }
 }
 
 void ClaudeProvider::onRequestFinished(const QString &requestId, bool success, const QString &error)
 {
+    auto it = m_dataBuffers.find(requestId);
+    if (it == m_dataBuffers.end()) {
+        return;
+    }
+
+    LLMCore::DataBuffers &buffers = it.value();
+
     if (!success) {
         LOG_MESSAGE(QString("ClaudeProvider request %1 failed: %2").arg(requestId, error));
         emit requestFailed(requestId, error);
     } else {
-        if (!m_toolHandler->hasActiveTool(requestId)) {
-            const QString fullResponse = m_accumulatedResponses[requestId];
-            if (!fullResponse.isEmpty()) {
-                emit fullResponseReceived(requestId, fullResponse);
-            }
-        }
+        emit fullResponseReceived(requestId, buffers.responseContent);
     }
 
-    m_streamBuffers.remove(requestId);
-    m_accumulatedResponses.remove(requestId);
+    m_dataBuffers.remove(requestId);
     m_toolHandler->clearRequest(requestId);
 }
 
 void ClaudeProvider::onToolResultReady(const QString &requestId, const QJsonObject &newRequest)
 {
-    m_accumulatedResponses[requestId] = QString();
+    LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+    buffers.responseContent.clear();
 
-    QNetworkRequest networkRequest(QUrl(url() + chatEndpoint()));
+    QNetworkRequest networkRequest(m_requestUrls[requestId]);
     prepareNetworkRequest(networkRequest);
 
     LLMCore::HttpRequest
         request{.networkRequest = networkRequest, .requestId = requestId, .payload = newRequest};
 
     LOG_MESSAGE(QString("Sending tool result continuation for request %1").arg(requestId));
-
     emit httpClient()->sendRequest(request);
 }
 

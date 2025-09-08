@@ -25,18 +25,6 @@
 
 namespace QodeAssist::Providers {
 
-struct StreamingState
-{
-    QString streamBuffer;
-    QString accumulatedResponse;
-
-    void clear()
-    {
-        streamBuffer.clear();
-        accumulatedResponse.clear();
-    }
-};
-
 class ClaudeProvider : public LLMCore::Provider
 {
     Q_OBJECT
@@ -74,11 +62,6 @@ private slots:
 private:
     std::unique_ptr<Tools::ToolsFactory> m_toolsFactory;
     std::unique_ptr<ClaudeToolHandler> m_toolHandler;
-    QHash<QString, QUrl> m_requestUrls;
-
-    // Request state management
-    QHash<QString, QString> m_streamBuffers;
-    QHash<QString, QString> m_accumulatedResponses;
 };
 
 } // namespace QodeAssist::Providers
