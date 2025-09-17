@@ -120,6 +120,9 @@ public:
             Constants::QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY,
             ":/resources/images/qoderassist-icon.png");
 #endif
+        QQuickWindow::setSceneGraphBackend(
+            Settings::chatAssistantSettings().chatRenderer.stringValue());
+
         loadTranslations();
 
         Providers::registerProviders();
@@ -202,12 +205,13 @@ public:
         showChatViewAction.setText(Tr::tr("Show QodeAssist Chat"));
         showChatViewAction.setIcon(QCODEASSIST_CHAT_ICON.icon());
         showChatViewAction.addOnTriggered(this, [this] {
+            if (!m_chatView) {
+                m_chatView.reset(new Chat::ChatView());
+            }
+
             if (!m_chatView->isVisible()) {
                 m_chatView->show();
             }
-
-            m_chatView->raise();
-            m_chatView->requestActivate();
         });
         m_statusWidget->setChatButtonAction(showChatViewAction.contextAction());
 
@@ -237,7 +241,7 @@ public:
         }
     }
 
-    void extensionsInitialized() final { m_chatView.reset(new Chat::ChatView()); }
+    void extensionsInitialized() final {}
 
     void restartClient()
     {

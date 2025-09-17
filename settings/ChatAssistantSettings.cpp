@@ -206,6 +206,17 @@ ChatAssistantSettings::ChatAssistantSettings()
     textFormat.addOption("HTML");
     textFormat.addOption("Plain Text");
 
+    chatRenderer.setSettingsKey(Constants::CA_CHAT_RENDERER);
+    chatRenderer.setLabelText(Tr::tr("Chat Renderer:"));
+    chatRenderer.addOption("rhi");
+    chatRenderer.addOption("software");
+    chatRenderer.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+#ifdef Q_OS_WIN
+    chatRenderer.setDefaultValue("software");
+#else
+    chatRenderer.setDefaultValue("rhi");
+#endif
+
     resetToDefaults.m_buttonText = TrConstants::RESET_TO_DEFAULTS;
 
     readSettings();
@@ -233,6 +244,7 @@ ChatAssistantSettings::ChatAssistantSettings()
         chatViewSettingsGrid.addRow({textFontFamily, textFontSize});
         chatViewSettingsGrid.addRow({codeFontFamily, codeFontSize});
         chatViewSettingsGrid.addRow({textFormat});
+        chatViewSettingsGrid.addRow({chatRenderer});
 
         return Column{Row{Stretch{1}, resetToDefaults},
                       Space{8},

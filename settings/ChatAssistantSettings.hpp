@@ -72,6 +72,8 @@ public:
     Utils::IntegerAspect codeFontSize{this};
     Utils::SelectionAspect textFormat{this};
 
+    Utils::SelectionAspect chatRenderer{this};
+
 private:
     void setupConnections();
     void resetSettingsToDefaults();
