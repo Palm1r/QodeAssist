@@ -66,14 +66,19 @@ public:
     HttpClient *httpClient() const;
 
 public slots:
-    virtual void onDataReceived(const RequestID &requestId, const QByteArray &data) = 0;
-    virtual void onRequestFinished(const RequestID &requestId, bool success, const QString &error)
+    virtual void onDataReceived(
+        const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data)
+        = 0;
+    virtual void onRequestFinished(
+        const QodeAssist::LLMCore::RequestID &requestId, bool success, const QString &error)
         = 0;
 
 signals:
-    void partialResponseReceived(const RequestID &requestId, const QString &partialText);
-    void fullResponseReceived(const RequestID &requestId, const QString &fullText);
-    void requestFailed(const RequestID &requestId, const QString &error);
+    void partialResponseReceived(
+        const QodeAssist::LLMCore::RequestID &requestId, const QString &partialText);
+    void fullResponseReceived(
+        const QodeAssist::LLMCore::RequestID &requestId, const QString &fullText);
+    void requestFailed(const QodeAssist::LLMCore::RequestID &requestId, const QString &error);
 
 protected:
     QJsonObject parseEventLine(const QString &line);
