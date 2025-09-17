@@ -25,6 +25,7 @@
 #include <QString>
 
 #include "ContextData.hpp"
+#include "DataBuffers.hpp"
 #include "HttpClient.hpp"
 #include "PromptTemplate.hpp"
 #include "RequestType.hpp"
@@ -73,8 +74,14 @@ signals:
     void fullResponseReceived(const QString &requestId, const QString &fullText);
     void requestFailed(const QString &requestId, const QString &error);
 
+protected:
+    QJsonObject parseEventLine(const QString &line);
+
+    QHash<RequestID, DataBuffers> m_dataBuffers;
+    QHash<RequestID, QUrl> m_requestUrls;
+
 private:
-    std::unique_ptr<HttpClient> m_httpClient;
+    HttpClient *m_httpClient;
 };
 
 } // namespace QodeAssist::LLMCore

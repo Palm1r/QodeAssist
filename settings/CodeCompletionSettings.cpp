@@ -51,10 +51,6 @@ CodeCompletionSettings::CodeCompletionSettings()
     multiLineCompletion.setDefaultValue(true);
     multiLineCompletion.setLabelText(Tr::tr("Enable Multiline Completion"));
 
-    stream.setSettingsKey(Constants::CC_STREAM);
-    stream.setDefaultValue(true);
-    stream.setLabelText(Tr::tr("Enable stream option"));
-
     modelOutputHandler.setLabelText(Tr::tr("Text output proccessing mode:"));
     modelOutputHandler.setSettingsKey(Constants::CC_MODEL_OUTPUT_HANDLER);
     modelOutputHandler.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
@@ -303,7 +299,6 @@ CodeCompletionSettings::CodeCompletionSettings()
                             Column{autoCompletion,
                                    Space{8},
                                    multiLineCompletion,
-                                   stream,
                                    Row{modelOutputHandler, Stretch{1}},
                                    Row{autoCompletionCharThreshold,
                                        autoCompletionTypingInterval,
@@ -365,7 +360,6 @@ void CodeCompletionSettings::resetSettingsToDefaults()
     if (reply == QMessageBox::Yes) {
         resetAspect(autoCompletion);
         resetAspect(multiLineCompletion);
-        resetAspect(stream);
         resetAspect(temperature);
         resetAspect(maxTokens);
         resetAspect(useTopP);

@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2024-2025 Petr Mironychev
+ * Copyright (C) 2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -17,23 +17,35 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include "SSEBuffer.hpp"
 
-#include "providers/OpenAICompatProvider.hpp"
+namespace QodeAssist::LLMCore {
 
-namespace QodeAssist::Providers {
-
-class OpenRouterProvider : public OpenAICompatProvider
+QStringList SSEBuffer::processData(const QByteArray &data)
 {
-public:
-    QString name() const override;
-    QString url() const override;
-    QString apiKey() const override;
-    LLMCore::ProviderID providerID() const override;
+    m_buffer += QString::fromUtf8(data);
 
-public slots:
-    void onDataReceived(const QString &requestId, const QByteArray &data) override;
-    void onRequestFinished(const QString &requestId, bool success, const QString &error) override;
-};
+    QStringList lines = m_buffer.split('\n');
+    m_buffer = lines.takeLast();
 
-} // namespace QodeAssist::Providers
+    lines.removeAll(QString());
+
+    return lines;
+}
+
+void SSEBuffer::clear()
+{
+    m_buffer.clear();
+}
+
+QString SSEBuffer::currentBuffer() const
+{
+    return m_buffer;
+}
+
+bool SSEBuffer::hasIncompleteData() const
+{
+    return !m_buffer.isEmpty();
+}
+
+} // namespace QodeAssist::LLMCore

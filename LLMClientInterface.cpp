@@ -224,13 +224,12 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     config.promptTemplate = promptTemplate;
     // TODO refactor networking
     if (provider->providerID() == LLMCore::ProviderID::GoogleAI) {
-        QString stream = m_completeSettings.stream() ? QString{"streamGenerateContent?alt=sse"}
-                                                     : QString{"generateContent?"};
+        QString stream = QString{"streamGenerateContent?alt=sse"};
         config.url = QUrl(QString("%1/models/%2:%3").arg(url, modelName, stream));
     } else {
         config.url = QUrl(
             QString("%1%2").arg(url, endpoint(provider, promptTemplate->type(), isPreset1Active)));
-        config.providerRequest = {{"model", modelName}, {"stream", m_completeSettings.stream()}};
+        config.providerRequest = {{"model", modelName}, {"stream", true}};
     }
     config.apiKey = provider->apiKey();
     config.multiLineCompletion = m_completeSettings.multiLineCompletion();

@@ -174,6 +174,9 @@ LLMCore::ProviderID ClaudeProvider::providerID() const
 void ClaudeProvider::sendRequest(
     const QString &requestId, const QUrl &url, const QJsonObject &payload)
 {
+    m_dataBuffers[requestId].clear();
+    m_requestUrls[requestId] = url;
+
     QNetworkRequest networkRequest(url);
     prepareNetworkRequest(networkRequest);
 
@@ -187,50 +190,49 @@ void ClaudeProvider::sendRequest(
 
 void ClaudeProvider::onDataReceived(const QString &requestId, const QByteArray &data)
 {
-    QString &accumulatedResponse = m_accumulatedResponses[requestId];
+    LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+    QStringList lines = buffers.rawStreamBuffer.processData(data);
+
     QString tempResponse;
     bool isComplete = false;
 
-    QByteArrayList lines = data.split('\n');
-    for (const QByteArray &line : lines) {
-        QByteArray trimmedLine = line.trimmed();
-        if (trimmedLine.isEmpty())
+    for (const QString &line : lines) {
+        QJsonObject responseObj = parseEventLine(line);
+        if (responseObj.isEmpty())
             continue;
 
-        if (!trimmedLine.startsWith("data:"))
-            continue;
-        trimmedLine = trimmedLine.mid(6);
-
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(trimmedLine);
-        if (jsonResponse.isNull())
-            continue;
-
-        QJsonObject responseObj = jsonResponse.object();
         QString eventType = responseObj["type"].toString();
 
-        if (eventType == "message_delta") {
-            if (responseObj.contains("delta")) {
-                QJsonObject delta = responseObj["delta"].toObject();
-                if (delta.contains("stop_reason")) {
-                    isComplete = true;
-                }
-            }
+        if (eventType == "message_start") {
+            QString messageId = responseObj["message"].toObject()["id"].toString();
+            LOG_MESSAGE(QString("Claude message started: %1").arg(messageId));
+
         } else if (eventType == "content_block_delta") {
             QJsonObject delta = responseObj["delta"].toObject();
             if (delta["type"].toString() == "text_delta") {
                 tempResponse += delta["text"].toString();
             }
+
+        } else if (eventType == "message_delta") {
+            QJsonObject delta = responseObj["delta"].toObject();
+            if (delta.contains("stop_reason")) {
+                isComplete = true;
+                QJsonObject usage = responseObj["usage"].toObject();
+                LOG_MESSAGE(QString("Tokens: input=%1, output=%2")
+                                .arg(usage["input_tokens"].toInt())
+                                .arg(usage["output_tokens"].toInt()));
+            }
         }
     }
 
     if (!tempResponse.isEmpty()) {
-        accumulatedResponse += tempResponse;
+        buffers.responseContent += tempResponse;
         emit partialResponseReceived(requestId, tempResponse);
     }
 
     if (isComplete) {
-        emit fullResponseReceived(requestId, accumulatedResponse);
-        m_accumulatedResponses.remove(requestId);
+        emit fullResponseReceived(requestId, buffers.responseContent);
+        m_dataBuffers.remove(requestId);
     }
 }
 
@@ -240,15 +242,16 @@ void ClaudeProvider::onRequestFinished(const QString &requestId, bool success, c
         LOG_MESSAGE(QString("ClaudeProvider request %1 failed: %2").arg(requestId, error));
         emit requestFailed(requestId, error);
     } else {
-        if (m_accumulatedResponses.contains(requestId)) {
-            const QString fullResponse = m_accumulatedResponses[requestId];
-            if (!fullResponse.isEmpty()) {
-                emit fullResponseReceived(requestId, fullResponse);
+        if (m_dataBuffers.contains(requestId)) {
+            const LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+            if (!buffers.responseContent.isEmpty()) {
+                emit fullResponseReceived(requestId, buffers.responseContent);
             }
         }
     }
 
-    m_accumulatedResponses.remove(requestId);
+    m_dataBuffers.remove(requestId);
+    m_requestUrls.remove(requestId);
 }
 
 } // namespace QodeAssist::Providers

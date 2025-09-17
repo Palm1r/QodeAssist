@@ -125,6 +125,9 @@ LLMCore::ProviderID LMStudioProvider::providerID() const
 void LMStudioProvider::sendRequest(
     const QString &requestId, const QUrl &url, const QJsonObject &payload)
 {
+    m_dataBuffers[requestId].clear();
+    m_requestUrls[requestId] = url;
+
     QNetworkRequest networkRequest(url);
     prepareNetworkRequest(networkRequest);
 
@@ -139,16 +142,17 @@ void LMStudioProvider::sendRequest(
 
 void LMStudioProvider::onDataReceived(const QString &requestId, const QByteArray &data)
 {
-    QString &accumulatedResponse = m_accumulatedResponses[requestId];
+    LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+    QStringList lines = buffers.rawStreamBuffer.processData(data);
 
     if (data.isEmpty()) {
         return;
     }
 
     bool isDone = false;
-    QByteArrayList lines = data.split('\n');
+    QString tempResponse;
 
-    for (const QByteArray &line : lines) {
+    for (const QString &line : lines) {
         if (line.trimmed().isEmpty()) {
             continue;
         }
@@ -158,19 +162,11 @@ void LMStudioProvider::onDataReceived(const QString &requestId, const QByteArray
             continue;
         }
 
-        QByteArray jsonData = line;
-        if (line.startsWith("data: ")) {
-            jsonData = line.mid(6);
-        }
-
-        QJsonParseError error;
-        QJsonDocument doc = QJsonDocument::fromJson(jsonData, &error);
-
-        if (doc.isNull()) {
+        QJsonObject responseObj = parseEventLine(line);
+        if (responseObj.isEmpty())
             continue;
-        }
 
-        auto message = LLMCore::OpenAIMessage::fromJson(doc.object());
+        auto message = LLMCore::OpenAIMessage::fromJson(responseObj);
         if (message.hasError()) {
             LOG_MESSAGE("Error in LMStudio response: " + message.error);
             continue;
@@ -178,8 +174,7 @@ void LMStudioProvider::onDataReceived(const QString &requestId, const QByteArray
 
         QString content = message.getContent();
         if (!content.isEmpty()) {
-            accumulatedResponse += content;
-            emit partialResponseReceived(requestId, content);
+            tempResponse += content;
         }
 
         if (message.isDone()) {
@@ -187,9 +182,14 @@ void LMStudioProvider::onDataReceived(const QString &requestId, const QByteArray
         }
     }
 
+    if (!tempResponse.isEmpty()) {
+        buffers.responseContent += tempResponse;
+        emit partialResponseReceived(requestId, tempResponse);
+    }
+
     if (isDone) {
-        emit fullResponseReceived(requestId, accumulatedResponse);
-        m_accumulatedResponses.remove(requestId);
+        emit fullResponseReceived(requestId, buffers.responseContent);
+        m_dataBuffers.remove(requestId);
     }
 }
 
@@ -199,15 +199,16 @@ void LMStudioProvider::onRequestFinished(const QString &requestId, bool success,
         LOG_MESSAGE(QString("LMStudioProvider request %1 failed: %2").arg(requestId, error));
         emit requestFailed(requestId, error);
     } else {
-        if (m_accumulatedResponses.contains(requestId)) {
-            const QString fullResponse = m_accumulatedResponses[requestId];
-            if (!fullResponse.isEmpty()) {
-                emit fullResponseReceived(requestId, fullResponse);
+        if (m_dataBuffers.contains(requestId)) {
+            const LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+            if (!buffers.responseContent.isEmpty()) {
+                emit fullResponseReceived(requestId, buffers.responseContent);
             }
         }
     }
 
-    m_accumulatedResponses.remove(requestId);
+    m_dataBuffers.remove(requestId);
+    m_requestUrls.remove(requestId);
 }
 
 void QodeAssist::Providers::LMStudioProvider::prepareRequest(

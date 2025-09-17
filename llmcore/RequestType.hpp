@@ -17,9 +17,13 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <QString>
+
 #pragma once
 
 namespace QodeAssist::LLMCore {
 
 enum RequestType { CodeCompletion, Chat, Embedding };
+
+using RequestID = QString;
 }

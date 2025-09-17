@@ -98,8 +98,7 @@ void ClientInterface::sendMessage(
     config.provider = provider;
     config.promptTemplate = promptTemplate;
     if (provider->providerID() == LLMCore::ProviderID::GoogleAI) {
-        QString stream = chatAssistantSettings.stream() ? QString{"streamGenerateContent?alt=sse"}
-                                                        : QString{"generateContent?"};
+        QString stream = QString{"streamGenerateContent?alt=sse"};
         config.url = QUrl(QString("%1/models/%2:%3")
                               .arg(
                                   Settings::generalSettings().caUrl(),
@@ -109,8 +108,7 @@ void ClientInterface::sendMessage(
         config.url
             = QString("%1%2").arg(Settings::generalSettings().caUrl(), provider->chatEndpoint());
         config.providerRequest
-            = {{"model", Settings::generalSettings().caModel()},
-               {"stream", chatAssistantSettings.stream()}};
+            = {{"model", Settings::generalSettings().caModel()}, {"stream", true}};
     }
 
     config.apiKey = provider->apiKey();

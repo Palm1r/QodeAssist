@@ -49,11 +49,7 @@ public slots:
     void onRequestFinished(const QString &requestId, bool success, const QString &error) override;
 
 private:
-    QHash<QString, QString> m_accumulatedResponses;
-    bool handleStreamResponse(
-        const QString &requestId, const QByteArray &data, QString &accumulatedResponse);
-    bool handleRegularResponse(
-        const QString &requestId, const QByteArray &data, QString &accumulatedResponse);
+    bool handleStreamResponse(const QString &requestId, const QByteArray &data);
 };
 
 } // namespace QodeAssist::Providers

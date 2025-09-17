@@ -188,6 +188,9 @@ LLMCore::ProviderID OllamaProvider::providerID() const
 void OllamaProvider::sendRequest(
     const QString &requestId, const QUrl &url, const QJsonObject &payload)
 {
+    m_dataBuffers[requestId].clear();
+    m_requestUrls[requestId] = url;
+
     QNetworkRequest networkRequest(url);
     prepareNetworkRequest(networkRequest);
 
@@ -201,22 +204,23 @@ void OllamaProvider::sendRequest(
 
 void OllamaProvider::onDataReceived(const QString &requestId, const QByteArray &data)
 {
-    QString &accumulatedResponse = m_accumulatedResponses[requestId];
+    LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+    QStringList lines = buffers.rawStreamBuffer.processData(data);
 
     if (data.isEmpty()) {
         return;
     }
 
-    QByteArrayList lines = data.split('\n');
     bool isDone = false;
+    QString tempResponse;
 
-    for (const QByteArray &line : lines) {
+    for (const QString &line : lines) {
         if (line.trimmed().isEmpty()) {
             continue;
         }
 
         QJsonParseError error;
-        QJsonDocument doc = QJsonDocument::fromJson(line, &error);
+        QJsonDocument doc = QJsonDocument::fromJson(line.toUtf8(), &error);
         if (doc.isNull()) {
             continue;
         }
@@ -238,8 +242,7 @@ void OllamaProvider::onDataReceived(const QString &requestId, const QByteArray &
         }
 
         if (!content.isEmpty()) {
-            accumulatedResponse += content;
-            emit partialResponseReceived(requestId, content);
+            tempResponse += content;
         }
 
         if (obj["done"].toBool()) {
@@ -247,9 +250,14 @@ void OllamaProvider::onDataReceived(const QString &requestId, const QByteArray &
         }
     }
 
+    if (!tempResponse.isEmpty()) {
+        buffers.responseContent += tempResponse;
+        emit partialResponseReceived(requestId, tempResponse);
+    }
+
     if (isDone) {
-        emit fullResponseReceived(requestId, accumulatedResponse);
-        m_accumulatedResponses.remove(requestId);
+        emit fullResponseReceived(requestId, buffers.responseContent);
+        m_dataBuffers.remove(requestId);
     }
 }
 
@@ -259,15 +267,16 @@ void OllamaProvider::onRequestFinished(const QString &requestId, bool success, c
         LOG_MESSAGE(QString("OllamaProvider request %1 failed: %2").arg(requestId, error));
         emit requestFailed(requestId, error);
     } else {
-        if (m_accumulatedResponses.contains(requestId)) {
-            const QString fullResponse = m_accumulatedResponses[requestId];
-            if (!fullResponse.isEmpty()) {
-                emit fullResponseReceived(requestId, fullResponse);
+        if (m_dataBuffers.contains(requestId)) {
+            const LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+            if (!buffers.responseContent.isEmpty()) {
+                emit fullResponseReceived(requestId, buffers.responseContent);
             }
         }
     }
 
-    m_accumulatedResponses.remove(requestId);
+    m_dataBuffers.remove(requestId);
+    m_requestUrls.remove(requestId);
 }
 
 } // namespace QodeAssist::Providers
