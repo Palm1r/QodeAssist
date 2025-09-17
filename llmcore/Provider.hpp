@@ -60,19 +60,20 @@ public:
     virtual void prepareNetworkRequest(QNetworkRequest &networkRequest) const = 0;
     virtual ProviderID providerID() const = 0;
 
-    virtual void sendRequest(const QString &requestId, const QUrl &url, const QJsonObject &payload)
+    virtual void sendRequest(const RequestID &requestId, const QUrl &url, const QJsonObject &payload)
         = 0;
 
     HttpClient *httpClient() const;
 
 public slots:
-    virtual void onDataReceived(const QString &requestId, const QByteArray &data) = 0;
-    virtual void onRequestFinished(const QString &requestId, bool success, const QString &error) = 0;
+    virtual void onDataReceived(const RequestID &requestId, const QByteArray &data) = 0;
+    virtual void onRequestFinished(const RequestID &requestId, bool success, const QString &error)
+        = 0;
 
 signals:
-    void partialResponseReceived(const QString &requestId, const QString &partialText);
-    void fullResponseReceived(const QString &requestId, const QString &fullText);
-    void requestFailed(const QString &requestId, const QString &error);
+    void partialResponseReceived(const RequestID &requestId, const QString &partialText);
+    void fullResponseReceived(const RequestID &requestId, const QString &fullText);
+    void requestFailed(const RequestID &requestId, const QString &error);
 
 protected:
     QJsonObject parseEventLine(const QString &line);

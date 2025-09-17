@@ -32,8 +32,12 @@ public:
     LLMCore::ProviderID providerID() const override;
 
 public slots:
-    void onDataReceived(const QString &requestId, const QByteArray &data) override;
-    void onRequestFinished(const QString &requestId, bool success, const QString &error) override;
+    void onDataReceived(
+        const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data) override;
+    void onRequestFinished(
+        const QodeAssist::LLMCore::RequestID &requestId,
+        bool success,
+        const QString &error) override;
 };
 
 } // namespace QodeAssist::Providers

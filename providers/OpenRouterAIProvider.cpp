@@ -51,7 +51,8 @@ LLMCore::ProviderID OpenRouterProvider::providerID() const
     return LLMCore::ProviderID::OpenRouter;
 }
 
-void OpenRouterProvider::onDataReceived(const QString &requestId, const QByteArray &data)
+void OpenRouterProvider::onDataReceived(
+    const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data)
 {
     LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
     QStringList lines = buffers.rawStreamBuffer.processData(data);
@@ -105,7 +106,7 @@ void OpenRouterProvider::onDataReceived(const QString &requestId, const QByteArr
 }
 
 void OpenRouterProvider::onRequestFinished(
-    const QString &requestId, bool success, const QString &error)
+    const QodeAssist::LLMCore::RequestID &requestId, bool success, const QString &error)
 {
     if (!success) {
         LOG_MESSAGE(QString("OpenRouterProvider request %1 failed: %2").arg(requestId, error));

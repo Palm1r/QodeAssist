@@ -135,7 +135,7 @@ LLMCore::ProviderID OpenAICompatProvider::providerID() const
 }
 
 void OpenAICompatProvider::sendRequest(
-    const QString &requestId, const QUrl &url, const QJsonObject &payload)
+    const LLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
 {
     m_dataBuffers[requestId].clear();
     m_requestUrls[requestId] = url;
@@ -152,7 +152,8 @@ void OpenAICompatProvider::sendRequest(
     emit httpClient()->sendRequest(request);
 }
 
-void OpenAICompatProvider::onDataReceived(const QString &requestId, const QByteArray &data)
+void OpenAICompatProvider::onDataReceived(
+    const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data)
 {
     LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
     QStringList lines = buffers.rawStreamBuffer.processData(data);
@@ -206,7 +207,7 @@ void OpenAICompatProvider::onDataReceived(const QString &requestId, const QByteA
 }
 
 void OpenAICompatProvider::onRequestFinished(
-    const QString &requestId, bool success, const QString &error)
+    const QodeAssist::LLMCore::RequestID &requestId, bool success, const QString &error)
 {
     if (!success) {
         LOG_MESSAGE(QString("OpenAICompatProvider request %1 failed: %2").arg(requestId, error));

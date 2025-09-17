@@ -172,7 +172,7 @@ LLMCore::ProviderID ClaudeProvider::providerID() const
 }
 
 void ClaudeProvider::sendRequest(
-    const QString &requestId, const QUrl &url, const QJsonObject &payload)
+    const LLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
 {
     m_dataBuffers[requestId].clear();
     m_requestUrls[requestId] = url;
@@ -188,7 +188,8 @@ void ClaudeProvider::sendRequest(
     emit httpClient()->sendRequest(request);
 }
 
-void ClaudeProvider::onDataReceived(const QString &requestId, const QByteArray &data)
+void ClaudeProvider::onDataReceived(
+    const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data)
 {
     LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
     QStringList lines = buffers.rawStreamBuffer.processData(data);
@@ -236,7 +237,8 @@ void ClaudeProvider::onDataReceived(const QString &requestId, const QByteArray &
     }
 }
 
-void ClaudeProvider::onRequestFinished(const QString &requestId, bool success, const QString &error)
+void ClaudeProvider::onRequestFinished(
+    const QodeAssist::LLMCore::RequestID &requestId, bool success, const QString &error)
 {
     if (!success) {
         LOG_MESSAGE(QString("ClaudeProvider request %1 failed: %2").arg(requestId, error));
