@@ -56,10 +56,6 @@ ChatAssistantSettings::ChatAssistantSettings()
     linkOpenFiles.setLabelText(Tr::tr("Sync open files with assistant by default"));
     linkOpenFiles.setDefaultValue(false);
 
-    stream.setSettingsKey(Constants::CA_STREAM);
-    stream.setDefaultValue(true);
-    stream.setLabelText(Tr::tr("Enable stream option"));
-
     autosave.setSettingsKey(Constants::CA_AUTOSAVE);
     autosave.setDefaultValue(true);
     autosave.setLabelText(Tr::tr("Enable autosave when message received"));
@@ -251,7 +247,6 @@ ChatAssistantSettings::ChatAssistantSettings()
                       Group{title(Tr::tr("Chat Settings")),
                             Column{Row{chatTokensThreshold, Stretch{1}},
                                    linkOpenFiles,
-                                   stream,
                                    autosave,
                                    enableChatInBottomToolBar,
                                    enableChatInNavigationPanel}},
@@ -294,7 +289,6 @@ void ChatAssistantSettings::resetSettingsToDefaults()
         QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
-        resetAspect(stream);
         resetAspect(chatTokensThreshold);
         resetAspect(temperature);
         resetAspect(maxTokens);

@@ -137,6 +137,9 @@ LLMCore::ProviderID OpenAICompatProvider::providerID() const
 void OpenAICompatProvider::sendRequest(
     const QString &requestId, const QUrl &url, const QJsonObject &payload)
 {
+    m_dataBuffers[requestId].clear();
+    m_requestUrls[requestId] = url;
+
     QNetworkRequest networkRequest(url);
     prepareNetworkRequest(networkRequest);
 
@@ -151,16 +154,17 @@ void OpenAICompatProvider::sendRequest(
 
 void OpenAICompatProvider::onDataReceived(const QString &requestId, const QByteArray &data)
 {
-    QString &accumulatedResponse = m_accumulatedResponses[requestId];
+    LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+    QStringList lines = buffers.rawStreamBuffer.processData(data);
 
     if (data.isEmpty()) {
         return;
     }
 
     bool isDone = false;
-    QByteArrayList lines = data.split('\n');
+    QString tempResponse;
 
-    for (const QByteArray &line : lines) {
+    for (const QString &line : lines) {
         if (line.trimmed().isEmpty()) {
             continue;
         }
@@ -170,19 +174,11 @@ void OpenAICompatProvider::onDataReceived(const QString &requestId, const QByteA
             continue;
         }
 
-        QByteArray jsonData = line;
-        if (line.startsWith("data: ")) {
-            jsonData = line.mid(6);
-        }
-
-        QJsonParseError error;
-        QJsonDocument doc = QJsonDocument::fromJson(jsonData, &error);
-
-        if (doc.isNull()) {
+        QJsonObject responseObj = parseEventLine(line);
+        if (responseObj.isEmpty())
             continue;
-        }
 
-        auto message = LLMCore::OpenAIMessage::fromJson(doc.object());
+        auto message = LLMCore::OpenAIMessage::fromJson(responseObj);
         if (message.hasError()) {
             LOG_MESSAGE("Error in OpenAI response: " + message.error);
             continue;
@@ -190,8 +186,7 @@ void OpenAICompatProvider::onDataReceived(const QString &requestId, const QByteA
 
         QString content = message.getContent();
         if (!content.isEmpty()) {
-            accumulatedResponse += content;
-            emit partialResponseReceived(requestId, content);
+            tempResponse += content;
         }
 
         if (message.isDone()) {
@@ -199,9 +194,14 @@ void OpenAICompatProvider::onDataReceived(const QString &requestId, const QByteA
         }
     }
 
+    if (!tempResponse.isEmpty()) {
+        buffers.responseContent += tempResponse;
+        emit partialResponseReceived(requestId, tempResponse);
+    }
+
     if (isDone) {
-        emit fullResponseReceived(requestId, accumulatedResponse);
-        m_accumulatedResponses.remove(requestId);
+        emit fullResponseReceived(requestId, buffers.responseContent);
+        m_dataBuffers.remove(requestId);
     }
 }
 
@@ -209,18 +209,19 @@ void OpenAICompatProvider::onRequestFinished(
     const QString &requestId, bool success, const QString &error)
 {
     if (!success) {
-        LOG_MESSAGE(QString("OpenAIProvider request %1 failed: %2").arg(requestId, error));
+        LOG_MESSAGE(QString("OpenAICompatProvider request %1 failed: %2").arg(requestId, error));
         emit requestFailed(requestId, error);
     } else {
-        if (m_accumulatedResponses.contains(requestId)) {
-            const QString fullResponse = m_accumulatedResponses[requestId];
-            if (!fullResponse.isEmpty()) {
-                emit fullResponseReceived(requestId, fullResponse);
+        if (m_dataBuffers.contains(requestId)) {
+            const LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+            if (!buffers.responseContent.isEmpty()) {
+                emit fullResponseReceived(requestId, buffers.responseContent);
             }
         }
     }
 
-    m_accumulatedResponses.remove(requestId);
+    m_dataBuffers.remove(requestId);
+    m_requestUrls.remove(requestId);
 }
 
 } // namespace QodeAssist::Providers

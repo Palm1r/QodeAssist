@@ -138,8 +138,7 @@ void QuickRefactorHandler::prepareAndSendRequest(
     config.provider = provider;
     config.promptTemplate = promptTemplate;
     config.url = QString("%1%2").arg(settings.caUrl(), provider->chatEndpoint());
-    config.providerRequest
-        = {{"model", settings.caModel()}, {"stream", Settings::chatAssistantSettings().stream()}};
+    config.providerRequest = {{"model", settings.caModel()}, {"stream", true}};
     config.apiKey = provider->apiKey();
 
     LLMCore::ContextData context = prepareContext(editor, range, instructions);

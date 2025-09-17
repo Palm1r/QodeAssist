@@ -1,5 +1,5 @@
 /* 
- * Copyright (C) 2024-2025 Petr Mironychev
+ * Copyright (C) 2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -19,21 +19,24 @@
 
 #pragma once
 
-#include "providers/OpenAICompatProvider.hpp"
+#include <QString>
+#include <QStringList>
 
-namespace QodeAssist::Providers {
+namespace QodeAssist::LLMCore {
 
-class OpenRouterProvider : public OpenAICompatProvider
+class SSEBuffer
 {
 public:
-    QString name() const override;
-    QString url() const override;
-    QString apiKey() const override;
-    LLMCore::ProviderID providerID() const override;
+    SSEBuffer() = default;
 
-public slots:
-    void onDataReceived(const QString &requestId, const QByteArray &data) override;
-    void onRequestFinished(const QString &requestId, bool success, const QString &error) override;
+    QStringList processData(const QByteArray &data);
+
+    void clear();
+    QString currentBuffer() const;
+    bool hasIncompleteData() const;
+
+private:
+    QString m_buffer;
 };
 
-} // namespace QodeAssist::Providers
+} // namespace QodeAssist::LLMCore

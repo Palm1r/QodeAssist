@@ -172,6 +172,9 @@ LLMCore::ProviderID GoogleAIProvider::providerID() const
 void GoogleAIProvider::sendRequest(
     const QString &requestId, const QUrl &url, const QJsonObject &payload)
 {
+    m_dataBuffers[requestId].clear();
+    m_requestUrls[requestId] = url;
+
     QNetworkRequest networkRequest(url);
     prepareNetworkRequest(networkRequest);
 
@@ -186,8 +189,6 @@ void GoogleAIProvider::sendRequest(
 
 void GoogleAIProvider::onDataReceived(const QString &requestId, const QByteArray &data)
 {
-    QString &accumulatedResponse = m_accumulatedResponses[requestId];
-
     if (data.isEmpty()) {
         return;
     }
@@ -205,204 +206,85 @@ void GoogleAIProvider::onDataReceived(const QString &requestId, const QByteArray
 
             LOG_MESSAGE(fullError);
             emit requestFailed(requestId, fullError);
-            m_accumulatedResponses.remove(requestId);
+            m_dataBuffers.remove(requestId);
             return;
         }
     }
 
-    bool isDone = false;
-
-    if (data.startsWith("data: ")) {
-        isDone = handleStreamResponse(requestId, data, accumulatedResponse);
-    } else {
-        isDone = handleRegularResponse(requestId, data, accumulatedResponse);
-    }
+    bool isDone = handleStreamResponse(requestId, data);
 
     if (isDone) {
-        emit fullResponseReceived(requestId, accumulatedResponse);
-        m_accumulatedResponses.remove(requestId);
+        LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+        emit fullResponseReceived(requestId, buffers.responseContent);
+        m_dataBuffers.remove(requestId);
     }
 }
 
 void GoogleAIProvider::onRequestFinished(const QString &requestId, bool success, const QString &error)
 {
     if (!success) {
-        QString detailedError = error;
-
-        if (m_accumulatedResponses.contains(requestId)) {
-            const QString response = m_accumulatedResponses[requestId];
-            if (!response.isEmpty()) {
-                QJsonParseError parseError;
-                QJsonDocument doc = QJsonDocument::fromJson(response.toUtf8(), &parseError);
-                if (!doc.isNull() && doc.isObject()) {
-                    QJsonObject obj = doc.object();
-                    if (obj.contains("error")) {
-                        QJsonObject errorObj = obj["error"].toObject();
-                        QString apiError = errorObj["message"].toString();
-                        int errorCode = errorObj["code"].toInt();
-                        detailedError
-                            = QString("Google AI API Error %1: %2").arg(errorCode).arg(apiError);
-                    }
-                }
-            }
-        }
-
-        LOG_MESSAGE(QString("GoogleAIProvider request %1 failed: %2").arg(requestId, detailedError));
-        emit requestFailed(requestId, detailedError);
+        LOG_MESSAGE(QString("GoogleAIProvider request %1 failed: %2").arg(requestId, error));
+        emit requestFailed(requestId, error);
     } else {
-        if (m_accumulatedResponses.contains(requestId)) {
-            const QString fullResponse = m_accumulatedResponses[requestId];
-            if (!fullResponse.isEmpty()) {
-                emit fullResponseReceived(requestId, fullResponse);
+        if (m_dataBuffers.contains(requestId)) {
+            const LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+            if (!buffers.responseContent.isEmpty()) {
+                emit fullResponseReceived(requestId, buffers.responseContent);
             }
         }
     }
 
-    m_accumulatedResponses.remove(requestId);
+    m_dataBuffers.remove(requestId);
+    m_requestUrls.remove(requestId);
 }
 
-bool GoogleAIProvider::handleStreamResponse(
-    const QString &requestId, const QByteArray &data, QString &accumulatedResponse)
+bool GoogleAIProvider::handleStreamResponse(const QString &requestId, const QByteArray &data)
 {
-    QByteArrayList lines = data.split('\n');
+    LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+    QStringList lines = buffers.rawStreamBuffer.processData(data);
+
     bool isDone = false;
+    QString tempResponse;
 
-    for (const QByteArray &line : lines) {
-        QByteArray trimmedLine = line.trimmed();
-        if (trimmedLine.isEmpty()) {
+    for (const QString &line : lines) {
+        if (line.trimmed().isEmpty()) {
             continue;
         }
 
-        if (trimmedLine == "data: [DONE]") {
-            isDone = true;
+        QJsonObject responseObj = parseEventLine(line);
+        if (responseObj.isEmpty())
             continue;
-        }
 
-        if (trimmedLine.startsWith("data: ")) {
-            QByteArray jsonData = trimmedLine.mid(6);
-            QJsonParseError parseError;
-            QJsonDocument doc = QJsonDocument::fromJson(jsonData, &parseError);
-            if (doc.isNull() || !doc.isObject()) {
-                if (parseError.error != QJsonParseError::NoError) {
-                    LOG_MESSAGE(QString("JSON parse error in GoogleAI stream: %1")
-                                    .arg(parseError.errorString()));
-                }
-                continue;
-            }
-
-            QJsonObject responseObj = doc.object();
-
-            if (responseObj.contains("error")) {
-                QJsonObject error = responseObj["error"].toObject();
-                QString errorMessage = error["message"].toString();
-                int errorCode = error["code"].toInt();
-                QString fullError
-                    = QString("Google AI Stream Error %1: %2").arg(errorCode).arg(errorMessage);
-
-                LOG_MESSAGE(fullError);
-                emit requestFailed(requestId, fullError);
-                return true;
-            }
-
-            if (responseObj.contains("candidates")) {
-                QJsonArray candidates = responseObj["candidates"].toArray();
-                if (!candidates.isEmpty()) {
-                    QJsonObject candidate = candidates.first().toObject();
-
-                    if (candidate.contains("finishReason")
-                        && !candidate["finishReason"].toString().isEmpty()) {
-                        isDone = true;
-                    }
-
-                    if (candidate.contains("content")) {
-                        QJsonObject content = candidate["content"].toObject();
-                        if (content.contains("parts")) {
-                            QJsonArray parts = content["parts"].toArray();
-                            QString partialContent;
-                            for (const auto &part : parts) {
-                                QJsonObject partObj = part.toObject();
-                                if (partObj.contains("text")) {
-                                    partialContent += partObj["text"].toString();
-                                }
-                            }
-                            if (!partialContent.isEmpty()) {
-                                accumulatedResponse += partialContent;
-                                emit partialResponseReceived(requestId, partialContent);
+        if (responseObj.contains("candidates")) {
+            QJsonArray candidates = responseObj["candidates"].toArray();
+            for (const QJsonValue &candidate : candidates) {
+                QJsonObject candidateObj = candidate.toObject();
+                if (candidateObj.contains("content")) {
+                    QJsonObject content = candidateObj["content"].toObject();
+                    if (content.contains("parts")) {
+                        QJsonArray parts = content["parts"].toArray();
+                        for (const QJsonValue &part : parts) {
+                            QJsonObject partObj = part.toObject();
+                            if (partObj.contains("text")) {
+                                tempResponse += partObj["text"].toString();
                             }
                         }
                     }
                 }
+
+                if (candidateObj.contains("finishReason")) {
+                    isDone = true;
+                }
             }
         }
     }
 
+    if (!tempResponse.isEmpty()) {
+        buffers.responseContent += tempResponse;
+        emit partialResponseReceived(requestId, tempResponse);
+    }
+
     return isDone;
-}
-
-bool GoogleAIProvider::handleRegularResponse(
-    const QString &requestId, const QByteArray &data, QString &accumulatedResponse)
-{
-    QJsonParseError parseError;
-    QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
-    if (doc.isNull() || !doc.isObject()) {
-        QString error
-            = QString("Invalid JSON response from Google AI API: %1").arg(parseError.errorString());
-        LOG_MESSAGE(error);
-        emit requestFailed(requestId, error);
-        return false;
-    }
-
-    QJsonObject response = doc.object();
-
-    if (response.contains("error")) {
-        QJsonObject error = response["error"].toObject();
-        QString errorMessage = error["message"].toString();
-        int errorCode = error["code"].toInt();
-        QString fullError = QString("Google AI API Error %1: %2").arg(errorCode).arg(errorMessage);
-
-        LOG_MESSAGE(fullError);
-        emit requestFailed(requestId, fullError);
-        return false;
-    }
-
-    if (!response.contains("candidates") || response["candidates"].toArray().isEmpty()) {
-        QString error = "No candidates in Google AI response";
-        LOG_MESSAGE(error);
-        emit requestFailed(requestId, error);
-        return false;
-    }
-
-    QJsonObject candidate = response["candidates"].toArray().first().toObject();
-    if (!candidate.contains("content")) {
-        QString error = "No content in Google AI response candidate";
-        LOG_MESSAGE(error);
-        emit requestFailed(requestId, error);
-        return false;
-    }
-
-    QJsonObject content = candidate["content"].toObject();
-    if (!content.contains("parts")) {
-        QString error = "No parts in Google AI response content";
-        LOG_MESSAGE(error);
-        emit requestFailed(requestId, error);
-        return false;
-    }
-
-    QJsonArray parts = content["parts"].toArray();
-    QString responseContent;
-    for (const auto &part : parts) {
-        QJsonObject partObj = part.toObject();
-        if (partObj.contains("text")) {
-            responseContent += partObj["text"].toString();
-        }
-    }
-
-    if (!responseContent.isEmpty()) {
-        accumulatedResponse += responseContent;
-        emit partialResponseReceived(requestId, responseContent);
-    }
-
-    return true;
 }
 
 } // namespace QodeAssist::Providers
