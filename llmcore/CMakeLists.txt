@@ -17,6 +17,8 @@ add_library(LLMCore STATIC
     HttpClient.hpp HttpClient.cpp
     DataBuffers.hpp
     SSEBuffer.hpp SSEBuffer.cpp
+    ITool.hpp
+    IToolsFactory.hpp
 )
 
 target_link_libraries(LLMCore
