@@ -111,6 +111,10 @@ add_qtc_plugin(QodeAssist
     widgets/EditorChatButtonHandler.hpp widgets/EditorChatButtonHandler.cpp
     widgets/QuickRefactorDialog.hpp widgets/QuickRefactorDialog.cpp
     QuickRefactorHandler.hpp QuickRefactorHandler.cpp
+    tools/ToolsFactory.hpp tools/ToolsFactory.cpp
+    tools/ReadProjectFileByNameTool.hpp tools/ReadProjectFileByNameTool.cpp
+    tools/ReadVisibleFilesTool.hpp tools/ReadVisibleFilesTool.cpp
+    tools/ToolHandler.hpp tools/ToolHandler.cpp
 )
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)

@@ -19,31 +19,19 @@
 
 #pragma once
 
-#include <QJsonObject>
-#include <QObject>
-#include <QString>
+#include "llmcore/BaseTool.hpp"
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::Tools {
 
-class ITool : public QObject
+class ReadVisibleFilesTool : public LLMCore::BaseTool
 {
     Q_OBJECT
-
 public:
-    explicit ITool(QObject *parent = nullptr)
-        : QObject(parent)
-    {}
-    virtual ~ITool() = default;
+    explicit ReadVisibleFilesTool(QObject *parent = nullptr);
 
-    virtual QString name() const = 0;
-    virtual QString description() const = 0;
-    virtual QJsonObject getDefinition() const = 0;
-    virtual QString execute(const QJsonObject &input = QJsonObject()) = 0;
-
-signals:
-    void toolStarted(const QString &toolName);
-    void toolCompleted(const QString &toolName, const QString &result);
-    void toolFailed(const QString &toolName, const QString &error);
+    QString name() const override;
+    QString description() const override;
+    QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
 };
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::Tools
