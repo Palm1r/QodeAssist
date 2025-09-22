@@ -115,6 +115,7 @@ add_qtc_plugin(QodeAssist
     tools/ReadProjectFileByNameTool.hpp tools/ReadProjectFileByNameTool.cpp
     tools/ReadVisibleFilesTool.hpp tools/ReadVisibleFilesTool.cpp
     tools/ToolHandler.hpp tools/ToolHandler.cpp
+    tools/ListProjectFilesTool.hpp tools/ListProjectFilesTool.cpp
 )
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)

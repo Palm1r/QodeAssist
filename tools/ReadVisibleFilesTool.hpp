@@ -31,6 +31,7 @@ public:
 
     QString name() const override;
     QString description() const override;
+    QJsonObject getDefinition(LLMCore::ToolSchemaFormat format) const override;
     QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
 };
 

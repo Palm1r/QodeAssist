@@ -45,6 +45,25 @@ QString ReadVisibleFilesTool::description() const
            "No parameters required.";
 }
 
+QJsonObject ReadVisibleFilesTool::getDefinition(LLMCore::ToolSchemaFormat format) const
+{
+    QJsonObject definition;
+    definition["type"] = "object";
+    definition["properties"] = QJsonObject();
+    definition["required"] = QJsonArray();
+
+    switch (format) {
+    case LLMCore::ToolSchemaFormat::OpenAI:
+        return customizeForOpenAI(definition);
+    case LLMCore::ToolSchemaFormat::Claude:
+        return customizeForClaude(definition);
+    case LLMCore::ToolSchemaFormat::Ollama:
+        return customizeForOllama(definition);
+    }
+
+    return definition;
+}
+
 QFuture<QString> ReadVisibleFilesTool::executeAsync(const QJsonObject &input)
 {
     Q_UNUSED(input)

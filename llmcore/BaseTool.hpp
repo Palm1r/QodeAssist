@@ -38,7 +38,7 @@ public:
 
     virtual QString name() const = 0;
     virtual QString description() const = 0;
-    virtual QJsonObject getDefinition(ToolSchemaFormat format) const;
+    virtual QJsonObject getDefinition(ToolSchemaFormat format) const = 0;
 
     virtual QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) = 0;
 

@@ -23,11 +23,11 @@
 
 namespace QodeAssist::Tools {
 
-class ReadProjectFileByNameTool : public LLMCore::BaseTool
+class ListProjectFilesTool : public LLMCore::BaseTool
 {
     Q_OBJECT
 public:
-    explicit ReadProjectFileByNameTool(QObject *parent = nullptr);
+    explicit ListProjectFilesTool(QObject *parent = nullptr);
 
     QString name() const override;
     QString description() const override;
@@ -35,8 +35,7 @@ public:
     QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
 
 private:
-    QString findFileInProject(const QString &fileName) const;
-    QString readFileContent(const QString &filePath) const;
+    QString formatFileList(const QStringList &files) const;
 };
 
 } // namespace QodeAssist::Tools

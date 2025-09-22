@@ -63,6 +63,8 @@ public:
     virtual void sendRequest(const RequestID &requestId, const QUrl &url, const QJsonObject &payload)
         = 0;
 
+    virtual bool supportsTools() { return false; };
+
     HttpClient *httpClient() const;
 
 public slots:

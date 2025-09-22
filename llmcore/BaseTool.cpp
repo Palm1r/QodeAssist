@@ -25,37 +25,6 @@ BaseTool::BaseTool(QObject *parent)
     : QObject(parent)
 {}
 
-QJsonObject BaseTool::getDefinition(ToolSchemaFormat format) const
-{
-    QJsonObject properties;
-    QJsonObject filenameProperty;
-    filenameProperty["type"] = "string";
-    filenameProperty["description"] = "The filename or relative path to read";
-    properties["filename"] = filenameProperty;
-
-    QJsonObject definition;
-    definition["type"] = "object";
-    definition["properties"] = properties;
-
-    QJsonArray required;
-    required.append("filename");
-    definition["required"] = required;
-
-    switch (format) {
-    case LLMCore::ToolSchemaFormat::OpenAI:
-        definition = customizeForOpenAI(definition);
-        break;
-    case LLMCore::ToolSchemaFormat::Claude:
-        definition = customizeForClaude(definition);
-        break;
-    case LLMCore::ToolSchemaFormat::Ollama:
-        definition = customizeForOllama(definition);
-        break;
-    }
-
-    return definition;
-}
-
 QJsonObject BaseTool::customizeForOpenAI(const QJsonObject &baseDefinition) const
 {
     QJsonObject function;

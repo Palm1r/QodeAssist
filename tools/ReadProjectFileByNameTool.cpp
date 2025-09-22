@@ -57,6 +57,34 @@ QString ReadProjectFileByNameTool::description() const
            "in the editor.";
 }
 
+QJsonObject ReadProjectFileByNameTool::getDefinition(LLMCore::ToolSchemaFormat format) const
+{
+    QJsonObject properties;
+    QJsonObject filenameProperty;
+    filenameProperty["type"] = "string";
+    filenameProperty["description"] = "The filename or relative path to read";
+    properties["filename"] = filenameProperty;
+
+    QJsonObject definition;
+    definition["type"] = "object";
+    definition["properties"] = properties;
+
+    QJsonArray required;
+    required.append("filename");
+    definition["required"] = required;
+
+    switch (format) {
+    case LLMCore::ToolSchemaFormat::OpenAI:
+        return customizeForOpenAI(definition);
+    case LLMCore::ToolSchemaFormat::Claude:
+        return customizeForClaude(definition);
+    case LLMCore::ToolSchemaFormat::Ollama:
+        return customizeForOllama(definition);
+    }
+
+    return definition;
+}
+
 QFuture<QString> ReadProjectFileByNameTool::executeAsync(const QJsonObject &input)
 {
     return QtConcurrent::run([this, input]() -> QString {
@@ -85,31 +113,36 @@ QFuture<QString> ReadProjectFileByNameTool::executeAsync(const QJsonObject &inpu
 
 QString ReadProjectFileByNameTool::findFileInProject(const QString &fileName) const
 {
-    auto project = ProjectExplorer::ProjectManager::startupProject();
-    if (!project) {
-        LOG_MESSAGE("No startup project found");
+    QList<ProjectExplorer::Project *> projects = ProjectExplorer::ProjectManager::projects();
+    if (projects.isEmpty()) {
+        LOG_MESSAGE("No projects found");
         return QString();
     }
 
-    Utils::FilePaths projectFiles = project->files(ProjectExplorer::Project::SourceFiles);
+    for (auto project : projects) {
+        if (!project)
+            continue;
 
-    for (const auto &projectFile : projectFiles) {
-        QFileInfo fileInfo(projectFile.path());
-        if (fileInfo.fileName() == fileName) {
-            return projectFile.path();
+        Utils::FilePaths projectFiles = project->files(ProjectExplorer::Project::SourceFiles);
+
+        for (const auto &projectFile : std::as_const(projectFiles)) {
+            QFileInfo fileInfo(projectFile.path());
+            if (fileInfo.fileName() == fileName) {
+                return projectFile.path();
+            }
         }
-    }
 
-    for (const auto &projectFile : projectFiles) {
-        if (projectFile.endsWith(fileName)) {
-            return projectFile.path();
+        for (const auto &projectFile : std::as_const(projectFiles)) {
+            if (projectFile.endsWith(fileName)) {
+                return projectFile.path();
+            }
         }
-    }
 
-    for (const auto &projectFile : projectFiles) {
-        QFileInfo fileInfo(projectFile.path());
-        if (fileInfo.fileName().contains(fileName, Qt::CaseInsensitive)) {
-            return projectFile.path();
+        for (const auto &projectFile : std::as_const(projectFiles)) {
+            QFileInfo fileInfo(projectFile.path());
+            if (fileInfo.fileName().contains(fileName, Qt::CaseInsensitive)) {
+                return projectFile.path();
+            }
         }
     }
 
