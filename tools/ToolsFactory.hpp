@@ -19,20 +19,27 @@
 
 #pragma once
 
-#include <QJsonArray>
-#include <QList>
+#include <QObject>
 
-#include "ITool.hpp"
+#include <llmcore/BaseTool.hpp>
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::Tools {
 
-class IToolsFactory
+class ToolsFactory : public QObject
 {
+    Q_OBJECT
 public:
-    virtual ~IToolsFactory() = default;
-    virtual QList<ITool *> getAvailableTools() const = 0;
-    virtual ITool *getToolByName(const QString &name) const = 0;
-    virtual QJsonArray getToolsDefinitions() const = 0;
-};
+    ToolsFactory(QObject *parent = nullptr);
+    ~ToolsFactory() override = default;
 
-} // namespace QodeAssist::LLMCore
+    QList<LLMCore::BaseTool *> getAvailableTools() const;
+    LLMCore::BaseTool *getToolByName(const QString &name) const;
+    QJsonArray getToolsDefinitions(LLMCore::ToolSchemaFormat format) const;
+
+private:
+    void registerTools();
+    void registerTool(LLMCore::BaseTool *tool);
+
+    QHash<QString, LLMCore::BaseTool *> m_tools;
+};
+} // namespace QodeAssist::Tools
