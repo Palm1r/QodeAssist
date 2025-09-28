@@ -30,7 +30,6 @@ Rectangle {
     property alias attachFiles: attachFilesId
     property alias linkFiles: linkFilesId
 
-    property bool isRequestInProgress: false
 
     color: palette.window.hslLightness > 0.5 ?
                Qt.darker(palette.window, 1.1) :
@@ -53,15 +52,11 @@ Rectangle {
             id: sendButtonId
 
             icon {
-                source: !root.isRequestInProgress ? "qrc:/qt/qml/ChatView/icons/chat-icon.svg"
-                                                  : "qrc:/qt/qml/ChatView/icons/chat-pause-icon.svg"
                 height: 15
                 width: 15
             }
             ToolTip.visible: hovered
             ToolTip.delay: 250
-            ToolTip.text: !root.isRequestInProgress ? qsTr("Send message to LLM")
-                                                    : qsTr("Stop")
         }
 
         QoAButton {

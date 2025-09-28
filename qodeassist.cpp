@@ -212,6 +212,9 @@ public:
             if (!m_chatView->isVisible()) {
                 m_chatView->show();
             }
+
+            m_chatView->raise();
+            m_chatView->requestActivate();
         });
         m_statusWidget->setChatButtonAction(showChatViewAction.contextAction());
 
