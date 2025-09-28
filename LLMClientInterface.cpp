@@ -115,19 +115,16 @@ void LLMClientInterface::sendData(const QByteArray &data)
 
 void LLMClientInterface::handleCancelRequest(const QJsonObject &request)
 {
-    QString id = request["id"].toString();
-
-    auto it = m_activeRequests.find(id);
-    if (it != m_activeRequests.end()) {
+    for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
         const RequestContext &ctx = it.value();
-
-        ctx.provider->httpClient()->cancelRequest(id);
-
-        m_activeRequests.erase(it);
-        LOG_MESSAGE(QString("Request %1 cancelled successfully").arg(id));
-    } else {
-        LOG_MESSAGE(QString("Request %1 not found").arg(id));
+        if (ctx.provider && ctx.provider->httpClient()) {
+            ctx.provider->httpClient()->cancelRequest(it.key());
+        }
     }
+
+    m_activeRequests.clear();
+
+    LOG_MESSAGE("All requests cancelled and state cleared");
 }
 
 void LLMClientInterface::handleInitialize(const QJsonObject &request)

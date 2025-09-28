@@ -151,18 +151,17 @@ void ClientInterface::clearMessages()
 
 void ClientInterface::cancelRequest()
 {
-    auto id = m_chatModel->lastMessageId();
-
     for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
-        if (it.value().originalRequest["id"].toString() == id) {
-            const RequestContext &ctx = it.value();
+        const RequestContext &ctx = it.value();
+        if (ctx.provider && ctx.provider->httpClient()) {
             ctx.provider->httpClient()->cancelRequest(it.key());
-
-            m_activeRequests.erase(it);
-            m_accumulatedResponses.remove(it.key());
-            break;
         }
     }
+
+    m_activeRequests.clear();
+    m_accumulatedResponses.clear();
+
+    LOG_MESSAGE("All requests cancelled and state cleared");
 }
 
 void ClientInterface::handleLLMResponse(

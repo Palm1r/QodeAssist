@@ -126,9 +126,14 @@ QString HttpClient::addActiveRequest(QNetworkReply *reply, const QString &reques
 void HttpClient::cancelRequest(const QString &requestId)
 {
     QMutexLocker locker(&m_mutex);
-    if (auto it = m_activeRequests.find(requestId); it != m_activeRequests.end()) {
-        it.value()->abort();
-        it.value()->deleteLater();
+    auto it = m_activeRequests.find(requestId);
+    if (it != m_activeRequests.end()) {
+        QNetworkReply *reply = it.value();
+        if (reply) {
+            reply->disconnect();
+            reply->abort();
+            reply->deleteLater();
+        }
         m_activeRequests.erase(it);
         LOG_MESSAGE(QString("HttpClient: Cancelled request: %1").arg(requestId));
     }
