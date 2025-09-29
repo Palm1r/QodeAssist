@@ -37,6 +37,7 @@ add_definitions(
 add_subdirectory(llmcore)
 add_subdirectory(settings)
 add_subdirectory(logger)
+add_subdirectory(UIControls)
 add_subdirectory(ChatView)
 add_subdirectory(context)
 if(GTest_FOUND)

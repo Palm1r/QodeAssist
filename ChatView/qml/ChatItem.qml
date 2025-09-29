@@ -20,6 +20,8 @@
 import QtQuick
 import ChatView
 import QtQuick.Layouts
+import UIControls
+
 import "./dialog"
 
 Rectangle {

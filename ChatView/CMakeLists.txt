@@ -6,14 +6,13 @@ qt_policy(SET QTP0004 NEW)
 qt_add_qml_module(QodeAssistChatView
     URI ChatView
     VERSION 1.0
-    DEPENDENCIES QtQuick
+    DEPENDENCIES
+    QtQuick
     QML_FILES
     qml/RootItem.qml
     qml/ChatItem.qml
-    qml/Badge.qml
     qml/dialog/CodeBlock.qml
     qml/dialog/TextBlock.qml
-    qml/controls/QoAButton.qml
     qml/parts/TopBar.qml
     qml/parts/BottomBar.qml
     qml/parts/AttachedFilesPlace.qml
@@ -55,6 +54,7 @@ target_link_libraries(QodeAssistChatView
     LLMCore
     QodeAssistSettings
     Context
+    QodeAssistUIControlsplugin
 )
 
 target_include_directories(QodeAssistChatView

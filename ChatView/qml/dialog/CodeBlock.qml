@@ -20,6 +20,7 @@
 import QtQuick
 import QtQuick.Controls
 import ChatView
+import UIControls
 
 Rectangle {
     id: root

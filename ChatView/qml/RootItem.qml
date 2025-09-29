@@ -22,7 +22,7 @@ import QtQuick.Controls
 import QtQuick.Controls.Basic as QQC
 import QtQuick.Layouts
 import ChatView
-import "./controls"
+import UIControls
 import "./parts"
 
 ChatRootView {
