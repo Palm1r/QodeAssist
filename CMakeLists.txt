@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
 
-list(APPEND CMAKE_PREFIX_PATH "/Users/palm1r/Qt/Qt Creator.app/Contents/Resources/lib/cmake/QtCreator")
-
 project(QodeAssist)
 
 set(CMAKE_AUTOMOC ON)
