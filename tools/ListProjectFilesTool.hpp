@@ -19,7 +19,9 @@
 
 #pragma once
 
-#include "llmcore/BaseTool.hpp"
+#include <llmcore/BaseTool.hpp>
+
+#include <context/IgnoreManager.hpp>
 
 namespace QodeAssist::Tools {
 
@@ -36,6 +38,7 @@ public:
 
 private:
     QString formatFileList(const QStringList &files) const;
+    Context::IgnoreManager *m_ignoreManager;
 };
 
 } // namespace QodeAssist::Tools

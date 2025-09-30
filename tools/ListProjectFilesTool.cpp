@@ -32,6 +32,8 @@ namespace QodeAssist::Tools {
 
 ListProjectFilesTool::ListProjectFilesTool(QObject *parent)
     : BaseTool(parent)
+    , m_ignoreManager(new Context::IgnoreManager(this))
+
 {}
 
 QString ListProjectFilesTool::name() const
@@ -92,12 +94,25 @@ QFuture<QString> ListProjectFilesTool::executeAsync(const QJsonObject &input)
             }
 
             QStringList fileList;
-            QString projectPath = project->projectDirectory().toString();
+            QString projectPath = project->projectDirectory().toUrlishString();
 
             for (const auto &filePath : projectFiles) {
-                QString absolutePath = filePath.toString();
+                QString absolutePath = filePath.toUrlishString();
+
+                if (m_ignoreManager->shouldIgnore(absolutePath, project)) {
+                    LOG_MESSAGE(
+                        QString("Ignoring file due to .qodeassistignore: %1").arg(absolutePath));
+                    continue;
+                }
+
                 QString relativePath = QDir(projectPath).relativeFilePath(absolutePath);
                 fileList.append(relativePath);
+            }
+
+            if (fileList.isEmpty()) {
+                result += QString("Project '%1': No files after applying .qodeassistignore\n\n")
+                              .arg(project->displayName());
+                continue;
             }
 
             fileList.sort();
