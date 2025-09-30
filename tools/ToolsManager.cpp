@@ -109,7 +109,9 @@ void ToolsManager::onToolFinished(
     tool.complete = true;
 
     LOG_MESSAGE(QString("ToolsManager: Tool %1 %2 for request %3")
-                    .arg(toolId, success ? "completed" : "failed", requestId));
+                    .arg(toolId)
+                    .arg(success ? QString("completed") : QString("failed"))
+                    .arg(requestId));
 
     if (isExecutionComplete(requestId)) {
         QHash<QString, QString> results = getToolResults(requestId);

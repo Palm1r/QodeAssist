@@ -19,7 +19,8 @@
 
 #pragma once
 
-#include "llmcore/BaseTool.hpp"
+#include <context/IgnoreManager.hpp>
+#include <llmcore/BaseTool.hpp>
 
 namespace QodeAssist::Tools {
 
@@ -33,6 +34,9 @@ public:
     QString description() const override;
     QJsonObject getDefinition(LLMCore::ToolSchemaFormat format) const override;
     QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
+
+private:
+    Context::IgnoreManager *m_ignoreManager;
 };
 
 } // namespace QodeAssist::Tools

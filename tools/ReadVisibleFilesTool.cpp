@@ -22,6 +22,7 @@
 #include <coreplugin/editormanager/editormanager.h>
 #include <coreplugin/editormanager/ieditor.h>
 #include <logger/Logger.hpp>
+#include <projectexplorer/projectmanager.h>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QtConcurrent>
@@ -30,6 +31,7 @@ namespace QodeAssist::Tools {
 
 ReadVisibleFilesTool::ReadVisibleFilesTool(QObject *parent)
     : BaseTool(parent)
+    , m_ignoreManager(new Context::IgnoreManager(this))
 {}
 
 QString ReadVisibleFilesTool::name() const
@@ -84,6 +86,15 @@ QFuture<QString> ReadVisibleFilesTool::executeAsync(const QJsonObject &input)
             }
 
             QString filePath = editor->document()->filePath().toFSPathString();
+
+            auto project = ProjectExplorer::ProjectManager::projectForFile(
+                editor->document()->filePath());
+            if (project && m_ignoreManager->shouldIgnore(filePath, project)) {
+                LOG_MESSAGE(
+                    QString("Ignoring visible file due to .qodeassistignore: %1").arg(filePath));
+                continue;
+            }
+
             QByteArray contentBytes = editor->document()->contents();
             QString fileContent = QString::fromUtf8(contentBytes);
 
@@ -96,6 +107,11 @@ QFuture<QString> ReadVisibleFilesTool::executeAsync(const QJsonObject &input)
             }
 
             results.append(fileResult);
+        }
+
+        if (results.isEmpty()) {
+            QString error = "Error: All visible files are excluded by .qodeassistignore";
+            throw std::runtime_error(error.toStdString());
         }
 
         return results.join("\n\n" + QString(80, '=') + "\n\n");
