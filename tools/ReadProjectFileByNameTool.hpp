@@ -19,7 +19,8 @@
 
 #pragma once
 
-#include "llmcore/BaseTool.hpp"
+#include <context/IgnoreManager.hpp>
+#include <llmcore/BaseTool.hpp>
 
 namespace QodeAssist::Tools {
 
@@ -37,6 +38,7 @@ public:
 private:
     QString findFileInProject(const QString &fileName) const;
     QString readFileContent(const QString &filePath) const;
+    Context::IgnoreManager *m_ignoreManager;
 };
 
 } // namespace QodeAssist::Tools

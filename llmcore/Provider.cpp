@@ -12,6 +12,11 @@ Provider::Provider(QObject *parent)
     connect(m_httpClient, &HttpClient::requestFinished, this, &Provider::onRequestFinished);
 }
 
+void Provider::cancelRequest(const RequestID &requestId)
+{
+    m_httpClient->cancelRequest(requestId);
+}
+
 HttpClient *Provider::httpClient() const
 {
     return m_httpClient;

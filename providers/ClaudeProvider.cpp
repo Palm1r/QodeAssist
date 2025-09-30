@@ -34,6 +34,17 @@
 
 namespace QodeAssist::Providers {
 
+ClaudeProvider::ClaudeProvider(QObject *parent)
+    : LLMCore::Provider(parent)
+    , m_toolsManager(new Tools::ToolsManager(this))
+{
+    connect(
+        m_toolsManager,
+        &Tools::ToolsManager::toolExecutionComplete,
+        this,
+        &ClaudeProvider::onToolExecutionComplete);
+}
+
 QString ClaudeProvider::name() const
 {
     return "Claude";
@@ -85,6 +96,15 @@ void ClaudeProvider::prepareRequest(
         applyModelParams(Settings::codeCompletionSettings());
     } else {
         applyModelParams(Settings::chatAssistantSettings());
+    }
+
+    if (supportsTools() && type == LLMCore::RequestType::Chat
+        && Settings::chatAssistantSettings().useTools()) {
+        auto toolsDefinitions = m_toolsManager->getToolsDefinitions(Tools::ToolSchemaFormat::Claude);
+        if (!toolsDefinitions.isEmpty()) {
+            request["tools"] = toolsDefinitions;
+            LOG_MESSAGE(QString("Added %1 tools to Claude request").arg(toolsDefinitions.size()));
+        }
     }
 }
 
@@ -146,7 +166,8 @@ QList<QString> ClaudeProvider::validateRequest(const QJsonObject &request, LLMCo
         {"top_p", {}},
         {"top_k", {}},
         {"stop", QJsonArray{}},
-        {"stream", {}}};
+        {"stream", {}},
+        {"tools", {}}};
 
     return LLMCore::ValidationUtils::validateRequestFields(request, templateReq);
 }
@@ -174,8 +195,12 @@ LLMCore::ProviderID ClaudeProvider::providerID() const
 void ClaudeProvider::sendRequest(
     const LLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
 {
-    m_dataBuffers[requestId].clear();
+    if (!m_messages.contains(requestId)) {
+        m_dataBuffers[requestId].clear();
+    }
+
     m_requestUrls[requestId] = url;
+    m_originalRequests[requestId] = payload;
 
     QNetworkRequest networkRequest(url);
     prepareNetworkRequest(networkRequest);
@@ -188,52 +213,30 @@ void ClaudeProvider::sendRequest(
     emit httpClient()->sendRequest(request);
 }
 
+bool ClaudeProvider::supportsTools() const
+{
+    return true;
+}
+
+void ClaudeProvider::cancelRequest(const LLMCore::RequestID &requestId)
+{
+    LOG_MESSAGE(QString("ClaudeProvider: Cancelling request %1").arg(requestId));
+    LLMCore::Provider::cancelRequest(requestId);
+    cleanupRequest(requestId);
+}
+
 void ClaudeProvider::onDataReceived(
     const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data)
 {
     LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
     QStringList lines = buffers.rawStreamBuffer.processData(data);
 
-    QString tempResponse;
-    bool isComplete = false;
-
     for (const QString &line : lines) {
         QJsonObject responseObj = parseEventLine(line);
         if (responseObj.isEmpty())
             continue;
 
-        QString eventType = responseObj["type"].toString();
-
-        if (eventType == "message_start") {
-            QString messageId = responseObj["message"].toObject()["id"].toString();
-            LOG_MESSAGE(QString("Claude message started: %1").arg(messageId));
-
-        } else if (eventType == "content_block_delta") {
-            QJsonObject delta = responseObj["delta"].toObject();
-            if (delta["type"].toString() == "text_delta") {
-                tempResponse += delta["text"].toString();
-            }
-
-        } else if (eventType == "message_delta") {
-            QJsonObject delta = responseObj["delta"].toObject();
-            if (delta.contains("stop_reason")) {
-                isComplete = true;
-                QJsonObject usage = responseObj["usage"].toObject();
-                LOG_MESSAGE(QString("Tokens: input=%1, output=%2")
-                                .arg(usage["input_tokens"].toInt())
-                                .arg(usage["output_tokens"].toInt()));
-            }
-        }
-    }
-
-    if (!tempResponse.isEmpty()) {
-        buffers.responseContent += tempResponse;
-        emit partialResponseReceived(requestId, tempResponse);
-    }
-
-    if (isComplete) {
-        emit fullResponseReceived(requestId, buffers.responseContent);
-        m_dataBuffers.remove(requestId);
+        processStreamEvent(requestId, responseObj);
     }
 }
 
@@ -243,17 +246,164 @@ void ClaudeProvider::onRequestFinished(
     if (!success) {
         LOG_MESSAGE(QString("ClaudeProvider request %1 failed: %2").arg(requestId, error));
         emit requestFailed(requestId, error);
-    } else {
-        if (m_dataBuffers.contains(requestId)) {
-            const LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
-            if (!buffers.responseContent.isEmpty()) {
-                emit fullResponseReceived(requestId, buffers.responseContent);
-            }
+        cleanupRequest(requestId);
+        return;
+    }
+
+    if (m_messages.contains(requestId)) {
+        ClaudeMessage *message = m_messages[requestId];
+        if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
+            LOG_MESSAGE(QString("Waiting for tools to complete for %1").arg(requestId));
+            m_dataBuffers.remove(requestId);
+            return;
         }
+    }
+
+    if (m_dataBuffers.contains(requestId)) {
+        const LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+        if (!buffers.responseContent.isEmpty()) {
+            LOG_MESSAGE(QString("Emitting full response for %1").arg(requestId));
+            emit fullResponseReceived(requestId, buffers.responseContent);
+        }
+    }
+
+    cleanupRequest(requestId);
+}
+
+void ClaudeProvider::onToolExecutionComplete(
+    const QString &requestId, const QHash<QString, QString> &toolResults)
+{
+    if (!m_messages.contains(requestId) || !m_requestUrls.contains(requestId)) {
+        LOG_MESSAGE(QString("ERROR: Missing data for continuation request %1").arg(requestId));
+        cleanupRequest(requestId);
+        return;
+    }
+
+    LOG_MESSAGE(QString("Tool execution complete for Claude request %1").arg(requestId));
+
+    ClaudeMessage *message = m_messages[requestId];
+    QJsonObject continuationRequest = m_originalRequests[requestId];
+    QJsonArray messages = continuationRequest["messages"].toArray();
+
+    messages.append(message->toProviderFormat());
+
+    QJsonObject userMessage;
+    userMessage["role"] = "user";
+    userMessage["content"] = message->createToolResultsContent(toolResults);
+    messages.append(userMessage);
+
+    continuationRequest["messages"] = messages;
+
+    LOG_MESSAGE(QString("Sending continuation request for %1 with %2 tool results")
+                    .arg(requestId)
+                    .arg(toolResults.size()));
+
+    sendRequest(requestId, m_requestUrls[requestId], continuationRequest);
+}
+
+void ClaudeProvider::processStreamEvent(const QString &requestId, const QJsonObject &event)
+{
+    QString eventType = event["type"].toString();
+
+    LOG_MESSAGE(QString("Processing Claude event: type=%1").arg(eventType));
+
+    if (eventType == "message_stop") {
+        return;
+    }
+
+    ClaudeMessage *message = m_messages.value(requestId);
+    if (!message) {
+        if (eventType == "message_start") {
+            message = new ClaudeMessage(this);
+            m_messages[requestId] = message;
+            LOG_MESSAGE(QString("Created NEW ClaudeMessage for request %1").arg(requestId));
+        } else {
+            return;
+        }
+    }
+
+    if (eventType == "message_start") {
+        message->startNewContinuation();
+        LOG_MESSAGE(QString("Starting NEW continuation for request %1").arg(requestId));
+
+    } else if (eventType == "content_block_start") {
+        int index = event["index"].toInt();
+        QJsonObject contentBlock = event["content_block"].toObject();
+        QString blockType = contentBlock["type"].toString();
+
+        LOG_MESSAGE(
+            QString("Adding new content block: type=%1, index=%2").arg(blockType).arg(index));
+
+        message->handleContentBlockStart(index, blockType, contentBlock);
+
+    } else if (eventType == "content_block_delta") {
+        int index = event["index"].toInt();
+        QJsonObject delta = event["delta"].toObject();
+        QString deltaType = delta["type"].toString();
+
+        message->handleContentBlockDelta(index, deltaType, delta);
+
+        if (deltaType == "text_delta") {
+            QString text = delta["text"].toString();
+            LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+            buffers.responseContent += text;
+            emit partialResponseReceived(requestId, text);
+        }
+
+    } else if (eventType == "content_block_stop") {
+        int index = event["index"].toInt();
+        message->handleContentBlockStop(index);
+
+    } else if (eventType == "message_delta") {
+        QJsonObject delta = event["delta"].toObject();
+        if (delta.contains("stop_reason")) {
+            QString stopReason = delta["stop_reason"].toString();
+            message->handleStopReason(stopReason);
+            handleMessageComplete(requestId);
+        }
+    }
+}
+
+void ClaudeProvider::handleMessageComplete(const QString &requestId)
+{
+    if (!m_messages.contains(requestId))
+        return;
+
+    ClaudeMessage *message = m_messages[requestId];
+
+    if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
+        LOG_MESSAGE(QString("Claude message requires tool execution for %1").arg(requestId));
+
+        auto toolUseContent = message->getCurrentToolUseContent();
+
+        if (toolUseContent.isEmpty()) {
+            LOG_MESSAGE(QString("No tools to execute for %1").arg(requestId));
+            return;
+        }
+
+        for (auto toolContent : toolUseContent) {
+            m_toolsManager->executeToolCall(
+                requestId, toolContent->id(), toolContent->name(), toolContent->input());
+        }
+
+    } else {
+        LOG_MESSAGE(QString("Claude message marked as complete for %1").arg(requestId));
+    }
+}
+
+void ClaudeProvider::cleanupRequest(const LLMCore::RequestID &requestId)
+{
+    LOG_MESSAGE(QString("Cleaning up Claude request %1").arg(requestId));
+
+    if (m_messages.contains(requestId)) {
+        ClaudeMessage *message = m_messages.take(requestId);
+        message->deleteLater();
     }
 
     m_dataBuffers.remove(requestId);
     m_requestUrls.remove(requestId);
+    m_originalRequests.remove(requestId);
+    m_toolsManager->cleanupRequest(requestId);
 }
 
 } // namespace QodeAssist::Providers

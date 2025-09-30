@@ -68,6 +68,15 @@ ChatAssistantSettings::ChatAssistantSettings()
     enableChatInNavigationPanel.setLabelText(Tr::tr("Enable chat in navigation panel"));
     enableChatInNavigationPanel.setDefaultValue(false);
 
+    useTools.setSettingsKey(Constants::CA_USE_TOOLS);
+    useTools.setLabelText(Tr::tr("Enable tools"));
+    useTools.setToolTip(
+        Tr::tr(
+            "Enable tool use capabilities for the assistant(OpenAI function calling, Claude tools "
+            "and etc) "
+            "if plugin and provider support"));
+    useTools.setDefaultValue(true);
+
     // General Parameters Settings
     temperature.setSettingsKey(Constants::CA_TEMPERATURE);
     temperature.setLabelText(Tr::tr("Temperature:"));
@@ -242,31 +251,35 @@ ChatAssistantSettings::ChatAssistantSettings()
         chatViewSettingsGrid.addRow({textFormat});
         chatViewSettingsGrid.addRow({chatRenderer});
 
-        return Column{Row{Stretch{1}, resetToDefaults},
-                      Space{8},
-                      Group{title(Tr::tr("Chat Settings")),
-                            Column{Row{chatTokensThreshold, Stretch{1}},
-                                   linkOpenFiles,
-                                   autosave,
-                                   enableChatInBottomToolBar,
-                                   enableChatInNavigationPanel}},
-                      Space{8},
-                      Group{
-                          title(Tr::tr("General Parameters")),
-                          Row{genGrid, Stretch{1}},
-                      },
-                      Space{8},
-                      Group{title(Tr::tr("Advanced Parameters")),
-                            Column{Row{advancedGrid, Stretch{1}}}},
-                      Space{8},
-                      Group{title(Tr::tr("Context Settings")),
-                            Column{
-                                Row{useSystemPrompt, Stretch{1}},
-                                systemPrompt,
-                            }},
-                      Group{title(Tr::tr("Ollama Settings")), Column{Row{ollamaGrid, Stretch{1}}}},
-                      Group{title(Tr::tr("Chat Settings")), Row{chatViewSettingsGrid, Stretch{1}}},
-                      Stretch{1}};
+        return Column{
+            Row{Stretch{1}, resetToDefaults},
+            Space{8},
+            Group{
+                title(Tr::tr("Chat Settings")),
+                Column{
+                    Row{chatTokensThreshold, Stretch{1}},
+                    linkOpenFiles,
+                    autosave,
+                    enableChatInBottomToolBar,
+                    enableChatInNavigationPanel,
+                    useTools}},
+            Space{8},
+            Group{
+                title(Tr::tr("General Parameters")),
+                Row{genGrid, Stretch{1}},
+            },
+            Space{8},
+            Group{title(Tr::tr("Advanced Parameters")), Column{Row{advancedGrid, Stretch{1}}}},
+            Space{8},
+            Group{
+                title(Tr::tr("Context Settings")),
+                Column{
+                    Row{useSystemPrompt, Stretch{1}},
+                    systemPrompt,
+                }},
+            Group{title(Tr::tr("Ollama Settings")), Column{Row{ollamaGrid, Stretch{1}}}},
+            Group{title(Tr::tr("Chat Settings")), Row{chatViewSettingsGrid, Stretch{1}}},
+            Stretch{1}};
     });
 }
 
@@ -311,6 +324,7 @@ void ChatAssistantSettings::resetSettingsToDefaults()
         resetAspect(codeFontSize);
         resetAspect(textFormat);
         resetAspect(chatRenderer);
+        resetAspect(useTools);
     }
 }
 

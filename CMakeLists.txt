@@ -117,6 +117,8 @@ add_qtc_plugin(QodeAssist
     tools/ReadVisibleFilesTool.hpp tools/ReadVisibleFilesTool.cpp
     tools/ToolHandler.hpp tools/ToolHandler.cpp
     tools/ListProjectFilesTool.hpp tools/ListProjectFilesTool.cpp
+    tools/ToolsManager.hpp tools/ToolsManager.cpp
+    providers/ClaudeMessage.hpp providers/ClaudeMessage.cpp
 )
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)
