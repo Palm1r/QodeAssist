@@ -119,6 +119,7 @@ add_qtc_plugin(QodeAssist
     tools/ListProjectFilesTool.hpp tools/ListProjectFilesTool.cpp
     tools/ToolsManager.hpp tools/ToolsManager.cpp
     providers/ClaudeMessage.hpp providers/ClaudeMessage.cpp
+    providers/OpenAIMessage.hpp providers/OpenAIMessage.cpp
 )
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)
