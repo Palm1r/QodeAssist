@@ -41,6 +41,7 @@ qt_add_qml_module(QodeAssistChatView
     ChatUtils.h ChatUtils.cpp
     ChatSerializer.hpp ChatSerializer.cpp
     ChatView.hpp ChatView.cpp
+    ChatData.hpp
 )
 
 target_link_libraries(QodeAssistChatView

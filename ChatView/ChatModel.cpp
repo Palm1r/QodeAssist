@@ -132,10 +132,10 @@ QList<MessagePart> ChatModel::processMessageContent(const QString &content) cons
             QString textBetween
                 = content.mid(lastIndex, match.capturedStart() - lastIndex).trimmed();
             if (!textBetween.isEmpty()) {
-                parts.append({MessagePart::Text, textBetween, ""});
+                parts.append({MessagePartType::Text, textBetween, ""});
             }
         }
-        parts.append({MessagePart::Code, match.captured(2).trimmed(), match.captured(1)});
+        parts.append({MessagePartType::Code, match.captured(2).trimmed(), match.captured(1)});
         lastIndex = match.capturedEnd();
     }
 
@@ -148,13 +148,15 @@ QList<MessagePart> ChatModel::processMessageContent(const QString &content) cons
         if (unclosedMatch.hasMatch()) {
             QString beforeCodeBlock = remainingText.left(unclosedMatch.capturedStart()).trimmed();
             if (!beforeCodeBlock.isEmpty()) {
-                parts.append({MessagePart::Text, beforeCodeBlock, ""});
+                parts.append({MessagePartType::Text, beforeCodeBlock, ""});
             }
 
             parts.append(
-                {MessagePart::Code, unclosedMatch.captured(2).trimmed(), unclosedMatch.captured(1)});
+                {MessagePartType::Code,
+                 unclosedMatch.captured(2).trimmed(),
+                 unclosedMatch.captured(1)});
         } else if (!remainingText.isEmpty()) {
-            parts.append({MessagePart::Text, remainingText, ""});
+            parts.append({MessagePartType::Text, remainingText, ""});
         }
     }
 

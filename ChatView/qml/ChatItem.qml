@@ -87,8 +87,8 @@ Rectangle {
                     }
 
                     switch(modelData.type) {
-                        case MessagePart.Text: return textComponent;
-                        case MessagePart.Code: return codeBlockComponent;
+                        case MessagePartType.Text: return textComponent;
+                        case MessagePartType.Code: return codeBlockComponent;
                         default: return textComponent;
                     }
                 }

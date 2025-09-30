@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Petr Mironychev
+ * Copyright (C) 2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -22,21 +22,11 @@
 #include <QObject>
 #include <QtQmlIntegration>
 
-#include "ChatData.hpp"
-
 namespace QodeAssist::Chat {
+Q_NAMESPACE
+QML_NAMED_ELEMENT(MessagePartType)
 
-class MessagePart
-{
-    Q_GADGET
-    Q_PROPERTY(MessagePartType type MEMBER type CONSTANT FINAL)
-    Q_PROPERTY(QString text MEMBER text CONSTANT FINAL)
-    Q_PROPERTY(QString language MEMBER language CONSTANT FINAL)
-    QML_VALUE_TYPE(messagePart)
-public:
-    MessagePartType type;
-    QString text;
-    QString language;
-};
+enum class MessagePartType { Code, Text };
+Q_ENUM_NS(MessagePartType)
 
 } // namespace QodeAssist::Chat
