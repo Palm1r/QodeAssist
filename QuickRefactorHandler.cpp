@@ -281,7 +281,7 @@ void QuickRefactorHandler::cancelRequest()
         for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
             if (it.key() == id) {
                 const RequestContext &ctx = it.value();
-                ctx.provider->httpClient()->cancelRequest(id);
+                ctx.provider->cancelRequest(id);
                 m_activeRequests.erase(it);
                 break;
             }

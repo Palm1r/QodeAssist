@@ -63,7 +63,9 @@ public:
     virtual void sendRequest(const RequestID &requestId, const QUrl &url, const QJsonObject &payload)
         = 0;
 
-    virtual bool supportsTools() { return false; };
+    virtual bool supportsTools() const { return false; };
+
+    virtual void cancelRequest(const RequestID &requestId);
 
     HttpClient *httpClient() const;
 

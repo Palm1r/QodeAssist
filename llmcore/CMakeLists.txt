@@ -19,6 +19,7 @@ add_library(LLMCore STATIC
     SSEBuffer.hpp SSEBuffer.cpp
     BaseTool.hpp
     BaseTool.cpp
+    ContentBlocks.hpp
 )
 
 target_link_libraries(LLMCore

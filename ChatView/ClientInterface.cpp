@@ -153,8 +153,8 @@ void ClientInterface::cancelRequest()
 {
     for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
         const RequestContext &ctx = it.value();
-        if (ctx.provider && ctx.provider->httpClient()) {
-            ctx.provider->httpClient()->cancelRequest(it.key());
+        if (ctx.provider) {
+            ctx.provider->cancelRequest(it.key());
         }
     }
 
