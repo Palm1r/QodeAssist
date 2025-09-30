@@ -36,6 +36,7 @@ namespace QodeAssist::Tools {
 
 ReadProjectFileByNameTool::ReadProjectFileByNameTool(QObject *parent)
     : BaseTool(parent)
+    , m_ignoreManager(new Context::IgnoreManager(this))
 {}
 
 QString ReadProjectFileByNameTool::name() const
@@ -100,6 +101,14 @@ QFuture<QString> ReadProjectFileByNameTool::executeAsync(const QJsonObject &inpu
             throw std::runtime_error(error.toStdString());
         }
 
+        auto project = ProjectExplorer::ProjectManager::projectForFile(
+            Utils::FilePath::fromString(filePath));
+        if (project && m_ignoreManager->shouldIgnore(filePath, project)) {
+            QString error
+                = QString("Error: File '%1' is excluded by .qodeassistignore").arg(filename);
+            throw std::runtime_error(error.toStdString());
+        }
+
         QString content = readFileContent(filePath);
         if (content.isNull()) {
             QString error = QString("Error: Could not read file '%1'").arg(filePath);
@@ -126,22 +135,40 @@ QString ReadProjectFileByNameTool::findFileInProject(const QString &fileName) co
         Utils::FilePaths projectFiles = project->files(ProjectExplorer::Project::SourceFiles);
 
         for (const auto &projectFile : std::as_const(projectFiles)) {
-            QFileInfo fileInfo(projectFile.path());
+            QString absolutePath = projectFile.path();
+
+            if (m_ignoreManager->shouldIgnore(absolutePath, project)) {
+                continue;
+            }
+
+            QFileInfo fileInfo(absolutePath);
             if (fileInfo.fileName() == fileName) {
-                return projectFile.path();
+                return absolutePath;
             }
         }
 
         for (const auto &projectFile : std::as_const(projectFiles)) {
+            QString absolutePath = projectFile.path();
+
+            if (m_ignoreManager->shouldIgnore(absolutePath, project)) {
+                continue;
+            }
+
             if (projectFile.endsWith(fileName)) {
-                return projectFile.path();
+                return absolutePath;
             }
         }
 
         for (const auto &projectFile : std::as_const(projectFiles)) {
-            QFileInfo fileInfo(projectFile.path());
+            QString absolutePath = projectFile.path();
+
+            if (m_ignoreManager->shouldIgnore(absolutePath, project)) {
+                continue;
+            }
+
+            QFileInfo fileInfo(absolutePath);
             if (fileInfo.fileName().contains(fileName, Qt::CaseInsensitive)) {
-                return projectFile.path();
+                return absolutePath;
             }
         }
     }
