@@ -10,8 +10,6 @@ add_library(LLMCore STATIC
     PromptTemplate.hpp
     PromptTemplateManager.hpp PromptTemplateManager.cpp
     RequestConfig.hpp
-    OllamaMessage.hpp OllamaMessage.cpp
-    OpenAIMessage.hpp OpenAIMessage.cpp
     ValidationUtils.hpp ValidationUtils.cpp
     ProviderID.hpp
     HttpClient.hpp HttpClient.cpp

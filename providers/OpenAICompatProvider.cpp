@@ -19,6 +19,8 @@
 
 #include "OpenAICompatProvider.hpp"
 
+#include "llmcore/ValidationUtils.hpp"
+#include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
 #include "settings/ProviderSettings.hpp"
@@ -28,11 +30,18 @@
 #include <QJsonObject>
 #include <QNetworkReply>
 
-#include "llmcore/OpenAIMessage.hpp"
-#include "llmcore/ValidationUtils.hpp"
-#include "logger/Logger.hpp"
-
 namespace QodeAssist::Providers {
+
+OpenAICompatProvider::OpenAICompatProvider(QObject *parent)
+    : LLMCore::Provider(parent)
+    , m_toolsManager(new Tools::ToolsManager(this))
+{
+    connect(
+        m_toolsManager,
+        &Tools::ToolsManager::toolExecutionComplete,
+        this,
+        &OpenAICompatProvider::onToolExecutionComplete);
+}
 
 QString OpenAICompatProvider::name() const
 {
@@ -90,6 +99,16 @@ void OpenAICompatProvider::prepareRequest(
     } else {
         applyModelParams(Settings::chatAssistantSettings());
     }
+
+    if (supportsTools() && type == LLMCore::RequestType::Chat
+        && Settings::chatAssistantSettings().useTools()) {
+        auto toolsDefinitions = m_toolsManager->getToolsDefinitions(Tools::ToolSchemaFormat::OpenAI);
+        if (!toolsDefinitions.isEmpty()) {
+            request["tools"] = toolsDefinitions;
+            LOG_MESSAGE(
+                QString("Added %1 tools to OpenAICompat request").arg(toolsDefinitions.size()));
+        }
+    }
 }
 
 QList<QString> OpenAICompatProvider::getInstalledModels(const QString &url)
@@ -110,7 +129,8 @@ QList<QString> OpenAICompatProvider::validateRequest(
         {"frequency_penalty", {}},
         {"presence_penalty", {}},
         {"stop", QJsonArray{}},
-        {"stream", {}}};
+        {"stream", {}},
+        {"tools", {}}};
 
     return LLMCore::ValidationUtils::validateRequestFields(request, templateReq);
 }
@@ -137,8 +157,12 @@ LLMCore::ProviderID OpenAICompatProvider::providerID() const
 void OpenAICompatProvider::sendRequest(
     const LLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
 {
-    m_dataBuffers[requestId].clear();
+    if (!m_messages.contains(requestId)) {
+        m_dataBuffers[requestId].clear();
+    }
+
     m_requestUrls[requestId] = url;
+    m_originalRequests[requestId] = payload;
 
     QNetworkRequest networkRequest(url);
     prepareNetworkRequest(networkRequest);
@@ -152,57 +176,34 @@ void OpenAICompatProvider::sendRequest(
     emit httpClient()->sendRequest(request);
 }
 
+bool OpenAICompatProvider::supportsTools() const
+{
+    return true;
+}
+
+void OpenAICompatProvider::cancelRequest(const LLMCore::RequestID &requestId)
+{
+    LOG_MESSAGE(QString("OpenAICompatProvider: Cancelling request %1").arg(requestId));
+    LLMCore::Provider::cancelRequest(requestId);
+    cleanupRequest(requestId);
+}
+
 void OpenAICompatProvider::onDataReceived(
     const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data)
 {
     LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
     QStringList lines = buffers.rawStreamBuffer.processData(data);
 
-    if (data.isEmpty()) {
-        return;
-    }
-
-    bool isDone = false;
-    QString tempResponse;
-
     for (const QString &line : lines) {
-        if (line.trimmed().isEmpty()) {
+        if (line.trimmed().isEmpty() || line == "data: [DONE]") {
             continue;
         }
 
-        if (line == "data: [DONE]") {
-            isDone = true;
-            continue;
-        }
-
-        QJsonObject responseObj = parseEventLine(line);
-        if (responseObj.isEmpty())
+        QJsonObject chunk = parseEventLine(line);
+        if (chunk.isEmpty())
             continue;
 
-        auto message = LLMCore::OpenAIMessage::fromJson(responseObj);
-        if (message.hasError()) {
-            LOG_MESSAGE("Error in OpenAI response: " + message.error);
-            continue;
-        }
-
-        QString content = message.getContent();
-        if (!content.isEmpty()) {
-            tempResponse += content;
-        }
-
-        if (message.isDone()) {
-            isDone = true;
-        }
-    }
-
-    if (!tempResponse.isEmpty()) {
-        buffers.responseContent += tempResponse;
-        emit partialResponseReceived(requestId, tempResponse);
-    }
-
-    if (isDone) {
-        emit fullResponseReceived(requestId, buffers.responseContent);
-        m_dataBuffers.remove(requestId);
+        processStreamChunk(requestId, chunk);
     }
 }
 
@@ -212,17 +213,161 @@ void OpenAICompatProvider::onRequestFinished(
     if (!success) {
         LOG_MESSAGE(QString("OpenAICompatProvider request %1 failed: %2").arg(requestId, error));
         emit requestFailed(requestId, error);
-    } else {
-        if (m_dataBuffers.contains(requestId)) {
-            const LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
-            if (!buffers.responseContent.isEmpty()) {
-                emit fullResponseReceived(requestId, buffers.responseContent);
+        cleanupRequest(requestId);
+        return;
+    }
+
+    if (m_messages.contains(requestId)) {
+        OpenAIMessage *message = m_messages[requestId];
+        if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
+            LOG_MESSAGE(QString("Waiting for tools to complete for %1").arg(requestId));
+            m_dataBuffers.remove(requestId);
+            return;
+        }
+    }
+
+    if (m_dataBuffers.contains(requestId)) {
+        const LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+        if (!buffers.responseContent.isEmpty()) {
+            LOG_MESSAGE(QString("Emitting full response for %1").arg(requestId));
+            emit fullResponseReceived(requestId, buffers.responseContent);
+        }
+    }
+
+    cleanupRequest(requestId);
+}
+
+void OpenAICompatProvider::onToolExecutionComplete(
+    const QString &requestId, const QHash<QString, QString> &toolResults)
+{
+    if (!m_messages.contains(requestId) || !m_requestUrls.contains(requestId)) {
+        LOG_MESSAGE(QString("ERROR: Missing data for continuation request %1").arg(requestId));
+        cleanupRequest(requestId);
+        return;
+    }
+
+    LOG_MESSAGE(QString("Tool execution complete for OpenAICompat request %1").arg(requestId));
+
+    OpenAIMessage *message = m_messages[requestId];
+    QJsonObject continuationRequest = m_originalRequests[requestId];
+    QJsonArray messages = continuationRequest["messages"].toArray();
+
+    messages.append(message->toProviderFormat());
+
+    QJsonArray toolResultMessages = message->createToolResultMessages(toolResults);
+    for (const auto &toolMsg : toolResultMessages) {
+        messages.append(toolMsg);
+    }
+
+    continuationRequest["messages"] = messages;
+
+    LOG_MESSAGE(QString("Sending continuation request for %1 with %2 tool results")
+                    .arg(requestId)
+                    .arg(toolResults.size()));
+
+    sendRequest(requestId, m_requestUrls[requestId], continuationRequest);
+}
+
+void OpenAICompatProvider::processStreamChunk(const QString &requestId, const QJsonObject &chunk)
+{
+    QJsonArray choices = chunk["choices"].toArray();
+    if (choices.isEmpty()) {
+        return;
+    }
+
+    QJsonObject choice = choices[0].toObject();
+    QJsonObject delta = choice["delta"].toObject();
+    QString finishReason = choice["finish_reason"].toString();
+
+    OpenAIMessage *message = m_messages.value(requestId);
+    if (!message) {
+        message = new OpenAIMessage(this);
+        m_messages[requestId] = message;
+        LOG_MESSAGE(QString("Created NEW OpenAIMessage for request %1").arg(requestId));
+    }
+
+    if (delta.contains("content") && !delta["content"].isNull()) {
+        QString content = delta["content"].toString();
+        message->handleContentDelta(content);
+
+        LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+        buffers.responseContent += content;
+        emit partialResponseReceived(requestId, content);
+    }
+
+    if (delta.contains("tool_calls")) {
+        QJsonArray toolCalls = delta["tool_calls"].toArray();
+        for (const auto &toolCallValue : toolCalls) {
+            QJsonObject toolCall = toolCallValue.toObject();
+            int index = toolCall["index"].toInt();
+
+            if (toolCall.contains("id")) {
+                QString id = toolCall["id"].toString();
+                QJsonObject function = toolCall["function"].toObject();
+                QString name = function["name"].toString();
+                message->handleToolCallStart(index, id, name);
+            }
+
+            if (toolCall.contains("function")) {
+                QJsonObject function = toolCall["function"].toObject();
+                if (function.contains("arguments")) {
+                    QString args = function["arguments"].toString();
+                    message->handleToolCallDelta(index, args);
+                }
             }
         }
     }
 
+    if (!finishReason.isEmpty() && finishReason != "null") {
+        for (int i = 0; i < 10; ++i) {
+            message->handleToolCallComplete(i);
+        }
+
+        message->handleFinishReason(finishReason);
+        handleMessageComplete(requestId);
+    }
+}
+
+void OpenAICompatProvider::handleMessageComplete(const QString &requestId)
+{
+    if (!m_messages.contains(requestId))
+        return;
+
+    OpenAIMessage *message = m_messages[requestId];
+
+    if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
+        LOG_MESSAGE(QString("OpenAICompat message requires tool execution for %1").arg(requestId));
+
+        auto toolUseContent = message->getCurrentToolUseContent();
+
+        if (toolUseContent.isEmpty()) {
+            LOG_MESSAGE(QString("No tools to execute for %1").arg(requestId));
+            return;
+        }
+
+        for (auto toolContent : toolUseContent) {
+            m_toolsManager->executeToolCall(
+                requestId, toolContent->id(), toolContent->name(), toolContent->input());
+        }
+
+    } else {
+        LOG_MESSAGE(QString("OpenAICompat message marked as complete for %1").arg(requestId));
+    }
+}
+
+void OpenAICompatProvider::cleanupRequest(const LLMCore::RequestID &requestId)
+{
+    LOG_MESSAGE(QString("Cleaning up OpenAICompat request %1").arg(requestId));
+
+    if (m_messages.contains(requestId)) {
+        OpenAIMessage *message = m_messages.take(requestId);
+        message->deleteLater();
+    }
+
     m_dataBuffers.remove(requestId);
     m_requestUrls.remove(requestId);
+    m_originalRequests.remove(requestId);
+    m_toolsManager->cleanupRequest(requestId);
 }
 
 } // namespace QodeAssist::Providers

@@ -26,9 +26,6 @@
 #include <QJsonObject>
 #include <QNetworkReply>
 
-#include "llmcore/OpenAIMessage.hpp"
-#include "logger/Logger.hpp"
-
 namespace QodeAssist::Providers {
 
 QString OpenRouterProvider::name() const
@@ -49,79 +46,6 @@ QString OpenRouterProvider::apiKey() const
 LLMCore::ProviderID OpenRouterProvider::providerID() const
 {
     return LLMCore::ProviderID::OpenRouter;
-}
-
-void OpenRouterProvider::onDataReceived(
-    const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data)
-{
-    LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
-    QStringList lines = buffers.rawStreamBuffer.processData(data);
-
-    if (data.isEmpty()) {
-        return;
-    }
-
-    bool isDone = false;
-    QString tempResponse;
-
-    for (const QString &line : lines) {
-        if (line.trimmed().isEmpty() || line.contains("OPENROUTER PROCESSING")) {
-            continue;
-        }
-
-        if (line == "data: [DONE]") {
-            isDone = true;
-            continue;
-        }
-
-        QJsonObject responseObj = parseEventLine(line);
-        if (responseObj.isEmpty())
-            continue;
-
-        auto message = LLMCore::OpenAIMessage::fromJson(responseObj);
-        if (message.hasError()) {
-            LOG_MESSAGE("Error in OpenRouter response: " + message.error);
-            continue;
-        }
-
-        QString content = message.getContent();
-        if (!content.isEmpty()) {
-            tempResponse += content;
-        }
-
-        if (message.isDone()) {
-            isDone = true;
-        }
-    }
-
-    if (!tempResponse.isEmpty()) {
-        buffers.responseContent += tempResponse;
-        emit partialResponseReceived(requestId, tempResponse);
-    }
-
-    if (isDone) {
-        emit fullResponseReceived(requestId, buffers.responseContent);
-        m_dataBuffers.remove(requestId);
-    }
-}
-
-void OpenRouterProvider::onRequestFinished(
-    const QodeAssist::LLMCore::RequestID &requestId, bool success, const QString &error)
-{
-    if (!success) {
-        LOG_MESSAGE(QString("OpenRouterProvider request %1 failed: %2").arg(requestId, error));
-        emit requestFailed(requestId, error);
-    } else {
-        if (m_dataBuffers.contains(requestId)) {
-            const LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
-            if (!buffers.responseContent.isEmpty()) {
-                emit fullResponseReceived(requestId, buffers.responseContent);
-            }
-        }
-    }
-
-    m_dataBuffers.remove(requestId);
-    m_requestUrls.remove(requestId);
 }
 
 } // namespace QodeAssist::Providers

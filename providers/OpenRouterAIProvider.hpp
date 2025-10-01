@@ -30,14 +30,6 @@ public:
     QString url() const override;
     QString apiKey() const override;
     LLMCore::ProviderID providerID() const override;
-
-public slots:
-    void onDataReceived(
-        const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data) override;
-    void onRequestFinished(
-        const QodeAssist::LLMCore::RequestID &requestId,
-        bool success,
-        const QString &error) override;
 };
 
 } // namespace QodeAssist::Providers

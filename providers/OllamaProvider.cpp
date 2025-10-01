@@ -25,7 +25,6 @@
 #include <QNetworkReply>
 #include <QtCore/qeventloop.h>
 
-#include "llmcore/OllamaMessage.hpp"
 #include "llmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
