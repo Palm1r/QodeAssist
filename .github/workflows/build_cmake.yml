@@ -55,7 +55,7 @@ jobs:
           }
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955
 
     - name: Checkout submodules
       id: git
@@ -73,7 +73,7 @@ jobs:
         endif()
 
     - name: Download Ninja and CMake
-      uses: lukka/get-cmake@latest
+      uses: lukka/get-cmake@2ecc21724e5215b0e567bc399a2602d2ecb48541
       with:
         cmakeVersion: ${{ env.CMAKE_VERSION }}
         ninjaVersion: ${{ env.NINJA_VERSION }}
@@ -186,7 +186,7 @@ jobs:
         endif()
 
     - name: Download Qt Creator
-      uses: qt-creator/install-dev-package@v2.0
+      uses: qt-creator/install-dev-package@4046eda2efa77c0fe61d4cde7e622c050a4d65af
       with:
         version: ${{ matrix.qt_config.qt_creator_version }}
         unzip-to: 'qtcreator'
@@ -252,7 +252,7 @@ jobs:
         endif()
 
     - name: Upload
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         path: ./${{ env.PLUGIN_NAME }}-v${{ steps.git.outputs.tag }}-QtC${{ matrix.qt_config.qt_creator_version }}-${{ matrix.config.artifact }}.7z
         name: ${{ env.PLUGIN_NAME}}-v${{ steps.git.outputs.tag }}-QtC${{ matrix.qt_config.qt_creator_version }}-${{ matrix.config.artifact }}.7z
@@ -269,7 +269,7 @@ jobs:
 
     steps:
     - name: Download artifacts
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       with:
         path: release-with-dirs
 
@@ -280,7 +280,7 @@ jobs:
 
     - name: Create Release
       id: create_release
-      uses: softprops/action-gh-release@v2
+      uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
