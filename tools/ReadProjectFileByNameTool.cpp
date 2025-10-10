@@ -44,6 +44,11 @@ QString ReadProjectFileByNameTool::name() const
     return "read_project_file_by_name";
 }
 
+QString ReadProjectFileByNameTool::stringName() const
+{
+    return {"Reading project file by name"};
+}
+
 QString ReadProjectFileByNameTool::description() const
 {
     return "Read the content of a specific file from the current project by providing its filename "

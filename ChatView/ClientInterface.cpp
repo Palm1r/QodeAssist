@@ -139,6 +139,18 @@ void ClientInterface::sendMessage(
         this,
         &ClientInterface::handleRequestFailed,
         Qt::UniqueConnection);
+    connect(
+        provider,
+        &LLMCore::Provider::toolExecutionStarted,
+        m_chatModel,
+        &ChatModel::addToolExecutionStatus,
+        Qt::UniqueConnection);
+    connect(
+        provider,
+        &LLMCore::Provider::toolExecutionCompleted,
+        m_chatModel,
+        &ChatModel::updateToolResult,
+        Qt::UniqueConnection);
 
     provider->sendRequest(requestId, config.url, config.providerRequest);
 }

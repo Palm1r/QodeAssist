@@ -284,6 +284,19 @@ void OpenAIProvider::onToolExecutionComplete(
 
     LOG_MESSAGE(QString("Tool execution complete for OpenAI request %1").arg(requestId));
 
+    for (auto it = toolResults.begin(); it != toolResults.end(); ++it) {
+        OpenAIMessage *message = m_messages[requestId];
+        auto toolContent = message->getCurrentToolUseContent();
+        for (auto tool : toolContent) {
+            if (tool->id() == it.key()) {
+                auto toolStringName = m_toolsManager->toolsFactory()->getStringName(tool->name());
+                emit toolExecutionCompleted(
+                    requestId, tool->id(), toolStringName, toolResults[tool->id()]);
+                break;
+            }
+        }
+    }
+
     OpenAIMessage *message = m_messages[requestId];
     QJsonObject continuationRequest = m_originalRequests[requestId];
     QJsonArray messages = continuationRequest["messages"].toArray();
@@ -382,6 +395,8 @@ void OpenAIProvider::handleMessageComplete(const QString &requestId)
         }
 
         for (auto toolContent : toolUseContent) {
+            auto toolStringName = m_toolsManager->toolsFactory()->getStringName(toolContent->name());
+            emit toolExecutionStarted(requestId, toolContent->id(), toolStringName);
             m_toolsManager->executeToolCall(
                 requestId, toolContent->id(), toolContent->name(), toolContent->input());
         }

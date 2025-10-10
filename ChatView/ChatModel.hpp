@@ -37,10 +37,11 @@ class ChatModel : public QAbstractListModel
     QML_ELEMENT
 
 public:
-    enum ChatRole { System, User, Assistant };
+    enum ChatRole { System, User, Assistant, Tool };
     Q_ENUM(ChatRole)
 
     enum Roles { RoleType = Qt::UserRole, Content, Attachments };
+    Q_ENUM(Roles)
 
     struct Message
     {
@@ -75,6 +76,13 @@ public:
 
     Q_INVOKABLE void resetModelTo(int index);
 
+    void addToolExecutionStatus(
+        const QString &requestId, const QString &toolId, const QString &toolName);
+    void updateToolResult(
+        const QString &requestId,
+        const QString &toolId,
+        const QString &toolName,
+        const QString &result);
 signals:
     void tokensThresholdChanged();
     void modelReseted();

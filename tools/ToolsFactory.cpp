@@ -82,4 +82,9 @@ QJsonArray ToolsFactory::getToolsDefinitions(LLMCore::ToolSchemaFormat format) c
     return toolsArray;
 }
 
+QString ToolsFactory::getStringName(const QString &name) const
+{
+    return m_tools.contains(name) ? m_tools.value(name)->stringName() : QString("Unknown tools");
+}
+
 } // namespace QodeAssist::Tools

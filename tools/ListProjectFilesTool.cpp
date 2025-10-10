@@ -41,6 +41,11 @@ QString ListProjectFilesTool::name() const
     return "list_project_files";
 }
 
+QString ListProjectFilesTool::stringName() const
+{
+    return {"Reading project files list"};
+}
+
 QString ListProjectFilesTool::description() const
 {
     return "Get a list of all source files in the current project. "
