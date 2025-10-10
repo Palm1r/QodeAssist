@@ -39,6 +39,11 @@ QString ReadVisibleFilesTool::name() const
     return "read_visible_files";
 }
 
+QString ReadVisibleFilesTool::stringName() const
+{
+    return {"Reading currently opened and visible files in IDE editors"};
+}
+
 QString ReadVisibleFilesTool::description() const
 {
     return "Read the content of all currently visible files in editor tabs. "

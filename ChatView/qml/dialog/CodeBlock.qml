@@ -27,27 +27,11 @@ Rectangle {
 
     property string code: ""
     property string language: ""
-
-    property real currentContentY: 0
-    property real blockStart: 0
+    property bool expanded: false
 
     property alias codeFontFamily: codeText.font.family
     property alias codeFontSize: codeText.font.pointSize
-
-    readonly property real buttonTopMargin: 5
-    readonly property real blockEnd: blockStart + root.height
-    readonly property real maxButtonOffset: Math.max(0, root.height - copyButton.height - buttonTopMargin)
-
-    readonly property real buttonPosition: {
-        if (currentContentY > blockEnd) {
-            return buttonTopMargin;
-        }
-        else if (currentContentY > blockStart) {
-            let offset = currentContentY - blockStart;
-            return Math.min(offset, maxButtonOffset);
-        }
-        return buttonTopMargin;
-    }
+    readonly property real collapsedHeight: copyButton.height + 10
 
     color: palette.alternateBase
     border.color: root.color.hslLightness > 0.5 ? Qt.darker(root.color, 1.3)
@@ -55,16 +39,65 @@ Rectangle {
     border.width: 2
     radius: 4
     implicitWidth: parent.width
-    implicitHeight: codeText.implicitHeight + 20
+    clip: true
+
+    Behavior on implicitHeight {
+        NumberAnimation { duration: 200; easing.type: Easing.InOutQuad }
+    }
 
     ChatUtils {
         id: utils
     }
 
+    HoverHandler {
+        id: hoverHandler
+        enabled: true
+    }
+
+    MouseArea {
+        id: header
+
+        width: parent.width
+        height: root.collapsedHeight
+        cursorShape: Qt.PointingHandCursor
+        onClicked: root.expanded = !root.expanded
+
+        Row {
+            id: headerRow
+
+            anchors {
+                verticalCenter: parent.verticalCenter
+                left: parent.left
+                leftMargin: 10
+            }
+            spacing: 6
+
+            Text {
+                text: root.language ? qsTr("Code (%1)").arg(root.language) :
+                                      qsTr("Code")
+                font.pixelSize: 12
+                font.bold: true
+                color: palette.text
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: root.expanded ? "▼" : "▶"
+                font.pixelSize: 10
+                color: palette.mid
+            }
+        }
+    }
+
     TextEdit {
         id: codeText
-        anchors.fill: parent
-        anchors.margins: 10
+
+        anchors {
+            left: parent.left
+            right: parent.right
+            top: header.bottom
+            margins: 10
+        }
         text: root.code
         readOnly: true
         selectByMouse: true
@@ -73,29 +106,33 @@ Rectangle {
         selectionColor: palette.highlight
     }
 
-    TextEdit {
-        anchors.top: parent.top
-        anchors.right: parent.right
-        anchors.margins: 5
-        readOnly: true
-        selectByMouse: true
-        text: root.language
-        color: root.color.hslLightness > 0.5 ? Qt.darker(root.color, 1.1)
-                                             : Qt.lighter(root.color, 1.1)
-        font.pointSize: codeText.font.pointSize - 4
-    }
-
     QoAButton {
         id: copyButton
 
-        anchors {
-            top: parent.top
-            topMargin: root.buttonPosition
-            right: parent.right
-            rightMargin: root.buttonTopMargin
+        anchors.right: parent.right
+        anchors.rightMargin: 5
+
+        y: {
+            if (!hoverHandler.hovered || !root.expanded) {
+                return 5
+            }
+
+            let mouseY = hoverHandler.point.position.y
+            let minY = header.height + 5
+            let maxY = root.height - copyButton.height - 5
+            return Math.max(minY, Math.min(mouseY - copyButton.height / 2, maxY))
+        }
+
+        Behavior on y {
+            NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
+        }
+
+        Behavior on opacity {
+            NumberAnimation { duration: 150 }
         }
 
         text: qsTr("Copy")
+
         onClicked: {
             utils.copyToClipboard(root.code)
             text = qsTr("Copied")
@@ -108,4 +145,21 @@ Rectangle {
             onTriggered: parent.text = qsTr("Copy")
         }
     }
+
+    states: [
+        State {
+            when: !root.expanded
+            PropertyChanges {
+                target: root
+                implicitHeight: root.collapsedHeight
+            }
+        },
+        State {
+            when: root.expanded
+            PropertyChanges {
+                target: root
+                implicitHeight: header.height + codeText.implicitHeight + 10
+            }
+        }
+    ]
 }

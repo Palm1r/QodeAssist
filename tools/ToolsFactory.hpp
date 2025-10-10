@@ -35,6 +35,7 @@ public:
     QList<LLMCore::BaseTool *> getAvailableTools() const;
     LLMCore::BaseTool *getToolByName(const QString &name) const;
     QJsonArray getToolsDefinitions(LLMCore::ToolSchemaFormat format) const;
+    QString getStringName(const QString &name) const;
 
 private:
     void registerTools();

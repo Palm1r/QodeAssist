@@ -56,6 +56,8 @@ public:
     QJsonArray getToolsDefinitions(ToolSchemaFormat format) const;
     void cleanupRequest(const QString &requestId);
 
+    ToolsFactory *toolsFactory() const;
+
 signals:
     void toolExecutionComplete(const QString &requestId, const QHash<QString, QString> &toolResults);
 

@@ -37,6 +37,7 @@ public:
     ~BaseTool() override = default;
 
     virtual QString name() const = 0;
+    virtual QString stringName() const = 0;
     virtual QString description() const = 0;
     virtual QJsonObject getDefinition(ToolSchemaFormat format) const = 0;
 

@@ -123,6 +123,11 @@ void ToolsManager::onToolFinished(
     }
 }
 
+ToolsFactory *ToolsManager::toolsFactory() const
+{
+    return m_toolsFactory;
+}
+
 bool ToolsManager::isExecutionComplete(const QString &requestId) const
 {
     if (!m_pendingTools.contains(requestId)) {

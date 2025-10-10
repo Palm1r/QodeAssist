@@ -95,27 +95,14 @@ ChatRootView {
             boundsBehavior: Flickable.StopAtBounds
             cacheBuffer: 2000
 
-            delegate: ChatItem {
+
+            delegate: Loader {
                 required property var model
                 required property int index
 
                 width: ListView.view.width - scroll.width
-                msgModel: root.chatModel.processMessageContent(model.content)
-                messageAttachments: model.attachments
-                isUserMessage: model.roleType === ChatModel.User
-                messageIndex: index
-                listViewContentY: chatListView.contentY
-                textFontFamily: root.textFontFamily
-                codeFontFamily: root.codeFontFamily
-                codeFontSize: root.codeFontSize
-                textFontSize: root.textFontSize
-                textFormat: root.textFormat
 
-                onResetChatToMessage: function(index) {
-                    messageInput.text = model.content
-                    messageInput.cursorPosition = model.content.length
-                    root.chatModel.resetModelTo(index)
-                }
+                sourceComponent: model.roleType === ChatModel.Tool ? toolMessageComponent : chatItemComponent
             }
 
             header: Item {
@@ -134,6 +121,36 @@ ChatRootView {
             onContentHeightChanged: {
                 if (atYEnd) {
                     root.scrollToBottom()
+                }
+            }
+
+            Component {
+                id: chatItemComponent
+
+                ChatItem {
+                    msgModel: root.chatModel.processMessageContent(model.content)
+                    messageAttachments: model.attachments
+                    isUserMessage: model.roleType === ChatModel.User
+                    messageIndex: index
+                    textFontFamily: root.textFontFamily
+                    codeFontFamily: root.codeFontFamily
+                    codeFontSize: root.codeFontSize
+                    textFontSize: root.textFontSize
+                    textFormat: root.textFormat
+
+                    onResetChatToMessage: function(idx) {
+                        messageInput.text = model.content
+                        messageInput.cursorPosition = model.content.length
+                        root.chatModel.resetModelTo(idx)
+                    }
+                }
+            }
+
+            Component {
+                id: toolMessageComponent
+
+                ToolStatusItem {
+                    toolContent: model.content
                 }
             }
         }

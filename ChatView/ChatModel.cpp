@@ -23,6 +23,7 @@
 #include <QtQml>
 
 #include "ChatAssistantSettings.hpp"
+#include "Logger.hpp"
 
 namespace QodeAssist::Chat {
 
@@ -91,10 +92,12 @@ void ChatModel::addMessage(
         }
     }
 
-    if (!m_messages.isEmpty() && !id.isEmpty() && m_messages.last().id == id) {
+    if (!m_messages.isEmpty() && !id.isEmpty() && m_messages.last().id == id
+        && m_messages.last().role == role) {
         Message &lastMessage = m_messages.last();
         lastMessage.content = content;
         lastMessage.attachments = attachments;
+        LOG_MESSAGE(QString("Updated message: role=%1, id=%2").arg(role).arg(id));
         emit dataChanged(index(m_messages.size() - 1), index(m_messages.size() - 1));
     } else {
         beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());
@@ -102,6 +105,10 @@ void ChatModel::addMessage(
         newMessage.attachments = attachments;
         m_messages.append(newMessage);
         endInsertRows();
+        LOG_MESSAGE(QString("Added new message: role=%1, id=%2, index=%3")
+                        .arg(role)
+                        .arg(id)
+                        .arg(m_messages.size() - 1));
     }
 }
 
@@ -222,6 +229,59 @@ void ChatModel::resetModelTo(int index)
         m_messages.remove(index, m_messages.size() - index);
         endRemoveRows();
     }
+}
+
+void ChatModel::addToolExecutionStatus(
+    const QString &requestId, const QString &toolId, const QString &toolName)
+{
+    QString content = toolName;
+
+    LOG_MESSAGE(QString("Adding tool execution status: requestId=%1, toolId=%2, toolName=%3")
+                    .arg(requestId, toolId, toolName));
+
+    if (!m_messages.isEmpty() && !toolId.isEmpty() && m_messages.last().id == toolId
+        && m_messages.last().role == ChatRole::Tool) {
+        Message &lastMessage = m_messages.last();
+        lastMessage.content = content;
+        LOG_MESSAGE(QString("Updated existing tool message at index %1").arg(m_messages.size() - 1));
+        emit dataChanged(index(m_messages.size() - 1), index(m_messages.size() - 1));
+    } else {
+        beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());
+        Message newMessage{ChatRole::Tool, content, toolId};
+        m_messages.append(newMessage);
+        endInsertRows();
+        LOG_MESSAGE(QString("Created new tool message at index %1 with toolId=%2")
+                        .arg(m_messages.size() - 1)
+                        .arg(toolId));
+    }
+}
+
+void ChatModel::updateToolResult(
+    const QString &requestId, const QString &toolId, const QString &toolName, const QString &result)
+{
+    if (m_messages.isEmpty() || toolId.isEmpty()) {
+        LOG_MESSAGE(QString("Cannot update tool result: messages empty=%1, toolId empty=%2")
+                        .arg(m_messages.isEmpty())
+                        .arg(toolId.isEmpty()));
+        return;
+    }
+
+    LOG_MESSAGE(
+        QString("Updating tool result: requestId=%1, toolId=%2, toolName=%3, result length=%4")
+            .arg(requestId, toolId, toolName)
+            .arg(result.length()));
+
+    for (int i = m_messages.size() - 1; i >= 0; --i) {
+        if (m_messages[i].id == toolId && m_messages[i].role == ChatRole::Tool) {
+            m_messages[i].content = toolName + "\n" + result;
+            emit dataChanged(index(i), index(i));
+            LOG_MESSAGE(QString("Updated tool result at index %1").arg(i));
+            return;
+        }
+    }
+
+    LOG_MESSAGE(QString("WARNING: Tool message with requestId=%1 toolId=%2 not found!")
+                    .arg(requestId, toolId));
 }
 
 } // namespace QodeAssist::Chat
