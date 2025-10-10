@@ -26,10 +26,9 @@
 
 #include "ToolHandler.hpp"
 #include "ToolsFactory.hpp"
+#include <llmcore/BaseTool.hpp>
 
 namespace QodeAssist::Tools {
-
-enum class ToolSchemaFormat { OpenAI, Claude };
 
 struct PendingTool
 {
@@ -53,7 +52,7 @@ public:
         const QString &toolName,
         const QJsonObject &input);
 
-    QJsonArray getToolsDefinitions(ToolSchemaFormat format) const;
+    QJsonArray getToolsDefinitions(LLMCore::ToolSchemaFormat format) const;
     void cleanupRequest(const QString &requestId);
 
     ToolsFactory *toolsFactory() const;

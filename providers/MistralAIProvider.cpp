@@ -272,7 +272,8 @@ void MistralAIProvider::prepareRequest(
 
     if (supportsTools() && type == LLMCore::RequestType::Chat
         && Settings::chatAssistantSettings().useTools()) {
-        auto toolsDefinitions = m_toolsManager->getToolsDefinitions(Tools::ToolSchemaFormat::OpenAI);
+        auto toolsDefinitions = m_toolsManager->getToolsDefinitions(
+            LLMCore::ToolSchemaFormat::OpenAI);
         if (!toolsDefinitions.isEmpty()) {
             request["tools"] = toolsDefinitions;
             LOG_MESSAGE(QString("Added %1 tools to Mistral request").arg(toolsDefinitions.size()));

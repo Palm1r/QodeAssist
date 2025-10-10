@@ -75,17 +75,13 @@ void ToolsManager::executeToolCall(
     LOG_MESSAGE(QString("ToolsManager: Started async execution of %1").arg(toolName));
 }
 
-QJsonArray ToolsManager::getToolsDefinitions(ToolSchemaFormat format) const
+QJsonArray ToolsManager::getToolsDefinitions(LLMCore::ToolSchemaFormat format) const
 {
     if (!m_toolsFactory) {
         return QJsonArray();
     }
 
-    LLMCore::ToolSchemaFormat coreFormat = (format == ToolSchemaFormat::OpenAI)
-                                               ? LLMCore::ToolSchemaFormat::OpenAI
-                                               : LLMCore::ToolSchemaFormat::Claude;
-
-    return m_toolsFactory->getToolsDefinitions(coreFormat);
+    return m_toolsFactory->getToolsDefinitions(format);
 }
 
 void ToolsManager::cleanupRequest(const QString &requestId)

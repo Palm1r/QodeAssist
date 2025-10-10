@@ -100,7 +100,8 @@ void ClaudeProvider::prepareRequest(
 
     if (supportsTools() && type == LLMCore::RequestType::Chat
         && Settings::chatAssistantSettings().useTools()) {
-        auto toolsDefinitions = m_toolsManager->getToolsDefinitions(Tools::ToolSchemaFormat::Claude);
+        auto toolsDefinitions = m_toolsManager->getToolsDefinitions(
+            LLMCore::ToolSchemaFormat::Claude);
         if (!toolsDefinitions.isEmpty()) {
             request["tools"] = toolsDefinitions;
             LOG_MESSAGE(QString("Added %1 tools to Claude request").arg(toolsDefinitions.size()));
@@ -195,7 +196,9 @@ LLMCore::ProviderID ClaudeProvider::providerID() const
 void ClaudeProvider::sendRequest(
     const LLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
 {
-    if (!m_messages.contains(requestId)) {
+    if (m_dataBuffers.contains(requestId)) {
+        m_dataBuffers[requestId].responseContent.clear();
+    } else {
         m_dataBuffers[requestId].clear();
     }
 
