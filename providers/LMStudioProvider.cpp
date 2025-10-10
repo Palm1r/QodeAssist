@@ -320,6 +320,11 @@ void LMStudioProvider::processStreamChunk(const QString &requestId, const QJsonO
         message = new OpenAIMessage(this);
         m_messages[requestId] = message;
         LOG_MESSAGE(QString("Created NEW OpenAIMessage for request %1").arg(requestId));
+
+        if (m_dataBuffers.contains(requestId)) {
+            emit continuationStarted(requestId);
+            LOG_MESSAGE(QString("Starting continuation for request %1").arg(requestId));
+        }
     }
 
     if (delta.contains("content") && !delta["content"].isNull()) {

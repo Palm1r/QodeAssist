@@ -83,7 +83,6 @@ signals:
     void fullResponseReceived(
         const QodeAssist::LLMCore::RequestID &requestId, const QString &fullText);
     void requestFailed(const QodeAssist::LLMCore::RequestID &requestId, const QString &error);
-signals:
     void toolExecutionStarted(
         const QString &requestId, const QString &toolId, const QString &toolName);
     void toolExecutionCompleted(
@@ -91,6 +90,7 @@ signals:
         const QString &toolId,
         const QString &toolName,
         const QString &result);
+    void continuationStarted(const QodeAssist::LLMCore::RequestID &requestId);
 
 protected:
     QJsonObject parseEventLine(const QString &line);

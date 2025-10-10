@@ -196,9 +196,7 @@ LLMCore::ProviderID ClaudeProvider::providerID() const
 void ClaudeProvider::sendRequest(
     const LLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
 {
-    if (m_dataBuffers.contains(requestId)) {
-        m_dataBuffers[requestId].responseContent.clear();
-    } else {
+    if (!m_messages.contains(requestId)) {
         m_dataBuffers[requestId].clear();
     }
 
@@ -340,6 +338,7 @@ void ClaudeProvider::processStreamEvent(const QString &requestId, const QJsonObj
 
     if (eventType == "message_start") {
         message->startNewContinuation();
+        emit continuationStarted(requestId);
         LOG_MESSAGE(QString("Starting NEW continuation for request %1").arg(requestId));
 
     } else if (eventType == "content_block_start") {

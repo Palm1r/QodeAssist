@@ -151,6 +151,12 @@ void ClientInterface::sendMessage(
         m_chatModel,
         &ChatModel::updateToolResult,
         Qt::UniqueConnection);
+    connect(
+        provider,
+        &LLMCore::Provider::continuationStarted,
+        this,
+        &ClientInterface::handleCleanAccumulatedData,
+        Qt::UniqueConnection);
 
     provider->sendRequest(requestId, config.url, config.providerRequest);
 }
@@ -277,6 +283,12 @@ void ClientInterface::handleRequestFailed(const QString &requestId, const QStrin
 
     m_activeRequests.erase(it);
     m_accumulatedResponses.remove(requestId);
+}
+
+void ClientInterface::handleCleanAccumulatedData(const QString &requestId)
+{
+    m_accumulatedResponses[requestId].clear();
+    LOG_MESSAGE(QString("Cleared accumulated responses for continuation request %1").arg(requestId));
 }
 
 } // namespace QodeAssist::Chat

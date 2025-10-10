@@ -56,6 +56,7 @@ private slots:
     void handlePartialResponse(const QString &requestId, const QString &partialText);
     void handleFullResponse(const QString &requestId, const QString &fullText);
     void handleRequestFailed(const QString &requestId, const QString &error);
+    void handleCleanAccumulatedData(const QString &requestId);
 
 private:
     void handleLLMResponse(const QString &response, const QJsonObject &request, bool isComplete);
