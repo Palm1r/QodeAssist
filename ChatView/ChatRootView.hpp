@@ -45,6 +45,7 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(int textFormat READ textFormat NOTIFY textFormatChanged FINAL)
     Q_PROPERTY(
         bool isRequestInProgress READ isRequestInProgress NOTIFY isRequestInProgressChanged FINAL)
+    Q_PROPERTY(QString lastErrorMessage READ lastErrorMessage NOTIFY lastErrorMessageChanged FINAL)
 
     QML_ELEMENT
 
@@ -97,6 +98,8 @@ public:
     bool isRequestInProgress() const;
     void setRequestProgressStatus(bool state);
 
+    QString lastErrorMessage() const;
+
 public slots:
     void sendMessage(const QString &message);
     void copyToClipboard(const QString &text);
@@ -120,6 +123,8 @@ signals:
     void chatRequestStarted();
     void isRequestInProgressChanged();
 
+    void lastErrorMessageChanged();
+
 private:
     QString getChatsHistoryDir() const;
     QString getSuggestedFileName() const;
@@ -136,6 +141,7 @@ private:
     bool m_isSyncOpenFiles;
     QList<Core::IEditor *> m_currentEditors;
     bool m_isRequestInProgress;
+    QString m_lastErrorMessage;
 };
 
 } // namespace QodeAssist::Chat

@@ -132,6 +132,11 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         &Utils::BaseAspect::changed,
         this,
         &ChatRootView::textFormatChanged);
+    connect(m_clientInterface, &ClientInterface::errorOccurred, this, [this](const QString &error) {
+        this->setRequestProgressStatus(false);
+        m_lastErrorMessage = error;
+        emit lastErrorMessageChanged();
+    });
 
     updateInputTokensCount();
 }
@@ -620,6 +625,11 @@ void ChatRootView::setRequestProgressStatus(bool state)
         return;
     m_isRequestInProgress = state;
     emit isRequestInProgressChanged();
+}
+
+QString ChatRootView::lastErrorMessage() const
+{
+    return m_lastErrorMessage;
 }
 
 } // namespace QodeAssist::Chat

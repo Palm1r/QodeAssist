@@ -263,6 +263,20 @@ ChatRootView {
         scrollToBottom()
     }
 
+    ErrorToast {
+        id: errorToast
+        z: 1000
+    }
+
+    Connections {
+        target: root
+        function onLastErrorMessageChanged() {
+            if (root.lastErrorMessage.length > 0) {
+                errorToast.show(root.lastErrorMessage)
+            }
+        }
+    }
+
     Component.onCompleted: {
         messageInput.forceActiveFocus()
     }
