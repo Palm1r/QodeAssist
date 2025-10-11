@@ -86,6 +86,8 @@ QJsonObject ReadProjectFileByNameTool::getDefinition(LLMCore::ToolSchemaFormat f
         return customizeForClaude(definition);
     case LLMCore::ToolSchemaFormat::Ollama:
         return customizeForOllama(definition);
+    case LLMCore::ToolSchemaFormat::Google:
+        return customizeForGoogle(definition);
     }
 
     return definition;

@@ -27,7 +27,7 @@
 
 namespace QodeAssist::LLMCore {
 
-enum class ToolSchemaFormat { OpenAI, Claude, Ollama };
+enum class ToolSchemaFormat { OpenAI, Claude, Ollama, Google };
 
 class BaseTool : public QObject
 {
@@ -47,6 +47,7 @@ protected:
     virtual QJsonObject customizeForOpenAI(const QJsonObject &baseDefinition) const;
     virtual QJsonObject customizeForClaude(const QJsonObject &baseDefinition) const;
     virtual QJsonObject customizeForOllama(const QJsonObject &baseDefinition) const;
+    virtual QJsonObject customizeForGoogle(const QJsonObject &baseDefinition) const;
 };
 
 } // namespace QodeAssist::LLMCore
