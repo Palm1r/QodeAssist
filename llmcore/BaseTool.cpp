@@ -54,4 +54,20 @@ QJsonObject BaseTool::customizeForOllama(const QJsonObject &baseDefinition) cons
     return customizeForOpenAI(baseDefinition);
 }
 
+QJsonObject BaseTool::customizeForGoogle(const QJsonObject &baseDefinition) const
+{
+    QJsonObject functionDeclaration;
+    functionDeclaration["name"] = name();
+    functionDeclaration["description"] = description();
+    functionDeclaration["parameters"] = baseDefinition;
+
+    QJsonArray functionDeclarations;
+    functionDeclarations.append(functionDeclaration);
+
+    QJsonObject tool;
+    tool["function_declarations"] = functionDeclarations;
+
+    return tool;
+}
+
 } // namespace QodeAssist::LLMCore

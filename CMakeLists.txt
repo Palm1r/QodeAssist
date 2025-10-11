@@ -121,6 +121,7 @@ add_qtc_plugin(QodeAssist
     providers/ClaudeMessage.hpp providers/ClaudeMessage.cpp
     providers/OpenAIMessage.hpp providers/OpenAIMessage.cpp
     providers/OllamaMessage.hpp providers/OllamaMessage.cpp
+    providers/GoogleMessage.hpp providers/GoogleMessage.cpp
 )
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)
