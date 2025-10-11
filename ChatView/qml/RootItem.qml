@@ -23,6 +23,7 @@ import QtQuick.Controls.Basic as QQC
 import QtQuick.Layouts
 import ChatView
 import UIControls
+import Qt.labs.platform as Platform
 import "./parts"
 
 ChatRootView {
@@ -183,8 +184,8 @@ ChatRootView {
                 id: messageInput
 
                 placeholderText: Qt.platform.os === "osx"
-                    ? qsTr("Type your message here... (⌘+↩ to send)")
-                    : qsTr("Type your message here... (Ctrl+Enter to send)")
+                                 ? qsTr("Type your message here... (⌘+↩ to send)")
+                                 : qsTr("Type your message here... (Ctrl+Enter to send)")
                 placeholderTextColor: palette.mid
                 color: palette.text
                 background: Rectangle {
@@ -206,6 +207,51 @@ ChatRootView {
                 }
 
                 onTextChanged: root.calculateMessageTokensCount(messageInput.text)
+
+                MouseArea {
+                    anchors.fill: parent
+                    acceptedButtons: Qt.RightButton
+                    onClicked: messageContextMenu.open()
+                    propagateComposedEvents: true
+                }
+            }
+        }
+
+        Platform.Menu {
+            id: messageContextMenu
+
+            Platform.MenuItem {
+                text: qsTr("Cut")
+                enabled: messageInput.selectedText.length > 0
+                onTriggered: messageInput.cut()
+            }
+
+            Platform.MenuItem {
+                text: qsTr("Copy")
+                enabled: messageInput.selectedText.length > 0
+                onTriggered: messageInput.copy()
+            }
+
+            Platform.MenuItem {
+                text: qsTr("Paste")
+                enabled: messageInput.canPaste
+                onTriggered: messageInput.paste()
+            }
+
+            Platform.MenuSeparator {}
+
+            Platform.MenuItem {
+                text: qsTr("Select All")
+                enabled: messageInput.text.length > 0
+                onTriggered: messageInput.selectAll()
+            }
+
+            Platform.MenuSeparator {}
+
+            Platform.MenuItem {
+                text: qsTr("Clear")
+                enabled: messageInput.text.length > 0
+                onTriggered: messageInput.clear()
             }
         }
 

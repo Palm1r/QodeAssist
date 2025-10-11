@@ -18,6 +18,7 @@
  */
 
 import QtQuick
+import Qt.labs.platform as Platform
 
 TextEdit {
     id: root
@@ -27,4 +28,29 @@ TextEdit {
     wrapMode: Text.WordWrap
     selectionColor: palette.highlight
     color: palette.text
+
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.RightButton
+        onClicked: contextMenu.open()
+        propagateComposedEvents: true
+    }
+
+    Platform.Menu {
+        id: contextMenu
+
+        Platform.MenuItem {
+            text: qsTr("Copy")
+            enabled: root.selectedText.length > 0
+            onTriggered: root.copy()
+        }
+
+        Platform.MenuSeparator {}
+
+        Platform.MenuItem {
+            text: qsTr("Select All")
+            enabled: root.text.length > 0
+            onTriggered: root.selectAll()
+        }
+    }
 }
