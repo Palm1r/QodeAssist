@@ -16,6 +16,8 @@ qt_add_qml_module(QodeAssistChatView
     qml/parts/TopBar.qml
     qml/parts/BottomBar.qml
     qml/parts/AttachedFilesPlace.qml
+    qml/parts/ErrorToast.qml
+    qml/parts/Navigation.qml
     qml/ToolStatusItem.qml
 
     RESOURCES
@@ -43,7 +45,6 @@ qt_add_qml_module(QodeAssistChatView
     ChatSerializer.hpp ChatSerializer.cpp
     ChatView.hpp ChatView.cpp
     ChatData.hpp
-    QML_FILES qml/parts/ErrorToast.qml
 )
 
 target_link_libraries(QodeAssistChatView

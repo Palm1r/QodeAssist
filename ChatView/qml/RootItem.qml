@@ -81,6 +81,17 @@ ChatRootView {
                 checked: typeof _chatview !== 'undefined' ? _chatview.isPin : false
                 onCheckedChanged: _chatview.isPin = topBar.pinButton.checked
             }
+            navigation.currentMessageNumber: {
+                return "%1/%2".arg(chatListView.currentIndex + 1).arg(chatListView.count)
+            }
+            navigation.onMessageUp: {
+                const newIndex = Math.max(0, chatListView.currentIndex - 1)
+                chatListView.positionViewAtIndex(newIndex, ListView.Center)
+            }
+            navigation.onMessageDown: {
+                const newIndex = Math.min(chatListView.count - 1, chatListView.currentIndex + 1)
+                chatListView.positionViewAtIndex(newIndex, ListView.Center)
+            }
         }
 
         ListView {
@@ -94,7 +105,6 @@ ChatRootView {
             spacing: 10
             boundsBehavior: Flickable.StopAtBounds
             cacheBuffer: 2000
-
 
             delegate: Loader {
                 required property var model
@@ -121,6 +131,13 @@ ChatRootView {
             onContentHeightChanged: {
                 if (atYEnd) {
                     root.scrollToBottom()
+                }
+            }
+
+            onContentYChanged: {
+                const index = indexAt(width / 2, contentY + height / 2)
+                if (index !== -1) {
+                    currentIndex = index
                 }
             }
 

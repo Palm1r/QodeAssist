@@ -33,6 +33,7 @@ Rectangle {
     property alias recentPath: recentPathId
     property alias openChatHistory: openChatHistoryId
     property alias pinButton: pinButtonId
+    property alias navigation: navigationId
 
     color: palette.window.hslLightness > 0.5 ?
                Qt.darker(palette.window, 1.1) :
@@ -128,6 +129,10 @@ Rectangle {
 
         Item {
             Layout.fillWidth: true
+        }
+
+        Navigation {
+            id: navigationId
         }
 
         Badge {
