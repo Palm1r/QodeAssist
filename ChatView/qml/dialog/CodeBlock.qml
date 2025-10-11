@@ -21,6 +21,7 @@ import QtQuick
 import QtQuick.Controls
 import ChatView
 import UIControls
+import Qt.labs.platform as Platform
 
 Rectangle {
     id: root
@@ -104,6 +105,28 @@ Rectangle {
         color: parent.color.hslLightness > 0.5 ? "black" : "white"
         wrapMode: Text.WordWrap
         selectionColor: palette.highlight
+
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.RightButton
+            onClicked: contextMenu.open()
+        }
+    }
+
+    Platform.Menu {
+        id: contextMenu
+
+        Platform.MenuItem {
+            text: qsTr("Copy")
+            onTriggered: utils.copyToClipboard(root.code)
+        }
+
+        Platform.MenuSeparator {}
+
+        Platform.MenuItem {
+            text: root.expanded ? qsTr("Collapse") : qsTr("Expand")
+            onTriggered: root.expanded = !root.expanded
+        }
     }
 
     QoAButton {
@@ -112,25 +135,7 @@ Rectangle {
         anchors.right: parent.right
         anchors.rightMargin: 5
 
-        y: {
-            if (!hoverHandler.hovered || !root.expanded) {
-                return 5
-            }
-
-            let mouseY = hoverHandler.point.position.y
-            let minY = header.height + 5
-            let maxY = root.height - copyButton.height - 5
-            return Math.max(minY, Math.min(mouseY - copyButton.height / 2, maxY))
-        }
-
-        Behavior on y {
-            NumberAnimation { duration: 100; easing.type: Easing.OutQuad }
-        }
-
-        Behavior on opacity {
-            NumberAnimation { duration: 150 }
-        }
-
+        y: 5
         text: qsTr("Copy")
 
         onClicked: {
