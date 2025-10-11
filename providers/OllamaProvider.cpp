@@ -33,6 +33,17 @@
 
 namespace QodeAssist::Providers {
 
+OllamaProvider::OllamaProvider(QObject *parent)
+    : LLMCore::Provider(parent)
+    , m_toolsManager(new Tools::ToolsManager(this))
+{
+    connect(
+        m_toolsManager,
+        &Tools::ToolsManager::toolExecutionComplete,
+        this,
+        &OllamaProvider::onToolExecutionComplete);
+}
+
 QString OllamaProvider::name() const
 {
     return "Ollama";
@@ -94,6 +105,17 @@ void OllamaProvider::prepareRequest(
     } else {
         applySettings(Settings::chatAssistantSettings());
     }
+
+    if (supportsTools() && type == LLMCore::RequestType::Chat
+        && Settings::chatAssistantSettings().useTools()) {
+        auto toolsDefinitions = m_toolsManager->toolsFactory()->getToolsDefinitions(
+            LLMCore::ToolSchemaFormat::Ollama);
+        if (!toolsDefinitions.isEmpty()) {
+            request["tools"] = toolsDefinitions;
+            LOG_MESSAGE(
+                QString("OllamaProvider: Added %1 tools to request").arg(toolsDefinitions.size()));
+        }
+    }
 }
 
 QList<QString> OllamaProvider::getInstalledModels(const QString &url)
@@ -151,6 +173,7 @@ QList<QString> OllamaProvider::validateRequest(const QJsonObject &request, LLMCo
         {"model", {}},
         {"stream", {}},
         {"messages", QJsonArray{{QJsonObject{{"role", {}}, {"content", {}}}}}},
+        {"tools", QJsonArray{}},
         {"options",
          QJsonObject{
              {"temperature", {}},
@@ -188,7 +211,9 @@ void OllamaProvider::sendRequest(
     const LLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
 {
     m_dataBuffers[requestId].clear();
+
     m_requestUrls[requestId] = url;
+    m_originalRequests[requestId] = payload;
 
     QNetworkRequest networkRequest(url);
     prepareNetworkRequest(networkRequest);
@@ -201,6 +226,18 @@ void OllamaProvider::sendRequest(
     emit httpClient()->sendRequest(request);
 }
 
+bool OllamaProvider::supportsTools() const
+{
+    return true;
+}
+
+void OllamaProvider::cancelRequest(const LLMCore::RequestID &requestId)
+{
+    LOG_MESSAGE(QString("OllamaProvider: Cancelling request %1").arg(requestId));
+    LLMCore::Provider::cancelRequest(requestId);
+    cleanupRequest(requestId);
+}
+
 void OllamaProvider::onDataReceived(
     const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data)
 {
@@ -211,9 +248,6 @@ void OllamaProvider::onDataReceived(
         return;
     }
 
-    bool isDone = false;
-    QString tempResponse;
-
     for (const QString &line : lines) {
         if (line.trimmed().isEmpty()) {
             continue;
@@ -222,6 +256,7 @@ void OllamaProvider::onDataReceived(
         QJsonParseError error;
         QJsonDocument doc = QJsonDocument::fromJson(line.toUtf8(), &error);
         if (doc.isNull()) {
+            LOG_MESSAGE(QString("Failed to parse JSON: %1").arg(error.errorString()));
             continue;
         }
 
@@ -232,32 +267,7 @@ void OllamaProvider::onDataReceived(
             continue;
         }
 
-        QString content;
-
-        if (obj.contains("response")) {
-            content = obj["response"].toString();
-        } else if (obj.contains("message")) {
-            QJsonObject messageObj = obj["message"].toObject();
-            content = messageObj["content"].toString();
-        }
-
-        if (!content.isEmpty()) {
-            tempResponse += content;
-        }
-
-        if (obj["done"].toBool()) {
-            isDone = true;
-        }
-    }
-
-    if (!tempResponse.isEmpty()) {
-        buffers.responseContent += tempResponse;
-        emit partialResponseReceived(requestId, tempResponse);
-    }
-
-    if (isDone) {
-        emit fullResponseReceived(requestId, buffers.responseContent);
-        m_dataBuffers.remove(requestId);
+        processStreamData(requestId, obj);
     }
 }
 
@@ -267,17 +277,220 @@ void OllamaProvider::onRequestFinished(
     if (!success) {
         LOG_MESSAGE(QString("OllamaProvider request %1 failed: %2").arg(requestId, error));
         emit requestFailed(requestId, error);
-    } else {
-        if (m_dataBuffers.contains(requestId)) {
-            const LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
-            if (!buffers.responseContent.isEmpty()) {
-                emit fullResponseReceived(requestId, buffers.responseContent);
+        cleanupRequest(requestId);
+        return;
+    }
+
+    if (m_messages.contains(requestId)) {
+        OllamaMessage *message = m_messages[requestId];
+        if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
+            LOG_MESSAGE(QString("Waiting for tools to complete for %1").arg(requestId));
+            return;
+        }
+    }
+
+    QString finalText;
+    if (m_messages.contains(requestId)) {
+        OllamaMessage *message = m_messages[requestId];
+
+        for (auto block : message->currentBlocks()) {
+            if (auto textContent = qobject_cast<LLMCore::TextContent *>(block)) {
+                finalText += textContent->text();
+            }
+        }
+
+        if (!finalText.isEmpty()) {
+            LOG_MESSAGE(QString("Emitting full response for %1, length=%2")
+                            .arg(requestId)
+                            .arg(finalText.length()));
+            emit fullResponseReceived(requestId, finalText);
+        }
+    }
+
+    cleanupRequest(requestId);
+}
+
+void OllamaProvider::onToolExecutionComplete(
+    const QString &requestId, const QHash<QString, QString> &toolResults)
+{
+    if (!m_messages.contains(requestId)) {
+        LOG_MESSAGE(QString("ERROR: No message found for request %1").arg(requestId));
+        cleanupRequest(requestId);
+        return;
+    }
+
+    if (!m_requestUrls.contains(requestId) || !m_originalRequests.contains(requestId)) {
+        LOG_MESSAGE(QString("ERROR: Missing data for continuation request %1").arg(requestId));
+        cleanupRequest(requestId);
+        return;
+    }
+
+    LOG_MESSAGE(QString("Tool execution complete for Ollama request %1").arg(requestId));
+
+    OllamaMessage *message = m_messages[requestId];
+
+    for (auto it = toolResults.begin(); it != toolResults.end(); ++it) {
+        auto toolContent = message->getCurrentToolUseContent();
+        for (auto tool : toolContent) {
+            if (tool->id() == it.key()) {
+                auto toolStringName = m_toolsManager->toolsFactory()->getStringName(tool->name());
+                emit toolExecutionCompleted(requestId, tool->id(), toolStringName, it.value());
+                break;
             }
         }
     }
 
-    m_dataBuffers.remove(requestId);
-    m_requestUrls.remove(requestId);
+    QJsonObject continuationRequest = m_originalRequests[requestId];
+    QJsonArray messages = continuationRequest["messages"].toArray();
+
+    QJsonObject assistantMessage = message->toProviderFormat();
+    messages.append(assistantMessage);
+
+    LOG_MESSAGE(QString("Assistant message with tool_calls:\n%1")
+                    .arg(
+                        QString::fromUtf8(
+                            QJsonDocument(assistantMessage).toJson(QJsonDocument::Indented))));
+
+    QJsonArray toolResultMessages = message->createToolResultMessages(toolResults);
+    for (const auto &toolMsg : toolResultMessages) {
+        messages.append(toolMsg);
+        LOG_MESSAGE(QString("Tool result message:\n%1")
+                        .arg(
+                            QString::fromUtf8(
+                                QJsonDocument(toolMsg.toObject()).toJson(QJsonDocument::Indented))));
+    }
+
+    continuationRequest["messages"] = messages;
+
+    LOG_MESSAGE(QString("Sending continuation request for %1 with %2 tool results")
+                    .arg(requestId)
+                    .arg(toolResults.size()));
+
+    message->startNewContinuation();
+    sendRequest(requestId, m_requestUrls[requestId], continuationRequest);
 }
 
+void OllamaProvider::processStreamData(const QString &requestId, const QJsonObject &data)
+{
+    OllamaMessage *message = m_messages.value(requestId);
+    if (!message) {
+        message = new OllamaMessage(this);
+        m_messages[requestId] = message;
+        LOG_MESSAGE(QString("Created NEW OllamaMessage for request %1").arg(requestId));
+    }
+
+    if (data.contains("message")) {
+        QJsonObject messageObj = data["message"].toObject();
+
+        if (messageObj.contains("content")) {
+            QString content = messageObj["content"].toString();
+            if (!content.isEmpty()) {
+                message->handleContentDelta(content);
+
+                bool hasTextContent = false;
+                for (auto block : message->currentBlocks()) {
+                    if (qobject_cast<LLMCore::TextContent *>(block)) {
+                        hasTextContent = true;
+                        break;
+                    }
+                }
+
+                if (hasTextContent) {
+                    LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+                    buffers.responseContent += content;
+                    emit partialResponseReceived(requestId, content);
+                }
+            }
+        }
+
+        if (messageObj.contains("tool_calls")) {
+            QJsonArray toolCalls = messageObj["tool_calls"].toArray();
+            LOG_MESSAGE(
+                QString("OllamaProvider: Found %1 structured tool calls").arg(toolCalls.size()));
+            for (const auto &toolCallValue : toolCalls) {
+                message->handleToolCall(toolCallValue.toObject());
+            }
+        }
+    }
+    else if (data.contains("response")) {
+        QString content = data["response"].toString();
+        if (!content.isEmpty()) {
+            message->handleContentDelta(content);
+
+            bool hasTextContent = false;
+            for (auto block : message->currentBlocks()) {
+                if (qobject_cast<LLMCore::TextContent *>(block)) {
+                    hasTextContent = true;
+                    break;
+                }
+            }
+
+            if (hasTextContent) {
+                LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+                buffers.responseContent += content;
+                emit partialResponseReceived(requestId, content);
+            }
+        }
+    }
+
+    if (data["done"].toBool()) {
+        message->handleDone(true);
+        handleMessageComplete(requestId);
+    }
+}
+
+void OllamaProvider::handleMessageComplete(const QString &requestId)
+{
+    if (!m_messages.contains(requestId))
+        return;
+
+    OllamaMessage *message = m_messages[requestId];
+
+    if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
+        LOG_MESSAGE(QString("Ollama message requires tool execution for %1").arg(requestId));
+
+        auto toolUseContent = message->getCurrentToolUseContent();
+
+        if (toolUseContent.isEmpty()) {
+            LOG_MESSAGE(
+                QString("WARNING: No tools to execute for %1 despite RequiresToolExecution state")
+                    .arg(requestId));
+            return;
+        }
+
+        for (auto toolContent : toolUseContent) {
+            auto toolStringName = m_toolsManager->toolsFactory()->getStringName(toolContent->name());
+            emit toolExecutionStarted(requestId, toolContent->id(), toolStringName);
+
+            LOG_MESSAGE(
+                QString("Executing tool: name=%1, id=%2, input=%3")
+                    .arg(toolContent->name())
+                    .arg(toolContent->id())
+                    .arg(
+                        QString::fromUtf8(
+                            QJsonDocument(toolContent->input()).toJson(QJsonDocument::Compact))));
+
+            m_toolsManager->executeToolCall(
+                requestId, toolContent->id(), toolContent->name(), toolContent->input());
+        }
+
+    } else {
+        LOG_MESSAGE(QString("Ollama message marked as complete for %1").arg(requestId));
+    }
+}
+
+void OllamaProvider::cleanupRequest(const LLMCore::RequestID &requestId)
+{
+    LOG_MESSAGE(QString("Cleaning up Ollama request %1").arg(requestId));
+
+    if (m_messages.contains(requestId)) {
+        auto msg = m_messages.take(requestId);
+        msg->deleteLater();
+    }
+
+    m_dataBuffers.remove(requestId);
+    m_requestUrls.remove(requestId);
+    m_originalRequests.remove(requestId);
+    m_toolsManager->cleanupRequest(requestId);
+}
 } // namespace QodeAssist::Providers

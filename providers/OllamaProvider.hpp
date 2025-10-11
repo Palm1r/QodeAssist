@@ -19,13 +19,19 @@
 
 #pragma once
 
-#include "llmcore/Provider.hpp"
+#include <llmcore/Provider.hpp>
+
+#include "OllamaMessage.hpp"
+#include "tools/ToolsManager.hpp"
 
 namespace QodeAssist::Providers {
 
 class OllamaProvider : public LLMCore::Provider
 {
+    Q_OBJECT
 public:
+    explicit OllamaProvider(QObject *parent = nullptr);
+
     QString name() const override;
     QString url() const override;
     QString completionEndpoint() const override;
@@ -45,6 +51,9 @@ public:
     void sendRequest(
         const LLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload) override;
 
+    bool supportsTools() const override;
+    void cancelRequest(const LLMCore::RequestID &requestId) override;
+
 public slots:
     void onDataReceived(
         const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data) override;
@@ -52,6 +61,20 @@ public slots:
         const QodeAssist::LLMCore::RequestID &requestId,
         bool success,
         const QString &error) override;
+
+private slots:
+    void onToolExecutionComplete(
+        const QString &requestId, const QHash<QString, QString> &toolResults);
+
+private:
+    void processStreamData(const QString &requestId, const QJsonObject &data);
+    void handleMessageComplete(const QString &requestId);
+    void cleanupRequest(const LLMCore::RequestID &requestId);
+
+    QHash<QodeAssist::LLMCore::RequestID, OllamaMessage *> m_messages;
+    QHash<QodeAssist::LLMCore::RequestID, QUrl> m_requestUrls;
+    QHash<QodeAssist::LLMCore::RequestID, QJsonObject> m_originalRequests;
+    Tools::ToolsManager *m_toolsManager;
 };
 
 } // namespace QodeAssist::Providers
