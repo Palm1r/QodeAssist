@@ -17,7 +17,6 @@ qt_add_qml_module(QodeAssistChatView
     qml/parts/BottomBar.qml
     qml/parts/AttachedFilesPlace.qml
     qml/parts/ErrorToast.qml
-    qml/parts/Navigation.qml
     qml/ToolStatusItem.qml
 
     RESOURCES
