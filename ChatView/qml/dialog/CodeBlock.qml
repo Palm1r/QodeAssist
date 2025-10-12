@@ -118,7 +118,10 @@ Rectangle {
 
         Platform.MenuItem {
             text: qsTr("Copy")
-            onTriggered: utils.copyToClipboard(root.code)
+            onTriggered: {
+                const textToCopy = codeText.selectedText || root.code
+                utils.copyToClipboard(textToCopy)
+            }
         }
 
         Platform.MenuSeparator {}
