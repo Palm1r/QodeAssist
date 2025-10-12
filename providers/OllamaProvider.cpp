@@ -29,6 +29,7 @@
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
+#include "settings/GeneralSettings.hpp"
 #include "settings/ProviderSettings.hpp"
 
 namespace QodeAssist::Providers {
@@ -107,7 +108,7 @@ void OllamaProvider::prepareRequest(
     }
 
     if (supportsTools() && type == LLMCore::RequestType::Chat
-        && Settings::chatAssistantSettings().useTools()) {
+        && Settings::generalSettings().useTools()) {
         auto toolsDefinitions = m_toolsManager->toolsFactory()->getToolsDefinitions(
             LLMCore::ToolSchemaFormat::Ollama);
         if (!toolsDefinitions.isEmpty()) {

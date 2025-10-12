@@ -34,6 +34,8 @@ public:
     QString stringName() const override;
     QString description() const override;
     QJsonObject getDefinition(LLMCore::ToolSchemaFormat format) const override;
+    LLMCore::ToolPermissions requiredPermissions() const override;
+
     QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
 
 private:

@@ -93,6 +93,11 @@ QJsonObject ReadProjectFileByNameTool::getDefinition(LLMCore::ToolSchemaFormat f
     return definition;
 }
 
+LLMCore::ToolPermissions ReadProjectFileByNameTool::requiredPermissions() const
+{
+    return LLMCore::ToolPermission::FileSystemRead;
+}
+
 QFuture<QString> ReadProjectFileByNameTool::executeAsync(const QJsonObject &input)
 {
     return QtConcurrent::run([this, input]() -> QString {

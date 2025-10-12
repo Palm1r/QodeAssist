@@ -205,6 +205,21 @@ GeneralSettings::GeneralSettings()
     caTemplateDescription.setDefaultValue("");
     caTemplateDescription.setLabelText(TrConstants::CURRENT_TEMPLATE_DESCRIPTION);
 
+    useTools.setSettingsKey(Constants::CA_USE_TOOLS);
+    useTools.setLabelText(Tr::tr("Enable tools"));
+    useTools.setToolTip(
+        Tr::tr(
+            "Enable tool use capabilities for the assistant(OpenAI function calling, Claude tools "
+            "and etc) "
+            "if plugin and provider support"));
+    useTools.setDefaultValue(true);
+
+    allowFileSystemRead.setSettingsKey(Constants::CA_ALLOW_FILE_SYSTEM_READ);
+    allowFileSystemRead.setLabelText(Tr::tr("Allow File System Read Access for tools"));
+    allowFileSystemRead.setToolTip(
+        Tr::tr("Allow tools to read files from disk (project files, open editors)"));
+    allowFileSystemRead.setDefaultValue(true);
+
     readSettings();
 
     Logger::instance().setLoggingEnabled(enableLogging());
@@ -247,8 +262,10 @@ GeneralSettings::GeneralSettings()
                 ccTemplateDescription,
                 Row{specifyPreset1, preset1Language, Stretch{1}},
                 ccPreset1Grid}};
-        auto caGroup
-            = Group{title(TrConstants::CHAT_ASSISTANT), Column{caGrid, caTemplateDescription}};
+
+        auto caGroup = Group{
+            title(TrConstants::CHAT_ASSISTANT),
+            Column{caGrid, Column{useTools, allowFileSystemRead}, caTemplateDescription}};
 
         auto rootLayout = Column{
             Row{enableQodeAssist, Stretch{1}, Row{checkUpdate, resetToDefaults}},
@@ -492,6 +509,8 @@ void GeneralSettings::resetPageToDefaults()
         resetAspect(ccPreset1CustomEndpoint);
         resetAspect(caEndpointMode);
         resetAspect(caCustomEndpoint);
+        resetAspect(useTools);
+        resetAspect(allowFileSystemRead);
         writeSettings();
     }
 }

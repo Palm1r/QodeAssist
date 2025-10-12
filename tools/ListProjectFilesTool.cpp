@@ -75,6 +75,11 @@ QJsonObject ListProjectFilesTool::getDefinition(LLMCore::ToolSchemaFormat format
     return definition;
 }
 
+LLMCore::ToolPermissions ListProjectFilesTool::requiredPermissions() const
+{
+    return LLMCore::ToolPermission::FileSystemRead;
+}
+
 QFuture<QString> ListProjectFilesTool::executeAsync(const QJsonObject &input)
 {
     Q_UNUSED(input)

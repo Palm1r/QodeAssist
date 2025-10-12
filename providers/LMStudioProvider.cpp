@@ -23,6 +23,7 @@
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
+#include "settings/GeneralSettings.hpp"
 #include "settings/ProviderSettings.hpp"
 
 #include <QEventLoop>
@@ -250,7 +251,7 @@ void LMStudioProvider::prepareRequest(
     }
 
     if (supportsTools() && type == LLMCore::RequestType::Chat
-        && Settings::chatAssistantSettings().useTools()) {
+        && Settings::generalSettings().useTools()) {
         auto toolsDefinitions = m_toolsManager->getToolsDefinitions(
             LLMCore::ToolSchemaFormat::OpenAI);
         if (!toolsDefinitions.isEmpty()) {
