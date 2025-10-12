@@ -118,6 +118,7 @@ add_qtc_plugin(QodeAssist
     tools/ToolHandler.hpp tools/ToolHandler.cpp
     tools/ListProjectFilesTool.hpp tools/ListProjectFilesTool.cpp
     tools/ToolsManager.hpp tools/ToolsManager.cpp
+    tools/SearchInProjectTool.hpp tools/SearchInProjectTool.cpp
     providers/ClaudeMessage.hpp providers/ClaudeMessage.cpp
     providers/OpenAIMessage.hpp providers/OpenAIMessage.cpp
     providers/OllamaMessage.hpp providers/OllamaMessage.cpp

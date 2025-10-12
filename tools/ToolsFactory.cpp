@@ -27,6 +27,7 @@
 #include "ListProjectFilesTool.hpp"
 #include "ReadProjectFileByNameTool.hpp"
 #include "ReadVisibleFilesTool.hpp"
+#include "SearchInProjectTool.hpp"
 
 namespace QodeAssist::Tools {
 
@@ -41,6 +42,7 @@ void ToolsFactory::registerTools()
     registerTool(new ReadVisibleFilesTool(this));
     registerTool(new ReadProjectFileByNameTool(this));
     registerTool(new ListProjectFilesTool(this));
+    registerTool(new SearchInProjectTool(this));
 
     LOG_MESSAGE(QString("Registered %1 tools").arg(m_tools.size()));
 }
