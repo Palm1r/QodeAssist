@@ -18,6 +18,7 @@
  */
 
 import QtQuick
+import Qt.labs.platform as Platform
 
 Rectangle {
     id: root
@@ -83,15 +84,47 @@ Rectangle {
         }
         spacing: 8
 
-        Text {
+        TextEdit {
             id: resultText
 
-            width: parent.width
             text: root.toolResult
-            wrapMode: Text.Wrap
+            readOnly: true
+            selectByMouse: true
+            color: palette.text
+            wrapMode: Text.WordWrap
             font.family: "monospace"
             font.pixelSize: 11
-            color: palette.text
+            selectionColor: palette.highlight
+        }
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.RightButton
+        onClicked: contextMenu.open()
+        propagateComposedEvents: true
+    }
+
+    Platform.Menu {
+        id: contextMenu
+
+        Platform.MenuItem {
+            text: qsTr("Copy")
+            enabled: resultText.selectedText.length > 0
+            onTriggered: resultText.copy()
+        }
+
+        Platform.MenuItem {
+            text: qsTr("Select All")
+            enabled: resultText.text.length > 0
+            onTriggered: resultText.selectAll()
+        }
+
+        Platform.MenuSeparator {}
+
+        Platform.MenuItem {
+            text: root.expanded ? qsTr("Collapse") : qsTr("Expand")
+            onTriggered: root.expanded = !root.expanded
         }
     }
 

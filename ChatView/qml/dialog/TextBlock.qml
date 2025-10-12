@@ -45,8 +45,6 @@ TextEdit {
             onTriggered: root.copy()
         }
 
-        Platform.MenuSeparator {}
-
         Platform.MenuItem {
             text: qsTr("Select All")
             enabled: root.text.length > 0
