@@ -68,14 +68,6 @@ ChatAssistantSettings::ChatAssistantSettings()
     enableChatInNavigationPanel.setLabelText(Tr::tr("Enable chat in navigation panel"));
     enableChatInNavigationPanel.setDefaultValue(false);
 
-    useTools.setSettingsKey(Constants::CA_USE_TOOLS);
-    useTools.setLabelText(Tr::tr("Enable tools"));
-    useTools.setToolTip(
-        Tr::tr(
-            "Enable tool use capabilities for the assistant(OpenAI function calling, Claude tools "
-            "and etc) "
-            "if plugin and provider support"));
-    useTools.setDefaultValue(true);
 
     // General Parameters Settings
     temperature.setSettingsKey(Constants::CA_TEMPERATURE);
@@ -261,8 +253,7 @@ ChatAssistantSettings::ChatAssistantSettings()
                     linkOpenFiles,
                     autosave,
                     enableChatInBottomToolBar,
-                    enableChatInNavigationPanel,
-                    useTools}},
+                    enableChatInNavigationPanel}},
             Space{8},
             Group{
                 title(Tr::tr("General Parameters")),
@@ -324,7 +315,6 @@ void ChatAssistantSettings::resetSettingsToDefaults()
         resetAspect(codeFontSize);
         resetAspect(textFormat);
         resetAspect(chatRenderer);
-        resetAspect(useTools);
     }
 }
 

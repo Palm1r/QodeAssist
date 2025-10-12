@@ -73,6 +73,11 @@ QJsonObject ReadVisibleFilesTool::getDefinition(LLMCore::ToolSchemaFormat format
     return definition;
 }
 
+LLMCore::ToolPermissions ReadVisibleFilesTool::requiredPermissions() const
+{
+    return LLMCore::ToolPermission::FileSystemRead;
+}
+
 QFuture<QString> ReadVisibleFilesTool::executeAsync(const QJsonObject &input)
 {
     Q_UNUSED(input)

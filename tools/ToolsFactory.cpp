@@ -20,6 +20,7 @@
 #include "ToolsFactory.hpp"
 
 #include "logger/Logger.hpp"
+#include <settings/GeneralSettings.hpp>
 #include <QJsonArray>
 #include <QJsonObject>
 
@@ -72,10 +73,39 @@ LLMCore::BaseTool *ToolsFactory::getToolByName(const QString &name) const
 QJsonArray ToolsFactory::getToolsDefinitions(LLMCore::ToolSchemaFormat format) const
 {
     QJsonArray toolsArray;
+    const auto &settings = Settings::generalSettings();
 
     for (auto it = m_tools.constBegin(); it != m_tools.constEnd(); ++it) {
-        if (it.value()) {
+        if (!it.value()) {
+            continue;
+        }
+
+        const auto requiredPerms = it.value()->requiredPermissions();
+        bool hasPermission = true;
+
+        if (requiredPerms.testFlag(LLMCore::ToolPermission::FileSystemRead)) {
+            if (!settings.allowFileSystemRead()) {
+                hasPermission = false;
+            }
+        }
+
+        // if (requiredPerms.testFlag(LLMCore::ToolPermission::FileSystemWrite)) {
+        //     if (!settings.allowFileSystemWrite()) {
+        //         hasPermission = false;
+        //     }
+        // }
+
+        // if (requiredPerms.testFlag(LLMCore::ToolPermission::NetworkAccess)) {
+        //     if (!settings.allowNetworkAccess()) {
+        //         hasPermission = false;
+        //     }
+        // }
+
+        if (hasPermission) {
             toolsArray.append(it.value()->getDefinition(format));
+        } else {
+            LOG_MESSAGE(
+                QString("Tool '%1' skipped due to missing permissions").arg(it.value()->name()));
         }
     }
 

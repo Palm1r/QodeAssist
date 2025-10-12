@@ -30,6 +30,7 @@
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
+#include "settings/GeneralSettings.hpp"
 #include "settings/ProviderSettings.hpp"
 
 namespace QodeAssist::Providers {
@@ -99,7 +100,7 @@ void ClaudeProvider::prepareRequest(
     }
 
     if (supportsTools() && type == LLMCore::RequestType::Chat
-        && Settings::chatAssistantSettings().useTools()) {
+        && Settings::generalSettings().useTools()) {
         auto toolsDefinitions = m_toolsManager->getToolsDefinitions(
             LLMCore::ToolSchemaFormat::Claude);
         if (!toolsDefinitions.isEmpty()) {

@@ -29,6 +29,14 @@ namespace QodeAssist::LLMCore {
 
 enum class ToolSchemaFormat { OpenAI, Claude, Ollama, Google };
 
+enum ToolPermission {
+    None = 0,
+    FileSystemRead = 1 << 0,
+    FileSystemWrite = 1 << 1,
+    NetworkAccess = 1 << 2
+};
+Q_DECLARE_FLAGS(ToolPermissions, ToolPermission)
+
 class BaseTool : public QObject
 {
     Q_OBJECT
@@ -40,6 +48,7 @@ public:
     virtual QString stringName() const = 0;
     virtual QString description() const = 0;
     virtual QJsonObject getDefinition(ToolSchemaFormat format) const = 0;
+    virtual ToolPermissions requiredPermissions() const = 0;
 
     virtual QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) = 0;
 
