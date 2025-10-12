@@ -97,7 +97,6 @@ void ChatModel::addMessage(
         Message &lastMessage = m_messages.last();
         lastMessage.content = content;
         lastMessage.attachments = attachments;
-        LOG_MESSAGE(QString("Updated message: role=%1, id=%2").arg(role).arg(id));
         emit dataChanged(index(m_messages.size() - 1), index(m_messages.size() - 1));
     } else {
         beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());
@@ -105,10 +104,6 @@ void ChatModel::addMessage(
         newMessage.attachments = attachments;
         m_messages.append(newMessage);
         endInsertRows();
-        LOG_MESSAGE(QString("Added new message: role=%1, id=%2, index=%3")
-                        .arg(role)
-                        .arg(id)
-                        .arg(m_messages.size() - 1));
     }
 }
 

@@ -320,8 +320,6 @@ void ClaudeProvider::processStreamEvent(const QString &requestId, const QJsonObj
 {
     QString eventType = event["type"].toString();
 
-    LOG_MESSAGE(QString("Processing Claude event: type=%1").arg(eventType));
-
     if (eventType == "message_stop") {
         return;
     }
