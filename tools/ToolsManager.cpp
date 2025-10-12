@@ -86,8 +86,12 @@ QJsonArray ToolsManager::getToolsDefinitions(LLMCore::ToolSchemaFormat format) c
 
 void ToolsManager::cleanupRequest(const QString &requestId)
 {
-    m_pendingTools.remove(requestId);
-    m_toolHandler->cleanupRequest(requestId);
+    if (m_pendingTools.contains(requestId)) {
+        LOG_MESSAGE(QString("ToolsManager: Canceling pending tools for request %1").arg(requestId));
+        m_toolHandler->cleanupRequest(requestId);
+        m_pendingTools.remove(requestId);
+    }
+
     LOG_MESSAGE(QString("ToolsManager: Cleaned up request %1").arg(requestId));
 }
 

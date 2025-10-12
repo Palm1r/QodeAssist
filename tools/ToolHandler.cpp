@@ -41,7 +41,7 @@ QFuture<QString> ToolHandler::executeToolAsync(
         return QtConcurrent::run([]() -> QString { throw std::runtime_error("Tool is null"); });
     }
 
-    auto execution = new ToolExecution();
+    auto execution = std::make_unique<ToolExecution>();
     execution->requestId = requestId;
     execution->toolId = toolId;
     execution->toolName = tool->name();
@@ -55,7 +55,7 @@ QFuture<QString> ToolHandler::executeToolAsync(
 
     auto future = tool->executeAsync(input);
     execution->watcher->setFuture(future);
-    m_activeExecutions.insert(toolId, execution);
+    m_activeExecutions.insert(toolId, execution.release());
 
     return future;
 }
