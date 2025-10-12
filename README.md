@@ -3,7 +3,7 @@
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Palm1r/QodeAssist/total?color=41%2C173%2C71)
 ![GitHub Tag](https://img.shields.io/github/v/tag/Palm1r/QodeAssist)
 ![Static Badge](https://img.shields.io/badge/QtCreator-16.0.2-brightgreen)
-![Static Badge](https://img.shields.io/badge/QtCreator-17.0.0-brightgreen)
+![Static Badge](https://img.shields.io/badge/QtCreator-17.0.1-brightgreen)
 [![](https://dcbadge.limes.pink/api/server/BGMkUsXUgf?style=flat)](https://discord.gg/BGMkUsXUgf)
 
 ![qodeassist-icon](https://github.com/user-attachments/assets/dc336712-83cb-440d-8761-8d0a31de898d) QodeAssist is an AI-powered coding assistant plugin for Qt Creator. It provides intelligent code completion and suggestions for C++ and QML, leveraging large language models through local providers like Ollama. Enhance your coding productivity with context-aware AI assistance directly in your Qt development environment.
@@ -55,9 +55,10 @@
   - LM Studio
   - Mistral AI
   - Google AI
-  - OpenAI-compatible providers(eg. llama.cpp, https://openrouter.ai)
+  - OpenAI-compatible providers (eg. llama.cpp, https://openrouter.ai)
 - Extensive library of model-specific templates
 - Easy configuration and model selection
+- Support tools/function calling (enabled by default)
 
 Join our Discord Community: Have questions or want to discuss QodeAssist? Join our [Discord server](https://discord.gg/BGMkUsXUgf) to connect with other users and get support!
 
@@ -94,6 +95,11 @@ Join our Discord Community: Have questions or want to discuss QodeAssist? Join o
 <details>
   <summary>Automatic syncing with open editor files: (click to expand)</summary>
   <img width="600" alt="OpenedDocumentsSync" src="https://github.com/user-attachments/assets/08efda2f-dc4d-44c3-927c-e6a975090d2f">
+</details>
+
+<details>
+  <summary>Example how tools works: (click to expand)</summary>
+  <img width="600" alt="ToolsDemo" src="https://github.com/user-attachments/assets/cf6273ad-d5c8-47fc-81e6-23d929547f6c">
 </details>
 
 ## Install plugin to QtCreator
@@ -186,6 +192,7 @@ ollama run qwen2.5-coder:32b
     - The URL is set to http://localhost:11434
     - Your installed model appears in the model selection
     - The prompt template is Ollama Auto FIM or Ollama Auto Chat for chat assistance. You can specify template if it is not work correct
+    - Disable using tools if your model doesn't support tooling
 4. Click Apply if you made any changes
 
 You're all set! QodeAssist is now ready to use in Qt Creator.
@@ -201,6 +208,7 @@ You're all set! QodeAssist is now ready to use in Qt Creator.
    - Set the llama.cpp URL (e.g. http://localhost:8080)
    - Fill in model name
    - Choose template for model(e.g. llama.cpp FIM for any model with FIM support)
+   - Disable using tools if your model doesn't support tooling
 <details>
   <summary>Example of llama.cpp settings: (click to expand)</summary>
   <img width="829" alt="llama.cpp Settings" src="https://github.com/user-attachments/assets/8c75602c-60f3-49ed-a7a9-d3c972061ea2" />
