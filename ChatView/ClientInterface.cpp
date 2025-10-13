@@ -28,6 +28,9 @@
 #include <coreplugin/editormanager/editormanager.h>
 #include <coreplugin/editormanager/ieditor.h>
 #include <coreplugin/idocument.h>
+#include <projectexplorer/project.h>
+#include <projectexplorer/projectexplorer.h>
+#include <projectexplorer/projectmanager.h>
 
 #include <texteditor/textdocument.h>
 #include <texteditor/texteditor.h>
@@ -37,6 +40,7 @@
 #include "Logger.hpp"
 #include "ProvidersManager.hpp"
 #include "RequestConfig.hpp"
+#include <RulesLoader.hpp>
 
 namespace QodeAssist::Chat {
 
@@ -81,6 +85,17 @@ void ClientInterface::sendMessage(
 
     if (chatAssistantSettings.useSystemPrompt()) {
         QString systemPrompt = chatAssistantSettings.systemPrompt();
+
+        auto project = LLMCore::RulesLoader::getActiveProject();
+        if (project) {
+            QString projectRules
+                = LLMCore::RulesLoader::loadRulesForProject(project, LLMCore::RulesContext::Chat);
+
+            if (!projectRules.isEmpty()) {
+                systemPrompt += "\n\n# Project Rules\n\n" + projectRules;
+            }
+        }
+
         if (!linkedFiles.isEmpty()) {
             systemPrompt = getSystemPromptWithLinkedFiles(systemPrompt, linkedFiles);
         }

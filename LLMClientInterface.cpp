@@ -30,6 +30,7 @@
 #include "settings/CodeCompletionSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 #include <llmcore/RequestConfig.hpp>
+#include <llmcore/RulesLoader.hpp>
 
 namespace QodeAssist {
 
@@ -242,6 +243,18 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
                     && promptTemplate->type() == LLMCore::TemplateType::Chat
                 ? m_completeSettings.systemPromptForNonFimModels()
                 : m_completeSettings.systemPrompt());
+
+    auto project = LLMCore::RulesLoader::getActiveProject();
+    if (project) {
+        QString projectRules
+            = LLMCore::RulesLoader::loadRulesForProject(project, LLMCore::RulesContext::Completions);
+
+        if (!projectRules.isEmpty()) {
+            systemPrompt += "\n\n# Project Rules\n\n" + projectRules;
+            LOG_MESSAGE("Loaded project rules for completion");
+        }
+    }
+
     if (updatedContext.fileContext.has_value())
         systemPrompt.append(updatedContext.fileContext.value());
 

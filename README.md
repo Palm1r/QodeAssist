@@ -218,6 +218,34 @@ You're all set! QodeAssist is now ready to use in Qt Creator.
 
 The plugin comes with default system prompts optimized for chat and instruct models, as these currently provide better results for code assistance. If you prefer using FIM (Fill-in-Middle) models, you can easily customize the system prompt in the settings.
 
+## Project Rules Configuration
+
+QodeAssist supports project-specific rules to customize AI behavior for your codebase. Create a `.qodeassist/rules/` directory in your project root.
+
+### Quick Start
+```bash
+mkdir -p .qodeassist/rules/{common,completion,chat,quickrefactor}
+```
+```
+.qodeassist/
+└── rules/
+    ├── common/           # Applied to all contexts
+    ├── completion/       # Code completion only
+    ├── chat/            # Chat assistant only
+    └── quickrefactor/   # Quick refactor only
+```
+All .md files in each directory are automatically loaded and added to the system prompt.
+
+Example
+Create .qodeassist/rules/common/general.md:
+```markdown
+# Project Guidelines
+- Use snake_case for private members
+- Prefix interfaces with 'I'
+- Always document public APIs
+- Prefer Qt containers over STL
+```
+
 ## File Context Feature
 
 QodeAssist provides two powerful ways to include source code files in your chat conversations: Attachments and Linked Files. Each serves a distinct purpose and helps provide better context for the AI assistant.
