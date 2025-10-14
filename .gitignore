@@ -74,3 +74,4 @@ CMakeLists.txt.user*
 *.exe
 
 /build
+/.qodeassist
