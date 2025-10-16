@@ -102,6 +102,7 @@ public:
 
     Utils::BoolAspect useTools{this};
     Utils::BoolAspect allowFileSystemRead{this};
+    Utils::BoolAspect allowFileSystemWrite{this};
 
     Utils::StringAspect caTemplateDescription{this};
 

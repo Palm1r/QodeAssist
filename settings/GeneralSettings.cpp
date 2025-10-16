@@ -220,6 +220,12 @@ GeneralSettings::GeneralSettings()
         Tr::tr("Allow tools to read files from disk (project files, open editors)"));
     allowFileSystemRead.setDefaultValue(true);
 
+    allowFileSystemWrite.setSettingsKey(Constants::CA_ALLOW_FILE_SYSTEM_WRITE);
+    allowFileSystemWrite.setLabelText(Tr::tr("Allow File System Write Access for tools"));
+    allowFileSystemWrite.setToolTip(
+        Tr::tr("Allow tools to write and modify files on disk (WARNING: Use with caution!)"));
+    allowFileSystemWrite.setDefaultValue(false);
+
     readSettings();
 
     Logger::instance().setLoggingEnabled(enableLogging());
@@ -265,7 +271,9 @@ GeneralSettings::GeneralSettings()
 
         auto caGroup = Group{
             title(TrConstants::CHAT_ASSISTANT),
-            Column{caGrid, Column{useTools, allowFileSystemRead}, caTemplateDescription}};
+            Column{caGrid,
+                   Column{useTools, allowFileSystemRead, allowFileSystemWrite},
+                   caTemplateDescription}};
 
         auto rootLayout = Column{
             Row{enableQodeAssist, Stretch{1}, Row{checkUpdate, resetToDefaults}},
@@ -511,6 +519,7 @@ void GeneralSettings::resetPageToDefaults()
         resetAspect(caCustomEndpoint);
         resetAspect(useTools);
         resetAspect(allowFileSystemRead);
+        resetAspect(allowFileSystemWrite);
         writeSettings();
     }
 }
