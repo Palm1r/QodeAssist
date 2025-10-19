@@ -166,8 +166,10 @@ ChatRootView {
             Component {
                 id: fileEditSuggestionComponent
                 
-                FileEditItem {
-                    fileEditContent: model.content
+                FileEditChangesItem {
+                    id: fileEditItem
+
+                    width: chatListView.width - 10
                 }
             }
         }

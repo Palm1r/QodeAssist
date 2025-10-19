@@ -18,6 +18,7 @@ qt_add_qml_module(QodeAssistChatView
     qml/parts/AttachedFilesPlace.qml
     qml/parts/ErrorToast.qml
     qml/ToolStatusItem.qml
+    qml/FileEditChangesItem.qml
 
     RESOURCES
     icons/attach-file-light.svg
@@ -34,6 +35,7 @@ qt_add_qml_module(QodeAssistChatView
     icons/window-unlock.svg
     icons/chat-icon.svg
     icons/chat-pause-icon.svg
+
     SOURCES
     ChatWidget.hpp ChatWidget.cpp
     ChatModel.hpp ChatModel.cpp
@@ -44,6 +46,7 @@ qt_add_qml_module(QodeAssistChatView
     ChatSerializer.hpp ChatSerializer.cpp
     ChatView.hpp ChatView.cpp
     ChatData.hpp
+    FileEditItem.hpp FileEditItem.cpp
 )
 
 target_link_libraries(QodeAssistChatView
@@ -58,6 +61,7 @@ target_link_libraries(QodeAssistChatView
     QodeAssistSettings
     Context
     QodeAssistUIControlsplugin
+    QodeAssistLogger
 )
 
 target_include_directories(QodeAssistChatView

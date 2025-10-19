@@ -24,6 +24,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 
+#include "EditProjectFileTool.hpp"
 #include "GetIssuesListTool.hpp"
 #include "ListProjectFilesTool.hpp"
 #include "ReadProjectFileByNameTool.hpp"
@@ -45,6 +46,7 @@ void ToolsFactory::registerTools()
     registerTool(new ListProjectFilesTool(this));
     registerTool(new SearchInProjectTool(this));
     registerTool(new GetIssuesListTool(this));
+    registerTool(new EditProjectFileTool(this));
 
     LOG_MESSAGE(QString("Registered %1 tools").arg(m_tools.size()));
 }
@@ -93,11 +95,11 @@ QJsonArray ToolsFactory::getToolsDefinitions(LLMCore::ToolSchemaFormat format) c
             }
         }
 
-        // if (requiredPerms.testFlag(LLMCore::ToolPermission::FileSystemWrite)) {
-        //     if (!settings.allowFileSystemWrite()) {
-        //         hasPermission = false;
-        //     }
-        // }
+        if (requiredPerms.testFlag(LLMCore::ToolPermission::FileSystemWrite)) {
+            if (!settings.allowFileSystemWrite()) {
+                hasPermission = false;
+            }
+        }
 
         // if (requiredPerms.testFlag(LLMCore::ToolPermission::NetworkAccess)) {
         //     if (!settings.allowNetworkAccess()) {
