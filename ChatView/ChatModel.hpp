@@ -37,7 +37,7 @@ class ChatModel : public QAbstractListModel
     QML_ELEMENT
 
 public:
-    enum ChatRole { System, User, Assistant, Tool };
+    enum ChatRole { System, User, Assistant, Tool, FileEdit };
     Q_ENUM(ChatRole)
 
     enum Roles { RoleType = Qt::UserRole, Content, Attachments };
