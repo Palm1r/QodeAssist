@@ -47,22 +47,10 @@ QString FindFileTool::stringName() const
 
 QString FindFileTool::description() const
 {
-    return "Search for files in the current project by filename, partial filename, or path "
-           "(relative or absolute). "
-           "This tool searches for files within the project scope and supports:\n"
-           "- Exact filename match (e.g., 'main.cpp')\n"
-           "- Partial filename match (e.g., 'main' will find 'main.cpp', 'main.h', etc.)\n"
-           "- Relative path from project root (e.g., 'src/utils/helper.cpp')\n"
-           "- Partial path matching (e.g., 'utils/helper' will find matching paths)\n"
-           "- File extension filtering (e.g., '*.cpp', '*.h')\n"
-           "- Case-insensitive search\n"
-           "Input parameters:\n"
-           "- 'query' (required): the filename, partial name, or path to search for\n"
-           "- 'file_pattern' (optional): filter by file extension (e.g., '*.cpp', '*.h')\n"
-           "- 'max_results' (optional): maximum number of results to return (default: 50)\n"
-           "Returns a list of matching files with their absolute paths and relative paths from "
-           "project root, "
-           "or an error if no files are found or if the file is outside the project scope.";
+    return "Search for files in the project by filename, partial name, or path. "
+           "Supports exact/partial filename match, relative/absolute paths, file extension filtering, "
+           "and case-insensitive search. "
+           "Returns matching files with absolute and relative paths.";
 }
 
 QJsonObject FindFileTool::getDefinition(LLMCore::ToolSchemaFormat format) const

@@ -48,11 +48,8 @@ QString ListProjectFilesTool::stringName() const
 
 QString ListProjectFilesTool::description() const
 {
-    return "Get a list of all source files in the current project. "
-           "Returns a structured list of files with the absolute path to the project root "
-           "and relative paths for each file. "
-           "Useful for understanding project structure and finding specific files. "
-           "No parameters required.";
+    return "Get a list of all source files in the current project with absolute and relative paths. "
+           "Useful for understanding project structure. No parameters required.";
 }
 
 QJsonObject ListProjectFilesTool::getDefinition(LLMCore::ToolSchemaFormat format) const

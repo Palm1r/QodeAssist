@@ -55,25 +55,9 @@ QString FindSymbolTool::stringName() const
 
 QString FindSymbolTool::description() const
 {
-    return "Find C++ symbols (classes, functions, enums, variables, typedefs, namespaces) in the "
-           "current project. "
-           "Returns file paths, line numbers, qualified names, and optionally the source code of "
-           "found symbols. "
-           "Supports exact match, wildcard patterns, and regular expressions.\n"
-           "Input parameters:\n"
-           "- 'symbol_name' (required): Name or pattern of the symbol to find\n"
-           "- 'symbol_type' (optional): Type of symbol to search for: 'all', 'class', 'function', "
-           "'enum', 'variable', 'typedef', 'namespace'. Default is 'all'\n"
-           "- 'scope_filter' (optional): Filter results by scope (e.g., 'MyNamespace', "
-           "'MyClass'). Only symbols within this scope will be returned\n"
-           "- 'case_sensitive' (optional): Enable case-sensitive search. Default is true\n"
-           "- 'use_regex' (optional): Treat symbol_name as regular expression. Default is false\n"
-           "- 'use_wildcard' (optional): Treat symbol_name as wildcard pattern (e.g., 'find*', "
-           "'*Symbol', '*find*'). Default is false\n"
-           "- 'include_code' (optional): Whether to include the source code of found symbols. "
-           "Default is false\n"
-           "- 'max_results' (optional): Maximum number of results to return. Default is 10\n"
-           "- 'group_by' (optional): How to group results: 'type' (default), 'file', or 'scope'";
+    return "Find C++ symbols (classes, functions, enums, variables, typedefs, namespaces) in the project. "
+           "Returns file paths, line numbers, qualified names, and optionally source code. "
+           "Supports exact match, wildcard patterns, and regular expressions.";
 }
 
 QJsonObject FindSymbolTool::getDefinition(LLMCore::ToolSchemaFormat format) const

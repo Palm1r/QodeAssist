@@ -51,12 +51,8 @@ QString ReadProjectFileByPathTool::stringName() const
 
 QString ReadProjectFileByPathTool::description() const
 {
-    return "Read the content of a specific file from the current project by providing its "
-           "absolute file path. "
-           "The file must exist, be within the project scope, and not excluded by "
-           ".qodeassistignore.\n"
-           "Input parameter: 'filepath' - the absolute path to the file (e.g., "
-           "'/path/to/project/src/main.cpp').\n";
+    return "Read content of a specific project file by its absolute path. "
+           "File must exist, be within project scope, and not excluded by .qodeassistignore.";
 }
 
 QJsonObject ReadProjectFileByPathTool::getDefinition(LLMCore::ToolSchemaFormat format) const

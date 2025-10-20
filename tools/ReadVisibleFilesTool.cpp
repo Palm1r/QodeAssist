@@ -46,10 +46,8 @@ QString ReadVisibleFilesTool::stringName() const
 
 QString ReadVisibleFilesTool::description() const
 {
-    return "Read the content of all currently visible files in editor tabs. "
-           "Returns content from all open tabs that are currently visible, including unsaved "
-           "changes. "
-           "No parameters required.";
+    return "Read content from all currently visible editor tabs, including unsaved changes. "
+           "Returns file paths and content. No parameters required.";
 }
 
 QJsonObject ReadVisibleFilesTool::getDefinition(LLMCore::ToolSchemaFormat format) const

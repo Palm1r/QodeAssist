@@ -53,42 +53,10 @@ QString EditProjectFileTool::stringName() const
 
 QString EditProjectFileTool::description() const
 {
-    return "Edit the content of a specific file in the current project. This tool proposes file "
-           "changes that will be shown to the user for approval.\n\n"
-           "**Edit Modes (choose the most precise mode for the change):**\n"
-           "1. 'replace' - Replace exact multi-line text blocks (use for substantial changes)\n"
-           "2. 'insert_before' - Insert new lines before a specific line number (preferred for "
-           "adding imports, comments, or new code)\n"
-           "3. 'insert_after' - Insert new lines after a specific line number (preferred for "
-           "adding code after existing lines)\n"
-           "4. 'append' - Append new content to the end of file\n\n"
-           "**Best Practices:**\n"
-           "- For single-line changes: use 'replace' mode with exact line content\n"
-           "- For adding new lines: prefer 'insert_before' or 'insert_after' over 'replace'\n"
-           "- For adding imports/includes: use 'insert_after' at the end of import section\n"
-           "- For multi-line refactoring: use 'replace' mode\n"
-           "- Keep search_text as small as possible while remaining unique\n\n"
-           "**Input Parameters:**\n"
-           "- 'filename' (required): Name or relative path of the file to edit\n"
-           "- 'mode' (required): Edit mode - 'replace', 'insert_before', 'insert_after', or "
-           "'append'\n"
-           "- 'search_text' (optional): Exact text to find (required for 'replace' mode)\n"
-           "- 'new_text' (required): New text to insert or use as replacement\n"
-           "- 'line_number' (optional): Line number for insert operations (required for "
-           "'insert_before' and 'insert_after' modes)\n\n"
-           "**Usage Examples:**\n"
-           "- Single line fix: {\"filename\": \"main.cpp\", \"mode\": \"replace\", "
-           "\"search_text\": \"    Test test = new Test();\", \"new_text\": \"    Test test;\"}\n"
-           "- Add import: {\"filename\": \"main.cpp\", \"mode\": \"insert_after\", "
-           "\"line_number\": 4, \"new_text\": \"#include <memory>\"}\n"
-           "- Add function: {\"filename\": \"main.cpp\", \"mode\": \"insert_before\", "
-           "\"line_number\": 20, \"new_text\": \"void helper() {\\n    // code\\n}\\n\"}\n\n"
-           "**Important Notes:**\n"
-           "- Files excluded by .qodeassistignore cannot be edited\n"
-           "- Changes will be shown to user with diff for approval before applying\n"
-           "- For 'replace' mode, search_text must match exactly (including whitespace)\n"
-           "- Line numbers are 1-based\n"
-           "- User will see a visual diff and can approve or reject the change";
+    return "Edit a project file using different modes: replace text, insert before/after line, or append. "
+           "Changes require user approval and show a diff preview. "
+           "Files excluded by .qodeassistignore cannot be edited. "
+           "Line numbers are 1-based.";
 }
 
 QJsonObject EditProjectFileTool::getDefinition(LLMCore::ToolSchemaFormat format) const
@@ -344,12 +312,26 @@ void EditProjectFileTool::extractContext(
         int bestMatch = -1;
         int maxScore = -1;
 
+        QStringList searchLines = searchText.split('\n');
+        
         for (int i = 0; i < lines.size(); ++i) {
-            if (lines[i].contains(searchText)) {
+            bool matches = true;
+            if (i + searchLines.size() > lines.size()) {
+                continue;
+            }
+            
+            for (int j = 0; j < searchLines.size(); ++j) {
+                if (lines[i + j] != searchLines[j]) {
+                    matches = false;
+                    break;
+                }
+            }
+            
+            if (matches) {
                 int score = 0;
                 for (int offset = 1; offset <= contextLines; ++offset) {
                     if (i - offset >= 0) score++;
-                    if (i + offset < lines.size()) score++;
+                    if (i + searchLines.size() + offset - 1 < lines.size()) score++;
                 }
                 
                 if (score > maxScore) {

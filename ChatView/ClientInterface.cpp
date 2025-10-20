@@ -83,8 +83,46 @@ void ClientInterface::sendMessage(
 
     LLMCore::ContextData context;
 
+    // Build system prompt with tools usage guidelines
     if (chatAssistantSettings.useSystemPrompt()) {
         QString systemPrompt = chatAssistantSettings.systemPrompt();
+
+        // Add tools usage guidelines only if tools are enabled
+        if (Settings::generalSettings().useTools()) {
+            systemPrompt += "\n\n# Tool Usage Guidelines\n\n"
+                        "You have access to powerful tools for project analysis and modification. "
+                        "Use them proactively to provide accurate, context-aware assistance.\n\n"
+                        "## Philosophy\n\n"
+                        "- **Be Proactive**: Use tools when they help answer questions - don't ask permission first\n"
+                        "- **Chain Tools**: Combine tools logically to gather complete context\n"
+                        "- **Verify First**: Always read and understand code before proposing changes\n"
+                        "- **Concrete Solutions**: Analyze and propose specific solutions, not just suggestions\n\n"
+                        "## Discovery & Analysis\n\n"
+                        "- Start with `list_project_files` or `find_file` to understand project structure\n"
+                        "- Use `find_cpp_symbol` to locate classes, functions, enums, variables, namespaces\n"
+                        "- Use `search_in_project` for text/pattern searches across files\n\n"
+                        "## Reading Files\n\n"
+                        "- `read_visible_files` - currently open editor tabs (no parameters)\n"
+                        "- `read_project_file_by_path` - specific file by absolute path\n"
+                        "- Always read files before proposing edits to understand context\n\n"
+                        "## Making Changes\n\n"
+                        "- `edit_project_file` - propose file modifications (requires user approval)\n"
+                        "- Choose appropriate edit mode: replace, insert_before, insert_after, append\n"
+                        "- For complex changes, use multiple sequential edits rather than one large edit\n\n"
+                        "## Debugging\n\n"
+                        "- `get_issues_list` - see compiler errors, warnings, and diagnostics\n"
+                        "- Filter by severity: 'error', 'warning', or 'all'\n"
+                        "- Use this when debugging to see actual problems\n\n"
+                        "## Common Workflows\n\n"
+                        "**Understanding codebase:**\n"
+                        "list_project_files → find_cpp_symbol → read_project_file_by_path\n\n"
+                        "**Fixing bugs:**\n"
+                        "get_issues_list → read_project_file_by_path → edit_project_file\n\n"
+                        "**Refactoring:**\n"
+                        "search_in_project → read_project_file_by_path (multiple) → edit_project_file (multiple)\n\n"
+                        "**Adding features:**\n"
+                        "find_cpp_symbol → read_project_file_by_path → edit_project_file\n";
+        }
 
         auto project = LLMCore::RulesLoader::getActiveProject();
         if (project) {
@@ -92,7 +130,7 @@ void ClientInterface::sendMessage(
                 = LLMCore::RulesLoader::loadRulesForProject(project, LLMCore::RulesContext::Chat);
 
             if (!projectRules.isEmpty()) {
-                systemPrompt += "\n\n# Project Rules\n\n" + projectRules;
+                systemPrompt += "\n# Project Rules\n\n" + projectRules;
             }
         }
 

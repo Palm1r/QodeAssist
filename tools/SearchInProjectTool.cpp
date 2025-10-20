@@ -50,21 +50,10 @@ QString SearchInProjectTool::stringName() const
 
 QString SearchInProjectTool::description() const
 {
-    return "Search for text or patterns across all project files. Supports:\n"
-           "- Plain text search (default)\n"
-           "- Regular expression patterns\n"
-           "- Case-sensitive/insensitive search\n"
-           "- Whole word matching\n"
-           "- File pattern filtering (e.g., '*.cpp', '*.h')\n"
-           "Returns matching lines with file paths, line numbers, and surrounding context.\n"
-           "Input parameters:\n"
-           "- 'query' (required): Text or regex pattern to search for\n"
-           "- 'case_sensitive' (optional): true for case-sensitive search, default is false\n"
-           "- 'use_regex' (optional): true to treat query as regex pattern, default is false\n"
-           "- 'whole_words' (optional): true to match whole words only, default is false\n"
-           "- 'file_pattern' (optional): Filter files by pattern (e.g., '*.cpp'), default is all "
-           "files\n"
-           "- 'max_results' (optional): Maximum number of results to return, default is 50";
+    return "Search for text or patterns across all project files. "
+           "Returns matching lines with file paths, line numbers, and context. "
+           "Supports plain text, regex, case-sensitive/insensitive search, whole word matching, "
+           "and file pattern filtering.";
 }
 
 QJsonObject SearchInProjectTool::getDefinition(LLMCore::ToolSchemaFormat format) const
