@@ -55,7 +55,7 @@ QString ReadProjectFileByNameTool::description() const
            "absolute file path. "
            "The file must exist, be within the project scope, and not excluded by "
            ".qodeassistignore.\n"
-           "Input parameter: 'filename' - the absolute path to the file (e.g., "
+           "Input parameter: 'filepath' - the absolute path to the file (e.g., "
            "'/path/to/project/src/main.cpp').\n"
            "Use 'list_project_files' tool first to get the exact file paths.";
 }
@@ -63,17 +63,17 @@ QString ReadProjectFileByNameTool::description() const
 QJsonObject ReadProjectFileByNameTool::getDefinition(LLMCore::ToolSchemaFormat format) const
 {
     QJsonObject properties;
-    QJsonObject filenameProperty;
-    filenameProperty["type"] = "string";
-    filenameProperty["description"] = "The absolute file path to read";
-    properties["filename"] = filenameProperty;
+    QJsonObject filepathProperty;
+    filepathProperty["type"] = "string";
+    filepathProperty["description"] = "The absolute file path to read";
+    properties["filepath"] = filepathProperty;
 
     QJsonObject definition;
     definition["type"] = "object";
     definition["properties"] = properties;
 
     QJsonArray required;
-    required.append("filename");
+    required.append("filepath");
     definition["required"] = required;
 
     switch (format) {
@@ -98,13 +98,12 @@ LLMCore::ToolPermissions ReadProjectFileByNameTool::requiredPermissions() const
 QFuture<QString> ReadProjectFileByNameTool::executeAsync(const QJsonObject &input)
 {
     return QtConcurrent::run([this, input]() -> QString {
-        QString filePath = input["filename"].toString();
+        QString filePath = input["filepath"].toString();
         if (filePath.isEmpty()) {
-            QString error = "Error: filename parameter is required";
+            QString error = "Error: filepath parameter is required";
             throw std::invalid_argument(error.toStdString());
         }
 
-        // Validate that file exists
         QFileInfo fileInfo(filePath);
         if (!fileInfo.exists() || !fileInfo.isFile()) {
             QString error = QString("Error: File '%1' does not exist").arg(filePath);
@@ -113,13 +112,11 @@ QFuture<QString> ReadProjectFileByNameTool::executeAsync(const QJsonObject &inpu
 
         QString canonicalPath = fileInfo.canonicalFilePath();
 
-        // Check if file is part of the project
         if (!isFileInProject(canonicalPath)) {
             QString error = QString("Error: File '%1' is not part of the project").arg(filePath);
             throw std::runtime_error(error.toStdString());
         }
 
-        // Check if file is ignored
         auto project = ProjectExplorer::ProjectManager::projectForFile(
             Utils::FilePath::fromString(canonicalPath));
         if (project && m_ignoreManager->shouldIgnore(canonicalPath, project)) {
@@ -128,7 +125,6 @@ QFuture<QString> ReadProjectFileByNameTool::executeAsync(const QJsonObject &inpu
             throw std::runtime_error(error.toStdString());
         }
 
-        // Read file content
         QString content = readFileContent(canonicalPath);
         if (content.isNull()) {
             QString error = QString("Error: Could not read file '%1'").arg(canonicalPath);
@@ -150,11 +146,15 @@ bool ReadProjectFileByNameTool::isFileInProject(const QString &filePath) const
             continue;
 
         Utils::FilePaths projectFiles = project->files(ProjectExplorer::Project::SourceFiles);
-
         for (const auto &projectFile : std::as_const(projectFiles)) {
             if (projectFile == targetPath) {
                 return true;
             }
+        }
+
+        Utils::FilePath projectDir = project->projectDirectory();
+        if (targetPath.isChildOf(projectDir)) {
+            return true;
         }
     }
 
