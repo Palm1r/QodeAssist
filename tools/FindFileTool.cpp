@@ -18,6 +18,7 @@
  */
 
 #include "FindFileTool.hpp"
+#include "ToolExceptions.hpp"
 
 #include <logger/Logger.hpp>
 #include <projectexplorer/project.h>
@@ -113,7 +114,7 @@ QFuture<QString> FindFileTool::executeAsync(const QJsonObject &input)
         QString query = input["query"].toString().trimmed();
         if (query.isEmpty()) {
             QString error = "Error: query parameter is required and cannot be empty";
-            throw std::invalid_argument(error.toStdString());
+            throw ToolInvalidArgument(error);
         }
 
         QString filePattern = input["file_pattern"].toString().trimmed();

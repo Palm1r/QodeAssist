@@ -18,6 +18,7 @@
  */
 
 #include "FindSymbolTool.hpp"
+#include "ToolExceptions.hpp"
 
 #include <cplusplus/Overview.h>
 #include <cplusplus/Scope.h>
@@ -157,13 +158,13 @@ QFuture<QString> FindSymbolTool::executeAsync(const QJsonObject &input)
         if (symbolName.isEmpty()) {
             QString error = "Error: 'symbol_name' parameter is required";
             LOG_MESSAGE(error);
-            throw std::invalid_argument(error.toStdString());
+            throw ToolInvalidArgument(error);
         }
 
         if (useRegex && useWildcard) {
             QString error = "Error: 'use_regex' and 'use_wildcard' cannot be used together";
             LOG_MESSAGE(error);
-            throw std::invalid_argument(error.toStdString());
+            throw ToolInvalidArgument(error);
         }
 
         SymbolType type = parseSymbolType(symbolTypeStr);

@@ -18,6 +18,7 @@
  */
 
 #include "ReadFileByPathTool.hpp"
+#include "ToolExceptions.hpp"
 
 #include <coreplugin/documentmanager.h>
 #include <logger/Logger.hpp>
@@ -97,16 +98,22 @@ QFuture<QString> ReadProjectFileByPathTool::executeAsync(const QJsonObject &inpu
         QString filePath = input["filepath"].toString();
         if (filePath.isEmpty()) {
             QString error = "Error: filepath parameter is required";
-            throw std::invalid_argument(error.toStdString());
+            throw ToolInvalidArgument(error);
         }
 
         QFileInfo fileInfo(filePath);
+        LOG_MESSAGE(QString("Checking file: %1, exists: %2, isFile: %3")
+                        .arg(filePath)
+                        .arg(fileInfo.exists())
+                        .arg(fileInfo.isFile()));
+        
         if (!fileInfo.exists() || !fileInfo.isFile()) {
             QString error = QString("Error: File '%1' does not exist").arg(filePath);
-            throw std::runtime_error(error.toStdString());
+            throw ToolRuntimeError(error);
         }
 
         QString canonicalPath = fileInfo.canonicalFilePath();
+        LOG_MESSAGE(QString("Canonical path: %1").arg(canonicalPath));
 
         bool isInProject = isFileInProject(canonicalPath);
         
@@ -117,7 +124,7 @@ QFuture<QString> ReadProjectFileByPathTool::executeAsync(const QJsonObject &inpu
                 QString error = QString("Error: File '%1' is not part of the project. "
                                         "Enable 'Allow reading files outside project' in settings to access this file.")
                                     .arg(filePath);
-                throw std::runtime_error(error.toStdString());
+                throw ToolRuntimeError(error);
             }
             LOG_MESSAGE(QString("Reading file outside project scope: %1").arg(canonicalPath));
         }
@@ -127,17 +134,19 @@ QFuture<QString> ReadProjectFileByPathTool::executeAsync(const QJsonObject &inpu
         if (isInProject && project && m_ignoreManager->shouldIgnore(canonicalPath, project)) {
             QString error
                 = QString("Error: File '%1' is excluded by .qodeassistignore").arg(filePath);
-            throw std::runtime_error(error.toStdString());
+            throw ToolRuntimeError(error);
         }
 
+        // readFileContent throws exception if file cannot be opened
+        // If it returns, the file was read successfully (may be empty)
         QString content = readFileContent(canonicalPath);
-        if (content.isNull()) {
-            QString error = QString("Error: Could not read file '%1'").arg(canonicalPath);
-            throw std::runtime_error(error.toStdString());
-        }
 
-        QString result = QString("File: %1\n\nContent:\n%2").arg(canonicalPath, content);
-        return result;
+        // Return appropriate message for empty or non-empty files
+        if (content.isEmpty()) {
+            return QString("File: %1\n\nThe file is empty").arg(canonicalPath);
+        }
+        
+        return QString("File: %1\n\nContent:\n%2").arg(canonicalPath, content);
     });
 }
 
@@ -170,8 +179,9 @@ QString ReadProjectFileByPathTool::readFileContent(const QString &filePath) cons
 {
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        LOG_MESSAGE(QString("Could not open file: %1").arg(filePath));
-        return QString();
+        LOG_MESSAGE(QString("Could not open file: %1, error: %2").arg(filePath, file.errorString()));
+        throw ToolRuntimeError(QString("Error: Could not open file '%1': %2")
+                                   .arg(filePath, file.errorString()));
     }
 
     QTextStream stream(&file);
@@ -179,6 +189,13 @@ QString ReadProjectFileByPathTool::readFileContent(const QString &filePath) cons
     QString content = stream.readAll();
 
     file.close();
+    
+    LOG_MESSAGE(QString("Successfully read file: %1, size: %2 bytes, isEmpty: %3")
+                    .arg(filePath)
+                    .arg(content.length())
+                    .arg(content.isEmpty()));
+    
+    // Always return valid QString (empty string for empty files)
     return content;
 }
 

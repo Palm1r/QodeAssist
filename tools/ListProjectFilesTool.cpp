@@ -18,6 +18,7 @@
  */
 
 #include "ListProjectFilesTool.hpp"
+#include "ToolExceptions.hpp"
 
 #include <logger/Logger.hpp>
 #include <projectexplorer/project.h>
@@ -86,7 +87,7 @@ QFuture<QString> ListProjectFilesTool::executeAsync(const QJsonObject &input)
         QList<ProjectExplorer::Project *> projects = ProjectExplorer::ProjectManager::projects();
         if (projects.isEmpty()) {
             QString error = "Error: No projects found";
-            throw std::runtime_error(error.toStdString());
+            throw ToolRuntimeError(error);
         }
 
         QString result;

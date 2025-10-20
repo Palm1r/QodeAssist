@@ -18,6 +18,7 @@
  */
 
 #include "EditProjectFileTool.hpp"
+#include "ToolExceptions.hpp"
 
 #include <coreplugin/documentmanager.h>
 #include <logger/Logger.hpp>
@@ -133,13 +134,13 @@ QFuture<QString> EditProjectFileTool::executeAsync(const QJsonObject &input)
         QString filename = input["filename"].toString();
         if (filename.isEmpty()) {
             QString error = "Error: filename parameter is required";
-            throw std::invalid_argument(error.toStdString());
+            throw ToolInvalidArgument(error);
         }
 
         QString modeStr = input["mode"].toString();
         if (modeStr.isEmpty()) {
             QString error = "Error: mode parameter is required";
-            throw std::invalid_argument(error.toStdString());
+            throw ToolInvalidArgument(error);
         }
 
         EditMode mode;
@@ -155,32 +156,32 @@ QFuture<QString> EditProjectFileTool::executeAsync(const QJsonObject &input)
             QString error = QString("Error: Invalid mode '%1'. Must be one of: replace, "
                                     "insert_before, insert_after, append")
                                 .arg(modeStr);
-            throw std::invalid_argument(error.toStdString());
+            throw ToolInvalidArgument(error);
         }
 
         QString newText = input["new_text"].toString();
         if (newText.isEmpty()) {
             QString error = "Error: new_text parameter is required";
-            throw std::invalid_argument(error.toStdString());
+            throw ToolInvalidArgument(error);
         }
 
         QString searchText = input["search_text"].toString();
         if (mode == EditMode::Replace && searchText.isEmpty()) {
             QString error = "Error: search_text parameter is required for replace mode";
-            throw std::invalid_argument(error.toStdString());
+            throw ToolInvalidArgument(error);
         }
 
         int lineNumber = input["line_number"].toInt(0);
         if ((mode == EditMode::InsertBefore || mode == EditMode::InsertAfter) && lineNumber <= 0) {
             QString error = "Error: line_number parameter is required for insert modes and must "
                             "be greater than 0";
-            throw std::invalid_argument(error.toStdString());
+            throw ToolInvalidArgument(error);
         }
 
         QString filePath = findFileInProject(filename);
         if (filePath.isEmpty()) {
             QString error = QString("Error: File '%1' not found in project").arg(filename);
-            throw std::runtime_error(error.toStdString());
+            throw ToolRuntimeError(error);
         }
 
         auto project = ProjectExplorer::ProjectManager::projectForFile(
@@ -189,14 +190,11 @@ QFuture<QString> EditProjectFileTool::executeAsync(const QJsonObject &input)
             QString error
                 = QString("Error: File '%1' is excluded by .qodeassistignore and cannot be edited")
                       .arg(filename);
-            throw std::runtime_error(error.toStdString());
+            throw ToolRuntimeError(error);
         }
 
+        // readFileContent throws exception if file cannot be opened
         QString originalContent = readFileContent(filePath);
-        if (originalContent.isNull()) {
-            QString error = QString("Error: Could not read file '%1'").arg(filePath);
-            throw std::runtime_error(error.toStdString());
-        }
 
         LOG_MESSAGE(QString("Prepared file edit: %1 (mode: %2)").arg(filePath, modeStr));
 
@@ -282,14 +280,21 @@ QString EditProjectFileTool::readFileContent(const QString &filePath) const
 {
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        LOG_MESSAGE(QString("Could not open file for reading: %1").arg(filePath));
-        return QString();
+        LOG_MESSAGE(QString("Could not open file for reading: %1, error: %2")
+                        .arg(filePath, file.errorString()));
+        throw ToolRuntimeError(QString("Error: Could not open file '%1': %2")
+                                   .arg(filePath, file.errorString()));
     }
 
     QTextStream stream(&file);
     stream.setAutoDetectUnicode(true);
     QString content = stream.readAll();
     file.close();
+    
+    LOG_MESSAGE(QString("Successfully read file for edit: %1, size: %2 bytes")
+                    .arg(filePath)
+                    .arg(content.length()));
+    
     return content;
 }
 

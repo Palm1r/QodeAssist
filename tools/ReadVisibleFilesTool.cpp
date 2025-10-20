@@ -18,6 +18,7 @@
  */
 
 #include "ReadVisibleFilesTool.hpp"
+#include "ToolExceptions.hpp"
 
 #include <coreplugin/editormanager/editormanager.h>
 #include <coreplugin/editormanager/ieditor.h>
@@ -85,7 +86,7 @@ QFuture<QString> ReadVisibleFilesTool::executeAsync(const QJsonObject &input)
 
         if (editors.isEmpty()) {
             QString error = "Error: No visible files in the editor";
-            throw std::runtime_error(error.toStdString());
+            throw ToolRuntimeError(error);
         }
 
         QStringList results;
@@ -121,7 +122,7 @@ QFuture<QString> ReadVisibleFilesTool::executeAsync(const QJsonObject &input)
 
         if (results.isEmpty()) {
             QString error = "Error: All visible files are excluded by .qodeassistignore";
-            throw std::runtime_error(error.toStdString());
+            throw ToolRuntimeError(error);
         }
 
         return results.join("\n\n" + QString(80, '=') + "\n\n");

@@ -18,6 +18,7 @@
  */
 
 #include "SearchInProjectTool.hpp"
+#include "ToolExceptions.hpp"
 
 #include <logger/Logger.hpp>
 #include <projectexplorer/project.h>
@@ -122,7 +123,7 @@ QFuture<QString> SearchInProjectTool::executeAsync(const QJsonObject &input)
         QString query = input["query"].toString();
         if (query.isEmpty()) {
             QString error = "Error: query parameter is required";
-            throw std::invalid_argument(error.toStdString());
+            throw ToolInvalidArgument(error);
         }
 
         bool caseSensitive = input["case_sensitive"].toBool(false);

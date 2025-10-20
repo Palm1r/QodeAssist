@@ -18,6 +18,7 @@
  */
 
 #include "ToolHandler.hpp"
+#include "ToolExceptions.hpp"
 
 #include <QJsonDocument>
 #include <QTimer>
@@ -93,8 +94,43 @@ void ToolHandler::onToolExecutionFinished(const QString &toolId)
         QString result = execution->watcher->result();
         LOG_MESSAGE(QString("Tool %1 completed").arg(execution->toolName));
         emit toolCompleted(execution->requestId, execution->toolId, result);
+    } catch (const ToolException &e) {
+        QString error = e.message();
+        if (error.isEmpty()) {
+            error = "Tool execution failed with empty error message";
+        }
+        LOG_MESSAGE(QString("Tool %1 failed: %2").arg(execution->toolName, error));
+        emit toolFailed(execution->requestId, execution->toolId, error);
+    } catch (const QException &e) {
+        QString error = QString::fromUtf8(e.what());
+        if (error.isEmpty()) {
+            error = "Tool execution failed (QException with empty message)";
+        }
+        LOG_MESSAGE(QString("Tool %1 failed: %2").arg(execution->toolName, error));
+        emit toolFailed(execution->requestId, execution->toolId, error);
+    } catch (const std::runtime_error &e) {
+        QString error = QString::fromStdString(e.what());
+        if (error.isEmpty()) {
+            error = "Unknown runtime error occurred";
+        }
+        LOG_MESSAGE(QString("Tool %1 failed: %2").arg(execution->toolName, error));
+        emit toolFailed(execution->requestId, execution->toolId, error);
+    } catch (const std::invalid_argument &e) {
+        QString error = QString::fromStdString(e.what());
+        if (error.isEmpty()) {
+            error = "Invalid argument provided";
+        }
+        LOG_MESSAGE(QString("Tool %1 failed: %2").arg(execution->toolName, error));
+        emit toolFailed(execution->requestId, execution->toolId, error);
     } catch (const std::exception &e) {
         QString error = QString::fromStdString(e.what());
+        if (error.isEmpty()) {
+            error = "Unknown exception occurred";
+        }
+        LOG_MESSAGE(QString("Tool %1 failed: %2").arg(execution->toolName, error));
+        emit toolFailed(execution->requestId, execution->toolId, error);
+    } catch (...) {
+        QString error = "Unknown error occurred during tool execution";
         LOG_MESSAGE(QString("Tool %1 failed: %2").arg(execution->toolName, error));
         emit toolFailed(execution->requestId, execution->toolId, error);
     }
