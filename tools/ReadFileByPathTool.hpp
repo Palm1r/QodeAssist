@@ -39,8 +39,8 @@ public:
     QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
 
 private:
-    QString findFileInProject(const QString &fileName) const;
     QString readFileContent(const QString &filePath) const;
+    bool isFileInProject(const QString &filePath) const;
     Context::IgnoreManager *m_ignoreManager;
 };
 

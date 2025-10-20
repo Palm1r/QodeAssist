@@ -25,9 +25,10 @@
 #include <QJsonObject>
 
 #include "EditProjectFileTool.hpp"
+#include "FindSymbolTool.hpp"
 #include "GetIssuesListTool.hpp"
 #include "ListProjectFilesTool.hpp"
-#include "ReadProjectFileByNameTool.hpp"
+#include "ReadFileByPathTool.hpp"
 #include "ReadVisibleFilesTool.hpp"
 #include "SearchInProjectTool.hpp"
 
@@ -47,6 +48,7 @@ void ToolsFactory::registerTools()
     registerTool(new SearchInProjectTool(this));
     registerTool(new GetIssuesListTool(this));
     registerTool(new EditProjectFileTool(this));
+    registerTool(new FindSymbolTool(this));
 
     LOG_MESSAGE(QString("Registered %1 tools").arg(m_tools.size()));
 }

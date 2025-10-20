@@ -1,7 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
 
-list(APPEND CMAKE_PREFIX_PATH "/Users/palm1r/Qt/Qt Creator.app/Contents/Resources/lib/cmake/QtCreator")
-
 project(QodeAssist)
 
 set(CMAKE_AUTOMOC ON)
@@ -52,6 +50,7 @@ add_qtc_plugin(QodeAssist
     QtCreator::LanguageClient
     QtCreator::TextEditor
     QtCreator::ProjectExplorer
+    QtCreator::CppEditor
   DEPENDS
     Qt::Core
     Qt::Gui
@@ -60,6 +59,7 @@ add_qtc_plugin(QodeAssist
     Qt::Network
     QtCreator::ExtensionSystem
     QtCreator::Utils
+    QtCreator::CPlusPlus
     QodeAssistChatViewplugin
   SOURCES
     .github/workflows/build_cmake.yml
@@ -115,7 +115,7 @@ add_qtc_plugin(QodeAssist
     widgets/QuickRefactorDialog.hpp widgets/QuickRefactorDialog.cpp
     QuickRefactorHandler.hpp QuickRefactorHandler.cpp
     tools/ToolsFactory.hpp tools/ToolsFactory.cpp
-    tools/ReadProjectFileByNameTool.hpp tools/ReadProjectFileByNameTool.cpp
+    tools/ReadFileByPathTool.hpp tools/ReadFileByPathTool.cpp
     tools/ReadVisibleFilesTool.hpp tools/ReadVisibleFilesTool.cpp
     tools/ToolHandler.hpp tools/ToolHandler.cpp
     tools/ListProjectFilesTool.hpp tools/ListProjectFilesTool.cpp
@@ -123,11 +123,13 @@ add_qtc_plugin(QodeAssist
     tools/SearchInProjectTool.hpp tools/SearchInProjectTool.cpp
     tools/GetIssuesListTool.hpp tools/GetIssuesListTool.cpp
     tools/EditProjectFileTool.hpp tools/EditProjectFileTool.cpp
+    tools/FindSymbolTool.hpp tools/FindSymbolTool.cpp
     providers/ClaudeMessage.hpp providers/ClaudeMessage.cpp
     providers/OpenAIMessage.hpp providers/OpenAIMessage.cpp
     providers/OllamaMessage.hpp providers/OllamaMessage.cpp
     providers/GoogleMessage.hpp providers/GoogleMessage.cpp
 )
+
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)
 find_program(QtCreatorExecutable

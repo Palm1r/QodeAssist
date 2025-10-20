@@ -49,7 +49,8 @@ QString ListProjectFilesTool::stringName() const
 QString ListProjectFilesTool::description() const
 {
     return "Get a list of all source files in the current project. "
-           "Returns a structured list of files with their relative paths from the project root. "
+           "Returns a structured list of files with the absolute path to the project root "
+           "and relative paths for each file. "
            "Useful for understanding project structure and finding specific files. "
            "No parameters required.";
 }
@@ -107,6 +108,7 @@ QFuture<QString> ListProjectFilesTool::executeAsync(const QJsonObject &input)
 
             QStringList fileList;
             QString projectPath = project->projectDirectory().toUrlishString();
+            QString projectAbsolutePath = project->projectDirectory().toFSPathString();
 
             for (const auto &filePath : projectFiles) {
                 QString absolutePath = filePath.toUrlishString();
@@ -132,6 +134,7 @@ QFuture<QString> ListProjectFilesTool::executeAsync(const QJsonObject &input)
             result += QString("Project '%1' (%2 files):\n")
                           .arg(project->displayName())
                           .arg(fileList.size());
+            result += QString("Project root: %1\n\n").arg(projectAbsolutePath);
             for (const QString &file : fileList) {
                 result += QString("- %1\n").arg(file);
             }
