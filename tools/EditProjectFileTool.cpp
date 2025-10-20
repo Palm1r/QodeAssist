@@ -364,6 +364,12 @@ void EditProjectFileTool::extractContext(
         if (lineNumber > 0 && lineNumber <= lines.size()) {
             targetLine = lineNumber - 1;
         }
+    } else if (mode == EditMode::AppendToEnd) {
+        if (!lines.isEmpty()) {
+            int startLine = qMax(0, lines.size() - contextLines);
+            contextBefore = lines.mid(startLine).join('\n');
+        }
+        return;
     }
 
     if (targetLine == -1) {
