@@ -226,6 +226,13 @@ GeneralSettings::GeneralSettings()
         Tr::tr("Allow tools to write and modify files on disk (WARNING: Use with caution!)"));
     allowFileSystemWrite.setDefaultValue(false);
 
+    autoApplyFileEdits.setSettingsKey(Constants::CA_AUTO_APPLY_FILE_EDITS);
+    autoApplyFileEdits.setLabelText(Tr::tr("Automatically apply file edits"));
+    autoApplyFileEdits.setToolTip(
+        Tr::tr("When enabled, file edits suggested by AI will be applied automatically. "
+               "When disabled, you will need to manually approve each edit."));
+    autoApplyFileEdits.setDefaultValue(false);
+
     readSettings();
 
     Logger::instance().setLoggingEnabled(enableLogging());
@@ -272,7 +279,7 @@ GeneralSettings::GeneralSettings()
         auto caGroup = Group{
             title(TrConstants::CHAT_ASSISTANT),
             Column{caGrid,
-                   Column{useTools, allowFileSystemRead, allowFileSystemWrite},
+                   Column{useTools, allowFileSystemRead, allowFileSystemWrite, autoApplyFileEdits},
                    caTemplateDescription}};
 
         auto rootLayout = Column{
@@ -520,6 +527,7 @@ void GeneralSettings::resetPageToDefaults()
         resetAspect(useTools);
         resetAspect(allowFileSystemRead);
         resetAspect(allowFileSystemWrite);
+        resetAspect(autoApplyFileEdits);
         writeSettings();
     }
 }

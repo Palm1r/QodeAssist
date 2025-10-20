@@ -38,13 +38,6 @@ FileEditItem {
     readonly property int headerPadding: 8
     readonly property int statusIndicatorWidth: 4
 
-    readonly property var originalLines: originalContent.split('\n')
-    readonly property var newLines: newContent.split('\n')
-    readonly property string firstOriginalLine: originalLines[0] || ""
-    readonly property string firstNewLine: newLines[0] || ""
-    readonly property bool hasMultipleOriginalLines: originalLines.length > 1
-    readonly property bool hasMultipleNewLines: newLines.length > 1
-
     readonly property bool isPending: status === FileEditItem.Pending
     readonly property bool isApplied: status === FileEditItem.Applied
     readonly property bool isReverted: status === FileEditItem.Reverted
@@ -159,10 +152,21 @@ FileEditItem {
                 Text {
                     id: headerText
                     Layout.fillWidth: true
-                    text: qsTr("File Edit: %1 (+%2 -%3)")
-                        .arg(root.filePath)
-                        .arg(root.addedLines)
-                        .arg(root.removedLines)
+                    text: {
+                        var modeText = ""
+                        switch(root.editMode) {
+                            case "replace": modeText = qsTr("Replace"); break;
+                            case "insert_before": modeText = qsTr("Insert Before"); break;
+                            case "insert_after": modeText = qsTr("Insert After"); break;
+                            case "append": modeText = qsTr("Append"); break;
+                            default: modeText = root.editMode;
+                        }
+                        return qsTr("%1: %2 (+%3 -%4)")
+                            .arg(modeText)
+                            .arg(root.filePath)
+                            .arg(root.addedLines)
+                            .arg(root.removedLines)
+                    }
                     font.pixelSize: 12
                     font.bold: true
                     color: palette.text
@@ -194,7 +198,7 @@ FileEditItem {
 
                 QoAButton {
                     text: qsTr("Apply")
-                    enabled: root.isReverted || root.isRejected
+                    enabled: root.isPending || root.isReverted || root.isRejected
                     visible: !root.isApplied
                     onClicked: root.applyEdit()
                 }
@@ -220,22 +224,76 @@ FileEditItem {
             spacing: 4
             visible: opacity > 0
 
+            // Context before (if available)
             Text {
                 Layout.fillWidth: true
-                text: "Old: " + root.firstOriginalLine + (root.hasMultipleOriginalLines ? "..." : "")
+                visible: root.contextBefore.length > 0
+                text: root.contextBefore
                 font.family: root.codeFontFamily
                 font.pixelSize: root.codeFontSize
-                color: Qt.rgba(1, 0.2, 0.2, 0.9)
-                elide: Text.ElideRight
+                color: palette.mid
+                wrapMode: Text.Wrap
+                opacity: 0.6
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: oldContentText.implicitHeight + 8
+                color: Qt.rgba(1, 0.2, 0.2, 0.1)
+                radius: 4
+                border.width: 1
+                border.color: Qt.rgba(1, 0.2, 0.2, 0.3)
+                visible: root.originalContent.length > 0
+
+                Text {
+                    id: oldContentText
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                        top: parent.top
+                        margins: 4
+                    }
+                    text: "- " + root.originalContent
+                    font.family: root.codeFontFamily
+                    font.pixelSize: root.codeFontSize
+                    color: Qt.rgba(1, 0.2, 0.2, 0.9)
+                    wrapMode: Text.Wrap
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: newContentText.implicitHeight + 8
+                color: Qt.rgba(0.2, 0.8, 0.2, 0.1)
+                radius: 4
+                border.width: 1
+                border.color: Qt.rgba(0.2, 0.8, 0.2, 0.3)
+
+                Text {
+                    id: newContentText
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                        top: parent.top
+                        margins: 4
+                    }
+                    text: "+ " + root.newContent
+                    font.family: root.codeFontFamily
+                    font.pixelSize: root.codeFontSize
+                    color: Qt.rgba(0.2, 0.8, 0.2, 0.9)
+                    wrapMode: Text.Wrap
+                }
             }
 
             Text {
                 Layout.fillWidth: true
-                text: "New: " + root.firstNewLine + (root.hasMultipleNewLines ? "..." : "")
+                visible: root.contextAfter.length > 0
+                text: root.contextAfter
                 font.family: root.codeFontFamily
                 font.pixelSize: root.codeFontSize
-                color: Qt.rgba(0.2, 0.8, 0.2, 0.9)
-                elide: Text.ElideRight
+                color: palette.mid
+                wrapMode: Text.Wrap
+                opacity: 0.6
             }
 
             Text {

@@ -51,6 +51,8 @@ public:
     Q_PROPERTY(QString editMode READ editMode NOTIFY editModeChanged FINAL)
     Q_PROPERTY(QString originalContent READ originalContent NOTIFY originalContentChanged FINAL)
     Q_PROPERTY(QString newContent READ newContent NOTIFY newContentChanged FINAL)
+    Q_PROPERTY(QString contextBefore READ contextBefore NOTIFY contextBeforeChanged FINAL)
+    Q_PROPERTY(QString contextAfter READ contextAfter NOTIFY contextAfterChanged FINAL)
     Q_PROPERTY(int addedLines READ addedLines NOTIFY addedLinesChanged FINAL)
     Q_PROPERTY(int removedLines READ removedLines NOTIFY removedLinesChanged FINAL)
     Q_PROPERTY(EditStatus status READ status NOTIFY statusChanged FINAL)
@@ -64,6 +66,8 @@ public:
     QString editMode() const { return m_editMode; }
     QString originalContent() const { return m_originalContent; }
     QString newContent() const { return m_newContent; }
+    QString contextBefore() const { return m_contextBefore; }
+    QString contextAfter() const { return m_contextAfter; }
     int addedLines() const { return m_addedLines; }
     int removedLines() const { return m_removedLines; }
     EditStatus status() const { return m_status; }
@@ -79,6 +83,8 @@ signals:
     void editModeChanged();
     void originalContentChanged();
     void newContentChanged();
+    void contextBeforeChanged();
+    void contextAfterChanged();
     void addedLinesChanged();
     void removedLinesChanged();
     void statusChanged();

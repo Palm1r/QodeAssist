@@ -20,6 +20,7 @@
 #include "FileEditItem.hpp"
 
 #include "Logger.hpp"
+#include "settings/GeneralSettings.hpp"
 
 #include <QFile>
 #include <QFileInfo>
@@ -89,10 +90,15 @@ void FileEditItem::parseFromContent(const QString &content)
     emit editModeChanged();
     emit originalContentChanged();
     emit newContentChanged();
+    emit contextBeforeChanged();
+    emit contextAfterChanged();
     emit addedLinesChanged();
     emit removedLinesChanged();
 
-    applyEditInternal(true);
+    bool autoApplyEnabled = Settings::generalSettings().autoApplyFileEdits.value();
+    if (autoApplyEnabled) {
+        applyEditInternal(true);
+    }
 }
 
 void FileEditItem::applyEdit()
@@ -102,8 +108,15 @@ void FileEditItem::applyEdit()
 
 void FileEditItem::applyEditInternal(bool isAutomatic, int retryCount)
 {
-    if (!isAutomatic && m_status != EditStatus::Reverted && m_status != EditStatus::Rejected) {
-        return;
+    if (isAutomatic) {
+        if (m_status != EditStatus::Pending) {
+            return;
+        }
+    } else {
+        if (m_status != EditStatus::Pending && m_status != EditStatus::Reverted 
+            && m_status != EditStatus::Rejected) {
+            return;
+        }
     }
 
     if (!acquireFileLock(m_filePath)) {
