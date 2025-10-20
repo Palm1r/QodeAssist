@@ -102,7 +102,15 @@ ChatRootView {
 
                 width: ListView.view.width - scroll.width
 
-                sourceComponent: model.roleType === ChatModel.Tool ? toolMessageComponent : chatItemComponent
+                sourceComponent: {
+                    if (model.roleType === ChatModel.Tool) {
+                        return toolMessageComponent
+                    } else if (model.roleType === ChatModel.FileEdit) {
+                        return fileEditSuggestionComponent
+                    } else {
+                        return chatItemComponent
+                    }
+                }
             }
 
             header: Item {
@@ -128,6 +136,7 @@ ChatRootView {
                 id: chatItemComponent
 
                 ChatItem {
+                    id: chatItemInstance
                     msgModel: root.chatModel.processMessageContent(model.content)
                     messageAttachments: model.attachments
                     isUserMessage: model.roleType === ChatModel.User
@@ -151,6 +160,16 @@ ChatRootView {
 
                 ToolStatusItem {
                     toolContent: model.content
+                }
+            }
+            
+            Component {
+                id: fileEditSuggestionComponent
+                
+                FileEditChangesItem {
+                    id: fileEditItem
+
+                    width: chatListView.width - 10
                 }
             }
         }

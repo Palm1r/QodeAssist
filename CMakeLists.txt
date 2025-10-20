@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
+list(APPEND CMAKE_PREFIX_PATH "/Users/palm1r/Qt/Qt Creator.app/Contents/Resources/lib/cmake/QtCreator")
+
 project(QodeAssist)
 
 set(CMAKE_AUTOMOC ON)
@@ -120,6 +122,7 @@ add_qtc_plugin(QodeAssist
     tools/ToolsManager.hpp tools/ToolsManager.cpp
     tools/SearchInProjectTool.hpp tools/SearchInProjectTool.cpp
     tools/GetIssuesListTool.hpp tools/GetIssuesListTool.cpp
+    tools/EditProjectFileTool.hpp tools/EditProjectFileTool.cpp
     providers/ClaudeMessage.hpp providers/ClaudeMessage.cpp
     providers/OpenAIMessage.hpp providers/OpenAIMessage.cpp
     providers/OllamaMessage.hpp providers/OllamaMessage.cpp

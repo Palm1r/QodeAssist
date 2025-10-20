@@ -75,3 +75,5 @@ CMakeLists.txt.user*
 
 /build
 /.qodeassist
+/.cursor
+/.vscode

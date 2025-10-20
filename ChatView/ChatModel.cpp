@@ -19,7 +19,8 @@
 
 #include "ChatModel.hpp"
 #include <utils/aspects.h>
-#include <QtCore/qjsonobject.h>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QtQml>
 
 #include "ChatAssistantSettings.hpp"
@@ -126,7 +127,6 @@ QList<MessagePart> ChatModel::processMessageContent(const QString &content) cons
     QRegularExpression codeBlockRegex("```(\\w*)\\n?([\\s\\S]*?)```");
     int lastIndex = 0;
     auto blockMatches = codeBlockRegex.globalMatch(content);
-    bool foundCodeBlock = blockMatches.hasNext();
 
     while (blockMatches.hasNext()) {
         auto match = blockMatches.next();
@@ -134,10 +134,19 @@ QList<MessagePart> ChatModel::processMessageContent(const QString &content) cons
             QString textBetween
                 = content.mid(lastIndex, match.capturedStart() - lastIndex).trimmed();
             if (!textBetween.isEmpty()) {
-                parts.append({MessagePartType::Text, textBetween, ""});
+                MessagePart part;
+                part.type = MessagePartType::Text;
+                part.text = textBetween;
+                parts.append(part);
             }
         }
-        parts.append({MessagePartType::Code, match.captured(2).trimmed(), match.captured(1)});
+
+        MessagePart codePart;
+        codePart.type = MessagePartType::Code;
+        codePart.text = match.captured(2).trimmed();
+        codePart.language = match.captured(1);
+        parts.append(codePart);
+
         lastIndex = match.capturedEnd();
     }
 
@@ -150,15 +159,22 @@ QList<MessagePart> ChatModel::processMessageContent(const QString &content) cons
         if (unclosedMatch.hasMatch()) {
             QString beforeCodeBlock = remainingText.left(unclosedMatch.capturedStart()).trimmed();
             if (!beforeCodeBlock.isEmpty()) {
-                parts.append({MessagePartType::Text, beforeCodeBlock, ""});
+                MessagePart part;
+                part.type = MessagePartType::Text;
+                part.text = beforeCodeBlock;
+                parts.append(part);
             }
 
-            parts.append(
-                {MessagePartType::Code,
-                 unclosedMatch.captured(2).trimmed(),
-                 unclosedMatch.captured(1)});
+            MessagePart codePart;
+            codePart.type = MessagePartType::Code;
+            codePart.text = unclosedMatch.captured(2).trimmed();
+            codePart.language = unclosedMatch.captured(1);
+            parts.append(codePart);
         } else if (!remainingText.isEmpty()) {
-            parts.append({MessagePartType::Text, remainingText, ""});
+            MessagePart part;
+            part.type = MessagePartType::Text;
+            part.text = remainingText;
+            parts.append(part);
         }
     }
 
@@ -266,17 +282,60 @@ void ChatModel::updateToolResult(
             .arg(requestId, toolId, toolName)
             .arg(result.length()));
 
+    bool toolMessageFound = false;
     for (int i = m_messages.size() - 1; i >= 0; --i) {
         if (m_messages[i].id == toolId && m_messages[i].role == ChatRole::Tool) {
             m_messages[i].content = toolName + "\n" + result;
             emit dataChanged(index(i), index(i));
+            toolMessageFound = true;
             LOG_MESSAGE(QString("Updated tool result at index %1").arg(i));
-            return;
+            break;
         }
     }
 
-    LOG_MESSAGE(QString("WARNING: Tool message with requestId=%1 toolId=%2 not found!")
-                    .arg(requestId, toolId));
+    if (!toolMessageFound) {
+        LOG_MESSAGE(QString("WARNING: Tool message with requestId=%1 toolId=%2 not found!")
+                        .arg(requestId, toolId));
+    }
+
+    const QString marker = "QODEASSIST_FILE_EDIT:";
+    if (result.contains(marker)) {
+        LOG_MESSAGE(QString("File edit marker detected in tool result"));
+
+        int markerPos = result.indexOf(marker);
+        int jsonStart = markerPos + marker.length();
+
+        if (jsonStart < result.length()) {
+            QString jsonStr = result.mid(jsonStart);
+
+            QJsonParseError parseError;
+            QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8(), &parseError);
+
+            if (parseError.error != QJsonParseError::NoError) {
+                LOG_MESSAGE(QString("ERROR: Failed to parse file edit JSON at offset %1: %2")
+                                .arg(parseError.offset)
+                                .arg(parseError.errorString()));
+            } else if (!doc.isObject()) {
+                LOG_MESSAGE(
+                    QString("ERROR: Parsed JSON is not an object, is array=%1").arg(doc.isArray()));
+            } else {
+                QJsonObject editData = doc.object();
+                QString editId = editData["edit_id"].toString();
+
+                LOG_MESSAGE(QString("Adding FileEdit message, editId=%1").arg(editId));
+
+                beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());
+                Message fileEditMsg;
+                fileEditMsg.role = ChatRole::FileEdit;
+                fileEditMsg.content = result;
+                fileEditMsg.id = editId.isEmpty() ? QString("edit_%1").arg(requestId) : editId;
+                m_messages.append(fileEditMsg);
+                endInsertRows();
+
+                LOG_MESSAGE(QString("Added FileEdit message with editId=%1").arg(editId));
+            }
+        }
+    }
 }
 
 } // namespace QodeAssist::Chat
