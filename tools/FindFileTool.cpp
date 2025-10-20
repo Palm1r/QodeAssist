@@ -131,7 +131,9 @@ QFuture<QString> FindFileTool::executeAsync(const QJsonObject &input)
 
         LOG_MESSAGE(QString("FindFileTool: Searching for '%1'%2 (max: %3)")
                         .arg(query)
-                        .arg(filePattern.isEmpty() ? "" : QString(" with pattern '%1'").arg(filePattern))
+                        .arg(
+                            filePattern.isEmpty() ? QString("")
+                                                  : QString(" with pattern '%1'").arg(filePattern))
                         .arg(maxResults));
 
         QFileInfo queryInfo(query);
@@ -165,10 +167,14 @@ QFuture<QString> FindFileTool::executeAsync(const QJsonObject &input)
         int totalFound = matches.size();
 
         if (matches.isEmpty()) {
-            QString error = QString("Error: No files found matching '%1'%2 in the project. "
-                                    "Try using a different search term or check the file name.")
+            QString error = QString(
+                                "Error: No files found matching '%1'%2 in the project. "
+                                "Try using a different search term or check the file name.")
                                 .arg(query)
-                                .arg(filePattern.isEmpty() ? "" : QString(" with pattern '%1'").arg(filePattern));
+                                .arg(
+                                    filePattern.isEmpty()
+                                        ? QString("")
+                                        : QString(" with pattern '%1'").arg(filePattern));
             throw std::runtime_error(error.toStdString());
         }
 
@@ -276,7 +282,7 @@ QString FindFileTool::formatResults(const QList<FileMatch> &matches,
     } else {
         result = QString("Found %1 file%2%3:\n\n")
                      .arg(totalFound)
-                     .arg(totalFound == 1 ? "" : "s")
+                     .arg(totalFound == 1 ? QString("") : QString("s"))
                      .arg(wasTruncated ? QString(" (showing first %1)").arg(matches.size()) : "");
 
         QString currentProject;
