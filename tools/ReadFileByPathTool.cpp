@@ -34,33 +34,32 @@
 
 namespace QodeAssist::Tools {
 
-ReadProjectFileByNameTool::ReadProjectFileByNameTool(QObject *parent)
+ReadProjectFileByPathTool::ReadProjectFileByPathTool(QObject *parent)
     : BaseTool(parent)
     , m_ignoreManager(new Context::IgnoreManager(this))
 {}
 
-QString ReadProjectFileByNameTool::name() const
+QString ReadProjectFileByPathTool::name() const
 {
-    return "read_project_file_by_name";
+    return "read_project_file_by_path";
 }
 
-QString ReadProjectFileByNameTool::stringName() const
+QString ReadProjectFileByPathTool::stringName() const
 {
     return {"Reading project file"};
 }
 
-QString ReadProjectFileByNameTool::description() const
+QString ReadProjectFileByPathTool::description() const
 {
     return "Read the content of a specific file from the current project by providing its "
            "absolute file path. "
            "The file must exist, be within the project scope, and not excluded by "
            ".qodeassistignore.\n"
            "Input parameter: 'filepath' - the absolute path to the file (e.g., "
-           "'/path/to/project/src/main.cpp').\n"
-           "Use 'list_project_files' tool first to get the exact file paths.";
+           "'/path/to/project/src/main.cpp').\n";
 }
 
-QJsonObject ReadProjectFileByNameTool::getDefinition(LLMCore::ToolSchemaFormat format) const
+QJsonObject ReadProjectFileByPathTool::getDefinition(LLMCore::ToolSchemaFormat format) const
 {
     QJsonObject properties;
     QJsonObject filepathProperty;
@@ -90,12 +89,12 @@ QJsonObject ReadProjectFileByNameTool::getDefinition(LLMCore::ToolSchemaFormat f
     return definition;
 }
 
-LLMCore::ToolPermissions ReadProjectFileByNameTool::requiredPermissions() const
+LLMCore::ToolPermissions ReadProjectFileByPathTool::requiredPermissions() const
 {
     return LLMCore::ToolPermission::FileSystemRead;
 }
 
-QFuture<QString> ReadProjectFileByNameTool::executeAsync(const QJsonObject &input)
+QFuture<QString> ReadProjectFileByPathTool::executeAsync(const QJsonObject &input)
 {
     return QtConcurrent::run([this, input]() -> QString {
         QString filePath = input["filepath"].toString();
@@ -136,7 +135,7 @@ QFuture<QString> ReadProjectFileByNameTool::executeAsync(const QJsonObject &inpu
     });
 }
 
-bool ReadProjectFileByNameTool::isFileInProject(const QString &filePath) const
+bool ReadProjectFileByPathTool::isFileInProject(const QString &filePath) const
 {
     QList<ProjectExplorer::Project *> projects = ProjectExplorer::ProjectManager::projects();
     Utils::FilePath targetPath = Utils::FilePath::fromString(filePath);
@@ -161,7 +160,7 @@ bool ReadProjectFileByNameTool::isFileInProject(const QString &filePath) const
     return false;
 }
 
-QString ReadProjectFileByNameTool::readFileContent(const QString &filePath) const
+QString ReadProjectFileByPathTool::readFileContent(const QString &filePath) const
 {
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {

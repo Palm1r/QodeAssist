@@ -24,11 +24,11 @@
 
 namespace QodeAssist::Tools {
 
-class ReadProjectFileByNameTool : public LLMCore::BaseTool
+class ReadProjectFileByPathTool : public LLMCore::BaseTool
 {
     Q_OBJECT
 public:
-    explicit ReadProjectFileByNameTool(QObject *parent = nullptr);
+    explicit ReadProjectFileByPathTool(QObject *parent = nullptr);
 
     QString name() const override;
     QString stringName() const override;
