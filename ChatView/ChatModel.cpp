@@ -195,6 +195,10 @@ QJsonArray ChatModel::prepareMessagesForRequest(const QString &systemPrompt) con
         case ChatRole::Assistant:
             role = "assistant";
             break;
+        case ChatRole::Tool:
+        case ChatRole::FileEdit:
+            // Skip Tool and FileEdit messages - they are UI-only
+            continue;
         default:
             continue;
         }

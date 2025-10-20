@@ -142,6 +142,10 @@ void ClientInterface::sendMessage(
 
     QVector<LLMCore::Message> messages;
     for (const auto &msg : m_chatModel->getChatHistory()) {
+        // Skip Tool and FileEdit messages - they are UI-only and should not be in API history
+        if (msg.role == ChatModel::ChatRole::Tool || msg.role == ChatModel::ChatRole::FileEdit) {
+            continue;
+        }
         messages.append({msg.role == ChatModel::ChatRole::User ? "user" : "assistant", msg.content});
     }
     context.history = messages;
