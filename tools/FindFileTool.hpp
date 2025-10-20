@@ -56,6 +56,15 @@ private:
     };
 
     QList<FileMatch> findMatchingFiles(const QString &query, int maxResults) const;
+    void searchInFileSystem(const QString &dirPath, 
+                           const QString &query, 
+                           const QString &projectName,
+                           const QString &projectDir,
+                           ProjectExplorer::Project *project,
+                           QList<FileMatch> &matches,
+                           int maxResults,
+                           int &currentDepth,
+                           int maxDepth = 10) const;
     QString formatResults(const QList<FileMatch> &matches, int totalFound, int maxResults) const;
     bool isFileInProject(const QString &filePath) const;
     bool matchesFilePattern(const QString &fileName, const QString &pattern) const;

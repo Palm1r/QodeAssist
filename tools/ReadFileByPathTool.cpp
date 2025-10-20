@@ -23,6 +23,7 @@
 #include <logger/Logger.hpp>
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectmanager.h>
+#include <settings/GeneralSettings.hpp>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -107,14 +108,23 @@ QFuture<QString> ReadProjectFileByPathTool::executeAsync(const QJsonObject &inpu
 
         QString canonicalPath = fileInfo.canonicalFilePath();
 
-        if (!isFileInProject(canonicalPath)) {
-            QString error = QString("Error: File '%1' is not part of the project").arg(filePath);
-            throw std::runtime_error(error.toStdString());
+        bool isInProject = isFileInProject(canonicalPath);
+        
+        // Check if reading outside project is allowed
+        if (!isInProject) {
+            const auto &settings = Settings::generalSettings();
+            if (!settings.allowReadOutsideProject()) {
+                QString error = QString("Error: File '%1' is not part of the project. "
+                                        "Enable 'Allow reading files outside project' in settings to access this file.")
+                                    .arg(filePath);
+                throw std::runtime_error(error.toStdString());
+            }
+            LOG_MESSAGE(QString("Reading file outside project scope: %1").arg(canonicalPath));
         }
 
-        auto project = ProjectExplorer::ProjectManager::projectForFile(
-            Utils::FilePath::fromString(canonicalPath));
-        if (project && m_ignoreManager->shouldIgnore(canonicalPath, project)) {
+        auto project = isInProject ? ProjectExplorer::ProjectManager::projectForFile(
+            Utils::FilePath::fromString(canonicalPath)) : nullptr;
+        if (isInProject && project && m_ignoreManager->shouldIgnore(canonicalPath, project)) {
             QString error
                 = QString("Error: File '%1' is excluded by .qodeassistignore").arg(filePath);
             throw std::runtime_error(error.toStdString());

@@ -226,6 +226,12 @@ GeneralSettings::GeneralSettings()
         Tr::tr("Allow tools to write and modify files on disk (WARNING: Use with caution!)"));
     allowFileSystemWrite.setDefaultValue(false);
 
+    allowReadOutsideProject.setSettingsKey(Constants::CA_ALLOW_READ_OUTSIDE_PROJECT);
+    allowReadOutsideProject.setLabelText(Tr::tr("Allow reading files outside project"));
+    allowReadOutsideProject.setToolTip(
+        Tr::tr("Allow tools to read files outside the project scope (system headers, Qt files, external libraries)"));
+    allowReadOutsideProject.setDefaultValue(true);
+
     autoApplyFileEdits.setSettingsKey(Constants::CA_AUTO_APPLY_FILE_EDITS);
     autoApplyFileEdits.setLabelText(Tr::tr("Automatically apply file edits"));
     autoApplyFileEdits.setToolTip(
@@ -279,7 +285,7 @@ GeneralSettings::GeneralSettings()
         auto caGroup = Group{
             title(TrConstants::CHAT_ASSISTANT),
             Column{caGrid,
-                   Column{useTools, allowFileSystemRead, allowFileSystemWrite, autoApplyFileEdits},
+                   Column{useTools, allowFileSystemRead, allowFileSystemWrite, allowReadOutsideProject, autoApplyFileEdits},
                    caTemplateDescription}};
 
         auto rootLayout = Column{
@@ -527,6 +533,7 @@ void GeneralSettings::resetPageToDefaults()
         resetAspect(useTools);
         resetAspect(allowFileSystemRead);
         resetAspect(allowFileSystemWrite);
+        resetAspect(allowReadOutsideProject);
         resetAspect(autoApplyFileEdits);
         writeSettings();
     }

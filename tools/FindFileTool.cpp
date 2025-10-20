@@ -22,6 +22,7 @@
 #include <logger/Logger.hpp>
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectmanager.h>
+#include <settings/GeneralSettings.hpp>
 #include <QDir>
 #include <QFileInfo>
 #include <QJsonArray>
@@ -48,6 +49,7 @@ QString FindFileTool::stringName() const
 QString FindFileTool::description() const
 {
     return "Search for files in the project by filename, partial name, or path. "
+           "Searches both in CMake-registered files and filesystem (finds .gitignore, Python scripts, README, etc.). "
            "Supports exact/partial filename match, relative/absolute paths, file extension filtering, "
            "and case-insensitive search. "
            "Returns matching files with absolute and relative paths.";
@@ -60,7 +62,9 @@ QJsonObject FindFileTool::getDefinition(LLMCore::ToolSchemaFormat format) const
     QJsonObject queryProperty;
     queryProperty["type"] = "string";
     queryProperty["description"]
-        = "The filename, partial filename, or path to search for (case-insensitive)";
+        = "The filename, partial filename, or path to search for (case-insensitive). "
+          "Finds ALL files in project directory including .gitignore, README.md, Python scripts, "
+          "config files, etc., even if not in CMake build system";
     properties["query"] = queryProperty;
 
     QJsonObject filePatternProperty;
@@ -127,22 +131,30 @@ QFuture<QString> FindFileTool::executeAsync(const QJsonObject &input)
         QFileInfo queryInfo(query);
         if (queryInfo.isAbsolute() && queryInfo.exists() && queryInfo.isFile()) {
             QString canonicalPath = queryInfo.canonicalFilePath();
-            if (!isFileInProject(canonicalPath)) {
-                QString error = QString("Error: File '%1' exists but is outside the project scope. "
-                                        "Only files within the project can be accessed.")
-                                    .arg(canonicalPath);
-                throw std::runtime_error(error.toStdString());
+            bool isInProject = isFileInProject(canonicalPath);
+            
+            // Check if reading outside project is allowed
+            if (!isInProject) {
+                const auto &settings = Settings::generalSettings();
+                if (!settings.allowReadOutsideProject()) {
+                    QString error = QString("Error: File '%1' exists but is outside the project scope. "
+                                            "Enable 'Allow reading files outside project' in settings to access this file.")
+                                        .arg(canonicalPath);
+                    throw std::runtime_error(error.toStdString());
+                }
+                LOG_MESSAGE(QString("Finding file outside project scope: %1").arg(canonicalPath));
             }
 
-            auto project = ProjectExplorer::ProjectManager::projectForFile(
-                Utils::FilePath::fromString(canonicalPath));
+            auto project = isInProject ? ProjectExplorer::ProjectManager::projectForFile(
+                Utils::FilePath::fromString(canonicalPath)) : nullptr;
 
-            if (project && !m_ignoreManager->shouldIgnore(canonicalPath, project)) {
+            if (!isInProject || (project && !m_ignoreManager->shouldIgnore(canonicalPath, project))) {
                 FileMatch match;
                 match.absolutePath = canonicalPath;
-                match.relativePath = QDir(project->projectDirectory().toFSPathString())
-                                         .relativeFilePath(canonicalPath);
-                match.projectName = project->displayName();
+                match.relativePath = isInProject && project 
+                    ? QDir(project->projectDirectory().toFSPathString()).relativeFilePath(canonicalPath)
+                    : canonicalPath;
+                match.projectName = isInProject && project ? project->displayName() : "External";
                 match.matchType = FileMatch::PathMatch;
                 
                 QList<FileMatch> matches;
@@ -235,9 +247,123 @@ QList<FindFileTool::FileMatch> FindFileTool::findMatchingFiles(const QString &qu
         }
     }
 
+    // If we didn't find enough matches in project files, search the filesystem
+    if (matches.size() < maxResults) {
+        LOG_MESSAGE(QString("FindFileTool: Extending search to filesystem (found %1 matches so far)")
+                        .arg(matches.size()));
+        
+        for (auto project : projects) {
+            if (!project)
+                continue;
+            
+            if (matches.size() >= maxResults) {
+                break;
+            }
+            
+            Utils::FilePath projectDir = project->projectDirectory();
+            QString projectName = project->displayName();
+            QString projectDirStr = projectDir.toFSPathString();
+            
+            int depth = 0;
+            searchInFileSystem(projectDirStr, lowerQuery, projectName, projectDirStr, 
+                             project, matches, maxResults, depth);
+        }
+    }
+
     std::sort(matches.begin(), matches.end());
 
     return matches;
+}
+
+void FindFileTool::searchInFileSystem(const QString &dirPath,
+                                       const QString &query,
+                                       const QString &projectName,
+                                       const QString &projectDir,
+                                       ProjectExplorer::Project *project,
+                                       QList<FileMatch> &matches,
+                                       int maxResults,
+                                       int &currentDepth,
+                                       int maxDepth) const
+{
+    if (currentDepth > maxDepth || matches.size() >= maxResults) {
+        return;
+    }
+    
+    currentDepth++;
+    
+    QDir dir(dirPath);
+    if (!dir.exists()) {
+        currentDepth--;
+        return;
+    }
+    
+    // Get all entries (files and directories)
+    QFileInfoList entries = dir.entryInfoList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot | QDir::Hidden);
+    
+    for (const QFileInfo &entry : entries) {
+        if (matches.size() >= maxResults) {
+            break;
+        }
+        
+        QString absolutePath = entry.absoluteFilePath();
+        
+        // Check if should be ignored
+        if (project && m_ignoreManager->shouldIgnore(absolutePath, project)) {
+            continue;
+        }
+        
+        // Skip common build/cache directories
+        QString fileName = entry.fileName();
+        if (entry.isDir()) {
+            // Skip common build/cache directories
+            if (fileName == "build" || fileName == ".git" || fileName == "node_modules" ||
+                fileName == "__pycache__" || fileName == ".venv" || fileName == "venv" ||
+                fileName == ".cmake" || fileName == "CMakeFiles" || fileName.startsWith(".qt")) {
+                continue;
+            }
+            
+            // Recurse into subdirectory
+            searchInFileSystem(absolutePath, query, projectName, projectDir, 
+                             project, matches, maxResults, currentDepth, maxDepth);
+            continue;
+        }
+        
+        // Check if already in matches (avoid duplicates from project files)
+        bool alreadyAdded = false;
+        for (const auto &match : matches) {
+            if (match.absolutePath == absolutePath) {
+                alreadyAdded = true;
+                break;
+            }
+        }
+        
+        if (alreadyAdded) {
+            continue;
+        }
+        
+        // Match logic
+        QString lowerFileName = fileName.toLower();
+        QString relativePath = QDir(projectDir).relativeFilePath(absolutePath);
+        QString lowerRelativePath = relativePath.toLower();
+        
+        FileMatch match;
+        match.absolutePath = absolutePath;
+        match.relativePath = relativePath;
+        match.projectName = projectName;
+        
+        if (lowerFileName == query) {
+            match.matchType = FileMatch::ExactName;
+            matches.append(match);
+        } else if (lowerRelativePath.contains(query)) {
+            match.matchType = FileMatch::PathMatch;
+            matches.append(match);
+        } else if (lowerFileName.contains(query)) {
+            match.matchType = FileMatch::PartialName;
+            matches.append(match);
+        }
+    }
+    
+    currentDepth--;
 }
 
 bool FindFileTool::matchesFilePattern(const QString &fileName, const QString &pattern) const
