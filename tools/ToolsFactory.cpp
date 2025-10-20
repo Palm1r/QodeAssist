@@ -25,6 +25,7 @@
 #include <QJsonObject>
 
 #include "EditProjectFileTool.hpp"
+#include "FindFileTool.hpp"
 #include "FindSymbolTool.hpp"
 #include "GetIssuesListTool.hpp"
 #include "ListProjectFilesTool.hpp"
@@ -43,12 +44,13 @@ ToolsFactory::ToolsFactory(QObject *parent)
 void ToolsFactory::registerTools()
 {
     registerTool(new ReadVisibleFilesTool(this));
-    registerTool(new ReadProjectFileByNameTool(this));
+    registerTool(new ReadProjectFileByPathTool(this));
     registerTool(new ListProjectFilesTool(this));
     registerTool(new SearchInProjectTool(this));
     registerTool(new GetIssuesListTool(this));
     registerTool(new EditProjectFileTool(this));
     registerTool(new FindSymbolTool(this));
+    registerTool(new FindFileTool(this));
 
     LOG_MESSAGE(QString("Registered %1 tools").arg(m_tools.size()));
 }
