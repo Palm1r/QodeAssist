@@ -294,10 +294,11 @@ QString FindFileTool::formatResults(const QList<FileMatch> &matches,
         }
 
         if (wasTruncated) {
-            result += QString("\n(Note: %1 additional file%2 not shown. "
-                              "Use 'max_results' parameter to see more.)")
+            result += QString(
+                          "\n(Note: %1 additional file%2 not shown. "
+                          "Use 'max_results' parameter to see more.)")
                           .arg(totalFound - matches.size())
-                          .arg(totalFound - matches.size() == 1 ? "" : "s");
+                          .arg(totalFound - matches.size() == 1 ? QString("") : QString("s"));
         }
     }
 
