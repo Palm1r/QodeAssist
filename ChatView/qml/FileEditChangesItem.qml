@@ -86,15 +86,15 @@ FileEditItem {
     Rectangle {
         id: fileEditView
 
-        anchors.fill: parent
+        property bool expanded: false
 
+        anchors.fill: parent
         implicitHeight: expanded ? headerArea.height + contentColumn.height + root.contentBottomPadding
                                  : headerArea.height
         radius: root.borderRadius
 
-        property bool expanded: false
-
         color: palette.base
+
         border.width: 1
         border.color: root.isPending
             ? (color.hslLightness > 0.5 ? Qt.darker(color, 1.3) : Qt.lighter(color, 1.3))
@@ -224,16 +224,19 @@ FileEditItem {
             spacing: 4
             visible: opacity > 0
 
-            // Context before (if available)
-            Text {
+            TextEdit {
                 Layout.fillWidth: true
                 visible: root.contextBefore.length > 0
                 text: root.contextBefore
                 font.family: root.codeFontFamily
                 font.pixelSize: root.codeFontSize
                 color: palette.mid
-                wrapMode: Text.Wrap
+                wrapMode: TextEdit.Wrap
                 opacity: 0.6
+                readOnly: true
+                selectByMouse: true
+                selectByKeyboard: true
+                textFormat: TextEdit.PlainText
             }
 
             Rectangle {
@@ -245,7 +248,7 @@ FileEditItem {
                 border.color: Qt.rgba(1, 0.2, 0.2, 0.3)
                 visible: root.originalContent.length > 0
 
-                Text {
+                TextEdit {
                     id: oldContentText
                     anchors {
                         left: parent.left
@@ -257,7 +260,11 @@ FileEditItem {
                     font.family: root.codeFontFamily
                     font.pixelSize: root.codeFontSize
                     color: Qt.rgba(1, 0.2, 0.2, 0.9)
-                    wrapMode: Text.Wrap
+                    wrapMode: TextEdit.Wrap
+                    readOnly: true
+                    selectByMouse: true
+                    selectByKeyboard: true
+                    textFormat: TextEdit.PlainText
                 }
             }
 
@@ -269,7 +276,7 @@ FileEditItem {
                 border.width: 1
                 border.color: Qt.rgba(0.2, 0.8, 0.2, 0.3)
 
-                Text {
+                TextEdit {
                     id: newContentText
                     anchors {
                         left: parent.left
@@ -281,19 +288,27 @@ FileEditItem {
                     font.family: root.codeFontFamily
                     font.pixelSize: root.codeFontSize
                     color: Qt.rgba(0.2, 0.8, 0.2, 0.9)
-                    wrapMode: Text.Wrap
+                    wrapMode: TextEdit.Wrap
+                    readOnly: true
+                    selectByMouse: true
+                    selectByKeyboard: true
+                    textFormat: TextEdit.PlainText
                 }
             }
 
-            Text {
+            TextEdit {
                 Layout.fillWidth: true
                 visible: root.contextAfter.length > 0
                 text: root.contextAfter
                 font.family: root.codeFontFamily
                 font.pixelSize: root.codeFontSize
                 color: palette.mid
-                wrapMode: Text.Wrap
+                wrapMode: TextEdit.Wrap
                 opacity: 0.6
+                readOnly: true
+                selectByMouse: true
+                selectByKeyboard: true
+                textFormat: TextEdit.PlainText
             }
 
             Text {
