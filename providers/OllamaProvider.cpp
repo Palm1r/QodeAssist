@@ -367,7 +367,6 @@ void OllamaProvider::onToolExecutionComplete(
                     .arg(requestId)
                     .arg(toolResults.size()));
 
-    message->startNewContinuation();
     sendRequest(requestId, m_requestUrls[requestId], continuationRequest);
 }
 
@@ -378,6 +377,17 @@ void OllamaProvider::processStreamData(const QString &requestId, const QJsonObje
         message = new OllamaMessage(this);
         m_messages[requestId] = message;
         LOG_MESSAGE(QString("Created NEW OllamaMessage for request %1").arg(requestId));
+
+        if (m_dataBuffers.contains(requestId)) {
+            emit continuationStarted(requestId);
+            LOG_MESSAGE(QString("Starting continuation for request %1").arg(requestId));
+        }
+    } else if (
+        m_dataBuffers.contains(requestId)
+        && message->state() == LLMCore::MessageState::RequiresToolExecution) {
+        message->startNewContinuation();
+        emit continuationStarted(requestId);
+        LOG_MESSAGE(QString("Cleared message state for continuation request %1").arg(requestId));
     }
 
     if (data.contains("message")) {

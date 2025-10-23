@@ -48,7 +48,6 @@ private:
     };
 
     QString readFileContent(const QString &filePath) const;
-    bool isFileInProject(const QString &filePath) const;
     FileResult processFile(const QString &filePath) const;
     QString formatResults(const QList<FileResult> &results) const;
     Context::IgnoreManager *m_ignoreManager;

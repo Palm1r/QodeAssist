@@ -39,6 +39,13 @@ struct PendingTool
     bool complete = false;
 };
 
+struct ToolQueue
+{
+    QList<PendingTool> queue;
+    QHash<QString, PendingTool> completed;
+    bool isExecuting = false;
+};
+
 class ToolsManager : public QObject
 {
     Q_OBJECT
@@ -67,9 +74,9 @@ private slots:
 private:
     ToolsFactory *m_toolsFactory;
     ToolHandler *m_toolHandler;
-    QHash<QString, QHash<QString, PendingTool>> m_pendingTools;
+    QHash<QString, ToolQueue> m_toolQueues;
 
-    bool isExecutionComplete(const QString &requestId) const;
+    void executeNextTool(const QString &requestId);
     QHash<QString, QString> getToolResults(const QString &requestId) const;
 };
 

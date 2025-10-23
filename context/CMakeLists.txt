@@ -9,6 +9,7 @@ add_library(Context STATIC
     ProgrammingLanguage.hpp ProgrammingLanguage.cpp
     IContextManager.hpp
     IgnoreManager.hpp IgnoreManager.cpp
+    ProjectUtils.hpp ProjectUtils.cpp
 )
 
 target_link_libraries(Context

@@ -340,6 +340,12 @@ void OpenAIProvider::processStreamChunk(const QString &requestId, const QJsonObj
             emit continuationStarted(requestId);
             LOG_MESSAGE(QString("Starting continuation for request %1").arg(requestId));
         }
+    } else if (
+        m_dataBuffers.contains(requestId)
+        && message->state() == LLMCore::MessageState::RequiresToolExecution) {
+        message->startNewContinuation();
+        emit continuationStarted(requestId);
+        LOG_MESSAGE(QString("Cleared message state for continuation request %1").arg(requestId));
     }
 
     if (delta.contains("content") && !delta["content"].isNull()) {

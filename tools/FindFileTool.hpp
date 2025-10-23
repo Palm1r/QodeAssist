@@ -66,7 +66,6 @@ private:
                            int &currentDepth,
                            int maxDepth = 10) const;
     QString formatResults(const QList<FileMatch> &matches, int totalFound, int maxResults) const;
-    bool isFileInProject(const QString &filePath) const;
     bool matchesFilePattern(const QString &fileName, const QString &pattern) const;
 
     static constexpr int DEFAULT_MAX_RESULTS = 50;
