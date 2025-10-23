@@ -23,7 +23,7 @@
 
 namespace QodeAssist::LLMCore {
 
-enum RequestType { CodeCompletion, Chat, Embedding };
+enum RequestType { CodeCompletion, Chat, Embedding, QuickRefactoring };
 
 using RequestID = QString;
 }

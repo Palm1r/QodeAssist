@@ -135,7 +135,7 @@ void QuickRefactorHandler::prepareAndSendRequest(
     }
 
     LLMCore::LLMConfig config;
-    config.requestType = LLMCore::RequestType::Chat;
+    config.requestType = LLMCore::RequestType::QuickRefactoring;
     config.provider = provider;
     config.promptTemplate = promptTemplate;
     config.url = QString("%1%2").arg(settings.caUrl(), provider->chatEndpoint());
@@ -144,8 +144,8 @@ void QuickRefactorHandler::prepareAndSendRequest(
 
     LLMCore::ContextData context = prepareContext(editor, range, instructions);
 
-    provider
-        ->prepareRequest(config.providerRequest, promptTemplate, context, LLMCore::RequestType::Chat);
+    provider->prepareRequest(
+        config.providerRequest, promptTemplate, context, LLMCore::RequestType::QuickRefactoring);
 
     QString requestId = QUuid::createUuid().toString();
     m_lastRequestId = requestId;
