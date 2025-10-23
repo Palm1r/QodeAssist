@@ -19,6 +19,7 @@ qt_add_qml_module(QodeAssistChatView
     qml/parts/ErrorToast.qml
     qml/ToolStatusItem.qml
     qml/FileEditChangesItem.qml
+    qml/parts/RulesViewer.qml
 
     RESOURCES
     icons/attach-file-light.svg
@@ -35,6 +36,7 @@ qt_add_qml_module(QodeAssistChatView
     icons/window-unlock.svg
     icons/chat-icon.svg
     icons/chat-pause-icon.svg
+    icons/rules-icon.svg
 
     SOURCES
     ChatWidget.hpp ChatWidget.cpp

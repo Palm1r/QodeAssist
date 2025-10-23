@@ -39,6 +39,7 @@
 #include "ProjectSettings.hpp"
 #include "context/ContextManager.hpp"
 #include "context/TokenUtils.hpp"
+#include "llmcore/RulesLoader.hpp"
 
 namespace QodeAssist::Chat {
 
@@ -139,6 +140,14 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     });
 
     updateInputTokensCount();
+    refreshRules();
+
+    // Refresh rules when project changes
+    connect(
+        ProjectExplorer::ProjectManager::instance(),
+        &ProjectExplorer::ProjectManager::startupProjectChanged,
+        this,
+        &ChatRootView::refreshRules);
 }
 
 ChatModel *ChatRootView::chatModel() const
@@ -339,8 +348,7 @@ QString ChatRootView::getSuggestedFileName() const
     QFileInfo finalCheck(fullPath);
 
     if (fileName.isEmpty() || finalCheck.exists() || !QFileInfo(finalCheck.path()).isWritable()) {
-        fileName = QString("chat_%1").arg(
-            QDateTime::currentDateTime().toString("yyyy-MM-dd_HH-mm"));
+        fileName = QString("chat_%1").arg(QDateTime::currentDateTime().toString("yyyy-MM-dd_HH-mm"));
     }
 
     return fileName;
@@ -491,6 +499,25 @@ void ChatRootView::openChatHistoryFolder()
     QDesktopServices::openUrl(url);
 }
 
+void ChatRootView::openRulesFolder()
+{
+    auto project = ProjectExplorer::ProjectManager::startupProject();
+    if (!project) {
+        return;
+    }
+
+    QString projectPath = project->projectDirectory().toFSPathString();
+    QString rulesPath = projectPath + "/.qodeassist/rules";
+
+    QDir dir(rulesPath);
+    if (!dir.exists()) {
+        dir.mkpath(".");
+    }
+
+    QUrl url = QUrl::fromLocalFile(dir.absolutePath());
+    QDesktopServices::openUrl(url);
+}
+
 void ChatRootView::updateInputTokensCount()
 {
     int inputTokens = m_messageTokensCount;
@@ -630,6 +657,44 @@ void ChatRootView::setRequestProgressStatus(bool state)
 QString ChatRootView::lastErrorMessage() const
 {
     return m_lastErrorMessage;
+}
+
+QVariantList ChatRootView::activeRules() const
+{
+    return m_activeRules;
+}
+
+QString ChatRootView::getRuleContent(int index)
+{
+    if (index < 0 || index >= m_activeRules.size())
+        return QString();
+
+    return LLMCore::RulesLoader::loadRuleFileContent(
+        m_activeRules[index].toMap()["filePath"].toString());
+}
+
+void ChatRootView::refreshRules()
+{
+    m_activeRules.clear();
+
+    auto project = LLMCore::RulesLoader::getActiveProject();
+    if (!project) {
+        emit activeRulesChanged();
+        return;
+    }
+
+    auto ruleFiles
+        = LLMCore::RulesLoader::getRuleFilesForProject(project, LLMCore::RulesContext::Chat);
+
+    for (const auto &ruleFile : ruleFiles) {
+        QVariantMap ruleMap;
+        ruleMap["filePath"] = ruleFile.filePath;
+        ruleMap["fileName"] = ruleFile.fileName;
+        ruleMap["category"] = ruleFile.category;
+        m_activeRules.append(ruleMap);
+    }
+
+    emit activeRulesChanged();
 }
 
 } // namespace QodeAssist::Chat

@@ -33,6 +33,7 @@ Rectangle {
     property alias recentPath: recentPathId
     property alias openChatHistory: openChatHistoryId
     property alias pinButton: pinButtonId
+    property alias rulesButton: rulesButtonId
 
     color: palette.window.hslLightness > 0.5 ?
                Qt.darker(palette.window, 1.1) :
@@ -124,6 +125,19 @@ Rectangle {
             ToolTip.visible: hovered
             ToolTip.delay: 250
             ToolTip.text: qsTr("Show in system")
+        }
+
+        QoAButton {
+            id: rulesButtonId
+
+            icon {
+                source: "qrc:/qt/qml/ChatView/icons/file-in-system.svg"
+                height: 15
+                width: 15
+            }
+            ToolTip.visible: hovered
+            ToolTip.delay: 250
+            ToolTip.text: qsTr("View active project rules")
         }
 
         Item {

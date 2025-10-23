@@ -77,6 +77,7 @@ ChatRootView {
                 text: qsTr("Latest chat file name: %1").arg(root.chatFileName.length > 0 ? root.chatFileName : "Unsaved")
             }
             openChatHistory.onClicked: root.openChatHistoryFolder()
+            rulesButton.onClicked: rulesViewer.open()
             pinButton {
                 visible: typeof _chatview !== 'undefined'
                 checked: typeof _chatview !== 'undefined' ? _chatview.isPin : false
@@ -162,10 +163,10 @@ ChatRootView {
                     toolContent: model.content
                 }
             }
-            
+
             Component {
                 id: fileEditSuggestionComponent
-                
+
                 FileEditChangesItem {
                     id: fileEditItem
 
@@ -330,6 +331,21 @@ ChatRootView {
     ErrorToast {
         id: errorToast
         z: 1000
+    }
+
+    RulesViewer {
+        id: rulesViewer
+
+        width: parent.width * 0.8
+        height: parent.height * 0.8
+        x: (parent.width - width) / 2
+        y: (parent.height - height) / 2
+
+        activeRules: root.activeRules
+        ruleContentAreaText: root.getRuleContent(rulesViewer.rulesCurrentIndex)
+        
+        onRefreshRules: root.refreshRules()
+        onOpenRulesFolder: root.openRulesFolder()
     }
 
     Connections {
