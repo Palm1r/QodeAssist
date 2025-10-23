@@ -27,14 +27,9 @@
 #include <logger/Logger.hpp>
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectmanager.h>
-#include <texteditor/textdocument.h>
 #include <utils/filepath.h>
-#include <QFile>
 #include <QJsonArray>
 #include <QJsonObject>
-#include <QTextCursor>
-#include <QTextDocument>
-#include <QTextStream>
 #include <QtConcurrent>
 
 namespace QodeAssist::Tools {
@@ -56,8 +51,10 @@ QString FindSymbolTool::stringName() const
 
 QString FindSymbolTool::description() const
 {
-    return "Find C++ symbols (classes, functions, enums, variables, typedefs, namespaces) in the project. "
-           "Returns file paths, line numbers, qualified names, and optionally source code. "
+    return "Find C++ symbols (classes, functions, enums, variables, typedefs, namespaces) in the "
+           "project. "
+           "Returns file paths and line numbers where symbols are defined. "
+           "Use read_project_file_by_path to read the actual code. "
            "Supports exact match, wildcard patterns, and regular expressions.";
 }
 
@@ -81,8 +78,7 @@ QJsonObject FindSymbolTool::getDefinition(LLMCore::ToolSchemaFormat format) cons
 
     QJsonObject scopeFilterProperty;
     scopeFilterProperty["type"] = "string";
-    scopeFilterProperty["description"]
-        = "Filter results by scope (e.g., 'MyNamespace', 'MyClass')";
+    scopeFilterProperty["description"] = "Filter results by scope (e.g., 'MyNamespace', 'MyClass')";
     properties["scope_filter"] = scopeFilterProperty;
 
     QJsonObject caseSensitiveProperty;
@@ -92,8 +88,7 @@ QJsonObject FindSymbolTool::getDefinition(LLMCore::ToolSchemaFormat format) cons
 
     QJsonObject useRegexProperty;
     useRegexProperty["type"] = "boolean";
-    useRegexProperty["description"]
-        = "Treat symbol_name as regular expression (default: false)";
+    useRegexProperty["description"] = "Treat symbol_name as regular expression (default: false)";
     properties["use_regex"] = useRegexProperty;
 
     QJsonObject useWildcardProperty;
@@ -102,21 +97,11 @@ QJsonObject FindSymbolTool::getDefinition(LLMCore::ToolSchemaFormat format) cons
         = "Treat symbol_name as wildcard pattern like 'find*', '*Symbol' (default: false)";
     properties["use_wildcard"] = useWildcardProperty;
 
-    QJsonObject includeCodeProperty;
-    includeCodeProperty["type"] = "boolean";
-    includeCodeProperty["description"] = "Include source code of found symbols";
-    properties["include_code"] = includeCodeProperty;
-
     QJsonObject maxResultsProperty;
     maxResultsProperty["type"] = "integer";
-    maxResultsProperty["description"] = "Maximum number of results to return";
+    maxResultsProperty["description"] = "Maximum number of results to return (default: 50)";
+    maxResultsProperty["default"] = 50;
     properties["max_results"] = maxResultsProperty;
-
-    QJsonObject groupByProperty;
-    groupByProperty["type"] = "string";
-    groupByProperty["description"] = "How to group results: type, file, or scope";
-    groupByProperty["enum"] = QJsonArray{"type", "file", "scope"};
-    properties["group_by"] = groupByProperty;
 
     QJsonObject definition;
     definition["type"] = "object";
@@ -151,9 +136,7 @@ QFuture<QString> FindSymbolTool::executeAsync(const QJsonObject &input)
         bool caseSensitive = input["case_sensitive"].toBool(true);
         bool useRegex = input["use_regex"].toBool(false);
         bool useWildcard = input["use_wildcard"].toBool(false);
-        bool includeCode = input["include_code"].toBool(false);
-        int maxResults = input["max_results"].toInt(10);
-        QString groupBy = input["group_by"].toString("type");
+        int maxResults = input["max_results"].toInt(50);
 
         if (symbolName.isEmpty()) {
             QString error = "Error: 'symbol_name' parameter is required";
@@ -168,8 +151,9 @@ QFuture<QString> FindSymbolTool::executeAsync(const QJsonObject &input)
         }
 
         SymbolType type = parseSymbolType(symbolTypeStr);
-        LOG_MESSAGE(QString("Searching for symbol: '%1', type: %2, scope: '%3', "
-                            "case_sensitive: %4, regex: %5, wildcard: %6")
+        LOG_MESSAGE(QString(
+                        "Searching for symbol: '%1', type: %2, scope: '%3', "
+                        "case_sensitive: %4, regex: %5, wildcard: %6")
                         .arg(symbolName, symbolTypeStr, scopeFilter)
                         .arg(caseSensitive)
                         .arg(useRegex)
@@ -190,13 +174,7 @@ QFuture<QString> FindSymbolTool::executeAsync(const QJsonObject &input)
             symbols = symbols.mid(0, maxResults);
         }
 
-        if (includeCode) {
-            for (SymbolInfo &info : symbols) {
-                info.code = extractSymbolCode(info);
-            }
-        }
-
-        return formatResults(symbols, includeCode, groupBy);
+        return formatResults(symbols);
     });
 }
 
@@ -421,270 +399,44 @@ FindSymbolTool::SymbolInfo FindSymbolTool::createSymbolInfo(
     const QString &fullScope,
     const CPlusPlus::Overview &overview) const
 {
+    Q_UNUSED(fullScope)
+    Q_UNUSED(overview)
+
     SymbolInfo info;
-    info.name = overview.prettyName(symbol->name());
     info.filePath = filePath;
     info.line = symbol->line();
-    info.scope = fullScope;
 
-    // Build qualified name
-    if (fullScope.isEmpty()) {
-        info.qualifiedName = info.name;
-    } else {
-        info.qualifiedName = fullScope + "::" + info.name;
-    }
-
-    // Determine symbol type and extract additional information
+    // Determine symbol type
     if (symbol->asClass()) {
         info.type = SymbolType::Class;
-        info.typeString = "Class";
-        info.endLine = findSymbolEndLine(filePath, symbol->line(), SymbolType::Class);
-    } else if (auto *function = symbol->asFunction()) {
+    } else if (symbol->asFunction()) {
         info.type = SymbolType::Function;
-        info.typeString = "Function";
-        info.signature = overview.prettyType(symbol->type());
-        info.isConst = function->isConst();
-        info.isStatic = function->isStatic();
-        info.isVirtual = function->isVirtual();
-        info.endLine = findSymbolEndLine(filePath, symbol->line(), SymbolType::Function);
     } else if (symbol->asEnum()) {
         info.type = SymbolType::Enum;
-        info.typeString = "Enum";
-        info.endLine = findSymbolEndLine(filePath, symbol->line(), SymbolType::Enum);
     } else if (symbol->asNamespace()) {
         info.type = SymbolType::Namespace;
-        info.typeString = "Namespace";
-        info.endLine = symbol->line(); // Namespaces can span multiple files
     } else if (auto *declaration = symbol->asDeclaration()) {
         if (declaration->isTypedef()) {
             info.type = SymbolType::Typedef;
-            info.typeString = "Typedef";
-            info.signature = overview.prettyType(symbol->type());
         } else {
             info.type = SymbolType::Variable;
-            info.typeString = "Variable";
-            info.signature = overview.prettyType(symbol->type());
-            info.isStatic = declaration->isStatic();
         }
-        info.endLine = symbol->line();
     } else {
-        info.typeString = "Symbol";
-        info.endLine = symbol->line();
+        info.type = SymbolType::All;
     }
 
     return info;
 }
 
-int FindSymbolTool::findSymbolEndLine(const QString &filePath, int startLine, SymbolType type) const
-{
-    // For simple types, just return the start line
-    if (type == SymbolType::Variable || type == SymbolType::Typedef
-        || type == SymbolType::Namespace) {
-        return startLine;
-    }
-
-    // For classes, enums, and functions, find the closing brace
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        return startLine;
-    }
-
-    QTextStream stream(&file);
-    int currentLine = 1;
-
-    // Skip to start line
-    while (currentLine < startLine && !stream.atEnd()) {
-        stream.readLine();
-        currentLine++;
-    }
-
-    bool foundOpenBrace = false;
-    int braceCount = 0;
-
-    while (!stream.atEnd()) {
-        QString line = stream.readLine();
-
-        for (QChar ch : line) {
-            if (ch == '{') {
-                foundOpenBrace = true;
-                braceCount++;
-            } else if (ch == '}') {
-                braceCount--;
-            }
-        }
-
-        if (foundOpenBrace && braceCount == 0) {
-            file.close();
-            return currentLine;
-        }
-
-        // For function declarations without body (e.g., in header), stop at semicolon
-        if (type == SymbolType::Function && !foundOpenBrace && line.contains(';')) {
-            file.close();
-            return currentLine;
-        }
-
-        currentLine++;
-    }
-
-    file.close();
-    return startLine;
-}
-
-QString FindSymbolTool::extractSymbolCode(const SymbolInfo &info) const
-{
-    // Try to use TextDocument first (for open files)
-    auto *textDocument = TextEditor::TextDocument::textDocumentForFilePath(
-        Utils::FilePath::fromString(info.filePath));
-
-    if (textDocument && textDocument->document()) {
-        QTextDocument *doc = textDocument->document();
-
-        QTextBlock startBlock = doc->findBlockByNumber(info.line - 1);
-        QTextBlock endBlock = doc->findBlockByNumber(info.endLine - 1);
-
-        if (startBlock.isValid() && endBlock.isValid()) {
-            int startPos = startBlock.position();
-            int endPos = endBlock.position() + endBlock.length();
-
-            QTextCursor cursor(doc);
-            cursor.setPosition(startPos);
-            cursor.setPosition(endPos, QTextCursor::KeepAnchor);
-
-            return cursor.selectedText().replace(QChar::ParagraphSeparator, '\n').trimmed();
-        }
-    }
-
-    // Fallback to file reading
-    return extractCodeFromFile(info.filePath, info.line, info.endLine);
-}
-
-QString FindSymbolTool::extractCodeFromFile(const QString &filePath, int startLine, int endLine) const
-{
-    QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        LOG_MESSAGE(QString("Failed to open file: %1").arg(filePath));
-        return QString();
-    }
-
-    QTextStream stream(&file);
-    QString result;
-    int currentLine = 1;
-
-    while (currentLine < startLine && !stream.atEnd()) {
-        stream.readLine();
-        currentLine++;
-    }
-
-    while (currentLine <= endLine && !stream.atEnd()) {
-        QString line = stream.readLine();
-        result += line + "\n";
-        currentLine++;
-    }
-
-    if (result.endsWith('\n')) {
-        result.chop(1);
-    }
-
-    file.close();
-    return result;
-}
-
-QString FindSymbolTool::formatResults(
-    const QList<SymbolInfo> &symbols, bool includeCode, const QString &groupBy) const
+QString FindSymbolTool::formatResults(const QList<SymbolInfo> &symbols) const
 {
     QString output = QString("Found %1 symbol(s):\n\n").arg(symbols.size());
 
-    if (groupBy == "file") {
-        // Group by file
-        QMap<QString, QList<SymbolInfo>> grouped;
-        for (const SymbolInfo &info : symbols) {
-            grouped[info.filePath].append(info);
-        }
-
-        for (auto it = grouped.begin(); it != grouped.end(); ++it) {
-            output += QString("File: %1\n").arg(it.key());
-            for (const SymbolInfo &info : it.value()) {
-                output += formatSymbolInfo(info, includeCode, 2);
-            }
-            output += "\n";
-        }
-    } else if (groupBy == "scope") {
-        // Group by scope
-        QMap<QString, QList<SymbolInfo>> grouped;
-        for (const SymbolInfo &info : symbols) {
-            QString scopeKey = info.scope.isEmpty() ? "Global" : info.scope;
-            grouped[scopeKey].append(info);
-        }
-
-        for (auto it = grouped.begin(); it != grouped.end(); ++it) {
-            output += QString("Scope: %1\n").arg(it.key());
-            for (const SymbolInfo &info : it.value()) {
-                output += formatSymbolInfo(info, includeCode, 2);
-            }
-            output += "\n";
-        }
-    } else {
-        // Group by type (default)
-        QMap<SymbolType, QList<SymbolInfo>> grouped;
-        for (const SymbolInfo &info : symbols) {
-            grouped[info.type].append(info);
-        }
-
-        for (auto it = grouped.begin(); it != grouped.end(); ++it) {
-            const QList<SymbolInfo> &group = it.value();
-            if (!group.isEmpty()) {
-                output += QString("%1s:\n").arg(group.first().typeString);
-                for (const SymbolInfo &info : group) {
-                    output += formatSymbolInfo(info, includeCode, 2);
-                }
-                output += "\n";
-            }
-        }
+    for (const SymbolInfo &info : symbols) {
+        output += QString("Path: %1\nLine:%2\n").arg(info.filePath).arg(info.line);
     }
 
     return output.trimmed();
-}
-
-QString FindSymbolTool::formatSymbolInfo(
-    const SymbolInfo &info, bool includeCode, int indentLevel) const
-{
-    QString indent = QString(indentLevel, ' ');
-    QString output;
-
-    // Basic information
-    output += QString("%1%2:%3 - %4")
-                  .arg(indent)
-                  .arg(info.filePath)
-                  .arg(info.line)
-                  .arg(info.qualifiedName);
-
-    // Add signature if available
-    if (!info.signature.isEmpty()) {
-        output += QString(" : %1").arg(info.signature);
-    }
-
-    // Add modifiers
-    QStringList modifiers;
-    if (info.isStatic)
-        modifiers << "static";
-    if (info.isVirtual)
-        modifiers << "virtual";
-    if (info.isConst)
-        modifiers << "const";
-
-    if (!modifiers.isEmpty()) {
-        output += QString(" [%1]").arg(modifiers.join(", "));
-    }
-
-    output += "\n";
-
-    // Add code if requested
-    if (includeCode && !info.code.isEmpty()) {
-        output += "\n```cpp\n" + info.code + "\n```\n\n";
-    }
-
-    return output;
 }
 
 } // namespace QodeAssist::Tools

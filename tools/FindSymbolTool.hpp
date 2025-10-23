@@ -51,19 +51,9 @@ private:
 
     struct SymbolInfo
     {
-        QString name;
-        QString qualifiedName;
         QString filePath;
         int line;
-        int endLine;
-        QString scope;
         SymbolType type;
-        QString typeString;
-        QString signature;
-        QString code;
-        bool isConst = false;
-        bool isStatic = false;
-        bool isVirtual = false;
     };
 
     QList<SymbolInfo> findSymbols(
@@ -73,10 +63,7 @@ private:
         bool caseSensitive,
         bool useRegex,
         bool useWildcard) const;
-    QString formatResults(
-        const QList<SymbolInfo> &symbols,
-        bool includeCode,
-        const QString &groupBy) const;
+    QString formatResults(const QList<SymbolInfo> &symbols) const;
     SymbolType parseSymbolType(const QString &typeStr) const;
 
     void searchInScope(
@@ -109,11 +96,7 @@ private:
         const QString &fullScope,
         const CPlusPlus::Overview &overview) const;
 
-    QString extractSymbolCode(const SymbolInfo &info) const;
-    QString extractCodeFromFile(const QString &filePath, int startLine, int endLine) const;
-    int findSymbolEndLine(const QString &filePath, int startLine, SymbolType type) const;
     QString buildFullScope(const QString &currentScope, const QString &symbolName) const;
-    QString formatSymbolInfo(const SymbolInfo &info, bool includeCode, int indentLevel) const;
 
     Context::IgnoreManager *m_ignoreManager;
 };
