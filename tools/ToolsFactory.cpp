@@ -29,7 +29,7 @@
 #include "FindSymbolTool.hpp"
 #include "GetIssuesListTool.hpp"
 #include "ListProjectFilesTool.hpp"
-#include "ReadFileByPathTool.hpp"
+#include "ReadFilesByPathTool.hpp"
 #include "ReadVisibleFilesTool.hpp"
 #include "SearchInProjectTool.hpp"
 
@@ -44,7 +44,7 @@ ToolsFactory::ToolsFactory(QObject *parent)
 void ToolsFactory::registerTools()
 {
     registerTool(new ReadVisibleFilesTool(this));
-    registerTool(new ReadProjectFileByPathTool(this));
+    registerTool(new ReadFilesByPathTool(this));
     registerTool(new ListProjectFilesTool(this));
     registerTool(new SearchInProjectTool(this));
     registerTool(new GetIssuesListTool(this));
