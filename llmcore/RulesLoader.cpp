@@ -109,4 +109,73 @@ QString RulesLoader::getProjectPath(ProjectExplorer::Project *project)
     return project->projectDirectory().toUrlishString();
 }
 
+QVector<RuleFileInfo> RulesLoader::getRuleFiles(const QString &projectPath, RulesContext context)
+{
+    if (projectPath.isEmpty()) {
+        return QVector<RuleFileInfo>();
+    }
+
+    QVector<RuleFileInfo> result;
+    QString basePath = projectPath + "/.qodeassist/rules";
+
+    // Always include common rules
+    result.append(collectMarkdownFiles(basePath + "/common", "common"));
+
+    // Add context-specific rules
+    switch (context) {
+    case RulesContext::Completions:
+        result.append(collectMarkdownFiles(basePath + "/completions", "completions"));
+        break;
+    case RulesContext::Chat:
+        result.append(collectMarkdownFiles(basePath + "/chat", "chat"));
+        break;
+    case RulesContext::QuickRefactor:
+        result.append(collectMarkdownFiles(basePath + "/quickrefactor", "quickrefactor"));
+        break;
+    }
+
+    return result;
+}
+
+QVector<RuleFileInfo> RulesLoader::getRuleFilesForProject(
+    ProjectExplorer::Project *project, RulesContext context)
+{
+    if (!project) {
+        return QVector<RuleFileInfo>();
+    }
+
+    QString projectPath = getProjectPath(project);
+    return getRuleFiles(projectPath, context);
+}
+
+QString RulesLoader::loadRuleFileContent(const QString &filePath)
+{
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return QString();
+    }
+
+    return file.readAll();
+}
+
+QVector<RuleFileInfo> RulesLoader::collectMarkdownFiles(
+    const QString &dirPath, const QString &category)
+{
+    QVector<RuleFileInfo> result;
+    QDir dir(dirPath);
+
+    if (!dir.exists()) {
+        return result;
+    }
+
+    QStringList mdFiles = dir.entryList({"*.md"}, QDir::Files, QDir::Name);
+
+    for (const QString &fileName : mdFiles) {
+        QString fullPath = dir.filePath(fileName);
+        result.append({fullPath, fileName, category});
+    }
+
+    return result;
+}
+
 } // namespace QodeAssist::LLMCore

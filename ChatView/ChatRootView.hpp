@@ -43,9 +43,10 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(int codeFontSize READ codeFontSize NOTIFY codeFontSizeChanged FINAL)
     Q_PROPERTY(int textFontSize READ textFontSize NOTIFY textFontSizeChanged FINAL)
     Q_PROPERTY(int textFormat READ textFormat NOTIFY textFormatChanged FINAL)
-    Q_PROPERTY(
-        bool isRequestInProgress READ isRequestInProgress NOTIFY isRequestInProgressChanged FINAL)
+    Q_PROPERTY(bool isRequestInProgress READ isRequestInProgress NOTIFY isRequestInProgressChanged FINAL)
     Q_PROPERTY(QString lastErrorMessage READ lastErrorMessage NOTIFY lastErrorMessageChanged FINAL)
+    Q_PROPERTY(QVariantList activeRules READ activeRules NOTIFY activeRulesChanged FINAL)
+    Q_PROPERTY(int activeRulesCount READ activeRulesCount NOTIFY activeRulesCountChanged FINAL)
 
     QML_ELEMENT
 
@@ -74,6 +75,7 @@ public:
     Q_INVOKABLE void calculateMessageTokensCount(const QString &message);
     Q_INVOKABLE void setIsSyncOpenFiles(bool state);
     Q_INVOKABLE void openChatHistoryFolder();
+    Q_INVOKABLE void openRulesFolder();
 
     Q_INVOKABLE void updateInputTokensCount();
     int inputTokensCount() const;
@@ -99,6 +101,11 @@ public:
     void setRequestProgressStatus(bool state);
 
     QString lastErrorMessage() const;
+    
+    QVariantList activeRules() const;
+    int activeRulesCount() const;
+    Q_INVOKABLE QString getRuleContent(int index);
+    Q_INVOKABLE void refreshRules();
 
 public slots:
     void sendMessage(const QString &message);
@@ -124,6 +131,8 @@ signals:
     void isRequestInProgressChanged();
 
     void lastErrorMessageChanged();
+    void activeRulesChanged();
+    void activeRulesCountChanged();
 
 private:
     QString getChatsHistoryDir() const;
@@ -142,6 +151,7 @@ private:
     QList<Core::IEditor *> m_currentEditors;
     bool m_isRequestInProgress;
     QString m_lastErrorMessage;
+    QVariantList m_activeRules;
 };
 
 } // namespace QodeAssist::Chat
