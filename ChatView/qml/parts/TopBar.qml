@@ -34,6 +34,7 @@ Rectangle {
     property alias openChatHistory: openChatHistoryId
     property alias pinButton: pinButtonId
     property alias rulesButton: rulesButtonId
+    property alias activeRulesCount: activeRulesCountId.text
 
     color: palette.window.hslLightness > 0.5 ?
                Qt.darker(palette.window, 1.1) :
@@ -135,9 +136,28 @@ Rectangle {
                 height: 15
                 width: 15
             }
+            text: " "
+
             ToolTip.visible: hovered
             ToolTip.delay: 250
-            ToolTip.text: qsTr("View active project rules")
+            ToolTip.text: root.activeRulesCount > 0 
+                ? qsTr("View active project rules (%1)").arg(root.activeRulesCount)
+                : qsTr("View active project rules (no rules found)")
+
+            Text {
+                id: activeRulesCountId
+
+                anchors {
+                    bottom: parent.bottom
+                    bottomMargin: 2
+                    right: parent.right
+                    rightMargin: 4
+                }
+
+                color: palette.text
+                font.pixelSize: 10
+                font.bold: true
+            }
         }
 
         Item {

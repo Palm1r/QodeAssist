@@ -664,6 +664,11 @@ QVariantList ChatRootView::activeRules() const
     return m_activeRules;
 }
 
+int ChatRootView::activeRulesCount() const
+{
+    return m_activeRules.size();
+}
+
 QString ChatRootView::getRuleContent(int index)
 {
     if (index < 0 || index >= m_activeRules.size())
@@ -680,6 +685,7 @@ void ChatRootView::refreshRules()
     auto project = LLMCore::RulesLoader::getActiveProject();
     if (!project) {
         emit activeRulesChanged();
+        emit activeRulesCountChanged();
         return;
     }
 
@@ -695,6 +701,7 @@ void ChatRootView::refreshRules()
     }
 
     emit activeRulesChanged();
+    emit activeRulesCountChanged();
 }
 
 } // namespace QodeAssist::Chat

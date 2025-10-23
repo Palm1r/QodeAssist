@@ -78,6 +78,7 @@ ChatRootView {
             }
             openChatHistory.onClicked: root.openChatHistoryFolder()
             rulesButton.onClicked: rulesViewer.open()
+            activeRulesCount: root.activeRulesCount
             pinButton {
                 visible: typeof _chatview !== 'undefined'
                 checked: typeof _chatview !== 'undefined' ? _chatview.isPin : false

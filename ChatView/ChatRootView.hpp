@@ -46,6 +46,7 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(bool isRequestInProgress READ isRequestInProgress NOTIFY isRequestInProgressChanged FINAL)
     Q_PROPERTY(QString lastErrorMessage READ lastErrorMessage NOTIFY lastErrorMessageChanged FINAL)
     Q_PROPERTY(QVariantList activeRules READ activeRules NOTIFY activeRulesChanged FINAL)
+    Q_PROPERTY(int activeRulesCount READ activeRulesCount NOTIFY activeRulesCountChanged FINAL)
 
     QML_ELEMENT
 
@@ -102,6 +103,7 @@ public:
     QString lastErrorMessage() const;
     
     QVariantList activeRules() const;
+    int activeRulesCount() const;
     Q_INVOKABLE QString getRuleContent(int index);
     Q_INVOKABLE void refreshRules();
 
@@ -130,6 +132,7 @@ signals:
 
     void lastErrorMessageChanged();
     void activeRulesChanged();
+    void activeRulesCountChanged();
 
 private:
     QString getChatsHistoryDir() const;
