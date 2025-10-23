@@ -24,6 +24,7 @@
 #include <logger/Logger.hpp>
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectmanager.h>
+#include <settings/GeneralSettings.hpp>
 #include <QDateTime>
 #include <QDir>
 #include <QFile>
@@ -143,8 +144,22 @@ QFuture<QString> EditFileTool::executeAsync(const QJsonObject &input)
             throw ToolRuntimeError(QString("Error: File '%1' does not exist").arg(filePath));
         }
 
-        auto project = ProjectExplorer::ProjectManager::projectForFile(
-            Utils::FilePath::fromString(filePath));
+        bool isInProject = isFileInProject(filePath);
+        
+        if (!isInProject) {
+            const auto &settings = Settings::generalSettings();
+            if (!settings.allowReadOutsideProject()) {
+                throw ToolRuntimeError(
+                    QString("Error: File '%1' is outside the project scope. "
+                            "Enable 'Allow reading files outside project' in settings to access this file.")
+                        .arg(filePath));
+            }
+            LOG_MESSAGE(QString("Editing file outside project scope: %1").arg(filePath));
+        }
+
+        auto project = isInProject ? ProjectExplorer::ProjectManager::projectForFile(
+            Utils::FilePath::fromString(filePath)) : nullptr;
+        
         if (project && m_ignoreManager->shouldIgnore(filePath, project)) {
             throw ToolRuntimeError(
                 QString("Error: File '%1' is excluded by .qodeassistignore").arg(inputFilepath));
@@ -160,6 +175,31 @@ QFuture<QString> EditFileTool::executeAsync(const QJsonObject &input)
         return QString("QODEASSIST_FILE_EDIT:%1")
             .arg(QString::fromUtf8(doc.toJson(QJsonDocument::Compact)));
     });
+}
+
+bool EditFileTool::isFileInProject(const QString &filePath) const
+{
+    QList<ProjectExplorer::Project *> projects = ProjectExplorer::ProjectManager::projects();
+    Utils::FilePath targetPath = Utils::FilePath::fromString(filePath);
+
+    for (auto project : projects) {
+        if (!project)
+            continue;
+
+        Utils::FilePaths projectFiles = project->files(ProjectExplorer::Project::SourceFiles);
+        for (const auto &projectFile : std::as_const(projectFiles)) {
+            if (projectFile == targetPath) {
+                return true;
+            }
+        }
+
+        Utils::FilePath projectDir = project->projectDirectory();
+        if (targetPath.isChildOf(projectDir)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 } // namespace QodeAssist::Tools
