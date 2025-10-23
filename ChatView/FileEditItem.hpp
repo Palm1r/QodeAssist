@@ -48,11 +48,8 @@ public:
 
     Q_PROPERTY(QString editId READ editId NOTIFY editIdChanged FINAL)
     Q_PROPERTY(QString filePath READ filePath NOTIFY filePathChanged FINAL)
-    Q_PROPERTY(QString editMode READ editMode NOTIFY editModeChanged FINAL)
-    Q_PROPERTY(QString originalContent READ originalContent NOTIFY originalContentChanged FINAL)
-    Q_PROPERTY(QString newContent READ newContent NOTIFY newContentChanged FINAL)
-    Q_PROPERTY(QString contextBefore READ contextBefore NOTIFY contextBeforeChanged FINAL)
-    Q_PROPERTY(QString contextAfter READ contextAfter NOTIFY contextAfterChanged FINAL)
+    Q_PROPERTY(QString searchText READ searchText NOTIFY searchTextChanged FINAL)
+    Q_PROPERTY(QString newText READ newText NOTIFY newTextChanged FINAL)
     Q_PROPERTY(int addedLines READ addedLines NOTIFY addedLinesChanged FINAL)
     Q_PROPERTY(int removedLines READ removedLines NOTIFY removedLinesChanged FINAL)
     Q_PROPERTY(EditStatus status READ status NOTIFY statusChanged FINAL)
@@ -63,11 +60,8 @@ public:
 
     QString editId() const { return m_editId; }
     QString filePath() const { return m_filePath; }
-    QString editMode() const { return m_editMode; }
-    QString originalContent() const { return m_originalContent; }
-    QString newContent() const { return m_newContent; }
-    QString contextBefore() const { return m_contextBefore; }
-    QString contextAfter() const { return m_contextAfter; }
+    QString searchText() const { return m_searchText; }
+    QString newText() const { return m_newText; }
     int addedLines() const { return m_addedLines; }
     int removedLines() const { return m_removedLines; }
     EditStatus status() const { return m_status; }
@@ -80,11 +74,8 @@ public:
 signals:
     void editIdChanged();
     void filePathChanged();
-    void editModeChanged();
-    void originalContentChanged();
-    void newContentChanged();
-    void contextBeforeChanged();
-    void contextAfterChanged();
+    void searchTextChanged();
+    void newTextChanged();
     void addedLinesChanged();
     void removedLinesChanged();
     void statusChanged();
@@ -101,8 +92,6 @@ private:
     
     bool writeFile(const QString &filePath, const QString &content);
     QString readFile(const QString &filePath);
-    QString applyEditToContent(const QString &content, bool &success);
-    QString applyReverseEdit(const QString &content, bool &success);
     
     static bool acquireFileLock(const QString &filePath);
     static void releaseFileLock(const QString &filePath);
@@ -111,13 +100,9 @@ private:
 
     QString m_editId;
     QString m_filePath;
-    QString m_editMode;
-    QString m_originalContent;
-    QString m_newContent;
-    QString m_contextBefore;
-    QString m_contextAfter;
     QString m_searchText;
-    int m_lineNumber = -1;
+    QString m_newText;
+    QString m_originalContent; // Stored when applying edit
     int m_addedLines = 0;
     int m_removedLines = 0;
     EditStatus m_status = EditStatus::Pending;
