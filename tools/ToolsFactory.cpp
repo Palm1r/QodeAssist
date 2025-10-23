@@ -24,6 +24,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 
+#include "CreateNewFileTool.hpp"
 #include "EditProjectFileTool.hpp"
 #include "FindFileTool.hpp"
 #include "FindSymbolTool.hpp"
@@ -51,6 +52,7 @@ void ToolsFactory::registerTools()
     registerTool(new EditProjectFileTool(this));
     registerTool(new FindSymbolTool(this));
     registerTool(new FindFileTool(this));
+    registerTool(new CreateNewFileTool(this));
 
     LOG_MESSAGE(QString("Registered %1 tools").arg(m_tools.size()));
 }
