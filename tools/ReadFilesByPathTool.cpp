@@ -106,13 +106,11 @@ QFuture<QString> ReadFilesByPathTool::executeAsync(const QJsonObject &input)
     return QtConcurrent::run([this, input]() -> QString {
         QStringList filePaths;
 
-        // Check for single filepath
         QString singlePath = input["filepath"].toString();
         if (!singlePath.isEmpty()) {
             filePaths.append(singlePath);
         }
 
-        // Check for multiple filepaths
         if (input.contains("filepaths") && input["filepaths"].isArray()) {
             QJsonArray pathsArray = input["filepaths"].toArray();
             for (const auto &pathValue : pathsArray) {
@@ -232,12 +230,12 @@ ReadFilesByPathTool::FileResult ReadFilesByPathTool::processFile(const QString &
 
         result.content = readFileContent(canonicalPath);
         result.success = true;
-        result.path = canonicalPath; // Use canonical path in result
+        result.path = canonicalPath;
 
     } catch (const ToolRuntimeError &e) {
         result.error = e.message();
     } catch (const std::exception &e) {
-        result.error = QString("Unexpected error: %1").arg(e.what());
+        result.error = QString("Unexpected error: %1").arg(QString::fromUtf8(e.what()));
     }
 
     return result;
@@ -246,7 +244,6 @@ ReadFilesByPathTool::FileResult ReadFilesByPathTool::processFile(const QString &
 QString ReadFilesByPathTool::formatResults(const QList<FileResult> &results) const
 {
     if (results.size() == 1) {
-        // Single file format (backward compatibility)
         const FileResult &result = results.first();
         if (!result.success) {
             throw ToolRuntimeError(QString("Error: %1 - %2").arg(result.path, result.error));
@@ -259,7 +256,6 @@ QString ReadFilesByPathTool::formatResults(const QList<FileResult> &results) con
         return QString("File: %1\n\nContent:\n%2").arg(result.path, result.content);
     }
 
-    // Multiple files format
     QStringList output;
     int successCount = 0;
 
