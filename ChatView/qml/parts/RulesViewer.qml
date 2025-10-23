@@ -168,7 +168,9 @@ Popup {
                             }
                         }
 
-                        ScrollBar.vertical: ScrollBar {}
+                        ScrollBar.vertical: QQC.ScrollBar {
+                            id: scroll
+                        }
                     }
 
                     Text {

@@ -131,7 +131,7 @@ Rectangle {
             id: rulesButtonId
 
             icon {
-                source: "qrc:/qt/qml/ChatView/icons/file-in-system.svg"
+                source: "qrc:/qt/qml/ChatView/icons/rules-icon.svg"
                 height: 15
                 width: 15
             }
