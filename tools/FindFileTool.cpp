@@ -20,6 +20,7 @@
 #include "FindFileTool.hpp"
 #include "ToolExceptions.hpp"
 
+#include <context/ProjectUtils.hpp>
 #include <logger/Logger.hpp>
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectmanager.h>
@@ -132,14 +133,14 @@ QFuture<QString> FindFileTool::executeAsync(const QJsonObject &input)
         QFileInfo queryInfo(query);
         if (queryInfo.isAbsolute() && queryInfo.exists() && queryInfo.isFile()) {
             QString canonicalPath = queryInfo.canonicalFilePath();
-            bool isInProject = isFileInProject(canonicalPath);
+            bool isInProject = Context::ProjectUtils::isFileInProject(canonicalPath);
             
             // Check if reading outside project is allowed
             if (!isInProject) {
                 const auto &settings = Settings::generalSettings();
-                if (!settings.allowReadOutsideProject()) {
+                if (!settings.allowAccessOutsideProject()) {
                     QString error = QString("Error: File '%1' exists but is outside the project scope. "
-                                            "Enable 'Allow reading files outside project' in settings to access this file.")
+                                            "Enable 'Allow file access outside project' in settings to access files outside project scope.")
                                         .arg(canonicalPath);
                     throw std::runtime_error(error.toStdString());
                 }
@@ -424,31 +425,6 @@ QString FindFileTool::formatResults(const QList<FileMatch> &matches,
     }
 
     return result.trimmed();
-}
-
-bool FindFileTool::isFileInProject(const QString &filePath) const
-{
-    QList<ProjectExplorer::Project *> projects = ProjectExplorer::ProjectManager::projects();
-    Utils::FilePath targetPath = Utils::FilePath::fromString(filePath);
-
-    for (auto project : projects) {
-        if (!project)
-            continue;
-
-        Utils::FilePaths projectFiles = project->files(ProjectExplorer::Project::SourceFiles);
-        for (const auto &projectFile : std::as_const(projectFiles)) {
-            if (projectFile == targetPath) {
-                return true;
-            }
-        }
-
-        Utils::FilePath projectDir = project->projectDirectory();
-        if (targetPath.isChildOf(projectDir)) {
-            return true;
-        }
-    }
-
-    return false;
 }
 
 } // namespace QodeAssist::Tools

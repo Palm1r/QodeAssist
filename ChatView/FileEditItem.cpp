@@ -22,6 +22,7 @@
 #include "Logger.hpp"
 #include "settings/GeneralSettings.hpp"
 
+#include <QDateTime>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonDocument>
@@ -69,29 +70,23 @@ void FileEditItem::parseFromContent(const QString &content)
 
     QJsonObject editData = doc.object();
 
-    m_editId = editData["edit_id"].toString();
-    m_filePath = editData["file_path"].toString();
-    m_editMode = editData["mode"].toString();
-    m_originalContent = editData["original_content"].toString();
-    m_newContent = editData["new_content"].toString();
-    m_contextBefore = editData["context_before"].toString();
-    m_contextAfter = editData["context_after"].toString();
+    // Generate unique edit ID
+    m_editId = QString("edit_%1").arg(QDateTime::currentMSecsSinceEpoch());
+    m_filePath = editData["filepath"].toString();
+    m_newText = editData["new_text"].toString();
     m_searchText = editData["search_text"].toString();
-    m_lineNumber = editData["line_number"].toInt(-1);
 
-    m_addedLines = m_newContent.split('\n').size();
-    m_removedLines = m_originalContent.split('\n').size();
+    // Calculate line counts
+    m_addedLines = m_newText.split('\n').size();
+    m_removedLines = m_searchText.isEmpty() ? 0 : m_searchText.split('\n').size();
 
-    LOG_MESSAGE(QString("FileEditItem: parsed successfully, editId=%1, filePath=%2")
-                    .arg(m_editId, m_filePath));
+    LOG_MESSAGE(QString("FileEditItem: parsed successfully, editId=%1, filePath=%2, searchText=%3")
+                    .arg(m_editId, m_filePath, m_searchText.isEmpty() ? "empty (append mode)" : "present"));
 
     emit editIdChanged();
     emit filePathChanged();
-    emit editModeChanged();
-    emit originalContentChanged();
-    emit newContentChanged();
-    emit contextBeforeChanged();
-    emit contextAfterChanged();
+    emit searchTextChanged();
+    emit newTextChanged();
     emit addedLinesChanged();
     emit removedLinesChanged();
 
@@ -156,16 +151,30 @@ void FileEditItem::performApply()
     LOG_MESSAGE(QString("FileEditItem: applying edit %1 to %2").arg(m_editId, m_filePath));
 
     QString currentContent = readFile(m_filePath);
-    if (currentContent.isNull()) {
-        rejectWithError(QString("Failed to read file: %1").arg(m_filePath));
-        return;
-    }
 
-    bool success = false;
-    QString editedContent = applyEditToContent(currentContent, success);
-    if (!success) {
-        rejectWithError("Failed to apply edit: could not find context. File may have been modified.");
-        return;
+    m_originalContent = currentContent;
+
+    QString editedContent;
+    
+    if (m_searchText.isEmpty()) {
+        // Append mode
+        editedContent = currentContent;
+        if (!editedContent.endsWith('\n')) {
+            editedContent += '\n';
+        }
+        editedContent += m_newText;
+        if (!m_newText.endsWith('\n')) {
+            editedContent += '\n';
+        }
+    } else {
+        // Replace mode
+        int pos = currentContent.indexOf(m_searchText);
+        if (pos == -1) {
+            rejectWithError("Failed to apply edit: search text not found. File may have been modified.");
+            return;
+        }
+        editedContent = currentContent;
+        editedContent.replace(pos, m_searchText.length(), m_newText);
     }
 
     if (!writeFile(m_filePath, editedContent)) {
@@ -180,20 +189,7 @@ void FileEditItem::performRevert()
 {
     LOG_MESSAGE(QString("FileEditItem: reverting edit %1 for %2").arg(m_editId, m_filePath));
 
-    QString currentContent = readFile(m_filePath);
-    if (currentContent.isNull()) {
-        rejectWithError(QString("Failed to read file for revert: %1").arg(m_filePath));
-        return;
-    }
-
-    bool success = false;
-    QString revertedContent = applyReverseEdit(currentContent, success);
-    if (!success) {
-        rejectWithError("Failed to revert edit: could not find changes in current file.");
-        return;
-    }
-
-    if (!writeFile(m_filePath, revertedContent)) {
+    if (!writeFile(m_filePath, m_originalContent)) {
         rejectWithError(QString("Failed to write reverted file: %1").arg(m_filePath));
         return;
     }
@@ -266,184 +262,6 @@ QString FileEditItem::readFile(const QString &filePath)
     stream.setAutoDetectUnicode(true);
     QString content = stream.readAll();
     file.close();
-
-    return content;
-}
-
-QString FileEditItem::applyEditToContent(const QString &content, bool &success)
-{
-    success = false;
-    QStringList lines = content.split('\n');
-
-    if (m_editMode == "replace") {
-        QString searchPattern = m_contextBefore + m_searchText + m_contextAfter;
-        int pos = content.indexOf(searchPattern);
-
-        if (pos == -1 && !m_contextBefore.isEmpty()) {
-            pos = content.indexOf(m_searchText);
-        }
-
-        if (pos != -1) {
-            QString result = content;
-            int searchPos = result.indexOf(m_searchText, pos);
-            if (searchPos != -1) {
-                result.replace(searchPos, m_searchText.length(), m_newContent);
-                success = true;
-                return result;
-            }
-        }
-
-        return content;
-
-    } else if (m_editMode == "insert_before" || m_editMode == "insert_after") {
-        int targetLine = -1;
-
-        if (!m_contextBefore.isEmpty() || !m_contextAfter.isEmpty()) {
-            for (int i = 0; i < lines.size(); ++i) {
-                bool contextMatches = true;
-
-                if (!m_contextBefore.isEmpty()) {
-                    QStringList beforeLines = m_contextBefore.split('\n');
-                    if (i >= beforeLines.size()) {
-                        bool allMatch = true;
-                        for (int j = 0; j < beforeLines.size(); ++j) {
-                            if (lines[i - beforeLines.size() + j].trimmed()
-                                != beforeLines[j].trimmed()) {
-                                allMatch = false;
-                                break;
-                            }
-                        }
-                        if (!allMatch)
-                            contextMatches = false;
-                    } else {
-                        contextMatches = false;
-                    }
-                }
-
-                if (contextMatches && !m_contextAfter.isEmpty()) {
-                    QStringList afterLines = m_contextAfter.split('\n');
-                    if (i + afterLines.size() < lines.size()) {
-                        bool allMatch = true;
-                        for (int j = 0; j < afterLines.size(); ++j) {
-                            if (lines[i + 1 + j].trimmed() != afterLines[j].trimmed()) {
-                                allMatch = false;
-                                break;
-                            }
-                        }
-                        if (!allMatch)
-                            contextMatches = false;
-                    } else {
-                        contextMatches = false;
-                    }
-                }
-
-                if (contextMatches && targetLine == -1) {
-                    targetLine = i;
-                    break;
-                }
-            }
-        }
-
-        if (targetLine == -1 && m_lineNumber > 0 && m_lineNumber <= lines.size()) {
-            targetLine = m_lineNumber - 1;
-        }
-
-        if (targetLine != -1) {
-            if (m_editMode == "insert_before") {
-                lines.insert(targetLine, m_newContent);
-            } else {
-                lines.insert(targetLine + 1, m_newContent);
-            }
-            success = true;
-            return lines.join('\n');
-        }
-
-        return content;
-
-    } else if (m_editMode == "append") {
-        success = true;
-        return content + (content.endsWith('\n') ? "" : "\n") + m_newContent + "\n";
-    }
-
-    return content;
-}
-
-QString FileEditItem::applyReverseEdit(const QString &content, bool &success)
-{
-    success = false;
-    QStringList lines = content.split('\n');
-
-    if (m_editMode == "replace") {
-        int pos = content.indexOf(m_newContent);
-        if (pos != -1) {
-            QString result = content;
-            result.replace(pos, m_newContent.length(), m_originalContent);
-            success = true;
-            return result;
-        }
-        return content;
-
-    } else if (m_editMode == "insert_before" || m_editMode == "insert_after") {
-        for (int i = 0; i < lines.size(); ++i) {
-            if (lines[i].trimmed() == m_newContent.trimmed()) {
-                bool contextMatches = true;
-                
-                if (!m_contextBefore.isEmpty()) {
-                    QStringList beforeLines = m_contextBefore.split('\n');
-                    if (i >= beforeLines.size()) {
-                        for (int j = 0; j < beforeLines.size(); ++j) {
-                            if (lines[i - beforeLines.size() + j].trimmed() != beforeLines[j].trimmed()) {
-                                contextMatches = false;
-                                break;
-                            }
-                        }
-                    } else {
-                        contextMatches = false;
-                    }
-                }
-
-                if (contextMatches && !m_contextAfter.isEmpty()) {
-                    QStringList afterLines = m_contextAfter.split('\n');
-                    if (i + 1 + afterLines.size() <= lines.size()) {
-                        for (int j = 0; j < afterLines.size(); ++j) {
-                            if (lines[i + 1 + j].trimmed() != afterLines[j].trimmed()) {
-                                contextMatches = false;
-                                break;
-                            }
-                        }
-                    } else {
-                        contextMatches = false;
-                    }
-                }
-
-                if (contextMatches) {
-                    lines.removeAt(i);
-                    success = true;
-                    return lines.join('\n');
-                }
-            }
-        }
-        return content;
-
-    } else if (m_editMode == "append") {
-        QString suffix1 = m_newContent + "\n";
-        QString suffix2 = "\n" + m_newContent + "\n";
-        
-        if (content.endsWith(suffix1)) {
-            QString result = content.left(content.length() - suffix1.length());
-            success = true;
-            return result;
-        } else if (content.endsWith(suffix2)) {
-            QString result = content.left(content.length() - suffix2.length()) + "\n";
-            success = true;
-            return result;
-        } else if (content.endsWith(m_newContent)) {
-            QString result = content.left(content.length() - m_newContent.length());
-            success = true;
-            return result;
-        }
-        return content;
-    }
 
     return content;
 }
