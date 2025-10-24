@@ -20,6 +20,7 @@
 #include "EditFileTool.hpp"
 #include "ToolExceptions.hpp"
 
+#include <context/ProjectUtils.hpp>
 #include <coreplugin/documentmanager.h>
 #include <logger/Logger.hpp>
 #include <projectexplorer/project.h>
@@ -144,14 +145,14 @@ QFuture<QString> EditFileTool::executeAsync(const QJsonObject &input)
             throw ToolRuntimeError(QString("Error: File '%1' does not exist").arg(filePath));
         }
 
-        bool isInProject = isFileInProject(filePath);
+        bool isInProject = Context::ProjectUtils::isFileInProject(filePath);
         
         if (!isInProject) {
             const auto &settings = Settings::generalSettings();
-            if (!settings.allowReadOutsideProject()) {
+            if (!settings.allowAccessOutsideProject()) {
                 throw ToolRuntimeError(
                     QString("Error: File '%1' is outside the project scope. "
-                            "Enable 'Allow reading files outside project' in settings to access this file.")
+                            "Enable 'Allow file access outside project' in settings to edit files outside project scope.")
                         .arg(filePath));
             }
             LOG_MESSAGE(QString("Editing file outside project scope: %1").arg(filePath));
@@ -175,31 +176,6 @@ QFuture<QString> EditFileTool::executeAsync(const QJsonObject &input)
         return QString("QODEASSIST_FILE_EDIT:%1")
             .arg(QString::fromUtf8(doc.toJson(QJsonDocument::Compact)));
     });
-}
-
-bool EditFileTool::isFileInProject(const QString &filePath) const
-{
-    QList<ProjectExplorer::Project *> projects = ProjectExplorer::ProjectManager::projects();
-    Utils::FilePath targetPath = Utils::FilePath::fromString(filePath);
-
-    for (auto project : projects) {
-        if (!project)
-            continue;
-
-        Utils::FilePaths projectFiles = project->files(ProjectExplorer::Project::SourceFiles);
-        for (const auto &projectFile : std::as_const(projectFiles)) {
-            if (projectFile == targetPath) {
-                return true;
-            }
-        }
-
-        Utils::FilePath projectDir = project->projectDirectory();
-        if (targetPath.isChildOf(projectDir)) {
-            return true;
-        }
-    }
-
-    return false;
 }
 
 } // namespace QodeAssist::Tools

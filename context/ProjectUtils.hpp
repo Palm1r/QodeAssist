@@ -1,3 +1,4 @@
+
 /* 
  * Copyright (C) 2025 Petr Mironychev
  *
@@ -19,28 +20,27 @@
 
 #pragma once
 
-#include <context/IgnoreManager.hpp>
-#include <llmcore/BaseTool.hpp>
+#include <QString>
 
-namespace QodeAssist::Tools {
+namespace QodeAssist::Context {
 
-class EditFileTool : public LLMCore::BaseTool
+/**
+ * @brief Utility functions for working with Qt Creator projects
+ */
+class ProjectUtils
 {
-    Q_OBJECT
 public:
-    explicit EditFileTool(QObject *parent = nullptr);
-
-    QString name() const override;
-    QString stringName() const override;
-    QString description() const override;
-    QJsonObject getDefinition(LLMCore::ToolSchemaFormat format) const override;
-    LLMCore::ToolPermissions requiredPermissions() const override;
-
-    QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
-
-private:
-    Context::IgnoreManager *m_ignoreManager;
+    /**
+     * @brief Check if a file is part of any open project
+     * 
+     * Checks if the given file path is either:
+     * 1. Explicitly listed in project source files
+     * 2. Located within a project directory
+     * 
+     * @param filePath Absolute or canonical file path to check
+     * @return true if file is part of any open project, false otherwise
+     */
+    static bool isFileInProject(const QString &filePath);
 };
 
-} // namespace QodeAssist::Tools
-
+} // namespace QodeAssist::Context

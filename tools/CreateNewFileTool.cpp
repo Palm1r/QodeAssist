@@ -20,7 +20,9 @@
 #include "CreateNewFileTool.hpp"
 #include "ToolExceptions.hpp"
 
+#include <context/ProjectUtils.hpp>
 #include <logger/Logger.hpp>
+#include <settings/GeneralSettings.hpp>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -95,6 +97,21 @@ QFuture<QString> CreateNewFileTool::executeAsync(const QJsonObject &input)
         }
 
         QFileInfo fileInfo(filePath);
+        QString absolutePath = fileInfo.absoluteFilePath();
+
+        // Check if the file path is within the project
+        bool isInProject = Context::ProjectUtils::isFileInProject(absolutePath);
+        
+        if (!isInProject) {
+            const auto &settings = Settings::generalSettings();
+            if (!settings.allowAccessOutsideProject()) {
+                throw ToolRuntimeError(
+                    QString("Error: File path '%1' is not within the current project. "
+                            "Enable 'Allow file access outside project' in settings to create files outside project scope.")
+                        .arg(absolutePath));
+            }
+            LOG_MESSAGE(QString("Creating file outside project scope: %1").arg(absolutePath));
+        }
 
         if (fileInfo.exists()) {
             throw ToolRuntimeError(
@@ -107,17 +124,17 @@ QFuture<QString> CreateNewFileTool::executeAsync(const QJsonObject &input)
                                        .arg(dir.absolutePath()));
         }
 
-        QFile file(filePath);
+        QFile file(absolutePath);
         if (!file.open(QIODevice::WriteOnly)) {
             throw ToolRuntimeError(
-                QString("Error: Could not create file '%1': %2").arg(filePath, file.errorString()));
+                QString("Error: Could not create file '%1': %2").arg(absolutePath, file.errorString()));
         }
 
         file.close();
 
-        LOG_MESSAGE(QString("Successfully created new file: %1").arg(filePath));
+        LOG_MESSAGE(QString("Successfully created new file: %1").arg(absolutePath));
 
-        return QString("Successfully created new file: %1").arg(filePath);
+        return QString("Successfully created new file: %1").arg(absolutePath);
     });
 }
 
