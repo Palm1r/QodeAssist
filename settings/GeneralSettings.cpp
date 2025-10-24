@@ -24,6 +24,7 @@
 #include <utils/detailswidget.h>
 #include <utils/layoutbuilder.h>
 #include <utils/utilsicons.h>
+#include <utils/qtcsettings.h>
 #include <QInputDialog>
 #include <QMessageBox>
 #include <QTimer>
@@ -392,7 +393,7 @@ void GeneralSettings::showModelsNotSupportedDialog(Utils::StringAspect &aspect)
                       .append(
                           (&aspect == &ccModel) ? Constants::CC_MODEL_HISTORY
                                                 : Constants::CA_MODEL_HISTORY);
-    QStringList historyList = qtcSettings()->value(Utils::Key(key.toLocal8Bit())).toStringList();
+    QStringList historyList = Utils::userSettings().value(Utils::Key(key.toLocal8Bit())).toStringList();
 
     auto modelList = dialog.addComboBox(historyList, aspect.value());
     dialog.addSpacing();
@@ -429,7 +430,7 @@ void GeneralSettings::showUrlSelectionDialog(
                           (&aspect == &ccUrl)          ? Constants::CC_URL_HISTORY
                           : (&aspect == &ccPreset1Url) ? Constants::CC_PRESET1_URL_HISTORY
                                                        : Constants::CA_URL_HISTORY);
-    QStringList historyList = qtcSettings()->value(Utils::Key(key.toLocal8Bit())).toStringList();
+    QStringList historyList = Utils::userSettings().value(Utils::Key(key.toLocal8Bit())).toStringList();
     allUrls.append(historyList);
     allUrls.removeDuplicates();
 

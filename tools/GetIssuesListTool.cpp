@@ -61,7 +61,7 @@ void IssuesTracker::onTaskAdded(const ProjectExplorer::Task &task)
     m_tasks.append(task);
 
     QString typeStr;
-    switch (task.type) {
+    switch (task.type()) {
     case ProjectExplorer::Task::Error:
         typeStr = "ERROR";
         break;
@@ -76,8 +76,8 @@ void IssuesTracker::onTaskAdded(const ProjectExplorer::Task &task)
     LOG_MESSAGE(QString("IssuesTracker: Task added [%1] %2 at %3:%4 (total: %5)")
                     .arg(typeStr)
                     .arg(task.description())
-                    .arg(task.file.toUrlishString())
-                    .arg(task.line)
+                    .arg(task.file().toUrlishString())
+                    .arg(task.line())
                     .arg(m_tasks.size()));
 }
 
@@ -102,7 +102,7 @@ void IssuesTracker::onTasksCleared(Utils::Id categoryId)
                 m_tasks.begin(),
                 m_tasks.end(),
                 [categoryId](const ProjectExplorer::Task &task) {
-                    return task.category == categoryId;
+                    return task.category() == categoryId;
                 }),
             m_tasks.end());
         int removedCount = beforeCount - m_tasks.size();
@@ -201,13 +201,13 @@ QFuture<QString> GetIssuesListTool::executeAsync(const QJsonObject &input)
         int processedCount = 0;
 
         for (const ProjectExplorer::Task &task : tasks) {
-            if (severityFilter == "error" && task.type != ProjectExplorer::Task::Error)
+            if (severityFilter == "error" && task.type() != ProjectExplorer::Task::Error)
                 continue;
-            if (severityFilter == "warning" && task.type != ProjectExplorer::Task::Warning)
+            if (severityFilter == "warning" && task.type() != ProjectExplorer::Task::Warning)
                 continue;
 
             QString typeStr;
-            switch (task.type) {
+            switch (task.type()) {
             case ProjectExplorer::Task::Error:
                 typeStr = "ERROR";
                 errorCount++;
@@ -223,18 +223,18 @@ QFuture<QString> GetIssuesListTool::executeAsync(const QJsonObject &input)
 
             QString issueText = QString("[%1] %2").arg(typeStr, task.description());
 
-            if (!task.file.isEmpty()) {
-                issueText += QString("\n  File: %1").arg(task.file.toUrlishString());
-                if (task.line > 0) {
-                    issueText += QString(":%1").arg(task.line);
-                    if (task.column > 0) {
-                        issueText += QString(":%1").arg(task.column);
+            if (!task.file().isEmpty()) {
+                issueText += QString("\n  File: %1").arg(task.file().toUrlishString());
+                if (task.line() > 0) {
+                    issueText += QString(":%1").arg(task.line());
+                    if (task.column() > 0) {
+                        issueText += QString(":%1").arg(task.column());
                     }
                 }
             }
 
-            if (!task.category.toString().isEmpty()) {
-                issueText += QString("\n  Category: %1").arg(task.category.toString());
+            if (!task.category().toString().isEmpty()) {
+                issueText += QString("\n  Category: %1").arg(task.category().toString());
             }
 
             results.append(issueText);
