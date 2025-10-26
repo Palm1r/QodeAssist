@@ -54,7 +54,9 @@ private:
         bool wholeWords,
         const QString &filePattern) const;
 
-    QString formatResults(const QList<SearchResult> &results, int maxResults) const;
+    QString formatResults(const QList<SearchResult> &results,
+                          int maxResults,
+                          const QString &searchQuery) const;
 
     Context::IgnoreManager *m_ignoreManager;
 };

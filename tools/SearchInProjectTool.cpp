@@ -145,7 +145,7 @@ QFuture<QString> SearchInProjectTool::executeAsync(const QJsonObject &input)
             return QString("No matches found for '%1'").arg(query);
         }
 
-        return formatResults(results, maxResults);
+        return formatResults(results, maxResults, query);
     });
 }
 
@@ -276,9 +276,12 @@ QList<SearchInProjectTool::SearchResult> SearchInProjectTool::searchInFiles(
     return results;
 }
 
-QString SearchInProjectTool::formatResults(const QList<SearchResult> &results, int maxResults) const
+QString SearchInProjectTool::formatResults(const QList<SearchResult> &results,
+                                           int maxResults,
+                                           const QString &searchQuery) const
 {
-    QString output = QString("Found %1 matches:\n\n").arg(results.size());
+    QString output = QString("Search query: '%1'\n").arg(searchQuery);
+    output += QString("Found %1 matches:\n\n").arg(results.size());
 
     int displayCount = qMin(results.size(), maxResults);
     for (int i = 0; i < displayCount; ++i) {
