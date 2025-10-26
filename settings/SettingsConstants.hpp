@@ -88,7 +88,7 @@ const char CA_ENABLE_CHAT_IN_NAVIGATION_PANEL[] = "QodeAssist.caEnableChatInNavi
 const char CA_USE_TOOLS[] = "QodeAssist.caUseTools";
 const char CA_ALLOW_FILE_SYSTEM_READ[] = "QodeAssist.caAllowFileSystemRead";
 const char CA_ALLOW_FILE_SYSTEM_WRITE[] = "QodeAssist.caAllowFileSystemWrite";
-const char CA_ALLOW_READ_OUTSIDE_PROJECT[] = "QodeAssist.caAllowReadOutsideProject";
+const char CA_ALLOW_ACCESS_OUTSIDE_PROJECT[] = "QodeAssist.caAllowAccessOutsideProject";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
 const char QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID[] = "QodeAssist.1GeneralSettingsPageId";

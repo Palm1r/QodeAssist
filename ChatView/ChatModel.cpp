@@ -19,6 +19,7 @@
 
 #include "ChatModel.hpp"
 #include <utils/aspects.h>
+#include <QDateTime>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QtQml>
@@ -324,7 +325,9 @@ void ChatModel::updateToolResult(
                     QString("ERROR: Parsed JSON is not an object, is array=%1").arg(doc.isArray()));
             } else {
                 QJsonObject editData = doc.object();
-                QString editId = editData["edit_id"].toString();
+                
+                // Generate unique edit ID based on timestamp
+                QString editId = QString("edit_%1").arg(QDateTime::currentMSecsSinceEpoch());
 
                 LOG_MESSAGE(QString("Adding FileEdit message, editId=%1").arg(editId));
 
@@ -332,7 +335,7 @@ void ChatModel::updateToolResult(
                 Message fileEditMsg;
                 fileEditMsg.role = ChatRole::FileEdit;
                 fileEditMsg.content = result;
-                fileEditMsg.id = editId.isEmpty() ? QString("edit_%1").arg(requestId) : editId;
+                fileEditMsg.id = editId;
                 m_messages.append(fileEditMsg);
                 endInsertRows();
 

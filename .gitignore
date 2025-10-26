@@ -77,3 +77,4 @@ CMakeLists.txt.user*
 /.qodeassist
 /.cursor
 /.vscode
+.qtc_clangd/compile_commands.json

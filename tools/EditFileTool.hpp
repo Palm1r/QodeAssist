@@ -24,11 +24,11 @@
 
 namespace QodeAssist::Tools {
 
-class EditProjectFileTool : public LLMCore::BaseTool
+class EditFileTool : public LLMCore::BaseTool
 {
     Q_OBJECT
 public:
-    explicit EditProjectFileTool(QObject *parent = nullptr);
+    explicit EditFileTool(QObject *parent = nullptr);
 
     QString name() const override;
     QString stringName() const override;
@@ -39,19 +39,6 @@ public:
     QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
 
 private:
-    enum class EditMode { Replace, InsertBefore, InsertAfter, AppendToEnd };
-
-    QString findFileInProject(const QString &fileName) const;
-    QString readFileContent(const QString &filePath) const;
-    void extractContext(
-        const QString &content,
-        EditMode mode,
-        const QString &searchText,
-        int lineNumber,
-        QString &contextBefore,
-        QString &contextAfter,
-        int contextLines = 3) const;
-
     Context::IgnoreManager *m_ignoreManager;
 };
 

@@ -25,7 +25,7 @@
 #include <QJsonObject>
 
 #include "CreateNewFileTool.hpp"
-#include "EditProjectFileTool.hpp"
+#include "EditFileTool.hpp"
 #include "FindFileTool.hpp"
 #include "FindSymbolTool.hpp"
 #include "GetIssuesListTool.hpp"
@@ -49,7 +49,7 @@ void ToolsFactory::registerTools()
     registerTool(new ListProjectFilesTool(this));
     registerTool(new SearchInProjectTool(this));
     registerTool(new GetIssuesListTool(this));
-    registerTool(new EditProjectFileTool(this));
+    registerTool(new EditFileTool(this));
     registerTool(new FindSymbolTool(this));
     registerTool(new FindFileTool(this));
     registerTool(new CreateNewFileTool(this));

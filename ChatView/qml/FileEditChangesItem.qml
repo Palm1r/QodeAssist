@@ -153,14 +153,7 @@ FileEditItem {
                     id: headerText
                     Layout.fillWidth: true
                     text: {
-                        var modeText = ""
-                        switch(root.editMode) {
-                            case "replace": modeText = qsTr("Replace"); break;
-                            case "insert_before": modeText = qsTr("Insert Before"); break;
-                            case "insert_after": modeText = qsTr("Insert After"); break;
-                            case "append": modeText = qsTr("Append"); break;
-                            default: modeText = root.editMode;
-                        }
+                        var modeText = root.searchText.length > 0 ? qsTr("Replace") : qsTr("Append")
                         return qsTr("%1: %2 (+%3 -%4)")
                             .arg(modeText)
                             .arg(root.filePath)
@@ -224,21 +217,6 @@ FileEditItem {
             spacing: 4
             visible: opacity > 0
 
-            TextEdit {
-                Layout.fillWidth: true
-                visible: root.contextBefore.length > 0
-                text: root.contextBefore
-                font.family: root.codeFontFamily
-                font.pixelSize: root.codeFontSize
-                color: palette.mid
-                wrapMode: TextEdit.Wrap
-                opacity: 0.6
-                readOnly: true
-                selectByMouse: true
-                selectByKeyboard: true
-                textFormat: TextEdit.PlainText
-            }
-
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: oldContentText.implicitHeight + 8
@@ -246,7 +224,7 @@ FileEditItem {
                 radius: 4
                 border.width: 1
                 border.color: Qt.rgba(1, 0.2, 0.2, 0.3)
-                visible: root.originalContent.length > 0
+                visible: root.searchText.length > 0
 
                 TextEdit {
                     id: oldContentText
@@ -256,7 +234,7 @@ FileEditItem {
                         top: parent.top
                         margins: 4
                     }
-                    text: "- " + root.originalContent
+                    text: root.searchText
                     font.family: root.codeFontFamily
                     font.pixelSize: root.codeFontSize
                     color: Qt.rgba(1, 0.2, 0.2, 0.9)
@@ -284,7 +262,7 @@ FileEditItem {
                         top: parent.top
                         margins: 4
                     }
-                    text: "+ " + root.newContent
+                    text: root.newText
                     font.family: root.codeFontFamily
                     font.pixelSize: root.codeFontSize
                     color: Qt.rgba(0.2, 0.8, 0.2, 0.9)
@@ -294,21 +272,6 @@ FileEditItem {
                     selectByKeyboard: true
                     textFormat: TextEdit.PlainText
                 }
-            }
-
-            TextEdit {
-                Layout.fillWidth: true
-                visible: root.contextAfter.length > 0
-                text: root.contextAfter
-                font.family: root.codeFontFamily
-                font.pixelSize: root.codeFontSize
-                color: palette.mid
-                wrapMode: TextEdit.Wrap
-                opacity: 0.6
-                readOnly: true
-                selectByMouse: true
-                selectByKeyboard: true
-                textFormat: TextEdit.PlainText
             }
 
             Text {

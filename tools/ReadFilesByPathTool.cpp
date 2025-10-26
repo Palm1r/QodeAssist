@@ -20,6 +20,7 @@
 #include "ReadFilesByPathTool.hpp"
 #include "ToolExceptions.hpp"
 
+#include <context/ProjectUtils.hpp>
 #include <coreplugin/documentmanager.h>
 #include <logger/Logger.hpp>
 #include <projectexplorer/project.h>
@@ -137,31 +138,6 @@ QFuture<QString> ReadFilesByPathTool::executeAsync(const QJsonObject &input)
     });
 }
 
-bool ReadFilesByPathTool::isFileInProject(const QString &filePath) const
-{
-    QList<ProjectExplorer::Project *> projects = ProjectExplorer::ProjectManager::projects();
-    Utils::FilePath targetPath = Utils::FilePath::fromString(filePath);
-
-    for (auto project : projects) {
-        if (!project)
-            continue;
-
-        Utils::FilePaths projectFiles = project->files(ProjectExplorer::Project::SourceFiles);
-        for (const auto &projectFile : std::as_const(projectFiles)) {
-            if (projectFile == targetPath) {
-                return true;
-            }
-        }
-
-        Utils::FilePath projectDir = project->projectDirectory();
-        if (targetPath.isChildOf(projectDir)) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 QString ReadFilesByPathTool::readFileContent(const QString &filePath) const
 {
     QFile file(filePath);
@@ -206,15 +182,15 @@ ReadFilesByPathTool::FileResult ReadFilesByPathTool::processFile(const QString &
         QString canonicalPath = fileInfo.canonicalFilePath();
         LOG_MESSAGE(QString("Canonical path: %1").arg(canonicalPath));
 
-        bool isInProject = isFileInProject(canonicalPath);
+        bool isInProject = Context::ProjectUtils::isFileInProject(canonicalPath);
 
         if (!isInProject) {
             const auto &settings = Settings::generalSettings();
-            if (!settings.allowReadOutsideProject()) {
+            if (!settings.allowAccessOutsideProject()) {
                 result.error = QString(
                     "File is not part of the project. "
-                    "Enable 'Allow reading files outside project' in settings "
-                    "to access this file.");
+                    "Enable 'Allow file access outside project' in settings "
+                    "to read files outside project scope.");
                 return result;
             }
             LOG_MESSAGE(QString("Reading file outside project scope: %1").arg(canonicalPath));
