@@ -51,10 +51,9 @@ QString SearchInProjectTool::stringName() const
 
 QString SearchInProjectTool::description() const
 {
-    return "Search for text or patterns across all project files. "
+    return "Search for text or regex patterns across project files. "
            "Returns matching lines with file paths, line numbers, and context. "
-           "Supports plain text, regex, case-sensitive/insensitive search, whole word matching, "
-           "and file pattern filtering.";
+           "Supports case-sensitive/insensitive, whole word matching, and file pattern filtering (*.cpp, *.h).";
 }
 
 QJsonObject SearchInProjectTool::getDefinition(LLMCore::ToolSchemaFormat format) const

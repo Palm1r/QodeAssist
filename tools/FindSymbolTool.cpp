@@ -51,11 +51,10 @@ QString FindSymbolTool::stringName() const
 
 QString FindSymbolTool::description() const
 {
-    return "Find C++ symbols (classes, functions, enums, variables, typedefs, namespaces) in the "
-           "project. "
-           "Returns file paths and line numbers where symbols are defined. "
-           "Use read_project_file_by_path to read the actual code. "
-           "Supports exact match, wildcard patterns, and regular expressions.";
+    return "Find C++ symbols (classes, functions, enums, variables, typedefs, namespaces) in the project. "
+           "Returns file paths and line numbers. "
+           "Supports exact match, wildcards (* patterns), and regex. "
+           "Use read_files_by_path to read the actual code after finding symbols.";
 }
 
 QJsonObject FindSymbolTool::getDefinition(LLMCore::ToolSchemaFormat format) const

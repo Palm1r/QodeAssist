@@ -212,7 +212,7 @@ GeneralSettings::GeneralSettings()
             "Enable tool use capabilities for the assistant(OpenAI function calling, Claude tools "
             "and etc) "
             "if plugin and provider support"));
-    useTools.setDefaultValue(true);
+    useTools.setDefaultValue(false);
 
     allowFileSystemRead.setSettingsKey(Constants::CA_ALLOW_FILE_SYSTEM_READ);
     allowFileSystemRead.setLabelText(Tr::tr("Allow File System Read Access for tools"));

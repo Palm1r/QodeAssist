@@ -139,8 +139,8 @@ QString GetIssuesListTool::stringName() const
 QString GetIssuesListTool::description() const
 {
     return "Get compilation errors, warnings, and diagnostics from Qt Creator's Issues panel. "
-           "Filter by severity ('error', 'warning', or 'all'). "
-           "Returns issue descriptions with file paths and line numbers.";
+           "Returns issue descriptions with file paths and line numbers. "
+           "Optional severity filter: 'error', 'warning', or 'all' (default).";
 }
 
 QJsonObject GetIssuesListTool::getDefinition(LLMCore::ToolSchemaFormat format) const

@@ -54,9 +54,9 @@ QString ReadFilesByPathTool::stringName() const
 
 QString ReadFilesByPathTool::description() const
 {
-    return "Read content of one or multiple project files by absolute path(s). "
-           "Use 'filepath' for single file or 'filepaths' for multiple files (e.g., .h and .cpp). "
-           "Files must exist, be within project scope, and not excluded by .qodeassistignore.";
+    return "Read content of project file(s) by absolute path. "
+           "Use 'filepath' for single file or 'filepaths' array for multiple files (e.g., .h and .cpp). "
+           "Files must exist and not be excluded by .qodeassistignore.";
 }
 
 QJsonObject ReadFilesByPathTool::getDefinition(LLMCore::ToolSchemaFormat format) const
