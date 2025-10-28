@@ -122,7 +122,7 @@ add_qtc_plugin(QodeAssist
     tools/ToolsManager.hpp tools/ToolsManager.cpp
     tools/SearchInProjectTool.hpp tools/SearchInProjectTool.cpp
     tools/GetIssuesListTool.hpp tools/GetIssuesListTool.cpp
-    tools/EditFileTool.hpp tools/EditFileTool.cpp
+
     tools/FindSymbolTool.hpp tools/FindSymbolTool.cpp
     tools/FindFileTool.hpp tools/FindFileTool.cpp
     tools/CreateNewFileTool.hpp tools/CreateNewFileTool.cpp
