@@ -126,6 +126,7 @@ add_qtc_plugin(QodeAssist
     tools/FindSymbolTool.hpp tools/FindSymbolTool.cpp
     tools/FindFileTool.hpp tools/FindFileTool.cpp
     tools/CreateNewFileTool.hpp tools/CreateNewFileTool.cpp
+    tools/BuildProjectTool.hpp tools/BuildProjectTool.cpp
     providers/ClaudeMessage.hpp providers/ClaudeMessage.cpp
     providers/OpenAIMessage.hpp providers/OpenAIMessage.cpp
     providers/OllamaMessage.hpp providers/OllamaMessage.cpp

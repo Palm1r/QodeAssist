@@ -164,16 +164,6 @@ ChatRootView {
                     toolContent: model.content
                 }
             }
-
-            Component {
-                id: fileEditSuggestionComponent
-
-                FileEditChangesItem {
-                    id: fileEditItem
-
-                    width: chatListView.width - 10
-                }
-            }
         }
 
         ScrollView {
