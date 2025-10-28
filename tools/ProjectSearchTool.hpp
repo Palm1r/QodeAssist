@@ -21,35 +21,52 @@
 
 #include <context/IgnoreManager.hpp>
 #include <llmcore/BaseTool.hpp>
+#include <QFuture>
+#include <QJsonObject>
+#include <QObject>
 
 namespace QodeAssist::Tools {
 
-class ReadFilesByPathTool : public LLMCore::BaseTool
+class ProjectSearchTool : public LLMCore::BaseTool
 {
     Q_OBJECT
+
 public:
-    explicit ReadFilesByPathTool(QObject *parent = nullptr);
+    explicit ProjectSearchTool(QObject *parent = nullptr);
 
     QString name() const override;
     QString stringName() const override;
     QString description() const override;
     QJsonObject getDefinition(LLMCore::ToolSchemaFormat format) const override;
     LLMCore::ToolPermissions requiredPermissions() const override;
-
-    QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
+    QFuture<QString> executeAsync(const QJsonObject &input) override;
 
 private:
-    struct FileResult
+    enum class SearchType { Text, Symbol };
+    enum class SymbolType { All, Class, Function, Enum, Variable, Namespace };
+
+    struct SearchResult
     {
-        QString path;
+        QString filePath;
+        QString relativePath;
         QString content;
-        bool success;
-        QString error;
+        int lineNumber = 0;
+        QString context;
     };
 
-    QString readFileContent(const QString &filePath) const;
-    FileResult processFile(const QString &filePath) const;
-    QString formatResults(const QList<FileResult> &results) const;
+    QList<SearchResult> searchText(
+        const QString &query,
+        bool caseSensitive,
+        bool useRegex,
+        bool wholeWords,
+        const QString &filePattern);
+
+    QList<SearchResult> searchSymbols(
+        const QString &query, SymbolType symbolType, bool caseSensitive, bool useRegex);
+
+    SymbolType parseSymbolType(const QString &typeStr);
+    QString formatResults(const QList<SearchResult> &results, const QString &query);
+
     Context::IgnoreManager *m_ignoreManager;
 };
 

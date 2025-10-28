@@ -26,13 +26,11 @@
 
 #include "BuildProjectTool.hpp"
 #include "CreateNewFileTool.hpp"
-#include "FindFileTool.hpp"
-#include "FindSymbolTool.hpp"
+#include "FindAndReadFileTool.hpp"
 #include "GetIssuesListTool.hpp"
 #include "ListProjectFilesTool.hpp"
-#include "ReadFilesByPathTool.hpp"
+#include "ProjectSearchTool.hpp"
 #include "ReadVisibleFilesTool.hpp"
-#include "SearchInProjectTool.hpp"
 
 namespace QodeAssist::Tools {
 
@@ -45,14 +43,12 @@ ToolsFactory::ToolsFactory(QObject *parent)
 void ToolsFactory::registerTools()
 {
     registerTool(new ReadVisibleFilesTool(this));
-    registerTool(new ReadFilesByPathTool(this));
     registerTool(new ListProjectFilesTool(this));
-    registerTool(new SearchInProjectTool(this));
     registerTool(new GetIssuesListTool(this));
-    registerTool(new FindSymbolTool(this));
-    registerTool(new FindFileTool(this));
     registerTool(new CreateNewFileTool(this));
     registerTool(new BuildProjectTool(this));
+    registerTool(new ProjectSearchTool(this));
+    registerTool(new FindAndReadFileTool(this));
 
     LOG_MESSAGE(QString("Registered %1 tools").arg(m_tools.size()));
 }

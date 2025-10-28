@@ -21,54 +21,60 @@
 
 #include <context/IgnoreManager.hpp>
 #include <llmcore/BaseTool.hpp>
+#include <QFuture>
+#include <QJsonObject>
+#include <QObject>
 
 namespace QodeAssist::Tools {
 
-class FindFileTool : public LLMCore::BaseTool
+class FindAndReadFileTool : public LLMCore::BaseTool
 {
     Q_OBJECT
+
 public:
-    explicit FindFileTool(QObject *parent = nullptr);
+    explicit FindAndReadFileTool(QObject *parent = nullptr);
 
     QString name() const override;
     QString stringName() const override;
     QString description() const override;
     QJsonObject getDefinition(LLMCore::ToolSchemaFormat format) const override;
     LLMCore::ToolPermissions requiredPermissions() const override;
-
-    QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
+    QFuture<QString> executeAsync(const QJsonObject &input) override;
 
 private:
+    enum class MatchType { ExactName, PathMatch, PartialName };
+
     struct FileMatch
     {
         QString absolutePath;
         QString relativePath;
         QString projectName;
-        enum MatchType { ExactName, PartialName, PathMatch } matchType;
-        
+        QString content;
+        MatchType matchType;
+        bool contentRead = false;
+        QString error;
+
         bool operator<(const FileMatch &other) const
         {
-            if (matchType != other.matchType) {
-                return matchType < other.matchType;
-            }
-            return relativePath < other.relativePath;
+            return static_cast<int>(matchType) < static_cast<int>(other.matchType);
         }
     };
 
-    QList<FileMatch> findMatchingFiles(const QString &query, int maxResults) const;
-    void searchInFileSystem(const QString &dirPath, 
-                           const QString &query, 
-                           const QString &projectName,
-                           const QString &projectDir,
-                           ProjectExplorer::Project *project,
-                           QList<FileMatch> &matches,
-                           int maxResults,
-                           int &currentDepth,
-                           int maxDepth = 10) const;
-    QString formatResults(const QList<FileMatch> &matches, int totalFound, int maxResults) const;
+    FileMatch findBestMatch(const QString &query, const QString &filePattern, int maxResults);
+    void searchInFileSystem(
+        const QString &dirPath,
+        const QString &query,
+        const QString &projectName,
+        const QString &projectDir,
+        ProjectExplorer::Project *project,
+        QList<FileMatch> &matches,
+        int maxResults,
+        int &currentDepth,
+        int maxDepth = 5);
     bool matchesFilePattern(const QString &fileName, const QString &pattern) const;
+    QString readFileContent(const QString &filePath) const;
+    QString formatResult(const FileMatch &match, bool readContent) const;
 
-    static constexpr int DEFAULT_MAX_RESULTS = 50;
     Context::IgnoreManager *m_ignoreManager;
 };
 

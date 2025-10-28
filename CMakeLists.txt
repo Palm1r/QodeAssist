@@ -115,18 +115,15 @@ add_qtc_plugin(QodeAssist
     widgets/QuickRefactorDialog.hpp widgets/QuickRefactorDialog.cpp
     QuickRefactorHandler.hpp QuickRefactorHandler.cpp
     tools/ToolsFactory.hpp tools/ToolsFactory.cpp
-    tools/ReadFilesByPathTool.hpp tools/ReadFilesByPathTool.cpp
     tools/ReadVisibleFilesTool.hpp tools/ReadVisibleFilesTool.cpp
     tools/ToolHandler.hpp tools/ToolHandler.cpp
     tools/ListProjectFilesTool.hpp tools/ListProjectFilesTool.cpp
     tools/ToolsManager.hpp tools/ToolsManager.cpp
-    tools/SearchInProjectTool.hpp tools/SearchInProjectTool.cpp
     tools/GetIssuesListTool.hpp tools/GetIssuesListTool.cpp
-
-    tools/FindSymbolTool.hpp tools/FindSymbolTool.cpp
-    tools/FindFileTool.hpp tools/FindFileTool.cpp
     tools/CreateNewFileTool.hpp tools/CreateNewFileTool.cpp
     tools/BuildProjectTool.hpp tools/BuildProjectTool.cpp
+    tools/ProjectSearchTool.hpp tools/ProjectSearchTool.cpp
+    tools/FindAndReadFileTool.hpp tools/FindAndReadFileTool.cpp
     providers/ClaudeMessage.hpp providers/ClaudeMessage.cpp
     providers/OpenAIMessage.hpp providers/OpenAIMessage.cpp
     providers/OllamaMessage.hpp providers/OllamaMessage.cpp
