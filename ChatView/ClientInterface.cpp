@@ -92,8 +92,6 @@ void ClientInterface::sendMessage(
                    "**Workflow patterns:**\n"
                    "- Code structure: find_cpp_symbol → read_files_by_path\n"
                    "- Find usages: find_cpp_symbol → search_in_project\n"
-                   "- Fix errors: get_issues_list → find_cpp_symbol → read_files_by_path → edit_file\n"
-                   "- Refactoring: find_cpp_symbol → read_files → search_in_project → edit_file\n\n"
                    "**Best practices:**\n"
                    "- Prefer find_cpp_symbol over search_in_project for code symbols\n"
                    "- Read once, edit comprehensively (atomic edits)\n"

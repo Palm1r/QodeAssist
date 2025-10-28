@@ -18,7 +18,6 @@ qt_add_qml_module(QodeAssistChatView
     qml/parts/AttachedFilesPlace.qml
     qml/parts/ErrorToast.qml
     qml/ToolStatusItem.qml
-    qml/FileEditChangesItem.qml
     qml/parts/RulesViewer.qml
 
     RESOURCES
@@ -48,7 +47,7 @@ qt_add_qml_module(QodeAssistChatView
     ChatSerializer.hpp ChatSerializer.cpp
     ChatView.hpp ChatView.cpp
     ChatData.hpp
-    FileEditItem.hpp FileEditItem.cpp
+
 )
 
 target_link_libraries(QodeAssistChatView
