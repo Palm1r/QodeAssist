@@ -104,7 +104,8 @@ QFuture<QString> BuildProjectTool::executeAsync(const QJsonObject &input)
 
     bool rebuild = input.value("rebuild").toBool(false);
 
-    LOG_MESSAGE(QString("BuildProjectTool: Starting %1").arg(rebuild ? "rebuild" : "build"));
+    LOG_MESSAGE(QString("BuildProjectTool: Starting %1")
+                    .arg(rebuild ? QString("rebuild") : QString("build")));
 
     QMetaObject::invokeMethod(
         qApp,
