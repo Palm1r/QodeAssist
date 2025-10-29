@@ -87,17 +87,12 @@ void ClientInterface::sendMessage(
         QString systemPrompt = chatAssistantSettings.systemPrompt();
 
         if (Settings::generalSettings().useTools()) {
-            systemPrompt
-                += "\n\n# Tool Usage Guidelines\n\n"
-                   "**Workflow patterns:**\n"
-                   "- Code structure: find_cpp_symbol → read_files_by_path\n"
-                   "- Find usages: find_cpp_symbol → search_in_project\n"
-                   "**Best practices:**\n"
-                   "- Prefer find_cpp_symbol over search_in_project for code symbols\n"
-                   "- Read once, edit comprehensively (atomic edits)\n"
-                   "- Use read_visible_files for current editor context\n"
-                   "- Verify before editing\n"
-                   "- Use file patterns (*.cpp, *.h) to narrow searches\n";
+            systemPrompt += "\n\n# Tool Usage Guidelines\n\n"
+                            "**Multi-tool workflows:**\n"
+                            "- Code structure: search_project (symbol mode) → find_and_read_file\n"
+                            "- Fix errors: get_issues_list → find_and_read_file → edit\n"
+                            "- Verify changes: edit → build_project → get_issues_list\n"
+                            "- find_and_read_file supports absolute paths\n";
         }
 
         auto project = LLMCore::RulesLoader::getActiveProject();

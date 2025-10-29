@@ -121,7 +121,7 @@ QFuture<QString> BuildProjectTool::executeAsync(const QJsonObject &input)
 
     return QtFuture::makeReadyFuture(
         QString("Build %1 started for project '%2'. Check the Compile Output pane for progress.")
-            .arg(rebuild ? "rebuild" : "build")
+            .arg(rebuild ? QString("rebuild") : QString("build"))
             .arg(project->displayName()));
 }
 
