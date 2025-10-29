@@ -212,7 +212,7 @@ GeneralSettings::GeneralSettings()
             "Enable tool use capabilities for the assistant(OpenAI function calling, Claude tools "
             "and etc) "
             "if plugin and provider support"));
-    useTools.setDefaultValue(false);
+    useTools.setDefaultValue(true);
 
     allowFileSystemRead.setSettingsKey(Constants::CA_ALLOW_FILE_SYSTEM_READ);
     allowFileSystemRead.setLabelText(Tr::tr("Allow File System Read Access for tools"));
@@ -284,9 +284,12 @@ GeneralSettings::GeneralSettings()
 
         auto caGroup = Group{
             title(TrConstants::CHAT_ASSISTANT),
-            Column{caGrid,
-                   Column{useTools, allowFileSystemRead, allowFileSystemWrite, allowAccessOutsideProject, autoApplyFileEdits},
-                   caTemplateDescription}};
+            Column{
+                caGrid,
+                Column{
+                    useTools, allowFileSystemRead, allowFileSystemWrite, allowAccessOutsideProject,
+                    /*autoApplyFileEdits*/},
+                caTemplateDescription}};
 
         auto rootLayout = Column{
             Row{enableQodeAssist, Stretch{1}, Row{checkUpdate, resetToDefaults}},
