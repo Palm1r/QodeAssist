@@ -49,7 +49,6 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     , m_promptProvider(LLMCore::PromptTemplateManager::instance())
     , m_clientInterface(new ClientInterface(m_chatModel, &m_promptProvider, this))
     , m_isRequestInProgress(false)
-    , m_isAgentMode(false)
 {
     m_isSyncOpenFiles = Settings::chatAssistantSettings().linkOpenFiles();
     connect(
@@ -150,7 +149,7 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         &ChatRootView::refreshRules);
 
     QSettings appSettings;
-    m_isAgentMode = appSettings.value("QodeAssist/Chat/AgentMode", true).toBool();
+    m_isAgentMode = appSettings.value("QodeAssist/Chat/AgentMode", false).toBool();
 
     connect(
         &Settings::generalSettings().useTools,

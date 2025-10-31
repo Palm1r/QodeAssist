@@ -87,7 +87,7 @@ ChatRootView {
             agentModeSwitch {
                 checked: root.isAgentMode
                 enabled: root.toolsSupportEnabled
-                onCheckedChanged: {
+                onToggled: {
                     root.isAgentMode = agentModeSwitch.checked
                 }
             }
