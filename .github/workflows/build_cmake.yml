@@ -199,7 +199,7 @@ jobs:
         endif()
 
     - name: Download Qt Creator
-      uses: qt-creator/install-dev-package@4046eda2efa77c0fe61d4cde7e622c050a4d65af
+      uses: qt-creator/install-dev-package@1460787a21551eb3d867b0de30e8d3f1aadef5ac
       with:
         version: ${{ matrix.qt_config.qt_creator_version }}
         unzip-to: 'qtcreator'

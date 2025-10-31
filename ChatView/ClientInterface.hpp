@@ -42,7 +42,8 @@ public:
     void sendMessage(
         const QString &message,
         const QList<QString> &attachments = {},
-        const QList<QString> &linkedFiles = {});
+        const QList<QString> &linkedFiles = {},
+        bool useAgentMode = false);
     void clearMessages();
     void cancelRequest();
 

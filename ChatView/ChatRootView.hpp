@@ -47,6 +47,9 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(QString lastErrorMessage READ lastErrorMessage NOTIFY lastErrorMessageChanged FINAL)
     Q_PROPERTY(QVariantList activeRules READ activeRules NOTIFY activeRulesChanged FINAL)
     Q_PROPERTY(int activeRulesCount READ activeRulesCount NOTIFY activeRulesCountChanged FINAL)
+    Q_PROPERTY(bool isAgentMode READ isAgentMode WRITE setIsAgentMode NOTIFY isAgentModeChanged FINAL)
+    Q_PROPERTY(
+        bool toolsSupportEnabled READ toolsSupportEnabled NOTIFY toolsSupportEnabledChanged FINAL)
 
     QML_ELEMENT
 
@@ -107,6 +110,10 @@ public:
     Q_INVOKABLE QString getRuleContent(int index);
     Q_INVOKABLE void refreshRules();
 
+    bool isAgentMode() const;
+    void setIsAgentMode(bool newIsAgentMode);
+    bool toolsSupportEnabled() const;
+
 public slots:
     void sendMessage(const QString &message);
     void copyToClipboard(const QString &text);
@@ -134,6 +141,9 @@ signals:
     void activeRulesChanged();
     void activeRulesCountChanged();
 
+    void isAgentModeChanged();
+    void toolsSupportEnabledChanged();
+
 private:
     QString getChatsHistoryDir() const;
     QString getSuggestedFileName() const;
@@ -152,6 +162,7 @@ private:
     bool m_isRequestInProgress;
     QString m_lastErrorMessage;
     QVariantList m_activeRules;
+    bool m_isAgentMode;
 };
 
 } // namespace QodeAssist::Chat

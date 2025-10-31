@@ -143,7 +143,6 @@ Item {
         anchors.fill: parent
         hoverEnabled: true
         cursorShape: root.enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
-        enabled: root.enabled
 
         onClicked: {
             if (root.enabled) {

@@ -292,7 +292,8 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         config.providerRequest,
         promptTemplate,
         updatedContext,
-        LLMCore::RequestType::CodeCompletion);
+        LLMCore::RequestType::CodeCompletion,
+        false);
 
     auto errors = config.provider->validateRequest(config.providerRequest, promptTemplate->type());
     if (!errors.isEmpty()) {

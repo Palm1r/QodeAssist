@@ -145,7 +145,11 @@ void QuickRefactorHandler::prepareAndSendRequest(
     LLMCore::ContextData context = prepareContext(editor, range, instructions);
 
     provider->prepareRequest(
-        config.providerRequest, promptTemplate, context, LLMCore::RequestType::QuickRefactoring);
+        config.providerRequest,
+        promptTemplate,
+        context,
+        LLMCore::RequestType::QuickRefactoring,
+        false);
 
     QString requestId = QUuid::createUuid().toString();
     m_lastRequestId = requestId;

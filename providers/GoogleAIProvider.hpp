@@ -40,7 +40,8 @@ public:
         QJsonObject &request,
         LLMCore::PromptTemplate *prompt,
         LLMCore::ContextData context,
-        LLMCore::RequestType type) override;
+        LLMCore::RequestType type,
+        bool isToolsEnabled) override;
     QList<QString> getInstalledModels(const QString &url) override;
     QList<QString> validateRequest(const QJsonObject &request, LLMCore::TemplateType type) override;
     QString apiKey() const override;
