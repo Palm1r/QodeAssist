@@ -139,6 +139,8 @@ ChatRootView {
 
                 ChatItem {
                     id: chatItemInstance
+
+                    width: parent.width
                     msgModel: root.chatModel.processMessageContent(model.content)
                     messageAttachments: model.attachments
                     isUserMessage: model.roleType === ChatModel.User
@@ -161,6 +163,7 @@ ChatRootView {
                 id: toolMessageComponent
 
                 ToolStatusItem {
+                    width: parent.width
                     toolContent: model.content
                 }
             }
