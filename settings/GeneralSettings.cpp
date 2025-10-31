@@ -395,7 +395,12 @@ void GeneralSettings::showModelsNotSupportedDialog(Utils::StringAspect &aspect)
                       .append(
                           (&aspect == &ccModel) ? Constants::CC_MODEL_HISTORY
                                                 : Constants::CA_MODEL_HISTORY);
+#if QODEASSIST_QT_CREATOR_VERSION >= QT_VERSION_CHECK(18, 0, 0)
+    QStringList historyList
+        = Utils::QtcSettings().value(Utils::Key(key.toLocal8Bit())).toStringList();
+#else
     QStringList historyList = qtcSettings()->value(Utils::Key(key.toLocal8Bit())).toStringList();
+#endif
 
     auto modelList = dialog.addComboBox(historyList, aspect.value());
     dialog.addSpacing();
@@ -432,7 +437,12 @@ void GeneralSettings::showUrlSelectionDialog(
                           (&aspect == &ccUrl)          ? Constants::CC_URL_HISTORY
                           : (&aspect == &ccPreset1Url) ? Constants::CC_PRESET1_URL_HISTORY
                                                        : Constants::CA_URL_HISTORY);
+#if QODEASSIST_QT_CREATOR_VERSION >= QT_VERSION_CHECK(18, 0, 0)
+    QStringList historyList
+        = Utils::QtcSettings().value(Utils::Key(key.toLocal8Bit())).toStringList();
+#else
     QStringList historyList = qtcSettings()->value(Utils::Key(key.toLocal8Bit())).toStringList();
+#endif
     allUrls.append(historyList);
     allUrls.removeDuplicates();
 

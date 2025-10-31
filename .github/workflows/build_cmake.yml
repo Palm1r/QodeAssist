@@ -46,12 +46,16 @@ jobs:
           }
         qt_config:
         - {
+            qt_version: "6.8.3",
+            qt_creator_version: "16.0.2"
+          }
+        - {
             qt_version: "6.9.2",
             qt_creator_version: "17.0.2"
           }
         - {
-            qt_version: "6.8.3",
-            qt_creator_version: "16.0.2"
+            qt_version: "6.10.0",
+            qt_creator_version: "18.0.0"
           }
 
     steps:
@@ -105,13 +109,18 @@ jobs:
       shell: cmake -P {0}
       run: |
         set(qt_version "${{ matrix.qt_config.qt_version }}")
+        set(qt_creator_version "${{ matrix.qt_config.qt_creator_version }}")
 
         string(REPLACE "." "" qt_version_dotless "${qt_version}")
         if ("${{ runner.os }}" STREQUAL "Windows")
           set(url_os "windows_x86")
           set(qt_package_arch_suffix "win64_msvc2022_64")
           set(qt_dir_prefix "${qt_version}/msvc2022_64")
-          set(qt_package_suffix "-Windows-Windows_11_23H2-MSVC2022-Windows-Windows_11_23H2-X86_64")
+          if (qt_creator_version VERSION_GREATER_EQUAL "18.0.0")
+            set(qt_package_suffix "-Windows-Windows_11_24H2-MSVC2022-Windows-Windows_11_24H2-X86_64")
+          else()
+            set(qt_package_suffix "-Windows-Windows_11_23H2-MSVC2022-Windows-Windows_11_23H2-X86_64")
+          endif()
         elseif ("${{ runner.os }}" STREQUAL "Linux")
           set(url_os "linux_x64")
           if (qt_version VERSION_LESS "6.7.0")
@@ -120,7 +129,11 @@ jobs:
             set(qt_package_arch_suffix "linux_gcc_64")
           endif()
           set(qt_dir_prefix "${qt_version}/gcc_64")
-          set(qt_package_suffix "-Linux-RHEL_8_10-GCC-Linux-RHEL_8_10-X86_64")
+          if (qt_creator_version VERSION_GREATER_EQUAL "18.0.0")
+            set(qt_package_suffix "-Linux-RHEL_9_4-GCC-Linux-RHEL_9_4-X86_64")
+          else()
+            set(qt_package_suffix "-Linux-RHEL_8_10-GCC-Linux-RHEL_8_10-X86_64")
+          endif()
         elseif ("${{ runner.os }}" STREQUAL "macOS")
           set(url_os "mac_x64")
           set(qt_package_arch_suffix "clang_64")
