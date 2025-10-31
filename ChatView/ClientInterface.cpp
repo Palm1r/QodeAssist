@@ -55,7 +55,10 @@ ClientInterface::ClientInterface(
 ClientInterface::~ClientInterface() = default;
 
 void ClientInterface::sendMessage(
-    const QString &message, const QList<QString> &attachments, const QList<QString> &linkedFiles)
+    const QString &message,
+    const QList<QString> &attachments,
+    const QList<QString> &linkedFiles,
+    bool useAgentMode)
 {
     cancelRequest();
     m_accumulatedResponses.clear();
@@ -83,10 +86,12 @@ void ClientInterface::sendMessage(
 
     LLMCore::ContextData context;
 
+    const bool isToolsEnabled = Settings::generalSettings().useTools() && useAgentMode;
+
     if (chatAssistantSettings.useSystemPrompt()) {
         QString systemPrompt = chatAssistantSettings.systemPrompt();
 
-        if (Settings::generalSettings().useTools()) {
+        if (isToolsEnabled) {
             systemPrompt += "\n\n# Tool Usage Guidelines\n\n"
                             "**Multi-tool workflows:**\n"
                             "- Code structure: search_project (symbol mode) → find_and_read_file\n"
@@ -140,8 +145,8 @@ void ClientInterface::sendMessage(
 
     config.apiKey = provider->apiKey();
 
-    config.provider
-        ->prepareRequest(config.providerRequest, promptTemplate, context, LLMCore::RequestType::Chat);
+    config.provider->prepareRequest(
+        config.providerRequest, promptTemplate, context, LLMCore::RequestType::Chat, isToolsEnabled);
 
     QString requestId = QUuid::createUuid().toString();
     QJsonObject request{{"id", requestId}};

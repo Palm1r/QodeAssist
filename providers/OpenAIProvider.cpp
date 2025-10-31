@@ -74,7 +74,8 @@ void OpenAIProvider::prepareRequest(
     QJsonObject &request,
     LLMCore::PromptTemplate *prompt,
     LLMCore::ContextData context,
-    LLMCore::RequestType type)
+    LLMCore::RequestType type,
+    bool isToolsEnabled)
 {
     if (!prompt->isSupportProvider(providerID())) {
         LOG_MESSAGE(QString("Template %1 doesn't support %2 provider").arg(name(), prompt->name()));
@@ -102,8 +103,7 @@ void OpenAIProvider::prepareRequest(
         applyModelParams(Settings::chatAssistantSettings());
     }
 
-    if (supportsTools() && type == LLMCore::RequestType::Chat
-        && Settings::generalSettings().useTools()) {
+    if (isToolsEnabled) {
         auto toolsDefinitions = m_toolsManager->getToolsDefinitions(
             LLMCore::ToolSchemaFormat::OpenAI);
         if (!toolsDefinitions.isEmpty()) {

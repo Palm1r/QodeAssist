@@ -65,7 +65,7 @@ ChatRootView {
             id: topBar
 
             Layout.preferredWidth: parent.width
-            Layout.preferredHeight: 40
+            Layout.preferredHeight: childrenRect.height + 10
 
             saveButton.onClicked: root.showSaveDialog()
             loadButton.onClicked: root.showLoadDialog()
@@ -74,7 +74,7 @@ ChatRootView {
                 text: qsTr("%1/%2").arg(root.inputTokensCount).arg(root.chatModel.tokensThreshold)
             }
             recentPath {
-                text: qsTr("Latest chat file name: %1").arg(root.chatFileName.length > 0 ? root.chatFileName : "Unsaved")
+                text: qsTr("Сhat name: %1").arg(root.chatFileName.length > 0 ? root.chatFileName : "Unsaved")
             }
             openChatHistory.onClicked: root.openChatHistoryFolder()
             rulesButton.onClicked: rulesViewer.open()
@@ -83,6 +83,13 @@ ChatRootView {
                 visible: typeof _chatview !== 'undefined'
                 checked: typeof _chatview !== 'undefined' ? _chatview.isPin : false
                 onCheckedChanged: _chatview.isPin = topBar.pinButton.checked
+            }
+            agentModeSwitch {
+                checked: root.isAgentMode
+                enabled: root.toolsSupportEnabled
+                onCheckedChanged: {
+                    root.isAgentMode = agentModeSwitch.checked
+                }
             }
         }
 
@@ -108,7 +115,7 @@ ChatRootView {
                     if (model.roleType === ChatModel.Tool) {
                         return toolMessageComponent
                     } else if (model.roleType === ChatModel.FileEdit) {
-                        return fileEditSuggestionComponent
+                        return toolMessageComponent
                     } else {
                         return chatItemComponent
                     }

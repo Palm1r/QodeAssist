@@ -52,7 +52,8 @@ public:
         QJsonObject &request,
         LLMCore::PromptTemplate *prompt,
         LLMCore::ContextData context,
-        LLMCore::RequestType type)
+        LLMCore::RequestType type,
+        bool isToolsEnabled)
         = 0;
     virtual QList<QString> getInstalledModels(const QString &url) = 0;
     virtual QList<QString> validateRequest(const QJsonObject &request, TemplateType type) = 0;

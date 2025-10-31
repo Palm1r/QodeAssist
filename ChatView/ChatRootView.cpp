@@ -49,6 +49,7 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     , m_promptProvider(LLMCore::PromptTemplateManager::instance())
     , m_clientInterface(new ClientInterface(m_chatModel, &m_promptProvider, this))
     , m_isRequestInProgress(false)
+    , m_isAgentMode(false)
 {
     m_isSyncOpenFiles = Settings::chatAssistantSettings().linkOpenFiles();
     connect(
@@ -142,12 +143,20 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     updateInputTokensCount();
     refreshRules();
 
-    // Refresh rules when project changes
     connect(
         ProjectExplorer::ProjectManager::instance(),
         &ProjectExplorer::ProjectManager::startupProjectChanged,
         this,
         &ChatRootView::refreshRules);
+
+    QSettings appSettings;
+    m_isAgentMode = appSettings.value("QodeAssist/Chat/AgentMode", true).toBool();
+
+    connect(
+        &Settings::generalSettings().useTools,
+        &Utils::BaseAspect::changed,
+        this,
+        &ChatRootView::toolsSupportEnabledChanged);
 }
 
 ChatModel *ChatRootView::chatModel() const
@@ -173,7 +182,7 @@ void ChatRootView::sendMessage(const QString &message)
         }
     }
 
-    m_clientInterface->sendMessage(message, m_attachmentFiles, m_linkedFiles);
+    m_clientInterface->sendMessage(message, m_attachmentFiles, m_linkedFiles, m_isAgentMode);
     clearAttachmentFiles();
     setRequestProgressStatus(true);
 }
@@ -702,6 +711,28 @@ void ChatRootView::refreshRules()
 
     emit activeRulesChanged();
     emit activeRulesCountChanged();
+}
+
+bool ChatRootView::isAgentMode() const
+{
+    return m_isAgentMode;
+}
+
+void ChatRootView::setIsAgentMode(bool newIsAgentMode)
+{
+    if (m_isAgentMode != newIsAgentMode) {
+        m_isAgentMode = newIsAgentMode;
+
+        QSettings settings;
+        settings.setValue("QodeAssist/Chat/AgentMode", newIsAgentMode);
+
+        emit isAgentModeChanged();
+    }
+}
+
+bool ChatRootView::toolsSupportEnabled() const
+{
+    return Settings::generalSettings().useTools();
 }
 
 } // namespace QodeAssist::Chat
