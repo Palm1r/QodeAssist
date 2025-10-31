@@ -297,7 +297,7 @@ ChatRootView {
     Shortcut {
         id: sendMessageShortcut
 
-        sequence: "Ctrl+Return"
+        sequences: ["Ctrl+Return", "Ctrl+Enter"]
         context: Qt.WindowShortcut
         onActivated: {
             if (messageInput.activeFocus && !Qt.inputMethod.visible) {
