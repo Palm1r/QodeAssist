@@ -49,6 +49,7 @@ public:
         LLMCore::IPromptProvider *promptProvider,
         Context::IDocumentReader &documentReader,
         IRequestPerformanceLogger &performanceLogger);
+    ~LLMClientInterface() override;
 
     Utils::FilePath serverDeviceTemplate() const override;
 
@@ -75,7 +76,7 @@ private:
     void handleTextDocumentDidOpen(const QJsonObject &request);
     void handleInitialized(const QJsonObject &request);
     void handleExit(const QJsonObject &request);
-    void handleCancelRequest(const QJsonObject &request);
+    void handleCancelRequest();
 
     struct RequestContext
     {

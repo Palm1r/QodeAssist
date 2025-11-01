@@ -52,7 +52,10 @@ ClientInterface::ClientInterface(
     , m_contextManager(new Context::ContextManager(this))
 {}
 
-ClientInterface::~ClientInterface() = default;
+ClientInterface::~ClientInterface()
+{
+    cancelRequest();
+}
 
 void ClientInterface::sendMessage(
     const QString &message,
@@ -201,6 +204,17 @@ void ClientInterface::clearMessages()
 
 void ClientInterface::cancelRequest()
 {
+    QSet<LLMCore::Provider *> providers;
+    for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
+        if (it.value().provider) {
+            providers.insert(it.value().provider);
+        }
+    }
+
+    for (auto *provider : providers) {
+        disconnect(provider, nullptr, this, nullptr);
+    }
+
     for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
         const RequestContext &ctx = it.value();
         if (ctx.provider) {

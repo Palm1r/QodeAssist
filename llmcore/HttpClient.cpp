@@ -60,18 +60,23 @@ void HttpClient::onSendRequest(const HttpRequest &request)
 void HttpClient::onReadyRead()
 {
     QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
-    if (!reply)
+    if (!reply || reply->isFinished())
         return;
 
     QString requestId;
     {
         QMutexLocker locker(&m_mutex);
+        bool found = false;
         for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
             if (it.value() == reply) {
                 requestId = it.key();
+                found = true;
                 break;
             }
         }
+        
+        if (!found)
+            return;
     }
 
     if (requestId.isEmpty())
@@ -89,17 +94,26 @@ void HttpClient::onFinished()
     if (!reply)
         return;
 
+    reply->disconnect();
+
     QString requestId;
     bool hasError = false;
     QString errorMsg;
     {
         QMutexLocker locker(&m_mutex);
+        bool found = false;
         for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
             if (it.value() == reply) {
                 requestId = it.key();
                 m_activeRequests.erase(it);
+                found = true;
                 break;
             }
+        }
+
+        if (!found) {
+            reply->deleteLater();
+            return;
         }
 
         if (reply->error() != QNetworkReply::NoError) {

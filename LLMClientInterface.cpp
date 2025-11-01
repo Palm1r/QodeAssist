@@ -51,6 +51,11 @@ LLMClientInterface::LLMClientInterface(
 {
 }
 
+LLMClientInterface::~LLMClientInterface()
+{
+    handleCancelRequest();
+}
+
 Utils::FilePath LLMClientInterface::serverDeviceTemplate() const
 {
     return "QodeAssist";
@@ -106,7 +111,7 @@ void LLMClientInterface::sendData(const QByteArray &data)
         m_performanceLogger.startTimeMeasurement(requestId);
         handleCompletion(request);
     } else if (method == "$/cancelRequest") {
-        handleCancelRequest(request);
+        handleCancelRequest();
     } else if (method == "exit") {
         // TODO make exit handler
     } else {
@@ -114,8 +119,19 @@ void LLMClientInterface::sendData(const QByteArray &data)
     }
 }
 
-void LLMClientInterface::handleCancelRequest(const QJsonObject &request)
+void LLMClientInterface::handleCancelRequest()
 {
+    QSet<LLMCore::Provider *> providers;
+    for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
+        if (it.value().provider) {
+            providers.insert(it.value().provider);
+        }
+    }
+
+    for (auto *provider : providers) {
+        disconnect(provider, nullptr, this, nullptr);
+    }
+
     for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
         const RequestContext &ctx = it.value();
         if (ctx.provider) {
