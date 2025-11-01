@@ -87,6 +87,7 @@ Rectangle {
         TextEdit {
             id: resultText
 
+            width: parent.width
             text: root.toolResult
             readOnly: true
             selectByMouse: true

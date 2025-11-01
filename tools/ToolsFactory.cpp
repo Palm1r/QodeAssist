@@ -21,11 +21,13 @@
 
 #include "logger/Logger.hpp"
 #include <settings/GeneralSettings.hpp>
+#include <settings/ToolsSettings.hpp>
 #include <QJsonArray>
 #include <QJsonObject>
 
 #include "BuildProjectTool.hpp"
 #include "CreateNewFileTool.hpp"
+#include "EditFileTool.hpp"
 #include "FindAndReadFileTool.hpp"
 #include "GetIssuesListTool.hpp"
 #include "ListProjectFilesTool.hpp"
@@ -46,6 +48,7 @@ void ToolsFactory::registerTools()
     registerTool(new ListProjectFilesTool(this));
     registerTool(new GetIssuesListTool(this));
     registerTool(new CreateNewFileTool(this));
+    registerTool(new EditFileTool(this));
     registerTool(new BuildProjectTool(this));
     registerTool(new ProjectSearchTool(this));
     registerTool(new FindAndReadFileTool(this));
@@ -81,10 +84,14 @@ LLMCore::BaseTool *ToolsFactory::getToolByName(const QString &name) const
 QJsonArray ToolsFactory::getToolsDefinitions(LLMCore::ToolSchemaFormat format) const
 {
     QJsonArray toolsArray;
-    const auto &settings = Settings::generalSettings();
+    const auto &settings = Settings::toolsSettings();
 
     for (auto it = m_tools.constBegin(); it != m_tools.constEnd(); ++it) {
         if (!it.value()) {
+            continue;
+        }
+
+        if (it.value()->name() == "edit_file" && !settings.enableEditFileTool()) {
             continue;
         }
 

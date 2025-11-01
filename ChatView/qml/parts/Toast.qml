@@ -20,13 +20,16 @@
 import QtQuick
 
 Rectangle {
-    id: errorToast
+    id: root
+
+    property alias toastTextItem: textItem
+    property alias toastTextColor: textItem.color
 
     property string errorText: ""
     property int displayDuration: 5000
 
-    width: Math.min(parent.width - 40, errorTextItem.implicitWidth + radius)
-    height: visible ? (errorTextItem.implicitHeight + 12) : 0
+    width: Math.min(parent.width - 40, textItem.implicitWidth + radius)
+    height: visible ? (textItem.implicitHeight + 12) : 0
     anchors.horizontalCenter: parent.horizontalCenter
     anchors.top: parent.top
     anchors.topMargin: 10
@@ -39,15 +42,15 @@ Rectangle {
     opacity: 0
 
     TextEdit {
-        id: errorTextItem
+        id: textItem
 
         anchors.centerIn: parent
         anchors.margins: 6
-        text: errorToast.errorText
-        color: "#ffffff"
+        text: root.errorText
+        color: palette.text
         font.pixelSize: 13
         wrapMode: TextEdit.Wrap
-        width: Math.min(implicitWidth, errorToast.parent.width - 60)
+        width: Math.min(implicitWidth, root.parent.width - 60)
         horizontalAlignment: TextEdit.AlignHCenter
         readOnly: true
         selectByMouse: true
@@ -69,7 +72,7 @@ Rectangle {
     NumberAnimation {
         id: showAnimation
 
-        target: errorToast
+        target: root
         property: "opacity"
         from: 0
         to: 1
@@ -80,21 +83,21 @@ Rectangle {
     NumberAnimation {
         id: hideAnimation
 
-        target: errorToast
+        target: root
         property: "opacity"
         from: 1
         to: 0
         duration: 200
         easing.type: Easing.InQuad
-        onFinished: errorToast.visible = false
+        onFinished: root.visible = false
     }
 
     Timer {
         id: hideTimer
 
-        interval: errorToast.displayDuration
+        interval: root.displayDuration
         running: false
         repeat: false
-        onTriggered: errorToast.hide()
+        onTriggered: root.hide()
     }
 }

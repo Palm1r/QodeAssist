@@ -54,9 +54,10 @@ Item {
     Rectangle {
         id: slider
 
-        x: root.checked ? parent.width / 2 : 0
+        anchors.verticalCenter: parent.verticalCenter
+        x: root.checked ? parent.width / 2 - 1 : 1
         width: parent.width / 2
-        height: parent.height
+        height: parent.height - 2
         opacity: 0.6
         radius: height / 2
 

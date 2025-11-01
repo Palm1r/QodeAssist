@@ -23,30 +23,26 @@
 
 #include <context/IgnoreManager.hpp>
 #include <llmcore/BaseTool.hpp>
-#include <QFuture>
-#include <QJsonObject>
-#include <QObject>
 
 namespace QodeAssist::Tools {
 
-class FindAndReadFileTool : public LLMCore::BaseTool
+class EditFileTool : public LLMCore::BaseTool
 {
     Q_OBJECT
-
 public:
-    explicit FindAndReadFileTool(QObject *parent = nullptr);
+    explicit EditFileTool(QObject *parent = nullptr);
 
     QString name() const override;
     QString stringName() const override;
     QString description() const override;
     QJsonObject getDefinition(LLMCore::ToolSchemaFormat format) const override;
     LLMCore::ToolPermissions requiredPermissions() const override;
-    QFuture<QString> executeAsync(const QJsonObject &input) override;
+
+    QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
 
 private:
-    QString formatResult(const FileSearchUtils::FileMatch &match, bool readContent) const;
-
     Context::IgnoreManager *m_ignoreManager;
 };
 
 } // namespace QodeAssist::Tools
+

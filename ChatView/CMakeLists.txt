@@ -16,9 +16,11 @@ qt_add_qml_module(QodeAssistChatView
     qml/parts/TopBar.qml
     qml/parts/BottomBar.qml
     qml/parts/AttachedFilesPlace.qml
-    qml/parts/ErrorToast.qml
+    qml/parts/Toast.qml
     qml/ToolStatusItem.qml
+    qml/FileEditItem.qml
     qml/parts/RulesViewer.qml
+    qml/parts/FileEditsActionBar.qml
 
     RESOURCES
     icons/attach-file-light.svg

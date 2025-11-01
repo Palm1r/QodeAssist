@@ -59,7 +59,6 @@ void ToolsManager::executeToolCall(
 
     auto &queue = m_toolQueues[requestId];
 
-    // Check if tool already exists in queue or completed
     for (const auto &tool : queue.queue) {
         if (tool.id == toolId) {
             LOG_MESSAGE(QString("Tool %1 already in queue for request %2").arg(toolId, requestId));
@@ -73,15 +72,16 @@ void ToolsManager::executeToolCall(
         return;
     }
 
-    // Add tool to queue
-    PendingTool pendingTool{toolId, toolName, input, "", false};
+    QJsonObject modifiedInput = input;
+    modifiedInput["_request_id"] = requestId;
+
+    PendingTool pendingTool{toolId, toolName, modifiedInput, "", false};
     queue.queue.append(pendingTool);
 
     LOG_MESSAGE(QString("ToolsManager: Tool %1 added to queue (position %2)")
                     .arg(toolName)
                     .arg(queue.queue.size()));
 
-    // Start execution if not already running
     if (!queue.isExecuting) {
         executeNextTool(requestId);
     }
@@ -95,7 +95,6 @@ void ToolsManager::executeNextTool(const QString &requestId)
 
     auto &queue = m_toolQueues[requestId];
 
-    // Check if queue is empty
     if (queue.queue.isEmpty()) {
         LOG_MESSAGE(QString("ToolsManager: All tools complete for request %1, emitting results")
                         .arg(requestId));
@@ -105,7 +104,6 @@ void ToolsManager::executeNextTool(const QString &requestId)
         return;
     }
 
-    // Get next tool from queue
     PendingTool tool = queue.queue.takeFirst();
     queue.isExecuting = true;
 
@@ -116,7 +114,6 @@ void ToolsManager::executeNextTool(const QString &requestId)
     auto toolInstance = m_toolsFactory->getToolByName(tool.name);
     if (!toolInstance) {
         LOG_MESSAGE(QString("ToolsManager: Tool not found: %1").arg(tool.name));
-        // Mark as failed and continue to next tool
         tool.result = QString("Error: Tool not found: %1").arg(tool.name);
         tool.complete = true;
         queue.completed[tool.id] = tool;
@@ -124,7 +121,6 @@ void ToolsManager::executeNextTool(const QString &requestId)
         return;
     }
 
-    // Store tool in completed map (will be updated when finished)
     queue.completed[tool.id] = tool;
 
     m_toolHandler->executeToolAsync(requestId, tool.id, toolInstance, tool.input);
@@ -176,7 +172,6 @@ void ToolsManager::onToolFinished(
                     .arg(success ? QString("completed") : QString("failed"))
                     .arg(requestId));
 
-    // Execute next tool in queue
     executeNextTool(requestId);
 }
 
