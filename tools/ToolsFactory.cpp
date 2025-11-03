@@ -95,6 +95,10 @@ QJsonArray ToolsFactory::getToolsDefinitions(LLMCore::ToolSchemaFormat format) c
             continue;
         }
 
+        if (it.value()->name() == "build_project" && !settings.enableBuildProjectTool()) {
+            continue;
+        }
+
         const auto requiredPerms = it.value()->requiredPermissions();
         bool hasPermission = true;
 

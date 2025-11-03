@@ -82,6 +82,13 @@ ToolsSettings::ToolsSettings()
                "This feature is under testing and may have unexpected behavior."));
     enableEditFileTool.setDefaultValue(false);
 
+    enableBuildProjectTool.setSettingsKey(Constants::CA_ENABLE_BUILD_PROJECT_TOOL);
+    enableBuildProjectTool.setLabelText(Tr::tr("Enable Build Project Tool (Experimental)"));
+    enableBuildProjectTool.setToolTip(
+        Tr::tr("Enable the experimental build_project tool that allows AI to build the current "
+               "project. This feature is under testing and may have unexpected behavior."));
+    enableBuildProjectTool.setDefaultValue(false);
+
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
 
     readSettings();
@@ -106,7 +113,7 @@ ToolsSettings::ToolsSettings()
             Space{8},
             Group{
                 title(Tr::tr("Experimental Features")),
-                Column{enableEditFileTool, autoApplyFileEdits}},
+                Column{enableEditFileTool, enableBuildProjectTool, autoApplyFileEdits}},
             Stretch{1}};
     });
 }
@@ -136,6 +143,7 @@ void ToolsSettings::resetSettingsToDefaults()
         resetAspect(allowAccessOutsideProject);
         resetAspect(autoApplyFileEdits);
         resetAspect(enableEditFileTool);
+        resetAspect(enableBuildProjectTool);
         writeSettings();
     }
 }

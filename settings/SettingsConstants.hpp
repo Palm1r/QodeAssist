@@ -90,6 +90,7 @@ const char CA_ALLOW_FILE_SYSTEM_READ[] = "QodeAssist.caAllowFileSystemRead";
 const char CA_ALLOW_FILE_SYSTEM_WRITE[] = "QodeAssist.caAllowFileSystemWrite";
 const char CA_ALLOW_ACCESS_OUTSIDE_PROJECT[] = "QodeAssist.caAllowAccessOutsideProject";
 const char CA_ENABLE_EDIT_FILE_TOOL[] = "QodeAssist.caEnableEditFileTool";
+const char CA_ENABLE_BUILD_PROJECT_TOOL[] = "QodeAssist.caEnableBuildProjectTool";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
 const char QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID[] = "QodeAssist.1GeneralSettingsPageId";

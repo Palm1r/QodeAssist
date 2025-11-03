@@ -39,6 +39,7 @@ public:
 
     // Experimental features
     Utils::BoolAspect enableEditFileTool{this};
+    Utils::BoolAspect enableBuildProjectTool{this};
     Utils::BoolAspect autoApplyFileEdits{this};
 
 private:
