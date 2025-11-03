@@ -55,7 +55,15 @@ QString EditFileTool::description() const
            "Provide the filename (or absolute path), old_content to find and replace, "
            "and new_content to replace it with. Changes are applied immediately if auto-apply "
            "is enabled in settings. The user can undo or reapply changes at any time. "
-           "If old_content is empty, new_content will be appended to the end of the file.";
+           "\n\nIMPORTANT:"
+           "\n- To insert at the BEGINNING of a file (e.g., copyright header), you MUST provide "
+           "the EXACT first few lines of the file as old_content (at least 3-5 lines), "
+           "then put those lines + new header in new_content."
+           "\n- To append at the END of file, use empty old_content."
+           "\n- For replacements in the middle, provide EXACT matching text with sufficient "
+           "context (at least 5-10 lines) to ensure correct placement."
+           "\n- The system requires 85% similarity for first-time edits. Provide accurate "
+           "old_content to avoid incorrect placement.";
 }
 
 QJsonObject EditFileTool::getDefinition(LLMCore::ToolSchemaFormat format) const
@@ -171,6 +179,22 @@ QFuture<QString> EditFileTool::executeAsync(const QJsonObject &input)
 
         QString editId = QUuid::createUuid().toString(QUuid::WithoutBraces);
         bool autoApply = Settings::toolsSettings().autoApplyFileEdits();
+
+        LOG_MESSAGE(QString("EditFileTool: Edit details for %1:").arg(filePath));
+        LOG_MESSAGE(QString("  oldContent length: %1 chars").arg(oldContent.length()));
+        LOG_MESSAGE(QString("  newContent length: %1 chars").arg(newContent.length()));
+        if (oldContent.length() <= 200) {
+            LOG_MESSAGE(QString("  oldContent: '%1'").arg(oldContent));
+        } else {
+            LOG_MESSAGE(QString("  oldContent (first 200 chars): '%1...'")
+                           .arg(oldContent.left(200)));
+        }
+        if (newContent.length() <= 200) {
+            LOG_MESSAGE(QString("  newContent: '%1'").arg(newContent));
+        } else {
+            LOG_MESSAGE(QString("  newContent (first 200 chars): '%1...'")
+                           .arg(newContent.left(200)));
+        }
 
         Context::ChangesManager::instance().addFileEdit(
             editId,

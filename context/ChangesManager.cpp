@@ -269,7 +269,7 @@ bool ChangesManager::undoFileEdit(const QString &editId)
     QString errorMsg;
     bool isAppend = oldContentCopy.isEmpty();
     bool success = performFragmentReplacement(
-        filePathCopy, newContentCopy, oldContentCopy, isAppend, &errorMsg);
+        filePathCopy, newContentCopy, oldContentCopy, isAppend, &errorMsg, true);
     
     locker.relock();
     
@@ -365,7 +365,7 @@ bool ChangesManager::performFileEdit(
                 }
             } else {
                 double similarity = 0.0;
-                QString matchedContent = findBestMatch(currentContent, oldContent, 0.8, &similarity);
+                QString matchedContent = findBestMatch(currentContent, oldContent, 0.82, &similarity);
                 if (!matchedContent.isEmpty()) {
                     matchPos = currentContent.indexOf(matchedContent);
                     if (matchPos != -1) {
@@ -391,7 +391,7 @@ bool ChangesManager::performFileEdit(
                 
                 LOG_MESSAGE(QString("Old content not found in open editor (best similarity: %1%%): %2")
                                 .arg(qRound(similarity * 100)).arg(filePath));
-                setError(QString("Content not found. Best match: %1%% (threshold: 80%%). "
+                setError(QString("Content not found. Best match: %1%% (threshold: 82%%). "
                                 "File may have changed.").arg(qRound(similarity * 100)));
                 return false;
             }
@@ -417,19 +417,32 @@ bool ChangesManager::performFileEdit(
         setError("Applied successfully (appended to end of file)");
     }
     else if (currentContent.contains(oldContent)) {
-        updatedContent = currentContent.replace(oldContent, newContent);
-        LOG_MESSAGE(QString("Using exact match for file update: %1").arg(filePath));
+        int matchPos = currentContent.indexOf(oldContent);
+        updatedContent = currentContent.left(matchPos) 
+                       + newContent 
+                       + currentContent.mid(matchPos + oldContent.length());
+        LOG_MESSAGE(QString("Using exact match for file update: %1 at position %2")
+                       .arg(filePath).arg(matchPos));
         setError("Applied successfully (exact match)");
     } else {
         double similarity = 0.0;
-        QString matchedContent = findBestMatch(currentContent, oldContent, 0.8, &similarity);
+        QString matchedContent = findBestMatch(currentContent, oldContent, 0.82, &similarity);
         if (!matchedContent.isEmpty()) {
-            updatedContent = currentContent.replace(matchedContent, newContent);
-            LOG_MESSAGE(QString("Using fuzzy match (%1%%) for file update: %2")
-                            .arg(qRound(similarity * 100)).arg(filePath));
+            int matchPos = currentContent.indexOf(matchedContent);
+            if (matchPos == -1) {
+                QString msg = "Internal error: matched content not found in file";
+                LOG_MESSAGE(QString("Internal error: matched content disappeared: %1").arg(filePath));
+                setError(msg);
+                return false;
+            }
+            updatedContent = currentContent.left(matchPos) 
+                           + newContent 
+                           + currentContent.mid(matchPos + matchedContent.length());
+            LOG_MESSAGE(QString("Using fuzzy match (%1%%) for file update: %2 at position %3")
+                            .arg(qRound(similarity * 100)).arg(filePath).arg(matchPos));
             setError(QString("Applied with fuzzy match (%1%% similarity)").arg(qRound(similarity * 100)));
         } else {
-            QString msg = QString("Content not found. Best match: %1%% (threshold: 80%%). "
+            QString msg = QString("Content not found. Best match: %1%% (threshold: 82%%). "
                                  "File may have changed.").arg(qRound(similarity * 100));
             LOG_MESSAGE(QString("Old content not found in file (best similarity: %1%%): %2")
                             .arg(qRound(similarity * 100)).arg(filePath));
@@ -458,6 +471,11 @@ int ChangesManager::levenshteinDistance(const QString &s1, const QString &s2) co
     const int len1 = s1.length();
     const int len2 = s2.length();
     
+    const int MAX_LENGTH = 10000;
+    if (len1 > MAX_LENGTH || len2 > MAX_LENGTH) {
+        return qAbs(len1 - len2) + qMin(len1, len2) / 2;
+    }
+    
     QVector<QVector<int>> d(len1 + 1, QVector<int>(len2 + 1));
     
     for (int i = 0; i <= len1; ++i) {
@@ -481,6 +499,72 @@ int ChangesManager::levenshteinDistance(const QString &s1, const QString &s2) co
     return d[len1][len2];
 }
 
+QString ChangesManager::findBestMatchLineBased(
+    const QString &fileContent,
+    const QString &searchContent,
+    double threshold,
+    double *outSimilarity) const
+{
+    QStringList fileLines = fileContent.split('\n');
+    QStringList searchLines = searchContent.split('\n');
+    
+    if (searchLines.isEmpty() || fileLines.isEmpty()) {
+        if (outSimilarity) *outSimilarity = 0.0;
+        return QString();
+    }
+    
+    if (searchLines.size() > fileLines.size()) {
+        if (outSimilarity) *outSimilarity = 0.0;
+        return QString();
+    }
+    
+    QString bestMatch;
+    double bestSimilarity = 0.0;
+    int searchLineCount = searchLines.size();
+    
+    LOG_MESSAGE(QString("Line-based search: %1 search lines in %2 file lines")
+                   .arg(searchLineCount).arg(fileLines.size()));
+    
+    for (int i = 0; i <= fileLines.size() - searchLineCount; ++i) {
+        int matchingLines = 0;
+        int totalLines = searchLineCount;
+        
+        for (int j = 0; j < searchLineCount; ++j) {
+            if (fileLines[i + j] == searchLines[j]) {
+                matchingLines++;
+            }
+        }
+        
+        double similarity = static_cast<double>(matchingLines) / totalLines;
+        
+        if (similarity > bestSimilarity) {
+            bestSimilarity = similarity;
+            if (similarity >= threshold) {
+                QStringList matchedLines;
+                for (int j = 0; j < searchLineCount; ++j) {
+                    matchedLines.append(fileLines[i + j]);
+                }
+                bestMatch = matchedLines.join('\n');
+                
+                if (similarity >= 0.99) {
+                    if (outSimilarity) *outSimilarity = similarity;
+                    LOG_MESSAGE(QString("Found exact line match at line %1").arg(i + 1));
+                    return bestMatch;
+                }
+            }
+        }
+    }
+    
+    if (outSimilarity) {
+        *outSimilarity = bestSimilarity;
+    }
+    
+    LOG_MESSAGE(QString("Line-based search complete, best similarity: %1%%")
+                   .arg(qRound(bestSimilarity * 100)));
+    
+    return bestMatch;
+}
+
 QString ChangesManager::findBestMatch(const QString &fileContent, const QString &searchContent, double threshold, double *outSimilarity) const
 {
     if (searchContent.isEmpty() || fileContent.isEmpty()) {
@@ -496,11 +580,37 @@ QString ChangesManager::findBestMatch(const QString &fileContent, const QString 
         return QString();
     }
     
+    const int MAX_SEARCH_LENGTH = 50000;
+    if (searchLen > MAX_SEARCH_LENGTH) {
+        LOG_MESSAGE(QString("Search content too large (%1 chars), using line-based search").arg(searchLen));
+        return findBestMatchLineBased(fileContent, searchContent, threshold, outSimilarity);
+    }
+    
     QString bestMatch;
     double bestSimilarity = 0.0;
     
-    for (int i = 0; i <= fileLen - searchLen; ++i) {
+    QChar firstChar = searchContent.at(0);
+    
+    int step = 1;
+    if (fileLen > 100000 && searchLen > 1000) {
+        step = searchLen / 10;
+        if (step < 1) step = 1;
+    }
+    
+    int searchEnd = fileLen - searchLen + 1;
+    
+    for (int i = 0; i < searchEnd; i += step) {
+        if (step == 1 && fileContent.at(i) != firstChar) {
+            continue;
+        }
+        
         QString candidate = fileContent.mid(i, searchLen);
+        
+        int lengthDiff = qAbs(candidate.length() - searchLen);
+        if (lengthDiff > searchLen * 0.3) {
+            continue;
+        }
+        
         int distance = levenshteinDistance(candidate, searchContent);
         double similarity = 1.0 - (static_cast<double>(distance) / searchLen);
         
@@ -508,7 +618,18 @@ QString ChangesManager::findBestMatch(const QString &fileContent, const QString 
             bestSimilarity = similarity;
             if (similarity >= threshold) {
                 bestMatch = candidate;
+                
+                if (similarity >= 0.95) {
+                    if (outSimilarity) *outSimilarity = bestSimilarity;
+                    LOG_MESSAGE(QString("Found excellent match early (similarity: %1%%), stopping search").arg(qRound(similarity * 100)));
+                    return bestMatch;
+                }
             }
+        }
+        
+        if (i > searchLen * 3 && bestSimilarity < 0.5) {
+            LOG_MESSAGE("Early termination: no good matches found in first 3x search area");
+            break;
         }
     }
     
@@ -576,7 +697,8 @@ bool ChangesManager::performFragmentReplacement(
     const QString &searchContent,
     const QString &replaceContent,
     bool isAppendOperation,
-    QString *errorMsg)
+    QString *errorMsg,
+    bool isUndo)
 {
     QString currentContent = readFileContent(filePath);
     if (currentContent.isNull()) {
@@ -606,36 +728,120 @@ bool ChangesManager::performFragmentReplacement(
             }
         }
     } else {
+        double minThreshold = isUndo ? 0.70 : 0.85;
+        
+        LOG_MESSAGE(QString("Fragment replacement: isUndo=%1, threshold=%2%%")
+                       .arg(isUndo ? "yes" : "no")
+                       .arg(qRound(minThreshold * 100)));
+        
         double similarity = 0.0;
         QString matchType;
         QString matchedContent = findBestMatchWithNormalization(
             currentContent, searchContent, &similarity, &matchType);
         
+        if (!matchedContent.isEmpty() && similarity < minThreshold) {
+            QString msg = QString("Cannot %1: similarity too low (%2%%, threshold: %3%%). %4")
+                            .arg(isUndo ? "undo" : "apply")
+                            .arg(qRound(similarity * 100))
+                            .arg(qRound(minThreshold * 100))
+                            .arg(isUndo ? "File may have been modified." 
+                                        : "LLM may have provided incorrect oldContent.");
+            if (errorMsg) *errorMsg = msg;
+            LOG_MESSAGE(QString("Fragment replacement failed: %1").arg(msg));
+            return false;
+        }
+        
         if (!matchedContent.isEmpty()) {
-            resultContent = currentContent;
-            resultContent.replace(matchedContent, replaceContent);
+            int matchPos = currentContent.indexOf(matchedContent);
+            if (matchPos == -1) {
+                if (errorMsg) {
+                    *errorMsg = "Internal error: matched content not found in file";
+                }
+                LOG_MESSAGE(QString("Internal error: matched content disappeared: %1").arg(filePath));
+                return false;
+            }
+            
+            resultContent = currentContent.left(matchPos) 
+                          + replaceContent 
+                          + currentContent.mid(matchPos + matchedContent.length());
+            
+            LOG_MESSAGE(QString("Replaced content at position %1 (length: %2 -> %3)")
+                           .arg(matchPos)
+                           .arg(matchedContent.length())
+                           .arg(replaceContent.length()));
             
             if (errorMsg) {
                 if (matchType == "exact") {
-                    *errorMsg = "Successfully applied";
+                    *errorMsg = isUndo ? "Successfully undone" : "Successfully applied";
                 } else if (matchType.startsWith("fuzzy")) {
-                    *errorMsg = QString("Applied (%1%% similarity)")
+                    *errorMsg = QString("%1 (%2%% similarity)")
+                                  .arg(isUndo ? "Undone" : "Applied")
                                   .arg(qRound(similarity * 100));
                 }
             }
         } else {
             if (errorMsg) {
-                *errorMsg = QString("Cannot apply: similarity too low (%1%%). File may have been modified.")
-                              .arg(qRound(similarity * 100));
+                *errorMsg = QString("Cannot %1: content not found in file.")
+                              .arg(isUndo ? "undo" : "apply");
             }
-            LOG_MESSAGE(QString("Failed to find content for fragment replacement: %1 (similarity: %2%%)")
-                           .arg(filePath).arg(qRound(similarity * 100)));
+            LOG_MESSAGE(QString("Failed to find content for fragment replacement: %1").arg(filePath));
             return false;
         }
     }
     
-    DiffInfo freshDiff = createDiffInfo(currentContent, resultContent, filePath);
-    return performFileEditWithDiff(filePath, freshDiff, false, errorMsg);
+    auto editors = Core::EditorManager::visibleEditors();
+    for (auto *editor : editors) {
+        if (!editor || !editor->document()) {
+            continue;
+        }
+
+        QString editorPath = editor->document()->filePath().toFSPathString();
+        if (editorPath == filePath) {
+            if (auto *textEditor = qobject_cast<TextEditor::TextDocument *>(editor->document())) {
+                QTextDocument *doc = textEditor->document();
+                
+                try {
+                    QTextCursor cursor(doc);
+                    if (!cursor.isNull()) {
+                        cursor.beginEditBlock();
+                        cursor.select(QTextCursor::Document);
+                        cursor.removeSelectedText();
+                        cursor.insertText(resultContent);
+                        cursor.endEditBlock();
+                        
+                        if (errorMsg && errorMsg->isEmpty()) {
+                            *errorMsg = isUndo ? "Successfully undone" : "Successfully applied";
+                        }
+                        LOG_MESSAGE(QString("Applied fragment replacement to open editor: %1").arg(filePath));
+                        return true;
+                    }
+                } catch (...) {
+                    LOG_MESSAGE("Exception during document modification");
+                    if (errorMsg) *errorMsg = "Exception during document modification";
+                    return false;
+                }
+            }
+        }
+    }
+    
+    QFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text | QIODevice::Truncate)) {
+        QString msg = QString("Cannot write file: %1").arg(file.errorString());
+        LOG_MESSAGE(QString("Failed to open file for writing: %1 - %2")
+                       .arg(filePath, file.errorString()));
+        if (errorMsg) *errorMsg = msg;
+        return false;
+    }
+
+    QTextStream out(&file);
+    out << resultContent;
+    file.close();
+    
+    if (errorMsg && errorMsg->isEmpty()) {
+        *errorMsg = isUndo ? "Successfully undone" : "Successfully applied";
+    }
+    LOG_MESSAGE(QString("Applied fragment replacement to file: %1").arg(filePath));
+    return true;
 }
 
 bool ChangesManager::applyPendingEditsForRequest(const QString &requestId, QString *errorMsg)
@@ -741,7 +947,7 @@ bool ChangesManager::undoAllEditsForRequest(const QString &requestId, QString *e
         QString errMsg;
         bool isAppend = oldContentCopy.isEmpty();
         bool success = performFragmentReplacement(
-            filePathCopy, newContentCopy, oldContentCopy, isAppend, &errMsg);
+            filePathCopy, newContentCopy, oldContentCopy, isAppend, &errMsg, true);
         
         locker.relock();
         
@@ -919,7 +1125,7 @@ QString ChangesManager::readFileContent(const QString &filePath) const
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
         LOG_MESSAGE(QString("  Failed to read file: %1").arg(file.errorString()));
-        return QString(); // Return null QString on error
+        return QString();
     }
 
     QString content = QString::fromUtf8(file.readAll());
@@ -984,15 +1190,11 @@ bool ChangesManager::performFileEditWithDiff(
                     setError("Document pointer is null");
                     return false;
                 }
-
-                
-                bool oldBlockState = doc->blockSignals(true);
                 
                 try {
                     QTextCursor cursor(doc);
                     
                     if (cursor.isNull()) {
-                        doc->blockSignals(oldBlockState);
                         LOG_MESSAGE("  Cursor is invalid");
                         setError("Cannot create text cursor");
                         return false;
@@ -1004,26 +1206,20 @@ bool ChangesManager::performFileEditWithDiff(
                     cursor.insertText(modifiedContent);
                     cursor.endEditBlock();
                     
-                    doc->blockSignals(oldBlockState);
-                    
-                    emit doc->contentsChange(0, doc->characterCount(), doc->characterCount());
-                    
                     LOG_MESSAGE(QString("  ✓ Successfully applied diff to open editor: %1").arg(filePath));
                     setError(diffErrorMsg);
                     return true;
                 } catch (...) {
-                    doc->blockSignals(oldBlockState);
                     LOG_MESSAGE("  Exception during document modification");
                     setError("Exception during document modification");
                     return false;
                 }
-
-                doc->blockSignals(false);
             }
         }
     }
 
     LOG_MESSAGE("  File not open in editor, modifying file directly...");
+    LOG_MESSAGE("  Note: Undo (Ctrl+Z) will not be available for this file until it is opened");
 
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
@@ -1382,10 +1578,13 @@ bool ChangesManager::applyDiffToContent(
         QString searchContent = reverse ? diffInfo.modifiedContent : diffInfo.originalContent;
         QString replaceContent = reverse ? diffInfo.originalContent : diffInfo.modifiedContent;
         
-        if (content.contains(searchContent)) {
-            content.replace(searchContent, replaceContent);
+        int matchPos = content.indexOf(searchContent);
+        if (matchPos != -1) {
+            content = content.left(matchPos) 
+                    + replaceContent 
+                    + content.mid(matchPos + searchContent.length());
             setError("Applied using fallback mode (direct replacement)");
-            LOG_MESSAGE("  ✓ Fallback: Direct replacement successful");
+            LOG_MESSAGE(QString("  ✓ Fallback: Direct replacement successful at position %1").arg(matchPos));
             return true;
         } else {
             setError("Fallback failed: Original content not found in file");

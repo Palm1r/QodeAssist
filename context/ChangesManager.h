@@ -135,10 +135,12 @@ private:
         const QString &searchContent,
         const QString &replaceContent,
         bool isAppendOperation,
-        QString *errorMsg = nullptr);
+        QString *errorMsg = nullptr,
+        bool isUndo = false);
     
     int levenshteinDistance(const QString &s1, const QString &s2) const;
-    QString findBestMatch(const QString &fileContent, const QString &searchContent, double threshold = 0.8, double *outSimilarity = nullptr) const;
+    QString findBestMatch(const QString &fileContent, const QString &searchContent, double threshold = 0.82, double *outSimilarity = nullptr) const;
+    QString findBestMatchLineBased(const QString &fileContent, const QString &searchContent, double threshold = 0.82, double *outSimilarity = nullptr) const;
     QString findBestMatchWithNormalization(const QString &fileContent, const QString &searchContent, double *outSimilarity = nullptr, QString *outMatchType = nullptr) const;
 
     struct RequestEdits
