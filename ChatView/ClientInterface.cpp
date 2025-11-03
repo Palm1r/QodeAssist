@@ -98,15 +98,6 @@ void ClientInterface::sendMessage(
     if (chatAssistantSettings.useSystemPrompt()) {
         QString systemPrompt = chatAssistantSettings.systemPrompt();
 
-        if (isToolsEnabled) {
-            systemPrompt += "\n\n# Tool Usage Guidelines\n\n"
-                            "**Multi-tool workflows:**\n"
-                            "- Code structure: search_project (symbol mode) → find_and_read_file\n"
-                            "- Fix errors: get_issues_list → find_and_read_file → edit\n"
-                            "- Verify changes: edit → build_project → get_issues_list\n"
-                            "- find_and_read_file supports absolute paths\n";
-        }
-
         auto project = LLMCore::RulesLoader::getActiveProject();
         if (project) {
             QString projectRules
