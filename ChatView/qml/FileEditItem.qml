@@ -261,10 +261,13 @@ Rectangle {
                 spacing: 6
 
                 QoAButton {
-                    text: "Open in Editor"
-                    width: 30
-                    onClicked: root.openInEditor(editData.edit_id)
+                    icon {
+                        source: "qrc:/qt/qml/ChatView/icons/open-in-editor.svg"
+                        height: 15
+                        width: 15
+                    }
                     hoverEnabled: true
+                    onClicked: root.openInEditor(editData.edit_id)
                     
                     ToolTip.visible: hovered
                     ToolTip.text: qsTr("Open file in editor and navigate to changes")
@@ -272,21 +275,32 @@ Rectangle {
                 }
 
                 QoAButton {
-                    text: qsTr("Apply")
-                    enabled: (root.isPending || root.isRejected) && !root.isArchived
+                    icon {
+                        source: "qrc:/qt/qml/ChatView/icons/apply-changes-button.svg"
+                        height: 15
+                        width: 15
+                    }                    enabled: (root.isPending || root.isRejected) && !root.isArchived
                     visible: !root.isApplied && !root.isArchived
                     onClicked: root.applyEdit(editData.edit_id)
                 }
 
                 QoAButton {
-                    text: qsTr("Undo")
+                    icon {
+                        source: "qrc:/qt/qml/ChatView/icons/undo-changes-button.svg"
+                        height: 15
+                        width: 15
+                    }
                     enabled: root.isApplied && !root.isArchived
                     visible: root.isApplied && !root.isArchived
                     onClicked: root.undoEdit(editData.edit_id)
                 }
 
                 QoAButton {
-                    text: qsTr("Reject")
+                    icon {
+                        source: "qrc:/qt/qml/ChatView/icons/reject-changes-button.svg"
+                        height: 15
+                        width: 15
+                    }
                     enabled: root.isPending && !root.isArchived
                     visible: root.isPending && !root.isArchived
                     onClicked: root.rejectEdit(editData.edit_id)

@@ -38,6 +38,10 @@ qt_add_qml_module(QodeAssistChatView
     icons/chat-icon.svg
     icons/chat-pause-icon.svg
     icons/rules-icon.svg
+    icons/open-in-editor.svg
+    icons/apply-changes-button.svg
+    icons/undo-changes-button.svg
+    icons/reject-changes-button.svg
 
     SOURCES
     ChatWidget.hpp ChatWidget.cpp
