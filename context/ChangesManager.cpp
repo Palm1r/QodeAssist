@@ -701,14 +701,6 @@ bool ChangesManager::performFragmentReplacement(
     bool isUndo)
 {
     QString currentContent = readFileContent(filePath);
-    if (currentContent.isNull()) {
-        if (errorMsg) {
-            *errorMsg = "Failed to read current file content";
-        }
-        LOG_MESSAGE(QString("Failed to read file for fragment replacement: %1").arg(filePath));
-        return false;
-    }
-    
     QString resultContent;
     
     if (isAppendOperation) {
