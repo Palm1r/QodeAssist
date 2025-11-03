@@ -49,8 +49,9 @@ QString CreateNewFileTool::stringName() const
 QString CreateNewFileTool::description() const
 {
     return "Create a new empty file at the specified path. "
-           "The directory path must exist. Provide absolute file path. After crate files add file "
-           "to project file (CMakeLists.txt or .cmake or .pri)";
+           "If the directory path does not exist, it will be created automatically. "
+           "Provide absolute file path. After creating files, add the file "
+           "to the project file";
 }
 
 QJsonObject CreateNewFileTool::getDefinition(LLMCore::ToolSchemaFormat format) const
@@ -100,7 +101,6 @@ QFuture<QString> CreateNewFileTool::executeAsync(const QJsonObject &input)
         QFileInfo fileInfo(filePath);
         QString absolutePath = fileInfo.absoluteFilePath();
 
-        // Check if the file path is within the project
         bool isInProject = Context::ProjectUtils::isFileInProject(absolutePath);
         
         if (!isInProject) {
@@ -121,8 +121,11 @@ QFuture<QString> CreateNewFileTool::executeAsync(const QJsonObject &input)
 
         QDir dir = fileInfo.absoluteDir();
         if (!dir.exists()) {
-            throw ToolRuntimeError(QString("Error: Directory does not exist: '%1'")
-                                       .arg(dir.absolutePath()));
+            if (!dir.mkpath(".")) {
+                throw ToolRuntimeError(
+                    QString("Error: Could not create directory: '%1'").arg(dir.absolutePath()));
+            }
+            LOG_MESSAGE(QString("Created directory path: %1").arg(dir.absolutePath()));
         }
 
         QFile file(absolutePath);
