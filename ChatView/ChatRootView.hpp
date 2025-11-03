@@ -45,11 +45,17 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(int textFormat READ textFormat NOTIFY textFormatChanged FINAL)
     Q_PROPERTY(bool isRequestInProgress READ isRequestInProgress NOTIFY isRequestInProgressChanged FINAL)
     Q_PROPERTY(QString lastErrorMessage READ lastErrorMessage NOTIFY lastErrorMessageChanged FINAL)
+    Q_PROPERTY(QString lastInfoMessage READ lastInfoMessage NOTIFY lastInfoMessageChanged FINAL)
     Q_PROPERTY(QVariantList activeRules READ activeRules NOTIFY activeRulesChanged FINAL)
     Q_PROPERTY(int activeRulesCount READ activeRulesCount NOTIFY activeRulesCountChanged FINAL)
     Q_PROPERTY(bool isAgentMode READ isAgentMode WRITE setIsAgentMode NOTIFY isAgentModeChanged FINAL)
     Q_PROPERTY(
         bool toolsSupportEnabled READ toolsSupportEnabled NOTIFY toolsSupportEnabledChanged FINAL)
+    
+    Q_PROPERTY(int currentMessageTotalEdits READ currentMessageTotalEdits NOTIFY currentMessageEditsStatsChanged FINAL)
+    Q_PROPERTY(int currentMessageAppliedEdits READ currentMessageAppliedEdits NOTIFY currentMessageEditsStatsChanged FINAL)
+    Q_PROPERTY(int currentMessagePendingEdits READ currentMessagePendingEdits NOTIFY currentMessageEditsStatsChanged FINAL)
+    Q_PROPERTY(int currentMessageRejectedEdits READ currentMessageRejectedEdits NOTIFY currentMessageEditsStatsChanged FINAL)
 
     QML_ELEMENT
 
@@ -114,6 +120,23 @@ public:
     void setIsAgentMode(bool newIsAgentMode);
     bool toolsSupportEnabled() const;
 
+    Q_INVOKABLE void applyFileEdit(const QString &editId);
+    Q_INVOKABLE void rejectFileEdit(const QString &editId);
+    Q_INVOKABLE void undoFileEdit(const QString &editId);
+    Q_INVOKABLE void openFileEditInEditor(const QString &editId);
+    
+    // Mass file edit operations for current message
+    Q_INVOKABLE void applyAllFileEditsForCurrentMessage();
+    Q_INVOKABLE void undoAllFileEditsForCurrentMessage();
+    Q_INVOKABLE void updateCurrentMessageEditsStats();
+    
+    int currentMessageTotalEdits() const;
+    int currentMessageAppliedEdits() const;
+    int currentMessagePendingEdits() const;
+    int currentMessageRejectedEdits() const;
+
+    QString lastInfoMessage() const;
+
 public slots:
     void sendMessage(const QString &message);
     void copyToClipboard(const QString &text);
@@ -138,13 +161,16 @@ signals:
     void isRequestInProgressChanged();
 
     void lastErrorMessageChanged();
+    void lastInfoMessageChanged();
     void activeRulesChanged();
     void activeRulesCountChanged();
 
     void isAgentModeChanged();
     void toolsSupportEnabledChanged();
+    void currentMessageEditsStatsChanged();
 
 private:
+    void updateFileEditStatus(const QString &editId, const QString &status);
     QString getChatsHistoryDir() const;
     QString getSuggestedFileName() const;
 
@@ -163,6 +189,13 @@ private:
     QString m_lastErrorMessage;
     QVariantList m_activeRules;
     bool m_isAgentMode;
+    
+    QString m_currentMessageRequestId;
+    int m_currentMessageTotalEdits{0};
+    int m_currentMessageAppliedEdits{0};
+    int m_currentMessagePendingEdits{0};
+    int m_currentMessageRejectedEdits{0};
+    QString m_lastInfoMessage;
 };
 
 } // namespace QodeAssist::Chat

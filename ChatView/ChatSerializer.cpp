@@ -120,9 +120,14 @@ bool ChatSerializer::deserializeChat(ChatModel *model, const QJsonObject &json)
     }
 
     model->clear();
+    
+    model->setLoadingFromHistory(true);
+    
     for (const auto &message : messages) {
         model->addMessage(message.content, message.role, message.id);
     }
+    
+    model->setLoadingFromHistory(false);
 
     return true;
 }

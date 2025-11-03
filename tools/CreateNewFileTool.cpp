@@ -23,6 +23,7 @@
 #include <context/ProjectUtils.hpp>
 #include <logger/Logger.hpp>
 #include <settings/GeneralSettings.hpp>
+#include <settings/ToolsSettings.hpp>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -103,7 +104,7 @@ QFuture<QString> CreateNewFileTool::executeAsync(const QJsonObject &input)
         bool isInProject = Context::ProjectUtils::isFileInProject(absolutePath);
         
         if (!isInProject) {
-            const auto &settings = Settings::generalSettings();
+            const auto &settings = Settings::toolsSettings();
             if (!settings.allowAccessOutsideProject()) {
                 throw ToolRuntimeError(
                     QString("Error: File path '%1' is not within the current project. "

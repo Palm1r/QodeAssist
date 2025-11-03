@@ -89,6 +89,7 @@ const char CA_USE_TOOLS[] = "QodeAssist.caUseTools";
 const char CA_ALLOW_FILE_SYSTEM_READ[] = "QodeAssist.caAllowFileSystemRead";
 const char CA_ALLOW_FILE_SYSTEM_WRITE[] = "QodeAssist.caAllowFileSystemWrite";
 const char CA_ALLOW_ACCESS_OUTSIDE_PROJECT[] = "QodeAssist.caAllowAccessOutsideProject";
+const char CA_ENABLE_EDIT_FILE_TOOL[] = "QodeAssist.caEnableEditFileTool";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
 const char QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID[] = "QodeAssist.1GeneralSettingsPageId";
@@ -96,13 +97,14 @@ const char QODE_ASSIST_CODE_COMPLETION_SETTINGS_PAGE_ID[]
     = "QodeAssist.2CodeCompletionSettingsPageId";
 const char QODE_ASSIST_CHAT_ASSISTANT_SETTINGS_PAGE_ID[]
     = "QodeAssist.3ChatAssistantSettingsPageId";
-const char QODE_ASSIST_CUSTOM_PROMPT_SETTINGS_PAGE_ID[] = "QodeAssist.4CustomPromptSettingsPageId";
+const char QODE_ASSIST_TOOLS_SETTINGS_PAGE_ID[] = "QodeAssist.4ToolsSettingsPageId";
+const char QODE_ASSIST_CUSTOM_PROMPT_SETTINGS_PAGE_ID[] = "QodeAssist.5CustomPromptSettingsPageId";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_CATEGORY[] = "QodeAssist.Category";
 const char QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY[] = "QodeAssist";
 
 // Provider Settings Page ID
-const char QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID[] = "QodeAssist.5ProviderSettingsPageId";
+const char QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID[] = "QodeAssist.6ProviderSettingsPageId";
 
 // Provider API Keys
 const char OPEN_ROUTER_API_KEY[] = "QodeAssist.openRouterApiKey";

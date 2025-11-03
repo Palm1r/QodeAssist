@@ -49,7 +49,7 @@ QString BuildProjectTool::stringName() const
 QString BuildProjectTool::description() const
 {
     return "Build the current project in Qt Creator. "
-           "Returns build status and any compilation errors/warnings. "
+           "No returns simultaneously build status and any compilation errors/warnings. "
            "Optional 'rebuild' parameter: set to true to force a clean rebuild (default: false).";
 }
 

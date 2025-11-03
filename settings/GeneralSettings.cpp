@@ -205,40 +205,6 @@ GeneralSettings::GeneralSettings()
     caTemplateDescription.setDefaultValue("");
     caTemplateDescription.setLabelText(TrConstants::CURRENT_TEMPLATE_DESCRIPTION);
 
-    useTools.setSettingsKey(Constants::CA_USE_TOOLS);
-    useTools.setLabelText(Tr::tr("Enable tools"));
-    useTools.setToolTip(
-        Tr::tr(
-            "Enable tool use capabilities for the assistant(OpenAI function calling, Claude tools "
-            "and etc) "
-            "if plugin and provider support"));
-    useTools.setDefaultValue(true);
-
-    allowFileSystemRead.setSettingsKey(Constants::CA_ALLOW_FILE_SYSTEM_READ);
-    allowFileSystemRead.setLabelText(Tr::tr("Allow File System Read Access for tools"));
-    allowFileSystemRead.setToolTip(
-        Tr::tr("Allow tools to read files from disk (project files, open editors)"));
-    allowFileSystemRead.setDefaultValue(true);
-
-    allowFileSystemWrite.setSettingsKey(Constants::CA_ALLOW_FILE_SYSTEM_WRITE);
-    allowFileSystemWrite.setLabelText(Tr::tr("Allow File System Write Access for tools"));
-    allowFileSystemWrite.setToolTip(
-        Tr::tr("Allow tools to write and modify files on disk (WARNING: Use with caution!)"));
-    allowFileSystemWrite.setDefaultValue(false);
-
-    allowAccessOutsideProject.setSettingsKey(Constants::CA_ALLOW_ACCESS_OUTSIDE_PROJECT);
-    allowAccessOutsideProject.setLabelText(Tr::tr("Allow file access outside project"));
-    allowAccessOutsideProject.setToolTip(
-        Tr::tr("Allow tools to access (read/write) files outside the project scope (system headers, Qt files, external libraries)"));
-    allowAccessOutsideProject.setDefaultValue(true);
-
-    autoApplyFileEdits.setSettingsKey(Constants::CA_AUTO_APPLY_FILE_EDITS);
-    autoApplyFileEdits.setLabelText(Tr::tr("Automatically apply file edits"));
-    autoApplyFileEdits.setToolTip(
-        Tr::tr("When enabled, file edits suggested by AI will be applied automatically. "
-               "When disabled, you will need to manually approve each edit."));
-    autoApplyFileEdits.setDefaultValue(false);
-
     readSettings();
 
     Logger::instance().setLoggingEnabled(enableLogging());
@@ -286,9 +252,6 @@ GeneralSettings::GeneralSettings()
             title(TrConstants::CHAT_ASSISTANT),
             Column{
                 caGrid,
-                Column{
-                    useTools, allowFileSystemRead, allowFileSystemWrite, allowAccessOutsideProject,
-                    /*autoApplyFileEdits*/},
                 caTemplateDescription}};
 
         auto rootLayout = Column{
@@ -543,11 +506,6 @@ void GeneralSettings::resetPageToDefaults()
         resetAspect(ccPreset1CustomEndpoint);
         resetAspect(caEndpointMode);
         resetAspect(caCustomEndpoint);
-        resetAspect(useTools);
-        resetAspect(allowFileSystemRead);
-        resetAspect(allowFileSystemWrite);
-        resetAspect(allowAccessOutsideProject);
-        resetAspect(autoApplyFileEdits);
         writeSettings();
     }
 }

@@ -100,12 +100,6 @@ public:
     Utils::StringAspect caStatus{this};
     ButtonAspect caTest{this};
 
-    Utils::BoolAspect useTools{this};
-    Utils::BoolAspect allowFileSystemRead{this};
-    Utils::BoolAspect allowFileSystemWrite{this};
-    Utils::BoolAspect allowAccessOutsideProject{this};
-    Utils::BoolAspect autoApplyFileEdits{this};
-
     Utils::StringAspect caTemplateDescription{this};
 
     void showSelectionDialog(

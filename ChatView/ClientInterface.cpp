@@ -37,9 +37,11 @@
 
 #include "ChatAssistantSettings.hpp"
 #include "GeneralSettings.hpp"
+#include "ToolsSettings.hpp"
 #include "Logger.hpp"
 #include "ProvidersManager.hpp"
 #include "RequestConfig.hpp"
+#include <context/ChangesManager.h>
 #include <RulesLoader.hpp>
 
 namespace QodeAssist::Chat {
@@ -65,6 +67,8 @@ void ClientInterface::sendMessage(
 {
     cancelRequest();
     m_accumulatedResponses.clear();
+    
+    Context::ChangesManager::instance().archiveAllNonArchivedEdits();
 
     auto attachFiles = m_contextManager->getContentFiles(attachments);
     m_chatModel->addMessage(message, ChatModel::ChatRole::User, "", attachFiles);
@@ -89,7 +93,7 @@ void ClientInterface::sendMessage(
 
     LLMCore::ContextData context;
 
-    const bool isToolsEnabled = Settings::generalSettings().useTools() && useAgentMode;
+    const bool isToolsEnabled = Settings::toolsSettings().useTools() && useAgentMode;
 
     if (chatAssistantSettings.useSystemPrompt()) {
         QString systemPrompt = chatAssistantSettings.systemPrompt();
@@ -155,6 +159,8 @@ void ClientInterface::sendMessage(
     QJsonObject request{{"id", requestId}};
 
     m_activeRequests[requestId] = {request, provider};
+    
+    emit requestStarted(requestId);
 
     connect(
         provider,
@@ -312,6 +318,16 @@ void ClientInterface::handleFullResponse(const QString &requestId, const QString
     const RequestContext &ctx = it.value();
 
     QString finalText = !fullText.isEmpty() ? fullText : m_accumulatedResponses[requestId];
+    
+    QString applyError;
+    bool applySuccess = Context::ChangesManager::instance()
+                           .applyPendingEditsForRequest(requestId, &applyError);
+    
+    if (!applySuccess) {
+        LOG_MESSAGE(QString("Some edits for request %1 were not auto-applied: %2")
+                       .arg(requestId, applyError));
+    }
+    
     handleLLMResponse(finalText, ctx.originalRequest, true);
 
     m_activeRequests.erase(it);

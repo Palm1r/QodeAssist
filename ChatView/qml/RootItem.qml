@@ -115,7 +115,7 @@ ChatRootView {
                     if (model.roleType === ChatModel.Tool) {
                         return toolMessageComponent
                     } else if (model.roleType === ChatModel.FileEdit) {
-                        return toolMessageComponent
+                        return fileEditMessageComponent
                     } else {
                         return chatItemComponent
                     }
@@ -172,6 +172,31 @@ ChatRootView {
                 ToolStatusItem {
                     width: parent.width
                     toolContent: model.content
+                }
+            }
+
+            Component {
+                id: fileEditMessageComponent
+
+                FileEditItem {
+                    width: parent.width
+                    editContent: model.content
+
+                    onApplyEdit: function(editId) {
+                        root.applyFileEdit(editId)
+                    }
+
+                    onRejectEdit: function(editId) {
+                        root.rejectFileEdit(editId)
+                    }
+
+                    onUndoEdit: function(editId) {
+                        root.undoFileEdit(editId)
+                    }
+
+                    onOpenInEditor: function(editId) {
+                        root.openFileEditInEditor(editId)
+                    }
                 }
             }
         }
@@ -280,6 +305,19 @@ ChatRootView {
             onRemoveFileFromListByIndex: (index) => root.removeFileFromLinkList(index)
         }
 
+        FileEditsActionBar {
+            id: fileEditsActionBar
+
+            Layout.fillWidth: true
+            totalEdits: root.currentMessageTotalEdits
+            appliedEdits: root.currentMessageAppliedEdits
+            pendingEdits: root.currentMessagePendingEdits
+            rejectedEdits: root.currentMessageRejectedEdits
+
+            onApplyAllClicked: root.applyAllFileEditsForCurrentMessage()
+            onUndoAllClicked: root.undoAllFileEditsForCurrentMessage()
+        }
+
         BottomBar {
             id: bottomBar
 
@@ -329,9 +367,22 @@ ChatRootView {
         scrollToBottom()
     }
 
-    ErrorToast {
+    Toast {
         id: errorToast
         z: 1000
+
+        color: Qt.rgba(0.8, 0.2, 0.2, 0.7)
+        border.color: Qt.darker(infoToast.color, 1.3)
+        toastTextColor: "#FFFFFF"
+    }
+
+    Toast {
+        id: infoToast
+        z: 1000
+
+        color: Qt.rgba(0.2, 0.8, 0.2, 0.7)
+        border.color: Qt.darker(infoToast.color, 1.3)
+        toastTextColor: "#FFFFFF"
     }
 
     RulesViewer {
@@ -354,6 +405,11 @@ ChatRootView {
         function onLastErrorMessageChanged() {
             if (root.lastErrorMessage.length > 0) {
                 errorToast.show(root.lastErrorMessage)
+            }
+        }
+        function onLastInfoMessageChanged() {
+            if (root.lastInfoMessage.length > 0) {
+                infoToast.show(root.lastInfoMessage)
             }
         }
     }

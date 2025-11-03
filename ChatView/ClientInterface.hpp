@@ -52,6 +52,7 @@ public:
 signals:
     void errorOccurred(const QString &error);
     void messageReceivedCompletely();
+    void requestStarted(const QString &requestId);
 
 private slots:
     void handlePartialResponse(const QString &requestId, const QString &partialText);
