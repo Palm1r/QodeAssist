@@ -103,6 +103,37 @@ Join our Discord Community: Have questions or want to discuss QodeAssist? Join o
 </details>
 
 ## Install plugin to QtCreator
+
+### Method 1: Using QodeAssistUpdater (Beta)
+
+QodeAssistUpdater is a command-line utility that automates plugin installation and updates with automatic Qt Creator version detection and checksum verification.
+
+**Features:**
+- Automatic Qt Creator version detection
+- Install, update, or remove plugin with single command
+- List all available plugin versions
+- Install specific plugin version
+- Checksum verification
+- Non-interactive mode for CI/CD
+
+**Installation:**
+
+Download pre-built binary from [QodeAssistUpdater releases](https://github.com/Palm1r/QodeAssistUpdater/releases) or build from source:
+
+**Usage:**
+
+```bash
+# Check current status and available updates
+./qodeassist-updater --status
+
+# Install latest version
+./qodeassist-updater --install
+```
+
+For more information, visit the [QodeAssistUpdater repository](https://github.com/Palm1r/QodeAssistUpdater).
+
+### Method 2: Manual Installation
+
 1. Install Latest Qt Creator
 2. Download the QodeAssist plugin for your Qt Creator
    - Remove old version plugin if already was installed
