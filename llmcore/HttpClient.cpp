@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -60,8 +60,14 @@ void HttpClient::onSendRequest(const HttpRequest &request)
 void HttpClient::onReadyRead()
 {
     QNetworkReply *reply = qobject_cast<QNetworkReply *>(sender());
+
     if (!reply || reply->isFinished())
         return;
+
+    int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    if (statusCode >= 400) {
+        return;
+    }
 
     QString requestId;
     {
@@ -74,7 +80,7 @@ void HttpClient::onReadyRead()
                 break;
             }
         }
-        
+
         if (!found)
             return;
     }
@@ -94,11 +100,17 @@ void HttpClient::onFinished()
     if (!reply)
         return;
 
+    int statusCode = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+    QByteArray responseBody = reply->readAll();
+    QNetworkReply::NetworkError networkError = reply->error();
+    QString networkErrorString = reply->errorString();
+
     reply->disconnect();
 
     QString requestId;
     bool hasError = false;
     QString errorMsg;
+
     {
         QMutexLocker locker(&m_mutex);
         bool found = false;
@@ -116,9 +128,23 @@ void HttpClient::onFinished()
             return;
         }
 
-        if (reply->error() != QNetworkReply::NoError) {
-            hasError = true;
-            errorMsg = reply->errorString();
+        hasError = (networkError != QNetworkReply::NoError) || (statusCode >= 400);
+
+        if (hasError) {
+            errorMsg = parseErrorFromResponse(statusCode, responseBody, networkErrorString);
+        }
+
+        LOG_MESSAGE(QString("HttpClient: Request %1 - HTTP Status: %2").arg(requestId).arg(statusCode));
+
+        if (!responseBody.isEmpty()) {
+            LOG_MESSAGE(QString("HttpClient: Request %1 - Response body (%2 bytes): %3")
+                            .arg(requestId)
+                            .arg(responseBody.size())
+                            .arg(QString::fromUtf8(responseBody)));
+        }
+
+        if (hasError) {
+            LOG_MESSAGE(QString("HttpClient: Request %1 - Error: %2").arg(requestId, errorMsg));
         }
     }
 
@@ -135,6 +161,39 @@ QString HttpClient::addActiveRequest(QNetworkReply *reply, const QString &reques
     m_activeRequests[requestId] = reply;
     LOG_MESSAGE(QString("HttpClient: Added active request: %1").arg(requestId));
     return requestId;
+}
+
+QString HttpClient::parseErrorFromResponse(
+    int statusCode, const QByteArray &responseBody, const QString &networkErrorString)
+{
+    QString errorMsg;
+
+    if (!responseBody.isEmpty()) {
+        QJsonDocument errorDoc = QJsonDocument::fromJson(responseBody);
+        if (!errorDoc.isNull() && errorDoc.isObject()) {
+            QJsonObject errorObj = errorDoc.object();
+            if (errorObj.contains("error")) {
+                QJsonObject error = errorObj["error"].toObject();
+                QString message = error["message"].toString();
+                QString type = error["type"].toString();
+                QString code = error["code"].toString();
+
+                errorMsg = QString("HTTP %1: %2").arg(statusCode).arg(message);
+                if (!type.isEmpty())
+                    errorMsg += QString(" (type: %1)").arg(type);
+                if (!code.isEmpty())
+                    errorMsg += QString(" (code: %1)").arg(code);
+            } else {
+                errorMsg = QString("HTTP %1: %2").arg(statusCode).arg(QString::fromUtf8(responseBody));
+            }
+        } else {
+            errorMsg = QString("HTTP %1: %2").arg(statusCode).arg(QString::fromUtf8(responseBody));
+        }
+    } else {
+        errorMsg = QString("HTTP %1: %2").arg(statusCode).arg(networkErrorString);
+    }
+
+    return errorMsg;
 }
 
 void HttpClient::cancelRequest(const QString &requestId)

@@ -59,6 +59,7 @@ private slots:
 
 private:
     QString addActiveRequest(QNetworkReply *reply, const QString &requestId);
+    QString parseErrorFromResponse(int statusCode, const QByteArray &responseBody, const QString &networkErrorString);
 
     QNetworkAccessManager *m_manager;
     QHash<QString, QNetworkReply *> m_activeRequests;

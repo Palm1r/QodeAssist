@@ -26,7 +26,7 @@ Rectangle {
     property alias toastTextColor: textItem.color
 
     property string errorText: ""
-    property int displayDuration: 5000
+    property int displayDuration: 7000
 
     width: Math.min(parent.width - 40, textItem.implicitWidth + radius)
     height: visible ? (textItem.implicitHeight + 12) : 0
