@@ -371,7 +371,7 @@ ChatRootView {
         id: errorToast
         z: 1000
 
-        color: Qt.rgba(0.8, 0.2, 0.2, 0.7)
+        color: Qt.rgba(0.8, 0.2, 0.2, 0.9)
         border.color: Qt.darker(infoToast.color, 1.3)
         toastTextColor: "#FFFFFF"
     }
@@ -380,7 +380,7 @@ ChatRootView {
         id: infoToast
         z: 1000
 
-        color: Qt.rgba(0.2, 0.8, 0.2, 0.7)
+        color: Qt.rgba(0.2, 0.8, 0.2, 0.9)
         border.color: Qt.darker(infoToast.color, 1.3)
         toastTextColor: "#FFFFFF"
     }
