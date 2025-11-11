@@ -35,6 +35,7 @@ Rectangle {
     property alias pinButton: pinButtonId
     property alias rulesButton: rulesButtonId
     property alias agentModeSwitch: agentModeSwitchId
+    property alias thinkingMode: thinkingModeId
     property alias activeRulesCount: activeRulesCountId.text
 
     color: palette.window.hslLightness > 0.5 ?
@@ -50,39 +51,70 @@ Rectangle {
         }
         spacing: 10
 
-        QoAButton {
-            id: pinButtonId
+        Row {
+            height: agentModeSwitchId.height
+            spacing: 10
 
-            checkable: true
+            QoAButton {
+                id: pinButtonId
 
-            icon {
-                source: checked ? "qrc:/qt/qml/ChatView/icons/window-lock.svg"
-                                : "qrc:/qt/qml/ChatView/icons/window-unlock.svg"
-                color: palette.window.hslLightness > 0.5 ? "#000000" : "#FFFFFF"
-                height: 15
-                width: 15
-            }
-            ToolTip.visible: hovered
-            ToolTip.delay: 250
-            ToolTip.text: checked ? qsTr("Unpin chat window")
-                                  : qsTr("Pin chat window to the top")
-        }
+                anchors.verticalCenter: parent.verticalCenter
+                checkable: true
 
-        QoATextSlider {
-            id: agentModeSwitchId
-
-            leftText: "chat"
-            rightText: "AI Agent"
-
-            ToolTip.visible: hovered
-            ToolTip.delay: 250
-            ToolTip.text: {
-                if (!agentModeSwitchId.enabled) {
-                    return qsTr("Tools are disabled in General Settings")
+                icon {
+                    source: checked ? "qrc:/qt/qml/ChatView/icons/window-lock.svg"
+                                    : "qrc:/qt/qml/ChatView/icons/window-unlock.svg"
+                    color: palette.window.hslLightness > 0.5 ? "#000000" : "#FFFFFF"
+                    height: 15
+                    width: 15
                 }
-                return checked
-                        ? qsTr("Agent Mode: AI can use tools to read files, search project, and build code")
-                        : qsTr("Chat Mode: Simple conversation without tool access")
+                ToolTip.visible: hovered
+                ToolTip.delay: 250
+                ToolTip.text: checked ? qsTr("Unpin chat window")
+                                      : qsTr("Pin chat window to the top")
+            }
+
+            QoATextSlider {
+                id: agentModeSwitchId
+
+                anchors.verticalCenter: parent.verticalCenter
+
+                leftText: "chat"
+                rightText: "AI Agent"
+
+                ToolTip.visible: hovered
+                ToolTip.delay: 250
+                ToolTip.text: {
+                    if (!agentModeSwitchId.enabled) {
+                        return qsTr("Tools are disabled in General Settings")
+                    }
+                    return checked
+                            ? qsTr("Agent Mode: AI can use tools to read files, search project, and build code")
+                            : qsTr("Chat Mode: Simple conversation without tool access")
+                }
+            }
+
+            QoAButton {
+                id: thinkingModeId
+
+                anchors.verticalCenter: parent.verticalCenter
+
+                checkable: true
+                opacity: enabled ? 1.0 : 0.2
+
+                icon {
+                    source: checked ? "qrc:/qt/qml/ChatView/icons/thinking-icon-on.svg"
+                                    : "qrc:/qt/qml/ChatView/icons/thinking-icon-off.svg"
+                    color: palette.window.hslLightness > 0.5 ? "#000000" : "#FFFFFF"
+                    height: 15
+                    width: 15
+                }
+
+                ToolTip.visible: hovered
+                ToolTip.delay: 250
+                ToolTip.text: enabled ? (checked ? qsTr("Thinking Mode enabled (Check model list support it)")
+                                                 : qsTr("Thinking Mode disabled"))
+                                      : qsTr("Thinking Mode is not available for this provider")
             }
         }
 

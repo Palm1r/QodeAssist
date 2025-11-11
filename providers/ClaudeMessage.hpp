@@ -39,6 +39,9 @@ public:
 
     LLMCore::MessageState state() const { return m_state; }
     QList<LLMCore::ToolUseContent *> getCurrentToolUseContent() const;
+    QList<LLMCore::ThinkingContent *> getCurrentThinkingContent() const;
+    QList<LLMCore::RedactedThinkingContent *> getCurrentRedactedThinkingContent() const;
+    const QList<LLMCore::ContentBlock *> &getCurrentBlocks() const { return m_currentBlocks; }
 
     void startNewContinuation();
 

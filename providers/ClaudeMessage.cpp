@@ -46,6 +46,19 @@ void ClaudeMessage::handleContentBlockStart(
 
         addCurrentContent<LLMCore::ToolUseContent>(toolId, toolName, toolInput);
         m_pendingToolInputs[index] = "";
+
+    } else if (blockType == "thinking") {
+        QString thinking = data["thinking"].toString();
+        QString signature = data["signature"].toString();
+        LOG_MESSAGE(QString("ClaudeMessage: Creating thinking block with signature length=%1")
+                        .arg(signature.length()));
+        addCurrentContent<LLMCore::ThinkingContent>(thinking, signature);
+
+    } else if (blockType == "redacted_thinking") {
+        QString signature = data["signature"].toString();
+        LOG_MESSAGE(QString("ClaudeMessage: Creating redacted_thinking block with signature length=%1")
+                        .arg(signature.length()));
+        addCurrentContent<LLMCore::RedactedThinkingContent>(signature);
     }
 }
 
@@ -65,6 +78,24 @@ void ClaudeMessage::handleContentBlockDelta(
         QString partialJson = delta["partial_json"].toString();
         if (m_pendingToolInputs.contains(index)) {
             m_pendingToolInputs[index] += partialJson;
+        }
+
+    } else if (deltaType == "thinking_delta") {
+        if (auto thinkingContent = qobject_cast<LLMCore::ThinkingContent *>(m_currentBlocks[index])) {
+            thinkingContent->appendThinking(delta["thinking"].toString());
+        }
+        
+    } else if (deltaType == "signature_delta") {
+        if (auto thinkingContent = qobject_cast<LLMCore::ThinkingContent *>(m_currentBlocks[index])) {
+            QString signature = delta["signature"].toString();
+            thinkingContent->setSignature(signature);
+            LOG_MESSAGE(QString("Set signature for thinking block %1: length=%2")
+                            .arg(index).arg(signature.length()));
+        } else if (auto redactedContent = qobject_cast<LLMCore::RedactedThinkingContent *>(m_currentBlocks[index])) {
+            QString signature = delta["signature"].toString();
+            redactedContent->setSignature(signature);
+            LOG_MESSAGE(QString("Set signature for redacted_thinking block %1: length=%2")
+                            .arg(index).arg(signature.length()));
         }
     }
 }
@@ -104,11 +135,17 @@ QJsonObject ClaudeMessage::toProviderFormat() const
     message["role"] = "assistant";
 
     QJsonArray content;
+    
     for (auto block : m_currentBlocks) {
-        content.append(block->toJson(LLMCore::ProviderFormat::Claude));
+        QJsonValue blockJson = block->toJson(LLMCore::ProviderFormat::Claude);
+        content.append(blockJson);
     }
 
     message["content"] = content;
+    
+    LOG_MESSAGE(QString("ClaudeMessage::toProviderFormat - message with %1 content block(s)")
+                    .arg(m_currentBlocks.size()));
+    
     return message;
 }
 
@@ -136,6 +173,28 @@ QList<LLMCore::ToolUseContent *> ClaudeMessage::getCurrentToolUseContent() const
         }
     }
     return toolBlocks;
+}
+
+QList<LLMCore::ThinkingContent *> ClaudeMessage::getCurrentThinkingContent() const
+{
+    QList<LLMCore::ThinkingContent *> thinkingBlocks;
+    for (auto block : m_currentBlocks) {
+        if (auto thinkingContent = qobject_cast<LLMCore::ThinkingContent *>(block)) {
+            thinkingBlocks.append(thinkingContent);
+        }
+    }
+    return thinkingBlocks;
+}
+
+QList<LLMCore::RedactedThinkingContent *> ClaudeMessage::getCurrentRedactedThinkingContent() const
+{
+    QList<LLMCore::RedactedThinkingContent *> redactedBlocks;
+    for (auto block : m_currentBlocks) {
+        if (auto redactedContent = qobject_cast<LLMCore::RedactedThinkingContent *>(block)) {
+            redactedBlocks.append(redactedContent);
+        }
+    }
+    return redactedBlocks;
 }
 
 void ClaudeMessage::startNewContinuation()

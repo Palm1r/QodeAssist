@@ -65,6 +65,7 @@ public:
         = 0;
 
     virtual bool supportsTools() const { return false; };
+    virtual bool supportThinking() const { return false; };
 
     virtual void cancelRequest(const RequestID &requestId);
 
@@ -92,6 +93,9 @@ signals:
         const QString &toolName,
         const QString &result);
     void continuationStarted(const QodeAssist::LLMCore::RequestID &requestId);
+    void thinkingBlockReceived(
+        const QString &requestId, const QString &thinking, const QString &signature);
+    void redactedThinkingBlockReceived(const QString &requestId, const QString &signature);
 
 protected:
     QJsonObject parseEventLine(const QString &line);

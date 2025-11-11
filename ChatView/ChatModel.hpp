@@ -37,10 +37,10 @@ class ChatModel : public QAbstractListModel
     QML_ELEMENT
 
 public:
-    enum ChatRole { System, User, Assistant, Tool, FileEdit };
+    enum ChatRole { System, User, Assistant, Tool, FileEdit, Thinking };
     Q_ENUM(ChatRole)
 
-    enum Roles { RoleType = Qt::UserRole, Content, Attachments };
+    enum Roles { RoleType = Qt::UserRole, Content, Attachments, IsRedacted };
     Q_ENUM(Roles)
 
     struct Message
@@ -48,6 +48,8 @@ public:
         ChatRole role;
         QString content;
         QString id;
+        bool isRedacted = false;
+        QString signature = QString();
 
         QList<Context::ContentFile> attachments;
     };
@@ -83,6 +85,9 @@ public:
         const QString &toolId,
         const QString &toolName,
         const QString &result);
+    void addThinkingBlock(
+        const QString &requestId, const QString &thinking, const QString &signature);
+    void addRedactedThinkingBlock(const QString &requestId, const QString &signature);
     void updateMessageContent(const QString &messageId, const QString &newContent);
     
     void setLoadingFromHistory(bool loading);

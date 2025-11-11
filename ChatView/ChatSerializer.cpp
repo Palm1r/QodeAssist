@@ -83,6 +83,10 @@ QJsonObject ChatSerializer::serializeMessage(const ChatModel::Message &message)
     messageObj["role"] = static_cast<int>(message.role);
     messageObj["content"] = message.content;
     messageObj["id"] = message.id;
+    messageObj["isRedacted"] = message.isRedacted;
+    if (!message.signature.isEmpty()) {
+        messageObj["signature"] = message.signature;
+    }
     return messageObj;
 }
 
@@ -92,6 +96,8 @@ ChatModel::Message ChatSerializer::deserializeMessage(const QJsonObject &json)
     message.role = static_cast<ChatModel::ChatRole>(json["role"].toInt());
     message.content = json["content"].toString();
     message.id = json["id"].toString();
+    message.isRedacted = json["isRedacted"].toBool(false);
+    message.signature = json["signature"].toString();
     return message;
 }
 

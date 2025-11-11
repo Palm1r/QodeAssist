@@ -119,7 +119,15 @@ void ClientInterface::sendMessage(
         if (msg.role == ChatModel::ChatRole::Tool || msg.role == ChatModel::ChatRole::FileEdit) {
             continue;
         }
-        messages.append({msg.role == ChatModel::ChatRole::User ? "user" : "assistant", msg.content});
+        
+        LLMCore::Message apiMessage;
+        apiMessage.role = msg.role == ChatModel::ChatRole::User ? "user" : "assistant";
+        apiMessage.content = msg.content;
+        apiMessage.isThinking = (msg.role == ChatModel::ChatRole::Thinking);
+        apiMessage.isRedacted = msg.isRedacted;
+        apiMessage.signature = msg.signature;
+        
+        messages.append(apiMessage);
     }
     context.history = messages;
 
@@ -188,6 +196,18 @@ void ClientInterface::sendMessage(
         &LLMCore::Provider::continuationStarted,
         this,
         &ClientInterface::handleCleanAccumulatedData,
+        Qt::UniqueConnection);
+    connect(
+        provider,
+        &LLMCore::Provider::thinkingBlockReceived,
+        m_chatModel,
+        &ChatModel::addThinkingBlock,
+        Qt::UniqueConnection);
+    connect(
+        provider,
+        &LLMCore::Provider::redactedThinkingBlockReceived,
+        m_chatModel,
+        &ChatModel::addRedactedThinkingBlock,
         Qt::UniqueConnection);
 
     provider->sendRequest(requestId, config.url, config.providerRequest);

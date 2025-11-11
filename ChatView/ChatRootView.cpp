@@ -43,6 +43,8 @@
 #include "context/ContextManager.hpp"
 #include "context/TokenUtils.hpp"
 #include "llmcore/RulesLoader.hpp"
+#include "ProvidersManager.hpp"
+#include "GeneralSettings.hpp"
 
 namespace QodeAssist::Chat {
 
@@ -197,12 +199,24 @@ ChatRootView::ChatRootView(QQuickItem *parent)
 
     QSettings appSettings;
     m_isAgentMode = appSettings.value("QodeAssist/Chat/AgentMode", false).toBool();
+    m_isThinkingMode = Settings::chatAssistantSettings().enableThinkingMode();
+
+    connect(
+        &Settings::chatAssistantSettings().enableThinkingMode,
+        &Utils::BaseAspect::changed,
+        this,
+        [this]() { setIsThinkingMode(Settings::chatAssistantSettings().enableThinkingMode()); });
 
     connect(
         &Settings::toolsSettings().useTools,
         &Utils::BaseAspect::changed,
         this,
         &ChatRootView::toolsSupportEnabledChanged);
+    connect(
+        &Settings::generalSettings().caProvider,
+        &Utils::BaseAspect::changed,
+        this,
+        &ChatRootView::isThinkingSupportChanged);
 }
 
 ChatModel *ChatRootView::chatModel() const
@@ -779,6 +793,22 @@ void ChatRootView::setIsAgentMode(bool newIsAgentMode)
     }
 }
 
+bool ChatRootView::isThinkingMode() const
+{
+    return m_isThinkingMode;
+}
+
+void ChatRootView::setIsThinkingMode(bool newIsThinkingMode)
+{
+    if (m_isThinkingMode != newIsThinkingMode) {
+        m_isThinkingMode = newIsThinkingMode;
+
+        Settings::chatAssistantSettings().enableThinkingMode.setValue(newIsThinkingMode);
+
+        emit isThinkingModeChanged();
+    }
+}
+
 bool ChatRootView::toolsSupportEnabled() const
 {
     return Settings::toolsSettings().useTools();
@@ -1085,6 +1115,14 @@ int ChatRootView::currentMessageRejectedEdits() const
 QString ChatRootView::lastInfoMessage() const
 {
     return m_lastInfoMessage;
+}
+
+bool ChatRootView::isThinkingSupport() const
+{
+    auto providerName = Settings::generalSettings().caProvider();
+    auto provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
+
+    return provider && provider->supportThinking();
 }
 
 } // namespace QodeAssist::Chat

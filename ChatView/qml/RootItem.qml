@@ -91,6 +91,13 @@ ChatRootView {
                     root.isAgentMode = agentModeSwitch.checked
                 }
             }
+            thinkingMode {
+                checked: root.isThinkingMode
+                enabled: root.isThinkingSupport
+                onCheckedChanged: {
+                    root.isThinkingMode = thinkingMode.checked
+                }
+            }
         }
 
         ListView {
@@ -116,6 +123,8 @@ ChatRootView {
                         return toolMessageComponent
                     } else if (model.roleType === ChatModel.FileEdit) {
                         return fileEditMessageComponent
+                    } else if (model.roleType === ChatModel.Thinking) {
+                        return thinkingMessageComponent
                     } else {
                         return chatItemComponent
                     }
@@ -197,6 +206,35 @@ ChatRootView {
                     onOpenInEditor: function(editId) {
                         root.openFileEditInEditor(editId)
                     }
+                }
+            }
+
+            Component {
+                id: thinkingMessageComponent
+
+                ThinkingStatusItem {
+                    width: parent.width
+                    thinkingContent: {
+                        // Extract thinking content and signature
+                        let content = model.content
+                        let signatureStart = content.indexOf("\n[Signature:")
+                        if (signatureStart >= 0) {
+                            return content.substring(0, signatureStart)
+                        }
+                        return content
+                    }
+                    signature: {
+                        let content = model.content
+                        let signatureStart = content.indexOf("\n[Signature: ")
+                        if (signatureStart >= 0) {
+                            let signatureEnd = content.indexOf("...]", signatureStart)
+                            if (signatureEnd >= 0) {
+                                return content.substring(signatureStart + 13, signatureEnd)
+                            }
+                        }
+                        return ""
+                    }
+                    isRedacted: model.isRedacted !== undefined ? model.isRedacted : false
                 }
             }
         }
