@@ -33,11 +33,21 @@ TextEdit {
         anchors.fill: parent
         acceptedButtons: Qt.RightButton
         onClicked: contextMenu.open()
-        propagateComposedEvents: true
+        cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.IBeamCursor
     }
 
     Platform.Menu {
         id: contextMenu
+
+        Platform.MenuItem {
+            text: qsTr("Open Link")
+            visible: root.hoveredLink.length > 0
+            onTriggered: Qt.openUrlExternally(root.hoveredLink)
+        }
+
+        Platform.MenuSeparator {
+            visible: root.hoveredLink.length > 0
+        }
 
         Platform.MenuItem {
             text: qsTr("Copy")
