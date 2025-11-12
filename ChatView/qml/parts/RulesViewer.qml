@@ -223,24 +223,16 @@ Popup {
                         Layout.fillHeight: true
                         clip: true
 
-                        QQC.TextArea {
+                        TextEdit {
                             id: ruleContentArea
 
                             readOnly: true
-                            wrapMode: TextArea.Wrap
                             selectByMouse: true
+                            wrapMode: Text.WordWrap
+                            selectionColor: palette.highlight
                             color: palette.text
                             font.family: "monospace"
                             font.pixelSize: 11
-
-                            background: Rectangle {
-                                color: Qt.darker(palette.base, 1.02)
-                                border.color: palette.mid
-                                border.width: 1
-                                radius: 2
-                            }
-
-                            placeholderText: qsTr("Select a rule file to view its content")
                         }
                     }
                 }
