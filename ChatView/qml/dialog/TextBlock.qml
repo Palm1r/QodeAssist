@@ -29,25 +29,17 @@ TextEdit {
     selectionColor: palette.highlight
     color: palette.text
 
+    onLinkActivated: (link) => Qt.openUrlExternally(link)
+
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.RightButton
         onClicked: contextMenu.open()
-        cursorShape: parent.hoveredLink ? Qt.PointingHandCursor : Qt.IBeamCursor
+        cursorShape: root.hoveredLink ? Qt.PointingHandCursor : Qt.IBeamCursor
     }
 
     Platform.Menu {
         id: contextMenu
-
-        Platform.MenuItem {
-            text: qsTr("Open Link")
-            visible: root.hoveredLink.length > 0
-            onTriggered: Qt.openUrlExternally(root.hoveredLink)
-        }
-
-        Platform.MenuSeparator {
-            visible: root.hoveredLink.length > 0
-        }
 
         Platform.MenuItem {
             text: qsTr("Copy")
