@@ -37,16 +37,16 @@ QString RulesLoader::loadRules(const QString &projectPath, RulesContext context)
     QString combined;
     QString basePath = projectPath + "/.qodeassist/rules";
 
-    combined += loadAllMarkdownFiles(basePath + "/common");
-
     switch (context) {
     case RulesContext::Completions:
         combined += loadAllMarkdownFiles(basePath + "/completions");
         break;
     case RulesContext::Chat:
+        combined += loadAllMarkdownFiles(basePath + "/common");
         combined += loadAllMarkdownFiles(basePath + "/chat");
         break;
     case RulesContext::QuickRefactor:
+        combined += loadAllMarkdownFiles(basePath + "/common");
         combined += loadAllMarkdownFiles(basePath + "/quickrefactor");
         break;
     }
