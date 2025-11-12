@@ -181,7 +181,14 @@ Rectangle {
             width: parent.width
             height: headerRow.height + 16
             cursorShape: Qt.PointingHandCursor
-            onClicked: fileEditView.expanded = !fileEditView.expanded
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            onClicked: function(mouse) {
+                if (mouse.button === Qt.LeftButton) {
+                    fileEditView.expanded = !fileEditView.expanded
+                } else if (mouse.button === Qt.RightButton) {
+                    contextMenu.popup()
+                }
+            }
 
             RowLayout {
                 id: headerRow
@@ -417,6 +424,42 @@ Rectangle {
                     ? Qt.rgba(0.2, 0.6, 0.2, 1)
                     : Qt.rgba(0.8, 0.2, 0.2, 1)
                 wrapMode: Text.WordWrap
+            }
+        }
+
+        Menu {
+            id: contextMenu
+
+            MenuItem {
+                text: qsTr("Apply Changes")
+                enabled: (root.isPending || root.isRejected) && !root.isArchived
+                visible: !root.isApplied && !root.isArchived
+                onTriggered: root.applyEdit(editData.edit_id)
+            }
+
+            MenuItem {
+                text: qsTr("Undo Changes")
+                enabled: root.isApplied && !root.isArchived
+                visible: root.isApplied && !root.isArchived
+                onTriggered: root.undoEdit(editData.edit_id)
+            }
+
+            MenuSeparator {
+                visible: root.isPending && !root.isArchived
+            }
+
+            MenuItem {
+                text: qsTr("Reject Changes")
+                enabled: root.isPending && !root.isArchived
+                visible: root.isPending && !root.isArchived
+                onTriggered: root.rejectEdit(editData.edit_id)
+            }
+
+            MenuSeparator {}
+
+            MenuItem {
+                text: qsTr("Open in Editor")
+                onTriggered: root.openInEditor(editData.edit_id)
             }
         }
     }
