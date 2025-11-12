@@ -84,13 +84,32 @@ void OpenAIProvider::prepareRequest(
     prompt->prepareRequest(request, context);
 
     auto applyModelParams = [&request](const auto &settings) {
-        request["max_tokens"] = settings.maxTokens();
-        request["temperature"] = settings.temperature();
+        QString model = request.value("model").toString().toLower();
+        bool useNewParameter = model.contains("gpt-4o") || model.contains("gpt-4-turbo")
+                               || model.contains("o1-") || model.contains("gpt-5")
+                               || model.startsWith("o1") || model.contains("o3");
 
-        if (settings.useTopP())
-            request["top_p"] = settings.topP();
-        if (settings.useTopK())
-            request["top_k"] = settings.topK();
+        bool isReasoningModel = model.contains("o1-") || model.contains("gpt-5")
+                                || model.startsWith("o1") || model.contains("o3");
+
+        if (useNewParameter) {
+            request["max_completion_tokens"] = settings.maxTokens();
+        } else {
+            request["max_tokens"] = settings.maxTokens();
+        }
+
+        if (!isReasoningModel) {
+            request["temperature"] = settings.temperature();
+
+            if (settings.useTopP())
+                request["top_p"] = settings.topP();
+            if (settings.useTopK())
+                request["top_k"] = settings.topK();
+
+        } else {
+            request["temperature"] = 1.0;
+        }
+
         if (settings.useFrequencyPenalty())
             request["frequency_penalty"] = settings.frequencyPenalty();
         if (settings.usePresencePenalty())
@@ -163,6 +182,7 @@ QList<QString> OpenAIProvider::validateRequest(const QJsonObject &request, LLMCo
         {"messages", QJsonArray{{QJsonObject{{"role", {}}, {"content", {}}}}}},
         {"temperature", {}},
         {"max_tokens", {}},
+        {"max_completion_tokens", {}}, // New parameter for newer models
         {"top_p", {}},
         {"top_k", {}},
         {"frequency_penalty", {}},
