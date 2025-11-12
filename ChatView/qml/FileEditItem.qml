@@ -21,6 +21,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import UIControls
+import ChatView
+import Qt.labs.platform as Platform
 
 Rectangle {
     id: root
@@ -129,6 +131,10 @@ Rectangle {
 
     implicitHeight: fileEditView.implicitHeight
 
+    ChatUtils {
+        id: utils
+    }
+
     Rectangle {
         id: fileEditView
 
@@ -178,6 +184,7 @@ Rectangle {
 
         MouseArea {
             id: headerArea
+
             width: parent.width
             height: headerRow.height + 16
             cursorShape: Qt.PointingHandCursor
@@ -344,15 +351,9 @@ Rectangle {
                     y: 6
                     spacing: 4
 
-                    Text {
-                        text: qsTr("- Removed:")
-                        font.pixelSize: 10
-                        font.bold: true
-                        color: Qt.rgba(1, 0.2, 0.2, 0.9)
-                    }
-
                     TextEdit {
                         id: oldContentText
+
                         width: parent.width - 12
                         height: contentHeight
                         text: root.oldContent
@@ -364,6 +365,31 @@ Rectangle {
                         selectByMouse: true
                         selectByKeyboard: true
                         textFormat: TextEdit.PlainText
+
+                        MouseArea {
+                            anchors.fill: parent
+                            acceptedButtons: Qt.RightButton
+                            onClicked: oldConentContextMenu.open()
+                        }
+                    }
+
+                    Platform.Menu {
+                        id: oldConentContextMenu
+
+                        Platform.MenuItem {
+                            text: qsTr("Copy")
+                            onTriggered: {
+                                const textToCopy = oldContentText.selectedText || root.oldContent
+                                utils.copyToClipboard(textToCopy)
+                            }
+                        }
+
+                        Platform.MenuSeparator {}
+
+                        Platform.MenuItem {
+                            text: fileEditView.expanded ? qsTr("Collapse") : qsTr("Expand")
+                            onTriggered: fileEditView.expanded = !fileEditView.expanded
+                        }
                     }
                 }
             }
@@ -378,20 +404,15 @@ Rectangle {
 
                 Column {
                     id: newContentColumn
+
                     width: parent.width
                     x: 6
                     y: 6
                     spacing: 4
 
-                    Text {
-                        text: qsTr("+ Added:")
-                        font.pixelSize: 10
-                        font.bold: true
-                        color: Qt.rgba(0.2, 0.8, 0.2, 0.9)
-                    }
-
                     TextEdit {
                         id: newContentText
+
                         width: parent.width - 12
                         height: contentHeight
                         text: root.newContent
@@ -403,6 +424,31 @@ Rectangle {
                         selectByMouse: true
                         selectByKeyboard: true
                         textFormat: TextEdit.PlainText
+
+                        MouseArea {
+                            anchors.fill: parent
+                            acceptedButtons: Qt.RightButton
+                            onClicked: newContentContextMenu.open()
+                        }
+                    }
+
+                    Platform.Menu {
+                        id: newContentContextMenu
+
+                        Platform.MenuItem {
+                            text: qsTr("Copy")
+                            onTriggered: {
+                                const textToCopy = newContentText.selectedText || root.newContent
+                                utils.copyToClipboard(textToCopy)
+                            }
+                        }
+
+                        Platform.MenuSeparator {}
+
+                        Platform.MenuItem {
+                            text: fileEditView.expanded ? qsTr("Collapse") : qsTr("Expand")
+                            onTriggered: fileEditView.expanded = !fileEditView.expanded
+                        }
                     }
                 }
             }
