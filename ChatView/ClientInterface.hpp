@@ -61,7 +61,7 @@ private slots:
     void handleCleanAccumulatedData(const QString &requestId);
 
 private:
-    void handleLLMResponse(const QString &response, const QJsonObject &request, bool isComplete);
+    void handleLLMResponse(const QString &response, const QJsonObject &request);
     QString getCurrentFileContext() const;
     QString getSystemPromptWithLinkedFiles(
         const QString &basePrompt, const QList<QString> &linkedFiles) const;

@@ -24,7 +24,7 @@ Rectangle {
     id: root
 
     property string thinkingContent: ""
-    property string signature: ""
+    // property string signature: ""
     property bool isRedacted: false
     property bool expanded: false
     

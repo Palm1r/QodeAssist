@@ -251,20 +251,13 @@ void ClientInterface::cancelRequest()
     LOG_MESSAGE("All requests cancelled and state cleared");
 }
 
-void ClientInterface::handleLLMResponse(
-    const QString &response, const QJsonObject &request, bool isComplete)
+void ClientInterface::handleLLMResponse(const QString &response, const QJsonObject &request)
 {
     const auto message = response.trimmed();
 
     if (!message.isEmpty()) {
         QString messageId = request["id"].toString();
         m_chatModel->addMessage(message, ChatModel::ChatRole::Assistant, messageId);
-
-        if (isComplete) {
-            LOG_MESSAGE(
-                "Message completed. Final response for message " + messageId + ": " + response);
-            emit messageReceivedCompletely();
-        }
     }
 }
 
@@ -323,7 +316,7 @@ void ClientInterface::handlePartialResponse(const QString &requestId, const QStr
     m_accumulatedResponses[requestId] += partialText;
 
     const RequestContext &ctx = it.value();
-    handleLLMResponse(m_accumulatedResponses[requestId], ctx.originalRequest, false);
+    handleLLMResponse(m_accumulatedResponses[requestId], ctx.originalRequest);
 }
 
 void ClientInterface::handleFullResponse(const QString &requestId, const QString &fullText)
@@ -345,10 +338,11 @@ void ClientInterface::handleFullResponse(const QString &requestId, const QString
                        .arg(requestId, applyError));
     }
     
-    handleLLMResponse(finalText, ctx.originalRequest, true);
-
     m_activeRequests.erase(it);
     m_accumulatedResponses.remove(requestId);
+
+    LOG_MESSAGE("Message completed. Final response for message " + ctx.originalRequest["id"].toString() + ": " + finalText);
+    emit messageReceivedCompletely();
 }
 
 void ClientInterface::handleRequestFailed(const QString &requestId, const QString &error)
