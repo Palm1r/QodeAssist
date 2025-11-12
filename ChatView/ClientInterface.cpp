@@ -337,12 +337,18 @@ void ClientInterface::handleFullResponse(const QString &requestId, const QString
         LOG_MESSAGE(QString("Some edits for request %1 were not auto-applied: %2")
                        .arg(requestId, applyError));
     }
-    
-    m_activeRequests.erase(it);
-    m_accumulatedResponses.remove(requestId);
 
-    LOG_MESSAGE("Message completed. Final response for message " + ctx.originalRequest["id"].toString() + ": " + finalText);
+    LOG_MESSAGE(
+        "Message completed. Final response for message " + ctx.originalRequest["id"].toString()
+        + ": " + finalText);
     emit messageReceivedCompletely();
+
+    if (it != m_activeRequests.end()) {
+        m_activeRequests.erase(it);
+    }
+    if (m_accumulatedResponses.contains(requestId)) {
+        m_accumulatedResponses.remove(requestId);
+    }
 }
 
 void ClientInterface::handleRequestFailed(const QString &requestId, const QString &error)
@@ -354,8 +360,12 @@ void ClientInterface::handleRequestFailed(const QString &requestId, const QStrin
     LOG_MESSAGE(QString("Chat request %1 failed: %2").arg(requestId, error));
     emit errorOccurred(error);
 
-    m_activeRequests.erase(it);
-    m_accumulatedResponses.remove(requestId);
+    if (it != m_activeRequests.end()) {
+        m_activeRequests.erase(it);
+    }
+    if (m_accumulatedResponses.contains(requestId)) {
+        m_accumulatedResponses.remove(requestId);
+    }
 }
 
 void ClientInterface::handleCleanAccumulatedData(const QString &requestId)
