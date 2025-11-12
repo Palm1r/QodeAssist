@@ -42,7 +42,33 @@ public:
         if (context.history) {
             for (const auto &msg : context.history.value()) {
                 if (msg.role != "system") {
-                    messages.append(QJsonObject{{"role", msg.role}, {"content", msg.content}});
+                    // Handle thinking blocks with structured content
+                    if (msg.isThinking) {
+                        // Create content array with thinking block
+                        QJsonArray content;
+                        QJsonObject thinkingBlock;
+                        thinkingBlock["type"] = msg.isRedacted ? "redacted_thinking" : "thinking";
+                        
+                        // Extract actual thinking text (remove display signature)
+                        QString thinkingText = msg.content;
+                        int signaturePos = thinkingText.indexOf("\n[Signature: ");
+                        if (signaturePos != -1) {
+                            thinkingText = thinkingText.left(signaturePos);
+                        }
+                        
+                        if (!msg.isRedacted) {
+                            thinkingBlock["thinking"] = thinkingText;
+                        }
+                        if (!msg.signature.isEmpty()) {
+                            thinkingBlock["signature"] = msg.signature;
+                        }
+                        content.append(thinkingBlock);
+                        
+                        messages.append(QJsonObject{{"role", "assistant"}, {"content", content}});
+                    } else {
+                        // Normal message
+                        messages.append(QJsonObject{{"role", msg.role}, {"content", msg.content}});
+                    }
                 }
             }
         }

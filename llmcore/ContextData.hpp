@@ -28,6 +28,9 @@ struct Message
 {
     QString role;
     QString content;
+    QString signature;
+    bool isThinking = false;
+    bool isRedacted = false;
 
     // clang-format off
     bool operator==(const Message&) const = default;

@@ -137,4 +137,68 @@ private:
     QString m_result;
 };
 
+class ThinkingContent : public ContentBlock
+{
+    Q_OBJECT
+public:
+    explicit ThinkingContent(const QString &thinking = QString(), const QString &signature = QString())
+        : ContentBlock()
+        , m_thinking(thinking)
+        , m_signature(signature)
+    {}
+
+    QString type() const override { return "thinking"; }
+    QString thinking() const { return m_thinking; }
+    QString signature() const { return m_signature; }
+    void appendThinking(const QString &text) { m_thinking += text; }
+    void setThinking(const QString &text) { m_thinking = text; }
+    void setSignature(const QString &signature) { m_signature = signature; }
+
+    QJsonValue toJson(ProviderFormat format) const override
+    {
+        Q_UNUSED(format);
+        // Only include signature field if it's not empty
+        // Empty signature is rejected by API with "Invalid signature" error
+        // In streaming mode, signature is not provided, so we omit the field entirely
+        QJsonObject obj{{"type", "thinking"}, {"thinking", m_thinking}};
+        if (!m_signature.isEmpty()) {
+            obj["signature"] = m_signature;
+        }
+        return obj;
+    }
+
+private:
+    QString m_thinking;
+    QString m_signature;
+};
+
+class RedactedThinkingContent : public ContentBlock
+{
+    Q_OBJECT
+public:
+    explicit RedactedThinkingContent(const QString &signature = QString())
+        : ContentBlock()
+        , m_signature(signature)
+    {}
+
+    QString type() const override { return "redacted_thinking"; }
+    QString signature() const { return m_signature; }
+    void setSignature(const QString &signature) { m_signature = signature; }
+
+    QJsonValue toJson(ProviderFormat format) const override
+    {
+        Q_UNUSED(format);
+        // Only include signature field if it's not empty
+        // Empty signature is rejected by API with "Invalid signature" error
+        QJsonObject obj{{"type", "redacted_thinking"}};
+        if (!m_signature.isEmpty()) {
+            obj["signature"] = m_signature;
+        }
+        return obj;
+    }
+
+private:
+    QString m_signature;
+};
+
 } // namespace QodeAssist::LLMCore

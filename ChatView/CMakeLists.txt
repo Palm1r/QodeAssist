@@ -18,6 +18,7 @@ qt_add_qml_module(QodeAssistChatView
     qml/parts/AttachedFilesPlace.qml
     qml/parts/Toast.qml
     qml/ToolStatusItem.qml
+    qml/ThinkingStatusItem.qml
     qml/FileEditItem.qml
     qml/parts/RulesViewer.qml
     qml/parts/FileEditsActionBar.qml
@@ -42,6 +43,8 @@ qt_add_qml_module(QodeAssistChatView
     icons/apply-changes-button.svg
     icons/undo-changes-button.svg
     icons/reject-changes-button.svg
+    icons/thinking-icon-on.svg
+    icons/thinking-icon-off.svg
 
     SOURCES
     ChatWidget.hpp ChatWidget.cpp

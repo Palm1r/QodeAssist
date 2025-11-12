@@ -49,6 +49,7 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(QVariantList activeRules READ activeRules NOTIFY activeRulesChanged FINAL)
     Q_PROPERTY(int activeRulesCount READ activeRulesCount NOTIFY activeRulesCountChanged FINAL)
     Q_PROPERTY(bool isAgentMode READ isAgentMode WRITE setIsAgentMode NOTIFY isAgentModeChanged FINAL)
+    Q_PROPERTY(bool isThinkingMode READ isThinkingMode WRITE setIsThinkingMode NOTIFY isThinkingModeChanged FINAL)
     Q_PROPERTY(
         bool toolsSupportEnabled READ toolsSupportEnabled NOTIFY toolsSupportEnabledChanged FINAL)
     
@@ -56,6 +57,7 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(int currentMessageAppliedEdits READ currentMessageAppliedEdits NOTIFY currentMessageEditsStatsChanged FINAL)
     Q_PROPERTY(int currentMessagePendingEdits READ currentMessagePendingEdits NOTIFY currentMessageEditsStatsChanged FINAL)
     Q_PROPERTY(int currentMessageRejectedEdits READ currentMessageRejectedEdits NOTIFY currentMessageEditsStatsChanged FINAL)
+    Q_PROPERTY(bool isThinkingSupport READ isThinkingSupport NOTIFY isThinkingSupportChanged FINAL)
 
     QML_ELEMENT
 
@@ -118,6 +120,8 @@ public:
 
     bool isAgentMode() const;
     void setIsAgentMode(bool newIsAgentMode);
+    bool isThinkingMode() const;
+    void setIsThinkingMode(bool newIsThinkingMode);
     bool toolsSupportEnabled() const;
 
     Q_INVOKABLE void applyFileEdit(const QString &editId);
@@ -125,7 +129,6 @@ public:
     Q_INVOKABLE void undoFileEdit(const QString &editId);
     Q_INVOKABLE void openFileEditInEditor(const QString &editId);
     
-    // Mass file edit operations for current message
     Q_INVOKABLE void applyAllFileEditsForCurrentMessage();
     Q_INVOKABLE void undoAllFileEditsForCurrentMessage();
     Q_INVOKABLE void updateCurrentMessageEditsStats();
@@ -136,6 +139,8 @@ public:
     int currentMessageRejectedEdits() const;
 
     QString lastInfoMessage() const;
+
+    bool isThinkingSupport() const;
 
 public slots:
     void sendMessage(const QString &message);
@@ -166,8 +171,11 @@ signals:
     void activeRulesCountChanged();
 
     void isAgentModeChanged();
+    void isThinkingModeChanged();
     void toolsSupportEnabledChanged();
     void currentMessageEditsStatsChanged();
+
+    void isThinkingSupportChanged();
 
 private:
     void updateFileEditStatus(const QString &editId, const QString &status);
@@ -189,6 +197,7 @@ private:
     QString m_lastErrorMessage;
     QVariantList m_activeRules;
     bool m_isAgentMode;
+    bool m_isThinkingMode;
     
     QString m_currentMessageRequestId;
     int m_currentMessageTotalEdits{0};

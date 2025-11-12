@@ -64,6 +64,11 @@ public:
     Utils::StringAspect ollamaLivetime{this};
     Utils::IntegerAspect contextWindow{this};
 
+    // Extended Thinking Settings (Claude only)
+    Utils::BoolAspect enableThinkingMode{this};
+    Utils::IntegerAspect thinkingBudgetTokens{this};
+    Utils::IntegerAspect thinkingMaxTokens{this};
+
     // Visuals settings
     Utils::SelectionAspect textFontFamily{this};
     Utils::IntegerAspect textFontSize{this};

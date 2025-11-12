@@ -53,6 +53,7 @@ public:
         const LLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload) override;
 
     bool supportsTools() const override;
+    bool supportThinking() const override;
     void cancelRequest(const LLMCore::RequestID &requestId) override;
 
 public slots:

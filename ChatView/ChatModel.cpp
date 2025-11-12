@@ -81,6 +81,9 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         }
         return filenames;
     }
+    case Roles::IsRedacted: {
+        return message.isRedacted;
+    }
     default:
         return QVariant();
     }
@@ -92,6 +95,7 @@ QHash<int, QByteArray> ChatModel::roleNames() const
     roles[Roles::RoleType] = "roleType";
     roles[Roles::Content] = "content";
     roles[Roles::Attachments] = "attachments";
+    roles[Roles::IsRedacted] = "isRedacted";
     return roles;
 }
 
@@ -400,6 +404,57 @@ void ChatModel::updateToolResult(
             }
         }
     }
+}
+
+void ChatModel::addThinkingBlock(
+    const QString &requestId, const QString &thinking, const QString &signature)
+{
+    LOG_MESSAGE(QString("Adding thinking block: requestId=%1, thinking length=%2, signature length=%3")
+                    .arg(requestId)
+                    .arg(thinking.length())
+                    .arg(signature.length()));
+
+    QString displayContent = thinking;
+    if (!signature.isEmpty()) {
+        displayContent += "\n[Signature: " + signature.left(40) + "...]";
+    }
+
+    beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());
+    Message thinkingMessage;
+    thinkingMessage.role = ChatRole::Thinking;
+    thinkingMessage.content = displayContent;
+    thinkingMessage.id = requestId;
+    thinkingMessage.isRedacted = false;
+    thinkingMessage.signature = signature;
+    m_messages.append(thinkingMessage);
+    endInsertRows();
+    LOG_MESSAGE(QString("Added thinking message at index %1 with signature length=%2")
+                    .arg(m_messages.size() - 1).arg(signature.length()));
+}
+
+void ChatModel::addRedactedThinkingBlock(const QString &requestId, const QString &signature)
+{
+    LOG_MESSAGE(
+        QString("Adding redacted thinking block: requestId=%1, signature length=%2")
+            .arg(requestId)
+            .arg(signature.length()));
+
+    QString displayContent = "[Thinking content redacted by safety systems]";
+    if (!signature.isEmpty()) {
+        displayContent += "\n[Signature: " + signature.left(40) + "...]";
+    }
+
+    beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());
+    Message thinkingMessage;
+    thinkingMessage.role = ChatRole::Thinking;
+    thinkingMessage.content = displayContent;
+    thinkingMessage.id = requestId;
+    thinkingMessage.isRedacted = true;
+    thinkingMessage.signature = signature;
+    m_messages.append(thinkingMessage);
+    endInsertRows();
+    LOG_MESSAGE(QString("Added redacted thinking message at index %1 with signature length=%2")
+                    .arg(m_messages.size() - 1).arg(signature.length()));
 }
 
 void ChatModel::updateMessageContent(const QString &messageId, const QString &newContent)

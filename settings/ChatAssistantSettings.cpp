@@ -78,7 +78,7 @@ ChatAssistantSettings::ChatAssistantSettings()
 
     maxTokens.setSettingsKey(Constants::CA_MAX_TOKENS);
     maxTokens.setLabelText(Tr::tr("Max Tokens:"));
-    maxTokens.setRange(-1, 10000);
+    maxTokens.setRange(-1, 200000);  // -1 for unlimited, 200k max for extended output
     maxTokens.setDefaultValue(2000);
 
     // Advanced Parameters
@@ -143,6 +143,30 @@ ChatAssistantSettings::ChatAssistantSettings()
     contextWindow.setLabelText(Tr::tr("Context Window:"));
     contextWindow.setRange(-1, 10000);
     contextWindow.setDefaultValue(2048);
+
+    // Extended Thinking Settings
+    enableThinkingMode.setSettingsKey(Constants::CA_ENABLE_THINKING_MODE);
+    enableThinkingMode.setLabelText(Tr::tr("Enable extended thinking mode (Claude only).\n Temperature is 1.0 accordingly API requerement"));
+    enableThinkingMode.setToolTip(
+        Tr::tr("Enable Claude's extended thinking mode for complex reasoning tasks. "
+               "This provides step-by-step reasoning before the final answer."));
+    enableThinkingMode.setDefaultValue(false);
+
+    thinkingBudgetTokens.setSettingsKey(Constants::CA_THINKING_BUDGET_TOKENS);
+    thinkingBudgetTokens.setLabelText(Tr::tr("Thinking budget tokens:"));
+    thinkingBudgetTokens.setToolTip(
+        Tr::tr("Maximum number of tokens Claude can use for internal reasoning. "
+               "Larger budgets improve quality but increase latency. Minimum: 1024, Recommended: 10000-16000."));
+    thinkingBudgetTokens.setRange(1024, 100000);
+    thinkingBudgetTokens.setDefaultValue(10000);
+
+    thinkingMaxTokens.setSettingsKey(Constants::CA_THINKING_MAX_TOKENS);
+    thinkingMaxTokens.setLabelText(Tr::tr("Thinking mode max output tokens:"));
+    thinkingMaxTokens.setToolTip(
+        Tr::tr("Maximum number of tokens for the final response when thinking mode is enabled. "
+               "Set to -1 to use the default max tokens setting. Recommended: 4096-16000."));
+    thinkingMaxTokens.setRange(-1, 200000);
+    thinkingMaxTokens.setDefaultValue(16000);
 
     autosave.setDefaultValue(true);
     autosave.setLabelText(Tr::tr("Enable autosave when message received"));
@@ -237,6 +261,10 @@ ChatAssistantSettings::ChatAssistantSettings()
         ollamaGrid.addRow({ollamaLivetime});
         ollamaGrid.addRow({contextWindow});
 
+        auto thinkingGrid = Grid{};
+        thinkingGrid.addRow({thinkingBudgetTokens});
+        thinkingGrid.addRow({thinkingMaxTokens});
+
         auto chatViewSettingsGrid = Grid{};
         chatViewSettingsGrid.addRow({textFontFamily, textFontSize});
         chatViewSettingsGrid.addRow({codeFontFamily, codeFontSize});
@@ -269,6 +297,9 @@ ChatAssistantSettings::ChatAssistantSettings()
                     systemPrompt,
                 }},
             Group{title(Tr::tr("Ollama Settings")), Column{Row{ollamaGrid, Stretch{1}}}},
+            Group{
+                title(Tr::tr("Extended Thinking (Claude Only)")),
+                Column{enableThinkingMode, Row{thinkingGrid, Stretch{1}}}},
             Group{title(Tr::tr("Chat Settings")), Row{chatViewSettingsGrid, Stretch{1}}},
             Stretch{1}};
     });
@@ -308,6 +339,9 @@ void ChatAssistantSettings::resetSettingsToDefaults()
         resetAspect(systemPrompt);
         resetAspect(ollamaLivetime);
         resetAspect(contextWindow);
+        resetAspect(enableThinkingMode);
+        resetAspect(thinkingBudgetTokens);
+        resetAspect(thinkingMaxTokens);
         resetAspect(linkOpenFiles);
         resetAspect(textFontFamily);
         resetAspect(codeFontFamily);
