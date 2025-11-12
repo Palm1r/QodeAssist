@@ -99,13 +99,19 @@ void ClientInterface::sendMessage(
         QString systemPrompt = chatAssistantSettings.systemPrompt();
 
         auto project = LLMCore::RulesLoader::getActiveProject();
+
         if (project) {
+            systemPrompt += QString("\n# Active project name: %1").arg(project->displayName());
+            systemPrompt += QString("\n# Active Project path: %1").arg(project->projectDirectory().toUrlishString());
+
             QString projectRules
                 = LLMCore::RulesLoader::loadRulesForProject(project, LLMCore::RulesContext::Chat);
 
             if (!projectRules.isEmpty()) {
-                systemPrompt += "\n# Project Rules\n\n" + projectRules;
+                systemPrompt += QString("\n# Project Rules\n\n") + projectRules;
             }
+        } else {
+            systemPrompt += QString("\n# No active project in IDE");
         }
 
         if (!linkedFiles.isEmpty()) {

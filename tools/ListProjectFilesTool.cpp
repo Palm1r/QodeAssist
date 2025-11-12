@@ -86,7 +86,7 @@ QFuture<QString> ListProjectFilesTool::executeAsync(const QJsonObject &input)
     return QtConcurrent::run([this]() -> QString {
         QList<ProjectExplorer::Project *> projects = ProjectExplorer::ProjectManager::projects();
         if (projects.isEmpty()) {
-            QString error = "Error: No projects found";
+            QString error = "No projects found";
             throw ToolRuntimeError(error);
         }
 
