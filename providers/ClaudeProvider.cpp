@@ -86,7 +86,6 @@ void ClaudeProvider::prepareRequest(
 
     auto applyModelParams = [&request](const auto &settings) {
         request["max_tokens"] = settings.maxTokens();
-        request["temperature"] = settings.temperature();
         if (settings.useTopP())
             request["top_p"] = settings.topP();
         if (settings.useTopK())
@@ -96,6 +95,7 @@ void ClaudeProvider::prepareRequest(
 
     if (type == LLMCore::RequestType::CodeCompletion) {
         applyModelParams(Settings::codeCompletionSettings());
+        request["temperature"] = Settings::codeCompletionSettings().temperature();
     } else {
         const auto &chatSettings = Settings::chatAssistantSettings();
         applyModelParams(chatSettings);
@@ -106,6 +106,9 @@ void ClaudeProvider::prepareRequest(
             thinkingObj["budget_tokens"] = chatSettings.thinkingBudgetTokens();
             request["thinking"] = thinkingObj;
             request["max_tokens"] = chatSettings.thinkingMaxTokens();
+            request["temperature"] = 1.0;
+        } else {
+            request["temperature"] = chatSettings.temperature();
         }
     }
 

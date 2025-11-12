@@ -146,7 +146,7 @@ ChatAssistantSettings::ChatAssistantSettings()
 
     // Extended Thinking Settings
     enableThinkingMode.setSettingsKey(Constants::CA_ENABLE_THINKING_MODE);
-    enableThinkingMode.setLabelText(Tr::tr("Enable extended thinking mode (Claude only)"));
+    enableThinkingMode.setLabelText(Tr::tr("Enable extended thinking mode (Claude only).\n Temperature is 1.0 accordingly API requerement"));
     enableThinkingMode.setToolTip(
         Tr::tr("Enable Claude's extended thinking mode for complex reasoning tasks. "
                "This provides step-by-step reasoning before the final answer."));
@@ -262,7 +262,6 @@ ChatAssistantSettings::ChatAssistantSettings()
         ollamaGrid.addRow({contextWindow});
 
         auto thinkingGrid = Grid{};
-        thinkingGrid.addRow({enableThinkingMode});
         thinkingGrid.addRow({thinkingBudgetTokens});
         thinkingGrid.addRow({thinkingMaxTokens});
 
@@ -300,7 +299,7 @@ ChatAssistantSettings::ChatAssistantSettings()
             Group{title(Tr::tr("Ollama Settings")), Column{Row{ollamaGrid, Stretch{1}}}},
             Group{
                 title(Tr::tr("Extended Thinking (Claude Only)")),
-                Column{Row{thinkingGrid, Stretch{1}}}},
+                Column{enableThinkingMode, Row{thinkingGrid, Stretch{1}}}},
             Group{title(Tr::tr("Chat Settings")), Row{chatViewSettingsGrid, Stretch{1}}},
             Stretch{1}};
     });
