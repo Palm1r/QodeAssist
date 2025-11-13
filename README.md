@@ -156,6 +156,7 @@ QodeAssist supports multiple LLM providers. Choose your preferred provider and f
 - Token usage monitoring
 - **[File Context](docs/file-context.md)** - Attach or link files for better context
 - Automatic syncing with open editor files (optional)
+- Extended thinking mode (Claude, other providers in plan) - Enable deeper reasoning for complex tasks
 
 ### Quick Refactoring
 - Fast code refactoring with AI assistance
