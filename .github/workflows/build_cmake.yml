@@ -291,6 +291,18 @@ jobs:
         mkdir release
         mv release-with-dirs/*/* release/
 
+    - name: Download QodeAssistUpdater
+      run: |
+        # Get latest release info and download assets
+        LATEST_RELEASE=$(curl -s https://api.github.com/repos/Palm1r/QodeAssistUpdater/releases/latest)
+        
+        # Download all assets except .sha256 files
+        echo "$LATEST_RELEASE" | jq -r '.assets[].browser_download_url' | grep -v '\.sha256$' | while read url; do
+          filename=$(basename "$url")
+          echo "Downloading $filename..."
+          curl -L -o "release/$filename" "$url"
+        done
+
     - name: Create Release
       id: create_release
       uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836
