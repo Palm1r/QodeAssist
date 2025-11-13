@@ -103,16 +103,20 @@ ChatRootView {
         ListView {
             id: chatListView
 
+            signal hideServiceComponents(int itemIndex)
+
             Layout.fillWidth: true
             Layout.fillHeight: true
             leftMargin: 5
             model: root.chatModel
             clip: true
-            spacing: 10
+            spacing: 0
             boundsBehavior: Flickable.StopAtBounds
             cacheBuffer: 2000
 
             delegate: Loader {
+                id: componentLoader
+
                 required property var model
                 required property int index
 
@@ -127,6 +131,12 @@ ChatRootView {
                         return thinkingMessageComponent
                     } else {
                         return chatItemComponent
+                    }
+                }
+
+                onLoaded: {
+                    if (componentLoader.sourceComponent == chatItemComponent && !root.isToolDebugging) {
+                        chatListView.hideServiceComponents(index)
                     }
                 }
             }
@@ -179,8 +189,23 @@ ChatRootView {
                 id: toolMessageComponent
 
                 ToolStatusItem {
+                    id: toolsItem
+
                     width: parent.width
                     toolContent: model.content
+
+                    FadeListItemAnimation{
+                        id: toolFadeAnimation
+                    }
+
+                    Connections {
+                        target: chatListView
+                        function onHideServiceComponents(itemIndex) {
+                            if (index !== itemIndex) {
+                                toolFadeAnimation.start()
+                            }
+                        }
+                    }
                 }
             }
 
@@ -223,6 +248,19 @@ ChatRootView {
                         return content
                     }
                     isRedacted: model.isRedacted !== undefined ? model.isRedacted : false
+
+                    FadeListItemAnimation{
+                        id: thinkingFadeAnimation
+                    }
+
+                    Connections {
+                        target: chatListView
+                        function onHideServiceComponents(itemIndex) {
+                            if (index !== itemIndex) {
+                                thinkingFadeAnimation.start()
+                            }
+                        }
+                    }
                 }
             }
         }

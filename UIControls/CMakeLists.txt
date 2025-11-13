@@ -11,6 +11,7 @@ qt_add_qml_module(QodeAssistUIControls
     qml/Badge.qml
     qml/QoAButton.qml
     qml/QoATextSlider.qml
+    qml/FadeListItemAnimation.qml
 )
 
 target_link_libraries(QodeAssistUIControls

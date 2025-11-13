@@ -58,6 +58,7 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(int currentMessagePendingEdits READ currentMessagePendingEdits NOTIFY currentMessageEditsStatsChanged FINAL)
     Q_PROPERTY(int currentMessageRejectedEdits READ currentMessageRejectedEdits NOTIFY currentMessageEditsStatsChanged FINAL)
     Q_PROPERTY(bool isThinkingSupport READ isThinkingSupport NOTIFY isThinkingSupportChanged FINAL)
+    Q_PROPERTY(bool isToolDebugging READ isToolDebugging NOTIFY isToolDebuggingChanged FINAL)
 
     QML_ELEMENT
 
@@ -142,6 +143,8 @@ public:
 
     bool isThinkingSupport() const;
 
+    bool isToolDebugging() const;
+
 public slots:
     void sendMessage(const QString &message);
     void copyToClipboard(const QString &text);
@@ -176,6 +179,8 @@ signals:
     void currentMessageEditsStatsChanged();
 
     void isThinkingSupportChanged();
+
+    void isToolDebuggingChanged();
 
 private:
     void updateFileEditStatus(const QString &editId, const QString &status);
