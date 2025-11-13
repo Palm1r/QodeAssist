@@ -19,6 +19,7 @@
 
 import QtQuick
 import ChatView
+import QtQuick.Controls
 import QtQuick.Layouts
 import UIControls
 
@@ -162,11 +163,18 @@ Rectangle {
             top: parent.top
         }
 
-        text: qsTr("ResetTo")
+        icon {
+            source: "qrc:/qt/qml/ChatView/icons/undo-changes-button.svg"
+            height: 15
+            width: 15
+        }
         visible: root.isUserMessage && mouse.hovered
         onClicked: function() {
             root.resetChatToMessage(root.messageIndex)
         }
+        ToolTip.visible: hovered
+        ToolTip.text: qsTr("Reset chat to this message and edit")
+        ToolTip.delay: 500
     }
 
     component TextComponent : TextBlock {
