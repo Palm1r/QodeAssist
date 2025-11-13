@@ -52,6 +52,7 @@ public:
         const LLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload) override;
 
     bool supportsTools() const override;
+    bool supportThinking() const override;
     void cancelRequest(const LLMCore::RequestID &requestId) override;
 
 public slots:
@@ -69,11 +70,14 @@ private slots:
 private:
     void processStreamChunk(const QString &requestId, const QJsonObject &chunk);
     void handleMessageComplete(const QString &requestId);
+    void emitPendingThinkingBlocks(const QString &requestId);
     void cleanupRequest(const LLMCore::RequestID &requestId);
 
     QHash<LLMCore::RequestID, GoogleMessage *> m_messages;
     QHash<LLMCore::RequestID, QUrl> m_requestUrls;
     QHash<LLMCore::RequestID, QJsonObject> m_originalRequests;
+    QHash<LLMCore::RequestID, int> m_emittedThinkingBlocksCount;
+    QSet<LLMCore::RequestID> m_failedRequests;
     Tools::ToolsManager *m_toolsManager;
 };
 

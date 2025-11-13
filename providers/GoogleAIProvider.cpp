@@ -100,7 +100,49 @@ void GoogleAIProvider::prepareRequest(
     if (type == LLMCore::RequestType::CodeCompletion) {
         applyModelParams(Settings::codeCompletionSettings());
     } else {
-        applyModelParams(Settings::chatAssistantSettings());
+        const auto &chatSettings = Settings::chatAssistantSettings();
+        
+        if (chatSettings.enableThinkingMode()) {
+            QJsonObject generationConfig;
+            generationConfig["maxOutputTokens"] = chatSettings.thinkingMaxTokens();
+            
+            if (chatSettings.useTopP())
+                generationConfig["topP"] = chatSettings.topP();
+            if (chatSettings.useTopK())
+                generationConfig["topK"] = chatSettings.topK();
+            
+            // Set temperature to 1.0 for thinking mode
+            generationConfig["temperature"] = 1.0;
+            
+            // Add thinkingConfig
+            QJsonObject thinkingConfig;
+            int budgetTokens = chatSettings.thinkingBudgetTokens();
+            
+            // Dynamic thinking: -1 (let model decide)
+            // Disabled: 0 (no thinking)
+            // Custom budget: positive integer
+            if (budgetTokens == -1) {
+                // Dynamic thinking - omit budget to let model decide
+                thinkingConfig["includeThoughts"] = true;
+            } else if (budgetTokens == 0) {
+                // Disabled thinking
+                thinkingConfig["thinkingBudget"] = 0;
+                thinkingConfig["includeThoughts"] = false;
+            } else {
+                // Custom budget
+                thinkingConfig["thinkingBudget"] = budgetTokens;
+                thinkingConfig["includeThoughts"] = true;
+            }
+            
+            generationConfig["thinkingConfig"] = thinkingConfig;
+            request["generationConfig"] = generationConfig;
+            
+            LOG_MESSAGE(QString("Google AI thinking mode enabled: budget=%1 tokens, maxTokens=%2")
+                            .arg(budgetTokens)
+                            .arg(chatSettings.thinkingMaxTokens()));
+        } else {
+            applyModelParams(chatSettings);
+        }
     }
 
     if (isToolsEnabled) {
@@ -164,7 +206,13 @@ QList<QString> GoogleAIProvider::validateRequest(
         {"contents", QJsonArray{}},
         {"system_instruction", QJsonArray{}},
         {"generationConfig",
-         QJsonObject{{"temperature", {}}, {"maxOutputTokens", {}}, {"topP", {}}, {"topK", {}}}},
+         QJsonObject{
+             {"temperature", {}},
+             {"maxOutputTokens", {}},
+             {"topP", {}},
+             {"topK", {}},
+             {"thinkingConfig",
+              QJsonObject{{"thinkingBudget", {}}, {"includeThoughts", {}}}}}},
         {"safetySettings", QJsonArray{}},
         {"tools", QJsonArray{}}};
 
@@ -215,6 +263,11 @@ void GoogleAIProvider::sendRequest(
 }
 
 bool GoogleAIProvider::supportsTools() const
+{
+    return true;
+}
+
+bool GoogleAIProvider::supportThinking() const
 {
     return true;
 }
@@ -277,8 +330,18 @@ void GoogleAIProvider::onRequestFinished(
         return;
     }
 
+    if (m_failedRequests.contains(requestId)) {
+        cleanupRequest(requestId);
+        return;
+    }
+
+    emitPendingThinkingBlocks(requestId);
+
     if (m_messages.contains(requestId)) {
         GoogleMessage *message = m_messages[requestId];
+        
+        handleMessageComplete(requestId);
+        
         if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
             LOG_MESSAGE(QString("Waiting for tools to complete for %1").arg(requestId));
             m_dataBuffers.remove(requestId);
@@ -289,9 +352,12 @@ void GoogleAIProvider::onRequestFinished(
     if (m_dataBuffers.contains(requestId)) {
         const LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
         if (!buffers.responseContent.isEmpty()) {
-            LOG_MESSAGE(QString("Emitting full response for %1").arg(requestId));
             emit fullResponseReceived(requestId, buffers.responseContent);
+        } else {
+            emit fullResponseReceived(requestId, QString());
         }
+    } else {
+        emit fullResponseReceived(requestId, QString());
     }
 
     cleanupRequest(requestId);
@@ -305,8 +371,6 @@ void GoogleAIProvider::onToolExecutionComplete(
         cleanupRequest(requestId);
         return;
     }
-
-    LOG_MESSAGE(QString("Tool execution complete for Google AI request %1").arg(requestId));
 
     for (auto it = toolResults.begin(); it != toolResults.end(); ++it) {
         GoogleMessage *message = m_messages[requestId];
@@ -334,10 +398,6 @@ void GoogleAIProvider::onToolExecutionComplete(
 
     continuationRequest["contents"] = contents;
 
-    LOG_MESSAGE(QString("Sending continuation request for %1 with %2 tool results")
-                    .arg(requestId)
-                    .arg(toolResults.size()));
-
     sendRequest(requestId, m_requestUrls[requestId], continuationRequest);
 }
 
@@ -361,6 +421,7 @@ void GoogleAIProvider::processStreamChunk(const QString &requestId, const QJsonO
         m_dataBuffers.contains(requestId)
         && message->state() == LLMCore::MessageState::RequiresToolExecution) {
         message->startNewContinuation();
+        m_emittedThinkingBlocksCount[requestId] = 0;
         LOG_MESSAGE(QString("Cleared message state for continuation request %1").arg(requestId));
     }
 
@@ -377,12 +438,34 @@ void GoogleAIProvider::processStreamChunk(const QString &requestId, const QJsonO
 
                     if (partObj.contains("text")) {
                         QString text = partObj["text"].toString();
-                        message->handleContentDelta(text);
+                        bool isThought = partObj.value("thought").toBool(false);
+                        
+                        if (isThought) {
+                            message->handleThoughtDelta(text);
+                            
+                            if (partObj.contains("signature")) {
+                                QString signature = partObj["signature"].toString();
+                                message->handleThoughtSignature(signature);
+                            }
+                        } else {
+                            emitPendingThinkingBlocks(requestId);
+                            
+                            message->handleContentDelta(text);
 
-                        LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
-                        buffers.responseContent += text;
-                        emit partialResponseReceived(requestId, text);
-                    } else if (partObj.contains("functionCall")) {
+                            LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+                            buffers.responseContent += text;
+                            emit partialResponseReceived(requestId, text);
+                        }
+                    }
+                    
+                    if (partObj.contains("thoughtSignature")) {
+                        QString signature = partObj["thoughtSignature"].toString();
+                        message->handleThoughtSignature(signature);
+                    }
+                    
+                    if (partObj.contains("functionCall")) {
+                        emitPendingThinkingBlocks(requestId);
+                        
                         QJsonObject functionCall = partObj["functionCall"].toObject();
                         QString name = functionCall["name"].toString();
                         QJsonObject args = functionCall["args"].toObject();
@@ -399,9 +482,55 @@ void GoogleAIProvider::processStreamChunk(const QString &requestId, const QJsonO
         if (candidateObj.contains("finishReason")) {
             QString finishReason = candidateObj["finishReason"].toString();
             message->handleFinishReason(finishReason);
-            handleMessageComplete(requestId);
+            
+            if (message->isErrorFinishReason()) {
+                QString errorMessage = message->getErrorMessage();
+                LOG_MESSAGE(QString("Google AI error: %1").arg(errorMessage));
+                m_failedRequests.insert(requestId);
+                emit requestFailed(requestId, errorMessage);
+                return;
+            }
         }
     }
+    
+    if (chunk.contains("usageMetadata")) {
+        QJsonObject usageMetadata = chunk["usageMetadata"].toObject();
+        int thoughtsTokenCount = usageMetadata.value("thoughtsTokenCount").toInt(0);
+        int candidatesTokenCount = usageMetadata.value("candidatesTokenCount").toInt(0);
+        int totalTokenCount = usageMetadata.value("totalTokenCount").toInt(0);
+        
+        if (totalTokenCount > 0) {
+            LOG_MESSAGE(QString("Google AI tokens: %1 (thoughts: %2, output: %3)")
+                            .arg(totalTokenCount)
+                            .arg(thoughtsTokenCount)
+                            .arg(candidatesTokenCount));
+        }
+    }
+}
+
+void GoogleAIProvider::emitPendingThinkingBlocks(const QString &requestId)
+{
+    if (!m_messages.contains(requestId))
+        return;
+
+    GoogleMessage *message = m_messages[requestId];
+    auto thinkingBlocks = message->getCurrentThinkingContent();
+    
+    if (thinkingBlocks.isEmpty())
+        return;
+
+    int alreadyEmitted = m_emittedThinkingBlocksCount.value(requestId, 0);
+    int totalBlocks = thinkingBlocks.size();
+
+    for (int i = alreadyEmitted; i < totalBlocks; ++i) {
+        auto thinkingContent = thinkingBlocks[i];
+        emit thinkingBlockReceived(
+            requestId, 
+            thinkingContent->thinking(), 
+            thinkingContent->signature());
+    }
+
+    m_emittedThinkingBlocksCount[requestId] = totalBlocks;
 }
 
 void GoogleAIProvider::handleMessageComplete(const QString &requestId)
@@ -445,6 +574,8 @@ void GoogleAIProvider::cleanupRequest(const LLMCore::RequestID &requestId)
     m_dataBuffers.remove(requestId);
     m_requestUrls.remove(requestId);
     m_originalRequests.remove(requestId);
+    m_emittedThinkingBlocksCount.remove(requestId);
+    m_failedRequests.remove(requestId);
     m_toolsManager->cleanupRequest(requestId);
 }
 
