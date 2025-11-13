@@ -56,6 +56,7 @@ QString EditFileTool::description() const
            "and new_content to replace it with. Changes are applied immediately if auto-apply "
            "is enabled in settings. The user can undo or reapply changes at any time. "
            "\n\nIMPORTANT:"
+           "\n- ALWAYS read the current file content before editing to ensure accuracy."
            "\n- For EMPTY files: use empty old_content (empty string or omit parameter)."
            "\n- To append at the END of file: use empty old_content."
            "\n- To insert at the BEGINNING of a file (e.g., copyright header), you MUST provide "
@@ -63,8 +64,10 @@ QString EditFileTool::description() const
            "then put those lines + new header in new_content."
            "\n- For replacements in the middle, provide EXACT matching text with sufficient "
            "context (at least 5-10 lines) to ensure correct placement."
-           "\n- The system requires 85% similarity for first-time edits. Provide accurate "
-           "old_content to avoid incorrect placement.";
+           "\n- The system uses fuzzy matching with 85% similarity threshold for first-time edits. "
+           "Provide accurate old_content to avoid incorrect placement."
+           "\n- If changes remain 'pending' and file content hasn't changed, the user likely "
+           "disabled auto-apply. DO NOT retry the same edit - wait for user action.";
 }
 
 QJsonObject EditFileTool::getDefinition(LLMCore::ToolSchemaFormat format) const
@@ -81,8 +84,10 @@ QJsonObject EditFileTool::getDefinition(LLMCore::ToolSchemaFormat format) const
     QJsonObject oldContentProperty;
     oldContentProperty["type"] = "string";
     oldContentProperty["description"]
-        = "The exact content to find and replace. Must match exactly (including whitespace). "
-          "If empty, new_content will be appended to the end of the file";
+        = "The content to find and replace. For exact matches, provide precise text "
+          "(including whitespace). For changed files, the system uses fuzzy matching with "
+          "85% similarity threshold for first-time edits. If empty, new_content will be "
+          "appended to the end of the file";
     properties["old_content"] = oldContentProperty;
 
     QJsonObject newContentProperty;
