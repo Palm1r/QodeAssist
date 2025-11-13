@@ -43,12 +43,38 @@ void GoogleMessage::handleContentDelta(const QString &text)
     }
 }
 
+void GoogleMessage::handleThoughtDelta(const QString &text)
+{
+    if (m_currentBlocks.isEmpty() || !qobject_cast<LLMCore::ThinkingContent *>(m_currentBlocks.last())) {
+        auto thinkingContent = new LLMCore::ThinkingContent();
+        thinkingContent->setParent(this);
+        m_currentBlocks.append(thinkingContent);
+    }
+
+    if (auto thinkingContent = qobject_cast<LLMCore::ThinkingContent *>(m_currentBlocks.last())) {
+        thinkingContent->appendThinking(text);
+    }
+}
+
+void GoogleMessage::handleThoughtSignature(const QString &signature)
+{
+    for (int i = m_currentBlocks.size() - 1; i >= 0; --i) {
+        if (auto thinkingContent = qobject_cast<LLMCore::ThinkingContent *>(m_currentBlocks[i])) {
+            thinkingContent->setSignature(signature);
+            return;
+        }
+    }
+    
+    auto thinkingContent = new LLMCore::ThinkingContent();
+    thinkingContent->setParent(this);
+    thinkingContent->setSignature(signature);
+    m_currentBlocks.append(thinkingContent);
+}
+
 void GoogleMessage::handleFunctionCallStart(const QString &name)
 {
     m_currentFunctionName = name;
     m_pendingFunctionArgs.clear();
-
-    LOG_MESSAGE(QString("Google: Starting function call: %1").arg(name));
 }
 
 void GoogleMessage::handleFunctionCallArgsDelta(const QString &argsJson)
@@ -75,10 +101,6 @@ void GoogleMessage::handleFunctionCallComplete()
     toolContent->setParent(this);
     m_currentBlocks.append(toolContent);
 
-    LOG_MESSAGE(QString("Google: Completed function call: name=%1, args=%2")
-                    .arg(m_currentFunctionName)
-                    .arg(QString::fromUtf8(QJsonDocument(args).toJson(QJsonDocument::Compact))));
-
     m_currentFunctionName.clear();
     m_pendingFunctionArgs.clear();
 }
@@ -87,9 +109,6 @@ void GoogleMessage::handleFinishReason(const QString &reason)
 {
     m_finishReason = reason;
     updateStateFromFinishReason();
-
-    LOG_MESSAGE(
-        QString("Google: Finish reason: %1, state: %2").arg(reason).arg(static_cast<int>(m_state)));
 }
 
 QJsonObject GoogleMessage::toProviderFormat() const
@@ -110,6 +129,19 @@ QJsonObject GoogleMessage::toProviderFormat() const
             functionCall["name"] = tool->name();
             functionCall["args"] = tool->input();
             parts.append(QJsonObject{{"functionCall", functionCall}});
+        } else if (auto thinking = qobject_cast<LLMCore::ThinkingContent *>(block)) {
+            // Include thinking blocks with their text
+            QJsonObject thinkingPart;
+            thinkingPart["text"] = thinking->thinking();
+            thinkingPart["thought"] = true;
+            parts.append(thinkingPart);
+            
+            // If there's a signature, add it as a separate part
+            if (!thinking->signature().isEmpty()) {
+                QJsonObject signaturePart;
+                signaturePart["thoughtSignature"] = thinking->signature();
+                parts.append(signaturePart);
+            }
         }
     }
 
@@ -148,6 +180,17 @@ QList<LLMCore::ToolUseContent *> GoogleMessage::getCurrentToolUseContent() const
     return toolBlocks;
 }
 
+QList<LLMCore::ThinkingContent *> GoogleMessage::getCurrentThinkingContent() const
+{
+    QList<LLMCore::ThinkingContent *> thinkingBlocks;
+    for (auto block : m_currentBlocks) {
+        if (auto thinkingContent = qobject_cast<LLMCore::ThinkingContent *>(block)) {
+            thinkingBlocks.append(thinkingContent);
+        }
+    }
+    return thinkingBlocks;
+}
+
 void GoogleMessage::startNewContinuation()
 {
     LOG_MESSAGE(QString("GoogleMessage: Starting new continuation"));
@@ -157,6 +200,34 @@ void GoogleMessage::startNewContinuation()
     m_currentFunctionName.clear();
     m_finishReason.clear();
     m_state = LLMCore::MessageState::Building;
+}
+
+bool GoogleMessage::isErrorFinishReason() const
+{
+    return m_finishReason == "SAFETY" 
+        || m_finishReason == "RECITATION"
+        || m_finishReason == "MALFORMED_FUNCTION_CALL"
+        || m_finishReason == "PROHIBITED_CONTENT"
+        || m_finishReason == "SPII"
+        || m_finishReason == "OTHER";
+}
+
+QString GoogleMessage::getErrorMessage() const
+{
+    if (m_finishReason == "SAFETY") {
+        return "Response blocked by safety filters";
+    } else if (m_finishReason == "RECITATION") {
+        return "Response blocked due to recitation of copyrighted content";
+    } else if (m_finishReason == "MALFORMED_FUNCTION_CALL") {
+        return "Model attempted to call a function with malformed arguments. Please try rephrasing your request or disabling tools.";
+    } else if (m_finishReason == "PROHIBITED_CONTENT") {
+        return "Response blocked due to prohibited content";
+    } else if (m_finishReason == "SPII") {
+        return "Response blocked due to sensitive personally identifiable information";
+    } else if (m_finishReason == "OTHER") {
+        return "Request failed due to an unknown reason";
+    }
+    return QString();
 }
 
 void GoogleMessage::updateStateFromFinishReason()

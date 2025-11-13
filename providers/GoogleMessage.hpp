@@ -35,6 +35,8 @@ public:
     explicit GoogleMessage(QObject *parent = nullptr);
 
     void handleContentDelta(const QString &text);
+    void handleThoughtDelta(const QString &text);
+    void handleThoughtSignature(const QString &signature);
     void handleFunctionCallStart(const QString &name);
     void handleFunctionCallArgsDelta(const QString &argsJson);
     void handleFunctionCallComplete();
@@ -44,9 +46,13 @@ public:
     QJsonArray createToolResultParts(const QHash<QString, QString> &toolResults) const;
 
     QList<LLMCore::ToolUseContent *> getCurrentToolUseContent() const;
+    QList<LLMCore::ThinkingContent *> getCurrentThinkingContent() const;
     QList<LLMCore::ContentBlock *> currentBlocks() const { return m_currentBlocks; }
 
     LLMCore::MessageState state() const { return m_state; }
+    QString finishReason() const { return m_finishReason; }
+    bool isErrorFinishReason() const;
+    QString getErrorMessage() const;
     void startNewContinuation();
 
 private:
