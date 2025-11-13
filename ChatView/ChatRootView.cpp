@@ -804,6 +804,7 @@ void ChatRootView::setIsThinkingMode(bool newIsThinkingMode)
         m_isThinkingMode = newIsThinkingMode;
 
         Settings::chatAssistantSettings().enableThinkingMode.setValue(newIsThinkingMode);
+        Settings::chatAssistantSettings().writeSettings();
 
         emit isThinkingModeChanged();
     }

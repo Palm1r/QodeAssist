@@ -185,6 +185,7 @@ void ProviderSettings::resetSettingsToDefaults()
         resetAspect(mistralAiApiKey);
         resetAspect(googleAiApiKey);
         resetAspect(ollamaBasicAuthApiKey);
+        writeSettings();
     }
 }
 

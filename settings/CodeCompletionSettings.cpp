@@ -389,6 +389,7 @@ void CodeCompletionSettings::resetSettingsToDefaults()
         resetAspect(useOpenFilesInQuickRefactor);
         resetAspect(quickRefactorSystemPrompt);
         resetAspect(modelOutputHandler);
+        writeSettings();
     }
 }
 

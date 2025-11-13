@@ -349,6 +349,7 @@ void ChatAssistantSettings::resetSettingsToDefaults()
         resetAspect(codeFontSize);
         resetAspect(textFormat);
         resetAspect(chatRenderer);
+        writeSettings();
     }
 }
 
