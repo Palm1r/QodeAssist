@@ -418,12 +418,20 @@ void LLMClientInterface::sendCompletionToClient(
                                   : completion;
     }
 
+    if (processedCompletion.endsWith('\n')) {
+        QString withoutTrailing = processedCompletion.chopped(1);
+        if (!withoutTrailing.contains('\n')) {
+            LOG_MESSAGE(QString("Removed trailing newline from single-line completion"));
+            processedCompletion = withoutTrailing;
+        }
+    }
+
     completionItem[LanguageServerProtocol::textKey] = processedCompletion;
+    
     QJsonObject range;
     range["start"] = position;
-    QJsonObject end = position;
-    end["character"] = position["character"].toInt() + processedCompletion.length();
-    range["end"] = end;
+    range["end"] = position;
+    
     completionItem[LanguageServerProtocol::rangeKey] = range;
     completionItem[LanguageServerProtocol::positionKey] = position;
     completions.append(completionItem);
