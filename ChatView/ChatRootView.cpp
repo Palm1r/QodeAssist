@@ -217,11 +217,6 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         &Utils::BaseAspect::changed,
         this,
         &ChatRootView::isThinkingSupportChanged);
-    connect(
-        &Settings::toolsSettings().debugToolsAndThinkingComponent,
-        &Utils::BaseAspect::changed,
-        this,
-        &ChatRootView::isToolDebugging);
 }
 
 ChatModel *ChatRootView::chatModel() const
@@ -1131,9 +1126,5 @@ bool ChatRootView::isThinkingSupport() const
     return provider && provider->supportThinking();
 }
 
-bool ChatRootView::isToolDebugging() const
-{
-    return Settings::toolsSettings().debugToolsAndThinkingComponent();
-}
 
 } // namespace QodeAssist::Chat

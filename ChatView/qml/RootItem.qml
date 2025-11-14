@@ -135,7 +135,7 @@ ChatRootView {
                 }
 
                 onLoaded: {
-                    if (componentLoader.sourceComponent == chatItemComponent && !root.isToolDebugging) {
+                    if (componentLoader.sourceComponent == chatItemComponent) {
                         chatListView.hideServiceComponents(index)
                     }
                 }
@@ -194,15 +194,11 @@ ChatRootView {
                     width: parent.width
                     toolContent: model.content
 
-                    FadeListItemAnimation{
-                        id: toolFadeAnimation
-                    }
-
                     Connections {
                         target: chatListView
                         function onHideServiceComponents(itemIndex) {
                             if (index !== itemIndex) {
-                                toolFadeAnimation.start()
+                                toolsItem.headerOpacity = 0.5
                             }
                         }
                     }
@@ -238,6 +234,8 @@ ChatRootView {
                 id: thinkingMessageComponent
 
                 ThinkingStatusItem {
+                    id: thinking
+
                     width: parent.width
                     thinkingContent: {
                         let content = model.content
@@ -249,15 +247,11 @@ ChatRootView {
                     }
                     isRedacted: model.isRedacted !== undefined ? model.isRedacted : false
 
-                    FadeListItemAnimation{
-                        id: thinkingFadeAnimation
-                    }
-
                     Connections {
                         target: chatListView
                         function onHideServiceComponents(itemIndex) {
                             if (index !== itemIndex) {
-                                thinkingFadeAnimation.start()
+                                thinking.headerOpacity = 0.5
                             }
                         }
                     }

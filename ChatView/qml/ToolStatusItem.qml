@@ -26,6 +26,8 @@ Rectangle {
     property string toolContent: ""
     property bool expanded: false
 
+    property alias headerOpacity: headerRow.opacity
+
     readonly property int firstNewline: toolContent.indexOf('\n')
     readonly property string toolName: firstNewline > 0 ? toolContent.substring(0, firstNewline) : toolContent
     readonly property string toolResult: firstNewline > 0 ? toolContent.substring(firstNewline + 1) : ""

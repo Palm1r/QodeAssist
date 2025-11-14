@@ -28,6 +28,8 @@ Rectangle {
     property bool isRedacted: false
     property bool expanded: false
     
+    property alias headerOpacity: headerRow.opacity
+
     radius: 6
     color: palette.base
     clip: true

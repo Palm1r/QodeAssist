@@ -89,12 +89,6 @@ ToolsSettings::ToolsSettings()
                "project. This feature is under testing and may have unexpected behavior."));
     enableBuildProjectTool.setDefaultValue(false);
 
-    debugToolsAndThinkingComponent.setSettingsKey(Constants::CA_DEBUG_TOOLS_AND_THINKING_COMPONENT);
-    debugToolsAndThinkingComponent.setLabelText(Tr::tr("Always show Tools and Thinking Components in chat"));
-    debugToolsAndThinkingComponent.setToolTip(
-        Tr::tr("Disable disapearing tools and thinking component from chat"));
-    debugToolsAndThinkingComponent.setDefaultValue(false);
-
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
 
     readSettings();
@@ -114,8 +108,7 @@ ToolsSettings::ToolsSettings()
                     Space{8},
                     allowFileSystemRead,
                     allowFileSystemWrite,
-                    allowAccessOutsideProject,
-                    debugToolsAndThinkingComponent
+                    allowAccessOutsideProject
                 }},
             Space{8},
             Group{
@@ -151,7 +144,6 @@ void ToolsSettings::resetSettingsToDefaults()
         resetAspect(autoApplyFileEdits);
         resetAspect(enableEditFileTool);
         resetAspect(enableBuildProjectTool);
-        resetAspect(debugToolsAndThinkingComponent);
         writeSettings();
     }
 }

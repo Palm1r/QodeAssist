@@ -36,7 +36,6 @@ public:
     Utils::BoolAspect allowFileSystemRead{this};
     Utils::BoolAspect allowFileSystemWrite{this};
     Utils::BoolAspect allowAccessOutsideProject{this};
-    Utils::BoolAspect debugToolsAndThinkingComponent{this};
 
     // Experimental features
     Utils::BoolAspect enableEditFileTool{this};
