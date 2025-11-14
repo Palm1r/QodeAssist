@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024-2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -47,13 +47,39 @@ UpdateDialog::UpdateDialog(QWidget *parent)
     m_layout->addWidget(supportLabel);
 
     auto *supportLink = new QLabel(
-        tr("<a href='https://ko-fi.com/qodeassist' style='color: #0066cc;'>Support on Ko-fi "
-           "☕</a>"),
+        "<a href='https://ko-fi.com/qodeassist' style='color: #0066cc;'>Support on Ko-fi "
+           "☕</a>",
         this);
     supportLink->setOpenExternalLinks(true);
     supportLink->setTextFormat(Qt::RichText);
     supportLink->setAlignment(Qt::AlignCenter);
     m_layout->addWidget(supportLink);
+    auto *githubSupportLink = new QLabel(
+        "<a "
+        "href='https://github.com/Palm1r/"
+        "QodeAssist?tab=readme-ov-file#support-the-development-of-qodeassist' style='color: #0066cc;' > Support page on github </a>",
+        this);
+    githubSupportLink->setOpenExternalLinks(true);
+    githubSupportLink->setTextFormat(Qt::RichText);
+    githubSupportLink->setAlignment(Qt::AlignCenter);
+    m_layout->addWidget(githubSupportLink);
+
+    m_layout->addSpacing(20);
+
+    auto *updaterInfoLabel = new QLabel(
+        tr("QodeAssistUpdater - convenient tool for plugin installation and updates"),
+        this);
+    updaterInfoLabel->setAlignment(Qt::AlignCenter);
+    updaterInfoLabel->setWordWrap(true);
+    m_layout->addWidget(updaterInfoLabel);
+
+    m_buttonOpenUpdaterRelease = new QPushButton(tr("Download QodeAssistUpdater"), this);
+    m_buttonOpenUpdaterRelease->setMaximumWidth(250);
+    auto *updaterButtonLayout = new QHBoxLayout;
+    updaterButtonLayout->addStretch();
+    updaterButtonLayout->addWidget(m_buttonOpenUpdaterRelease);
+    updaterButtonLayout->addStretch();
+    m_layout->addLayout(updaterButtonLayout);
 
     m_layout->addSpacing(20);
 
@@ -90,6 +116,7 @@ UpdateDialog::UpdateDialog(QWidget *parent)
     connect(m_updater, &PluginUpdater::updateCheckFinished, this, &UpdateDialog::handleUpdateInfo);
     connect(m_buttonOpenReleasePage, &QPushButton::clicked, this, &UpdateDialog::openReleasePage);
     connect(m_buttonOpenPluginFolder, &QPushButton::clicked, this, &UpdateDialog::openPluginFolder);
+    connect(m_buttonOpenUpdaterRelease, &QPushButton::clicked, this, &UpdateDialog::openUpdaterReleasePage);
     connect(m_closeButton, &QPushButton::clicked, this, &QDialog::reject);
 
     m_updater->checkForUpdates();
@@ -143,6 +170,11 @@ void UpdateDialog::openPluginFolder()
         }
     }
     accept();
+}
+
+void UpdateDialog::openUpdaterReleasePage()
+{
+    QDesktopServices::openUrl(QUrl("https://github.com/Palm1r/QodeAssistUpdater"));
 }
 
 } // namespace QodeAssist

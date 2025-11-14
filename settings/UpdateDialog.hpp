@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024-2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -43,6 +43,7 @@ private slots:
     void handleUpdateInfo(const PluginUpdater::UpdateInfo &info);
     void openReleasePage();
     void openPluginFolder();
+    void openUpdaterReleasePage();
 
 private:
     PluginUpdater *m_updater;
@@ -53,6 +54,7 @@ private:
     QTextEdit *m_changelogText;
     QPushButton *m_buttonOpenReleasePage;
     QPushButton *m_buttonOpenPluginFolder;
+    QPushButton *m_buttonOpenUpdaterRelease;
     QPushButton *m_closeButton;
     PluginUpdater::UpdateInfo m_updateInfo;
 };
