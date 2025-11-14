@@ -33,6 +33,7 @@
 #include <logger/Logger.hpp>
 #include <settings/ChatAssistantSettings.hpp>
 #include <settings/GeneralSettings.hpp>
+#include <settings/QuickRefactorSettings.hpp>
 
 namespace QodeAssist {
 
@@ -110,26 +111,30 @@ void QuickRefactorHandler::prepareAndSendRequest(
     auto &providerRegistry = LLMCore::ProvidersManager::instance();
     auto &promptManager = LLMCore::PromptTemplateManager::instance();
 
-    const auto providerName = settings.caProvider();
+    const auto providerName = settings.qrProvider();
     auto provider = providerRegistry.getProviderByName(providerName);
 
     if (!provider) {
-        LOG_MESSAGE(QString("No provider found with name: %1").arg(providerName));
+        QString error = QString("No provider found with name: %1").arg(providerName);
+        LOG_MESSAGE(error);
         RefactorResult result;
         result.success = false;
-        result.errorMessage = QString("No provider found with name: %1").arg(providerName);
+        result.errorMessage = error;
+        result.editor = editor;
         emit refactoringCompleted(result);
         return;
     }
 
-    const auto templateName = settings.caTemplate();
+    const auto templateName = settings.qrTemplate();
     auto promptTemplate = promptManager.getChatTemplateByName(templateName);
 
     if (!promptTemplate) {
-        LOG_MESSAGE(QString("No template found with name: %1").arg(templateName));
+        QString error = QString("No template found with name: %1").arg(templateName);
+        LOG_MESSAGE(error);
         RefactorResult result;
         result.success = false;
-        result.errorMessage = QString("No template found with name: %1").arg(templateName);
+        result.errorMessage = error;
+        result.editor = editor;
         emit refactoringCompleted(result);
         return;
     }
@@ -138,18 +143,34 @@ void QuickRefactorHandler::prepareAndSendRequest(
     config.requestType = LLMCore::RequestType::QuickRefactoring;
     config.provider = provider;
     config.promptTemplate = promptTemplate;
-    config.url = QString("%1%2").arg(settings.caUrl(), provider->chatEndpoint());
-    config.providerRequest = {{"model", settings.caModel()}, {"stream", true}};
+    config.url = QString("%1%2").arg(settings.qrUrl(), provider->chatEndpoint());
     config.apiKey = provider->apiKey();
+
+    if (provider->providerID() == LLMCore::ProviderID::GoogleAI) {
+        QString stream = QString{"streamGenerateContent?alt=sse"};
+        config.url = QUrl(QString("%1/models/%2:%3")
+                              .arg(
+                                  Settings::generalSettings().qrUrl(),
+                                  Settings::generalSettings().qrModel(),
+                                  stream));
+    } else {
+        config.url
+            = QString("%1%2").arg(Settings::generalSettings().qrUrl(), provider->chatEndpoint());
+        config.providerRequest
+            = {{"model", Settings::generalSettings().qrModel()}, {"stream", true}};
+    }
 
     LLMCore::ContextData context = prepareContext(editor, range, instructions);
 
+    bool enableTools = Settings::quickRefactorSettings().useTools();
+    bool enableThinking = Settings::quickRefactorSettings().useThinking();
     provider->prepareRequest(
         config.providerRequest,
         promptTemplate,
         context,
         LLMCore::RequestType::QuickRefactoring,
-        false);
+        enableTools,
+        enableThinking);
 
     QString requestId = QUuid::createUuid().toString();
     m_lastRequestId = requestId;
@@ -195,22 +216,75 @@ LLMCore::ContextData QuickRefactorHandler::prepareContext(
     QTextCursor cursor = editor->textCursor();
     int cursorPos = cursor.position();
 
-    // TODO add selecting content before and after cursor/selection
-    QString fullContent = documentInfo.document->toPlainText();
-    QString taggedContent = fullContent;
+    Context::DocumentContextReader
+        reader(documentInfo.document, documentInfo.mimeType, documentInfo.filePath);
+
+    QString taggedContent;
+    bool readFullFile = Settings::quickRefactorSettings().readFullFile();
 
     if (cursor.hasSelection()) {
-        int selEnd = cursor.selectionEnd();
         int selStart = cursor.selectionStart();
-        taggedContent
-            .insert(selEnd, selEnd == cursorPos ? "<selection_end><cursor>" : "<selection_end>");
-        taggedContent.insert(
-            selStart, selStart == cursorPos ? "<cursor><selection_start>" : "<selection_start>");
+        int selEnd = cursor.selectionEnd();
+
+        QTextBlock startBlock = documentInfo.document->findBlock(selStart);
+        int startLine = startBlock.blockNumber();
+        int startColumn = selStart - startBlock.position();
+
+        QTextBlock endBlock = documentInfo.document->findBlock(selEnd);
+        int endLine = endBlock.blockNumber();
+        int endColumn = selEnd - endBlock.position();
+
+        QString contextBefore;
+        if (readFullFile) {
+            contextBefore = reader.readWholeFileBefore(startLine, startColumn);
+        } else {
+            contextBefore = reader.getContextBefore(
+                startLine, startColumn, Settings::quickRefactorSettings().readStringsBeforeCursor() + 1);
+        }
+
+        QString selectedText = cursor.selectedText();
+        selectedText.replace(QChar(0x2029), "\n");
+
+        QString contextAfter;
+        if (readFullFile) {
+            contextAfter = reader.readWholeFileAfter(endLine, endColumn);
+        } else {
+            contextAfter = reader.getContextAfter(
+                endLine, endColumn, Settings::quickRefactorSettings().readStringsAfterCursor() + 1);
+        }
+
+        taggedContent = contextBefore;
+        if (selStart == cursorPos) {
+            taggedContent += "<cursor><selection_start>" + selectedText + "<selection_end>";
+        } else {
+            taggedContent += "<selection_start>" + selectedText + "<selection_end><cursor>";
+        }
+        taggedContent += contextAfter;
     } else {
-        taggedContent.insert(cursorPos, "<cursor>");
+        QTextBlock block = documentInfo.document->findBlock(cursorPos);
+        int line = block.blockNumber();
+        int column = cursorPos - block.position();
+
+        QString contextBefore;
+        if (readFullFile) {
+            contextBefore = reader.readWholeFileBefore(line, column);
+        } else {
+            contextBefore = reader.getContextBefore(
+                line, column, Settings::quickRefactorSettings().readStringsBeforeCursor() + 1);
+        }
+
+        QString contextAfter;
+        if (readFullFile) {
+            contextAfter = reader.readWholeFileAfter(line, column);
+        } else {
+            contextAfter = reader.getContextAfter(
+                line, column, Settings::quickRefactorSettings().readStringsAfterCursor() + 1);
+        }
+
+        taggedContent = contextBefore + "<cursor>" + contextAfter;
     }
 
-    QString systemPrompt = Settings::codeCompletionSettings().quickRefactorSystemPrompt();
+    QString systemPrompt = Settings::quickRefactorSettings().systemPrompt();
 
     auto project = LLMCore::RulesLoader::getActiveProject();
     if (project) {
@@ -263,6 +337,8 @@ void QuickRefactorHandler::handleLLMResponse(
     }
 
     if (isComplete) {
+        m_isRefactoringInProgress = false;
+        
         QString cleanedResponse = response.trimmed();
         if (cleanedResponse.startsWith("```")) {
             int firstNewLine = cleanedResponse.indexOf('\n');
@@ -280,6 +356,7 @@ void QuickRefactorHandler::handleLLMResponse(
         result.newText = cleanedResponse;
         result.insertRange = m_currentRange;
         result.success = true;
+        result.editor = m_currentEditor;
 
         LOG_MESSAGE("Refactoring completed successfully. New code to insert: ");
         LOG_MESSAGE("---------- BEGIN REFACTORED CODE ----------");
@@ -316,6 +393,7 @@ void QuickRefactorHandler::cancelRequest()
 void QuickRefactorHandler::handleFullResponse(const QString &requestId, const QString &fullText)
 {
     if (requestId == m_lastRequestId) {
+        m_activeRequests.remove(requestId);
         QJsonObject request{{"id", requestId}};
         handleLLMResponse(fullText, request, true);
     }
@@ -324,10 +402,12 @@ void QuickRefactorHandler::handleFullResponse(const QString &requestId, const QS
 void QuickRefactorHandler::handleRequestFailed(const QString &requestId, const QString &error)
 {
     if (requestId == m_lastRequestId) {
+        m_activeRequests.remove(requestId);
         m_isRefactoringInProgress = false;
         RefactorResult result;
         result.success = false;
         result.errorMessage = error;
+        result.editor = m_currentEditor;
         emit refactoringCompleted(result);
     }
 }

@@ -24,13 +24,19 @@
 
 namespace QodeAssist {
 
-class ProgressWidget;
+class ErrorWidget;
 
-class CompletionProgressHandler : public TextEditor::BaseHoverHandler
+class CompletionErrorHandler : public TextEditor::BaseHoverHandler
 {
 public:
-    void showProgress(TextEditor::TextEditorWidget *widget);
-    void hideProgress();
+    void showError(
+        TextEditor::TextEditorWidget *widget, 
+        const QString &errorMessage, 
+        int autoHideMs = 5000);
+
+    void hideError();
+
+    bool isErrorVisible() const { return !m_errorWidget.isNull(); }
 
 protected:
     void identifyMatch(
@@ -39,8 +45,10 @@ protected:
 
 private:
     QPointer<TextEditor::TextEditorWidget> m_widget;
-    QPointer<ProgressWidget> m_progressWidget;
-    QPoint m_iconPosition;
+    QPointer<ErrorWidget> m_errorWidget;
+    QString m_errorMessage;
+    QPoint m_errorPosition;
 };
 
 } // namespace QodeAssist
+

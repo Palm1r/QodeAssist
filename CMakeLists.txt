@@ -102,6 +102,8 @@ add_qtc_plugin(QodeAssist
     QodeAssist.qrc
     LSPCompletion.hpp
     LLMSuggestion.hpp LLMSuggestion.cpp
+    RefactorSuggestion.hpp RefactorSuggestion.cpp
+    RefactorSuggestionHoverHandler.hpp RefactorSuggestionHoverHandler.cpp
     QodeAssistClient.hpp QodeAssistClient.cpp
     chat/ChatOutputPane.h chat/ChatOutputPane.cpp
     chat/NavigationPanel.hpp chat/NavigationPanel.cpp
@@ -109,10 +111,13 @@ add_qtc_plugin(QodeAssist
     CodeHandler.hpp CodeHandler.cpp
     UpdateStatusWidget.hpp UpdateStatusWidget.cpp
     widgets/CompletionProgressHandler.hpp widgets/CompletionProgressHandler.cpp
+    widgets/CompletionErrorHandler.hpp widgets/CompletionErrorHandler.cpp
     widgets/ProgressWidget.hpp widgets/ProgressWidget.cpp
+    widgets/ErrorWidget.hpp widgets/ErrorWidget.cpp
     widgets/EditorChatButton.hpp widgets/EditorChatButton.cpp
     widgets/EditorChatButtonHandler.hpp widgets/EditorChatButtonHandler.cpp
     widgets/QuickRefactorDialog.hpp widgets/QuickRefactorDialog.cpp
+
     QuickRefactorHandler.hpp QuickRefactorHandler.cpp
     tools/ToolsFactory.hpp tools/ToolsFactory.cpp
     tools/ReadVisibleFilesTool.hpp tools/ReadVisibleFilesTool.cpp

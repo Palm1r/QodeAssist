@@ -30,6 +30,7 @@
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
+#include "settings/QuickRefactorSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProviderSettings.hpp"
 
@@ -76,7 +77,8 @@ void GoogleAIProvider::prepareRequest(
     LLMCore::PromptTemplate *prompt,
     LLMCore::ContextData context,
     LLMCore::RequestType type,
-    bool isToolsEnabled)
+    bool isToolsEnabled,
+    bool isThinkingEnabled)
 {
     if (!prompt->isSupportProvider(providerID())) {
         LOG_MESSAGE(QString("Template %1 doesn't support %2 provider").arg(name(), prompt->name()));
@@ -97,49 +99,43 @@ void GoogleAIProvider::prepareRequest(
         request["generationConfig"] = generationConfig;
     };
 
+    auto applyThinkingMode = [&request](const auto &settings) {
+        QJsonObject generationConfig;
+        generationConfig["maxOutputTokens"] = settings.thinkingMaxTokens();
+
+        if (settings.useTopP())
+            generationConfig["topP"] = settings.topP();
+        if (settings.useTopK())
+            generationConfig["topK"] = settings.topK();
+
+        generationConfig["temperature"] = 1.0;
+
+        QJsonObject thinkingConfig;
+        thinkingConfig["includeThoughts"] = true;
+        int budgetTokens = settings.thinkingBudgetTokens();
+        if (budgetTokens != -1) {
+            thinkingConfig["thinkingBudget"] = budgetTokens;
+        }
+
+        generationConfig["thinkingConfig"] = thinkingConfig;
+        request["generationConfig"] = generationConfig;
+    };
+
     if (type == LLMCore::RequestType::CodeCompletion) {
         applyModelParams(Settings::codeCompletionSettings());
+    } else if (type == LLMCore::RequestType::QuickRefactoring) {
+        const auto &qrSettings = Settings::quickRefactorSettings();
+
+        if (isThinkingEnabled) {
+            applyThinkingMode(qrSettings);
+        } else {
+            applyModelParams(qrSettings);
+        }
     } else {
         const auto &chatSettings = Settings::chatAssistantSettings();
-        
-        if (chatSettings.enableThinkingMode()) {
-            QJsonObject generationConfig;
-            generationConfig["maxOutputTokens"] = chatSettings.thinkingMaxTokens();
-            
-            if (chatSettings.useTopP())
-                generationConfig["topP"] = chatSettings.topP();
-            if (chatSettings.useTopK())
-                generationConfig["topK"] = chatSettings.topK();
-            
-            // Set temperature to 1.0 for thinking mode
-            generationConfig["temperature"] = 1.0;
-            
-            // Add thinkingConfig
-            QJsonObject thinkingConfig;
-            int budgetTokens = chatSettings.thinkingBudgetTokens();
-            
-            // Dynamic thinking: -1 (let model decide)
-            // Disabled: 0 (no thinking)
-            // Custom budget: positive integer
-            if (budgetTokens == -1) {
-                // Dynamic thinking - omit budget to let model decide
-                thinkingConfig["includeThoughts"] = true;
-            } else if (budgetTokens == 0) {
-                // Disabled thinking
-                thinkingConfig["thinkingBudget"] = 0;
-                thinkingConfig["includeThoughts"] = false;
-            } else {
-                // Custom budget
-                thinkingConfig["thinkingBudget"] = budgetTokens;
-                thinkingConfig["includeThoughts"] = true;
-            }
-            
-            generationConfig["thinkingConfig"] = thinkingConfig;
-            request["generationConfig"] = generationConfig;
-            
-            LOG_MESSAGE(QString("Google AI thinking mode enabled: budget=%1 tokens, maxTokens=%2")
-                            .arg(budgetTokens)
-                            .arg(chatSettings.thinkingMaxTokens()));
+
+        if (isThinkingEnabled) {
+            applyThinkingMode(chatSettings);
         } else {
             applyModelParams(chatSettings);
         }

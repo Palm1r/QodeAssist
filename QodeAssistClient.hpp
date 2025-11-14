@@ -29,7 +29,9 @@
 #include "LLMClientInterface.hpp"
 #include "LSPCompletion.hpp"
 #include "QuickRefactorHandler.hpp"
+#include "RefactorSuggestionHoverHandler.hpp"
 #include "widgets/CompletionProgressHandler.hpp"
+#include "widgets/CompletionErrorHandler.hpp"
 #include "widgets/EditorChatButtonHandler.hpp"
 #include <languageclient/client.h>
 #include <llmcore/IPromptProvider.hpp>
@@ -70,8 +72,10 @@ private:
     QElapsedTimer m_typingTimer;
     int m_recentCharCount;
     CompletionProgressHandler m_progressHandler;
+    CompletionErrorHandler m_errorHandler;
     EditorChatButtonHandler m_chatButtonHandler;
     QuickRefactorHandler *m_refactorHandler{nullptr};
+    RefactorSuggestionHoverHandler *m_refactorHoverHandler{nullptr};
     LLMClientInterface *m_llmClient;
 };
 

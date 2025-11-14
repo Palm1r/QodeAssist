@@ -158,7 +158,12 @@ void ClientInterface::sendMessage(
     config.apiKey = provider->apiKey();
 
     config.provider->prepareRequest(
-        config.providerRequest, promptTemplate, context, LLMCore::RequestType::Chat, isToolsEnabled);
+        config.providerRequest,
+        promptTemplate,
+        context,
+        LLMCore::RequestType::Chat,
+        isToolsEnabled,
+        Settings::chatAssistantSettings().enableThinkingMode());
 
     QString requestId = QUuid::createUuid().toString();
     QJsonObject request{{"id", requestId}};

@@ -49,6 +49,17 @@ const char CA_ENDPOINT_MODE[] = "QodeAssist.caEndpointMode";
 const char CA_CUSTOM_ENDPOINT[] = "QodeAssist.caCustomEndpoint";
 const char CA_CUSTOM_ENDPOINT_HISTORY[] = "QodeAssist.caCustomEndpointHistory";
 
+// quick refactor settings
+const char QR_PROVIDER[] = "QodeAssist.qrProvider";
+const char QR_MODEL[] = "QodeAssist.qrModel";
+const char QR_MODEL_HISTORY[] = "QodeAssist.qrModelHistory";
+const char QR_TEMPLATE[] = "QodeAssist.qrTemplate";
+const char QR_URL[] = "QodeAssist.qrUrl";
+const char QR_URL_HISTORY[] = "QodeAssist.qrUrlHistory";
+const char QR_ENDPOINT_MODE[] = "QodeAssist.qrEndpointMode";
+const char QR_CUSTOM_ENDPOINT[] = "QodeAssist.qrCustomEndpoint";
+const char QR_CUSTOM_ENDPOINT_HISTORY[] = "QodeAssist.qrCustomEndpointHistory";
+
 const char CC_SPECIFY_PRESET1[] = "QodeAssist.ccSpecifyPreset1";
 const char CC_PRESET1_LANGUAGE[] = "QodeAssist.ccPreset1Language";
 const char CC_PRESET1_PROVIDER[] = "QodeAssist.ccPreset1Provider";
@@ -98,14 +109,16 @@ const char QODE_ASSIST_CODE_COMPLETION_SETTINGS_PAGE_ID[]
     = "QodeAssist.2CodeCompletionSettingsPageId";
 const char QODE_ASSIST_CHAT_ASSISTANT_SETTINGS_PAGE_ID[]
     = "QodeAssist.3ChatAssistantSettingsPageId";
-const char QODE_ASSIST_TOOLS_SETTINGS_PAGE_ID[] = "QodeAssist.4ToolsSettingsPageId";
-const char QODE_ASSIST_CUSTOM_PROMPT_SETTINGS_PAGE_ID[] = "QodeAssist.5CustomPromptSettingsPageId";
+const char QODE_ASSIST_QUICK_REFACTOR_SETTINGS_PAGE_ID[]
+    = "QodeAssist.4QuickRefactorSettingsPageId";
+const char QODE_ASSIST_TOOLS_SETTINGS_PAGE_ID[] = "QodeAssist.5ToolsSettingsPageId";
+const char QODE_ASSIST_CUSTOM_PROMPT_SETTINGS_PAGE_ID[] = "QodeAssist.6CustomPromptSettingsPageId";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_CATEGORY[] = "QodeAssist.Category";
 const char QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY[] = "QodeAssist";
 
 // Provider Settings Page ID
-const char QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID[] = "QodeAssist.6ProviderSettingsPageId";
+const char QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID[] = "QodeAssist.7ProviderSettingsPageId";
 
 // Provider API Keys
 const char OPEN_ROUTER_API_KEY[] = "QodeAssist.openRouterApiKey";
@@ -177,5 +190,27 @@ const char CA_CODE_FONT_FAMILY[] = "QodeAssist.caCodeFontFamily";
 const char CA_CODE_FONT_SIZE[] = "QodeAssist.caCodeFontSize";
 const char CA_TEXT_FORMAT[] = "QodeAssist.caTextFormat";
 const char CA_CHAT_RENDERER[] = "QodeAssist.caChatRenderer";
+
+// quick refactor preset prompt settings
+const char QR_TEMPERATURE[] = "QodeAssist.qrTemperature";
+const char QR_MAX_TOKENS[] = "QodeAssist.qrMaxTokens";
+const char QR_USE_TOP_P[] = "QodeAssist.qrUseTopP";
+const char QR_TOP_P[] = "QodeAssist.qrTopP";
+const char QR_USE_TOP_K[] = "QodeAssist.qrUseTopK";
+const char QR_TOP_K[] = "QodeAssist.qrTopK";
+const char QR_USE_PRESENCE_PENALTY[] = "QodeAssist.qrUsePresencePenalty";
+const char QR_PRESENCE_PENALTY[] = "QodeAssist.qrPresencePenalty";
+const char QR_USE_FREQUENCY_PENALTY[] = "QodeAssist.qrUseFrequencyPenalty";
+const char QR_FREQUENCY_PENALTY[] = "QodeAssist.qrFrequencyPenalty";
+const char QR_OLLAMA_LIVETIME[] = "QodeAssist.qrOllamaLivetime";
+const char QR_OLLAMA_CONTEXT_WINDOW[] = "QodeAssist.qrOllamaContextWindow";
+const char QR_USE_TOOLS[] = "QodeAssist.qrUseTools";
+const char QR_USE_THINKING[] = "QodeAssist.qrUseThinking";
+const char QR_THINKING_BUDGET_TOKENS[] = "QodeAssist.qrThinkingBudgetTokens";
+const char QR_THINKING_MAX_TOKENS[] = "QodeAssist.qrThinkingMaxTokens";
+const char QR_READ_FULL_FILE[] = "QodeAssist.qrReadFullFile";
+const char QR_READ_STRINGS_BEFORE_CURSOR[] = "QodeAssist.qrReadStringsBeforeCursor";
+const char QR_READ_STRINGS_AFTER_CURSOR[] = "QodeAssist.qrReadStringsAfterCursor";
+const char QR_SYSTEM_PROMPT[] = "QodeAssist.qrSystemPrompt";
 
 } // namespace QodeAssist::Constants
