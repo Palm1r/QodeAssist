@@ -38,7 +38,6 @@ IssuesTracker &IssuesTracker::instance()
 IssuesTracker::IssuesTracker(QObject *parent)
     : QObject(parent)
 {
-    LOG_MESSAGE("IssuesTracker: Initializing tracker");
 
     auto &hub = ProjectExplorer::taskHub();
 
@@ -46,13 +45,11 @@ IssuesTracker::IssuesTracker(QObject *parent)
     connect(&hub, &ProjectExplorer::TaskHub::taskRemoved, this, &IssuesTracker::onTaskRemoved);
     connect(&hub, &ProjectExplorer::TaskHub::tasksCleared, this, &IssuesTracker::onTasksCleared);
 
-    LOG_MESSAGE("IssuesTracker: Connected to TaskHub signals");
 }
 
 QList<ProjectExplorer::Task> IssuesTracker::getTasks() const
 {
     QMutexLocker locker(&m_mutex);
-    LOG_MESSAGE(QString("IssuesTracker: getTasks() called, current count: %1").arg(m_tasks.size()));
     return m_tasks;
 }
 
@@ -83,12 +80,6 @@ void IssuesTracker::onTaskAdded(const ProjectExplorer::Task &task)
         break;
     }
 
-    LOG_MESSAGE(QString("IssuesTracker: Task added [%1] %2 at %3:%4 (total: %5)")
-                    .arg(typeStr)
-                    .arg(task.description())
-                    .arg(taskFile.toUrlishString())
-                    .arg(taskLine)
-                    .arg(m_tasks.size()));
 }
 
 void IssuesTracker::onTaskRemoved(const ProjectExplorer::Task &task)
@@ -96,9 +87,6 @@ void IssuesTracker::onTaskRemoved(const ProjectExplorer::Task &task)
     QMutexLocker locker(&m_mutex);
     m_tasks.removeOne(task);
 
-    LOG_MESSAGE(QString("IssuesTracker: Task removed: %1 (total: %2)")
-                    .arg(task.description())
-                    .arg(m_tasks.size()));
 }
 
 void IssuesTracker::onTasksCleared(Utils::Id categoryId)
@@ -121,22 +109,15 @@ void IssuesTracker::onTasksCleared(Utils::Id categoryId)
             m_tasks.end());
         int removedCount = beforeCount - m_tasks.size();
 
-        LOG_MESSAGE(
-            QString("IssuesTracker: Tasks cleared for category %1, removed %2 tasks (total: %3)")
-                .arg(categoryId.toString())
-                .arg(removedCount)
-                .arg(m_tasks.size()));
     } else {
         int clearedCount = m_tasks.size();
         m_tasks.clear();
-        LOG_MESSAGE(QString("IssuesTracker: All tasks cleared, removed %1 tasks").arg(clearedCount));
     }
 }
 
 GetIssuesListTool::GetIssuesListTool(QObject *parent)
     : BaseTool(parent)
 {
-    LOG_MESSAGE("GetIssuesListTool: Initializing tool");
     IssuesTracker::instance();
 }
 
@@ -193,19 +174,14 @@ LLMCore::ToolPermissions GetIssuesListTool::requiredPermissions() const
 QFuture<QString> GetIssuesListTool::executeAsync(const QJsonObject &input)
 {
     return QtConcurrent::run([input]() -> QString {
-        LOG_MESSAGE("GetIssuesListTool: Starting execution");
 
         QString severityFilter = input.value("severity").toString("all");
-        LOG_MESSAGE(QString("GetIssuesListTool: Severity filter: %1").arg(severityFilter));
 
         const auto tasks = IssuesTracker::instance().getTasks();
 
         if (tasks.isEmpty()) {
-            LOG_MESSAGE("GetIssuesListTool: No issues found");
             return "No issues found in Qt Creator Issues panel.";
         }
-
-        LOG_MESSAGE(QString("GetIssuesListTool: Processing %1 tasks").arg(tasks.size()));
 
         QStringList results;
         results.append(QString("Total issues in panel: %1\n").arg(tasks.size()));
@@ -274,10 +250,6 @@ QFuture<QString> GetIssuesListTool::executeAsync(const QJsonObject &input)
                               .arg(warningCount)
                               .arg(processedCount);
         results.prepend(summary);
-
-        LOG_MESSAGE(QString("GetIssuesListTool: Execution completed - %1 errors, %2 warnings")
-                        .arg(errorCount)
-                        .arg(warningCount));
 
         return results.join("\n\n");
     });
