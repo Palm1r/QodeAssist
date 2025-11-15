@@ -24,7 +24,9 @@
 
 #include "QodeAssistClient.hpp"
 
+#include <QApplication>
 #include <QInputDialog>
+#include <QKeyEvent>
 #include <QTimer>
 
 #include <coreplugin/icore.h>
@@ -33,6 +35,8 @@
 
 #include "LLMClientInterface.hpp"
 #include "LLMSuggestion.hpp"
+#include "RefactorSuggestion.hpp"
+#include "RefactorSuggestionHoverHandler.hpp"
 #include "settings/CodeCompletionSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProjectSettings.hpp"
@@ -61,11 +65,15 @@ QodeAssistClient::QodeAssistClient(LLMClientInterface *clientInterface)
     setupConnections();
 
     m_typingTimer.start();
+    
+    // Create hover handler for refactoring suggestions
+    m_refactorHoverHandler = new RefactorSuggestionHoverHandler();
 }
 
 QodeAssistClient::~QodeAssistClient()
 {
     cleanupConnections();
+    delete m_refactorHoverHandler;
 }
 
 void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
@@ -75,6 +83,14 @@ void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
         return;
 
     Client::openDocument(document);
+    
+    // Register hover handler for this document
+    auto editors = TextEditor::BaseTextEditor::textEditorsForDocument(document);
+    for (auto *editor : editors) {
+        if (auto *widget = editor->editorWidget()) {
+            widget->addHoverHandler(m_refactorHoverHandler);
+        }
+    }
     connect(
         document,
         &TextDocument::contentsChangedWithPosition,
@@ -175,6 +191,7 @@ void QodeAssistClient::requestCompletions(TextEditor::TextEditorWidget *editor)
     }
     request.setResponseCallback([this, editor = QPointer<TextEditorWidget>(editor)](
                                     const GetCompletionRequest::Response &response) {
+        qDebug() << "setResponseCallback";
         QTC_ASSERT(editor, return);
         handleCompletions(response, editor);
     });
@@ -243,8 +260,17 @@ void QodeAssistClient::scheduleRequest(TextEditor::TextEditorWidget *editor)
 void QodeAssistClient::handleCompletions(
     const GetCompletionRequest::Response &response, TextEditor::TextEditorWidget *editor)
 {
-    if (response.error())
+    qDebug() << "hideProgress";
+    m_progressHandler.hideProgress();
+
+    if (response.error()) {
         log(*response.error());
+        
+        QString errorMessage = tr("Code completion failed: %1")
+                                   .arg(response.error()->message());
+        m_errorHandler.showError(editor, errorMessage);
+        return;
+    }
 
     int requestPosition = -1;
     if (const auto requestParams = m_runningRequests.take(editor).params())
@@ -288,9 +314,11 @@ void QodeAssistClient::handleCompletions(
             Text::Position pos{toTextPos(c.position())};
             return TextSuggestion::Data{range, pos, c.text()};
         });
-        m_progressHandler.hideProgress();
-        if (completions.isEmpty())
+        
+        if (completions.isEmpty()) {
+            LOG_MESSAGE("No valid completions received");
             return;
+        }
         editor->insertSuggestion(std::make_unique<LLMSuggestion>(suggestions, editor->document()));
     }
 }
@@ -344,30 +372,85 @@ void QodeAssistClient::cleanupConnections()
 
 void QodeAssistClient::handleRefactoringResult(const RefactorResult &result)
 {
+    m_progressHandler.hideProgress();
+
     if (!result.success) {
+        // Show error to user
+        QString errorMessage = result.errorMessage.isEmpty()
+                                   ? tr("Quick refactor failed")
+                                   : tr("Quick refactor failed: %1").arg(result.errorMessage);
+        
+        if (result.editor) {
+            m_errorHandler.showError(result.editor, errorMessage);
+        }
+        
         LOG_MESSAGE(QString("Refactoring failed: %1").arg(result.errorMessage));
         return;
     }
 
-    auto editor = BaseTextEditor::currentTextEditor();
-    if (!editor) {
-        LOG_MESSAGE("Refactoring failed: No active editor found");
+    if (!result.editor) {
+        LOG_MESSAGE("Refactoring result has no editor");
         return;
     }
 
-    auto editorWidget = editor->editorWidget();
+    TextEditorWidget *editorWidget = result.editor;
 
-    QTextCursor cursor = editorWidget->textCursor();
-    cursor.beginEditBlock();
+    auto toTextPos = [](const Utils::Text::Position &pos) {
+        return Utils::Text::Position{pos.line, pos.column};
+    };
 
-    int startPos = result.insertRange.begin.toPositionInDocument(editorWidget->document());
-    int endPos = result.insertRange.end.toPositionInDocument(editorWidget->document());
+    Utils::Text::Range range{toTextPos(result.insertRange.begin), toTextPos(result.insertRange.end)};
+    Utils::Text::Position pos = toTextPos(result.insertRange.begin);
 
-    cursor.setPosition(startPos);
-    cursor.setPosition(endPos, QTextCursor::KeepAnchor);
+    int startPos = range.begin.toPositionInDocument(editorWidget->document());
+    int endPos = range.end.toPositionInDocument(editorWidget->document());
+    
+    if (startPos != endPos) {
+        QTextCursor startCursor(editorWidget->document());
+        startCursor.setPosition(startPos);
+        if (startCursor.positionInBlock() > 0) {
+            startCursor.movePosition(QTextCursor::StartOfBlock);
+        }
+        
+        QTextCursor endCursor(editorWidget->document());
+        endCursor.setPosition(endPos);
+        if (endCursor.positionInBlock() > 0) {
+            endCursor.movePosition(QTextCursor::EndOfBlock);
+            if (!endCursor.atEnd()) {
+                endCursor.movePosition(QTextCursor::NextCharacter);
+            }
+        }
+        
+        Utils::Text::Position expandedBegin = Utils::Text::Position::fromPositionInDocument(
+            editorWidget->document(), startCursor.position());
+        Utils::Text::Position expandedEnd = Utils::Text::Position::fromPositionInDocument(
+            editorWidget->document(), endCursor.position());
+        
+        range = Utils::Text::Range(expandedBegin, expandedEnd);
+    }
 
-    cursor.insertText(result.newText);
-    cursor.endEditBlock();
-    m_progressHandler.hideProgress();
+    TextEditor::TextSuggestion::Data suggestionData{
+        Utils::Text::Range{toTextPos(result.insertRange.begin), toTextPos(result.insertRange.end)}, 
+        pos, 
+        result.newText
+    };
+    editorWidget->insertSuggestion(
+        std::make_unique<RefactorSuggestion>(suggestionData, editorWidget->document()));
+
+    m_refactorHoverHandler->setSuggestionRange(range);
+
+    m_refactorHoverHandler->setApplyCallback([this, editorWidget]() {
+        QKeyEvent tabEvent(QEvent::KeyPress, Qt::Key_Tab, Qt::NoModifier);
+        QApplication::sendEvent(editorWidget, &tabEvent);
+        m_refactorHoverHandler->clearSuggestionRange();
+    });
+
+    m_refactorHoverHandler->setDismissCallback([this, editorWidget]() {
+        editorWidget->clearSuggestion();
+        m_refactorHoverHandler->clearSuggestionRange();
+    });
+
+    LOG_MESSAGE("Displaying refactoring suggestion with hover handler");
 }
+
 } // namespace QodeAssist

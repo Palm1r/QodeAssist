@@ -77,6 +77,7 @@ private:
     void handleInitialized(const QJsonObject &request);
     void handleExit(const QJsonObject &request);
     void handleCancelRequest();
+    void sendErrorResponse(const QJsonObject &request, const QString &errorMessage);
 
     struct RequestContext
     {

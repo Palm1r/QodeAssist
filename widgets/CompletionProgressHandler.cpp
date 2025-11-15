@@ -53,6 +53,10 @@ void CompletionProgressHandler::showProgress(TextEditor::TextEditorWidget *widge
 
 void CompletionProgressHandler::hideProgress()
 {
+    if (m_progressWidget) {
+        m_progressWidget->deleteLater();
+        m_progressWidget = nullptr;
+    }
     Utils::ToolTip::hideImmediately();
 }
 
@@ -73,12 +77,24 @@ void CompletionProgressHandler::operateTooltip(
     if (!editorWidget)
         return;
 
-    auto progressWidget = new ProgressWidget(editorWidget);
+    if (m_progressWidget) {
+        delete m_progressWidget;
+    }
 
-    QPoint showPoint = point;
-    showPoint.ry() -= progressWidget->height();
-
-    Utils::ToolTip::show(showPoint, progressWidget, editorWidget);
+    m_progressWidget = new ProgressWidget(editorWidget);
+    
+    const QRect cursorRect = editorWidget->cursorRect(editorWidget->textCursor());
+    QPoint globalPos = editorWidget->viewport()->mapToGlobal(cursorRect.topLeft());
+    QPoint localPos = editorWidget->mapFromGlobal(globalPos);
+    localPos.ry() -= m_progressWidget->height() + 5;
+    
+    if (localPos.y() < 0) {
+        localPos.ry() = cursorRect.bottom() + 5;
+    }
+    
+    m_progressWidget->move(localPos);
+    m_progressWidget->show();
+    m_progressWidget->raise();
 }
 
 } // namespace QodeAssist

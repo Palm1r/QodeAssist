@@ -51,6 +51,8 @@ void ConfigurationManager::updateTemplateDescription(const Utils::StringAspect &
         m_generalSettings.ccTemplateDescription.setValue(templ->description());
     } else if (&templateAspect == &m_generalSettings.caTemplate) {
         m_generalSettings.caTemplateDescription.setValue(templ->description());
+    } else if (&templateAspect == &m_generalSettings.qrTemplate) {
+        m_generalSettings.qrTemplateDescription.setValue(templ->description());
     }
 }
 
@@ -58,6 +60,7 @@ void ConfigurationManager::updateAllTemplateDescriptions()
 {
     updateTemplateDescription(m_generalSettings.ccTemplate);
     updateTemplateDescription(m_generalSettings.caTemplate);
+    updateTemplateDescription(m_generalSettings.qrTemplate);
 }
 
 void ConfigurationManager::checkTemplate(const Utils::StringAspect &templateAspect)
@@ -94,12 +97,16 @@ void ConfigurationManager::setupConnections()
 
     connect(&m_generalSettings.ccSelectProvider, &Button::clicked, this, &Config::selectProvider);
     connect(&m_generalSettings.caSelectProvider, &Button::clicked, this, &Config::selectProvider);
+    connect(&m_generalSettings.qrSelectProvider, &Button::clicked, this, &Config::selectProvider);
     connect(&m_generalSettings.ccSelectModel, &Button::clicked, this, &Config::selectModel);
     connect(&m_generalSettings.caSelectModel, &Button::clicked, this, &Config::selectModel);
+    connect(&m_generalSettings.qrSelectModel, &Button::clicked, this, &Config::selectModel);
     connect(&m_generalSettings.ccSelectTemplate, &Button::clicked, this, &Config::selectTemplate);
     connect(&m_generalSettings.caSelectTemplate, &Button::clicked, this, &Config::selectTemplate);
+    connect(&m_generalSettings.qrSelectTemplate, &Button::clicked, this, &Config::selectTemplate);
     connect(&m_generalSettings.ccSetUrl, &Button::clicked, this, &Config::selectUrl);
     connect(&m_generalSettings.caSetUrl, &Button::clicked, this, &Config::selectUrl);
+    connect(&m_generalSettings.qrSetUrl, &Button::clicked, this, &Config::selectUrl);
 
     connect(
         &m_generalSettings.ccPreset1SelectProvider, &Button::clicked, this, &Config::selectProvider);
@@ -115,6 +122,10 @@ void ConfigurationManager::setupConnections()
     connect(&m_generalSettings.caTemplate, &Utils::StringAspect::changed, this, [this]() {
         updateTemplateDescription(m_generalSettings.caTemplate);
     });
+
+    connect(&m_generalSettings.qrTemplate, &Utils::StringAspect::changed, this, [this]() {
+        updateTemplateDescription(m_generalSettings.qrTemplate);
+    });
 }
 
 void ConfigurationManager::selectProvider()
@@ -129,6 +140,8 @@ void ConfigurationManager::selectProvider()
                                ? m_generalSettings.ccProvider
                            : settingsButton == &m_generalSettings.ccPreset1SelectProvider
                                ? m_generalSettings.ccPreset1Provider
+                           : settingsButton == &m_generalSettings.qrSelectProvider
+                               ? m_generalSettings.qrProvider
                                : m_generalSettings.caProvider;
 
     QTimer::singleShot(0, this, [this, providersList, &targetSettings] {
@@ -145,17 +158,21 @@ void ConfigurationManager::selectModel()
 
     const bool isCodeCompletion = (settingsButton == &m_generalSettings.ccSelectModel);
     const bool isPreset1 = (settingsButton == &m_generalSettings.ccPreset1SelectModel);
+    const bool isQuickRefactor = (settingsButton == &m_generalSettings.qrSelectModel);
 
     const QString providerName = isCodeCompletion ? m_generalSettings.ccProvider.volatileValue()
                                  : isPreset1 ? m_generalSettings.ccPreset1Provider.volatileValue()
+                                 : isQuickRefactor ? m_generalSettings.qrProvider.volatileValue()
                                              : m_generalSettings.caProvider.volatileValue();
 
     const auto providerUrl = isCodeCompletion ? m_generalSettings.ccUrl.volatileValue()
                              : isPreset1      ? m_generalSettings.ccPreset1Url.volatileValue()
+                             : isQuickRefactor ? m_generalSettings.qrUrl.volatileValue()
                                               : m_generalSettings.caUrl.volatileValue();
 
     auto &targetSettings = isCodeCompletion ? m_generalSettings.ccModel
                            : isPreset1      ? m_generalSettings.ccPreset1Model
+                           : isQuickRefactor ? m_generalSettings.qrModel
                                             : m_generalSettings.caModel;
 
     if (auto provider = m_providersManager.getProviderByName(providerName)) {
@@ -186,8 +203,10 @@ void ConfigurationManager::selectTemplate()
 
     const bool isCodeCompletion = (settingsButton == &m_generalSettings.ccSelectTemplate);
     const bool isPreset1 = (settingsButton == &m_generalSettings.ccPreset1SelectTemplate);
+    const bool isQuickRefactor = (settingsButton == &m_generalSettings.qrSelectTemplate);
     const QString providerName = isCodeCompletion ? m_generalSettings.ccProvider.volatileValue()
                                  : isPreset1 ? m_generalSettings.ccPreset1Provider.volatileValue()
+                                 : isQuickRefactor ? m_generalSettings.qrProvider.volatileValue()
                                              : m_generalSettings.caProvider.volatileValue();
     auto providerID = m_providersManager.getProviderByName(providerName)->providerID();
 
@@ -197,6 +216,7 @@ void ConfigurationManager::selectTemplate()
 
     auto &targetSettings = isCodeCompletion ? m_generalSettings.ccTemplate
                            : isPreset1      ? m_generalSettings.ccPreset1Template
+                           : isQuickRefactor ? m_generalSettings.qrTemplate
                                             : m_generalSettings.caTemplate;
 
     QTimer::singleShot(0, &m_generalSettings, [this, templateList, &targetSettings]() {
@@ -221,6 +241,8 @@ void ConfigurationManager::selectUrl()
     auto &targetSettings = (settingsButton == &m_generalSettings.ccSetUrl) ? m_generalSettings.ccUrl
                            : settingsButton == &m_generalSettings.ccPreset1SetUrl
                                ? m_generalSettings.ccPreset1Url
+                           : settingsButton == &m_generalSettings.qrSetUrl
+                               ? m_generalSettings.qrUrl
                                : m_generalSettings.caUrl;
 
     QTimer::singleShot(0, &m_generalSettings, [this, urls, &targetSettings]() {

@@ -48,6 +48,7 @@ inline const char *ENDPOINT_MODE = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Endpoin
 
 inline const char *CODE_COMPLETION = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Code Completion");
 inline const char *CHAT_ASSISTANT = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Chat Assistant");
+inline const char *QUICK_REFACTOR = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Quick Refactor");
 inline const char *RESET_SETTINGS = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Reset Settings");
 inline const char *CONFIRMATION = QT_TRANSLATE_NOOP(
     "QtC::QodeAssist", "Are you sure you want to reset all settings to default values?");

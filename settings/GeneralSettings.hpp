@@ -20,8 +20,13 @@
 #pragma once
 
 #include <utils/aspects.h>
+#include <QPointer>
 
 #include "ButtonAspect.hpp"
+
+namespace Utils {
+class DetailsWidget;
+}
 
 namespace QodeAssist::LLMCore {
 class Provider;
@@ -102,6 +107,31 @@ public:
 
     Utils::StringAspect caTemplateDescription{this};
 
+    // quick refactor settings
+    Utils::StringAspect qrProvider{this};
+    ButtonAspect qrSelectProvider{this};
+
+    Utils::StringAspect qrModel{this};
+    ButtonAspect qrSelectModel{this};
+
+    Utils::StringAspect qrTemplate{this};
+    ButtonAspect qrSelectTemplate{this};
+
+    Utils::StringAspect qrUrl{this};
+    ButtonAspect qrSetUrl{this};
+
+    Utils::SelectionAspect qrEndpointMode{this};
+    Utils::StringAspect qrCustomEndpoint{this};
+
+    Utils::StringAspect qrStatus{this};
+    ButtonAspect qrTest{this};
+
+    Utils::StringAspect qrTemplateDescription{this};
+
+    ButtonAspect ccShowTemplateInfo{this};
+    ButtonAspect caShowTemplateInfo{this};
+    ButtonAspect qrShowTemplateInfo{this};
+
     void showSelectionDialog(
         const QStringList &data,
         Utils::StringAspect &aspect,
@@ -113,6 +143,8 @@ public:
     void showModelsNotSupportedDialog(Utils::StringAspect &aspect);
 
     void showUrlSelectionDialog(Utils::StringAspect &aspect, const QStringList &predefinedUrls);
+
+    void showTemplateInfoDialog(const Utils::StringAspect &descriptionAspect, const QString &templateName);
 
     void updatePreset1Visiblity(bool state);
 

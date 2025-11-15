@@ -30,6 +30,7 @@
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
+#include "settings/QuickRefactorSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProviderSettings.hpp"
 
@@ -76,7 +77,8 @@ void ClaudeProvider::prepareRequest(
     LLMCore::PromptTemplate *prompt,
     LLMCore::ContextData context,
     LLMCore::RequestType type,
-    bool isToolsEnabled)
+    bool isToolsEnabled,
+    bool isThinkingEnabled)
 {
     if (!prompt->isSupportProvider(providerID())) {
         LOG_MESSAGE(QString("Template %1 doesn't support %2 provider").arg(name(), prompt->name()));
@@ -93,20 +95,33 @@ void ClaudeProvider::prepareRequest(
         request["stream"] = true;
     };
 
+    auto applyThinkingMode = [&request](const auto &settings) {
+        QJsonObject thinkingObj;
+        thinkingObj["type"] = "enabled";
+        thinkingObj["budget_tokens"] = settings.thinkingBudgetTokens();
+        request["thinking"] = thinkingObj;
+        request["max_tokens"] = settings.thinkingMaxTokens();
+        request["temperature"] = 1.0;
+    };
+
     if (type == LLMCore::RequestType::CodeCompletion) {
         applyModelParams(Settings::codeCompletionSettings());
         request["temperature"] = Settings::codeCompletionSettings().temperature();
+    } else if (type == LLMCore::RequestType::QuickRefactoring) {
+        const auto &qrSettings = Settings::quickRefactorSettings();
+        applyModelParams(qrSettings);
+
+        if (isThinkingEnabled) {
+            applyThinkingMode(qrSettings);
+        } else {
+            request["temperature"] = qrSettings.temperature();
+        }
     } else {
         const auto &chatSettings = Settings::chatAssistantSettings();
         applyModelParams(chatSettings);
 
-        if (chatSettings.enableThinkingMode()) {
-            QJsonObject thinkingObj;
-            thinkingObj["type"] = "enabled";
-            thinkingObj["budget_tokens"] = chatSettings.thinkingBudgetTokens();
-            request["thinking"] = thinkingObj;
-            request["max_tokens"] = chatSettings.thinkingMaxTokens();
-            request["temperature"] = 1.0;
+        if (isThinkingEnabled) {
+            applyThinkingMode(chatSettings);
         } else {
             request["temperature"] = chatSettings.temperature();
         }

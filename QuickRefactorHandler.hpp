@@ -38,6 +38,7 @@ struct RefactorResult
     Utils::Text::Range insertRange;
     bool success;
     QString errorMessage;
+    TextEditor::TextEditorWidget *editor{nullptr};
 };
 
 class QuickRefactorHandler : public QObject

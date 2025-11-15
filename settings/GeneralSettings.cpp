@@ -21,11 +21,12 @@
 
 #include <coreplugin/dialogs/ioptionspage.h>
 #include <coreplugin/icore.h>
-#include <utils/detailswidget.h>
 #include <utils/layoutbuilder.h>
 #include <utils/utilsicons.h>
 #include <QInputDialog>
+#include <QLabel>
 #include <QMessageBox>
+#include <QTextEdit>
 #include <QTimer>
 #include <QtWidgets/qboxlayout.h>
 #include <QtWidgets/qcompleter.h>
@@ -117,7 +118,6 @@ GeneralSettings::GeneralSettings()
     ccTemplateDescription.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
     ccTemplateDescription.setReadOnly(true);
     ccTemplateDescription.setDefaultValue("");
-    ccTemplateDescription.setLabelText(TrConstants::CURRENT_TEMPLATE_DESCRIPTION);
 
     // preset1
     specifyPreset1.setSettingsKey(Constants::CC_SPECIFY_PRESET1);
@@ -203,7 +203,56 @@ GeneralSettings::GeneralSettings()
     caTemplateDescription.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
     caTemplateDescription.setReadOnly(true);
     caTemplateDescription.setDefaultValue("");
-    caTemplateDescription.setLabelText(TrConstants::CURRENT_TEMPLATE_DESCRIPTION);
+
+    // quick refactor settings
+    initStringAspect(qrProvider, Constants::QR_PROVIDER, TrConstants::PROVIDER, "Ollama");
+    qrProvider.setReadOnly(true);
+    qrSelectProvider.m_buttonText = TrConstants::SELECT;
+
+    initStringAspect(qrModel, Constants::QR_MODEL, TrConstants::MODEL, "qwen2.5-coder:7b");
+    qrModel.setHistoryCompleter(Constants::QR_MODEL_HISTORY);
+    qrSelectModel.m_buttonText = TrConstants::SELECT;
+
+    initStringAspect(qrTemplate, Constants::QR_TEMPLATE, TrConstants::TEMPLATE, "Ollama Chat");
+    qrTemplate.setReadOnly(true);
+
+    qrSelectTemplate.m_buttonText = TrConstants::SELECT;
+
+    initStringAspect(qrUrl, Constants::QR_URL, TrConstants::URL, "http://localhost:11434");
+    qrUrl.setHistoryCompleter(Constants::QR_URL_HISTORY);
+    qrSetUrl.m_buttonText = TrConstants::SELECT;
+
+    qrEndpointMode.setSettingsKey(Constants::QR_ENDPOINT_MODE);
+    qrEndpointMode.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+    qrEndpointMode.addOption("Auto");
+    qrEndpointMode.addOption("Custom");
+    qrEndpointMode.addOption("FIM");
+    qrEndpointMode.addOption("Chat");
+    qrEndpointMode.setDefaultValue("Auto");
+
+    initStringAspect(qrCustomEndpoint, Constants::QR_CUSTOM_ENDPOINT, TrConstants::ENDPOINT_MODE, "");
+    qrCustomEndpoint.setHistoryCompleter(Constants::QR_CUSTOM_ENDPOINT_HISTORY);
+
+    qrStatus.setDisplayStyle(Utils::StringAspect::LabelDisplay);
+    qrStatus.setLabelText(TrConstants::STATUS);
+    qrStatus.setDefaultValue("");
+    qrTest.m_buttonText = TrConstants::TEST;
+
+    qrTemplateDescription.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
+    qrTemplateDescription.setReadOnly(true);
+    qrTemplateDescription.setDefaultValue("");
+
+    ccShowTemplateInfo.m_icon = Utils::Icons::INFO.icon();
+    ccShowTemplateInfo.m_tooltip = Tr::tr("Show template information");
+    ccShowTemplateInfo.m_isCompact = true;
+
+    caShowTemplateInfo.m_icon = Utils::Icons::INFO.icon();
+    caShowTemplateInfo.m_tooltip = Tr::tr("Show template information");
+    caShowTemplateInfo.m_isCompact = true;
+
+    qrShowTemplateInfo.m_icon = Utils::Icons::INFO.icon();
+    qrShowTemplateInfo.m_tooltip = Tr::tr("Show template information");
+    qrShowTemplateInfo.m_isCompact = true;
 
     readSettings();
 
@@ -215,6 +264,7 @@ GeneralSettings::GeneralSettings()
     ccCustomEndpoint.setEnabled(ccEndpointMode.stringValue() == "Custom");
     ccPreset1CustomEndpoint.setEnabled(ccPreset1EndpointMode.stringValue() == "Custom");
     caCustomEndpoint.setEnabled(caEndpointMode.stringValue() == "Custom");
+    qrCustomEndpoint.setEnabled(qrEndpointMode.stringValue() == "Custom");
 
     setLayouter([this]() {
         using namespace Layouting;
@@ -224,7 +274,7 @@ GeneralSettings::GeneralSettings()
         ccGrid.addRow({ccUrl, ccSetUrl});
         ccGrid.addRow({ccCustomEndpoint, ccEndpointMode});
         ccGrid.addRow({ccModel, ccSelectModel});
-        ccGrid.addRow({ccTemplate, ccSelectTemplate});
+        ccGrid.addRow({ccTemplate, ccSelectTemplate, ccShowTemplateInfo});
 
         auto ccPreset1Grid = Grid{};
         ccPreset1Grid.addRow({ccPreset1Provider, ccPreset1SelectProvider});
@@ -238,21 +288,27 @@ GeneralSettings::GeneralSettings()
         caGrid.addRow({caUrl, caSetUrl});
         caGrid.addRow({caCustomEndpoint, caEndpointMode});
         caGrid.addRow({caModel, caSelectModel});
-        caGrid.addRow({caTemplate, caSelectTemplate});
+        caGrid.addRow({caTemplate, caSelectTemplate, caShowTemplateInfo});
+
+        auto qrGrid = Grid{};
+        qrGrid.addRow({qrProvider, qrSelectProvider});
+        qrGrid.addRow({qrUrl, qrSetUrl});
+        qrGrid.addRow({qrCustomEndpoint, qrEndpointMode});
+        qrGrid.addRow({qrModel, qrSelectModel});
+        qrGrid.addRow({qrTemplate, qrSelectTemplate, qrShowTemplateInfo});
 
         auto ccGroup = Group{
             title(TrConstants::CODE_COMPLETION),
             Column{
                 ccGrid,
-                ccTemplateDescription,
                 Row{specifyPreset1, preset1Language, Stretch{1}},
                 ccPreset1Grid}};
 
         auto caGroup = Group{
-            title(TrConstants::CHAT_ASSISTANT),
-            Column{
-                caGrid,
-                caTemplateDescription}};
+            title(TrConstants::CHAT_ASSISTANT), Column{caGrid}};
+
+        auto qrGroup = Group{
+            title(TrConstants::QUICK_REFACTOR), Column{qrGrid}};
 
         auto rootLayout = Column{
             Row{enableQodeAssist, Stretch{1}, Row{checkUpdate, resetToDefaults}},
@@ -262,6 +318,8 @@ GeneralSettings::GeneralSettings()
             ccGroup,
             Space{8},
             caGroup,
+            Space{8},
+            qrGroup,
             Stretch{1}};
 
         return rootLayout;
@@ -307,6 +365,9 @@ void GeneralSettings::showModelsNotFoundDialog(Utils::StringAspect &aspect)
     } else if (&aspect == &caModel) {
         providerButton = &caSelectProvider;
         urlButton = &caSetUrl;
+    } else if (&aspect == &qrModel) {
+        providerButton = &qrSelectProvider;
+        urlButton = &qrSetUrl;
     }
 
     if (providerButton && urlButton) {
@@ -357,7 +418,8 @@ void GeneralSettings::showModelsNotSupportedDialog(Utils::StringAspect &aspect)
     QString key = QString("CompleterHistory/")
                       .append(
                           (&aspect == &ccModel) ? Constants::CC_MODEL_HISTORY
-                                                : Constants::CA_MODEL_HISTORY);
+                          : (&aspect == &caModel) ? Constants::CA_MODEL_HISTORY
+                                                  : Constants::QR_MODEL_HISTORY);
 #if QODEASSIST_QT_CREATOR_VERSION >= QT_VERSION_CHECK(18, 0, 0)
     QStringList historyList
         = Utils::QtcSettings().value(Utils::Key(key.toLocal8Bit())).toStringList();
@@ -399,7 +461,8 @@ void GeneralSettings::showUrlSelectionDialog(
                       .append(
                           (&aspect == &ccUrl)          ? Constants::CC_URL_HISTORY
                           : (&aspect == &ccPreset1Url) ? Constants::CC_PRESET1_URL_HISTORY
-                                                       : Constants::CA_URL_HISTORY);
+                          : (&aspect == &caUrl)        ? Constants::CA_URL_HISTORY
+                                                       : Constants::QR_URL_HISTORY);
 #if QODEASSIST_QT_CREATOR_VERSION >= QT_VERSION_CHECK(18, 0, 0)
     QStringList historyList
         = Utils::QtcSettings().value(Utils::Key(key.toLocal8Bit())).toStringList();
@@ -428,6 +491,31 @@ void GeneralSettings::showUrlSelectionDialog(
     addDialogButtons(dialog.buttonLayout(), okButton, cancelButton);
 
     urlList->setFocus();
+    dialog.exec();
+}
+
+void GeneralSettings::showTemplateInfoDialog(const Utils::StringAspect &descriptionAspect, const QString &templateName)
+{
+    SettingsDialog dialog(Tr::tr("Template Information"));
+    dialog.addLabel(QString("<b>%1:</b> %2").arg(Tr::tr("Template"), templateName));
+    dialog.addSpacing();
+
+    auto *descriptionLabel = new QLabel(Tr::tr("Description:"));
+    dialog.layout()->addWidget(descriptionLabel);
+
+    auto *textEdit = new QTextEdit();
+    textEdit->setReadOnly(true);
+    textEdit->setMinimumHeight(200);
+    textEdit->setMinimumWidth(500);
+    textEdit->setText(descriptionAspect.value());
+    dialog.layout()->addWidget(textEdit);
+
+    dialog.addSpacing();
+
+    auto *closeButton = new QPushButton(TrConstants::CLOSE);
+    connect(closeButton, &QPushButton::clicked, &dialog, &QDialog::accept);
+    dialog.buttonLayout()->addWidget(closeButton);
+
     dialog.exec();
 }
 
@@ -471,6 +559,22 @@ void GeneralSettings::setupConnections()
         caCustomEndpoint.setEnabled(
             caEndpointMode.volatileValue() == caEndpointMode.indexForDisplay("Custom"));
     });
+    connect(&qrEndpointMode, &Utils::BaseAspect::volatileValueChanged, this, [this]() {
+        qrCustomEndpoint.setEnabled(
+            qrEndpointMode.volatileValue() == qrEndpointMode.indexForDisplay("Custom"));
+    });
+
+    connect(&ccShowTemplateInfo, &ButtonAspect::clicked, this, [this]() {
+        showTemplateInfoDialog(ccTemplateDescription, ccTemplate.value());
+    });
+
+    connect(&caShowTemplateInfo, &ButtonAspect::clicked, this, [this]() {
+        showTemplateInfoDialog(caTemplateDescription, caTemplate.value());
+    });
+
+    connect(&qrShowTemplateInfo, &ButtonAspect::clicked, this, [this]() {
+        showTemplateInfoDialog(qrTemplateDescription, qrTemplate.value());
+    });
 }
 
 void GeneralSettings::resetPageToDefaults()
@@ -506,6 +610,12 @@ void GeneralSettings::resetPageToDefaults()
         resetAspect(ccPreset1CustomEndpoint);
         resetAspect(caEndpointMode);
         resetAspect(caCustomEndpoint);
+        resetAspect(qrProvider);
+        resetAspect(qrModel);
+        resetAspect(qrTemplate);
+        resetAspect(qrUrl);
+        resetAspect(qrEndpointMode);
+        resetAspect(qrCustomEndpoint);
         writeSettings();
     }
 }
