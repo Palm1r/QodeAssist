@@ -22,6 +22,7 @@
 #include <QPainter>
 #include <QTimer>
 #include <QWidget>
+#include <functional>
 
 #include <utils/progressindicator.h>
 #include <utils/theme/theme.h>
@@ -30,12 +31,21 @@ namespace QodeAssist {
 
 class ProgressWidget : public QWidget
 {
+    Q_OBJECT
 public:
     ProgressWidget(QWidget *parent = nullptr);
     ~ProgressWidget();
 
+    void setCancelCallback(std::function<void()> callback);
+
+signals:
+    void cancelRequested();
+
 protected:
     void paintEvent(QPaintEvent *) override;
+    void enterEvent(QEnterEvent *event) override;
+    void leaveEvent(QEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
 
 private:
     QTimer m_timer;
@@ -43,6 +53,9 @@ private:
     QColor m_textColor;
     QColor m_backgroundColor;
     QPixmap m_logoPixmap;
+    QPixmap m_closePixmap;
+    bool m_isHovered;
+    std::function<void()> m_cancelCallback;
 };
 
 } // namespace QodeAssist

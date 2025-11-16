@@ -53,6 +53,9 @@ public:
     void requestQuickRefactor(
         TextEditor::TextEditorWidget *editor, const QString &instructions = QString());
 
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
 private:
     void scheduleRequest(TextEditor::TextEditorWidget *editor);
     void handleCompletions(

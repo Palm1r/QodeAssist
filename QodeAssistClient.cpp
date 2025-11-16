@@ -65,8 +65,7 @@ QodeAssistClient::QodeAssistClient(LLMClientInterface *clientInterface)
     setupConnections();
 
     m_typingTimer.start();
-    
-    // Create hover handler for refactoring suggestions
+
     m_refactorHoverHandler = new RefactorSuggestionHoverHandler();
 }
 
@@ -83,12 +82,12 @@ void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
         return;
 
     Client::openDocument(document);
-    
-    // Register hover handler for this document
+
     auto editors = TextEditor::BaseTextEditor::textEditorsForDocument(document);
     for (auto *editor : editors) {
         if (auto *widget = editor->editorWidget()) {
             widget->addHoverHandler(m_refactorHoverHandler);
+            widget->installEventFilter(this);
         }
     }
     connect(
@@ -187,11 +186,16 @@ void QodeAssistClient::requestCompletions(TextEditor::TextEditorWidget *editor)
          documentVersion(filePath),
          Position(cursor.mainCursor())}};
     if (Settings::codeCompletionSettings().showProgressWidget()) {
+        // Setup cancel callback before showing progress
+        m_progressHandler.setCancelCallback([this, editor = QPointer<TextEditorWidget>(editor)]() {
+            if (editor) {
+                cancelRunningRequest(editor);
+            }
+        });
         m_progressHandler.showProgress(editor);
     }
     request.setResponseCallback([this, editor = QPointer<TextEditorWidget>(editor)](
                                     const GetCompletionRequest::Response &response) {
-        qDebug() << "setResponseCallback";
         QTC_ASSERT(editor, return);
         handleCompletions(response, editor);
     });
@@ -224,6 +228,13 @@ void QodeAssistClient::requestQuickRefactor(
             &QodeAssistClient::handleRefactoringResult);
     }
 
+    // Setup cancel callback before showing progress
+    m_progressHandler.setCancelCallback([this, editor = QPointer<TextEditorWidget>(editor)]() {
+        if (editor && m_refactorHandler) {
+            m_refactorHandler->cancelRequest();
+            m_progressHandler.hideProgress();
+        }
+    });
     m_progressHandler.showProgress(editor);
     m_refactorHandler->sendRefactorRequest(editor, instructions);
 }
@@ -260,14 +271,12 @@ void QodeAssistClient::scheduleRequest(TextEditor::TextEditorWidget *editor)
 void QodeAssistClient::handleCompletions(
     const GetCompletionRequest::Response &response, TextEditor::TextEditorWidget *editor)
 {
-    qDebug() << "hideProgress";
     m_progressHandler.hideProgress();
 
     if (response.error()) {
         log(*response.error());
-        
-        QString errorMessage = tr("Code completion failed: %1")
-                                   .arg(response.error()->message());
+
+        QString errorMessage = tr("Code completion failed: %1").arg(response.error()->message());
         m_errorHandler.showError(editor, errorMessage);
         return;
     }
@@ -314,7 +323,7 @@ void QodeAssistClient::handleCompletions(
             Text::Position pos{toTextPos(c.position())};
             return TextSuggestion::Data{range, pos, c.text()};
         });
-        
+
         if (completions.isEmpty()) {
             LOG_MESSAGE("No valid completions received");
             return;
@@ -379,11 +388,11 @@ void QodeAssistClient::handleRefactoringResult(const RefactorResult &result)
         QString errorMessage = result.errorMessage.isEmpty()
                                    ? tr("Quick refactor failed")
                                    : tr("Quick refactor failed: %1").arg(result.errorMessage);
-        
+
         if (result.editor) {
             m_errorHandler.showError(result.editor, errorMessage);
         }
-        
+
         LOG_MESSAGE(QString("Refactoring failed: %1").arg(result.errorMessage));
         return;
     }
@@ -404,14 +413,14 @@ void QodeAssistClient::handleRefactoringResult(const RefactorResult &result)
 
     int startPos = range.begin.toPositionInDocument(editorWidget->document());
     int endPos = range.end.toPositionInDocument(editorWidget->document());
-    
+
     if (startPos != endPos) {
         QTextCursor startCursor(editorWidget->document());
         startCursor.setPosition(startPos);
         if (startCursor.positionInBlock() > 0) {
             startCursor.movePosition(QTextCursor::StartOfBlock);
         }
-        
+
         QTextCursor endCursor(editorWidget->document());
         endCursor.setPosition(endPos);
         if (endCursor.positionInBlock() > 0) {
@@ -420,20 +429,19 @@ void QodeAssistClient::handleRefactoringResult(const RefactorResult &result)
                 endCursor.movePosition(QTextCursor::NextCharacter);
             }
         }
-        
+
         Utils::Text::Position expandedBegin = Utils::Text::Position::fromPositionInDocument(
             editorWidget->document(), startCursor.position());
         Utils::Text::Position expandedEnd = Utils::Text::Position::fromPositionInDocument(
             editorWidget->document(), endCursor.position());
-        
+
         range = Utils::Text::Range(expandedBegin, expandedEnd);
     }
 
     TextEditor::TextSuggestion::Data suggestionData{
-        Utils::Text::Range{toTextPos(result.insertRange.begin), toTextPos(result.insertRange.end)}, 
-        pos, 
-        result.newText
-    };
+        Utils::Text::Range{toTextPos(result.insertRange.begin), toTextPos(result.insertRange.end)},
+        pos,
+        result.newText};
     editorWidget->insertSuggestion(
         std::make_unique<RefactorSuggestion>(suggestionData, editorWidget->document()));
 
@@ -451,6 +459,38 @@ void QodeAssistClient::handleRefactoringResult(const RefactorResult &result)
     });
 
     LOG_MESSAGE("Displaying refactoring suggestion with hover handler");
+}
+
+bool QodeAssistClient::eventFilter(QObject *watched, QEvent *event)
+{
+    if (event->type() == QEvent::KeyPress || event->type() == QEvent::KeyRelease) {
+        auto *keyEvent = static_cast<QKeyEvent *>(event);
+
+        if (keyEvent->key() == Qt::Key_Escape) {
+            auto *editor = qobject_cast<TextEditor::TextEditorWidget *>(watched);
+
+            if (editor) {
+                if (m_runningRequests.contains(editor)) {
+                    cancelRunningRequest(editor);
+                }
+
+                if (m_scheduledRequests.contains(editor)) {
+                    auto *timer = m_scheduledRequests.value(editor);
+                    if (timer && timer->isActive()) {
+                        timer->stop();
+                    }
+                }
+
+                if (m_refactorHandler && m_refactorHandler->isProcessing()) {
+                    m_refactorHandler->cancelRequest();
+                }
+
+                m_progressHandler.hideProgress();
+            }
+        }
+    }
+
+    return LanguageClient::Client::eventFilter(watched, event);
 }
 
 } // namespace QodeAssist

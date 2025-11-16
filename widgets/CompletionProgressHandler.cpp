@@ -60,6 +60,11 @@ void CompletionProgressHandler::hideProgress()
     Utils::ToolTip::hideImmediately();
 }
 
+void CompletionProgressHandler::setCancelCallback(std::function<void()> callback)
+{
+    m_cancelCallback = callback;
+}
+
 void CompletionProgressHandler::identifyMatch(
     TextEditor::TextEditorWidget *editorWidget, int pos, ReportPriority report)
 {
@@ -82,6 +87,11 @@ void CompletionProgressHandler::operateTooltip(
     }
 
     m_progressWidget = new ProgressWidget(editorWidget);
+    
+    // Set cancel callback for the widget
+    if (m_cancelCallback) {
+        m_progressWidget->setCancelCallback(m_cancelCallback);
+    }
     
     const QRect cursorRect = editorWidget->cursorRect(editorWidget->textCursor());
     QPoint globalPos = editorWidget->viewport()->mapToGlobal(cursorRect.topLeft());

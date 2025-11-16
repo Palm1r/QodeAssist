@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -19,10 +19,15 @@
 
 #include "ProgressWidget.hpp"
 
+#include <QApplication>
+#include <QMouseEvent>
+#include <QStyle>
+
 namespace QodeAssist {
 
 ProgressWidget::ProgressWidget(QWidget *parent)
     : QWidget(parent)
+    , m_isHovered(false)
 {
     m_dotPosition = 0;
     m_timer.setInterval(300);
@@ -64,11 +69,20 @@ ProgressWidget::ProgressWidget(QWidget *parent)
     }
 
     setFixedSize(40, 40);
+    setMouseTracking(true);
+
+    QIcon closeIcon = QApplication::style()->standardIcon(QStyle::SP_DockWidgetCloseButton);
+    m_closePixmap = closeIcon.pixmap(16, 16);
 }
 
 ProgressWidget::~ProgressWidget()
 {
     m_timer.stop();
+}
+
+void ProgressWidget::setCancelCallback(std::function<void()> callback)
+{
+    m_cancelCallback = callback;
 }
 
 void ProgressWidget::paintEvent(QPaintEvent *)
@@ -78,10 +92,21 @@ void ProgressWidget::paintEvent(QPaintEvent *)
 
     painter.fillRect(rect(), m_backgroundColor);
 
-    if (!m_logoPixmap.isNull()) {
-        QRect logoRect(
-            (width() - m_logoPixmap.width()) / 2, 5, m_logoPixmap.width(), m_logoPixmap.height());
-        painter.drawPixmap(logoRect, m_logoPixmap);
+    if (m_isHovered) {
+        if (!m_closePixmap.isNull()) {
+            int x = ((width() - (m_closePixmap.width() / 2)) / 2);
+            int y = ((height() - (m_closePixmap.height() / 2)) / 2);
+            painter.drawPixmap(x, y, m_closePixmap);
+        }
+    } else {
+        if (!m_logoPixmap.isNull()) {
+            QRect logoRect(
+                (width() - m_logoPixmap.width()) / 2,
+                5,
+                m_logoPixmap.width(),
+                m_logoPixmap.height());
+            painter.drawPixmap(logoRect, m_logoPixmap);
+        }
     }
 
     int dotSpacing = 6;
@@ -109,6 +134,33 @@ void ProgressWidget::paintEvent(QPaintEvent *)
         int x = startX + i * (dotSize + dotSpacing);
         painter.drawEllipse(x, dotY, dotSize, dotSize);
     }
+}
+
+void ProgressWidget::enterEvent(QEnterEvent *event)
+{
+    Q_UNUSED(event);
+    m_isHovered = true;
+    setCursor(Qt::PointingHandCursor);
+    update();
+}
+
+void ProgressWidget::leaveEvent(QEvent *event)
+{
+    Q_UNUSED(event);
+    m_isHovered = false;
+    setCursor(Qt::ArrowCursor);
+    update();
+}
+
+void ProgressWidget::mousePressEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton && m_isHovered) {
+        emit cancelRequested();
+        if (m_cancelCallback) {
+            m_cancelCallback();
+        }
+    }
+    QWidget::mousePressEvent(event);
 }
 
 } // namespace QodeAssist
