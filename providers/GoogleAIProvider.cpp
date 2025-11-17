@@ -525,6 +525,11 @@ void GoogleAIProvider::emitPendingThinkingBlocks(const QString &requestId)
 
     for (int i = alreadyEmitted; i < totalBlocks; ++i) {
         auto thinkingContent = thinkingBlocks[i];
+        
+        if (thinkingContent->thinking().trimmed().isEmpty()) {
+            continue;
+        }
+        
         emit thinkingBlockReceived(
             requestId, 
             thinkingContent->thinking(), 
