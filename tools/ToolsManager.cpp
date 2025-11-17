@@ -127,13 +127,14 @@ void ToolsManager::executeNextTool(const QString &requestId)
     LOG_MESSAGE(QString("ToolsManager: Started async execution of %1").arg(tool.name));
 }
 
-QJsonArray ToolsManager::getToolsDefinitions(LLMCore::ToolSchemaFormat format) const
+QJsonArray ToolsManager::getToolsDefinitions(
+    LLMCore::ToolSchemaFormat format, LLMCore::RunToolsFilter filter) const
 {
     if (!m_toolsFactory) {
         return QJsonArray();
     }
 
-    return m_toolsFactory->getToolsDefinitions(format);
+    return m_toolsFactory->getToolsDefinitions(format, filter);
 }
 
 void ToolsManager::cleanupRequest(const QString &requestId)

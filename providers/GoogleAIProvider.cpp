@@ -142,8 +142,13 @@ void GoogleAIProvider::prepareRequest(
     }
 
     if (isToolsEnabled) {
+        LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL;
+        if (type == LLMCore::RequestType::QuickRefactoring) {
+            filter = LLMCore::RunToolsFilter::OnlyRead;
+        }
+
         auto toolsDefinitions = m_toolsManager->getToolsDefinitions(
-            LLMCore::ToolSchemaFormat::Google);
+            LLMCore::ToolSchemaFormat::Google, filter);
         if (!toolsDefinitions.isEmpty()) {
             request["tools"] = toolsDefinitions;
             LOG_MESSAGE(QString("Added %1 tools to Google AI request").arg(toolsDefinitions.size()));

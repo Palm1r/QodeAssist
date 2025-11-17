@@ -59,7 +59,9 @@ public:
         const QString &toolName,
         const QJsonObject &input);
 
-    QJsonArray getToolsDefinitions(LLMCore::ToolSchemaFormat format) const;
+    QJsonArray getToolsDefinitions(
+        LLMCore::ToolSchemaFormat format,
+        LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL) const;
     void cleanupRequest(const QString &requestId);
 
     ToolsFactory *toolsFactory() const;

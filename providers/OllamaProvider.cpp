@@ -113,8 +113,13 @@ void OllamaProvider::prepareRequest(
     }
 
     if (isToolsEnabled) {
+        LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL;
+        if (type == LLMCore::RequestType::QuickRefactoring) {
+            filter = LLMCore::RunToolsFilter::OnlyRead;
+        }
+
         auto toolsDefinitions = m_toolsManager->toolsFactory()->getToolsDefinitions(
-            LLMCore::ToolSchemaFormat::Ollama);
+            LLMCore::ToolSchemaFormat::Ollama, filter);
         if (!toolsDefinitions.isEmpty()) {
             request["tools"] = toolsDefinitions;
             LOG_MESSAGE(

@@ -36,6 +36,14 @@ enum ToolPermission {
     NetworkAccess = 1 << 2
 };
 Q_DECLARE_FLAGS(ToolPermissions, ToolPermission)
+Q_DECLARE_OPERATORS_FOR_FLAGS(ToolPermissions)
+
+enum class RunToolsFilter {
+    ALL,              // Run all tools (no filtering)
+    OnlyRead,         // Run only read tools (FileSystemRead + None)
+    OnlyWrite,        // Run only write tools (FileSystemWrite)
+    OnlyNetworking    // Run only network tools (NetworkAccess)
+};
 
 class BaseTool : public QObject
 {
