@@ -24,37 +24,15 @@
 
 namespace QodeAssist {
 
-/**
- * @brief Persistent refactoring suggestion that displays code changes inline
- * 
- * Unlike LLMSuggestion which supports partial acceptance (word/line), 
- * RefactorSuggestion is designed to show complete refactoring results 
- * that must be either fully accepted or rejected by the user.
- */
 class RefactorSuggestion : public TextEditor::TextSuggestion
 {
 public:
-    /**
-     * @brief Constructs a refactoring suggestion
-     * @param suggestion Suggestion data (range, position, text)
-     * @param sourceDocument The document where suggestion will be displayed
-     */
     RefactorSuggestion(const Data &suggestion, QTextDocument *sourceDocument);
 
-    /**
-     * @brief Applies the full refactoring suggestion with smart overlapping
-     * @return true if suggestion was applied successfully
-     */
     bool apply() override;
 
-    /**
-     * @brief Disabled: Word-by-word acceptance not supported for refactoring
-     */
     bool applyWord(TextEditor::TextEditorWidget *widget) override;
 
-    /**
-     * @brief Disabled: Line-by-line acceptance not supported for refactoring
-     */
     bool applyLine(TextEditor::TextEditorWidget *widget) override;
 
 private:
