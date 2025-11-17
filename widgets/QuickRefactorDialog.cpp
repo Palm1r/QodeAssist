@@ -58,6 +58,8 @@ QuickRefactorDialog::QuickRefactorDialog(QWidget *parent, const QString &lastIns
     QTimer::singleShot(0, this, &QuickRefactorDialog::updateDialogSize);
     m_textEdit->installEventFilter(this);
     updateDialogSize();
+
+    m_commandsComboBox->setFocus();
 }
 
 void QuickRefactorDialog::setupUi()
