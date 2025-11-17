@@ -117,6 +117,8 @@ add_qtc_plugin(QodeAssist
     widgets/EditorChatButton.hpp widgets/EditorChatButton.cpp
     widgets/EditorChatButtonHandler.hpp widgets/EditorChatButtonHandler.cpp
     widgets/QuickRefactorDialog.hpp widgets/QuickRefactorDialog.cpp
+    widgets/CustomInstructionsManager.hpp widgets/CustomInstructionsManager.cpp
+    widgets/AddCustomInstructionDialog.hpp widgets/AddCustomInstructionDialog.cpp
 
     QuickRefactorHandler.hpp QuickRefactorHandler.cpp
     tools/ToolsFactory.hpp tools/ToolsFactory.cpp

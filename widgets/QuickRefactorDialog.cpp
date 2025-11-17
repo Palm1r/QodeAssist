@@ -18,18 +18,30 @@
  */
 
 #include "QuickRefactorDialog.hpp"
+#include "AddCustomInstructionDialog.hpp"
+#include "CustomInstructionsManager.hpp"
 #include "QodeAssisttr.h"
 
 #include <QApplication>
+#include <QComboBox>
+#include <QCompleter>
+#include <QDesktopServices>
 #include <QDialogButtonBox>
+#include <QDir>
 #include <QFontMetrics>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QLineEdit>
+#include <QMessageBox>
 #include <QPlainTextEdit>
 #include <QScreen>
+#include <QStringListModel>
 #include <QTimer>
 #include <QToolButton>
+#include <QUrl>
 #include <QVBoxLayout>
+
+#include <coreplugin/icore.h>
 
 #include <utils/theme/theme.h>
 #include <utils/utilsicons.h>
@@ -63,16 +75,78 @@ void QuickRefactorDialog::setupUi()
     actionsLayout->addStretch();
     mainLayout->addLayout(actionsLayout);
 
-    m_instructionsLabel = new QLabel(Tr::tr("Enter refactoring instructions:"), this);
+    QHBoxLayout *instructionsLayout = new QHBoxLayout();
+    instructionsLayout->setSpacing(4);
+
+    QLabel *instructionsLabel = new QLabel(Tr::tr("Custom Instructions:"), this);
+    instructionsLayout->addWidget(instructionsLabel);
+
+    m_commandsComboBox = new QComboBox(this);
+    m_commandsComboBox->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
+    m_commandsComboBox->setEditable(true);
+    m_commandsComboBox->setInsertPolicy(QComboBox::NoInsert);
+    m_commandsComboBox->lineEdit()->setPlaceholderText("Search or select instruction...");
+    
+    QCompleter *completer = new QCompleter(this);
+    completer->setCompletionMode(QCompleter::PopupCompletion);
+    completer->setCaseSensitivity(Qt::CaseInsensitive);
+    completer->setFilterMode(Qt::MatchContains);
+    m_commandsComboBox->setCompleter(completer);
+    
+    instructionsLayout->addWidget(m_commandsComboBox);
+
+    m_addCommandButton = new QToolButton(this);
+    m_addCommandButton->setText("+");
+    m_addCommandButton->setToolTip(Tr::tr("Add Custom Instruction"));
+    instructionsLayout->addWidget(m_addCommandButton);
+
+    m_editCommandButton = new QToolButton(this);
+    m_editCommandButton->setText("✎");
+    m_editCommandButton->setToolTip(Tr::tr("Edit Custom Instruction"));
+    instructionsLayout->addWidget(m_editCommandButton);
+
+    m_deleteCommandButton = new QToolButton(this);
+    m_deleteCommandButton->setText("−");
+    m_deleteCommandButton->setToolTip(Tr::tr("Delete Custom Instruction"));
+    instructionsLayout->addWidget(m_deleteCommandButton);
+
+    m_openFolderButton = new QToolButton(this);
+    m_openFolderButton->setText("📁");
+    m_openFolderButton->setToolTip(Tr::tr("Open Instructions Folder"));
+    instructionsLayout->addWidget(m_openFolderButton);
+
+    mainLayout->addLayout(instructionsLayout);
+
+    m_instructionsLabel = new QLabel(Tr::tr("Additional instructions (optional):"), this);
     mainLayout->addWidget(m_instructionsLabel);
 
     m_textEdit = new QPlainTextEdit(this);
     m_textEdit->setMinimumHeight(100);
-    m_textEdit->setPlaceholderText(Tr::tr("Type your refactoring instructions here..."));
+    m_textEdit->setPlaceholderText(Tr::tr("Add extra details or modifications to the selected instruction..."));
 
     connect(m_textEdit, &QPlainTextEdit::textChanged, this, &QuickRefactorDialog::updateDialogSize);
+    connect(
+        m_commandsComboBox,
+        QOverload<int>::of(&QComboBox::currentIndexChanged),
+        this,
+        &QuickRefactorDialog::onCommandSelected);
+    connect(m_addCommandButton, &QToolButton::clicked, this, &QuickRefactorDialog::onAddCustomCommand);
+    connect(
+        m_editCommandButton, &QToolButton::clicked, this, &QuickRefactorDialog::onEditCustomCommand);
+    connect(
+        m_deleteCommandButton,
+        &QToolButton::clicked,
+        this,
+        &QuickRefactorDialog::onDeleteCustomCommand);
+    connect(
+        m_openFolderButton,
+        &QToolButton::clicked,
+        this,
+        &QuickRefactorDialog::onOpenInstructionsFolder);
 
     mainLayout->addWidget(m_textEdit);
+
+    loadCustomCommands();
 
     QDialogButtonBox *buttonBox
         = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
@@ -113,7 +187,22 @@ void QuickRefactorDialog::createActionButtons()
 
 QString QuickRefactorDialog::instructions() const
 {
-    return m_textEdit->toPlainText();
+    QString result;
+    
+    CustomInstruction instruction = findCurrentInstruction();
+    if (!instruction.id.isEmpty()) {
+        result = instruction.body;
+    }
+    
+    QString additionalText = m_textEdit->toPlainText().trimmed();
+    if (!additionalText.isEmpty()) {
+        if (!result.isEmpty()) {
+            result += "\n\n";
+        }
+        result += additionalText;
+    }
+    
+    return result;
 }
 
 void QuickRefactorDialog::setInstructions(const QString &instructions)
@@ -145,6 +234,8 @@ bool QuickRefactorDialog::eventFilter(QObject *watched, QEvent *event)
 void QuickRefactorDialog::useLastInstructions()
 {
     if (!m_lastInstructions.isEmpty()) {
+        m_commandsComboBox->setCurrentIndex(0);
+        m_commandsComboBox->clearEditText(); // Clear search text
         m_textEdit->setPlainText(m_lastInstructions);
         m_selectedAction = Action::RepeatLast;
     }
@@ -153,6 +244,8 @@ void QuickRefactorDialog::useLastInstructions()
 
 void QuickRefactorDialog::useImproveCodeTemplate()
 {
+    m_commandsComboBox->setCurrentIndex(0);
+    m_commandsComboBox->clearEditText(); // Clear search text
     m_textEdit->setPlainText(Tr::tr(
         "Improve the selected code by enhancing readability, efficiency, and maintainability. "
         "Follow best practices for C++/Qt and fix any potential issues."));
@@ -162,6 +255,8 @@ void QuickRefactorDialog::useImproveCodeTemplate()
 
 void QuickRefactorDialog::useAlternativeSolutionTemplate()
 {
+    m_commandsComboBox->setCurrentIndex(0);
+    m_commandsComboBox->clearEditText(); // Clear search text
     m_textEdit->setPlainText(
         Tr::tr("Suggest an alternative implementation approach for the selected code. "
                "Provide a different solution that might be cleaner, more efficient, "
@@ -212,6 +307,157 @@ void QuickRefactorDialog::updateDialogSize()
     newHeight = qMin(newHeight, screenGeometry.height() * 3 / 4);
 
     resize(newWidth, newHeight);
+}
+
+void QuickRefactorDialog::loadCustomCommands()
+{
+    m_commandsComboBox->clear();
+    m_commandsComboBox->addItem("", QString()); // Empty item for no selection
+
+    auto &manager = CustomInstructionsManager::instance();
+    const QVector<CustomInstruction> &instructions = manager.instructions();
+
+    QStringList instructionNames;
+    for (const CustomInstruction &instruction : instructions) {
+        m_commandsComboBox->addItem(instruction.name, instruction.id);
+        instructionNames.append(instruction.name);
+    }
+
+    if (m_commandsComboBox->completer()) {
+        QStringListModel *model = new QStringListModel(instructionNames, this);
+        m_commandsComboBox->completer()->setModel(model);
+    }
+
+    bool hasInstructions = !instructions.isEmpty();
+    m_editCommandButton->setEnabled(hasInstructions);
+    m_deleteCommandButton->setEnabled(hasInstructions);
+}
+
+CustomInstruction QuickRefactorDialog::findCurrentInstruction() const
+{
+    QString currentText = m_commandsComboBox->currentText().trimmed();
+    if (currentText.isEmpty()) {
+        return CustomInstruction();
+    }
+
+    auto &manager = CustomInstructionsManager::instance();
+    const QVector<CustomInstruction> &instructions = manager.instructions();
+    
+    for (const CustomInstruction &instruction : instructions) {
+        if (instruction.name == currentText) {
+            return instruction;
+        }
+    }
+    
+    int currentIndex = m_commandsComboBox->currentIndex();
+    if (currentIndex > 0) {
+        QString instructionId = m_commandsComboBox->itemData(currentIndex).toString();
+        if (!instructionId.isEmpty()) {
+            return manager.getInstructionById(instructionId);
+        }
+    }
+    
+    return CustomInstruction();
+}
+
+void QuickRefactorDialog::onCommandSelected(int index)
+{
+    Q_UNUSED(index);
+}
+
+void QuickRefactorDialog::onAddCustomCommand()
+{
+    AddCustomInstructionDialog dialog(this);
+    if (dialog.exec() == QDialog::Accepted) {
+        CustomInstruction instruction = dialog.getInstruction();
+        auto &manager = CustomInstructionsManager::instance();
+
+        if (manager.saveInstruction(instruction)) {
+            loadCustomCommands();
+            
+            m_commandsComboBox->setCurrentText(instruction.name);
+            
+            m_textEdit->clear();
+        } else {
+            QMessageBox::warning(
+                this,
+                Tr::tr("Error"),
+                Tr::tr("Failed to save custom instruction. Check logs for details."));
+        }
+    }
+}
+
+void QuickRefactorDialog::onEditCustomCommand()
+{
+    CustomInstruction instruction = findCurrentInstruction();
+    
+    if (instruction.id.isEmpty()) {
+        QMessageBox::information(
+            this, Tr::tr("No Instruction Selected"), Tr::tr("Please select an instruction to edit."));
+        return;
+    }
+
+    AddCustomInstructionDialog dialog(instruction, this);
+    if (dialog.exec() == QDialog::Accepted) {
+        CustomInstruction updatedInstruction = dialog.getInstruction();
+        auto &manager = CustomInstructionsManager::instance();
+
+        if (manager.saveInstruction(updatedInstruction)) {
+            loadCustomCommands();
+            m_commandsComboBox->setCurrentText(updatedInstruction.name);
+            m_textEdit->clear();
+        } else {
+            QMessageBox::warning(
+                this,
+                Tr::tr("Error"),
+                Tr::tr("Failed to update custom instruction. Check logs for details."));
+        }
+    }
+}
+
+void QuickRefactorDialog::onDeleteCustomCommand()
+{
+    CustomInstruction instruction = findCurrentInstruction();
+    
+    if (instruction.id.isEmpty()) {
+        QMessageBox::information(
+            this, Tr::tr("No Instruction Selected"), Tr::tr("Please select an instruction to delete."));
+        return;
+    }
+
+    QMessageBox::StandardButton reply = QMessageBox::question(
+        this,
+        Tr::tr("Confirm Deletion"),
+        Tr::tr("Are you sure you want to delete the instruction '%1'?").arg(instruction.name),
+        QMessageBox::Yes | QMessageBox::No);
+
+    if (reply == QMessageBox::Yes) {
+        auto &manager = CustomInstructionsManager::instance();
+        if (manager.deleteInstruction(instruction.id)) {
+            loadCustomCommands();
+            m_commandsComboBox->setCurrentIndex(0);
+            m_commandsComboBox->clearEditText();
+        } else {
+            QMessageBox::warning(
+                this,
+                Tr::tr("Error"),
+                Tr::tr("Failed to delete custom instruction. Check logs for details."));
+        }
+    }
+}
+
+void QuickRefactorDialog::onOpenInstructionsFolder()
+{
+    QString path = QString("%1/qodeassist/quick_refactor/instructions")
+                       .arg(Core::ICore::userResourcePath().toFSPathString());
+    
+    QDir dir(path);
+    if (!dir.exists()) {
+        dir.mkpath(".");
+    }
+    
+    QUrl url = QUrl::fromLocalFile(dir.absolutePath());
+    QDesktopServices::openUrl(url);
 }
 
 } // namespace QodeAssist

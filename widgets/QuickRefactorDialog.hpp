@@ -21,10 +21,12 @@
 
 #include <QDialog>
 #include <QString>
+#include "CustomInstructionsManager.hpp"
 
 class QPlainTextEdit;
 class QToolButton;
 class QLabel;
+class QComboBox;
 
 namespace QodeAssist {
 
@@ -51,15 +53,27 @@ private slots:
     void useImproveCodeTemplate();
     void useAlternativeSolutionTemplate();
     void updateDialogSize();
+    void onCommandSelected(int index);
+    void onAddCustomCommand();
+    void onEditCustomCommand();
+    void onDeleteCustomCommand();
+    void onOpenInstructionsFolder();
+    void loadCustomCommands();
 
 private:
     void setupUi();
     void createActionButtons();
+    CustomInstruction findCurrentInstruction() const;
 
     QPlainTextEdit *m_textEdit;
     QToolButton *m_repeatButton;
     QToolButton *m_improveButton;
     QToolButton *m_alternativeButton;
+    QToolButton *m_addCommandButton;
+    QToolButton *m_editCommandButton;
+    QToolButton *m_deleteCommandButton;
+    QToolButton *m_openFolderButton;
+    QComboBox *m_commandsComboBox;
     QLabel *m_instructionsLabel;
 
     Action m_selectedAction = Action::Custom;

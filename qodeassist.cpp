@@ -59,6 +59,7 @@
 #include "settings/ProjectSettingsPanel.hpp"
 #include "settings/SettingsConstants.hpp"
 #include "templates/Templates.hpp"
+#include "widgets/CustomInstructionsManager.hpp"
 #include "widgets/QuickRefactorDialog.hpp"
 #include <ChatView/ChatView.hpp>
 #include <coreplugin/actionmanager/actioncontainer.h>
@@ -127,6 +128,8 @@ public:
 
         Providers::registerProviders();
         Templates::registerTemplates();
+        
+        CustomInstructionsManager::instance().loadInstructions();
 
         Utils::Icon QCODEASSIST_ICON(
             {{":/resources/images/qoderassist-icon.png", Utils::Theme::IconsBaseColor}});
