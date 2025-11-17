@@ -151,6 +151,27 @@ QodeAssist supports multiple LLM providers. Choose your preferred provider and f
 - Context-aware suggestions
 - Multiline completions
 
+#### Completion Trigger Modes
+
+QodeAssist offers two trigger modes for code completion:
+
+**Hint-based (Default, Recommended)**
+- Shows a hint indicator near cursor when you type 3+ characters
+- Press **Space** (or custom key) to request completion
+- **Best for**: Paid APIs (Claude, OpenAI), conscious control
+- **Benefits**: No unexpected API charges, full control over requests, no workflow interruption
+- **Visual**: Clear indicator shows when completion is ready
+
+**Automatic**
+- Automatically requests completion after typing threshold
+- Works immediately without additional keypresses
+- **Best for**: Local models (Ollama, llama.cpp), maximum automation
+- **Benefits**: Hands-free experience, instant suggestions
+
+💡 **Tip**: Start with Hint-based to avoid unexpected costs. Switch to Automatic if using free local models.
+
+Configure in: `Tools → Options → QodeAssist → Code Completion → General Settings`
+
 ### Chat Assistant
 - Multiple chat panels: side panel, bottom panel, and popup window
 - Chat history with auto-save and restore

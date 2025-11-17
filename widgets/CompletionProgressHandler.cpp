@@ -88,7 +88,6 @@ void CompletionProgressHandler::operateTooltip(
 
     m_progressWidget = new ProgressWidget(editorWidget);
     
-    // Set cancel callback for the widget
     if (m_cancelCallback) {
         m_progressWidget->setCancelCallback(m_cancelCallback);
     }
@@ -96,6 +95,8 @@ void CompletionProgressHandler::operateTooltip(
     const QRect cursorRect = editorWidget->cursorRect(editorWidget->textCursor());
     QPoint globalPos = editorWidget->viewport()->mapToGlobal(cursorRect.topLeft());
     QPoint localPos = editorWidget->mapFromGlobal(globalPos);
+    
+    localPos.rx() += 5;
     localPos.ry() -= m_progressWidget->height() + 5;
     
     if (localPos.y() < 0) {

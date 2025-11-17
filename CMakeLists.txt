@@ -112,6 +112,8 @@ add_qtc_plugin(QodeAssist
     UpdateStatusWidget.hpp UpdateStatusWidget.cpp
     widgets/CompletionProgressHandler.hpp widgets/CompletionProgressHandler.cpp
     widgets/CompletionErrorHandler.hpp widgets/CompletionErrorHandler.cpp
+    widgets/CompletionHintWidget.hpp widgets/CompletionHintWidget.cpp
+    widgets/CompletionHintHandler.hpp widgets/CompletionHintHandler.cpp
     widgets/ProgressWidget.hpp widgets/ProgressWidget.cpp
     widgets/ErrorWidget.hpp widgets/ErrorWidget.cpp
     widgets/EditorChatButton.hpp widgets/EditorChatButton.cpp
