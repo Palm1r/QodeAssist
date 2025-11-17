@@ -4,7 +4,7 @@
 ![GitHub Tag](https://img.shields.io/github/v/tag/Palm1r/QodeAssist)
 [![](https://dcbadge.limes.pink/api/server/BGMkUsXUgf?style=flat)](https://discord.gg/BGMkUsXUgf)
 
-![qodeassist-icon](https://github.com/user-attachments/assets/dc336712-83cb-440d-8761-8d0a31de898d) QodeAssist is an AI-powered coding assistant plugin for Qt Creator. It provides intelligent code completion and suggestions for C++ and QML, leveraging large language models through local providers like Ollama. Enhance your coding productivity with context-aware AI assistance directly in your Qt development environment.
+![qodeassist-icon](https://github.com/user-attachments/assets/dc336712-83cb-440d-8761-8d0a31de898d) QodeAssist is a comprehensive AI-powered coding assistant plugin for Qt Creator. It provides intelligent code completion, interactive chat with multiple interface options, inline quick refactoring, and AI function calling capabilities for C++ and QML development. Supporting both local providers (Ollama, llama.cpp, LM Studio) and cloud services (Claude, OpenAI, Google AI, Mistral AI), QodeAssist enhances your productivity with context-aware AI assistance, project-specific rules, and extensive customization options directly in your Qt development environment.
 
 ⚠️ **Important Notice About Paid Providers**
 > When using paid providers like Claude, OpenRouter or OpenAI-compatible services:
@@ -17,12 +17,13 @@
 2. [Install Plugin](#install-plugin-to-qtcreator)
 3. [Configuration](#configuration)
 4. [Features](#features)
-5. [QtCreator Version Compatibility](#qtcreator-version-compatibility)
-6. [Hotkeys](#hotkeys)
-7. [Troubleshooting](#troubleshooting)
-8. [Development Progress](#development-progress)
-9. [Support the Development](#support-the-development-of-qodeassist)
-10. [How to Build](#how-to-build)
+5. [Context Layers](#context-layers)
+6. [QtCreator Version Compatibility](#qtcreator-version-compatibility)
+7. [Hotkeys](#hotkeys)
+8. [Troubleshooting](#troubleshooting)
+9. [Development Progress](#development-progress)
+10. [Support the Development](#support-the-development-of-qodeassist)
+11. [How to Build](#how-to-build)
 
 ## Overview
 
@@ -172,6 +173,143 @@ QodeAssist supports multiple LLM providers. Choose your preferred provider and f
 - List and search in project
 - Access linter/compiler issues
 - Enabled by default (can be disabled)
+
+## Context Layers
+
+QodeAssist uses a flexible prompt composition system that adapts to different contexts. Here's how prompts are constructed for each feature:
+
+<details>
+  <summary><strong>Code Completion (FIM Models)</strong> - Codestral, Qwen2.5-Coder, DeepSeek-Coder (click to expand)</summary>
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         CODE COMPLETION (FIM Models)                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Examples: Codestral, Qwen2.5-Coder, DeepSeek-Coder                        │
+│                                                                              │
+│  1. System Prompt (from Code Completion Settings - FIM variant)            │
+│  2. Project Rules:                                                          │
+│     └─ .qodeassist/rules/completion/*.md                                   │
+│  3. Open Files Context (optional, if enabled):                             │
+│     └─ Currently open editor files                                         │
+│  4. Code Context:                                                           │
+│     ├─ Code before cursor (prefix)                                         │
+│     └─ Code after cursor (suffix)                                          │
+│                                                                              │
+│  Final Prompt: FIM_Template(Prefix: SystemPrompt + Rules + OpenFiles +     │
+│                                     CodeBefore,                             │
+│                             Suffix: CodeAfter)                              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+</details>
+
+<details>
+  <summary><strong>Code Completion (Non-FIM Models)</strong> - DeepSeek-Coder-Instruct, Qwen2.5-Coder-Instruct (click to expand)</summary>
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                     CODE COMPLETION (Non-FIM/Chat Models)                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  Examples: DeepSeek-Coder-Instruct, Qwen2.5-Coder-Instruct                 │
+│                                                                              │
+│  1. System Prompt (from Code Completion Settings - Non-FIM variant)        │
+│     └─ Includes response formatting instructions                           │
+│  2. Project Rules:                                                          │
+│     └─ .qodeassist/rules/completion/*.md                                   │
+│  3. Open Files Context (optional, if enabled):                             │
+│     └─ Currently open editor files                                         │
+│  4. Code Context:                                                           │
+│     ├─ File information (language, path)                                   │
+│     ├─ Code before cursor                                                  │
+│     ├─ <cursor> marker                                                     │
+│     └─ Code after cursor                                                   │
+│  5. User Message: "Complete the code at cursor position"                   │
+│                                                                              │
+│  Final Prompt: [System: SystemPrompt + Rules]                              │
+│                [User: OpenFiles + Context + CompletionRequest]              │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+</details>
+
+<details>
+  <summary><strong>Chat Assistant</strong> - Interactive coding assistant (click to expand)</summary>
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            CHAT ASSISTANT                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  1. System Prompt (from Chat Assistant Settings)                           │
+│  2. Project Rules:                                                          │
+│     ├─ .qodeassist/rules/common/*.md                                       │
+│     └─ .qodeassist/rules/chat/*.md                                         │
+│  3. File Context (optional):                                               │
+│     ├─ Attached files (manual)                                             │
+│     ├─ Linked files (persistent)                                           │
+│     └─ Open editor files (if auto-sync enabled)                            │
+│  4. Tool Definitions (if enabled):                                         │
+│     ├─ ReadProjectFileByName                                               │
+│     ├─ ListProjectFiles                                                    │
+│     ├─ SearchInProject                                                     │
+│     └─ GetIssuesList                                                       │
+│  5. Conversation History                                                    │
+│  6. User Message                                                            │
+│                                                                              │
+│  Final Prompt: [System: SystemPrompt + Rules + Tools]                      │
+│                [History: Previous messages]                                 │
+│                [User: FileContext + UserMessage]                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+</details>
+
+<details>
+  <summary><strong>Quick Refactoring</strong> - Inline code improvements (click to expand)</summary>
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         QUICK REFACTORING                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│  1. System Prompt (from Quick Refactor Settings)                           │
+│  2. Project Rules:                                                          │
+│     ├─ .qodeassist/rules/common/*.md                                       │
+│     └─ .qodeassist/rules/quickrefactor/*.md                                │
+│  3. Code Context:                                                           │
+│     ├─ File information (language, path)                                   │
+│     ├─ Code before selection (configurable amount)                         │
+│     ├─ <selection_start> marker                                            │
+│     ├─ Selected code (or current line)                                     │
+│     ├─ <selection_end> marker                                              │
+│     ├─ <cursor> marker (position within selection)                         │
+│     └─ Code after selection (configurable amount)                          │
+│  4. Refactor Instruction:                                                   │
+│     ├─ Built-in (e.g., "Improve Code", "Alternative Solution")             │
+│     ├─ Custom Instruction (from library)                                   │
+│     │  └─ ~/.config/QtProject/qtcreator/qodeassist/                        │
+│     │      quick_refactor/instructions/*.json                              │
+│     └─ Additional Details (optional user input)                            │
+│  5. Tool Definitions (if enabled)                                          │
+│                                                                              │
+│  Final Prompt: [System: SystemPrompt + Rules]                              │
+│                [User: Context + Markers + Instruction + Details]            │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+</details>
+
+### Key Points
+
+- **Project Rules** are automatically loaded from `.qodeassist/rules/` directory structure
+- **System Prompts** are configured independently for each feature in Settings
+- **FIM vs Non-FIM models** for code completion use different System Prompts:
+  - FIM models: Direct completion prompt
+  - Non-FIM models: Prompt includes response formatting instructions
+- **Quick Refactor** has its own provider/model configuration, independent from Chat
+- **Custom Instructions** provide reusable templates that can be augmented with specific details
+- **Tool Calling** is available for Chat and Quick Refactor when enabled
+
+See [Project Rules Documentation](docs/project-rules.md) and [Quick Refactoring Guide](docs/quick-refactoring.md) for more details.
 
 ## QtCreator Version Compatibility
 
