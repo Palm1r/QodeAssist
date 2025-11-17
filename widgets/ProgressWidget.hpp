@@ -53,7 +53,6 @@ private:
     QColor m_textColor;
     QColor m_backgroundColor;
     QPixmap m_logoPixmap;
-    QPixmap m_closePixmap;
     bool m_isHovered;
     std::function<void()> m_cancelCallback;
 };

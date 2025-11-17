@@ -19,9 +19,7 @@
 
 #include "ProgressWidget.hpp"
 
-#include <QApplication>
 #include <QMouseEvent>
-#include <QStyle>
 
 namespace QodeAssist {
 
@@ -70,9 +68,6 @@ ProgressWidget::ProgressWidget(QWidget *parent)
 
     setFixedSize(40, 40);
     setMouseTracking(true);
-
-    QIcon closeIcon = QApplication::style()->standardIcon(QStyle::SP_DockWidgetCloseButton);
-    m_closePixmap = closeIcon.pixmap(16, 16);
 }
 
 ProgressWidget::~ProgressWidget()
@@ -92,13 +87,7 @@ void ProgressWidget::paintEvent(QPaintEvent *)
 
     painter.fillRect(rect(), m_backgroundColor);
 
-    if (m_isHovered) {
-        if (!m_closePixmap.isNull()) {
-            int x = ((width() - (m_closePixmap.width() / 2)) / 2);
-            int y = ((height() - (m_closePixmap.height() / 2)) / 2);
-            painter.drawPixmap(x, y, m_closePixmap);
-        }
-    } else {
+    if (!m_isHovered) {
         if (!m_logoPixmap.isNull()) {
             QRect logoRect(
                 (width() - m_logoPixmap.width()) / 2,
@@ -107,32 +96,46 @@ void ProgressWidget::paintEvent(QPaintEvent *)
                 m_logoPixmap.height());
             painter.drawPixmap(logoRect, m_logoPixmap);
         }
+
+        int dotSpacing = 6;
+        int dotSize = 4;
+        int totalDotWidth = 3 * dotSize + 2 * dotSpacing;
+        int startX = (width() - totalDotWidth) / 2;
+        int dotY = height() - 8;
+
+        for (int i = 0; i < 3; ++i) {
+            QColor dotColor = m_textColor;
+
+            if (m_dotPosition == 0) {
+                dotColor.setAlpha(128);
+            } else {
+                if (i == m_dotPosition - 1) {
+                    dotColor.setAlpha(255);
+                } else {
+                    dotColor.setAlpha(80);
+                }
+            }
+
+            painter.setPen(Qt::NoPen);
+            painter.setBrush(dotColor);
+
+            int x = startX + i * (dotSize + dotSpacing);
+            painter.drawEllipse(x, dotY, dotSize, dotSize);
+        }
     }
 
-    int dotSpacing = 6;
-    int dotSize = 4;
-    int totalDotWidth = 3 * dotSize + 2 * dotSpacing;
-    int startX = (width() - totalDotWidth) / 2;
-    int dotY = height() - 8;
+    if (m_isHovered) {
+        int closeSize = 14;
+        int centerX = width() / 2;
+        int centerY = height() / 2;
 
-    for (int i = 0; i < 3; ++i) {
-        QColor dotColor = m_textColor;
+        QPen closePen(m_textColor, 2);
+        closePen.setCapStyle(Qt::RoundCap);
+        painter.setPen(closePen);
 
-        if (m_dotPosition == 0) {
-            dotColor.setAlpha(128);
-        } else {
-            if (i == m_dotPosition - 1) {
-                dotColor.setAlpha(255);
-            } else {
-                dotColor.setAlpha(80);
-            }
-        }
-
-        painter.setPen(Qt::NoPen);
-        painter.setBrush(dotColor);
-
-        int x = startX + i * (dotSize + dotSpacing);
-        painter.drawEllipse(x, dotY, dotSize, dotSize);
+        int offset = closeSize / 2;
+        painter.drawLine(centerX - offset, centerY - offset, centerX + offset, centerY + offset);
+        painter.drawLine(centerX + offset, centerY - offset, centerX - offset, centerY + offset);
     }
 }
 
