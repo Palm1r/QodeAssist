@@ -30,11 +30,11 @@ QodeAssist enhances Qt Creator with AI-powered coding assistance:
 
 - **Code Completion**: Intelligent, context-aware code suggestions for C++ and QML
 - **Chat Assistant**: Multiple interface options (popup window, side panel, bottom panel)
-- **Quick Refactoring**: AI-assisted code improvements and alternative suggestions
+- **Quick Refactoring**: Inline AI-assisted code improvements directly in editor with custom instructions library
 - **File Context**: Attach or link files for better AI understanding
 - **Tool Calling**: AI can read project files, search code, and access diagnostics
 - **Multiple Providers**: Support for Ollama, Claude, OpenAI, Google AI, Mistral AI, llama.cpp, and more
-- **Customizable**: Project-specific rules and extensive model templates
+- **Customizable**: Project-specific rules, custom instructions, and extensive model templates
 
 **Join our [Discord Community](https://discord.gg/BGMkUsXUgf)** to get support and connect with other users!
 
@@ -159,9 +159,12 @@ QodeAssist supports multiple LLM providers. Choose your preferred provider and f
 - Extended thinking mode (Claude, other providers in plan) - Enable deeper reasoning for complex tasks
 
 ### Quick Refactoring
-- Fast code refactoring with AI assistance
-- Selection-based improvements
-- Alternative code suggestions
+- Inline code refactoring directly in the editor with AI assistance
+- Selection-based improvements with instant code replacement
+- Built-in quick actions (repeat, improve, alternative)
+- **Custom instructions library** with search and autocomplete
+- Create, edit, and manage reusable refactoring templates
+- Combine base instructions with specific details
 - **[Learn more](docs/quick-refactoring.md)**
 
 ### Tools & Function Calling
