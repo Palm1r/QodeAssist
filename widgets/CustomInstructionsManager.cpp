@@ -93,6 +93,7 @@ bool CustomInstructionsManager::loadInstructions()
         instruction.id = obj["id"].toString();
         instruction.name = obj["name"].toString();
         instruction.body = obj["body"].toString();
+        instruction.isDefault = obj["default"].toBool(false);
 
         if (instruction.id.isEmpty() || instruction.name.isEmpty()) {
             LOG_MESSAGE(QString("Invalid instruction in file: %1").arg(fileInfo.fileName()));
@@ -132,6 +133,33 @@ bool CustomInstructionsManager::saveInstruction(const CustomInstruction &instruc
         }
     }
 
+    // If this instruction is marked as default, remove default flag from all others
+    if (newInstruction.isDefault) {
+        for (int i = 0; i < m_instructions.size(); ++i) {
+            if (m_instructions[i].id != newInstruction.id && m_instructions[i].isDefault) {
+                m_instructions[i].isDefault = false;
+                
+                // Update the file for this instruction
+                QString sanitizedName = m_instructions[i].name;
+                sanitizedName.replace(' ', '_');
+                QString otherFileName = QString("%1/%2_%3.json")
+                    .arg(getInstructionsDirectory(), sanitizedName, m_instructions[i].id);
+                
+                QJsonObject otherObj;
+                otherObj["id"] = m_instructions[i].id;
+                otherObj["name"] = m_instructions[i].name;
+                otherObj["body"] = m_instructions[i].body;
+                otherObj["default"] = false;
+                otherObj["version"] = "0.1";
+                
+                QFile otherFile(otherFileName);
+                if (otherFile.open(QIODevice::WriteOnly)) {
+                    otherFile.write(QJsonDocument(otherObj).toJson(QJsonDocument::Indented));
+                }
+            }
+        }
+    }
+
     int existingIndex = -1;
     for (int i = 0; i < m_instructions.size(); ++i) {
         if (m_instructions[i].id == newInstruction.id) {
@@ -144,6 +172,7 @@ bool CustomInstructionsManager::saveInstruction(const CustomInstruction &instruc
     obj["id"] = newInstruction.id;
     obj["name"] = newInstruction.name;
     obj["body"] = newInstruction.body;
+    obj["default"] = newInstruction.isDefault;
     obj["version"] = "0.1";
 
     QJsonDocument doc(obj);

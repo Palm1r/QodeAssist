@@ -320,14 +320,25 @@ void QuickRefactorDialog::loadCustomCommands()
     const QVector<CustomInstruction> &instructions = manager.instructions();
 
     QStringList instructionNames;
-    for (const CustomInstruction &instruction : instructions) {
+    int defaultInstructionIndex = -1;
+    
+    for (int i = 0; i < instructions.size(); ++i) {
+        const CustomInstruction &instruction = instructions[i];
         m_commandsComboBox->addItem(instruction.name, instruction.id);
         instructionNames.append(instruction.name);
+        
+        if (instruction.isDefault) {
+            defaultInstructionIndex = i + 1;
+        }
     }
 
     if (m_commandsComboBox->completer()) {
         QStringListModel *model = new QStringListModel(instructionNames, this);
         m_commandsComboBox->completer()->setModel(model);
+    }
+
+    if (defaultInstructionIndex > 0) {
+        m_commandsComboBox->setCurrentIndex(defaultInstructionIndex);
     }
 
     bool hasInstructions = !instructions.isEmpty();

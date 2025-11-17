@@ -26,6 +26,7 @@
 
 class QLineEdit;
 class QPlainTextEdit;
+class QCheckBox;
 
 namespace QodeAssist {
 
@@ -45,6 +46,7 @@ private:
     
     QLineEdit *m_nameEdit;
     QPlainTextEdit *m_bodyEdit;
+    QCheckBox *m_defaultCheckBox;
     CustomInstruction m_instruction;
 };
 

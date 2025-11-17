@@ -20,6 +20,7 @@
 #include "AddCustomInstructionDialog.hpp"
 #include "QodeAssisttr.h"
 
+#include <QCheckBox>
 #include <QDialogButtonBox>
 #include <QFormLayout>
 #include <QLabel>
@@ -46,6 +47,7 @@ AddCustomInstructionDialog::AddCustomInstructionDialog(const CustomInstruction &
     setupUi();
     m_nameEdit->setText(instruction.name);
     m_bodyEdit->setPlainText(instruction.body);
+    m_defaultCheckBox->setChecked(instruction.isDefault);
     resize(500, 400);
 }
 
@@ -69,6 +71,11 @@ void AddCustomInstructionDialog::setupUi()
     m_bodyEdit->setPlaceholderText(
         Tr::tr("Enter the refactoring instruction that will be sent to the LLM..."));
     mainLayout->addWidget(m_bodyEdit);
+
+    m_defaultCheckBox = new QCheckBox(Tr::tr("Set as default instruction"), this);
+    m_defaultCheckBox->setToolTip(
+        Tr::tr("This instruction will be automatically selected when opening Quick Refactor dialog"));
+    mainLayout->addWidget(m_defaultCheckBox);
 
     QDialogButtonBox *buttonBox
         = new QDialogButtonBox(QDialogButtonBox::Save | QDialogButtonBox::Cancel, this);
@@ -95,6 +102,7 @@ CustomInstruction AddCustomInstructionDialog::getInstruction() const
     CustomInstruction instruction = m_instruction;
     instruction.name = m_nameEdit->text().trimmed();
     instruction.body = m_bodyEdit->toPlainText().trimmed();
+    instruction.isDefault = m_defaultCheckBox->isChecked();
     return instruction;
 }
 

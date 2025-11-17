@@ -30,6 +30,7 @@ struct CustomInstruction
     QString id;
     QString name;
     QString body;
+    bool isDefault = false;
 };
 
 class CustomInstructionsManager : public QObject
