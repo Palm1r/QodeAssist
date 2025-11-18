@@ -58,7 +58,7 @@ qt_add_qml_module(QodeAssistChatView
     ChatSerializer.hpp ChatSerializer.cpp
     ChatView.hpp ChatView.cpp
     ChatData.hpp
-
+    FileItem.hpp FileItem.cpp
 )
 
 target_link_libraries(QodeAssistChatView

@@ -40,19 +40,39 @@ Flow {
     Repeater {
         id: attachRepeater
         
-        delegate: Rectangle {
+        delegate: FileItem {
+            id: fileItem
+
             required property int index
             required property string modelData
+
+            filePath: modelData
             
             height: 30
             width: contentRow.width + 10
-            radius: 4
-            color: palette.button
-            border.width: 1
-            border.color: mouse.hovered ? palette.highlight : root.accentColor
 
-            HoverHandler {
+            Rectangle {
+                anchors.fill: parent
+                radius: 4
+                color: palette.button
+                border.width: 1
+                border.color: mouse.containsMouse ? palette.highlight : root.accentColor
+            }
+
+            MouseArea {
                 id: mouse
+
+                anchors.fill: parent
+                hoverEnabled: true
+                acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+                onClicked: (mouse) => {
+                    if (mouse.button === Qt.MiddleButton ||
+                        (mouse.button === Qt.LeftButton && (mouse.modifiers & Qt.ControlModifier))) {
+                        root.removeFileFromListByIndex(fileItem.index)
+                    } else {
+                        fileItem.openFileInEditor()
+                    }
+                }
             }
             
             Row {
