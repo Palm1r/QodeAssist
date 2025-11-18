@@ -10,18 +10,20 @@ qt_add_qml_module(QodeAssistChatView
     QtQuick
     QML_FILES
     qml/RootItem.qml
-    qml/ChatItem.qml
-    qml/dialog/CodeBlock.qml
-    qml/dialog/TextBlock.qml
-    qml/parts/TopBar.qml
-    qml/parts/BottomBar.qml
-    qml/parts/AttachedFilesPlace.qml
-    qml/parts/Toast.qml
-    qml/ToolStatusItem.qml
-    qml/ThinkingStatusItem.qml
-    qml/FileEditItem.qml
-    qml/parts/RulesViewer.qml
-    qml/parts/FileEditsActionBar.qml
+
+    qml/chatparts/CodeBlock.qml
+    qml/chatparts/FileEditBlock.qml
+    qml/chatparts/TextBlock.qml
+    qml/chatparts/ThinkingBlock.qml
+    qml/chatparts/ToolBlock.qml
+    qml/chatparts/ChatItem.qml
+
+    qml/controls/AttachedFilesPlace.qml
+    qml/controls/BottomBar.qml
+    qml/controls/FileEditsActionBar.qml
+    qml/controls/RulesViewer.qml
+    qml/controls/Toast.qml
+    qml/controls/TopBar.qml
 
     RESOURCES
     icons/attach-file-light.svg
