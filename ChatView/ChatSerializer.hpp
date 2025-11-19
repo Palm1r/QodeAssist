@@ -40,10 +40,18 @@ public:
     static SerializationResult loadFromFile(ChatModel *model, const QString &filePath);
 
     // Public for testing purposes
-    static QJsonObject serializeMessage(const ChatModel::Message &message);
-    static ChatModel::Message deserializeMessage(const QJsonObject &json);
-    static QJsonObject serializeChat(const ChatModel *model);
-    static bool deserializeChat(ChatModel *model, const QJsonObject &json);
+    static QJsonObject serializeMessage(const ChatModel::Message &message, const QString &chatFilePath);
+    static ChatModel::Message deserializeMessage(const QJsonObject &json, const QString &chatFilePath);
+    static QJsonObject serializeChat(const ChatModel *model, const QString &chatFilePath);
+    static bool deserializeChat(ChatModel *model, const QJsonObject &json, const QString &chatFilePath);
+
+    // Image management
+    static QString getChatImagesFolder(const QString &chatFilePath);
+    static bool saveImageToStorage(const QString &chatFilePath, 
+                                    const QString &fileName,
+                                    const QString &base64Data,
+                                    QString &storedPath);
+    static QString loadImageFromStorage(const QString &chatFilePath, const QString &storedPath);
 
 private:
     static const QString VERSION;

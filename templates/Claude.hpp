@@ -41,34 +41,55 @@ public:
 
         if (context.history) {
             for (const auto &msg : context.history.value()) {
-                if (msg.role != "system") {
-                    // Handle thinking blocks with structured content
-                    if (msg.isThinking) {
-                        // Create content array with thinking block
-                        QJsonArray content;
-                        QJsonObject thinkingBlock;
-                        thinkingBlock["type"] = msg.isRedacted ? "redacted_thinking" : "thinking";
-                        
-                        // Extract actual thinking text (remove display signature)
-                        QString thinkingText = msg.content;
-                        int signaturePos = thinkingText.indexOf("\n[Signature: ");
-                        if (signaturePos != -1) {
-                            thinkingText = thinkingText.left(signaturePos);
-                        }
-                        
-                        if (!msg.isRedacted) {
-                            thinkingBlock["thinking"] = thinkingText;
-                        }
-                        if (!msg.signature.isEmpty()) {
-                            thinkingBlock["signature"] = msg.signature;
-                        }
-                        content.append(thinkingBlock);
-                        
-                        messages.append(QJsonObject{{"role", "assistant"}, {"content", content}});
-                    } else {
-                        // Normal message
-                        messages.append(QJsonObject{{"role", msg.role}, {"content", msg.content}});
+                if (msg.role == "system") continue;
+                
+                if (msg.isThinking) {
+                    QJsonArray content;
+                    QJsonObject thinkingBlock;
+                    thinkingBlock["type"] = msg.isRedacted ? "redacted_thinking" : "thinking";
+                    
+                    QString thinkingText = msg.content;
+                    int signaturePos = thinkingText.indexOf("\n[Signature: ");
+                    if (signaturePos != -1) {
+                        thinkingText = thinkingText.left(signaturePos);
                     }
+                    
+                    if (!msg.isRedacted) {
+                        thinkingBlock["thinking"] = thinkingText;
+                    }
+                    if (!msg.signature.isEmpty()) {
+                        thinkingBlock["signature"] = msg.signature;
+                    }
+                    content.append(thinkingBlock);
+                    
+                    messages.append(QJsonObject{{"role", "assistant"}, {"content", content}});
+                } else if (msg.images && !msg.images->isEmpty()) {
+                    QJsonArray content;
+                    
+                    if (!msg.content.isEmpty()) {
+                        content.append(QJsonObject{{"type", "text"}, {"text", msg.content}});
+                    }
+                    
+                    for (const auto &image : msg.images.value()) {
+                        QJsonObject imageBlock;
+                        imageBlock["type"] = "image";
+                        
+                        QJsonObject source;
+                        if (image.isUrl) {
+                            source["type"] = "url";
+                            source["url"] = image.data;
+                        } else {
+                            source["type"] = "base64";
+                            source["media_type"] = image.mediaType;
+                            source["data"] = image.data;
+                        }
+                        imageBlock["source"] = source;
+                        content.append(imageBlock);
+                    }
+                    
+                    messages.append(QJsonObject{{"role", msg.role}, {"content", content}});
+                } else {
+                    messages.append(QJsonObject{{"role", msg.role}, {"content", msg.content}});
                 }
             }
         }

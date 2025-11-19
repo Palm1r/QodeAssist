@@ -75,6 +75,7 @@ public:
 
     void autosave();
     QString getAutosaveFilePath() const;
+    QString getAutosaveFilePath(const QString &firstMessage, const QStringList &attachments) const;
 
     QStringList attachmentFiles() const;
     QStringList linkedFiles() const;
@@ -98,6 +99,7 @@ public:
     void onEditorCreated(Core::IEditor *editor, const Utils::FilePath &filePath);
 
     QString chatFileName() const;
+    Q_INVOKABLE QString chatFilePath() const;
     void setRecentFilePath(const QString &filePath);
     bool shouldIgnoreFileForAttach(const Utils::FilePath &filePath);
 
@@ -181,6 +183,8 @@ private:
     void updateFileEditStatus(const QString &editId, const QString &status);
     QString getChatsHistoryDir() const;
     QString getSuggestedFileName() const;
+    QString generateChatFileName(const QString &shortMessage, const QString &dir) const;
+    bool hasImageAttachments(const QStringList &attachments) const;
 
     ChatModel *m_chatModel;
     LLMCore::PromptProviderChat m_promptProvider;

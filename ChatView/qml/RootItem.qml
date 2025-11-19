@@ -170,6 +170,8 @@ ChatRootView {
                     width: parent.width
                     msgModel: root.chatModel.processMessageContent(model.content)
                     messageAttachments: model.attachments
+                    messageImages: model.images
+                    chatFilePath: root.chatFilePath()
                     isUserMessage: model.roleType === ChatModel.User
                     messageIndex: index
                     textFontFamily: root.textFontFamily

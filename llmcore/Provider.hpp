@@ -67,6 +67,7 @@ public:
 
     virtual bool supportsTools() const { return false; };
     virtual bool supportThinking() const { return false; };
+    virtual bool supportImage() const { return false; };
 
     virtual void cancelRequest(const RequestID &requestId);
 

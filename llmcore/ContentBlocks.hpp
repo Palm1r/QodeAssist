@@ -68,6 +68,54 @@ private:
     QString m_text;
 };
 
+class ImageContent : public ContentBlock
+{
+    Q_OBJECT
+public:
+    enum class ImageSourceType { Base64, Url };
+
+    ImageContent(const QString &data, const QString &mediaType, ImageSourceType sourceType = ImageSourceType::Base64)
+        : ContentBlock()
+        , m_data(data)
+        , m_mediaType(mediaType)
+        , m_sourceType(sourceType)
+    {}
+
+    QString type() const override { return "image"; }
+    QString data() const { return m_data; }
+    QString mediaType() const { return m_mediaType; }
+    ImageSourceType sourceType() const { return m_sourceType; }
+
+    QJsonValue toJson(ProviderFormat format) const override
+    {
+        if (format == ProviderFormat::Claude) {
+            QJsonObject source;
+            if (m_sourceType == ImageSourceType::Base64) {
+                source["type"] = "base64";
+                source["media_type"] = m_mediaType;
+                source["data"] = m_data;
+            } else {
+                source["type"] = "url";
+                source["url"] = m_data;
+            }
+            return QJsonObject{{"type", "image"}, {"source", source}};
+        } else { // OpenAI format
+            QJsonObject imageUrl;
+            if (m_sourceType == ImageSourceType::Base64) {
+                imageUrl["url"] = QString("data:%1;base64,%2").arg(m_mediaType, m_data);
+            } else {
+                imageUrl["url"] = m_data;
+            }
+            return QJsonObject{{"type", "image_url"}, {"image_url", imageUrl}};
+        }
+    }
+
+private:
+    QString m_data;
+    QString m_mediaType;
+    ImageSourceType m_sourceType;
+};
+
 class ToolUseContent : public ContentBlock
 {
     Q_OBJECT

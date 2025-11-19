@@ -40,8 +40,15 @@ public:
     enum ChatRole { System, User, Assistant, Tool, FileEdit, Thinking };
     Q_ENUM(ChatRole)
 
-    enum Roles { RoleType = Qt::UserRole, Content, Attachments, IsRedacted };
+    enum Roles { RoleType = Qt::UserRole, Content, Attachments, IsRedacted, Images };
     Q_ENUM(Roles)
+
+    struct ImageAttachment
+    {
+        QString fileName;      // Original filename
+        QString storedPath;    // Path to stored image file (relative to chat folder)
+        QString mediaType;     // MIME type
+    };
 
     struct Message
     {
@@ -52,6 +59,7 @@ public:
         QString signature = QString();
 
         QList<Context::ContentFile> attachments;
+        QList<ImageAttachment> images;
     };
 
     explicit ChatModel(QObject *parent = nullptr);
@@ -64,7 +72,8 @@ public:
         const QString &content,
         ChatRole role,
         const QString &id,
-        const QList<Context::ContentFile> &attachments = {});
+        const QList<Context::ContentFile> &attachments = {},
+        const QList<ImageAttachment> &images = {});
     Q_INVOKABLE void clear();
     Q_INVOKABLE QList<MessagePart> processMessageContent(const QString &content) const;
 

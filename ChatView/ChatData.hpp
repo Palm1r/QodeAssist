@@ -26,7 +26,7 @@ namespace QodeAssist::Chat {
 Q_NAMESPACE
 QML_NAMED_ELEMENT(MessagePartType)
 
-enum class MessagePartType { Code, Text };
+enum class MessagePartType { Code, Text, Image };
 Q_ENUM_NS(MessagePartType)
 
 } // namespace QodeAssist::Chat
