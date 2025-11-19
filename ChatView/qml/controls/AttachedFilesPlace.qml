@@ -64,9 +64,11 @@ Flow {
 
                 anchors.fill: parent
                 hoverEnabled: true
-                acceptedButtons: Qt.LeftButton | Qt.MiddleButton
+                acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
                 onClicked: (mouse) => {
-                    if (mouse.button === Qt.MiddleButton ||
+                    if (mouse.button === Qt.RightButton) {
+                        contextMenu.popup()
+                    } else if (mouse.button === Qt.MiddleButton ||
                         (mouse.button === Qt.LeftButton && (mouse.modifiers & Qt.ControlModifier))) {
                         root.removeFileFromListByIndex(fileItem.index)
                     } else if (mouse.modifiers & Qt.ShiftModifier) {
@@ -79,6 +81,27 @@ Flow {
                 ToolTip.visible: containsMouse
                 ToolTip.delay: 500
                 ToolTip.text: "Click: Open in Qt Creator\nShift+Click: Open in external editor\nCtrl+Click / Middle Click: Remove"
+            }
+
+            Menu {
+                id: contextMenu
+
+                MenuItem {
+                    text: "Open in Qt Creator"
+                    onTriggered: fileItem.openFileInEditor()
+                }
+
+                MenuItem {
+                    text: "Open in External Editor"
+                    onTriggered: fileItem.openFileInExternalEditor()
+                }
+
+                MenuSeparator {}
+
+                MenuItem {
+                    text: "Remove"
+                    onTriggered: root.removeFileFromListByIndex(fileItem.index)
+                }
             }
             
             Row {
