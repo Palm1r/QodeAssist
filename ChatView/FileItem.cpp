@@ -19,9 +19,12 @@
 
 #include "FileItem.hpp"
 
-#include <utils/filepath.h>
+#include <QDesktopServices>
+#include <QUrl>
+
 #include <coreplugin/editormanager/editormanager.h>
 #include <logger/Logger.hpp>
+#include <utils/filepath.h>
 
 namespace QodeAssist::Chat {
 
@@ -29,7 +32,8 @@ FileItem::FileItem(QQuickItem *parent)
     : QQuickItem(parent)
 {}
 
-void FileItem::openFileInEditor() {
+void FileItem::openFileInEditor()
+{
     if (m_filePath.isEmpty()) {
         return;
     }
@@ -39,6 +43,20 @@ void FileItem::openFileInEditor() {
 
     if (!editor) {
         LOG_MESSAGE(QString("Failed to open file in editor: %1").arg(m_filePath));
+    }
+}
+
+void FileItem::openFileInExternalEditor()
+{
+    if (m_filePath.isEmpty()) {
+        return;
+    }
+
+    bool success = QDesktopServices::openUrl(QUrl::fromLocalFile(m_filePath));
+    if (success) {
+        LOG_MESSAGE(QString("Opened file in external application: %1").arg(m_filePath));
+    } else {
+        LOG_MESSAGE(QString("Failed to open file externally: %1").arg(m_filePath));
     }
 }
 

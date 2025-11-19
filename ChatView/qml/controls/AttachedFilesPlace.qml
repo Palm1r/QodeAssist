@@ -69,10 +69,16 @@ Flow {
                     if (mouse.button === Qt.MiddleButton ||
                         (mouse.button === Qt.LeftButton && (mouse.modifiers & Qt.ControlModifier))) {
                         root.removeFileFromListByIndex(fileItem.index)
+                    } else if (mouse.modifiers & Qt.ShiftModifier) {
+                        fileItem.openFileInExternalEditor()
                     } else {
                         fileItem.openFileInEditor()
                     }
                 }
+
+                ToolTip.visible: containsMouse
+                ToolTip.delay: 500
+                ToolTip.text: "Click: Open in Qt Creator\nShift+Click: Open in external editor\nCtrl+Click / Middle Click: Remove"
             }
             
             Row {

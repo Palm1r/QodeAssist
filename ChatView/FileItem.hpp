@@ -34,6 +34,7 @@ public:
     FileItem(QQuickItem *parent = nullptr);
 
     Q_INVOKABLE void openFileInEditor();
+    Q_INVOKABLE void openFileInExternalEditor();
 
     QString filePath() const;
     void setFilePath(const QString &newFilePath);
