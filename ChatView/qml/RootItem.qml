@@ -24,7 +24,8 @@ import QtQuick.Layouts
 import ChatView
 import UIControls
 import Qt.labs.platform as Platform
-import "./parts"
+
+import "./chatparts"
 
 ChatRootView {
     id: root
@@ -188,7 +189,7 @@ ChatRootView {
             Component {
                 id: toolMessageComponent
 
-                ToolStatusItem {
+                ToolBlock {
                     id: toolsItem
 
                     width: parent.width
@@ -208,7 +209,7 @@ ChatRootView {
             Component {
                 id: fileEditMessageComponent
 
-                FileEditItem {
+                FileEditBlock {
                     width: parent.width
                     editContent: model.content
 
@@ -233,7 +234,7 @@ ChatRootView {
             Component {
                 id: thinkingMessageComponent
 
-                ThinkingStatusItem {
+                ThinkingBlock {
                     id: thinking
 
                     width: parent.width

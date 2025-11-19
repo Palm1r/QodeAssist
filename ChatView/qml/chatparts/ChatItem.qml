@@ -23,8 +23,6 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import UIControls
 
-import "./dialog"
-
 Rectangle {
     id: root
 
