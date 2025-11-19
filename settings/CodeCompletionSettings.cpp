@@ -70,7 +70,7 @@ CodeCompletionSettings::CodeCompletionSettings()
     completionTriggerMode.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
     completionTriggerMode.addOption("Hint-based (Tab to trigger)");
     completionTriggerMode.addOption("Automatic");
-    completionTriggerMode.setDefaultValue("Hint-based (Tab to trigger)");
+    completionTriggerMode.setDefaultValue("Automatic");
     completionTriggerMode.setToolTip(
         Tr::tr("Hint-based: Shows a hint when typing, press Tab to request completion\n"
                "Automatic: Automatically requests completion after typing threshold"));
@@ -126,7 +126,7 @@ CodeCompletionSettings::CodeCompletionSettings()
     hintTriggerKey.addOption("Ctrl+Enter");
     hintTriggerKey.addOption("Tab");
     hintTriggerKey.addOption("Enter");
-    hintTriggerKey.setDefaultValue("Space");
+    hintTriggerKey.setDefaultValue("Tab");
     hintTriggerKey.setToolTip(
         Tr::tr("Key to press for requesting completion when hint is visible.\n"
                "Space is recommended as least conflicting with context menu.\n"
