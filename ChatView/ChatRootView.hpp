@@ -58,6 +58,8 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(int currentMessagePendingEdits READ currentMessagePendingEdits NOTIFY currentMessageEditsStatsChanged FINAL)
     Q_PROPERTY(int currentMessageRejectedEdits READ currentMessageRejectedEdits NOTIFY currentMessageEditsStatsChanged FINAL)
     Q_PROPERTY(bool isThinkingSupport READ isThinkingSupport NOTIFY isThinkingSupportChanged FINAL)
+    Q_PROPERTY(QStringList availableConfigurations READ availableConfigurations NOTIFY availableConfigurationsChanged FINAL)
+    Q_PROPERTY(QString currentConfiguration READ currentConfiguration NOTIFY currentConfigurationChanged FINAL)
 
     QML_ELEMENT
 
@@ -138,6 +140,11 @@ public:
     Q_INVOKABLE void applyAllFileEditsForCurrentMessage();
     Q_INVOKABLE void undoAllFileEditsForCurrentMessage();
     Q_INVOKABLE void updateCurrentMessageEditsStats();
+
+    Q_INVOKABLE void loadAvailableConfigurations();
+    Q_INVOKABLE void applyConfiguration(const QString &configName);
+    QStringList availableConfigurations() const;
+    QString currentConfiguration() const;
     
     int currentMessageTotalEdits() const;
     int currentMessageAppliedEdits() const;
@@ -182,6 +189,8 @@ signals:
     void currentMessageEditsStatsChanged();
 
     void isThinkingSupportChanged();
+    void availableConfigurationsChanged();
+    void currentConfigurationChanged();
 
 private:
     void updateFileEditStatus(const QString &editId, const QString &status);
@@ -213,6 +222,9 @@ private:
     int m_currentMessagePendingEdits{0};
     int m_currentMessageRejectedEdits{0};
     QString m_lastInfoMessage;
+    
+    QStringList m_availableConfigurations;
+    QString m_currentConfiguration;
 };
 
 } // namespace QodeAssist::Chat

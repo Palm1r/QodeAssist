@@ -35,6 +35,7 @@
 
 #include "ChatAssistantSettings.hpp"
 #include "ChatSerializer.hpp"
+#include "ConfigurationManager.hpp"
 #include "GeneralSettings.hpp"
 #include "ToolsSettings.hpp"
 #include "Logger.hpp"
@@ -44,7 +45,6 @@
 #include "context/TokenUtils.hpp"
 #include "llmcore/RulesLoader.hpp"
 #include "ProvidersManager.hpp"
-#include "GeneralSettings.hpp"
 
 namespace QodeAssist::Chat {
 
@@ -66,6 +66,20 @@ ChatRootView::ChatRootView(QQuickItem *parent)
 
     connect(
         &settings.caModel, &Utils::BaseAspect::changed, this, &ChatRootView::currentTemplateChanged);
+    
+    connect(&settings.caProvider, &Utils::BaseAspect::changed, this, [this]() {
+        auto &settings = Settings::generalSettings();
+        m_currentConfiguration = QString("%1 - %2").arg(settings.caProvider.value(), 
+                                                         settings.caModel.value());
+        emit currentConfigurationChanged();
+    });
+    
+    connect(&settings.caModel, &Utils::BaseAspect::changed, this, [this]() {
+        auto &settings = Settings::generalSettings();
+        m_currentConfiguration = QString("%1 - %2").arg(settings.caProvider.value(), 
+                                                         settings.caModel.value());
+        emit currentConfigurationChanged();
+    });
 
     connect(
         m_clientInterface,
@@ -190,6 +204,7 @@ ChatRootView::ChatRootView(QQuickItem *parent)
 
     updateInputTokensCount();
     refreshRules();
+    loadAvailableConfigurations();
 
     connect(
         ProjectExplorer::ProjectManager::instance(),
@@ -1244,6 +1259,71 @@ bool ChatRootView::isImageFile(const QString &filePath) const
 
     QFileInfo fileInfo(filePath);
     return imageExtensions.contains(fileInfo.suffix().toLower());
+}
+
+void ChatRootView::loadAvailableConfigurations()
+{
+    auto &manager = Settings::ConfigurationManager::instance();
+    manager.loadConfigurations(Settings::ConfigurationType::Chat);
+
+    QVector<Settings::AIConfiguration> configs = manager.configurations(
+        Settings::ConfigurationType::Chat);
+
+    m_availableConfigurations.clear();
+    m_availableConfigurations.append(QObject::tr("Current Settings"));
+
+    for (const Settings::AIConfiguration &config : configs) {
+        m_availableConfigurations.append(config.name);
+    }
+
+    auto &settings = Settings::generalSettings();
+    QString currentProvider = settings.caProvider.value();
+    QString currentModel = settings.caModel.value();
+    m_currentConfiguration = QString("%1 - %2").arg(currentProvider, currentModel);
+
+    emit availableConfigurationsChanged();
+    emit currentConfigurationChanged();
+}
+
+void ChatRootView::applyConfiguration(const QString &configName)
+{
+    if (configName == QObject::tr("Current Settings")) {
+        return;
+    }
+
+    auto &manager = Settings::ConfigurationManager::instance();
+    QVector<Settings::AIConfiguration> configs = manager.configurations(
+        Settings::ConfigurationType::Chat);
+
+    for (const Settings::AIConfiguration &config : configs) {
+        if (config.name == configName) {
+            auto &settings = Settings::generalSettings();
+
+            settings.caProvider.setValue(config.provider);
+            settings.caModel.setValue(config.model);
+            settings.caTemplate.setValue(config.templateName);
+            settings.caUrl.setValue(config.url);
+            settings.caEndpointMode.setValue(settings.caEndpointMode.indexForDisplay(config.endpointMode));
+            settings.caCustomEndpoint.setValue(config.customEndpoint);
+
+            settings.writeSettings();
+
+            m_currentConfiguration = QString("%1 - %2").arg(config.provider, config.model);
+            emit currentConfigurationChanged();
+
+            break;
+        }
+    }
+}
+
+QStringList ChatRootView::availableConfigurations() const
+{
+    return m_availableConfigurations;
+}
+
+QString ChatRootView::currentConfiguration() const
+{
+    return m_currentConfiguration;
 }
 
 } // namespace QodeAssist::Chat
