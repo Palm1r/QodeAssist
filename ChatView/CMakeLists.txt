@@ -24,6 +24,7 @@ qt_add_qml_module(QodeAssistChatView
     qml/controls/RulesViewer.qml
     qml/controls/Toast.qml
     qml/controls/TopBar.qml
+    qml/controls/SplitDropZone.qml
 
     RESOURCES
     icons/attach-file-light.svg

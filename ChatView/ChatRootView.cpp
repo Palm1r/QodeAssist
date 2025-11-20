@@ -473,19 +473,26 @@ void ChatRootView::showAttachFilesDialog()
     }
 
     if (dialog.exec() == QDialog::Accepted) {
-        QStringList newFilePaths = dialog.selectedFiles();
-        if (!newFilePaths.isEmpty()) {
-            bool filesAdded = false;
-            for (const QString &filePath : std::as_const(newFilePaths)) {
-                if (!m_attachmentFiles.contains(filePath)) {
-                    m_attachmentFiles.append(filePath);
-                    filesAdded = true;
-                }
-            }
-            if (filesAdded) {
-                emit attachmentFilesChanged();
-            }
+        addFilesToAttachList(dialog.selectedFiles());
+    }
+}
+
+void ChatRootView::addFilesToAttachList(const QStringList &filePaths)
+{
+    if (filePaths.isEmpty()) {
+        return;
+    }
+
+    bool filesAdded = false;
+    for (const QString &filePath : filePaths) {
+        if (!m_attachmentFiles.contains(filePath)) {
+            m_attachmentFiles.append(filePath);
+            filesAdded = true;
         }
+    }
+    
+    if (filesAdded) {
+        emit attachmentFilesChanged();
     }
 }
 
@@ -507,19 +514,40 @@ void ChatRootView::showLinkFilesDialog()
     }
 
     if (dialog.exec() == QDialog::Accepted) {
-        QStringList newFilePaths = dialog.selectedFiles();
-        if (!newFilePaths.isEmpty()) {
-            bool filesAdded = false;
-            for (const QString &filePath : std::as_const(newFilePaths)) {
-                if (!m_linkedFiles.contains(filePath)) {
-                    m_linkedFiles.append(filePath);
-                    filesAdded = true;
-                }
-            }
-            if (filesAdded) {
-                emit linkedFilesChanged();
-            }
+        addFilesToLinkList(dialog.selectedFiles());
+    }
+}
+
+void ChatRootView::addFilesToLinkList(const QStringList &filePaths)
+{
+    if (filePaths.isEmpty()) {
+        return;
+    }
+
+    bool filesAdded = false;
+    QStringList imageFiles;
+    
+    for (const QString &filePath : filePaths) {
+        if (isImageFile(filePath)) {
+            imageFiles.append(filePath);
+            continue;
         }
+        
+        if (!m_linkedFiles.contains(filePath)) {
+            m_linkedFiles.append(filePath);
+            filesAdded = true;
+        }
+    }
+    
+    if (!imageFiles.isEmpty()) {
+        addFilesToAttachList(imageFiles);
+        
+        m_lastInfoMessage = tr("Images automatically moved to Attach zone (%n file(s))", "", imageFiles.size());
+        emit lastInfoMessageChanged();
+    }
+    
+    if (filesAdded) {
+        emit linkedFilesChanged();
     }
 }
 
@@ -1200,17 +1228,22 @@ QString ChatRootView::generateChatFileName(const QString &shortMessage, const QS
 
 bool ChatRootView::hasImageAttachments(const QStringList &attachments) const
 {
-    static const QSet<QString> imageExtensions = {
-        "png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"
-    };
-
     for (const QString &filePath : attachments) {
-        QFileInfo fileInfo(filePath);
-        if (imageExtensions.contains(fileInfo.suffix().toLower())) {
+        if (isImageFile(filePath)) {
             return true;
         }
     }
     return false;
+}
+
+bool ChatRootView::isImageFile(const QString &filePath) const
+{
+    static const QSet<QString> imageExtensions = {
+        "png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"
+    };
+
+    QFileInfo fileInfo(filePath);
+    return imageExtensions.contains(fileInfo.suffix().toLower());
 }
 
 } // namespace QodeAssist::Chat
