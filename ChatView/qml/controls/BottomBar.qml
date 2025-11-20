@@ -29,8 +29,8 @@ Rectangle {
     property alias sendButton: sendButtonId
     property alias syncOpenFiles: syncOpenFilesId
     property alias attachFiles: attachFilesId
+    property alias attachImages: attachImagesId
     property alias linkFiles: linkFilesId
-
 
     color: palette.window.hslLightness > 0.5 ?
                Qt.darker(palette.window, 1.1) :
@@ -71,6 +71,19 @@ Rectangle {
             ToolTip.visible: hovered
             ToolTip.delay: 250
             ToolTip.text: qsTr("Attach file to message")
+        }
+
+        QoAButton {
+            id: attachImagesId
+
+            icon {
+                source: "qrc:/qt/qml/ChatView/icons/image-dark.svg"
+                height: 15
+                width: 15
+            }
+            ToolTip.visible: hovered
+            ToolTip.delay: 250
+            ToolTip.text: qsTr("Attach image to message")
         }
 
         QoAButton {

@@ -396,6 +396,7 @@ ChatRootView {
                 onCheckedChanged: root.setIsSyncOpenFiles(bottomBar.syncOpenFiles.checked)
             }
             attachFiles.onClicked: root.showAttachFilesDialog()
+            attachImages.onClicked: root.showAddImageDialog()
             linkFiles.onClicked: root.showLinkFilesDialog()
         }
     }

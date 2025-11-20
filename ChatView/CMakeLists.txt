@@ -32,6 +32,7 @@ qt_add_qml_module(QodeAssistChatView
     icons/close-light.svg
     icons/link-file-light.svg
     icons/link-file-dark.svg
+    icons/image-dark.svg
     icons/load-chat-dark.svg
     icons/save-chat-dark.svg
     icons/clean-icon-dark.svg

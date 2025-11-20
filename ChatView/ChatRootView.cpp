@@ -531,6 +531,33 @@ void ChatRootView::removeFileFromLinkList(int index)
     }
 }
 
+void ChatRootView::showAddImageDialog()
+{
+    QFileDialog dialog(nullptr, tr("Select Images to Attach"));
+    dialog.setFileMode(QFileDialog::ExistingFiles);
+    dialog.setNameFilter(tr("Images (*.png *.jpg *.jpeg *.gif *.bmp *.webp)"));
+
+    if (auto project = ProjectExplorer::ProjectManager::startupProject()) {
+        dialog.setDirectory(project->projectDirectory().toFSPathString());
+    }
+
+    if (dialog.exec() == QDialog::Accepted) {
+        QStringList newFilePaths = dialog.selectedFiles();
+        if (!newFilePaths.isEmpty()) {
+            bool filesAdded = false;
+            for (const QString &filePath : std::as_const(newFilePaths)) {
+                if (!m_attachmentFiles.contains(filePath)) {
+                    m_attachmentFiles.append(filePath);
+                    filesAdded = true;
+                }
+            }
+            if (filesAdded) {
+                emit attachmentFilesChanged();
+            }
+        }
+    }
+}
+
 void ChatRootView::calculateMessageTokensCount(const QString &message)
 {
     m_messageTokensCount = Context::TokenUtils::estimateTokens(message);

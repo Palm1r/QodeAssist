@@ -84,6 +84,7 @@ public:
     Q_INVOKABLE void removeFileFromAttachList(int index);
     Q_INVOKABLE void showLinkFilesDialog();
     Q_INVOKABLE void removeFileFromLinkList(int index);
+    Q_INVOKABLE void showAddImageDialog();
     Q_INVOKABLE void calculateMessageTokensCount(const QString &message);
     Q_INVOKABLE void setIsSyncOpenFiles(bool state);
     Q_INVOKABLE void openChatHistoryFolder();
