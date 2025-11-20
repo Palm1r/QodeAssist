@@ -46,7 +46,29 @@ public:
             QJsonObject content;
             QJsonArray parts;
 
-            parts.append(QJsonObject{{"text", msg.content}});
+            if (!msg.content.isEmpty()) {
+                parts.append(QJsonObject{{"text", msg.content}});
+            }
+
+            if (msg.images && !msg.images->isEmpty()) {
+                for (const auto &image : msg.images.value()) {
+                    QJsonObject imagePart;
+                    
+                    if (image.isUrl) {
+                        QJsonObject fileData;
+                        fileData["mime_type"] = image.mediaType;
+                        fileData["file_uri"] = image.data;
+                        imagePart["file_data"] = fileData;
+                    } else {
+                        QJsonObject inlineData;
+                        inlineData["mime_type"] = image.mediaType;
+                        inlineData["data"] = image.data;
+                        imagePart["inline_data"] = inlineData;
+                    }
+                    
+                    parts.append(imagePart);
+                }
+            }
 
             QString role = msg.role;
             if (role == "assistant") {

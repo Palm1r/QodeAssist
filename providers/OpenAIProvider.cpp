@@ -248,6 +248,11 @@ bool OpenAIProvider::supportsTools() const
     return true;
 }
 
+bool OpenAIProvider::supportImage() const
+{
+    return true;
+}
+
 void OpenAIProvider::cancelRequest(const LLMCore::RequestID &requestId)
 {
     LOG_MESSAGE(QString("OpenAIProvider: Cancelling request %1").arg(requestId));

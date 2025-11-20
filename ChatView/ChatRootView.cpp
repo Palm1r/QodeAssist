@@ -242,6 +242,14 @@ void ChatRootView::sendMessage(const QString &message)
         }
     }
 
+    if (m_recentFilePath.isEmpty()) {
+        QString filePath = getAutosaveFilePath(message, m_attachmentFiles);
+        if (!filePath.isEmpty()) {
+            setRecentFilePath(filePath);
+            LOG_MESSAGE(QString("Set chat file path for new chat: %1").arg(filePath));
+        }
+    }
+
     m_clientInterface->sendMessage(message, m_attachmentFiles, m_linkedFiles, m_isAgentMode);
     clearAttachmentFiles();
     setRequestProgressStatus(true);
@@ -379,51 +387,22 @@ void ChatRootView::showLoadDialog()
 
 QString ChatRootView::getSuggestedFileName() const
 {
-    QStringList parts;
-
-    static const QRegularExpression saitizeSymbols = QRegularExpression("[\\/:*?\"<>|\\s]");
-    static const QRegularExpression underSymbols = QRegularExpression("_+");
+    QString shortMessage;
 
     if (m_chatModel->rowCount() > 0) {
         QString firstMessage
             = m_chatModel->data(m_chatModel->index(0), ChatModel::Content).toString();
-        QString shortMessage = firstMessage.split('\n').first().simplified().left(30);
+        shortMessage = firstMessage.split('\n').first().simplified().left(30);
 
-        QString sanitizedMessage = shortMessage;
-        sanitizedMessage.replace(saitizeSymbols, "_");
-        sanitizedMessage.replace(underSymbols, "_");
-        sanitizedMessage = sanitizedMessage.trimmed();
-
-        if (!sanitizedMessage.isEmpty()) {
-            if (sanitizedMessage.startsWith('_')) {
-                sanitizedMessage.remove(0, 1);
-            }
-            if (sanitizedMessage.endsWith('_')) {
-                sanitizedMessage.chop(1);
-            }
-
-            QString targetDir = getChatsHistoryDir();
-            QString fullPath = QDir(targetDir).filePath(sanitizedMessage);
-
-            QFileInfo fileInfo(fullPath);
-            if (!fileInfo.exists() && QFileInfo(fileInfo.path()).isWritable()) {
-                parts << sanitizedMessage;
+        if (shortMessage.isEmpty()) {
+            QVariantList images = m_chatModel->data(m_chatModel->index(0), ChatModel::Images).toList();
+            if (!images.isEmpty()) {
+                shortMessage = "image_chat";
             }
         }
     }
 
-    parts << QDateTime::currentDateTime().toString("yyyy-MM-dd_HH-mm");
-
-    QString fileName = parts.join("_");
-
-    QString fullPath = QDir(getChatsHistoryDir()).filePath(fileName);
-    QFileInfo finalCheck(fullPath);
-
-    if (fileName.isEmpty() || finalCheck.exists() || !QFileInfo(finalCheck.path()).isWritable()) {
-        fileName = QString("chat_%1").arg(QDateTime::currentDateTime().toString("yyyy-MM-dd_HH-mm"));
-    }
-
-    return fileName;
+    return generateChatFileName(shortMessage, getChatsHistoryDir());
 }
 
 void ChatRootView::autosave()
@@ -451,6 +430,27 @@ QString ChatRootView::getAutosaveFilePath() const
     }
 
     return QDir(dir).filePath(getSuggestedFileName() + ".json");
+}
+
+QString ChatRootView::getAutosaveFilePath(const QString &firstMessage, const QStringList &attachments) const
+{
+    if (!m_recentFilePath.isEmpty()) {
+        return m_recentFilePath;
+    }
+
+    QString dir = getChatsHistoryDir();
+    if (dir.isEmpty()) {
+        return QString();
+    }
+
+    QString shortMessage = firstMessage.split('\n').first().simplified().left(30);
+
+    if (shortMessage.isEmpty() && hasImageAttachments(attachments)) {
+        shortMessage = "image_chat";
+    }
+
+    QString fileName = generateChatFileName(shortMessage, dir);
+    return QDir(dir).filePath(fileName + ".json");
 }
 
 QStringList ChatRootView::attachmentFiles() const
@@ -528,6 +528,33 @@ void ChatRootView::removeFileFromLinkList(int index)
     if (index >= 0 && index < m_linkedFiles.size()) {
         m_linkedFiles.removeAt(index);
         emit linkedFilesChanged();
+    }
+}
+
+void ChatRootView::showAddImageDialog()
+{
+    QFileDialog dialog(nullptr, tr("Select Images to Attach"));
+    dialog.setFileMode(QFileDialog::ExistingFiles);
+    dialog.setNameFilter(tr("Images (*.png *.jpg *.jpeg *.gif *.bmp *.webp)"));
+
+    if (auto project = ProjectExplorer::ProjectManager::startupProject()) {
+        dialog.setDirectory(project->projectDirectory().toFSPathString());
+    }
+
+    if (dialog.exec() == QDialog::Accepted) {
+        QStringList newFilePaths = dialog.selectedFiles();
+        if (!newFilePaths.isEmpty()) {
+            bool filesAdded = false;
+            for (const QString &filePath : std::as_const(newFilePaths)) {
+                if (!m_attachmentFiles.contains(filePath)) {
+                    m_attachmentFiles.append(filePath);
+                    filesAdded = true;
+                }
+            }
+            if (filesAdded) {
+                emit attachmentFilesChanged();
+            }
+        }
     }
 }
 
@@ -665,10 +692,16 @@ QString ChatRootView::chatFileName() const
     return QFileInfo(m_recentFilePath).baseName();
 }
 
+QString ChatRootView::chatFilePath() const
+{
+    return m_recentFilePath;
+}
+
 void ChatRootView::setRecentFilePath(const QString &filePath)
 {
     if (m_recentFilePath != filePath) {
         m_recentFilePath = filePath;
+        m_clientInterface->setChatFilePath(filePath);
         emit chatFileNameChanged();
     }
 }
@@ -1126,5 +1159,58 @@ bool ChatRootView::isThinkingSupport() const
     return provider && provider->supportThinking();
 }
 
+QString ChatRootView::generateChatFileName(const QString &shortMessage, const QString &dir) const
+{
+    static const QRegularExpression saitizeSymbols = QRegularExpression("[\\/:*?\"<>|\\s]");
+    static const QRegularExpression underSymbols = QRegularExpression("_+");
+
+    QStringList parts;
+    QString sanitizedMessage = shortMessage;
+    sanitizedMessage.replace(saitizeSymbols, "_");
+    sanitizedMessage.replace(underSymbols, "_");
+    sanitizedMessage = sanitizedMessage.trimmed();
+
+    if (!sanitizedMessage.isEmpty()) {
+        if (sanitizedMessage.startsWith('_')) {
+            sanitizedMessage.remove(0, 1);
+        }
+        if (sanitizedMessage.endsWith('_')) {
+            sanitizedMessage.chop(1);
+        }
+
+        QString fullPath = QDir(dir).filePath(sanitizedMessage);
+        QFileInfo fileInfo(fullPath);
+        if (!fileInfo.exists() && QFileInfo(fileInfo.path()).isWritable()) {
+            parts << sanitizedMessage;
+        }
+    }
+
+    parts << QDateTime::currentDateTime().toString("yyyy-MM-dd_HH-mm");
+
+    QString fileName = parts.join("_");
+    QString fullPath = QDir(dir).filePath(fileName);
+    QFileInfo finalCheck(fullPath);
+
+    if (fileName.isEmpty() || finalCheck.exists() || !QFileInfo(finalCheck.path()).isWritable()) {
+        fileName = QString("chat_%1").arg(QDateTime::currentDateTime().toString("yyyy-MM-dd_HH-mm"));
+    }
+
+    return fileName;
+}
+
+bool ChatRootView::hasImageAttachments(const QStringList &attachments) const
+{
+    static const QSet<QString> imageExtensions = {
+        "png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"
+    };
+
+    for (const QString &filePath : attachments) {
+        QFileInfo fileInfo(filePath);
+        if (imageExtensions.contains(fileInfo.suffix().toLower())) {
+            return true;
+        }
+    }
+    return false;
+}
 
 } // namespace QodeAssist::Chat

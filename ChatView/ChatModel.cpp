@@ -84,6 +84,17 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
     case Roles::IsRedacted: {
         return message.isRedacted;
     }
+    case Roles::Images: {
+        QVariantList imagesList;
+        for (const auto &image : message.images) {
+            QVariantMap imageMap;
+            imageMap["fileName"] = image.fileName;
+            imageMap["storedPath"] = image.storedPath;
+            imageMap["mediaType"] = image.mediaType;
+            imagesList.append(imageMap);
+        }
+        return imagesList;
+    }
     default:
         return QVariant();
     }
@@ -96,6 +107,7 @@ QHash<int, QByteArray> ChatModel::roleNames() const
     roles[Roles::Content] = "content";
     roles[Roles::Attachments] = "attachments";
     roles[Roles::IsRedacted] = "isRedacted";
+    roles[Roles::Images] = "images";
     return roles;
 }
 
@@ -103,7 +115,8 @@ void ChatModel::addMessage(
     const QString &content,
     ChatRole role,
     const QString &id,
-    const QList<Context::ContentFile> &attachments)
+    const QList<Context::ContentFile> &attachments,
+    const QList<ImageAttachment> &images)
 {
     QString fullContent = content;
     if (!attachments.isEmpty()) {
@@ -119,11 +132,13 @@ void ChatModel::addMessage(
         Message &lastMessage = m_messages.last();
         lastMessage.content = content;
         lastMessage.attachments = attachments;
+        lastMessage.images = images;
         emit dataChanged(index(m_messages.size() - 1), index(m_messages.size() - 1));
     } else {
         beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());
         Message newMessage{role, content, id};
         newMessage.attachments = attachments;
+        newMessage.images = images;
         m_messages.append(newMessage);
         endInsertRows();
         

@@ -192,6 +192,11 @@ bool OpenAICompatProvider::supportsTools() const
     return true;
 }
 
+bool OpenAICompatProvider::supportImage() const
+{
+    return true;
+}
+
 void OpenAICompatProvider::cancelRequest(const LLMCore::RequestID &requestId)
 {
     LOG_MESSAGE(QString("OpenAICompatProvider: Cancelling request %1").arg(requestId));

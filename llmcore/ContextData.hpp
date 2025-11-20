@@ -24,6 +24,15 @@
 
 namespace QodeAssist::LLMCore {
 
+struct ImageAttachment
+{
+    QString data;        // Base64 encoded data or URL
+    QString mediaType;   // e.g., "image/png", "image/jpeg", "image/webp", "image/gif"
+    bool isUrl = false;  // true if data is URL, false if base64
+
+    bool operator==(const ImageAttachment &) const = default;
+};
+
 struct Message
 {
     QString role;
@@ -31,6 +40,7 @@ struct Message
     QString signature;
     bool isThinking = false;
     bool isRedacted = false;
+    std::optional<QVector<ImageAttachment>> images;
 
     // clang-format off
     bool operator==(const Message&) const = default;

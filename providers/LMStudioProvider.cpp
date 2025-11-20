@@ -163,6 +163,11 @@ bool LMStudioProvider::supportsTools() const
     return true;
 }
 
+bool LMStudioProvider::supportImage() const
+{
+    return true;
+}
+
 void LMStudioProvider::cancelRequest(const LLMCore::RequestID &requestId)
 {
     LOG_MESSAGE(QString("LMStudioProvider: Cancelling request %1").arg(requestId));

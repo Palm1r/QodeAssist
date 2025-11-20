@@ -55,6 +55,7 @@ public:
 
     bool supportsTools() const override;
     bool supportThinking() const override;
+    bool supportImage() const override;
     void cancelRequest(const LLMCore::RequestID &requestId) override;
 
 public slots:

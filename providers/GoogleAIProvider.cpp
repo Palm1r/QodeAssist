@@ -273,6 +273,11 @@ bool GoogleAIProvider::supportThinking() const
     return true;
 }
 
+bool GoogleAIProvider::supportImage() const
+{
+    return true;
+}
+
 void GoogleAIProvider::cancelRequest(const LLMCore::RequestID &requestId)
 {
     LOG_MESSAGE(QString("GoogleAIProvider: Cancelling request %1").arg(requestId));

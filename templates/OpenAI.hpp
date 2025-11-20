@@ -42,7 +42,31 @@ public:
 
         if (context.history) {
             for (const auto &msg : context.history.value()) {
-                messages.append(QJsonObject{{"role", msg.role}, {"content", msg.content}});
+                if (msg.images && !msg.images->isEmpty()) {
+                    QJsonArray content;
+                    
+                    if (!msg.content.isEmpty()) {
+                        content.append(QJsonObject{{"type", "text"}, {"text", msg.content}});
+                    }
+                    
+                    for (const auto &image : msg.images.value()) {
+                        QJsonObject imageBlock;
+                        imageBlock["type"] = "image_url";
+                        
+                        QJsonObject imageUrl;
+                        if (image.isUrl) {
+                            imageUrl["url"] = image.data;
+                        } else {
+                            imageUrl["url"] = QString("data:%1;base64,%2").arg(image.mediaType, image.data);
+                        }
+                        imageBlock["image_url"] = imageUrl;
+                        content.append(imageBlock);
+                    }
+                    
+                    messages.append(QJsonObject{{"role", msg.role}, {"content", content}});
+                } else {
+                    messages.append(QJsonObject{{"role", msg.role}, {"content", msg.content}});
+                }
             }
         }
 

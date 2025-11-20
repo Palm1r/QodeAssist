@@ -39,6 +39,24 @@ void ClaudeMessage::handleContentBlockStart(
     if (blockType == "text") {
         addCurrentContent<LLMCore::TextContent>();
 
+    } else if (blockType == "image") {
+        QJsonObject source = data["source"].toObject();
+        QString sourceType = source["type"].toString();
+        QString imageData;
+        QString mediaType;
+        LLMCore::ImageContent::ImageSourceType imgSourceType = LLMCore::ImageContent::ImageSourceType::Base64;
+
+        if (sourceType == "base64") {
+            imageData = source["data"].toString();
+            mediaType = source["media_type"].toString();
+            imgSourceType = LLMCore::ImageContent::ImageSourceType::Base64;
+        } else if (sourceType == "url") {
+            imageData = source["url"].toString();
+            imgSourceType = LLMCore::ImageContent::ImageSourceType::Url;
+        }
+
+        addCurrentContent<LLMCore::ImageContent>(imageData, mediaType, imgSourceType);
+
     } else if (blockType == "tool_use") {
         QString toolId = data["id"].toString();
         QString toolName = data["name"].toString();

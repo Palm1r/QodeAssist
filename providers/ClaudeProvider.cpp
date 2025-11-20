@@ -257,6 +257,10 @@ bool ClaudeProvider::supportThinking() const {
     return true;
 };
 
+bool ClaudeProvider::supportImage() const {
+    return true;
+};
+
 void ClaudeProvider::cancelRequest(const LLMCore::RequestID &requestId)
 {
     LOG_MESSAGE(QString("ClaudeProvider: Cancelling request %1").arg(requestId));
