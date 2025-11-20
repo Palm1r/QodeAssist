@@ -263,12 +263,7 @@ Rectangle {
                 Layout.maximumWidth: parent.parent.maxImageWidth
                 Layout.maximumHeight: parent.parent.maxImageHeight
 
-                source: {
-                    if (!itemData.storedPath || !root.chatFilePath) return "";
-                    var fileInfo = chatFileInfo(root.chatFilePath);
-                    var imagesFolder = fileInfo.dir + "/" + fileInfo.baseName + "_images";
-                    return "file://" + imagesFolder + "/" + itemData.storedPath;
-                }
+                source: itemData.imageUrl ? itemData.imageUrl : ""
 
                 sourceSize.width: parent.parent.maxImageWidth
                 sourceSize.height: parent.parent.maxImageHeight
@@ -302,15 +297,5 @@ Rectangle {
                 horizontalAlignment: Text.AlignHCenter
             }
         }
-    }
-
-    function chatFileInfo(filePath) {
-        if (!filePath) return {dir: "", baseName: ""};
-        var lastSlash = filePath.lastIndexOf("/");
-        var dir = lastSlash >= 0 ? filePath.substring(0, lastSlash) : "";
-        var fileName = lastSlash >= 0 ? filePath.substring(lastSlash + 1) : filePath;
-        var lastDot = fileName.lastIndexOf(".");
-        var baseName = lastDot >= 0 ? fileName.substring(0, lastDot) : fileName;
-        return {dir: dir, baseName: baseName};
     }
 }

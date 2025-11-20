@@ -61,12 +61,18 @@ ChatRootView {
     SplitDropZone {
         anchors.fill: parent
 
-        onFilesDroppedToAttach: (filePaths) => {
-            root.addFilesToAttachList(filePaths)
+        onFilesDroppedToAttach: (urlStrings) => {
+            var localPaths = root.convertUrlsToLocalPaths(urlStrings)
+            if (localPaths.length > 0) {
+                root.addFilesToAttachList(localPaths)
+            }
         }
 
-        onFilesDroppedToLink: (filePaths) => {
-            root.addFilesToLinkList(filePaths)
+        onFilesDroppedToLink: (urlStrings) => {
+            var localPaths = root.convertUrlsToLocalPaths(urlStrings)
+            if (localPaths.length > 0) {
+                root.addFilesToLinkList(localPaths)
+            }
         }
     }
 

@@ -20,8 +20,11 @@
 #include "ChatModel.hpp"
 #include <utils/aspects.h>
 #include <QDateTime>
+#include <QDir>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QUrl>
 #include <QtQml>
 
 #include "ChatAssistantSettings.hpp"
@@ -91,6 +94,19 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
             imageMap["fileName"] = image.fileName;
             imageMap["storedPath"] = image.storedPath;
             imageMap["mediaType"] = image.mediaType;
+            
+            // Generate proper file URL for cross-platform compatibility
+            if (!m_chatFilePath.isEmpty()) {
+                QFileInfo fileInfo(m_chatFilePath);
+                QString baseName = fileInfo.completeBaseName();
+                QString dirPath = fileInfo.absolutePath();
+                QString imagesFolder = QDir(dirPath).filePath(baseName + "_images");
+                QString fullPath = QDir(imagesFolder).filePath(image.storedPath);
+                imageMap["imageUrl"] = QUrl::fromLocalFile(fullPath).toString();
+            } else {
+                imageMap["imageUrl"] = QString();
+            }
+            
             imagesList.append(imageMap);
         }
         return imagesList;
@@ -547,6 +563,16 @@ void ChatModel::updateFileEditStatus(const QString &editId, const QString &statu
             }
         }
     }
+}
+
+void ChatModel::setChatFilePath(const QString &filePath)
+{
+    m_chatFilePath = filePath;
+}
+
+QString ChatModel::chatFilePath() const
+{
+    return m_chatFilePath;
 }
 
 } // namespace QodeAssist::Chat

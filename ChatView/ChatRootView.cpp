@@ -601,6 +601,21 @@ void ChatRootView::showAddImageDialog()
     }
 }
 
+QStringList ChatRootView::convertUrlsToLocalPaths(const QVariantList &urls) const
+{
+    QStringList localPaths;
+    for (const QVariant &urlVariant : urls) {
+        QUrl url(urlVariant.toString());
+        if (url.isLocalFile()) {
+            QString localPath = url.toLocalFile();
+            if (!localPath.isEmpty()) {
+                localPaths.append(localPath);
+            }
+        }
+    }
+    return localPaths;
+}
+
 void ChatRootView::calculateMessageTokensCount(const QString &message)
 {
     m_messageTokensCount = Context::TokenUtils::estimateTokens(message);
