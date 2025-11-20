@@ -206,6 +206,11 @@ bool LlamaCppProvider::supportsTools() const
     return true;
 }
 
+bool LlamaCppProvider::supportImage() const
+{
+    return true;
+}
+
 void LlamaCppProvider::cancelRequest(const LLMCore::RequestID &requestId)
 {
     LOG_MESSAGE(QString("LlamaCppProvider: Cancelling request %1").arg(requestId));
