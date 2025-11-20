@@ -101,6 +101,9 @@ public:
     
     void setLoadingFromHistory(bool loading);
     bool isLoadingFromHistory() const;
+    
+    void setChatFilePath(const QString &filePath);
+    QString chatFilePath() const;
 
 signals:
     void tokensThresholdChanged();
@@ -116,6 +119,7 @@ private:
     
     QVector<Message> m_messages;
     bool m_loadingFromHistory = false;
+    QString m_chatFilePath;
 };
 
 } // namespace QodeAssist::Chat

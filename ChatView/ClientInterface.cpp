@@ -183,22 +183,7 @@ void ClientInterface::sendMessage(
         messages.append(apiMessage);
     }
     
-    if (!imageAttachments.isEmpty() && provider->supportImage() && !messages.isEmpty()) {
-        for (int i = messages.size() - 1; i >= 0; --i) {
-            if (messages[i].role == "user") {
-                auto newImages = loadImagesFromStorage(imageAttachments);
-                if (!newImages.isEmpty()) {
-                    if (messages[i].images.has_value()) {
-                        messages[i].images.value().append(newImages);
-                    } else {
-                        messages[i].images = newImages;
-                    }
-                    LOG_MESSAGE(QString("Added %1 new image(s) to message").arg(newImages.size()));
-                }
-                break;
-            }
-        }
-    } else if (!imageFiles.isEmpty() && !provider->supportImage()) {
+    if (!imageFiles.isEmpty() && !provider->supportImage()) {
         LOG_MESSAGE(QString("Provider %1 doesn't support images, %2 ignored")
                         .arg(provider->name(), QString::number(imageFiles.size())));
     }
@@ -522,6 +507,7 @@ QVector<LLMCore::ImageAttachment> ClientInterface::loadImagesFromStorage(const Q
 void ClientInterface::setChatFilePath(const QString &filePath)
 {
     m_chatFilePath = filePath;
+    m_chatModel->setChatFilePath(filePath);
 }
 
 QString ClientInterface::chatFilePath() const

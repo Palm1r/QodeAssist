@@ -23,8 +23,8 @@ import QtQuick.Controls
 Item {
     id: root
 
-    signal filesDroppedToAttach(var filePaths)
-    signal filesDroppedToLink(var filePaths)
+    signal filesDroppedToAttach(var urlStrings)  // Array of URL strings (file://...)
+    signal filesDroppedToLink(var urlStrings)    // Array of URL strings (file://...)
 
     property string activeZone: ""
 
@@ -216,21 +216,17 @@ Item {
                        splitDropOverlay.visible = false
                        root.activeZone = ""
 
-                       if (drop.hasUrls) {
-                           var filePaths = []
+                       if (drop.hasUrls && drop.urls.length > 0) {
+                           // Convert URLs to array of strings for C++ processing
+                           var urlStrings = []
                            for (var i = 0; i < drop.urls.length; i++) {
-                               var url = drop.urls[i].toString()
-                               if (url.startsWith("file://")) {
-                                   filePaths.push(decodeURIComponent(url.replace(/^file:\/\//, '')))
-                               }
+                               urlStrings.push(drop.urls[i].toString())
                            }
-
-                           if (filePaths.length > 0) {
-                               if (targetZone === "right") {
-                                   root.filesDroppedToLink(filePaths)
-                               } else {
-                                   root.filesDroppedToAttach(filePaths)
-                               }
+                           
+                           if (targetZone === "right") {
+                               root.filesDroppedToLink(urlStrings)
+                           } else {
+                               root.filesDroppedToAttach(urlStrings)
                            }
                        }
                    }

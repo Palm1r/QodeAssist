@@ -88,6 +88,7 @@ public:
     Q_INVOKABLE void showLinkFilesDialog();
     Q_INVOKABLE void addFilesToLinkList(const QStringList &filePaths);
     Q_INVOKABLE void removeFileFromLinkList(int index);
+    Q_INVOKABLE QStringList convertUrlsToLocalPaths(const QVariantList &urls) const;
     Q_INVOKABLE void showAddImageDialog();
     Q_INVOKABLE bool isImageFile(const QString &filePath) const;
     Q_INVOKABLE void calculateMessageTokensCount(const QString &message);
