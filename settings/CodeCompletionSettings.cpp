@@ -363,7 +363,8 @@ CodeCompletionSettings::CodeCompletionSettings()
             Row{completionTriggerMode, Stretch{1}},
             showProgressWidget,
             useOpenFilesContext,
-            abortAssistOnRequest};
+            abortAssistOnRequest,
+            ignoreWhitespaceInCharCount};
 
         auto autoTriggerSettings = Column{
             Row{autoCompletionCharThreshold,
@@ -373,8 +374,7 @@ CodeCompletionSettings::CodeCompletionSettings()
 
         auto hintTriggerSettings = Column{
             Row{hintCharThreshold, hintHideTimeout, Stretch{1}},
-            Row{hintTriggerKey, Stretch{1}},
-            ignoreWhitespaceInCharCount};
+            Row{hintTriggerKey, Stretch{1}}};
 
         return Column{Row{Stretch{1}, resetToDefaults},
                       Space{8},
