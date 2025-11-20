@@ -76,7 +76,19 @@ public:
 
         if (context.history) {
             for (const auto &msg : context.history.value()) {
-                messages.append(QJsonObject{{"role", msg.role}, {"content", msg.content}});
+                QJsonObject messageObj;
+                messageObj["role"] = msg.role;
+                messageObj["content"] = msg.content;
+                
+                if (msg.images && !msg.images->isEmpty()) {
+                    QJsonArray images;
+                    for (const auto &image : msg.images.value()) {
+                        images.append(image.data);
+                    }
+                    messageObj["images"] = images;
+                }
+                
+                messages.append(messageObj);
             }
         }
 
@@ -88,11 +100,12 @@ public:
                "{\n"
                "  \"messages\": [\n"
                "    {\"role\": \"system\", \"content\": \"<system prompt>\"},\n"
-               "    {\"role\": \"user\", \"content\": \"<user message>\"},\n"
+               "    {\"role\": \"user\", \"content\": \"<user message>\", \"images\": [\"<base64>\"]},\n"
                "    {\"role\": \"assistant\", \"content\": \"<assistant response>\"}\n"
                "  ]\n"
                "}\n\n"
-               "Recommended for Ollama models with chat capability.";
+               "Recommended for Ollama models with chat capability.\n"
+               "Supports images for multimodal models (e.g., llava).";
     }
     bool isSupportProvider(LLMCore::ProviderID id) const override
     {

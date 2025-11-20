@@ -168,6 +168,7 @@ QList<QString> OllamaProvider::validateRequest(const QJsonObject &request, LLMCo
         {"prompt", {}},
         {"suffix", {}},
         {"system", {}},
+        {"images", QJsonArray{}},
         {"options",
          QJsonObject{
              {"temperature", {}},
@@ -182,7 +183,7 @@ QList<QString> OllamaProvider::validateRequest(const QJsonObject &request, LLMCo
         {"keep_alive", {}},
         {"model", {}},
         {"stream", {}},
-        {"messages", QJsonArray{{QJsonObject{{"role", {}}, {"content", {}}}}}},
+        {"messages", QJsonArray{{QJsonObject{{"role", {}}, {"content", {}}, {"images", QJsonArray{}}}}}},
         {"tools", QJsonArray{}},
         {"options",
          QJsonObject{
@@ -237,6 +238,11 @@ void OllamaProvider::sendRequest(
 }
 
 bool OllamaProvider::supportsTools() const
+{
+    return true;
+}
+
+bool OllamaProvider::supportImage() const
 {
     return true;
 }
