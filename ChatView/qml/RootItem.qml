@@ -58,6 +58,18 @@ ChatRootView {
         color: palette.window
     }
 
+    SplitDropZone {
+        anchors.fill: parent
+
+        onFilesDroppedToAttach: (filePaths) => {
+            root.addFilesToAttachList(filePaths)
+        }
+
+        onFilesDroppedToLink: (filePaths) => {
+            root.addFilesToLinkList(filePaths)
+        }
+    }
+
     ColumnLayout {
         anchors.fill: parent
         spacing: 0
