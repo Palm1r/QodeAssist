@@ -99,6 +99,19 @@ inline const char AUTO_COMPLETION_SETTINGS[]
 inline const char ADD_NEW_PRESET[]
     = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Add new preset for language");
 
+inline const char SAVE_CONFIG[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Save Config...");
+inline const char LOAD_CONFIG[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Load Config...");
+inline const char OPEN_CONFIG_FOLDER[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Open Folder");
+inline const char SAVE_CONFIGURATION[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Save Configuration");
+inline const char LOAD_CONFIGURATION[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Load Configuration");
+inline const char CONFIGURATION_NAME[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Configuration name:");
+inline const char SELECT_CONFIGURATION[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Select Configuration");
+inline const char NO_CONFIGURATIONS_FOUND[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "No saved configurations found.");
+inline const char CONFIGURATION_SAVED[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Configuration saved successfully.");
+inline const char CONFIGURATION_LOADED[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Configuration loaded successfully.");
+inline const char DELETE_CONFIGURATION[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Delete");
+inline const char CONFIRM_DELETE_CONFIG[] = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Are you sure you want to delete this configuration?");
+
 } // namespace TrConstants
 
 struct Tr

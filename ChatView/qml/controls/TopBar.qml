@@ -37,6 +37,7 @@ Rectangle {
     property alias agentModeSwitch: agentModeSwitchId
     property alias thinkingMode: thinkingModeId
     property alias activeRulesCount: activeRulesCountId.text
+    property alias configSelector: configSelectorId
 
     color: palette.window.hslLightness > 0.5 ?
                Qt.darker(palette.window, 1.1) :
@@ -237,6 +238,17 @@ Rectangle {
                 ToolTip.visible: hovered
                 ToolTip.delay: 250
                 ToolTip.text: qsTr("Current amount tokens in chat and LLM limit threshold")
+            }
+
+            QoAComboBox {
+                id: configSelectorId
+
+                model: []
+                currentIndex: 0
+
+                ToolTip.visible: hovered
+                ToolTip.delay: 250
+                ToolTip.text: qsTr("Switch AI configuration")
             }
         }
     }

@@ -66,6 +66,10 @@ public:
 
     Utils::StringAspect ccTemplateDescription{this};
 
+    ButtonAspect ccSaveConfig{this};
+    ButtonAspect ccLoadConfig{this};
+    ButtonAspect ccOpenConfigFolder{this};
+
     // TODO create dynamic presets system
     // preset1 for code completion settings
     Utils::BoolAspect specifyPreset1{this};
@@ -107,6 +111,10 @@ public:
 
     Utils::StringAspect caTemplateDescription{this};
 
+    ButtonAspect caSaveConfig{this};
+    ButtonAspect caLoadConfig{this};
+    ButtonAspect caOpenConfigFolder{this};
+
     // quick refactor settings
     Utils::StringAspect qrProvider{this};
     ButtonAspect qrSelectProvider{this};
@@ -128,6 +136,10 @@ public:
 
     Utils::StringAspect qrTemplateDescription{this};
 
+    ButtonAspect qrSaveConfig{this};
+    ButtonAspect qrLoadConfig{this};
+    ButtonAspect qrOpenConfigFolder{this};
+
     ButtonAspect ccShowTemplateInfo{this};
     ButtonAspect caShowTemplateInfo{this};
     ButtonAspect qrShowTemplateInfo{this};
@@ -147,6 +159,9 @@ public:
     void showTemplateInfoDialog(const Utils::StringAspect &descriptionAspect, const QString &templateName);
 
     void updatePreset1Visiblity(bool state);
+
+    void onSaveConfiguration(const QString &prefix);
+    void onLoadConfiguration(const QString &prefix);
 
 private:
     void setupConnections();

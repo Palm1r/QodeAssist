@@ -111,6 +111,19 @@ ChatRootView {
                     root.isThinkingMode = thinkingMode.checked
                 }
             }
+            configSelector {
+                model: root.availableConfigurations
+                displayText: root.currentConfiguration
+                onActivated: function(index) {
+                    if (index > 0) {
+                        root.applyConfiguration(root.availableConfigurations[index])
+                    }
+                }
+                
+                popup.onAboutToShow: {
+                    root.loadAvailableConfigurations()
+                }
+            }
         }
 
         ListView {

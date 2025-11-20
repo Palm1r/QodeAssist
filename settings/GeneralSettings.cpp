@@ -23,11 +23,16 @@
 #include <coreplugin/icore.h>
 #include <utils/layoutbuilder.h>
 #include <utils/utilsicons.h>
+#include <QDesktopServices>
+#include <QDir>
 #include <QInputDialog>
 #include <QLabel>
 #include <QMessageBox>
+#include <QPushButton>
 #include <QTextEdit>
 #include <QTimer>
+#include <QUrl>
+#include <QUuid>
 #include <QtWidgets/qboxlayout.h>
 #include <QtWidgets/qcompleter.h>
 #include <QtWidgets/qgroupbox.h>
@@ -35,6 +40,7 @@
 #include <QtWidgets/qstackedwidget.h>
 
 #include "../Version.hpp"
+#include "ConfigurationManager.hpp"
 #include "Logger.hpp"
 #include "SettingsConstants.hpp"
 #include "SettingsDialog.hpp"
@@ -118,6 +124,12 @@ GeneralSettings::GeneralSettings()
     ccTemplateDescription.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
     ccTemplateDescription.setReadOnly(true);
     ccTemplateDescription.setDefaultValue("");
+
+    ccSaveConfig.m_buttonText = TrConstants::SAVE_CONFIG;
+    ccLoadConfig.m_buttonText = TrConstants::LOAD_CONFIG;
+    ccOpenConfigFolder.m_buttonText = TrConstants::OPEN_CONFIG_FOLDER;
+    ccOpenConfigFolder.m_icon = Utils::Icons::OPENFILE.icon();
+    ccOpenConfigFolder.m_isCompact = true;
 
     // preset1
     specifyPreset1.setSettingsKey(Constants::CC_SPECIFY_PRESET1);
@@ -204,6 +216,12 @@ GeneralSettings::GeneralSettings()
     caTemplateDescription.setReadOnly(true);
     caTemplateDescription.setDefaultValue("");
 
+    caSaveConfig.m_buttonText = TrConstants::SAVE_CONFIG;
+    caLoadConfig.m_buttonText = TrConstants::LOAD_CONFIG;
+    caOpenConfigFolder.m_buttonText = TrConstants::OPEN_CONFIG_FOLDER;
+    caOpenConfigFolder.m_icon = Utils::Icons::OPENFILE.icon();
+    caOpenConfigFolder.m_isCompact = true;
+
     // quick refactor settings
     initStringAspect(qrProvider, Constants::QR_PROVIDER, TrConstants::PROVIDER, "Ollama");
     qrProvider.setReadOnly(true);
@@ -241,6 +259,12 @@ GeneralSettings::GeneralSettings()
     qrTemplateDescription.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
     qrTemplateDescription.setReadOnly(true);
     qrTemplateDescription.setDefaultValue("");
+
+    qrSaveConfig.m_buttonText = TrConstants::SAVE_CONFIG;
+    qrLoadConfig.m_buttonText = TrConstants::LOAD_CONFIG;
+    qrOpenConfigFolder.m_buttonText = TrConstants::OPEN_CONFIG_FOLDER;
+    qrOpenConfigFolder.m_icon = Utils::Icons::OPENFILE.icon();
+    qrOpenConfigFolder.m_isCompact = true;
 
     ccShowTemplateInfo.m_icon = Utils::Icons::INFO.icon();
     ccShowTemplateInfo.m_tooltip = Tr::tr("Show template information");
@@ -300,15 +324,18 @@ GeneralSettings::GeneralSettings()
         auto ccGroup = Group{
             title(TrConstants::CODE_COMPLETION),
             Column{
+                Row{ccSaveConfig, ccLoadConfig, ccOpenConfigFolder, Stretch{1}},
                 ccGrid,
                 Row{specifyPreset1, preset1Language, Stretch{1}},
                 ccPreset1Grid}};
 
         auto caGroup = Group{
-            title(TrConstants::CHAT_ASSISTANT), Column{caGrid}};
+            title(TrConstants::CHAT_ASSISTANT),
+            Column{Row{caSaveConfig, caLoadConfig, caOpenConfigFolder, Stretch{1}}, caGrid}};
 
         auto qrGroup = Group{
-            title(TrConstants::QUICK_REFACTOR), Column{qrGrid}};
+            title(TrConstants::QUICK_REFACTOR),
+            Column{Row{qrSaveConfig, qrLoadConfig, qrOpenConfigFolder, Stretch{1}}, qrGrid}};
 
         auto rootLayout = Column{
             Row{enableQodeAssist, Stretch{1}, Row{checkUpdate, resetToDefaults}},
@@ -417,7 +444,7 @@ void GeneralSettings::showModelsNotSupportedDialog(Utils::StringAspect &aspect)
 
     QString key = QString("CompleterHistory/")
                       .append(
-                          (&aspect == &ccModel) ? Constants::CC_MODEL_HISTORY
+                          (&aspect == &ccModel)   ? Constants::CC_MODEL_HISTORY
                           : (&aspect == &caModel) ? Constants::CA_MODEL_HISTORY
                                                   : Constants::QR_MODEL_HISTORY);
 #if QODEASSIST_QT_CREATOR_VERSION >= QT_VERSION_CHECK(18, 0, 0)
@@ -494,7 +521,8 @@ void GeneralSettings::showUrlSelectionDialog(
     dialog.exec();
 }
 
-void GeneralSettings::showTemplateInfoDialog(const Utils::StringAspect &descriptionAspect, const QString &templateName)
+void GeneralSettings::showTemplateInfoDialog(
+    const Utils::StringAspect &descriptionAspect, const QString &templateName)
 {
     SettingsDialog dialog(Tr::tr("Template Information"));
     dialog.addLabel(QString("<b>%1:</b> %2").arg(Tr::tr("Template"), templateName));
@@ -575,6 +603,48 @@ void GeneralSettings::setupConnections()
     connect(&qrShowTemplateInfo, &ButtonAspect::clicked, this, [this]() {
         showTemplateInfoDialog(qrTemplateDescription, qrTemplate.value());
     });
+
+    connect(&ccSaveConfig, &ButtonAspect::clicked, this, [this]() { onSaveConfiguration("cc"); });
+    connect(&ccLoadConfig, &ButtonAspect::clicked, this, [this]() { onLoadConfiguration("cc"); });
+
+    connect(&caSaveConfig, &ButtonAspect::clicked, this, [this]() { onSaveConfiguration("ca"); });
+    connect(&caLoadConfig, &ButtonAspect::clicked, this, [this]() { onLoadConfiguration("ca"); });
+
+    connect(&qrSaveConfig, &ButtonAspect::clicked, this, [this]() { onSaveConfiguration("qr"); });
+    connect(&qrLoadConfig, &ButtonAspect::clicked, this, [this]() { onLoadConfiguration("qr"); });
+
+    connect(&ccOpenConfigFolder, &ButtonAspect::clicked, this, [this]() {
+        auto &manager = ConfigurationManager::instance();
+        QString path = manager.getConfigurationDirectory(ConfigurationType::CodeCompletion);
+        QDir dir(path);
+        if (!dir.exists()) {
+            dir.mkpath(".");
+        }
+        QUrl url = QUrl::fromLocalFile(dir.absolutePath());
+        QDesktopServices::openUrl(url);
+    });
+
+    connect(&caOpenConfigFolder, &ButtonAspect::clicked, this, [this]() {
+        auto &manager = ConfigurationManager::instance();
+        QString path = manager.getConfigurationDirectory(ConfigurationType::Chat);
+        QDir dir(path);
+        if (!dir.exists()) {
+            dir.mkpath(".");
+        }
+        QUrl url = QUrl::fromLocalFile(dir.absolutePath());
+        QDesktopServices::openUrl(url);
+    });
+
+    connect(&qrOpenConfigFolder, &ButtonAspect::clicked, this, [this]() {
+        auto &manager = ConfigurationManager::instance();
+        QString path = manager.getConfigurationDirectory(ConfigurationType::QuickRefactor);
+        QDir dir(path);
+        if (!dir.exists()) {
+            dir.mkpath(".");
+        }
+        QUrl url = QUrl::fromLocalFile(dir.absolutePath());
+        QDesktopServices::openUrl(url);
+    });
 }
 
 void GeneralSettings::resetPageToDefaults()
@@ -618,6 +688,176 @@ void GeneralSettings::resetPageToDefaults()
         resetAspect(qrCustomEndpoint);
         writeSettings();
     }
+}
+
+void GeneralSettings::onSaveConfiguration(const QString &prefix)
+{
+    bool ok;
+    QString configName = QInputDialog::getText(
+        Core::ICore::dialogParent(),
+        TrConstants::SAVE_CONFIGURATION,
+        TrConstants::CONFIGURATION_NAME,
+        QLineEdit::Normal,
+        QString(),
+        &ok);
+
+    if (!ok || configName.trimmed().isEmpty()) {
+        return;
+    }
+
+    AIConfiguration config;
+    config.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    config.name = configName.trimmed();
+
+    if (prefix == "cc") {
+        config.provider = ccProvider.value();
+        config.model = ccModel.value();
+        config.templateName = ccTemplate.value();
+        config.url = ccUrl.value();
+        config.endpointMode = ccEndpointMode.stringValue();
+        config.customEndpoint = ccCustomEndpoint.value();
+        config.type = ConfigurationType::CodeCompletion;
+    } else if (prefix == "ca") {
+        config.provider = caProvider.value();
+        config.model = caModel.value();
+        config.templateName = caTemplate.value();
+        config.url = caUrl.value();
+        config.endpointMode = caEndpointMode.stringValue();
+        config.customEndpoint = caCustomEndpoint.value();
+        config.type = ConfigurationType::Chat;
+    } else if (prefix == "qr") {
+        config.provider = qrProvider.value();
+        config.model = qrModel.value();
+        config.templateName = qrTemplate.value();
+        config.url = qrUrl.value();
+        config.endpointMode = qrEndpointMode.stringValue();
+        config.customEndpoint = qrCustomEndpoint.value();
+        config.type = ConfigurationType::QuickRefactor;
+    }
+
+    auto &manager = ConfigurationManager::instance();
+    if (manager.saveConfiguration(config)) {
+        QMessageBox::information(
+            Core::ICore::dialogParent(),
+            TrConstants::SAVE_CONFIGURATION,
+            TrConstants::CONFIGURATION_SAVED);
+    } else {
+        QMessageBox::warning(
+            Core::ICore::dialogParent(),
+            TrConstants::SAVE_CONFIGURATION,
+            Tr::tr("Failed to save configuration. Check logs for details."));
+    }
+}
+
+void GeneralSettings::onLoadConfiguration(const QString &prefix)
+{
+    ConfigurationType type;
+    if (prefix == "cc") {
+        type = ConfigurationType::CodeCompletion;
+    } else if (prefix == "ca") {
+        type = ConfigurationType::Chat;
+    } else if (prefix == "qr") {
+        type = ConfigurationType::QuickRefactor;
+    } else {
+        return;
+    }
+
+    auto &manager = ConfigurationManager::instance();
+    manager.loadConfigurations(type);
+
+    QVector<AIConfiguration> configs = manager.configurations(type);
+    if (configs.isEmpty()) {
+        QMessageBox::information(
+            Core::ICore::dialogParent(),
+            TrConstants::LOAD_CONFIGURATION,
+            TrConstants::NO_CONFIGURATIONS_FOUND);
+        return;
+    }
+
+    SettingsDialog dialog(TrConstants::LOAD_CONFIGURATION);
+    dialog.addLabel(TrConstants::SELECT_CONFIGURATION);
+    dialog.addSpacing();
+
+    QStringList configNames;
+    for (const AIConfiguration &config : configs) {
+        configNames.append(config.name);
+    }
+
+    auto configList = dialog.addComboBox(configNames, QString());
+    dialog.addSpacing();
+
+    auto *deleteButton = new QPushButton(TrConstants::DELETE_CONFIGURATION);
+    auto *okButton = new QPushButton(TrConstants::OK);
+    auto *cancelButton = new QPushButton(TrConstants::CANCEL);
+
+    connect(deleteButton, &QPushButton::clicked, &dialog, [&]() {
+        int currentIndex = configList->currentIndex();
+        if (currentIndex >= 0 && currentIndex < configs.size()) {
+            QMessageBox::StandardButton reply = QMessageBox::question(
+                &dialog,
+                TrConstants::DELETE_CONFIGURATION,
+                TrConstants::CONFIRM_DELETE_CONFIG,
+                QMessageBox::Yes | QMessageBox::No);
+
+            if (reply == QMessageBox::Yes) {
+                const AIConfiguration &configToDelete = configs[currentIndex];
+                if (manager.deleteConfiguration(configToDelete.id, type)) {
+                    dialog.accept();
+                    onLoadConfiguration(prefix);
+                } else {
+                    QMessageBox::warning(
+                        &dialog,
+                        TrConstants::DELETE_CONFIGURATION,
+                        Tr::tr("Failed to delete configuration."));
+                }
+            }
+        }
+    });
+
+    connect(okButton, &QPushButton::clicked, &dialog, [&]() {
+        int currentIndex = configList->currentIndex();
+        if (currentIndex >= 0 && currentIndex < configs.size()) {
+            const AIConfiguration &config = configs[currentIndex];
+
+            if (prefix == "cc") {
+                ccProvider.setValue(config.provider);
+                ccModel.setValue(config.model);
+                ccTemplate.setValue(config.templateName);
+                ccUrl.setValue(config.url);
+                ccEndpointMode.setValue(ccEndpointMode.indexForDisplay(config.endpointMode));
+                ccCustomEndpoint.setValue(config.customEndpoint);
+            } else if (prefix == "ca") {
+                caProvider.setValue(config.provider);
+                caModel.setValue(config.model);
+                caTemplate.setValue(config.templateName);
+                caUrl.setValue(config.url);
+                caEndpointMode.setValue(caEndpointMode.indexForDisplay(config.endpointMode));
+                caCustomEndpoint.setValue(config.customEndpoint);
+            } else if (prefix == "qr") {
+                qrProvider.setValue(config.provider);
+                qrModel.setValue(config.model);
+                qrTemplate.setValue(config.templateName);
+                qrUrl.setValue(config.url);
+                qrEndpointMode.setValue(qrEndpointMode.indexForDisplay(config.endpointMode));
+                qrCustomEndpoint.setValue(config.customEndpoint);
+            }
+
+            writeSettings();
+            QMessageBox::information(
+                Core::ICore::dialogParent(),
+                TrConstants::LOAD_CONFIGURATION,
+                TrConstants::CONFIGURATION_LOADED);
+            dialog.accept();
+        }
+    });
+
+    connect(cancelButton, &QPushButton::clicked, &dialog, &QDialog::reject);
+
+    dialog.buttonLayout()->addWidget(deleteButton);
+    addDialogButtons(dialog.buttonLayout(), okButton, cancelButton);
+
+    configList->setFocus();
+    dialog.exec();
 }
 
 class GeneralSettingsPage : public Core::IOptionsPage

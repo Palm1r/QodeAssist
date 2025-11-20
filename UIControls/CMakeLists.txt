@@ -11,7 +11,12 @@ qt_add_qml_module(QodeAssistUIControls
     qml/Badge.qml
     qml/QoAButton.qml
     qml/QoATextSlider.qml
+    qml/QoAComboBox.qml
     qml/FadeListItemAnimation.qml
+    
+    RESOURCES
+    icons/dropdown-arrow-light.svg
+    icons/dropdown-arrow-dark.svg
 )
 
 target_link_libraries(QodeAssistUIControls
