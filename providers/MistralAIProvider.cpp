@@ -184,6 +184,11 @@ bool MistralAIProvider::supportsTools() const
     return true;
 }
 
+bool MistralAIProvider::supportImage() const
+{
+    return true;
+}
+
 void MistralAIProvider::cancelRequest(const LLMCore::RequestID &requestId)
 {
     LOG_MESSAGE(QString("MistralAIProvider: Cancelling request %1").arg(requestId));
