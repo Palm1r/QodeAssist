@@ -155,70 +155,11 @@ Rectangle {
             Repeater {
                 id: imagesModel
 
-                delegate: Rectangle {
+                delegate: ImageComponent {
                     required property int index
                     required property var modelData
 
-                    readonly property int maxImageWidth: Math.min(400, root.width - 40)
-                    readonly property int maxImageHeight: 300
-
-                    width: Math.min(imageDisplay.implicitWidth, maxImageWidth) + 16
-                    height: imageDisplay.implicitHeight + fileNameText.implicitHeight + 16
-                    radius: 4
-                    color: palette.base
-                    border.width: 1
-                    border.color: palette.mid
-
-                    ColumnLayout {
-                        anchors.fill: parent
-                        anchors.margins: 8
-                        spacing: 4
-
-                        Image {
-                            id: imageDisplay
-                            Layout.alignment: Qt.AlignHCenter
-                            Layout.maximumWidth: parent.parent.maxImageWidth
-                            Layout.maximumHeight: parent.parent.maxImageHeight
-                            
-                            source: {
-                                if (!modelData.storedPath || !root.chatFilePath) return "";
-                                var fileInfo = chatFileInfo(root.chatFilePath);
-                                var imagesFolder = fileInfo.dir + "/" + fileInfo.baseName + "_images";
-                                return "file://" + imagesFolder + "/" + modelData.storedPath;
-                            }
-                            
-                            sourceSize.width: parent.parent.maxImageWidth
-                            sourceSize.height: parent.parent.maxImageHeight
-                            fillMode: Image.PreserveAspectFit
-                            cache: true
-                            asynchronous: true
-                            smooth: true
-                            mipmap: true
-
-                            BusyIndicator {
-                                anchors.centerIn: parent
-                                running: imageDisplay.status === Image.Loading
-                                visible: running
-                            }
-
-                            Text {
-                                anchors.centerIn: parent
-                                text: qsTr("Failed to load image")
-                                visible: imageDisplay.status === Image.Error
-                                color: palette.placeholderText
-                            }
-                        }
-
-                        Text {
-                            id: fileNameText
-                            Layout.fillWidth: true
-                            text: modelData.fileName || ""
-                            color: palette.text
-                            font.pointSize: root.textFontSize - 1
-                            elide: Text.ElideMiddle
-                            horizontalAlignment: Text.AlignHCenter
-                        }
-                    }
+                    itemData: modelData
                 }
             }
         }
@@ -296,6 +237,71 @@ Rectangle {
         language: itemData.language
         codeFontFamily: root.codeFontFamily
         codeFontSize: root.codeFontSize
+    }
+
+    component ImageComponent : Rectangle {
+        required property var itemData
+
+        readonly property int maxImageWidth: Math.min(400, root.width - 40)
+        readonly property int maxImageHeight: 300
+
+        width: Math.min(imageDisplay.implicitWidth, maxImageWidth) + 16
+        height: imageDisplay.implicitHeight + fileNameText.implicitHeight + 16
+        radius: 4
+        color: palette.base
+        border.width: 1
+        border.color: palette.mid
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 8
+            spacing: 4
+
+            Image {
+                id: imageDisplay
+                Layout.alignment: Qt.AlignHCenter
+                Layout.maximumWidth: parent.parent.maxImageWidth
+                Layout.maximumHeight: parent.parent.maxImageHeight
+
+                source: {
+                    if (!itemData.storedPath || !root.chatFilePath) return "";
+                    var fileInfo = chatFileInfo(root.chatFilePath);
+                    var imagesFolder = fileInfo.dir + "/" + fileInfo.baseName + "_images";
+                    return "file://" + imagesFolder + "/" + itemData.storedPath;
+                }
+
+                sourceSize.width: parent.parent.maxImageWidth
+                sourceSize.height: parent.parent.maxImageHeight
+                fillMode: Image.PreserveAspectFit
+                cache: true
+                asynchronous: true
+                smooth: true
+                mipmap: true
+
+                BusyIndicator {
+                    anchors.centerIn: parent
+                    running: imageDisplay.status === Image.Loading
+                    visible: running
+                }
+
+                Text {
+                    anchors.centerIn: parent
+                    text: qsTr("Failed to load image")
+                    visible: imageDisplay.status === Image.Error
+                    color: palette.placeholderText
+                }
+            }
+
+            Text {
+                id: fileNameText
+                Layout.fillWidth: true
+                text: itemData.fileName || ""
+                color: palette.text
+                font.pointSize: root.textFontSize - 1
+                elide: Text.ElideMiddle
+                horizontalAlignment: Text.AlignHCenter
+            }
+        }
     }
 
     function chatFileInfo(filePath) {
