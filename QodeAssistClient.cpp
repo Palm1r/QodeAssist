@@ -152,14 +152,16 @@ void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
             }
 
             bool isSpaceOrTab = lastChar[0].isSpace();
+            bool ignoreWhitespace
+                = Settings::codeCompletionSettings().ignoreWhitespaceInCharCount();
 
-            if (!isSpaceOrTab) {
+            if (!ignoreWhitespace || !isSpaceOrTab) {
                 m_recentCharCount += charsAdded;
             }
 
             if (m_typingTimer.elapsed()
                 > Settings::codeCompletionSettings().autoCompletionTypingInterval()) {
-                m_recentCharCount = isSpaceOrTab ? 0 : charsAdded;
+                m_recentCharCount = (ignoreWhitespace && isSpaceOrTab) ? 0 : charsAdded;
                 m_typingTimer.restart();
             }
 

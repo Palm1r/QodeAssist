@@ -89,6 +89,7 @@ const char CC_HINT_CHAR_THRESHOLD[] = "QodeAssist.ccHintCharThreshold";
 const char CC_HINT_HIDE_TIMEOUT[] = "QodeAssist.ccHintHideTimeout";
 const char CC_HINT_TRIGGER_KEY[] = "QodeAssist.ccHintTriggerKey";
 const char CC_ABORT_ASSIST_ON_REQUEST[] = "QodeAssist.ccAbortAssistOnRequest";
+const char CC_IGNORE_WHITESPACE_IN_CHAR_COUNT[] = "QodeAssist.ccIgnoreWhitespaceInCharCount";
 const char MAX_FILE_THRESHOLD[] = "QodeAssist.maxFileThreshold";
 const char CC_MULTILINE_COMPLETION[] = "QodeAssist.ccMultilineCompletion";
 const char CC_MODEL_OUTPUT_HANDLER[] = "QodeAssist.ccModelOutputHandler";

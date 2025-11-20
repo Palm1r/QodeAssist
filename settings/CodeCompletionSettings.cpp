@@ -132,6 +132,15 @@ CodeCompletionSettings::CodeCompletionSettings()
                "Space is recommended as least conflicting with context menu.\n"
                "(Only for Hint-based trigger mode)"));
 
+    ignoreWhitespaceInCharCount.setSettingsKey(Constants::CC_IGNORE_WHITESPACE_IN_CHAR_COUNT);
+    ignoreWhitespaceInCharCount.setLabelText(
+        Tr::tr("Ignore spaces and tabs in character count"));
+    ignoreWhitespaceInCharCount.setDefaultValue(true);
+    ignoreWhitespaceInCharCount.setToolTip(
+        Tr::tr("When enabled, spaces and tabs are not counted towards the character threshold "
+               "for triggering completions. This helps trigger completions based on actual code "
+               "characters only."));
+
     // General Parameters Settings
     temperature.setSettingsKey(Constants::CC_TEMPERATURE);
     temperature.setLabelText(Tr::tr("Temperature:"));
@@ -364,7 +373,8 @@ CodeCompletionSettings::CodeCompletionSettings()
 
         auto hintTriggerSettings = Column{
             Row{hintCharThreshold, hintHideTimeout, Stretch{1}},
-            Row{hintTriggerKey, Stretch{1}}};
+            Row{hintTriggerKey, Stretch{1}},
+            ignoreWhitespaceInCharCount};
 
         return Column{Row{Stretch{1}, resetToDefaults},
                       Space{8},
@@ -461,6 +471,7 @@ void CodeCompletionSettings::resetSettingsToDefaults()
         resetAspect(hintCharThreshold);
         resetAspect(hintHideTimeout);
         resetAspect(hintTriggerKey);
+        resetAspect(ignoreWhitespaceInCharCount);
         resetAspect(abortAssistOnRequest);
         writeSettings();
     }

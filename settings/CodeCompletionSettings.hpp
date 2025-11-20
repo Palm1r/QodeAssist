@@ -44,6 +44,7 @@ public:
     Utils::IntegerAspect hintCharThreshold{this};
     Utils::IntegerAspect hintHideTimeout{this};
     Utils::SelectionAspect hintTriggerKey{this};
+    Utils::BoolAspect ignoreWhitespaceInCharCount{this};
 
     Utils::StringListAspect customLanguages{this};
 
