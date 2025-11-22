@@ -155,6 +155,50 @@ QuickRefactorSettings::QuickRefactorSettings()
     readStringsAfterCursor.setRange(0, 10000);
     readStringsAfterCursor.setDefaultValue(30);
 
+    displayMode.setSettingsKey(Constants::QR_DISPLAY_MODE);
+    displayMode.setLabelText(Tr::tr("Display Mode:"));
+    displayMode.setToolTip(
+        Tr::tr("Choose how to display refactoring suggestions:\n"
+               "- Inline Widget: Shows refactor in a widget overlay with Apply/Decline buttons (default)\n"
+               "- Qt Creator Suggestion: Uses Qt Creator's built-in suggestion system"));
+    displayMode.addOption(Tr::tr("Inline Widget"));
+    displayMode.addOption(Tr::tr("Qt Creator Suggestion"));
+    displayMode.setDefaultValue(0);
+
+    widgetOrientation.setSettingsKey(Constants::QR_WIDGET_ORIENTATION);
+    widgetOrientation.setLabelText(Tr::tr("Widget Orientation:"));
+    widgetOrientation.setToolTip(
+        Tr::tr("Choose default orientation for refactor widget:\n"
+               "- Horizontal: Original and refactored code side by side (default)\n"
+               "- Vertical: Original and refactored code stacked vertically"));
+    widgetOrientation.addOption(Tr::tr("Horizontal"));
+    widgetOrientation.addOption(Tr::tr("Vertical"));
+    widgetOrientation.setDefaultValue(0);
+
+    widgetMinWidth.setSettingsKey(Constants::QR_WIDGET_MIN_WIDTH);
+    widgetMinWidth.setLabelText(Tr::tr("Widget Minimum Width:"));
+    widgetMinWidth.setToolTip(Tr::tr("Minimum width for the refactor widget (in pixels)"));
+    widgetMinWidth.setRange(400, 2000);
+    widgetMinWidth.setDefaultValue(600);
+
+    widgetMaxWidth.setSettingsKey(Constants::QR_WIDGET_MAX_WIDTH);
+    widgetMaxWidth.setLabelText(Tr::tr("Widget Maximum Width:"));
+    widgetMaxWidth.setToolTip(Tr::tr("Maximum width for the refactor widget (in pixels)"));
+    widgetMaxWidth.setRange(600, 3000);
+    widgetMaxWidth.setDefaultValue(1400);
+
+    widgetMinHeight.setSettingsKey(Constants::QR_WIDGET_MIN_HEIGHT);
+    widgetMinHeight.setLabelText(Tr::tr("Widget Minimum Height:"));
+    widgetMinHeight.setToolTip(Tr::tr("Minimum height for the refactor widget (in pixels)"));
+    widgetMinHeight.setRange(80, 800);
+    widgetMinHeight.setDefaultValue(120);
+
+    widgetMaxHeight.setSettingsKey(Constants::QR_WIDGET_MAX_HEIGHT);
+    widgetMaxHeight.setLabelText(Tr::tr("Widget Maximum Height:"));
+    widgetMaxHeight.setToolTip(Tr::tr("Maximum height for the refactor widget (in pixels)"));
+    widgetMaxHeight.setRange(200, 1200);
+    widgetMaxHeight.setDefaultValue(500);
+
     systemPrompt.setSettingsKey(Constants::QR_SYSTEM_PROMPT);
     systemPrompt.setLabelText(Tr::tr("System Prompt:"));
     systemPrompt.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
@@ -198,6 +242,12 @@ QuickRefactorSettings::QuickRefactorSettings()
         contextGrid.addRow({Row{readFullFile}});
         contextGrid.addRow({Row{readFileParts, readStringsBeforeCursor, readStringsAfterCursor}});
 
+        auto displayGrid = Grid{};
+        displayGrid.addRow({Row{displayMode}});
+        displayGrid.addRow({Row{widgetOrientation}});
+        displayGrid.addRow({Row{widgetMinWidth, widgetMaxWidth}});
+        displayGrid.addRow({Row{widgetMinHeight, widgetMaxHeight}});
+
         return Column{
             Row{Stretch{1}, resetToDefaults},
             Space{8},
@@ -211,6 +261,8 @@ QuickRefactorSettings::QuickRefactorSettings()
             Group{title(Tr::tr("Tools Settings")), Column{Row{toolsGrid, Stretch{1}}}},
             Space{8},
             Group{title(Tr::tr("Context Settings")), Column{Row{contextGrid, Stretch{1}}}},
+            Space{8},
+            Group{title(Tr::tr("Display Settings")), Column{Row{displayGrid, Stretch{1}}}},
             Space{8},
             Group{title(Tr::tr("Prompt Settings")), Column{Row{systemPrompt}}},
             Space{8},
@@ -240,6 +292,32 @@ void QuickRefactorSettings::setupConnections()
             writeSettings();
         }
     });
+
+    // Enable/disable widgetOrientation based on displayMode
+    // 0 = Inline Widget, 1 = Qt Creator Suggestion
+    auto updateWidgetOrientationEnabled = [this]() {
+        bool isInlineWidget = (displayMode.volatileValue() == 0);
+        widgetOrientation.setEnabled(isInlineWidget);
+    };
+    
+    connect(&displayMode, &Utils::SelectionAspect::volatileValueChanged, 
+            this, updateWidgetOrientationEnabled);
+    
+    updateWidgetOrientationEnabled();
+
+    auto validateWidgetSizes = [this]() {
+        if (widgetMinWidth.volatileValue() > widgetMaxWidth.volatileValue()) {
+            widgetMaxWidth.setValue(widgetMinWidth.volatileValue());
+        }
+        if (widgetMinHeight.volatileValue() > widgetMaxHeight.volatileValue()) {
+            widgetMaxHeight.setValue(widgetMinHeight.volatileValue());
+        }
+    };
+
+    connect(&widgetMinWidth, &Utils::IntegerAspect::volatileValueChanged, this, validateWidgetSizes);
+    connect(&widgetMaxWidth, &Utils::IntegerAspect::volatileValueChanged, this, validateWidgetSizes);
+    connect(&widgetMinHeight, &Utils::IntegerAspect::volatileValueChanged, this, validateWidgetSizes);
+    connect(&widgetMaxHeight, &Utils::IntegerAspect::volatileValueChanged, this, validateWidgetSizes);
 }
 
 void QuickRefactorSettings::resetSettingsToDefaults()
@@ -272,6 +350,12 @@ void QuickRefactorSettings::resetSettingsToDefaults()
         resetAspect(readFileParts);
         resetAspect(readStringsBeforeCursor);
         resetAspect(readStringsAfterCursor);
+        resetAspect(displayMode);
+        resetAspect(widgetOrientation);
+        resetAspect(widgetMinWidth);
+        resetAspect(widgetMaxWidth);
+        resetAspect(widgetMinHeight);
+        resetAspect(widgetMaxHeight);
         resetAspect(systemPrompt);
         writeSettings();
     }

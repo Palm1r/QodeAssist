@@ -67,6 +67,14 @@ public:
     Utils::IntegerAspect readStringsBeforeCursor{this};
     Utils::IntegerAspect readStringsAfterCursor{this};
 
+    // Display Settings
+    Utils::SelectionAspect displayMode{this};
+    Utils::SelectionAspect widgetOrientation{this};
+    Utils::IntegerAspect widgetMinWidth{this};
+    Utils::IntegerAspect widgetMaxWidth{this};
+    Utils::IntegerAspect widgetMinHeight{this};
+    Utils::IntegerAspect widgetMaxHeight{this};
+
     // Prompt Settings
     Utils::StringAspect systemPrompt{this};
 

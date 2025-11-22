@@ -18,6 +18,7 @@ add_library(LLMCore STATIC
     BaseTool.hpp BaseTool.cpp
     ContentBlocks.hpp
     RulesLoader.hpp RulesLoader.cpp
+    ResponseCleaner.hpp
 )
 
 target_link_libraries(LLMCore

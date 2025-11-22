@@ -69,6 +69,7 @@ add_qtc_plugin(QodeAssist
     QodeAssistConstants.hpp
     QodeAssisttr.h
     LLMClientInterface.hpp LLMClientInterface.cpp
+    RefactorContextHelper.hpp
     templates/Templates.hpp
     templates/CodeLlamaFim.hpp
     templates/Ollama.hpp
@@ -121,6 +122,10 @@ add_qtc_plugin(QodeAssist
     widgets/QuickRefactorDialog.hpp widgets/QuickRefactorDialog.cpp
     widgets/CustomInstructionsManager.hpp widgets/CustomInstructionsManager.cpp
     widgets/AddCustomInstructionDialog.hpp widgets/AddCustomInstructionDialog.cpp
+    widgets/RefactorWidget.hpp widgets/RefactorWidget.cpp
+    widgets/RefactorWidgetHandler.hpp widgets/RefactorWidgetHandler.cpp
+    widgets/ContextExtractor.hpp
+    widgets/DiffStatistics.hpp
 
     QuickRefactorHandler.hpp QuickRefactorHandler.cpp
     tools/ToolsFactory.hpp tools/ToolsFactory.cpp

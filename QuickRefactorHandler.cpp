@@ -24,6 +24,7 @@
 #include <QUuid>
 
 #include <context/DocumentContextReader.hpp>
+#include <llmcore/ResponseCleaner.hpp>
 #include <context/DocumentReaderQtCreator.hpp>
 #include <context/Utils.hpp>
 #include <llmcore/PromptTemplateManager.hpp>
@@ -301,17 +302,65 @@ LLMCore::ContextData QuickRefactorHandler::prepareContext(
     systemPrompt += "\nLanguage: " + documentInfo.mimeType;
     systemPrompt += "\nFile path: " + documentInfo.filePath;
 
-    systemPrompt += "\n\nCode context with position markers:";
-    systemPrompt += taggedContent;
+    systemPrompt += "\n\n# Code Context with Position Markers\n" + taggedContent;
 
-    systemPrompt += "\n\nOutput format:";
-    systemPrompt += "\n- Generate ONLY the code that should replace the current selection "
-                    "between<selection_start><selection_end> or be "
-                    "inserted at cursor position<cursor>";
-    systemPrompt += "\n- Do not include any explanations, comments about the code, or markdown "
-                    "code block markers";
-    systemPrompt += "\n- The output should be ready to insert directly into the editor";
-    systemPrompt += "\n- Follow the existing code style and indentation patterns";
+    systemPrompt += "\n\n# Output Requirements\n## What to Generate:";
+    systemPrompt += cursor.hasSelection()
+        ? "\n- Generate ONLY the code that should REPLACE the selected text between "
+          "<selection_start> and <selection_end> markers"
+          "\n- Your output will completely replace the selected code"
+        : "\n- Generate ONLY the code that should be INSERTED at the <cursor> position"
+          "\n- Your output will be inserted at the cursor location";
+    
+    systemPrompt += "\n\n## Formatting Rules:"
+                    "\n- Output ONLY the code itself, without ANY explanations or descriptions"
+                    "\n- Do NOT include markdown code blocks (no ```, no language tags)"
+                    "\n- Do NOT add comments explaining what you changed"
+                    "\n- Do NOT repeat existing code, be precise with context"
+                    "\n- Do NOT send in answer <cursor> or </cursor> and other tags"
+                    "\n- The output must be ready to insert directly into the editor as-is";
+    
+    systemPrompt += "\n\n## Indentation and Whitespace:";
+    
+    if (cursor.hasSelection()) {
+        QTextBlock startBlock = documentInfo.document->findBlock(cursor.selectionStart());
+        int leadingSpaces = 0;
+        for (QChar c : startBlock.text()) {
+            if (c == ' ') leadingSpaces++;
+            else if (c == '\t') leadingSpaces += 4;
+            else break;
+        }
+        if (leadingSpaces > 0) {
+            systemPrompt += QString("\n- CRITICAL: The code to replace starts with %1 spaces of indentation"
+                                   "\n- Your output MUST start with exactly %1 spaces (or equivalent tabs)"
+                                   "\n- Each line in your output must maintain this base indentation")
+                               .arg(leadingSpaces);
+        }
+        systemPrompt += "\n- PRESERVE all indentation from the original code";
+    } else {
+        QTextBlock block = documentInfo.document->findBlock(cursorPos);
+        QString lineText = block.text();
+        int leadingSpaces = 0;
+        for (QChar c : lineText) {
+            if (c == ' ') leadingSpaces++;
+            else if (c == '\t') leadingSpaces += 4;
+            else break;
+        }
+        if (leadingSpaces > 0) {
+            systemPrompt += QString("\n- CRITICAL: Current line has %1 spaces of indentation"
+                                   "\n- If generating multiline code, EVERY line must start with at least %1 spaces"
+                                   "\n- If generating single-line code, it will be inserted inline (no indentation needed)")
+                               .arg(leadingSpaces);
+        }
+    }
+    
+    systemPrompt += "\n- Use the same indentation style (spaces or tabs) as the surrounding code"
+                    "\n- Maintain consistent indentation for nested blocks"
+                    "\n- Do NOT remove or reduce the base indentation level"
+                    "\n\n## Code Style:"
+                    "\n- Match the coding style of the surrounding code (naming, spacing, braces, etc.)"
+                    "\n- Preserve the original code structure when possible"
+                    "\n- Only change what is necessary to fulfill the user's request";
 
     if (Settings::codeCompletionSettings().useOpenFilesInQuickRefactor()) {
         systemPrompt += "\n\n" + m_contextManager.openedFilesContext({documentInfo.filePath});
@@ -338,19 +387,7 @@ void QuickRefactorHandler::handleLLMResponse(
 
     if (isComplete) {
         m_isRefactoringInProgress = false;
-        
-        QString cleanedResponse = response.trimmed();
-        if (cleanedResponse.startsWith("```")) {
-            int firstNewLine = cleanedResponse.indexOf('\n');
-            int lastFence = cleanedResponse.lastIndexOf("```");
-
-            if (firstNewLine != -1 && lastFence > firstNewLine) {
-                cleanedResponse
-                    = cleanedResponse.mid(firstNewLine + 1, lastFence - firstNewLine - 1).trimmed();
-            } else if (lastFence != -1) {
-                cleanedResponse = cleanedResponse.mid(3, lastFence - 3).trimmed();
-            }
-        }
+        QString cleanedResponse = LLMCore::ResponseCleaner::clean(response);
 
         RefactorResult result;
         result.newText = cleanedResponse;
