@@ -19,11 +19,15 @@
 
 #include "BuildProjectTool.hpp"
 
+#include "GetIssuesListTool.hpp"
+
+#include <Version.hpp>
 #include <logger/Logger.hpp>
 #include <projectexplorer/buildmanager.h>
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectmanager.h>
 #include <projectexplorer/target.h>
+#include <projectexplorer/task.h>
 #include <QApplication>
 #include <QJsonArray>
 #include <QJsonObject>
@@ -34,6 +38,20 @@ namespace QodeAssist::Tools {
 BuildProjectTool::BuildProjectTool(QObject *parent)
     : BaseTool(parent)
 {
+}
+
+BuildProjectTool::~BuildProjectTool()
+{
+    for (auto it = m_activeBuilds.begin(); it != m_activeBuilds.end(); ++it) {
+        BuildInfo &info = it.value();
+        if (info.buildFinishedConnection) {
+            disconnect(info.buildFinishedConnection);
+        }
+        if (info.promise) {
+            info.promise->finish();
+        }
+    }
+    m_activeBuilds.clear();
 }
 
 QString BuildProjectTool::name() const
@@ -48,9 +66,11 @@ QString BuildProjectTool::stringName() const
 
 QString BuildProjectTool::description() const
 {
-    return "Build the current project in Qt Creator. "
-           "No returns simultaneously build status and any compilation errors/warnings. "
-           "Optional 'rebuild' parameter: set to true to force a clean rebuild (default: false).";
+    return "Build the current project in Qt Creator and wait for completion. "
+           "Returns build status (success/failure) and any compilation errors/warnings after "
+           "the build finishes. "
+           "Optional 'rebuild' parameter: set to true to force a clean rebuild (default: false). "
+           "Note: This operation may take some time depending on project size.";
 }
 
 QJsonObject BuildProjectTool::getDefinition(LLMCore::ToolSchemaFormat format) const
@@ -102,10 +122,36 @@ QFuture<QString> BuildProjectTool::executeAsync(const QJsonObject &input)
             QString("Error: Build is already in progress. Please wait for it to complete."));
     }
 
+    if (m_activeBuilds.contains(project)) {
+        LOG_MESSAGE("BuildProjectTool: Build already tracked for this project");
+        return QtFuture::makeReadyFuture(
+            QString("Error: Build is already being tracked for project '%1'.")
+                .arg(project->displayName()));
+    }
+
     bool rebuild = input.value("rebuild").toBool(false);
 
-    LOG_MESSAGE(QString("BuildProjectTool: Starting %1")
-                    .arg(rebuild ? QString("rebuild") : QString("build")));
+    LOG_MESSAGE(QString("BuildProjectTool: Starting %1 for project '%2'")
+                    .arg(rebuild ? QString("rebuild") : QString("build"))
+                    .arg(project->displayName()));
+
+    auto promise = QSharedPointer<QPromise<QString>>::create();
+    promise->start();
+
+    BuildInfo buildInfo;
+    buildInfo.promise = promise;
+    buildInfo.project = project;
+    buildInfo.projectName = project->displayName();
+    buildInfo.isRebuild = rebuild;
+
+    auto *buildManager = ProjectExplorer::BuildManager::instance();
+    buildInfo.buildFinishedConnection = QObject::connect(
+        buildManager,
+        &ProjectExplorer::BuildManager::buildQueueFinished,
+        this,
+        &BuildProjectTool::onBuildQueueFinished);
+
+    m_activeBuilds.insert(project, buildInfo);
 
     QMetaObject::invokeMethod(
         qApp,
@@ -120,10 +166,150 @@ QFuture<QString> BuildProjectTool::executeAsync(const QJsonObject &input)
         },
         Qt::QueuedConnection);
 
-    return QtFuture::makeReadyFuture(
-        QString("Build %1 started for project '%2'. Check the Compile Output pane for progress.")
-            .arg(rebuild ? QString("rebuild") : QString("build"))
-            .arg(project->displayName()));
+    LOG_MESSAGE(QString("BuildProjectTool: Build queued, waiting for completion..."));
+
+    return promise->future();
+}
+
+void BuildProjectTool::onBuildQueueFinished(bool success)
+{
+    LOG_MESSAGE(QString("BuildProjectTool: Build queue finished with status: %1")
+                    .arg(success ? "SUCCESS" : "FAILURE"));
+
+    QList<ProjectExplorer::Project *> projectsToCleanup;
+
+    for (auto it = m_activeBuilds.begin(); it != m_activeBuilds.end(); ++it) {
+        ProjectExplorer::Project *project = it.key();
+
+        if (!ProjectExplorer::BuildManager::isBuilding(project)) {
+            BuildInfo &info = it.value();
+
+            LOG_MESSAGE(QString("BuildProjectTool: Build completed for project '%1'")
+                            .arg(info.projectName));
+
+            if (info.promise && info.promise->future().isCanceled()) {
+                LOG_MESSAGE(
+                    QString("BuildProjectTool: Promise was cancelled for project '%1', cleaning up")
+                        .arg(info.projectName));
+                projectsToCleanup.append(project);
+                continue;
+            }
+
+            QString result = collectBuildResults(success, info.projectName, info.isRebuild);
+
+            if (info.promise) {
+                info.promise->addResult(result);
+                info.promise->finish();
+            }
+
+            projectsToCleanup.append(project);
+        }
+    }
+
+    for (ProjectExplorer::Project *project : projectsToCleanup) {
+        cleanupBuildInfo(project);
+    }
+}
+
+QString BuildProjectTool::collectBuildResults(
+    bool success, const QString &projectName, bool isRebuild)
+{
+    QStringList results;
+
+    // Build header
+    QString buildType = isRebuild ? QString("Rebuild") : QString("Build");
+    QString statusText = success ? QString("✓ SUCCEEDED") : QString("✗ FAILED");
+
+    results.append(QString("%1 %2 for project '%3'\n")
+                       .arg(buildType, statusText, projectName));
+
+    const auto tasks = IssuesTracker::instance().getTasks();
+
+    if (!tasks.isEmpty()) {
+        int errorCount = 0;
+        int warningCount = 0;
+        QStringList issuesList;
+
+        for (const ProjectExplorer::Task &task : tasks) {
+#if QODEASSIST_QT_CREATOR_VERSION >= QT_VERSION_CHECK(18, 0, 0)
+            auto taskType = task.type();
+            auto taskFile = task.file();
+            auto taskLine = task.line();
+            auto taskColumn = task.column();
+#else
+            auto taskType = task.type;
+            auto taskFile = task.file;
+            auto taskLine = task.line;
+            auto taskColumn = task.column;
+#endif
+
+            QString typeStr;
+            switch (taskType) {
+            case ProjectExplorer::Task::Error:
+                typeStr = QString("ERROR");
+                errorCount++;
+                break;
+            case ProjectExplorer::Task::Warning:
+                typeStr = QString("WARNING");
+                warningCount++;
+                break;
+            default:
+                continue; // Skip non-error/warning tasks
+            }
+
+            // Limit to first 50 issues to avoid overwhelming the LLM
+            if (issuesList.size() < 50) {
+                QString issueText = QString("[%1] %2").arg(typeStr, task.description());
+
+                if (!taskFile.isEmpty()) {
+                    issueText += QString("\n  File: %1").arg(taskFile.toUrlishString());
+                    if (taskLine > 0) {
+                        issueText += QString(":%1").arg(taskLine);
+                        if (taskColumn > 0) {
+                            issueText += QString(":%1").arg(taskColumn);
+                        }
+                    }
+                }
+
+                issuesList.append(issueText);
+            }
+        }
+
+        results.append(QString("Issues found: %1 error(s), %2 warning(s)")
+                           .arg(errorCount)
+                           .arg(warningCount));
+
+        if (!issuesList.isEmpty()) {
+            results.append("\nDetails:");
+            results.append(issuesList.join("\n\n"));
+
+            if (errorCount + warningCount > 50) {
+                results.append(
+                    QString("\n... and %1 more issue(s). Use get_issues_list tool for full list.")
+                        .arg(errorCount + warningCount - 50));
+            }
+        }
+    } else {
+        results.append("No compilation errors or warnings.");
+    }
+
+    return results.join("\n");
+}
+
+void BuildProjectTool::cleanupBuildInfo(ProjectExplorer::Project *project)
+{
+    if (!m_activeBuilds.contains(project)) {
+        return;
+    }
+
+    BuildInfo info = m_activeBuilds.take(project);
+
+    if (info.buildFinishedConnection) {
+        disconnect(info.buildFinishedConnection);
+    }
+
+    LOG_MESSAGE(QString("BuildProjectTool: Cleaned up build info for project '%1'")
+                    .arg(info.projectName));
 }
 
 } // namespace QodeAssist::Tools
