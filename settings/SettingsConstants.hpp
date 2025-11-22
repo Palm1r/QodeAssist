@@ -220,5 +220,6 @@ const char QR_READ_FULL_FILE[] = "QodeAssist.qrReadFullFile";
 const char QR_READ_STRINGS_BEFORE_CURSOR[] = "QodeAssist.qrReadStringsBeforeCursor";
 const char QR_READ_STRINGS_AFTER_CURSOR[] = "QodeAssist.qrReadStringsAfterCursor";
 const char QR_SYSTEM_PROMPT[] = "QodeAssist.qrSystemPrompt";
+const char QR_DISPLAY_MODE[] = "QodeAssist.qrDisplayMode";
 
 } // namespace QodeAssist::Constants

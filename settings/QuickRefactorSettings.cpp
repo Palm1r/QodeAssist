@@ -155,6 +155,16 @@ QuickRefactorSettings::QuickRefactorSettings()
     readStringsAfterCursor.setRange(0, 10000);
     readStringsAfterCursor.setDefaultValue(30);
 
+    displayMode.setSettingsKey(Constants::QR_DISPLAY_MODE);
+    displayMode.setLabelText(Tr::tr("Display Mode:"));
+    displayMode.setToolTip(
+        Tr::tr("Choose how to display refactoring suggestions:\n"
+               "- Inline Widget: Shows refactor in a widget overlay with Apply/Decline buttons (default)\n"
+               "- Qt Creator Suggestion: Uses Qt Creator's built-in suggestion system"));
+    displayMode.addOption(Tr::tr("Inline Widget"));
+    displayMode.addOption(Tr::tr("Qt Creator Suggestion"));
+    displayMode.setDefaultValue(0);
+
     systemPrompt.setSettingsKey(Constants::QR_SYSTEM_PROMPT);
     systemPrompt.setLabelText(Tr::tr("System Prompt:"));
     systemPrompt.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
@@ -198,6 +208,9 @@ QuickRefactorSettings::QuickRefactorSettings()
         contextGrid.addRow({Row{readFullFile}});
         contextGrid.addRow({Row{readFileParts, readStringsBeforeCursor, readStringsAfterCursor}});
 
+        auto displayGrid = Grid{};
+        displayGrid.addRow({Row{displayMode}});
+
         return Column{
             Row{Stretch{1}, resetToDefaults},
             Space{8},
@@ -211,6 +224,8 @@ QuickRefactorSettings::QuickRefactorSettings()
             Group{title(Tr::tr("Tools Settings")), Column{Row{toolsGrid, Stretch{1}}}},
             Space{8},
             Group{title(Tr::tr("Context Settings")), Column{Row{contextGrid, Stretch{1}}}},
+            Space{8},
+            Group{title(Tr::tr("Display Settings")), Column{Row{displayGrid, Stretch{1}}}},
             Space{8},
             Group{title(Tr::tr("Prompt Settings")), Column{Row{systemPrompt}}},
             Space{8},
@@ -272,6 +287,7 @@ void QuickRefactorSettings::resetSettingsToDefaults()
         resetAspect(readFileParts);
         resetAspect(readStringsBeforeCursor);
         resetAspect(readStringsAfterCursor);
+        resetAspect(displayMode);
         resetAspect(systemPrompt);
         writeSettings();
     }

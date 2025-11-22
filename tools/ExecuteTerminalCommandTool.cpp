@@ -226,9 +226,12 @@ QStringList ExecuteTerminalCommandTool::getAllowedCommands() const
         return QStringList();
     }
 
-    QStringList commands = commandsStr.split(',', Qt::SkipEmptyParts);
-    for (QString &cmd : commands) {
-        cmd = cmd.trimmed();
+    const QStringList rawCommands = commandsStr.split(',', Qt::SkipEmptyParts);
+    QStringList commands;
+    commands.reserve(rawCommands.size());
+    
+    for (const QString &cmd : rawCommands) {
+        commands.append(cmd.trimmed());
     }
 
     return commands;

@@ -40,6 +40,8 @@
 #include "settings/CodeCompletionSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProjectSettings.hpp"
+#include "settings/QuickRefactorSettings.hpp"
+#include "widgets/RefactorWidgetHandler.hpp"
 #include <context/ChangesManager.h>
 #include <logger/Logger.hpp>
 
@@ -71,12 +73,14 @@ QodeAssistClient::QodeAssistClient(LLMClientInterface *clientInterface)
     connect(&m_hintHideTimer, &QTimer::timeout, this, [this]() { m_hintHandler.hideHint(); });
 
     m_refactorHoverHandler = new RefactorSuggestionHoverHandler();
+    m_refactorWidgetHandler = new RefactorWidgetHandler(this);
 }
 
 QodeAssistClient::~QodeAssistClient()
 {
     cleanupConnections();
     delete m_refactorHoverHandler;
+    delete m_refactorWidgetHandler;
 }
 
 void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
@@ -451,11 +455,25 @@ void QodeAssistClient::handleRefactoringResult(const RefactorResult &result)
         return;
     }
 
-    TextEditorWidget *editorWidget = result.editor;
+    int displayMode = Settings::quickRefactorSettings().displayMode();
+    
+    if (displayMode == 0) {
+        displayRefactoringWidget(result);
+    } else {
+        displayRefactoringSuggestion(result);
+    }
+}
 
-    auto toTextPos = [](const Utils::Text::Position &pos) {
-        return Utils::Text::Position{pos.line, pos.column};
-    };
+namespace {
+Utils::Text::Position toTextPos(const Utils::Text::Position &pos)
+{
+    return Utils::Text::Position{pos.line, pos.column};
+}
+} // anonymous namespace
+
+void QodeAssistClient::displayRefactoringSuggestion(const RefactorResult &result)
+{
+    TextEditorWidget *editorWidget = result.editor;
 
     Utils::Text::Range range{toTextPos(result.insertRange.begin), toTextPos(result.insertRange.end)};
     Utils::Text::Position pos = toTextPos(result.insertRange.begin);
@@ -508,6 +526,68 @@ void QodeAssistClient::handleRefactoringResult(const RefactorResult &result)
     });
 
     LOG_MESSAGE("Displaying refactoring suggestion with hover handler");
+}
+
+void QodeAssistClient::displayRefactoringWidget(const RefactorResult &result)
+{
+    TextEditorWidget *editorWidget = result.editor;
+
+    Utils::Text::Range range{toTextPos(result.insertRange.begin), toTextPos(result.insertRange.end)};
+
+    QString originalText;
+    const int startPos = range.begin.toPositionInDocument(editorWidget->document());
+    const int endPos = range.end.toPositionInDocument(editorWidget->document());
+    
+    if (startPos != endPos) {
+        QTextCursor cursor(editorWidget->document());
+        cursor.setPosition(startPos);
+        cursor.setPosition(endPos, QTextCursor::KeepAnchor);
+        originalText = cursor.selectedText();
+        originalText.replace(QChar(0x2029), "\n");
+    }
+
+    m_refactorWidgetHandler->setApplyCallback([this, editorWidget, result](const QString &editedText) {
+        const Utils::Text::Range range{
+            Utils::Text::Position{result.insertRange.begin.line, result.insertRange.begin.column},
+            Utils::Text::Position{result.insertRange.end.line, result.insertRange.end.column}};
+
+        const QTextCursor startCursor = range.begin.toTextCursor(editorWidget->document());
+        const QTextCursor endCursor = range.end.toTextCursor(editorWidget->document());
+        
+        const int startPos = startCursor.position();
+        const int endPos = endCursor.position();
+        
+        QTextCursor editCursor(editorWidget->document());
+        editCursor.beginEditBlock();
+
+        if (startPos == endPos) {
+            editCursor.setPosition(startPos);
+            editCursor.insertText(editedText);
+        } else {
+            editCursor.setPosition(startPos);
+            editCursor.setPosition(endPos, QTextCursor::KeepAnchor);
+            editCursor.removeSelectedText();
+            editCursor.insertText(editedText);
+        }
+
+        editCursor.endEditBlock();
+        
+        LOG_MESSAGE("Refactoring applied via widget with edited text");
+    });
+
+    m_refactorWidgetHandler->setDeclineCallback([this]() {
+        LOG_MESSAGE("Refactoring declined via widget");
+    });
+
+    m_refactorWidgetHandler->showRefactorWidget(
+        editorWidget, 
+        originalText, 
+        result.newText, 
+        range);
+    
+    LOG_MESSAGE(QString("Displaying refactoring widget - Original: %1 chars, New: %2 chars")
+        .arg(originalText.length())
+        .arg(result.newText.length()));
 }
 
 void QodeAssistClient::handleAutoRequestTrigger(TextEditor::TextEditorWidget *widget,

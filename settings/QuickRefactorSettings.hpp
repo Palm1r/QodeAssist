@@ -67,6 +67,9 @@ public:
     Utils::IntegerAspect readStringsBeforeCursor{this};
     Utils::IntegerAspect readStringsAfterCursor{this};
 
+    // Display Settings
+    Utils::SelectionAspect displayMode{this};
+
     // Prompt Settings
     Utils::StringAspect systemPrompt{this};
 

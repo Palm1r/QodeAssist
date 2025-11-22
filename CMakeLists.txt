@@ -121,6 +121,8 @@ add_qtc_plugin(QodeAssist
     widgets/QuickRefactorDialog.hpp widgets/QuickRefactorDialog.cpp
     widgets/CustomInstructionsManager.hpp widgets/CustomInstructionsManager.cpp
     widgets/AddCustomInstructionDialog.hpp widgets/AddCustomInstructionDialog.cpp
+    widgets/RefactorWidget.hpp widgets/RefactorWidget.cpp
+    widgets/RefactorWidgetHandler.hpp widgets/RefactorWidgetHandler.cpp
 
     QuickRefactorHandler.hpp QuickRefactorHandler.cpp
     tools/ToolsFactory.hpp tools/ToolsFactory.cpp
