@@ -40,6 +40,8 @@ public:
     // Experimental features
     Utils::BoolAspect enableEditFileTool{this};
     Utils::BoolAspect enableBuildProjectTool{this};
+    Utils::BoolAspect enableTerminalCommandTool{this};
+    Utils::StringAspect allowedTerminalCommands{this};
     Utils::BoolAspect autoApplyFileEdits{this};
 
 private:

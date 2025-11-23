@@ -89,6 +89,22 @@ ToolsSettings::ToolsSettings()
                "project. This feature is under testing and may have unexpected behavior."));
     enableBuildProjectTool.setDefaultValue(false);
 
+    enableTerminalCommandTool.setSettingsKey(Constants::CA_ENABLE_TERMINAL_COMMAND_TOOL);
+    enableTerminalCommandTool.setLabelText(Tr::tr("Enable Terminal Command Tool (Experimental)"));
+    enableTerminalCommandTool.setToolTip(
+        Tr::tr("Enable the experimental execute_terminal_command tool that allows AI to execute "
+               "terminal commands from the allowed list. This feature is under testing and may have "
+               "unexpected behavior."));
+    enableTerminalCommandTool.setDefaultValue(false);
+
+    allowedTerminalCommands.setSettingsKey(Constants::CA_ALLOWED_TERMINAL_COMMANDS);
+    allowedTerminalCommands.setLabelText(Tr::tr("Allowed Terminal Commands"));
+    allowedTerminalCommands.setToolTip(
+        Tr::tr("Comma-separated list of terminal commands that AI is allowed to execute. "
+               "Example: git, ls, cat, grep, cmake"));
+    allowedTerminalCommands.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    allowedTerminalCommands.setDefaultValue("git, ls, cat, grep");
+
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
 
     readSettings();
@@ -113,7 +129,12 @@ ToolsSettings::ToolsSettings()
             Space{8},
             Group{
                 title(Tr::tr("Experimental Features")),
-                Column{enableEditFileTool, enableBuildProjectTool, autoApplyFileEdits}},
+                Column{
+                    enableEditFileTool,
+                    enableBuildProjectTool,
+                    enableTerminalCommandTool,
+                    allowedTerminalCommands,
+                    autoApplyFileEdits}},
             Stretch{1}};
     });
 }
@@ -144,6 +165,8 @@ void ToolsSettings::resetSettingsToDefaults()
         resetAspect(autoApplyFileEdits);
         resetAspect(enableEditFileTool);
         resetAspect(enableBuildProjectTool);
+        resetAspect(enableTerminalCommandTool);
+        resetAspect(allowedTerminalCommands);
         writeSettings();
     }
 }
