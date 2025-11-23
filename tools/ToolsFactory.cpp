@@ -28,6 +28,7 @@
 #include "BuildProjectTool.hpp"
 #include "CreateNewFileTool.hpp"
 #include "EditFileTool.hpp"
+#include "ExecuteTerminalCommandTool.hpp"
 #include "FindAndReadFileTool.hpp"
 #include "GetIssuesListTool.hpp"
 #include "ListProjectFilesTool.hpp"
@@ -50,6 +51,7 @@ void ToolsFactory::registerTools()
     registerTool(new CreateNewFileTool(this));
     registerTool(new EditFileTool(this));
     registerTool(new BuildProjectTool(this));
+    registerTool(new ExecuteTerminalCommandTool(this));
     registerTool(new ProjectSearchTool(this));
     registerTool(new FindAndReadFileTool(this));
 
@@ -97,6 +99,11 @@ QJsonArray ToolsFactory::getToolsDefinitions(
         }
 
         if (it.value()->name() == "build_project" && !settings.enableBuildProjectTool()) {
+            continue;
+        }
+
+        if (it.value()->name() == "execute_terminal_command"
+            && !settings.enableTerminalCommandTool()) {
             continue;
         }
 

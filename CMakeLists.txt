@@ -132,6 +132,7 @@ add_qtc_plugin(QodeAssist
     tools/CreateNewFileTool.hpp tools/CreateNewFileTool.cpp
     tools/EditFileTool.hpp tools/EditFileTool.cpp
     tools/BuildProjectTool.hpp tools/BuildProjectTool.cpp
+    tools/ExecuteTerminalCommandTool.hpp tools/ExecuteTerminalCommandTool.cpp
     tools/ProjectSearchTool.hpp tools/ProjectSearchTool.cpp
     tools/FindAndReadFileTool.hpp tools/FindAndReadFileTool.cpp
     tools/FileSearchUtils.hpp tools/FileSearchUtils.cpp
