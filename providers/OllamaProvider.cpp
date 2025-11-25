@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024-2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -104,12 +104,31 @@ void OllamaProvider::prepareRequest(
         request["keep_alive"] = settings.ollamaLivetime();
     };
 
+    auto applyThinkingMode = [&request]() {
+        request["enable_thinking"] = true;
+        QJsonObject options = request["options"].toObject();
+        options["temperature"] = 1.0;
+        request["options"] = options;
+    };
+
     if (type == LLMCore::RequestType::CodeCompletion) {
         applySettings(Settings::codeCompletionSettings());
     } else if (type == LLMCore::RequestType::QuickRefactoring) {
-        applySettings(Settings::quickRefactorSettings());
+        const auto &qrSettings = Settings::quickRefactorSettings();
+        applySettings(qrSettings);
+        
+        if (isThinkingEnabled) {
+            applyThinkingMode();
+            LOG_MESSAGE(QString("OllamaProvider: Thinking mode enabled for QuickRefactoring"));
+        }
     } else {
-        applySettings(Settings::chatAssistantSettings());
+        const auto &chatSettings = Settings::chatAssistantSettings();
+        applySettings(chatSettings);
+
+        if (isThinkingEnabled) {
+            applyThinkingMode();
+            LOG_MESSAGE(QString("OllamaProvider: Thinking mode enabled for Chat"));
+        }
     }
 
     if (isToolsEnabled) {
@@ -243,6 +262,11 @@ bool OllamaProvider::supportsTools() const
 }
 
 bool OllamaProvider::supportImage() const
+{
+    return true;
+}
+
+bool OllamaProvider::supportThinking() const
 {
     return true;
 }
@@ -405,12 +429,48 @@ void OllamaProvider::processStreamData(const QString &requestId, const QJsonObje
         LOG_MESSAGE(QString("Cleared message state for continuation request %1").arg(requestId));
     }
 
+    if (data.contains("thinking")) {
+        QString thinkingDelta = data["thinking"].toString();
+        if (!thinkingDelta.isEmpty()) {
+            message->handleThinkingDelta(thinkingDelta);
+            LOG_MESSAGE(QString("OllamaProvider: Received thinking delta, length=%1")
+                            .arg(thinkingDelta.length()));
+        }
+    }
+
     if (data.contains("message")) {
         QJsonObject messageObj = data["message"].toObject();
+
+        if (messageObj.contains("thinking")) {
+            QString thinkingDelta = messageObj["thinking"].toString();
+            if (!thinkingDelta.isEmpty()) {
+                message->handleThinkingDelta(thinkingDelta);
+                LOG_MESSAGE(QString("OllamaProvider: Received thinking delta from message.thinking, length=%1")
+                                .arg(thinkingDelta.length()));
+                
+                if (!m_thinkingStarted.contains(requestId)) {
+                    auto thinkingBlocks = message->getCurrentThinkingContent();
+                    if (!thinkingBlocks.isEmpty() && thinkingBlocks.first()) {
+                        QString currentThinking = thinkingBlocks.first()->thinking();
+                        QString displayThinking = currentThinking.length() > 50
+                            ? QString("%1...").arg(currentThinking.left(50))
+                            : currentThinking;
+                        
+                        emit thinkingBlockReceived(requestId, displayThinking, "");
+                        LOG_MESSAGE(QString("Emitted initial thinking indicator for request %1, length=%2")
+                                        .arg(requestId)
+                                        .arg(currentThinking.length()));
+                        m_thinkingStarted.insert(requestId);
+                    }
+                }
+            }
+        }
 
         if (messageObj.contains("content")) {
             QString content = messageObj["content"].toString();
             if (!content.isEmpty()) {
+                emitThinkingBlocks(requestId, message);
+
                 message->handleContentDelta(content);
 
                 bool hasTextContent = false;
@@ -460,6 +520,13 @@ void OllamaProvider::processStreamData(const QString &requestId, const QJsonObje
     }
 
     if (data["done"].toBool()) {
+        if (data.contains("signature")) {
+            QString signature = data["signature"].toString();
+            message->handleThinkingComplete(signature);
+            LOG_MESSAGE(QString("OllamaProvider: Set thinking signature, length=%1")
+                            .arg(signature.length()));
+        }
+
         message->handleDone(true);
         handleMessageComplete(requestId);
     }
@@ -471,6 +538,8 @@ void OllamaProvider::handleMessageComplete(const QString &requestId)
         return;
 
     OllamaMessage *message = m_messages[requestId];
+
+    emitThinkingBlocks(requestId, message);
 
     if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
         LOG_MESSAGE(QString("Ollama message requires tool execution for %1").arg(requestId));
@@ -517,6 +586,32 @@ void OllamaProvider::cleanupRequest(const LLMCore::RequestID &requestId)
     m_dataBuffers.remove(requestId);
     m_requestUrls.remove(requestId);
     m_originalRequests.remove(requestId);
+    m_thinkingEmitted.remove(requestId);
+    m_thinkingStarted.remove(requestId);
     m_toolsManager->cleanupRequest(requestId);
 }
+
+void OllamaProvider::emitThinkingBlocks(const QString &requestId, OllamaMessage *message)
+{
+    if (!message || m_thinkingEmitted.contains(requestId)) {
+        return;
+    }
+
+    auto thinkingBlocks = message->getCurrentThinkingContent();
+    if (thinkingBlocks.isEmpty()) {
+        return;
+    }
+
+    for (auto thinkingContent : thinkingBlocks) {
+        emit thinkingBlockReceived(
+            requestId, thinkingContent->thinking(), thinkingContent->signature());
+        LOG_MESSAGE(QString("Emitted thinking block for request %1, thinking length=%2, signature "
+                            "length=%3")
+                        .arg(requestId)
+                        .arg(thinkingContent->thinking().length())
+                        .arg(thinkingContent->signature().length()));
+    }
+    m_thinkingEmitted.insert(requestId);
+}
+
 } // namespace QodeAssist::Providers

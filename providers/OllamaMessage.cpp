@@ -70,6 +70,22 @@ void OllamaMessage::handleToolCall(const QJsonObject &toolCall)
     LOG_MESSAGE(
         QString("OllamaMessage: Structured tool call detected - name=%1, id=%2").arg(name, toolId));
 }
+
+void OllamaMessage::handleThinkingDelta(const QString &thinking)
+{
+    LLMCore::ThinkingContent *thinkingContent = getOrCreateThinkingContent();
+    thinkingContent->appendThinking(thinking);
+}
+
+void OllamaMessage::handleThinkingComplete(const QString &signature)
+{
+    if (m_currentThinkingContent) {
+        m_currentThinkingContent->setSignature(signature);
+        LOG_MESSAGE(QString("OllamaMessage: Set thinking signature, length=%1")
+                        .arg(signature.length()));
+    }
+}
+
 void OllamaMessage::handleDone(bool done)
 {
     m_done = done;
@@ -216,6 +232,7 @@ QJsonObject OllamaMessage::toProviderFormat() const
 
     QString textContent;
     QJsonArray toolCalls;
+    QString thinkingContent;
 
     for (auto block : m_currentBlocks) {
         if (!block)
@@ -228,7 +245,13 @@ QJsonObject OllamaMessage::toProviderFormat() const
             toolCall["type"] = "function";
             toolCall["function"] = QJsonObject{{"name", tool->name()}, {"arguments", tool->input()}};
             toolCalls.append(toolCall);
+        } else if (auto thinking = qobject_cast<LLMCore::ThinkingContent *>(block)) {
+            thinkingContent += thinking->thinking();
         }
+    }
+
+    if (!thinkingContent.isEmpty()) {
+        message["thinking"] = thinkingContent;
     }
 
     if (!textContent.isEmpty()) {
@@ -275,6 +298,17 @@ QList<LLMCore::ToolUseContent *> OllamaMessage::getCurrentToolUseContent() const
     return toolBlocks;
 }
 
+QList<LLMCore::ThinkingContent *> OllamaMessage::getCurrentThinkingContent() const
+{
+    QList<LLMCore::ThinkingContent *> thinkingBlocks;
+    for (auto block : m_currentBlocks) {
+        if (auto thinkingContent = qobject_cast<LLMCore::ThinkingContent *>(block)) {
+            thinkingBlocks.append(thinkingContent);
+        }
+    }
+    return thinkingBlocks;
+}
+
 void OllamaMessage::startNewContinuation()
 {
     LOG_MESSAGE(QString("OllamaMessage: Starting new continuation"));
@@ -284,6 +318,7 @@ void OllamaMessage::startNewContinuation()
     m_done = false;
     m_state = LLMCore::MessageState::Building;
     m_contentAddedToTextBlock = false;
+    m_currentThinkingContent = nullptr;
 }
 
 void OllamaMessage::updateStateFromDone()
@@ -307,6 +342,24 @@ LLMCore::TextContent *OllamaMessage::getOrCreateTextContent()
     }
 
     return addCurrentContent<LLMCore::TextContent>();
+}
+
+LLMCore::ThinkingContent *OllamaMessage::getOrCreateThinkingContent()
+{
+    if (m_currentThinkingContent) {
+        return m_currentThinkingContent;
+    }
+
+    for (auto block : m_currentBlocks) {
+        if (auto thinkingContent = qobject_cast<LLMCore::ThinkingContent *>(block)) {
+            m_currentThinkingContent = thinkingContent;
+            return m_currentThinkingContent;
+        }
+    }
+
+    m_currentThinkingContent = addCurrentContent<LLMCore::ThinkingContent>();
+    LOG_MESSAGE(QString("OllamaMessage: Created new ThinkingContent block"));
+    return m_currentThinkingContent;
 }
 
 } // namespace QodeAssist::Providers

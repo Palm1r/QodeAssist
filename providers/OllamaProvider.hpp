@@ -55,6 +55,7 @@ public:
 
     bool supportsTools() const override;
     bool supportImage() const override;
+    bool supportThinking() const override;
     void cancelRequest(const LLMCore::RequestID &requestId) override;
 
 public slots:
@@ -73,10 +74,13 @@ private:
     void processStreamData(const QString &requestId, const QJsonObject &data);
     void handleMessageComplete(const QString &requestId);
     void cleanupRequest(const LLMCore::RequestID &requestId);
+    void emitThinkingBlocks(const QString &requestId, OllamaMessage *message);
 
     QHash<QodeAssist::LLMCore::RequestID, OllamaMessage *> m_messages;
     QHash<QodeAssist::LLMCore::RequestID, QUrl> m_requestUrls;
     QHash<QodeAssist::LLMCore::RequestID, QJsonObject> m_originalRequests;
+    QSet<QString> m_thinkingEmitted;
+    QSet<QString> m_thinkingStarted;
     Tools::ToolsManager *m_toolsManager;
 };
 
