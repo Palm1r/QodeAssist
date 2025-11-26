@@ -29,8 +29,10 @@ Basic.ComboBox {
 
     indicator: Image {
         id: dropdownIcon
+
         x: control.width - width - 10
         y: control.topPadding + (control.availableHeight - height) / 2
+
         width: 12
         height: 8
         source: palette.window.hslLightness > 0.5
@@ -101,6 +103,8 @@ Basic.ComboBox {
             implicitHeight: contentHeight
             model: control.popup.visible ? control.delegateModel : null
             currentIndex: control.highlightedIndex
+            boundsBehavior: ListView.StopAtBounds
+            highlightMoveDuration: 0
 
             ScrollBar.vertical: ScrollBar {
                 policy: ScrollBar.AsNeeded

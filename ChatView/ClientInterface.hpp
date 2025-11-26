@@ -43,7 +43,8 @@ public:
         const QString &message,
         const QList<QString> &attachments = {},
         const QList<QString> &linkedFiles = {},
-        bool useAgentMode = false);
+        bool useTools = false,
+        bool useThinking = false);
     void clearMessages();
     void cancelRequest();
 

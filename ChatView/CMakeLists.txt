@@ -49,6 +49,8 @@ qt_add_qml_module(QodeAssistChatView
     icons/reject-changes-button.svg
     icons/thinking-icon-on.svg
     icons/thinking-icon-off.svg
+    icons/tools-icon-on.svg
+    icons/tools-icon-off.svg
 
     SOURCES
     ChatWidget.hpp ChatWidget.cpp

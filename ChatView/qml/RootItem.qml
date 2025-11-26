@@ -103,18 +103,17 @@ ChatRootView {
                 checked: typeof _chatview !== 'undefined' ? _chatview.isPin : false
                 onCheckedChanged: _chatview.isPin = topBar.pinButton.checked
             }
-            agentModeSwitch {
-                checked: root.isAgentMode
-                enabled: root.toolsSupportEnabled
-                onToggled: {
-                    root.isAgentMode = agentModeSwitch.checked
+            toolsButton {
+                checked: root.useTools
+                onCheckedChanged: {
+                    root.useTools = toolsButton.checked
                 }
             }
             thinkingMode {
-                checked: root.isThinkingMode
+                checked: root.useThinking
                 enabled: root.isThinkingSupport
                 onCheckedChanged: {
-                    root.isThinkingMode = thinkingMode.checked
+                    root.useThinking = thinkingMode.checked
                 }
             }
             configSelector {

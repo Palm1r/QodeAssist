@@ -102,6 +102,7 @@ const char CC_CUSTOM_LANGUAGES[] = "QodeAssist.ccCustomLanguages";
 
 const char CA_ENABLE_CHAT_IN_BOTTOM_TOOLBAR[] = "QodeAssist.caEnableChatInBottomToolbar";
 const char CA_ENABLE_CHAT_IN_NAVIGATION_PANEL[] = "QodeAssist.caEnableChatInNavigationPanel";
+const char CA_ENABLE_CHAT_TOOLS[] = "QodeAssist.caEnableChatTools";
 const char CA_USE_TOOLS[] = "QodeAssist.caUseTools";
 const char CA_ALLOW_FILE_SYSTEM_READ[] = "QodeAssist.caAllowFileSystemRead";
 const char CA_ALLOW_FILE_SYSTEM_WRITE[] = "QodeAssist.caAllowFileSystemWrite";

@@ -48,10 +48,8 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(QString lastInfoMessage READ lastInfoMessage NOTIFY lastInfoMessageChanged FINAL)
     Q_PROPERTY(QVariantList activeRules READ activeRules NOTIFY activeRulesChanged FINAL)
     Q_PROPERTY(int activeRulesCount READ activeRulesCount NOTIFY activeRulesCountChanged FINAL)
-    Q_PROPERTY(bool isAgentMode READ isAgentMode WRITE setIsAgentMode NOTIFY isAgentModeChanged FINAL)
-    Q_PROPERTY(bool isThinkingMode READ isThinkingMode WRITE setIsThinkingMode NOTIFY isThinkingModeChanged FINAL)
-    Q_PROPERTY(
-        bool toolsSupportEnabled READ toolsSupportEnabled NOTIFY toolsSupportEnabledChanged FINAL)
+    Q_PROPERTY(bool useTools READ useTools WRITE setUseTools NOTIFY useToolsChanged FINAL)
+    Q_PROPERTY(bool useThinking READ useThinking WRITE setUseThinking NOTIFY useThinkingChanged FINAL)
     
     Q_PROPERTY(int currentMessageTotalEdits READ currentMessageTotalEdits NOTIFY currentMessageEditsStatsChanged FINAL)
     Q_PROPERTY(int currentMessageAppliedEdits READ currentMessageAppliedEdits NOTIFY currentMessageEditsStatsChanged FINAL)
@@ -127,11 +125,10 @@ public:
     Q_INVOKABLE QString getRuleContent(int index);
     Q_INVOKABLE void refreshRules();
 
-    bool isAgentMode() const;
-    void setIsAgentMode(bool newIsAgentMode);
-    bool isThinkingMode() const;
-    void setIsThinkingMode(bool newIsThinkingMode);
-    bool toolsSupportEnabled() const;
+    bool useTools() const;
+    void setUseTools(bool enabled);
+    bool useThinking() const;
+    void setUseThinking(bool enabled);
 
     Q_INVOKABLE void applyFileEdit(const QString &editId);
     Q_INVOKABLE void rejectFileEdit(const QString &editId);
@@ -184,9 +181,8 @@ signals:
     void activeRulesChanged();
     void activeRulesCountChanged();
 
-    void isAgentModeChanged();
-    void isThinkingModeChanged();
-    void toolsSupportEnabledChanged();
+    void useToolsChanged();
+    void useThinkingChanged();
     void currentMessageEditsStatsChanged();
 
     void isThinkingSupportChanged();
@@ -214,8 +210,6 @@ private:
     bool m_isRequestInProgress;
     QString m_lastErrorMessage;
     QVariantList m_activeRules;
-    bool m_isAgentMode;
-    bool m_isThinkingMode;
     
     QString m_currentMessageRequestId;
     int m_currentMessageTotalEdits{0};

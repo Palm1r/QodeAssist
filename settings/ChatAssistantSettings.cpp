@@ -68,6 +68,10 @@ ChatAssistantSettings::ChatAssistantSettings()
     enableChatInNavigationPanel.setLabelText(Tr::tr("Enable chat in navigation panel"));
     enableChatInNavigationPanel.setDefaultValue(false);
 
+    enableChatTools.setSettingsKey(Constants::CA_ENABLE_CHAT_TOOLS);
+    enableChatTools.setLabelText(Tr::tr("Enable tools/function calling"));
+    enableChatTools.setToolTip(Tr::tr("When enabled, AI can use tools to read files, search project, and build code"));
+    enableChatTools.setDefaultValue(false);
 
     // General Parameters Settings
     temperature.setSettingsKey(Constants::CA_TEMPERATURE);
@@ -146,10 +150,11 @@ ChatAssistantSettings::ChatAssistantSettings()
 
     // Extended Thinking Settings
     enableThinkingMode.setSettingsKey(Constants::CA_ENABLE_THINKING_MODE);
-    enableThinkingMode.setLabelText(Tr::tr("Enable extended thinking mode (Claude, Ollama).\n Temperature is 1.0 accordingly API requirement for Claude"));
+    enableThinkingMode.setLabelText(Tr::tr("Enable extended thinking mode."));
     enableThinkingMode.setToolTip(
-        Tr::tr("Enable extended thinking mode for complex reasoning tasks. "
-               "This provides step-by-step reasoning before the final answer. "));
+        Tr::tr("Enable extended thinking mode for complex reasoning tasks."
+               "This provides step-by-step reasoning before the final answer."
+               "Temperature is 1.0 accordingly API requirement"));
     enableThinkingMode.setDefaultValue(false);
 
     thinkingBudgetTokens.setSettingsKey(Constants::CA_THINKING_BUDGET_TOKENS);
@@ -284,6 +289,14 @@ ChatAssistantSettings::ChatAssistantSettings()
                     enableChatInNavigationPanel}},
             Space{8},
             Group{
+                title(Tr::tr("Tools")),
+                Column{enableChatTools}},
+            Space{8},
+            Group{
+                  title(Tr::tr("Extended Thinking (if provider/model supports)")),
+                  Column{enableThinkingMode, Row{thinkingGrid, Stretch{1}}}},
+            Space{8},
+            Group{
                 title(Tr::tr("General Parameters")),
                 Row{genGrid, Stretch{1}},
             },
@@ -297,9 +310,6 @@ ChatAssistantSettings::ChatAssistantSettings()
                     systemPrompt,
                 }},
             Group{title(Tr::tr("Ollama Settings")), Column{Row{ollamaGrid, Stretch{1}}}},
-            Group{
-                title(Tr::tr("Extended Thinking (Claude, Ollama)")),
-                Column{enableThinkingMode, Row{thinkingGrid, Stretch{1}}}},
             Group{title(Tr::tr("Chat Settings")), Row{chatViewSettingsGrid, Stretch{1}}},
             Stretch{1}};
     });
@@ -343,6 +353,7 @@ void ChatAssistantSettings::resetSettingsToDefaults()
         resetAspect(thinkingBudgetTokens);
         resetAspect(thinkingMaxTokens);
         resetAspect(linkOpenFiles);
+        resetAspect(enableChatTools);
         resetAspect(textFontFamily);
         resetAspect(codeFontFamily);
         resetAspect(textFontSize);

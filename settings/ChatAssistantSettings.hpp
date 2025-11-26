@@ -38,6 +38,7 @@ public:
     Utils::BoolAspect autosave{this};
     Utils::BoolAspect enableChatInBottomToolBar{this};
     Utils::BoolAspect enableChatInNavigationPanel{this};
+    Utils::BoolAspect enableChatTools{this};
 
     // General Parameters Settings
     Utils::DoubleAspect temperature{this};

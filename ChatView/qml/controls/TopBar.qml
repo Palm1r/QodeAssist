@@ -34,7 +34,7 @@ Rectangle {
     property alias openChatHistory: openChatHistoryId
     property alias pinButton: pinButtonId
     property alias rulesButton: rulesButtonId
-    property alias agentModeSwitch: agentModeSwitchId
+    property alias toolsButton: toolsButtonId
     property alias thinkingMode: thinkingModeId
     property alias activeRulesCount: activeRulesCountId.text
     property alias configSelector: configSelectorId
@@ -53,7 +53,8 @@ Rectangle {
         spacing: 10
 
         Row {
-            height: agentModeSwitchId.height
+            id: firstRow
+
             spacing: 10
 
             QoAButton {
@@ -75,23 +76,44 @@ Rectangle {
                                       : qsTr("Pin chat window to the top")
             }
 
-            QoATextSlider {
-                id: agentModeSwitchId
+            QoAComboBox {
+                id: configSelectorId
+
+                implicitHeight: 25
+
+                model: []
+                currentIndex: 0
+
+                ToolTip.visible: hovered
+                ToolTip.delay: 250
+                ToolTip.text: qsTr("Switch AI configuration")
+            }
+
+            QoAButton {
+                id: toolsButtonId
 
                 anchors.verticalCenter: parent.verticalCenter
 
-                leftText: "chat"
-                rightText: "AI Agent"
+                checkable: true
+                opacity: enabled ? 1.0 : 0.2
+
+                icon {
+                    source: checked ? "qrc:/qt/qml/ChatView/icons/tools-icon-on.svg"
+                                    : "qrc:/qt/qml/ChatView/icons/tools-icon-off.svg"
+                    color: palette.window.hslLightness > 0.5 ? "#000000" : "#FFFFFF"
+                    height: 15
+                    width: 15
+                }
 
                 ToolTip.visible: hovered
                 ToolTip.delay: 250
                 ToolTip.text: {
-                    if (!agentModeSwitchId.enabled) {
+                    if (!toolsButtonId.enabled) {
                         return qsTr("Tools are disabled in General Settings")
                     }
                     return checked
-                            ? qsTr("Agent Mode: AI can use tools to read files, search project, and build code")
-                            : qsTr("Chat Mode: Simple conversation without tool access")
+                            ? qsTr("Tools enabled: AI can use tools to read files, search project, and build code")
+                            : qsTr("Tools disabled: Simple conversation without tool access")
                 }
             }
 
@@ -120,7 +142,7 @@ Rectangle {
         }
 
         Item {
-            height: agentModeSwitchId.height
+            height: firstRow.height
             width: recentPathId.width
 
             Text {
@@ -144,7 +166,10 @@ Rectangle {
         }
 
         RowLayout {
+            id: secondRow
+
             Layout.preferredWidth: root.width
+            Layout.preferredHeight: firstRow.height
 
             spacing: 10
 
@@ -238,17 +263,6 @@ Rectangle {
                 ToolTip.visible: hovered
                 ToolTip.delay: 250
                 ToolTip.text: qsTr("Current amount tokens in chat and LLM limit threshold")
-            }
-
-            QoAComboBox {
-                id: configSelectorId
-
-                model: []
-                currentIndex: 0
-
-                ToolTip.visible: hovered
-                ToolTip.delay: 250
-                ToolTip.text: qsTr("Switch AI configuration")
             }
         }
     }

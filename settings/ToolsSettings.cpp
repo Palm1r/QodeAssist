@@ -42,13 +42,6 @@ ToolsSettings::ToolsSettings()
 
     setDisplayName(Tr::tr("Tools"));
 
-    useTools.setSettingsKey(Constants::CA_USE_TOOLS);
-    useTools.setLabelText(Tr::tr("Enable tools"));
-    useTools.setToolTip(Tr::tr(
-            "Enable tool use capabilities for the assistant (OpenAI function calling, Claude tools "
-            "and etc) if plugin and provider support"));
-    useTools.setDefaultValue(true);
-
     allowFileSystemRead.setSettingsKey(Constants::CA_ALLOW_FILE_SYSTEM_READ);
     allowFileSystemRead.setLabelText(Tr::tr("Allow File System Read Access for tools"));
     allowFileSystemRead.setToolTip(
@@ -120,8 +113,6 @@ ToolsSettings::ToolsSettings()
             Group{
                 title(Tr::tr("Tool Settings")),
                 Column{
-                    useTools,
-                    Space{8},
                     allowFileSystemRead,
                     allowFileSystemWrite,
                     allowAccessOutsideProject
@@ -158,7 +149,6 @@ void ToolsSettings::resetSettingsToDefaults()
         QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
-        resetAspect(useTools);
         resetAspect(allowFileSystemRead);
         resetAspect(allowFileSystemWrite);
         resetAspect(allowAccessOutsideProject);

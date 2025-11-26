@@ -32,7 +32,6 @@ public:
 
     ButtonAspect resetToDefaults{this};
 
-    Utils::BoolAspect useTools{this};
     Utils::BoolAspect allowFileSystemRead{this};
     Utils::BoolAspect allowFileSystemWrite{this};
     Utils::BoolAspect allowAccessOutsideProject{this};
