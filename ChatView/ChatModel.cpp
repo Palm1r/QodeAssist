@@ -95,7 +95,6 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
             imageMap["storedPath"] = image.storedPath;
             imageMap["mediaType"] = image.mediaType;
             
-            // Generate proper file URL for cross-platform compatibility
             if (!m_chatFilePath.isEmpty()) {
                 QFileInfo fileInfo(m_chatFilePath);
                 QString baseName = fileInfo.completeBaseName();
@@ -448,6 +447,16 @@ void ChatModel::addThinkingBlock(
     QString displayContent = thinking;
     if (!signature.isEmpty()) {
         displayContent += "\n[Signature: " + signature.left(40) + "...]";
+    }
+
+    for (int i = 0; i < m_messages.size(); ++i) {
+        if (m_messages[i].role == ChatRole::Thinking && m_messages[i].id == requestId) {
+            m_messages[i].content = displayContent;
+            m_messages[i].signature = signature;
+            emit dataChanged(index(i), index(i));
+            LOG_MESSAGE(QString("Updated existing thinking message at index %1").arg(i));
+            return;
+        }
     }
 
     beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());

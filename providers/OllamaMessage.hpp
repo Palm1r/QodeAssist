@@ -31,6 +31,8 @@ public:
 
     void handleContentDelta(const QString &content);
     void handleToolCall(const QJsonObject &toolCall);
+    void handleThinkingDelta(const QString &thinking);
+    void handleThinkingComplete(const QString &signature);
     void handleDone(bool done);
 
     QJsonObject toProviderFormat() const;
@@ -38,6 +40,7 @@ public:
 
     LLMCore::MessageState state() const { return m_state; }
     QList<LLMCore::ToolUseContent *> getCurrentToolUseContent() const;
+    QList<LLMCore::ThinkingContent *> getCurrentThinkingContent() const;
     QList<LLMCore::ContentBlock *> currentBlocks() const { return m_currentBlocks; }
 
     void startNewContinuation();
@@ -48,11 +51,13 @@ private:
     QList<LLMCore::ContentBlock *> m_currentBlocks;
     QString m_accumulatedContent;
     bool m_contentAddedToTextBlock = false;
+    LLMCore::ThinkingContent *m_currentThinkingContent = nullptr;
 
     void updateStateFromDone();
     bool tryParseToolCall();
     bool isLikelyToolCallJson(const QString &content) const;
     LLMCore::TextContent *getOrCreateTextContent();
+    LLMCore::ThinkingContent *getOrCreateThinkingContent();
 
     template<typename T, typename... Args>
     T *addCurrentContent(Args &&...args)
