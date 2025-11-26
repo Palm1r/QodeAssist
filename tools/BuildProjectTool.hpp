@@ -38,6 +38,7 @@ struct BuildInfo
     QPointer<ProjectExplorer::Project> project;
     QString projectName;
     bool isRebuild = false;
+    bool runAfterBuild = false;
     QMetaObject::Connection buildFinishedConnection;
 };
 
@@ -60,6 +61,9 @@ private slots:
     void onBuildQueueFinished(bool success);
 
 private:
+    void scheduleProjectRun(ProjectExplorer::Project *project,
+                            const QString &projectName,
+                            QString &result);
     QString collectBuildResults(bool success, const QString &projectName, bool isRebuild);
     void cleanupBuildInfo(ProjectExplorer::Project *project);
 

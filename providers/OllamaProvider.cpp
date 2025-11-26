@@ -445,8 +445,6 @@ void OllamaProvider::processStreamData(const QString &requestId, const QJsonObje
             QString thinkingDelta = messageObj["thinking"].toString();
             if (!thinkingDelta.isEmpty()) {
                 message->handleThinkingDelta(thinkingDelta);
-                LOG_MESSAGE(QString("OllamaProvider: Received thinking delta from message.thinking, length=%1")
-                                .arg(thinkingDelta.length()));
                 
                 if (!m_thinkingStarted.contains(requestId)) {
                     auto thinkingBlocks = message->getCurrentThinkingContent();
@@ -457,9 +455,6 @@ void OllamaProvider::processStreamData(const QString &requestId, const QJsonObje
                             : currentThinking;
                         
                         emit thinkingBlockReceived(requestId, displayThinking, "");
-                        LOG_MESSAGE(QString("Emitted initial thinking indicator for request %1, length=%2")
-                                        .arg(requestId)
-                                        .arg(currentThinking.length()));
                         m_thinkingStarted.insert(requestId);
                     }
                 }

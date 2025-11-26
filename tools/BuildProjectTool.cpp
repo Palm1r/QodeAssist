@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -25,13 +25,18 @@
 #include <logger/Logger.hpp>
 #include <projectexplorer/buildmanager.h>
 #include <projectexplorer/project.h>
+#include <projectexplorer/projectexplorer.h>
+#include <projectexplorer/projectexplorerconstants.h>
 #include <projectexplorer/projectmanager.h>
+#include <projectexplorer/runconfiguration.h>
 #include <projectexplorer/target.h>
 #include <projectexplorer/task.h>
+#include <utils/id.h>
 #include <QApplication>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QMetaObject>
+#include <QTimer>
 
 namespace QodeAssist::Tools {
 
@@ -61,15 +66,17 @@ QString BuildProjectTool::name() const
 
 QString BuildProjectTool::stringName() const
 {
-    return "Building project";
+    return "Building and running project";
 }
 
 QString BuildProjectTool::description() const
 {
     return "Build the current project in Qt Creator and wait for completion. "
+           "Optionally run the project after successful build. "
            "Returns build status (success/failure) and any compilation errors/warnings after "
            "the build finishes. "
            "Optional 'rebuild' parameter: set to true to force a clean rebuild (default: false). "
+           "Optional 'run_after_build' parameter: set to true to run the project after successful build (default: false). "
            "Note: This operation may take some time depending on project size.";
 }
 
@@ -82,6 +89,9 @@ QJsonObject BuildProjectTool::getDefinition(LLMCore::ToolSchemaFormat format) co
     properties["rebuild"] = QJsonObject{
         {"type", "boolean"},
         {"description", "Force a clean rebuild instead of incremental build (default: false)"}};
+    properties["run_after_build"] = QJsonObject{
+        {"type", "boolean"},
+        {"description", "Run the project after successful build (default: false)"}};
 
     definition["properties"] = properties;
     definition["required"] = QJsonArray();
@@ -109,31 +119,28 @@ QFuture<QString> BuildProjectTool::executeAsync(const QJsonObject &input)
 {
     auto *project = ProjectExplorer::ProjectManager::startupProject();
     if (!project) {
-        LOG_MESSAGE("BuildProjectTool: No active project found");
         return QtFuture::makeReadyFuture(
             QString("Error: No active project found. Please open a project in Qt Creator."));
     }
 
-    LOG_MESSAGE(QString("BuildProjectTool: Active project is '%1'").arg(project->displayName()));
-
     if (ProjectExplorer::BuildManager::isBuilding(project)) {
-        LOG_MESSAGE("BuildProjectTool: Build is already in progress");
         return QtFuture::makeReadyFuture(
             QString("Error: Build is already in progress. Please wait for it to complete."));
     }
 
     if (m_activeBuilds.contains(project)) {
-        LOG_MESSAGE("BuildProjectTool: Build already tracked for this project");
         return QtFuture::makeReadyFuture(
             QString("Error: Build is already being tracked for project '%1'.")
                 .arg(project->displayName()));
     }
 
     bool rebuild = input.value("rebuild").toBool(false);
+    bool runAfterBuild = input.value("run_after_build").toBool(false);
 
-    LOG_MESSAGE(QString("BuildProjectTool: Starting %1 for project '%2'")
-                    .arg(rebuild ? QString("rebuild") : QString("build"))
-                    .arg(project->displayName()));
+    LOG_MESSAGE(QString("BuildProjectTool: %1 project '%2'%3")
+                    .arg(rebuild ? QString("Rebuilding") : QString("Building"))
+                    .arg(project->displayName())
+                    .arg(runAfterBuild ? QString(" (run after build)") : QString()));
 
     auto promise = QSharedPointer<QPromise<QString>>::create();
     promise->start();
@@ -143,6 +150,7 @@ QFuture<QString> BuildProjectTool::executeAsync(const QJsonObject &input)
     buildInfo.project = project;
     buildInfo.projectName = project->displayName();
     buildInfo.isRebuild = rebuild;
+    buildInfo.runAfterBuild = runAfterBuild;
 
     auto *buildManager = ProjectExplorer::BuildManager::instance();
     buildInfo.buildFinishedConnection = QObject::connect(
@@ -166,16 +174,11 @@ QFuture<QString> BuildProjectTool::executeAsync(const QJsonObject &input)
         },
         Qt::QueuedConnection);
 
-    LOG_MESSAGE(QString("BuildProjectTool: Build queued, waiting for completion..."));
-
     return promise->future();
 }
 
 void BuildProjectTool::onBuildQueueFinished(bool success)
 {
-    LOG_MESSAGE(QString("BuildProjectTool: Build queue finished with status: %1")
-                    .arg(success ? "SUCCESS" : "FAILURE"));
-
     QList<ProjectExplorer::Project *> projectsToCleanup;
 
     for (auto it = m_activeBuilds.begin(); it != m_activeBuilds.end(); ++it) {
@@ -184,18 +187,20 @@ void BuildProjectTool::onBuildQueueFinished(bool success)
         if (!ProjectExplorer::BuildManager::isBuilding(project)) {
             BuildInfo &info = it.value();
 
-            LOG_MESSAGE(QString("BuildProjectTool: Build completed for project '%1'")
-                            .arg(info.projectName));
-
             if (info.promise && info.promise->future().isCanceled()) {
-                LOG_MESSAGE(
-                    QString("BuildProjectTool: Promise was cancelled for project '%1', cleaning up")
-                        .arg(info.projectName));
+                LOG_MESSAGE(QString("BuildProjectTool: Build cancelled for project '%1'")
+                                .arg(info.projectName));
                 projectsToCleanup.append(project);
                 continue;
             }
 
             QString result = collectBuildResults(success, info.projectName, info.isRebuild);
+
+            if (success && info.runAfterBuild) {
+                scheduleProjectRun(project, info.projectName, result);
+            } else if (!success && info.runAfterBuild) {
+                result += QString("\n\nProject was not started due to build failure.");
+            }
 
             if (info.promise) {
                 info.promise->addResult(result);
@@ -209,6 +214,29 @@ void BuildProjectTool::onBuildQueueFinished(bool success)
     for (ProjectExplorer::Project *project : projectsToCleanup) {
         cleanupBuildInfo(project);
     }
+}
+
+void BuildProjectTool::scheduleProjectRun(ProjectExplorer::Project *project,
+                                          const QString &projectName,
+                                          QString &result)
+{
+    auto *target = project->activeTarget();
+    if (!target) {
+        result += QString("\n\nError: No active target found for the project.");
+        return;
+    }
+
+    auto *runConfig = target->activeRunConfiguration();
+    if (!runConfig) {
+        result += QString("\n\nError: No active run configuration found for the project.");
+        return;
+    }
+
+    QString runConfigName = runConfig->displayName();
+    result += QString("\n\nProject '%1' will be started with run configuration '%2'.")
+                  .arg(projectName, runConfigName);
+
+    ProjectExplorer::ProjectExplorerPlugin::runProject(project, Utils::Id(ProjectExplorer::Constants::NORMAL_RUN_MODE));
 }
 
 QString BuildProjectTool::collectBuildResults(
@@ -254,10 +282,9 @@ QString BuildProjectTool::collectBuildResults(
                 warningCount++;
                 break;
             default:
-                continue; // Skip non-error/warning tasks
+                continue;
             }
 
-            // Limit to first 50 issues to avoid overwhelming the LLM
             if (issuesList.size() < 50) {
                 QString issueText = QString("[%1] %2").arg(typeStr, task.description());
 
@@ -307,9 +334,6 @@ void BuildProjectTool::cleanupBuildInfo(ProjectExplorer::Project *project)
     if (info.buildFinishedConnection) {
         disconnect(info.buildFinishedConnection);
     }
-
-    LOG_MESSAGE(QString("BuildProjectTool: Cleaned up build info for project '%1'")
-                    .arg(info.projectName));
 }
 
 } // namespace QodeAssist::Tools
