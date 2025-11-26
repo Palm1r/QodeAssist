@@ -34,6 +34,7 @@
 #include "widgets/CompletionErrorHandler.hpp"
 #include "widgets/CompletionHintHandler.hpp"
 #include "widgets/EditorChatButtonHandler.hpp"
+#include "widgets/RefactorWidgetHandler.hpp"
 #include <languageclient/client.h>
 #include <llmcore/IPromptProvider.hpp>
 #include <llmcore/IProviderRegistry.hpp>
@@ -70,6 +71,9 @@ private:
     void setupConnections();
     void cleanupConnections();
     void handleRefactoringResult(const RefactorResult &result);
+    void displayRefactoringSuggestion(const RefactorResult &result);
+    void displayRefactoringWidget(const RefactorResult &result);
+    void applyRefactoringEdit(TextEditor::TextEditorWidget *editor, const Utils::Text::Range &range, const QString &text);
 
     void handleAutoRequestTrigger(TextEditor::TextEditorWidget *widget, int charsAdded, bool isSpaceOrTab);
     void handleHintBasedTrigger(TextEditor::TextEditorWidget *widget, int charsAdded, bool isSpaceOrTab, QTextCursor &cursor);
@@ -88,6 +92,7 @@ private:
     EditorChatButtonHandler m_chatButtonHandler;
     QuickRefactorHandler *m_refactorHandler{nullptr};
     RefactorSuggestionHoverHandler *m_refactorHoverHandler{nullptr};
+    RefactorWidgetHandler *m_refactorWidgetHandler{nullptr};
     LLMClientInterface *m_llmClient;
 };
 

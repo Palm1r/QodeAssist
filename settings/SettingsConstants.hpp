@@ -220,5 +220,11 @@ const char QR_READ_FULL_FILE[] = "QodeAssist.qrReadFullFile";
 const char QR_READ_STRINGS_BEFORE_CURSOR[] = "QodeAssist.qrReadStringsBeforeCursor";
 const char QR_READ_STRINGS_AFTER_CURSOR[] = "QodeAssist.qrReadStringsAfterCursor";
 const char QR_SYSTEM_PROMPT[] = "QodeAssist.qrSystemPrompt";
+const char QR_DISPLAY_MODE[] = "QodeAssist.qrDisplayMode";
+const char QR_WIDGET_ORIENTATION[] = "QodeAssist.qrWidgetOrientation";
+const char QR_WIDGET_MIN_WIDTH[] = "QodeAssist.qrWidgetMinWidth";
+const char QR_WIDGET_MAX_WIDTH[] = "QodeAssist.qrWidgetMaxWidth";
+const char QR_WIDGET_MIN_HEIGHT[] = "QodeAssist.qrWidgetMinHeight";
+const char QR_WIDGET_MAX_HEIGHT[] = "QodeAssist.qrWidgetMaxHeight";
 
 } // namespace QodeAssist::Constants

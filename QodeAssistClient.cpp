@@ -40,6 +40,9 @@
 #include "settings/CodeCompletionSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProjectSettings.hpp"
+#include "settings/QuickRefactorSettings.hpp"
+#include "widgets/RefactorWidgetHandler.hpp"
+#include "RefactorContextHelper.hpp"
 #include <context/ChangesManager.h>
 #include <logger/Logger.hpp>
 
@@ -71,12 +74,14 @@ QodeAssistClient::QodeAssistClient(LLMClientInterface *clientInterface)
     connect(&m_hintHideTimer, &QTimer::timeout, this, [this]() { m_hintHandler.hideHint(); });
 
     m_refactorHoverHandler = new RefactorSuggestionHoverHandler();
+    m_refactorWidgetHandler = new RefactorWidgetHandler(this);
 }
 
 QodeAssistClient::~QodeAssistClient()
 {
     cleanupConnections();
     delete m_refactorHoverHandler;
+    delete m_refactorWidgetHandler;
 }
 
 void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
@@ -451,11 +456,25 @@ void QodeAssistClient::handleRefactoringResult(const RefactorResult &result)
         return;
     }
 
-    TextEditorWidget *editorWidget = result.editor;
+    int displayMode = Settings::quickRefactorSettings().displayMode();
+    
+    if (displayMode == 0) {
+        displayRefactoringWidget(result);
+    } else {
+        displayRefactoringSuggestion(result);
+    }
+}
 
-    auto toTextPos = [](const Utils::Text::Position &pos) {
-        return Utils::Text::Position{pos.line, pos.column};
-    };
+namespace {
+Utils::Text::Position toTextPos(const Utils::Text::Position &pos)
+{
+    return Utils::Text::Position{pos.line, pos.column};
+}
+} // anonymous namespace
+
+void QodeAssistClient::displayRefactoringSuggestion(const RefactorResult &result)
+{
+    TextEditorWidget *editorWidget = result.editor;
 
     Utils::Text::Range range{toTextPos(result.insertRange.begin), toTextPos(result.insertRange.end)};
     Utils::Text::Position pos = toTextPos(result.insertRange.begin);
@@ -508,6 +527,81 @@ void QodeAssistClient::handleRefactoringResult(const RefactorResult &result)
     });
 
     LOG_MESSAGE("Displaying refactoring suggestion with hover handler");
+}
+
+void QodeAssistClient::displayRefactoringWidget(const RefactorResult &result)
+{
+    TextEditorWidget *editorWidget = result.editor;
+    Utils::Text::Range range{toTextPos(result.insertRange.begin), toTextPos(result.insertRange.end)};
+    
+    RefactorContext ctx = RefactorContextHelper::extractContext(editorWidget, range);
+    
+    QString displayOriginal;
+    QString displayRefactored;
+    QString textToApply = result.newText;
+    
+    if (ctx.isInsertion) {
+        bool isMultiline = result.newText.contains('\n');
+        
+        if (isMultiline) {
+            displayOriginal = ctx.textBeforeCursor;
+            displayRefactored = ctx.textBeforeCursor + result.newText;
+        } else {
+            displayOriginal = ctx.textBeforeCursor + ctx.textAfterCursor;
+            displayRefactored = ctx.textBeforeCursor + result.newText + ctx.textAfterCursor;
+        }
+        
+        if (!ctx.textBeforeCursor.isEmpty() || !ctx.textAfterCursor.isEmpty()) {
+            textToApply = result.newText;
+        }
+    } else {
+        displayOriginal = ctx.originalText;
+        displayRefactored = result.newText;
+    }
+
+    m_refactorWidgetHandler->setApplyCallback([this, editorWidget, result](const QString &editedText) {
+        applyRefactoringEdit(editorWidget, result.insertRange, editedText);
+    });
+
+    m_refactorWidgetHandler->setDeclineCallback([]() {});
+
+    m_refactorWidgetHandler->showRefactorWidget(
+        editorWidget, displayOriginal, displayRefactored, range,
+        ctx.contextBefore, ctx.contextAfter);
+    
+    m_refactorWidgetHandler->setTextToApply(textToApply);
+}
+
+void QodeAssistClient::applyRefactoringEdit(TextEditor::TextEditorWidget *editor,
+                                             const Utils::Text::Range &range,
+                                             const QString &text)
+{
+    const QTextCursor startCursor = range.begin.toTextCursor(editor->document());
+    const QTextCursor endCursor = range.end.toTextCursor(editor->document());
+    const int startPos = startCursor.position();
+    const int endPos = endCursor.position();
+    
+    QTextCursor editCursor(editor->document());
+    editCursor.beginEditBlock();
+
+    if (startPos == endPos) {
+        bool isMultiline = text.contains('\n');
+        editCursor.setPosition(startPos);
+        
+        if (isMultiline) {
+            editCursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
+            editCursor.removeSelectedText();
+        }
+        
+        editCursor.insertText(text);
+    } else {
+        editCursor.setPosition(startPos);
+        editCursor.setPosition(endPos, QTextCursor::KeepAnchor);
+        editCursor.removeSelectedText();
+        editCursor.insertText(text);
+    }
+
+    editCursor.endEditBlock();
 }
 
 void QodeAssistClient::handleAutoRequestTrigger(TextEditor::TextEditorWidget *widget,
