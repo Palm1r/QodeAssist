@@ -720,7 +720,7 @@ void RefactorWidget::updateButtonStyles()
             .arg(color.name())
             .arg(Utils::creatorColor(Utils::Theme::SplitterColor).name())
             .arg(baseFontSize)
-            .arg(bold ? " font-weight: bold;" : "")
+            .arg(bold ? QLatin1StringView(" font-weight: bold;") : QLatin1StringView(""))
             .arg(Utils::creatorColor(Utils::Theme::BackgroundColorHover).name())
             .arg(Utils::creatorColor(Utils::Theme::BackgroundColorSelected).name());
     };
