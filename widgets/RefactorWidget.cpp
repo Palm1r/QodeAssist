@@ -166,7 +166,6 @@ void RefactorWidget::setupUi()
     m_leftEditor->setTextDocument(m_leftDocument);
     m_leftEditor->setReadOnly(true);
     m_leftEditor->setFrameStyle(QFrame::StyledPanel);
-    m_leftEditor->setLineWrapMode(Utils::PlainTextEdit::NoWrap);
     m_leftEditor->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_leftEditor->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     m_leftEditor->setMinimumHeight(100);
@@ -178,7 +177,6 @@ void RefactorWidget::setupUi()
     m_rightEditor->setTextDocument(m_rightDocument);
     m_rightEditor->setReadOnly(false);
     m_rightEditor->setFrameStyle(QFrame::StyledPanel);
-    m_rightEditor->setLineWrapMode(Utils::PlainTextEdit::NoWrap);
     m_rightEditor->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     m_rightEditor->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     m_rightEditor->setMinimumHeight(100);
