@@ -39,7 +39,6 @@
 
 #include <coreplugin/icore.h>
 #include <utils/differ.h>
-#include <utils/plaintextedit/plaintextedit.h>
 #include <utils/theme/theme.h>
 
 #include "settings/QuickRefactorSettings.hpp"
