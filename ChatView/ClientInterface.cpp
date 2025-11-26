@@ -19,6 +19,8 @@
 
 #include "ClientInterface.hpp"
 
+#include <projectexplorer/buildconfiguration.h>
+#include <projectexplorer/target.h>
 #include <texteditor/textdocument.h>
 #include <QFile>
 #include <QFileInfo>
@@ -143,6 +145,13 @@ void ClientInterface::sendMessage(
         if (project) {
             systemPrompt += QString("\n# Active project name: %1").arg(project->displayName());
             systemPrompt += QString("\n# Active Project path: %1").arg(project->projectDirectory().toUrlishString());
+            
+            if (auto target = project->activeTarget()) {
+                if (auto buildConfig = target->activeBuildConfiguration()) {
+                    systemPrompt += QString("\n# Active Build directory: %1")
+                                        .arg(buildConfig->buildDirectory().toUrlishString());
+                }
+            }
 
             QString projectRules
                 = LLMCore::RulesLoader::loadRulesForProject(project, LLMCore::RulesContext::Chat);
