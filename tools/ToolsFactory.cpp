@@ -158,11 +158,11 @@ QJsonArray ToolsFactory::getToolsDefinitions(
             }
         }
 
-        // if (requiredPerms.testFlag(LLMCore::ToolPermission::NetworkAccess)) {
-        //     if (!settings.allowNetworkAccess()) {
-        //         hasPermission = false;
-        //     }
-        // }
+        if (requiredPerms.testFlag(LLMCore::ToolPermission::NetworkAccess)) {
+            if (!settings.allowNetworkAccess()) {
+                hasPermission = false;
+            }
+        }
 
         if (hasPermission) {
             toolsArray.append(it.value()->getDefinition(format));

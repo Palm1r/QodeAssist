@@ -54,6 +54,13 @@ ToolsSettings::ToolsSettings()
         Tr::tr("Allow tools to write and modify files on disk (WARNING: Use with caution!)"));
     allowFileSystemWrite.setDefaultValue(false);
 
+    allowNetworkAccess.setSettingsKey(Constants::CA_ALLOW_NETWORK_ACCESS);
+    allowNetworkAccess.setLabelText(Tr::tr("Allow Network Access for tools"));
+    allowNetworkAccess.setToolTip(
+        Tr::tr("Allow tools to make network requests (e.g., execute commands like git, curl, wget). "
+               "Required for ExecuteTerminalCommandTool with network-capable commands."));
+    allowNetworkAccess.setDefaultValue(false);
+
     allowAccessOutsideProject.setSettingsKey(Constants::CA_ALLOW_ACCESS_OUTSIDE_PROJECT);
     allowAccessOutsideProject.setLabelText(Tr::tr("Allow file access outside project"));
     allowAccessOutsideProject.setToolTip(
@@ -90,13 +97,29 @@ ToolsSettings::ToolsSettings()
                "unexpected behavior."));
     enableTerminalCommandTool.setDefaultValue(false);
 
-    allowedTerminalCommands.setSettingsKey(Constants::CA_ALLOWED_TERMINAL_COMMANDS);
-    allowedTerminalCommands.setLabelText(Tr::tr("Allowed Terminal Commands"));
-    allowedTerminalCommands.setToolTip(
-        Tr::tr("Comma-separated list of terminal commands that AI is allowed to execute. "
-               "Example: git, ls, cat, grep, cmake"));
-    allowedTerminalCommands.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
-    allowedTerminalCommands.setDefaultValue("git, ls, cat, grep");
+    allowedTerminalCommandsLinux.setSettingsKey(Constants::CA_ALLOWED_TERMINAL_COMMANDS_LINUX);
+    allowedTerminalCommandsLinux.setLabelText(Tr::tr("Allowed Commands (Linux)"));
+    allowedTerminalCommandsLinux.setToolTip(
+        Tr::tr("Comma-separated list of terminal commands that AI is allowed to execute on Linux. "
+               "Example: git, ls, cat, grep, find, cmake"));
+    allowedTerminalCommandsLinux.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    allowedTerminalCommandsLinux.setDefaultValue("git, ls, cat, grep, find");
+
+    allowedTerminalCommandsMacOS.setSettingsKey(Constants::CA_ALLOWED_TERMINAL_COMMANDS_MACOS);
+    allowedTerminalCommandsMacOS.setLabelText(Tr::tr("Allowed Commands (macOS)"));
+    allowedTerminalCommandsMacOS.setToolTip(
+        Tr::tr("Comma-separated list of terminal commands that AI is allowed to execute on macOS. "
+               "Example: git, ls, cat, grep, find, cmake"));
+    allowedTerminalCommandsMacOS.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    allowedTerminalCommandsMacOS.setDefaultValue("git, ls, cat, grep, find");
+
+    allowedTerminalCommandsWindows.setSettingsKey(Constants::CA_ALLOWED_TERMINAL_COMMANDS_WINDOWS);
+    allowedTerminalCommandsWindows.setLabelText(Tr::tr("Allowed Commands (Windows)"));
+    allowedTerminalCommandsWindows.setToolTip(
+        Tr::tr("Comma-separated list of terminal commands that AI is allowed to execute on Windows. "
+               "Example: git, dir, type, findstr, where, cmake"));
+    allowedTerminalCommandsWindows.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    allowedTerminalCommandsWindows.setDefaultValue("git, dir, type, findstr, where");
 
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
 
@@ -107,6 +130,16 @@ ToolsSettings::ToolsSettings()
     setLayouter([this]() {
         using namespace Layouting;
 
+#ifdef Q_OS_LINUX
+        auto &currentOsCommands = allowedTerminalCommandsLinux;
+#elif defined(Q_OS_MACOS)
+        auto &currentOsCommands = allowedTerminalCommandsMacOS;
+#elif defined(Q_OS_WIN)
+        auto &currentOsCommands = allowedTerminalCommandsWindows;
+#else
+        auto &currentOsCommands = allowedTerminalCommandsLinux; // fallback
+#endif
+
         return Column{
             Row{Stretch{1}, resetToDefaults},
             Space{8},
@@ -115,6 +148,7 @@ ToolsSettings::ToolsSettings()
                 Column{
                     allowFileSystemRead,
                     allowFileSystemWrite,
+                    allowNetworkAccess,
                     allowAccessOutsideProject
                 }},
             Space{8},
@@ -124,7 +158,7 @@ ToolsSettings::ToolsSettings()
                     enableEditFileTool,
                     enableBuildProjectTool,
                     enableTerminalCommandTool,
-                    allowedTerminalCommands,
+                    currentOsCommands,
                     autoApplyFileEdits}},
             Stretch{1}};
     });
@@ -151,12 +185,15 @@ void ToolsSettings::resetSettingsToDefaults()
     if (reply == QMessageBox::Yes) {
         resetAspect(allowFileSystemRead);
         resetAspect(allowFileSystemWrite);
+        resetAspect(allowNetworkAccess);
         resetAspect(allowAccessOutsideProject);
         resetAspect(autoApplyFileEdits);
         resetAspect(enableEditFileTool);
         resetAspect(enableBuildProjectTool);
         resetAspect(enableTerminalCommandTool);
-        resetAspect(allowedTerminalCommands);
+        resetAspect(allowedTerminalCommandsLinux);
+        resetAspect(allowedTerminalCommandsMacOS);
+        resetAspect(allowedTerminalCommandsWindows);
         writeSettings();
     }
 }

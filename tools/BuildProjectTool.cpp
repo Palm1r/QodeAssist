@@ -112,7 +112,8 @@ QJsonObject BuildProjectTool::getDefinition(LLMCore::ToolSchemaFormat format) co
 
 LLMCore::ToolPermissions BuildProjectTool::requiredPermissions() const
 {
-    return LLMCore::ToolPermission::None;
+    return LLMCore::ToolPermission::FileSystemRead 
+         | LLMCore::ToolPermission::FileSystemWrite;
 }
 
 QFuture<QString> BuildProjectTool::executeAsync(const QJsonObject &input)

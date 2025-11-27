@@ -106,11 +106,15 @@ const char CA_ENABLE_CHAT_TOOLS[] = "QodeAssist.caEnableChatTools";
 const char CA_USE_TOOLS[] = "QodeAssist.caUseTools";
 const char CA_ALLOW_FILE_SYSTEM_READ[] = "QodeAssist.caAllowFileSystemRead";
 const char CA_ALLOW_FILE_SYSTEM_WRITE[] = "QodeAssist.caAllowFileSystemWrite";
+const char CA_ALLOW_NETWORK_ACCESS[] = "QodeAssist.caAllowNetworkAccess";
 const char CA_ALLOW_ACCESS_OUTSIDE_PROJECT[] = "QodeAssist.caAllowAccessOutsideProject";
 const char CA_ENABLE_EDIT_FILE_TOOL[] = "QodeAssist.caEnableEditFileTool";
 const char CA_ENABLE_BUILD_PROJECT_TOOL[] = "QodeAssist.caEnableBuildProjectTool";
 const char CA_ENABLE_TERMINAL_COMMAND_TOOL[] = "QodeAssist.caEnableTerminalCommandTool";
 const char CA_ALLOWED_TERMINAL_COMMANDS[] = "QodeAssist.caAllowedTerminalCommands";
+const char CA_ALLOWED_TERMINAL_COMMANDS_LINUX[] = "QodeAssist.caAllowedTerminalCommandsLinux";
+const char CA_ALLOWED_TERMINAL_COMMANDS_MACOS[] = "QodeAssist.caAllowedTerminalCommandsMacOS";
+const char CA_ALLOWED_TERMINAL_COMMANDS_WINDOWS[] = "QodeAssist.caAllowedTerminalCommandsWindows";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
 const char QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID[] = "QodeAssist.1GeneralSettingsPageId";

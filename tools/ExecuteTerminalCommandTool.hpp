@@ -40,7 +40,18 @@ public:
 
 private:
     bool isCommandAllowed(const QString &command) const;
+    bool isCommandSafe(const QString &command) const;
+    bool areArgumentsSafe(const QString &args) const;
     QStringList getAllowedCommands() const;
+    QString getCommandDescription() const;
+    QString sanitizeOutput(const QString &output, qint64 maxSize) const;
+    
+    // Constants for production safety
+    static constexpr int COMMAND_TIMEOUT_MS = 30000; // 30 seconds
+    static constexpr qint64 MAX_OUTPUT_SIZE = 10 * 1024 * 1024; // 10 MB
+    static constexpr int MAX_COMMAND_LENGTH = 1024;
+    static constexpr int MAX_ARGS_LENGTH = 4096;
+    static constexpr int PROCESS_START_TIMEOUT_MS = 3000;
 };
 
 } // namespace QodeAssist::Tools

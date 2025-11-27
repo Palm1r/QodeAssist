@@ -34,13 +34,16 @@ public:
 
     Utils::BoolAspect allowFileSystemRead{this};
     Utils::BoolAspect allowFileSystemWrite{this};
+    Utils::BoolAspect allowNetworkAccess{this};
     Utils::BoolAspect allowAccessOutsideProject{this};
 
     // Experimental features
     Utils::BoolAspect enableEditFileTool{this};
     Utils::BoolAspect enableBuildProjectTool{this};
     Utils::BoolAspect enableTerminalCommandTool{this};
-    Utils::StringAspect allowedTerminalCommands{this};
+    Utils::StringAspect allowedTerminalCommandsLinux{this};
+    Utils::StringAspect allowedTerminalCommandsMacOS{this};
+    Utils::StringAspect allowedTerminalCommandsWindows{this};
     Utils::BoolAspect autoApplyFileEdits{this};
 
 private:
