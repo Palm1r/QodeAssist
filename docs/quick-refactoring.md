@@ -37,6 +37,7 @@ Configure:
 - **Advanced Options**: Penalties, context window size
 - **Features**: Tool calling, extended thinking mode
 - **System Prompt**: Customize the base prompt for refactoring
+- **How quick refactor looks**: Display type and sizes
 
 ## Using Quick Refactoring
 
