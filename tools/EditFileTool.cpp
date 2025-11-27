@@ -25,6 +25,7 @@
 #include <logger/Logger.hpp>
 #include <settings/GeneralSettings.hpp>
 #include <settings/ToolsSettings.hpp>
+#include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonDocument>
@@ -36,7 +37,6 @@ namespace QodeAssist::Tools {
 
 EditFileTool::EditFileTool(QObject *parent)
     : BaseTool(parent)
-    , m_ignoreManager(new Context::IgnoreManager(this))
 {}
 
 QString EditFileTool::name() const
@@ -52,11 +52,12 @@ QString EditFileTool::stringName() const
 QString EditFileTool::description() const
 {
     return "Edit a file by replacing old content with new content. "
-           "Provide the filename (or absolute path), old_content to find and replace, "
+           "Provide the file path (absolute or relative to project root), old_content to find and replace, "
            "and new_content to replace it with. Changes are applied immediately if auto-apply "
            "is enabled in settings. The user can undo or reapply changes at any time. "
            "\n\nIMPORTANT:"
            "\n- ALWAYS read the current file content before editing to ensure accuracy."
+           "\n- Path can be absolute (e.g., /path/to/file.cpp) or relative to project root (e.g., src/main.cpp)."
            "\n- For EMPTY files: use empty old_content (empty string or omit parameter)."
            "\n- To append at the END of file: use empty old_content."
            "\n- To insert at the BEGINNING of a file (e.g., copyright header), you MUST provide "
@@ -77,8 +78,8 @@ QJsonObject EditFileTool::getDefinition(LLMCore::ToolSchemaFormat format) const
     QJsonObject filenameProperty;
     filenameProperty["type"] = "string";
     filenameProperty["description"]
-        = "The filename or absolute path of the file to edit. If only filename is provided, "
-          "it will be searched in the project";
+        = "The path of the file to edit. Can be an absolute path (e.g., /path/to/file.cpp) "
+          "or a relative path from the project root (e.g., src/main.cpp)";
     properties["filename"] = filenameProperty;
 
     QJsonObject oldContentProperty;
@@ -139,24 +140,22 @@ QFuture<QString> EditFileTool::executeAsync(const QJsonObject &input)
         }
 
 
-        QString filePath;
         QFileInfo fileInfo(filename);
+        QString filePath;
 
-        if (fileInfo.isAbsolute() && fileInfo.exists()) {
+        if (fileInfo.isAbsolute()) {
             filePath = filename;
         } else {
-            FileSearchUtils::FileMatch match = FileSearchUtils::findBestMatch(
-                filename, QString(), 10, m_ignoreManager);
-
-            if (match.absolutePath.isEmpty()) {
+            QString projectRoot = Context::ProjectUtils::getProjectRoot();
+            if (projectRoot.isEmpty()) {
                 throw ToolRuntimeError(
-                    QString("File '%1' not found in project. "
-                            "Please provide a valid filename or absolute path.")
+                    QString("Cannot resolve relative path '%1': no project is open. "
+                            "Please provide an absolute path or open a project.")
                         .arg(filename));
             }
 
-            filePath = match.absolutePath;
-            LOG_MESSAGE(QString("EditFileTool: Found file '%1' at '%2'")
+            filePath = QDir(projectRoot).absoluteFilePath(filename);
+            LOG_MESSAGE(QString("EditFileTool: Resolved relative path '%1' to '%2'")
                             .arg(filename, filePath));
         }
 

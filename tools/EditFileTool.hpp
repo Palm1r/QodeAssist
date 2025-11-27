@@ -19,9 +19,6 @@
 
 #pragma once
 
-#include "FileSearchUtils.hpp"
-
-#include <context/IgnoreManager.hpp>
 #include <llmcore/BaseTool.hpp>
 
 namespace QodeAssist::Tools {
@@ -39,9 +36,6 @@ public:
     LLMCore::ToolPermissions requiredPermissions() const override;
 
     QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
-
-private:
-    Context::IgnoreManager *m_ignoreManager;
 };
 
 } // namespace QodeAssist::Tools

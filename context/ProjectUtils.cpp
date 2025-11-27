@@ -70,4 +70,18 @@ QString ProjectUtils::findFileInProject(const QString &filename)
     return QString();
 }
 
+QString ProjectUtils::getProjectRoot()
+{
+    QList<ProjectExplorer::Project *> projects = ProjectExplorer::ProjectManager::projects();
+
+    if (!projects.isEmpty()) {
+        auto project = projects.first();
+        if (project) {
+            return project->projectDirectory().toFSPathString();
+        }
+    }
+
+    return QString();
+}
+
 } // namespace QodeAssist::Context

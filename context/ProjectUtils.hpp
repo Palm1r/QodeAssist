@@ -52,6 +52,16 @@ public:
      * @return Absolute file path if found, empty string otherwise
      */
     static QString findFileInProject(const QString &filename);
+
+    /**
+     * @brief Get the project root directory
+     * 
+     * Returns the root directory of the first open project.
+     * If multiple projects are open, returns the first one.
+     * 
+     * @return Absolute path to project root, or empty string if no project is open
+     */
+    static QString getProjectRoot();
 };
 
 } // namespace QodeAssist::Context
