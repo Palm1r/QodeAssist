@@ -155,14 +155,14 @@ QodeAssist supports multiple LLM providers. Choose your preferred provider and f
 
 QodeAssist offers two trigger modes for code completion:
 
-**Hint-based (Default, Recommended)**
+**Hint-based**
 - Shows a hint indicator near cursor when you type 3+ characters
 - Press **Space** (or custom key) to request completion
 - **Best for**: Paid APIs (Claude, OpenAI), conscious control
 - **Benefits**: No unexpected API charges, full control over requests, no workflow interruption
 - **Visual**: Clear indicator shows when completion is ready
 
-**Automatic**
+**Automatic(Default)**
 - Automatically requests completion after typing threshold
 - Works immediately without additional keypresses
 - **Best for**: Local models (Ollama, llama.cpp), maximum automation
@@ -182,8 +182,6 @@ Configure in: `Tools → Options → QodeAssist → Code Completion → General 
 
 ### Quick Refactoring
 - Inline code refactoring directly in the editor with AI assistance
-- Selection-based improvements with instant code replacement
-- Built-in quick actions (repeat, improve, alternative)
 - **Custom instructions library** with search and autocomplete
 - Create, edit, and manage reusable refactoring templates
 - Combine base instructions with specific details
