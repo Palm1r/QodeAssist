@@ -136,10 +136,17 @@ QFuture<QString> ExecuteTerminalCommandTool::executeAsync(const QJsonObject &inp
     if (!isCommandSafe(command)) {
         LOG_MESSAGE(QString("ExecuteTerminalCommandTool: Command '%1' contains unsafe characters")
                         .arg(command));
+#ifdef Q_OS_WIN
+        const QString allowedChars = "alphanumeric characters, hyphens, underscores, dots, colons, "
+                                     "backslashes, and forward slashes";
+#else
+        const QString allowedChars = "alphanumeric characters, hyphens, underscores, dots, and slashes";
+#endif
         return QtFuture::makeReadyFuture(
             QString("Error: Command '%1' contains potentially dangerous characters. "
-                    "Only alphanumeric characters, hyphens, underscores, and dots are allowed.")
-                .arg(command));
+                    "Only %2 are allowed.")
+                .arg(command)
+                .arg(allowedChars));
     }
 
     if (!args.isEmpty() && !areArgumentsSafe(args)) {
@@ -322,18 +329,37 @@ QFuture<QString> ExecuteTerminalCommandTool::executeAsync(const QJsonObject &inp
         fullCommand += " " + args;
     }
 
-    QStringList splitCommand = QProcess::splitCommand(fullCommand);
-    if (splitCommand.isEmpty()) {
-        LOG_MESSAGE("ExecuteTerminalCommandTool: Failed to parse command");
-        promise->addResult(QString("Error: Failed to parse command '%1'").arg(fullCommand));
-        promise->finish();
-        process->deleteLater();
-        timeoutTimer->deleteLater();
-        return future;
-    }
+#ifdef Q_OS_WIN
+    static const QStringList windowsBuiltinCommands = {
+        "dir", "type", "del", "copy", "move", "ren", "rename", 
+        "md", "mkdir", "rd", "rmdir", "cd", "chdir", "cls", "echo",
+        "set", "path", "prompt", "ver", "vol", "date", "time"
+    };
     
-    const QString program = splitCommand.takeFirst();
-    process->start(program, splitCommand);
+    const QString lowerCommand = command.toLower();
+    const bool isBuiltin = windowsBuiltinCommands.contains(lowerCommand);
+    
+    if (isBuiltin) {
+        LOG_MESSAGE(QString("ExecuteTerminalCommandTool: Executing Windows builtin command '%1' via cmd.exe")
+                        .arg(command));
+        process->start("cmd.exe", QStringList() << "/c" << fullCommand);
+    } else {
+#endif
+        QStringList splitCommand = QProcess::splitCommand(fullCommand);
+        if (splitCommand.isEmpty()) {
+            LOG_MESSAGE("ExecuteTerminalCommandTool: Failed to parse command");
+            promise->addResult(QString("Error: Failed to parse command '%1'").arg(fullCommand));
+            promise->finish();
+            process->deleteLater();
+            timeoutTimer->deleteLater();
+            return future;
+        }
+        
+        const QString program = splitCommand.takeFirst();
+        process->start(program, splitCommand);
+#ifdef Q_OS_WIN
+    }
+#endif
 
     if (!process->waitForStarted(PROCESS_START_TIMEOUT_MS)) {
         LOG_MESSAGE(QString("ExecuteTerminalCommandTool: Failed to start command '%1' within %2ms")
@@ -368,8 +394,18 @@ bool ExecuteTerminalCommandTool::isCommandAllowed(const QString &command) const
 
 bool ExecuteTerminalCommandTool::isCommandSafe(const QString &command) const
 {
+#ifdef Q_OS_WIN
+    static const QRegularExpression safePattern("^[a-zA-Z0-9._/\\\\:-]+$");
+#else
     static const QRegularExpression safePattern("^[a-zA-Z0-9._/-]+$");
-    return safePattern.match(command).hasMatch();
+#endif
+    
+    const bool isSafe = safePattern.match(command).hasMatch();
+    if (!isSafe) {
+        LOG_MESSAGE(QString("ExecuteTerminalCommandTool: Command '%1' failed safety check")
+                        .arg(command));
+    }
+    return isSafe;
 }
 
 bool ExecuteTerminalCommandTool::areArgumentsSafe(const QString &args) const
@@ -425,7 +461,6 @@ QStringList ExecuteTerminalCommandTool::getAllowedCommands() const
 
     QString commandsStr;
 
-    // Get commands for current OS
 #ifdef Q_OS_LINUX
     commandsStr = Settings::toolsSettings().allowedTerminalCommandsLinux().trimmed();
 #elif defined(Q_OS_MACOS)
@@ -436,12 +471,10 @@ QStringList ExecuteTerminalCommandTool::getAllowedCommands() const
     commandsStr = Settings::toolsSettings().allowedTerminalCommandsLinux().trimmed(); // fallback
 #endif
 
-    // Return cached result if settings haven't changed
     if (commandsStr == cachedCommandsStr && !cachedCommands.isEmpty()) {
         return cachedCommands;
     }
 
-    // Update cache
     cachedCommandsStr = commandsStr;
     cachedCommands.clear();
 
