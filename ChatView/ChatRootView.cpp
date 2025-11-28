@@ -22,6 +22,7 @@
 #include <QClipboard>
 #include <QDesktopServices>
 #include <QFileDialog>
+#include <QFileInfo>
 #include <QMessageBox>
 
 #include <coreplugin/editormanager/editormanager.h>
@@ -53,6 +54,7 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     , m_chatModel(new ChatModel(this))
     , m_promptProvider(LLMCore::PromptTemplateManager::instance())
     , m_clientInterface(new ClientInterface(m_chatModel, &m_promptProvider, this))
+    , m_fileManager(new ChatFileManager(this))
     , m_isRequestInProgress(false)
 {
     m_isSyncOpenFiles = Settings::chatAssistantSettings().linkOpenFiles();
@@ -230,6 +232,11 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         &Utils::BaseAspect::changed,
         this,
         &ChatRootView::isThinkingSupportChanged);
+
+    connect(m_fileManager, &ChatFileManager::fileOperationFailed, this, [this](const QString &error) {
+        m_lastErrorMessage = error;
+        emit lastErrorMessageChanged();
+    });
 }
 
 ChatModel *ChatRootView::chatModel() const
@@ -265,6 +272,8 @@ void ChatRootView::sendMessage(const QString &message)
 
     m_clientInterface
         ->sendMessage(message, m_attachmentFiles, m_linkedFiles, useTools(), useThinking());
+
+    m_fileManager->clearIntermediateStorage();
     clearAttachmentFiles();
     setRequestProgressStatus(true);
 }
@@ -282,18 +291,23 @@ void ChatRootView::cancelRequest()
 
 void ChatRootView::clearAttachmentFiles()
 {
-    if (!m_attachmentFiles.isEmpty()) {
-        m_attachmentFiles.clear();
-        emit attachmentFilesChanged();
+    if (m_attachmentFiles.isEmpty()) {
+        return;
     }
+
+    m_attachmentFiles.clear();
+    emit attachmentFilesChanged();
+    m_fileManager->clearIntermediateStorage();
 }
 
 void ChatRootView::clearLinkedFiles()
 {
-    if (!m_linkedFiles.isEmpty()) {
-        m_linkedFiles.clear();
-        emit linkedFilesChanged();
+    if (m_linkedFiles.isEmpty()) {
+        return;
     }
+
+    m_linkedFiles.clear();
+    emit linkedFilesChanged();
 }
 
 QString ChatRootView::getChatsHistoryDir() const
@@ -304,8 +318,8 @@ QString ChatRootView::getChatsHistoryDir() const
         Settings::ProjectSettings projectSettings(project);
         path = projectSettings.chatHistoryPath().toFSPathString();
     } else {
-        path = QString("%1/qodeassist/chat_history")
-                   .arg(Core::ICore::userResourcePath().toFSPathString());
+        QDir baseDir(Core::ICore::userResourcePath().toFSPathString());
+        path = baseDir.filePath("qodeassist/chat_history");
     }
 
     QDir dir(path);
@@ -341,6 +355,12 @@ void ChatRootView::loadHistory(const QString &filePath)
     } else {
         setRecentFilePath(filePath);
     }
+
+    m_fileManager->clearIntermediateStorage();
+    m_attachmentFiles.clear();
+    m_linkedFiles.clear();
+    emit attachmentFilesChanged();
+    emit linkedFilesChanged();
 
     m_currentMessageRequestId.clear();
     updateInputTokensCount();
@@ -499,8 +519,10 @@ void ChatRootView::addFilesToAttachList(const QStringList &filePaths)
         return;
     }
 
+    const QStringList processedPaths = m_fileManager->processDroppedFiles(filePaths);
+
     bool filesAdded = false;
-    for (const QString &filePath : filePaths) {
+    for (const QString &filePath : processedPaths) {
         if (!m_attachmentFiles.contains(filePath)) {
             m_attachmentFiles.append(filePath);
             filesAdded = true;
@@ -514,10 +536,15 @@ void ChatRootView::addFilesToAttachList(const QStringList &filePaths)
 
 void ChatRootView::removeFileFromAttachList(int index)
 {
-    if (index >= 0 && index < m_attachmentFiles.size()) {
-        m_attachmentFiles.removeAt(index);
-        emit attachmentFilesChanged();
+    if (index < 0 || index >= m_attachmentFiles.size()) {
+        return;
     }
+
+    const QString removedFile = m_attachmentFiles.at(index);
+    m_attachmentFiles.removeAt(index);
+    emit attachmentFilesChanged();
+
+    LOG_MESSAGE(QString("Removed attachment file: %1").arg(removedFile));
 }
 
 void ChatRootView::showLinkFilesDialog()
@@ -557,7 +584,6 @@ void ChatRootView::addFilesToLinkList(const QStringList &filePaths)
 
     if (!imageFiles.isEmpty()) {
         addFilesToAttachList(imageFiles);
-
         m_lastInfoMessage
             = tr("Images automatically moved to Attach zone (%n file(s))", "", imageFiles.size());
         emit lastInfoMessageChanged();
@@ -570,10 +596,15 @@ void ChatRootView::addFilesToLinkList(const QStringList &filePaths)
 
 void ChatRootView::removeFileFromLinkList(int index)
 {
-    if (index >= 0 && index < m_linkedFiles.size()) {
-        m_linkedFiles.removeAt(index);
-        emit linkedFilesChanged();
+    if (index < 0 || index >= m_linkedFiles.size()) {
+        return;
     }
+
+    const QString removedFile = m_linkedFiles.at(index);
+    m_linkedFiles.removeAt(index);
+    emit linkedFilesChanged();
+
+    LOG_MESSAGE(QString("Removed linked file: %1").arg(removedFile));
 }
 
 void ChatRootView::showAddImageDialog()
@@ -587,19 +618,7 @@ void ChatRootView::showAddImageDialog()
     }
 
     if (dialog.exec() == QDialog::Accepted) {
-        QStringList newFilePaths = dialog.selectedFiles();
-        if (!newFilePaths.isEmpty()) {
-            bool filesAdded = false;
-            for (const QString &filePath : std::as_const(newFilePaths)) {
-                if (!m_attachmentFiles.contains(filePath)) {
-                    m_attachmentFiles.append(filePath);
-                    filesAdded = true;
-                }
-            }
-            if (filesAdded) {
-                emit attachmentFilesChanged();
-            }
-        }
+        addFilesToAttachList(dialog.selectedFiles());
     }
 }
 
@@ -645,8 +664,8 @@ void ChatRootView::openChatHistoryFolder()
         Settings::ProjectSettings projectSettings(project);
         path = projectSettings.chatHistoryPath().toFSPathString();
     } else {
-        path = QString("%1/qodeassist/chat_history")
-                   .arg(Core::ICore::userResourcePath().toFSPathString());
+        QDir baseDir(Core::ICore::userResourcePath().toFSPathString());
+        path = baseDir.filePath("qodeassist/chat_history");
     }
 
     QDir dir(path);
@@ -666,7 +685,7 @@ void ChatRootView::openRulesFolder()
     }
 
     QString projectPath = project->projectDirectory().toFSPathString();
-    QString rulesPath = projectPath + "/.qodeassist/rules";
+    QString rulesPath = QDir(projectPath).filePath(".qodeassist/rules");
 
     QDir dir(rulesPath);
     if (!dir.exists()) {
@@ -762,6 +781,7 @@ void ChatRootView::setRecentFilePath(const QString &filePath)
     if (m_recentFilePath != filePath) {
         m_recentFilePath = filePath;
         m_clientInterface->setChatFilePath(filePath);
+        m_fileManager->setChatFilePath(filePath);
         emit chatFileNameChanged();
     }
 }

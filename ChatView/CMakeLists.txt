@@ -63,6 +63,7 @@ qt_add_qml_module(QodeAssistChatView
     ChatView.hpp ChatView.cpp
     ChatData.hpp
     FileItem.hpp FileItem.cpp
+    ChatFileManager.hpp ChatFileManager.cpp
 )
 
 target_link_libraries(QodeAssistChatView

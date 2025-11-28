@@ -23,6 +23,7 @@
 
 #include "ChatModel.hpp"
 #include "ClientInterface.hpp"
+#include "ChatFileManager.hpp"
 #include "llmcore/PromptProviderChat.hpp"
 #include <coreplugin/editormanager/editormanager.h>
 
@@ -199,6 +200,7 @@ private:
     ChatModel *m_chatModel;
     LLMCore::PromptProviderChat m_promptProvider;
     ClientInterface *m_clientInterface;
+    ChatFileManager *m_fileManager;
     QString m_currentTemplate;
     QString m_recentFilePath;
     QStringList m_attachmentFiles;
