@@ -1,7 +1,7 @@
 {
     "Id" : "qodeassist",
     "Name" : "QodeAssist",
-    "Version" : "0.9.2",
+    "Version" : "0.9.3",
     "CompatVersion" : "${IDE_VERSION}",
     "Vendor" : "Petr Mironychev",
     "VendorId" : "petrmironychev",
