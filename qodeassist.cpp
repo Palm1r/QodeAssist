@@ -62,6 +62,7 @@
 #include "widgets/CustomInstructionsManager.hpp"
 #include "widgets/QuickRefactorDialog.hpp"
 #include <ChatView/ChatView.hpp>
+#include <ChatView/ChatFileManager.hpp>
 #include <coreplugin/actionmanager/actioncontainer.h>
 #include <coreplugin/actionmanager/actionmanager.h>
 #include <texteditor/textdocument.h>
@@ -87,6 +88,8 @@ public:
 
     ~QodeAssistPlugin() final
     {
+        Chat::ChatFileManager::cleanupGlobalIntermediateStorage();
+        
         delete m_qodeAssistClient;
         if (m_chatOutputPane) {
             delete m_chatOutputPane;
@@ -249,6 +252,8 @@ public:
             editorContextMenu->addAction(closeChatViewAction.command(),
                                          Core::Constants::G_DEFAULT_THREE);
         }
+
+        Chat::ChatFileManager::cleanupGlobalIntermediateStorage();
     }
 
     void extensionsInitialized() final {}

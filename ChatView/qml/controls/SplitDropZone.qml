@@ -23,10 +23,12 @@ import QtQuick.Controls
 Item {
     id: root
 
-    signal filesDroppedToAttach(var urlStrings)  // Array of URL strings (file://...)
-    signal filesDroppedToLink(var urlStrings)    // Array of URL strings (file://...)
+    signal filesDroppedToAttach(var urlStrings)
+    signal filesDroppedToLink(var urlStrings)
 
     property string activeZone: ""
+    property int filesCount: 0
+    property bool isDragActive: false
 
     Item {
         id: splitDropOverlay
@@ -34,10 +36,37 @@ Item {
         anchors.fill: parent
         visible: false
         z: 999
+        opacity: 0
+
+        Behavior on opacity {
+            NumberAnimation { duration: 200; easing.type: Easing.InOutQuad }
+        }
 
         Rectangle {
             anchors.fill: parent
             color: Qt.rgba(palette.shadow.r, palette.shadow.g, palette.shadow.b, 0.6)
+        }
+
+        Rectangle {
+            anchors {
+                top: parent.top
+                horizontalCenter: parent.horizontalCenter
+                topMargin: 30
+            }
+            width: fileCountText.width + 40
+            height: 50
+            color: Qt.rgba(palette.highlight.r, palette.highlight.g, palette.highlight.b, 0.9)
+            radius: 25
+            visible: root.filesCount > 0
+            
+            Text {
+                id: fileCountText
+                anchors.centerIn: parent
+                text: qsTr("%n file(s) to drop", "", root.filesCount)
+                font.pixelSize: 16
+                font.bold: true
+                color: palette.highlightedText
+            }
         }
 
         Rectangle {
@@ -76,19 +105,20 @@ Item {
                     color: root.activeZone === "left" ? palette.highlightedText : palette.text
                     opacity: 0.8
                 }
+                
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: qsTr("(for one-time use)")
+                    font.pixelSize: 12
+                    font.italic: true
+                    color: root.activeZone === "left" ? palette.highlightedText : palette.text
+                    opacity: 0.6
+                }
             }
 
-            Behavior on color {
-                ColorAnimation { duration: 150 }
-            }
-            
-            Behavior on border.width {
-                NumberAnimation { duration: 150 }
-            }
-            
-            Behavior on border.color {
-                ColorAnimation { duration: 150 }
-            }
+            Behavior on color { ColorAnimation { duration: 150 } }
+            Behavior on border.width { NumberAnimation { duration: 150 } }
+            Behavior on border.color { ColorAnimation { duration: 150 } }
         }
 
         Rectangle {
@@ -127,19 +157,20 @@ Item {
                     color: root.activeZone === "right" ? palette.highlightedText : palette.text
                     opacity: 0.8
                 }
+                
+                Text {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    text: qsTr("(added to context)")
+                    font.pixelSize: 12
+                    font.italic: true
+                    color: root.activeZone === "right" ? palette.highlightedText : palette.text
+                    opacity: 0.6
+                }
             }
 
-            Behavior on color {
-                ColorAnimation { duration: 150 }
-            }
-            
-            Behavior on border.width {
-                NumberAnimation { duration: 150 }
-            }
-            
-            Behavior on border.color {
-                ColorAnimation { duration: 150 }
-            }
+            Behavior on color { ColorAnimation { duration: 150 } }
+            Behavior on border.width { NumberAnimation { duration: 150 } }
+            Behavior on border.color { ColorAnimation { duration: 150 } }
         }
 
         Rectangle {
@@ -193,41 +224,66 @@ Item {
         
         onEntered: (drag) => {
                        if (drag.hasUrls) {
+                           root.isDragActive = true
+                           root.filesCount = drag.urls.length
                            splitDropOverlay.visible = true
+                           splitDropOverlay.opacity = 1
                            root.activeZone = ""
                        }
                    }
 
         onExited: {
-            splitDropOverlay.visible = false
-            root.activeZone = ""
+            root.isDragActive = false
+            root.filesCount = 0
+            splitDropOverlay.opacity = 0
+
+            Qt.callLater(function() {
+                if (!root.isDragActive) {
+                    splitDropOverlay.visible = false
+                    root.activeZone = ""
+                }
+            })
         }
 
         onPositionChanged: (drag) => {
-                               if (drag.x < globalDropArea.width / 2) {
-                                   root.activeZone = "left"
-                               } else {
-                                   root.activeZone = "right"
+                               if (drag.hasUrls) {
+                                   root.activeZone = drag.x < globalDropArea.width / 2 ? "left" : "right"
                                }
                            }
 
         onDropped: (drop) => {
-                       var targetZone = root.activeZone
-                       splitDropOverlay.visible = false
-                       root.activeZone = ""
+                       const targetZone = root.activeZone
+                       root.isDragActive = false
+                       root.filesCount = 0
+                       splitDropOverlay.opacity = 0
 
-                       if (drop.hasUrls && drop.urls.length > 0) {
-                           // Convert URLs to array of strings for C++ processing
-                           var urlStrings = []
-                           for (var i = 0; i < drop.urls.length; i++) {
-                               urlStrings.push(drop.urls[i].toString())
+                       Qt.callLater(function() {
+                           splitDropOverlay.visible = false
+                           root.activeZone = ""
+                       })
+
+                       if (!drop.hasUrls || drop.urls.length === 0) {
+                           return
+                       }
+
+                       var urlStrings = []
+                       for (var i = 0; i < drop.urls.length; i++) {
+                           var urlString = drop.urls[i].toString()
+                           if (urlString.startsWith("file://") || urlString.indexOf("://") === -1) {
+                               urlStrings.push(urlString)
                            }
-                           
-                           if (targetZone === "right") {
-                               root.filesDroppedToLink(urlStrings)
-                           } else {
-                               root.filesDroppedToAttach(urlStrings)
-                           }
+                       }
+
+                       if (urlStrings.length === 0) {
+                           return
+                       }
+
+                       drop.accept(Qt.CopyAction)
+
+                       if (targetZone === "right") {
+                           root.filesDroppedToLink(urlStrings)
+                       } else {
+                           root.filesDroppedToAttach(urlStrings)
                        }
                    }
     }

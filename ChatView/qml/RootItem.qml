@@ -60,6 +60,7 @@ ChatRootView {
 
     SplitDropZone {
         anchors.fill: parent
+        z: 99
 
         onFilesDroppedToAttach: (urlStrings) => {
             var localPaths = root.convertUrlsToLocalPaths(urlStrings)
