@@ -121,24 +121,11 @@ Rectangle {
             Repeater {
                 id: attachmentsModel
 
-                delegate: Rectangle {
+                delegate: AttachmentComponent {
                     required property int index
                     required property var modelData
 
-                    height: attachText.implicitHeight + 8
-                    width: attachText.implicitWidth + 16
-                    radius: 4
-                    color: palette.button
-                    border.width: 1
-                    border.color: palette.mid
-
-                    Text {
-                        id: attachText
-
-                        anchors.centerIn: parent
-                        text: modelData
-                        color: palette.text
-                    }
+                    itemData: modelData
                 }
             }
         }
@@ -239,6 +226,68 @@ Rectangle {
         codeFontSize: root.codeFontSize
     }
 
+    component AttachmentComponent : Rectangle {
+        required property var itemData
+
+        height: attachFileText.implicitHeight + 8
+        width: attachFileText.implicitWidth + 16
+        radius: 4
+        color: attachFileMouseArea.containsMouse ? Qt.lighter(palette.button, 1.1) : palette.button
+        border.width: 1
+        border.color: palette.mid
+
+        Behavior on color { ColorAnimation { duration: 100 } }
+
+        FileItem {
+            id: fileItem
+            filePath: itemData.filePath || ""
+        }
+
+        Text {
+            id: attachFileText
+
+            anchors.centerIn: parent
+            text: (itemData.fileName || "")
+            color: palette.buttonText
+            font.pointSize: root.textFontSize - 1
+        }
+
+        MouseArea {
+            id: attachFileMouseArea
+
+            anchors.fill: parent
+            hoverEnabled: true
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            cursorShape: Qt.PointingHandCursor
+
+            onClicked: (mouse) => {
+                if (mouse.button === Qt.LeftButton) {
+                    fileItem.openFileInEditor()
+                } else if (mouse.button === Qt.RightButton) {
+                    attachmentContextMenu.popup()
+                }
+            }
+
+            ToolTip.visible: containsMouse
+            ToolTip.text: qsTr("Left click: Open in Qt Creator\nRight click: More options")
+            ToolTip.delay: 500
+        }
+
+        Menu {
+            id: attachmentContextMenu
+
+            MenuItem {
+                text: qsTr("Open in Qt Creator")
+                onTriggered: fileItem.openFileInEditor()
+            }
+
+            MenuItem {
+                text: qsTr("Open in System Editor")
+                onTriggered: fileItem.openFileInExternalEditor()
+            }
+        }
+    }
+
     component ImageComponent : Rectangle {
         required property var itemData
 
@@ -248,9 +297,16 @@ Rectangle {
         width: Math.min(imageDisplay.implicitWidth, maxImageWidth) + 16
         height: imageDisplay.implicitHeight + fileNameText.implicitHeight + 16
         radius: 4
-        color: palette.base
+        color: imageMouseArea.containsMouse ? Qt.lighter(palette.base, 1.05) : palette.base
         border.width: 1
         border.color: palette.mid
+
+        Behavior on color { ColorAnimation { duration: 100 } }
+
+        FileItem {
+            id: imageFileItem
+            filePath: itemData.imageUrl ? itemData.imageUrl.toString().replace("file://", "") : ""
+        }
 
         ColumnLayout {
             anchors.fill: parent
@@ -259,6 +315,7 @@ Rectangle {
 
             Image {
                 id: imageDisplay
+
                 Layout.alignment: Qt.AlignHCenter
                 Layout.maximumWidth: parent.parent.maxImageWidth
                 Layout.maximumHeight: parent.parent.maxImageHeight
@@ -289,12 +346,48 @@ Rectangle {
 
             Text {
                 id: fileNameText
+
                 Layout.fillWidth: true
                 text: itemData.fileName || ""
                 color: palette.text
                 font.pointSize: root.textFontSize - 1
                 elide: Text.ElideMiddle
                 horizontalAlignment: Text.AlignHCenter
+            }
+        }
+
+        MouseArea {
+            id: imageMouseArea
+
+            anchors.fill: parent
+            hoverEnabled: true
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            cursorShape: Qt.PointingHandCursor
+
+            onClicked: (mouse) => {
+                if (mouse.button === Qt.LeftButton) {
+                    imageFileItem.openFileInEditor()
+                } else if (mouse.button === Qt.RightButton) {
+                    imageContextMenu.popup()
+                }
+            }
+
+            ToolTip.visible: containsMouse
+            ToolTip.text: qsTr("Left click: Open in System\nRight click: More options")
+            ToolTip.delay: 500
+        }
+
+        Menu {
+            id: imageContextMenu
+
+            MenuItem {
+                text: qsTr("Open in Qt Creator")
+                onTriggered: imageFileItem.openFileInEditor()
+            }
+
+            MenuItem {
+                text: qsTr("Open in System Viewer")
+                onTriggered: imageFileItem.openFileInExternalEditor()
             }
         }
     }

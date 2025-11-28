@@ -155,6 +155,9 @@ void QuickRefactorDialog::setupUi()
     connect(buttonBox, &QDialogButtonBox::accepted, this, &QDialog::accept);
     connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
     mainLayout->addWidget(buttonBox);
+    
+    setTabOrder(m_commandsComboBox, m_textEdit);
+    setTabOrder(m_textEdit, buttonBox);
 }
 
 void QuickRefactorDialog::createActionButtons()

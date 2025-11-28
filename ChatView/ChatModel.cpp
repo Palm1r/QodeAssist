@@ -78,11 +78,26 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         return message.content;
     }
     case Roles::Attachments: {
-        QStringList filenames;
+        QVariantList attachmentsList;
         for (const auto &attachment : message.attachments) {
-            filenames << attachment.filename;
+            QVariantMap attachmentMap;
+            attachmentMap["fileName"] = attachment.filename;
+            attachmentMap["storedPath"] = attachment.content;
+            
+            if (!m_chatFilePath.isEmpty()) {
+                QFileInfo fileInfo(m_chatFilePath);
+                QString baseName = fileInfo.completeBaseName();
+                QString dirPath = fileInfo.absolutePath();
+                QString contentFolder = QDir(dirPath).filePath(baseName + "_content");
+                QString fullPath = QDir(contentFolder).filePath(attachment.content);
+                attachmentMap["filePath"] = fullPath;
+            } else {
+                attachmentMap["filePath"] = QString();
+            }
+            
+            attachmentsList.append(attachmentMap);
         }
-        return filenames;
+        return attachmentsList;
     }
     case Roles::IsRedacted: {
         return message.isRedacted;
@@ -99,8 +114,8 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
                 QFileInfo fileInfo(m_chatFilePath);
                 QString baseName = fileInfo.completeBaseName();
                 QString dirPath = fileInfo.absolutePath();
-                QString imagesFolder = QDir(dirPath).filePath(baseName + "_images");
-                QString fullPath = QDir(imagesFolder).filePath(image.storedPath);
+                QString contentFolder = QDir(dirPath).filePath(baseName + "_content");
+                QString fullPath = QDir(contentFolder).filePath(image.storedPath);
                 imageMap["imageUrl"] = QUrl::fromLocalFile(fullPath).toString();
             } else {
                 imageMap["imageUrl"] = QString();
@@ -135,15 +150,6 @@ void ChatModel::addMessage(
     bool isRedacted,
     const QString &signature)
 {
-    QString fullContent = content;
-    if (!attachments.isEmpty()) {
-        fullContent += "\n\nAttached files list:";
-        for (const auto &attachment : attachments) {
-            fullContent += QString("\nname: %1\nfile content:\n%2")
-                               .arg(attachment.filename, attachment.content);
-        }
-    }
-
     if (!m_messages.isEmpty() && !id.isEmpty() && m_messages.last().id == id
         && m_messages.last().role == role) {
         Message &lastMessage = m_messages.last();

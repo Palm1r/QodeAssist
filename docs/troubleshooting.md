@@ -33,6 +33,31 @@ If issues persist, you can reset settings to their default values:
 - API keys are preserved during reset
 - You will need to re-select your model after reset
 
+## Chat History Migration
+
+### Images not showing in old chats (version 0.5.x → 0.6.x)
+
+If you have chat histories from QodeAssist version 0.5.x or earlier, images may not display correctly due to a storage structure change.
+
+**Solution:** Rename the content folder for each affected chat:
+
+```bash
+# Navigate to your chat history folder
+cd ~/path/to/chat_history
+
+# For each chat file, rename its folder
+mv chat_name_images chat_name_content
+```
+
+**Example:**
+```bash
+mv my_conversation_2024-11-28_images my_conversation_2024-11-28_content
+```
+
+**What changed:**
+- Old format (v0.1): Stored files in `chat_name_images/`
+- New format (v0.2): Stores all content in `chat_name_content/` (both images and text files)
+
 ## Common Issues
 
 ### Plugin doesn't appear after installation

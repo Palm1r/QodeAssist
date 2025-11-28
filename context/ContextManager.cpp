@@ -43,11 +43,17 @@ ContextManager::ContextManager(QObject *parent)
 QString ContextManager::readFile(const QString &filePath) const
 {
     QFile file(filePath);
-    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        LOG_MESSAGE(QString("Failed to open file for reading: %1 - %2")
+                        .arg(filePath, file.errorString()));
         return QString();
+    }
 
     QTextStream in(&file);
-    return in.readAll();
+    QString content = in.readAll();
+    file.close();
+    
+    return content;
 }
 
 QList<ContentFile> ContextManager::getContentFiles(const QStringList &filePaths) const
