@@ -26,11 +26,13 @@
 #include <QCloseEvent>
 #include <QEnterEvent>
 #include <QEvent>
+#include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QPainter>
 #include <QRegion>
+#include <QScreen>
 #include <QScrollBar>
 #include <QSharedPointer>
 #include <QSplitter>
@@ -149,7 +151,7 @@ void RefactorWidget::setupUi()
 
     m_statsLabel = new QLabel(this);
     m_statsLabel->setAlignment(Qt::AlignLeft);
-    mainLayout->addWidget(m_statsLabel);
+    mainLayout->addWidget(m_statsLabel, 0);
 
     m_leftDocument = QSharedPointer<TextEditor::TextDocument>::create();
     m_rightDocument = QSharedPointer<TextEditor::TextDocument>::create();
@@ -168,7 +170,6 @@ void RefactorWidget::setupUi()
     m_leftEditor->setFrameStyle(QFrame::StyledPanel);
     m_leftEditor->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     m_leftEditor->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    m_leftEditor->setMinimumHeight(100);
     m_leftEditor->setMinimumWidth(150);
     m_leftEditor->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     m_leftEditor->setTextInteractionFlags(Qt::TextSelectableByMouse | Qt::TextSelectableByKeyboard);
@@ -179,7 +180,6 @@ void RefactorWidget::setupUi()
     m_rightEditor->setFrameStyle(QFrame::StyledPanel);
     m_rightEditor->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     m_rightEditor->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    m_rightEditor->setMinimumHeight(100);
     m_rightEditor->setMinimumWidth(150);
     m_rightEditor->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     
@@ -190,8 +190,8 @@ void RefactorWidget::setupUi()
     leftLayout->setContentsMargins(0, 0, 0, 0);
     
     auto *originalLabel = new QLabel(tr("◄ Original"), m_leftContainer);
-    leftLayout->addWidget(originalLabel);
-    leftLayout->addWidget(m_leftEditor);
+    leftLayout->addWidget(originalLabel, 0);
+    leftLayout->addWidget(m_leftEditor, 1);
     
     auto *rightContainer = new QWidget();
     rightContainer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -200,8 +200,8 @@ void RefactorWidget::setupUi()
     rightLayout->setContentsMargins(0, 0, 0, 0);
     
     auto *refactoredLabel = new QLabel(tr("Refactored ►"), rightContainer);
-    rightLayout->addWidget(refactoredLabel);
-    rightLayout->addWidget(m_rightEditor);
+    rightLayout->addWidget(refactoredLabel, 0);
+    rightLayout->addWidget(m_rightEditor, 1);
     
     m_splitter->addWidget(m_leftContainer);
     m_splitter->addWidget(rightContainer);
@@ -209,7 +209,7 @@ void RefactorWidget::setupUi()
     m_splitter->setStretchFactor(0, 1);
     m_splitter->setStretchFactor(1, 1);
     
-    mainLayout->addWidget(m_splitter);
+    mainLayout->addWidget(m_splitter, 1);
     
     connect(m_leftEditor->verticalScrollBar(), &QScrollBar::valueChanged,
             this, &RefactorWidget::syncLeftScroll);
@@ -245,7 +245,7 @@ void RefactorWidget::setupUi()
     buttonLayout->addWidget(m_applyButton);
     buttonLayout->addWidget(m_declineButton);
     
-    mainLayout->addLayout(buttonLayout);
+    mainLayout->addLayout(buttonLayout, 0);
     
     connect(m_applyButton, &QPushButton::clicked, this, &RefactorWidget::applyRefactoring);
     connect(m_declineButton, &QPushButton::clicked, this, &RefactorWidget::declineRefactoring);
@@ -630,39 +630,69 @@ void RefactorWidget::addLineMarkers()
 void RefactorWidget::updateSizeToContent()
 {
     QFontMetrics fm(m_rightEditor->font());
-    int charWidth = fm.horizontalAdvance('m');
     int lineHeight = fm.height();
-    int lineCount = m_rightDocument->document()->blockCount();
+    
+    int leftMaxWidth = 0;
+    int leftLineCount = 0;
+    QTextBlock leftBlock = m_leftDocument->document()->begin();
+    while (leftBlock.isValid()) {
+        int lineWidth = fm.horizontalAdvance(leftBlock.text());
+        leftMaxWidth = qMax(leftMaxWidth, lineWidth);
+        leftLineCount++;
+        leftBlock = leftBlock.next();
+    }
+    
+    int rightMaxWidth = 0;
+    int rightLineCount = 0;
+    QTextBlock rightBlock = m_rightDocument->document()->begin();
+    while (rightBlock.isValid()) {
+        int lineWidth = fm.horizontalAdvance(rightBlock.text());
+        rightMaxWidth = qMax(rightMaxWidth, lineWidth);
+        rightLineCount++;
+        rightBlock = rightBlock.next();
+    }
+    
+    int maxLineWidth = qMax(leftMaxWidth, rightMaxWidth);
+    int maxLineCount = qMax(leftLineCount, rightLineCount);
+    
+    const int editorPadding = 60;
+    const int scrollBarWidth = 20;
+    const int statsLabelHeight = 30;
+    const int buttonLayoutHeight = 35;
+    const int layoutMargins = 20;
+    const int labelHeight = 20;
+    
+    int singleEditorWidth = maxLineWidth + editorPadding + scrollBarWidth;
+    int contentHeight = maxLineCount * lineHeight + statsLabelHeight + buttonLayoutHeight + layoutMargins + labelHeight;
     
     bool horizontal = m_splitter->orientation() == Qt::Horizontal;
     
-    const int minWidth = Settings::quickRefactorSettings().widgetMinWidth();
-    const int maxWidth = qMin(Settings::quickRefactorSettings().widgetMaxWidth(), m_editorWidth - 40);
-    const int minHeight = Settings::quickRefactorSettings().widgetMinHeight();
-    const int maxHeight = Settings::quickRefactorSettings().widgetMaxHeight();
-    
+    int contentWidth;
     if (horizontal) {
-        int totalWidth = qBound(minWidth, charWidth * 60 * 2 + 90, maxWidth);
-        setFixedWidth(totalWidth);
-        
-        int editorHeight = qBound(minHeight, lineCount * lineHeight, maxHeight);
-        m_leftEditor->setMinimumHeight(editorHeight);
-        m_leftEditor->setMaximumHeight(editorHeight);
-        m_rightEditor->setMinimumHeight(editorHeight);
-        m_rightEditor->setMaximumHeight(editorHeight);
+        contentWidth = singleEditorWidth * 2 + m_splitter->handleWidth() + 20;
     } else {
-        int editorWidth = qBound(minWidth, charWidth * 85 + 80, maxWidth);
-        setFixedWidth(editorWidth);
-        
-        int editorHeight = qBound(minHeight, lineCount * lineHeight, maxHeight);
-        m_leftEditor->setMinimumHeight(editorHeight);
-        m_leftEditor->setMaximumHeight(editorHeight);
-        m_rightEditor->setMinimumHeight(editorHeight);
-        m_rightEditor->setMaximumHeight(editorHeight);
+        contentWidth = singleEditorWidth + 20;
     }
     
+    QScreen *screen = window()->screen();
+    if (!screen) {
+        screen = QGuiApplication::primaryScreen();
+    }
+    int screenWidth = screen ? screen->availableGeometry().width() : 1920;
+    int screenHeight = screen ? screen->availableGeometry().height() : 1080;
+    
+    const int minWidth = Settings::quickRefactorSettings().widgetMinWidth();
+    const int maxWidth = qMin(Settings::quickRefactorSettings().widgetMaxWidth(), 
+                              qMin(m_editorWidth - 40, screenWidth - 100));
+    const int minHeight = Settings::quickRefactorSettings().widgetMinHeight();
+    const int maxHeight = qMin(Settings::quickRefactorSettings().widgetMaxHeight(), screenHeight - 100);
+    
+    int targetWidth = qBound(minWidth, contentWidth, maxWidth);
+    int targetHeight = qBound(minHeight, contentHeight, maxHeight);
+    
+    setFixedSize(targetWidth, targetHeight);
+    
     updateGeometry();
-    adjustSize();
 }
 
 void RefactorWidget::applyEditorSettings()

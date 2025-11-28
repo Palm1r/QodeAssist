@@ -178,26 +178,26 @@ QuickRefactorSettings::QuickRefactorSettings()
     widgetMinWidth.setSettingsKey(Constants::QR_WIDGET_MIN_WIDTH);
     widgetMinWidth.setLabelText(Tr::tr("Widget Minimum Width:"));
     widgetMinWidth.setToolTip(Tr::tr("Minimum width for the refactor widget (in pixels)"));
-    widgetMinWidth.setRange(400, 2000);
-    widgetMinWidth.setDefaultValue(600);
+    widgetMinWidth.setRange(200, 999999);
+    widgetMinWidth.setDefaultValue(400);
 
     widgetMaxWidth.setSettingsKey(Constants::QR_WIDGET_MAX_WIDTH);
     widgetMaxWidth.setLabelText(Tr::tr("Widget Maximum Width:"));
     widgetMaxWidth.setToolTip(Tr::tr("Maximum width for the refactor widget (in pixels)"));
-    widgetMaxWidth.setRange(600, 3000);
-    widgetMaxWidth.setDefaultValue(1400);
+    widgetMaxWidth.setRange(400, 999999);
+    widgetMaxWidth.setDefaultValue(9999);
 
     widgetMinHeight.setSettingsKey(Constants::QR_WIDGET_MIN_HEIGHT);
     widgetMinHeight.setLabelText(Tr::tr("Widget Minimum Height:"));
     widgetMinHeight.setToolTip(Tr::tr("Minimum height for the refactor widget (in pixels)"));
-    widgetMinHeight.setRange(80, 800);
-    widgetMinHeight.setDefaultValue(120);
+    widgetMinHeight.setRange(80, 999999);
+    widgetMinHeight.setDefaultValue(100);
 
     widgetMaxHeight.setSettingsKey(Constants::QR_WIDGET_MAX_HEIGHT);
     widgetMaxHeight.setLabelText(Tr::tr("Widget Maximum Height:"));
     widgetMaxHeight.setToolTip(Tr::tr("Maximum height for the refactor widget (in pixels)"));
-    widgetMaxHeight.setRange(200, 1200);
-    widgetMaxHeight.setDefaultValue(500);
+    widgetMaxHeight.setRange(200, 999999);
+    widgetMaxHeight.setDefaultValue(9999);
 
     systemPrompt.setSettingsKey(Constants::QR_SYSTEM_PROMPT);
     systemPrompt.setLabelText(Tr::tr("System Prompt:"));
