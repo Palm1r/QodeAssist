@@ -44,6 +44,11 @@ public:
                 if (msg.role == "system") continue;
                 
                 if (msg.isThinking) {
+                    // Claude API requires signature for thinking blocks
+                    if (msg.signature.isEmpty()) {
+                        continue;
+                    }
+                    
                     QJsonArray content;
                     QJsonObject thinkingBlock;
                     thinkingBlock["type"] = msg.isRedacted ? "redacted_thinking" : "thinking";
@@ -57,9 +62,7 @@ public:
                     if (!msg.isRedacted) {
                         thinkingBlock["thinking"] = thinkingText;
                     }
-                    if (!msg.signature.isEmpty()) {
-                        thinkingBlock["signature"] = msg.signature;
-                    }
+                    thinkingBlock["signature"] = msg.signature;
                     content.append(thinkingBlock);
                     
                     messages.append(QJsonObject{{"role", "assistant"}, {"content", content}});

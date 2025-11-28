@@ -94,7 +94,11 @@ QJsonObject ChatSerializer::serializeMessage(const ChatModel::Message &message, 
     messageObj["role"] = static_cast<int>(message.role);
     messageObj["content"] = message.content;
     messageObj["id"] = message.id;
-    messageObj["isRedacted"] = message.isRedacted;
+    
+    if (message.isRedacted) {
+        messageObj["isRedacted"] = true;
+    }
+    
     if (!message.signature.isEmpty()) {
         messageObj["signature"] = message.signature;
     }
@@ -167,8 +171,11 @@ bool ChatSerializer::deserializeChat(ChatModel *model, const QJsonObject &json, 
     model->setLoadingFromHistory(true);
     
     for (const auto &message : messages) {
-        model->addMessage(message.content, message.role, message.id, message.attachments, message.images);
-        LOG_MESSAGE(QString("Loaded message with %1 image(s)").arg(message.images.size()));
+        model->addMessage(message.content, message.role, message.id, message.attachments, message.images, message.isRedacted, message.signature);
+        LOG_MESSAGE(QString("Loaded message with %1 image(s), isRedacted=%2, signature length=%3")
+                        .arg(message.images.size())
+                        .arg(message.isRedacted)
+                        .arg(message.signature.length()));
     }
     
     model->setLoadingFromHistory(false);

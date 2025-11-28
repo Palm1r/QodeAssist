@@ -73,7 +73,9 @@ public:
         ChatRole role,
         const QString &id,
         const QList<Context::ContentFile> &attachments = {},
-        const QList<ImageAttachment> &images = {});
+        const QList<ImageAttachment> &images = {},
+        bool isRedacted = false,
+        const QString &signature = QString());
     Q_INVOKABLE void clear();
     Q_INVOKABLE QList<MessagePart> processMessageContent(const QString &content) const;
 

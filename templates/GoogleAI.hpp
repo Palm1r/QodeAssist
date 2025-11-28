@@ -46,36 +46,58 @@ public:
             QJsonObject content;
             QJsonArray parts;
 
-            if (!msg.content.isEmpty()) {
-                parts.append(QJsonObject{{"text", msg.content}});
-            }
-
-            if (msg.images && !msg.images->isEmpty()) {
-                for (const auto &image : msg.images.value()) {
-                    QJsonObject imagePart;
-                    
-                    if (image.isUrl) {
-                        QJsonObject fileData;
-                        fileData["mime_type"] = image.mediaType;
-                        fileData["file_uri"] = image.data;
-                        imagePart["file_data"] = fileData;
-                    } else {
-                        QJsonObject inlineData;
-                        inlineData["mime_type"] = image.mediaType;
-                        inlineData["data"] = image.data;
-                        imagePart["inline_data"] = inlineData;
-                    }
-                    
-                    parts.append(imagePart);
+            if (msg.isThinking) {
+                if (!msg.content.isEmpty()) {
+                    QJsonObject thinkingPart;
+                    thinkingPart["text"] = msg.content;
+                    thinkingPart["thought"] = true;
+                    parts.append(thinkingPart);
                 }
+                
+                if (!msg.signature.isEmpty()) {
+                    QJsonObject signaturePart;
+                    signaturePart["thoughtSignature"] = msg.signature;
+                    parts.append(signaturePart);
+                }
+                
+                if (parts.isEmpty()) {
+                    continue;
+                }
+                
+                content["role"] = "model";
+            } else {
+                if (!msg.content.isEmpty()) {
+                    parts.append(QJsonObject{{"text", msg.content}});
+                }
+
+                if (msg.images && !msg.images->isEmpty()) {
+                    for (const auto &image : msg.images.value()) {
+                        QJsonObject imagePart;
+                        
+                        if (image.isUrl) {
+                            QJsonObject fileData;
+                            fileData["mime_type"] = image.mediaType;
+                            fileData["file_uri"] = image.data;
+                            imagePart["file_data"] = fileData;
+                        } else {
+                            QJsonObject inlineData;
+                            inlineData["mime_type"] = image.mediaType;
+                            inlineData["data"] = image.data;
+                            imagePart["inline_data"] = inlineData;
+                        }
+                        
+                        parts.append(imagePart);
+                    }
+                }
+
+                QString role = msg.role;
+                if (role == "assistant") {
+                    role = "model";
+                }
+                
+                content["role"] = role;
             }
 
-            QString role = msg.role;
-            if (role == "assistant") {
-                role = "model";
-            }
-
-            content["role"] = role;
             content["parts"] = parts;
             contents.append(content);
         }
@@ -95,11 +117,15 @@ public:
                "    },\n"
                "    {\n"
                "      \"role\": \"model\",\n"
-               "      \"parts\": [{\"text\": \"<assistant response>\"}]\n"
+               "      \"parts\": [\n"
+               "        {\"text\": \"<thinking>\", \"thought\": true},\n"
+               "        {\"thoughtSignature\": \"<signature>\"},\n"
+               "        {\"text\": \"<assistant response>\"}\n"
+               "      ]\n"
                "    }\n"
                "  ]\n"
                "}\n\n"
-               "Supports proper role mapping, including model/user roles.";
+               "Supports proper role mapping (model/user roles), images, and thinking blocks.";
     }
 
     bool isSupportProvider(LLMCore::ProviderID id) const override

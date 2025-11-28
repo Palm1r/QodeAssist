@@ -131,7 +131,9 @@ void ChatModel::addMessage(
     ChatRole role,
     const QString &id,
     const QList<Context::ContentFile> &attachments,
-    const QList<ImageAttachment> &images)
+    const QList<ImageAttachment> &images,
+    bool isRedacted,
+    const QString &signature)
 {
     QString fullContent = content;
     if (!attachments.isEmpty()) {
@@ -148,12 +150,16 @@ void ChatModel::addMessage(
         lastMessage.content = content;
         lastMessage.attachments = attachments;
         lastMessage.images = images;
+        lastMessage.isRedacted = isRedacted;
+        lastMessage.signature = signature;
         emit dataChanged(index(m_messages.size() - 1), index(m_messages.size() - 1));
     } else {
         beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());
         Message newMessage{role, content, id};
         newMessage.attachments = attachments;
         newMessage.images = images;
+        newMessage.isRedacted = isRedacted;
+        newMessage.signature = signature;
         m_messages.append(newMessage);
         endInsertRows();
         
