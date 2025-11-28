@@ -45,13 +45,13 @@ public:
     static QJsonObject serializeChat(const ChatModel *model, const QString &chatFilePath);
     static bool deserializeChat(ChatModel *model, const QJsonObject &json, const QString &chatFilePath);
 
-    // Image management
-    static QString getChatImagesFolder(const QString &chatFilePath);
-    static bool saveImageToStorage(const QString &chatFilePath, 
-                                    const QString &fileName,
-                                    const QString &base64Data,
-                                    QString &storedPath);
-    static QString loadImageFromStorage(const QString &chatFilePath, const QString &storedPath);
+    // Content management (images and text files)
+    static QString getChatContentFolder(const QString &chatFilePath);
+    static bool saveContentToStorage(const QString &chatFilePath, 
+                                      const QString &fileName,
+                                      const QString &base64Data,
+                                      QString &storedPath);
+    static QString loadContentFromStorage(const QString &chatFilePath, const QString &storedPath);
 
 private:
     static const QString VERSION;

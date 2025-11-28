@@ -88,7 +88,24 @@ void ClientInterface::sendMessage(
         }
     }
 
-    auto attachFiles = m_contextManager->getContentFiles(textFiles);
+    QList<Context::ContentFile> storedAttachments;
+    if (!textFiles.isEmpty() && !m_chatFilePath.isEmpty()) {
+        auto attachFiles = m_contextManager->getContentFiles(textFiles);
+        for (const auto &file : attachFiles) {
+            QString storedPath;
+            if (ChatSerializer::saveContentToStorage(
+                    m_chatFilePath, file.filename, file.content.toUtf8().toBase64(), storedPath)) {
+                Context::ContentFile storedFile;
+                storedFile.filename = file.filename;
+                storedFile.content = storedPath;
+                storedAttachments.append(storedFile);
+                LOG_MESSAGE(QString("Stored text file %1 as %2").arg(file.filename, storedPath));
+            }
+        }
+    } else if (!textFiles.isEmpty()) {
+        LOG_MESSAGE(QString("Warning: Chat file path not set, cannot save %1 text file(s)")
+                        .arg(textFiles.size()));
+    }
 
     QList<ChatModel::ImageAttachment> imageAttachments;
     if (!imageFiles.isEmpty() && !m_chatFilePath.isEmpty()) {
@@ -100,7 +117,7 @@ void ClientInterface::sendMessage(
 
             QString storedPath;
             QFileInfo fileInfo(imagePath);
-            if (ChatSerializer::saveImageToStorage(
+            if (ChatSerializer::saveContentToStorage(
                     m_chatFilePath, fileInfo.fileName(), base64Data, storedPath)) {
                 ChatModel::ImageAttachment imageAttachment;
                 imageAttachment.fileName = fileInfo.fileName();
@@ -116,7 +133,7 @@ void ClientInterface::sendMessage(
                         .arg(imageFiles.size()));
     }
 
-    m_chatModel->addMessage(message, ChatModel::ChatRole::User, "", attachFiles, imageAttachments);
+    m_chatModel->addMessage(message, ChatModel::ChatRole::User, "", storedAttachments, imageAttachments);
 
     auto &chatAssistantSettings = Settings::chatAssistantSettings();
 
@@ -182,6 +199,19 @@ void ClientInterface::sendMessage(
         LLMCore::Message apiMessage;
         apiMessage.role = msg.role == ChatModel::ChatRole::User ? "user" : "assistant";
         apiMessage.content = msg.content;
+
+        if (!msg.attachments.isEmpty() && !m_chatFilePath.isEmpty()) {
+            apiMessage.content += "\n\nAttached files:";
+            for (const auto &attachment : msg.attachments) {
+                QString fileContent = ChatSerializer::loadContentFromStorage(m_chatFilePath, attachment.content);
+                if (!fileContent.isEmpty()) {
+                    QString decodedContent = QString::fromUtf8(QByteArray::fromBase64(fileContent.toUtf8()));
+                    apiMessage.content += QString("\n\nFile: %1\n```\n%2\n```")
+                                              .arg(attachment.filename, decodedContent);
+                }
+            }
+        }
+
         apiMessage.isThinking = (msg.role == ChatModel::ChatRole::Thinking);
         apiMessage.isRedacted = msg.isRedacted;
         apiMessage.signature = msg.signature;
@@ -499,7 +529,7 @@ QVector<LLMCore::ImageAttachment> ClientInterface::loadImagesFromStorage(
 
     for (const auto &storedImage : storedImages) {
         QString base64Data
-            = ChatSerializer::loadImageFromStorage(m_chatFilePath, storedImage.storedPath);
+            = ChatSerializer::loadContentFromStorage(m_chatFilePath, storedImage.storedPath);
         if (base64Data.isEmpty()) {
             LOG_MESSAGE(QString("Warning: Failed to load image: %1").arg(storedImage.storedPath));
             continue;
