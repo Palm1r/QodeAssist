@@ -34,6 +34,42 @@
 
 namespace QodeAssist {
 
+namespace {
+
+LLMCore::InputParameters createInputParameters(
+    LLMCore::Provider *provider,
+    const Settings::CodeCompletionSettings &settings,
+    bool enableTools,
+    bool enableThinking)
+{
+    LLMCore::InputParametersBuilder baseBuilder;
+    baseBuilder.setMaxTokens(settings.maxTokens())
+               .setTemperature(settings.temperature())
+               .setStream(true)
+               .setEnableTools(enableTools)
+               .setEnableThinking(enableThinking);
+
+    if (settings.useTopP()) baseBuilder.setTopP(settings.topP());
+    if (settings.useTopK()) baseBuilder.setTopK(settings.topK());
+    if (settings.useFrequencyPenalty()) baseBuilder.setFrequencyPenalty(settings.frequencyPenalty());
+    if (settings.usePresencePenalty()) baseBuilder.setPresencePenalty(settings.presencePenalty());
+    
+    if (provider->providerID() == LLMCore::ProviderID::Ollama) {
+        LLMCore::OllamaInputParametersBuilder builder(std::move(baseBuilder));
+        builder.setKeepAlive(settings.ollamaLivetime());
+        return builder.build();
+    }
+    
+    if (provider->providerID() == LLMCore::ProviderID::OpenAIResponses) {
+        LLMCore::OpenAIResponsesInputParametersBuilder builder(std::move(baseBuilder));
+        return builder.build();
+    }
+    
+    return baseBuilder.build();
+}
+
+} // anonymous namespace
+
 LLMClientInterface::LLMClientInterface(
     const Settings::GeneralSettings &generalSettings,
     const Settings::CodeCompletionSettings &completeSettings,
@@ -125,7 +161,7 @@ void LLMClientInterface::sendData(const QByteArray &data)
         QString requestId = request["id"].toString();
         m_performanceLogger.startTimeMeasurement(requestId);
         handleCompletion(request);
-    } else if (method == "cancelRequest") {
+    } else if (method == "/$cancelRequest") {
         qDebug() << "Cancelling request";
         handleCancelRequest();
     } else if (method == "exit") {
@@ -344,13 +380,14 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         updatedContext.history = messages;
     }
 
+    const auto &ccSettings = Settings::codeCompletionSettings();
+    auto inputParams = createInputParameters(provider, ccSettings, false, false);
+
     config.provider->prepareRequest(
         config.providerRequest,
         promptTemplate,
         updatedContext,
-        LLMCore::RequestType::CodeCompletion,
-        false,
-        false);
+        inputParams);
 
     auto errors = config.provider->validateRequest(config.providerRequest, promptTemplate->type());
     if (!errors.isEmpty()) {

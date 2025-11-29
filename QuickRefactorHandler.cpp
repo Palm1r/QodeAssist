@@ -38,6 +38,53 @@
 
 namespace QodeAssist {
 
+namespace {
+
+LLMCore::InputParameters createInputParameters(
+    LLMCore::Provider *provider,
+    const Settings::QuickRefactorSettings &settings,
+    bool enableTools,
+    bool enableThinking)
+{
+    LLMCore::InputParametersBuilder baseBuilder;
+    baseBuilder.setMaxTokens(settings.maxTokens())
+               .setTemperature(settings.temperature())
+               .setStream(true)
+               .setEnableTools(enableTools)
+               .setEnableThinking(enableThinking);
+
+    if (settings.useTopP()) baseBuilder.setTopP(settings.topP());
+    if (settings.useTopK()) baseBuilder.setTopK(settings.topK());
+    if (settings.useFrequencyPenalty()) baseBuilder.setFrequencyPenalty(settings.frequencyPenalty());
+    if (settings.usePresencePenalty()) baseBuilder.setPresencePenalty(settings.presencePenalty());
+
+    if (enableThinking) {
+        baseBuilder.setThinkingMaxTokens(settings.thinkingMaxTokens())
+                   .setThinkingBudgetTokens(settings.thinkingBudgetTokens());
+    }
+    
+    if (provider->providerID() == LLMCore::ProviderID::Ollama) {
+        LLMCore::OllamaInputParametersBuilder builder(std::move(baseBuilder));
+        builder.setKeepAlive(settings.ollamaLivetime());
+        return builder.build();
+    }
+    
+    if (provider->providerID() == LLMCore::ProviderID::OpenAIResponses) {
+        LLMCore::OpenAIResponsesInputParametersBuilder builder(std::move(baseBuilder));
+        
+        if (enableThinking) {
+            builder.setThinkingEffort("medium")
+                   .setIncludeReasoningContent(true);
+        }
+        
+        return builder.build();
+    }
+    
+    return baseBuilder.build();
+}
+
+} // anonymous namespace
+
 QuickRefactorHandler::QuickRefactorHandler(QObject *parent)
     : QObject(parent)
     , m_currentEditor(nullptr)
@@ -163,15 +210,15 @@ void QuickRefactorHandler::prepareAndSendRequest(
 
     LLMCore::ContextData context = prepareContext(editor, range, instructions);
 
-    bool enableTools = Settings::quickRefactorSettings().useTools();
-    bool enableThinking = Settings::quickRefactorSettings().useThinking();
+    const auto &qrSettings = Settings::quickRefactorSettings();
+    auto inputParams = createInputParameters(
+        provider, qrSettings, qrSettings.useTools(), qrSettings.useThinking());
+
     provider->prepareRequest(
         config.providerRequest,
         promptTemplate,
         context,
-        LLMCore::RequestType::QuickRefactoring,
-        enableTools,
-        enableThinking);
+        inputParams);
 
     QString requestId = QUuid::createUuid().toString();
     m_lastRequestId = requestId;

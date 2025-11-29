@@ -76,9 +76,7 @@ void OpenAIResponsesProvider::prepareRequest(
     QJsonObject &request,
     LLMCore::PromptTemplate *prompt,
     LLMCore::ContextData context,
-    LLMCore::RequestType type,
-    bool isToolsEnabled,
-    bool isThinkingEnabled)
+    const LLMCore::InputParameters &params)
 {
     if (!prompt->isSupportProvider(providerID())) {
         LOG_MESSAGE(QString("Template %1 doesn't support %2 provider").arg(name(), prompt->name()));
@@ -86,53 +84,45 @@ void OpenAIResponsesProvider::prepareRequest(
 
     prompt->prepareRequest(request, context);
 
-    auto applyModelParams = [&request](const auto &settings) {
-        request["max_output_tokens"] = settings.maxTokens();
-        request["temperature"] = settings.temperature();
-
-        if (settings.useTopP()) {
-            request["top_p"] = settings.topP();
+    const auto *responsesParams = dynamic_cast<const LLMCore::OpenAIResponsesInputParameters*>(&params);
+    
+    QJsonObject reasoning;
+    if (params.enableThinking) {
+        if (responsesParams && responsesParams->thinkingEffort) {
+            reasoning["effort"] = *responsesParams->thinkingEffort;
+        } else {
+            reasoning["effort"] = "medium";
         }
-    };
 
-    auto applyThinkingMode = [&request](const auto &settings) {
-        QJsonObject reasoning;
-        reasoning["effort"] = "medium";
-        request["reasoning"] = reasoning;
-        request["max_output_tokens"] = settings.thinkingMaxTokens();
+        if (params.thinkingMaxTokens) {
+            request["max_output_tokens"] = *params.thinkingMaxTokens;
+        }
         request["temperature"] = 1.0;
         request["store"] = true;
 
         QJsonArray include;
         include.append("reasoning.encrypted_content");
         request["include"] = include;
-    };
-
-    if (type == LLMCore::RequestType::CodeCompletion) {
-        applyModelParams(Settings::codeCompletionSettings());
-    } else if (type == LLMCore::RequestType::QuickRefactoring) {
-        const auto &qrSettings = Settings::quickRefactorSettings();
-        applyModelParams(qrSettings);
-
-        if (isThinkingEnabled) {
-            applyThinkingMode(qrSettings);
-        }
     } else {
-        const auto &chatSettings = Settings::chatAssistantSettings();
-        applyModelParams(chatSettings);
+        reasoning["effort"] = "none";
 
-        if (isThinkingEnabled) {
-            applyThinkingMode(chatSettings);
+        if (params.maxTokens) {
+            request["max_output_tokens"] = *params.maxTokens;
+        }
+        if (params.temperature) {
+            request["temperature"] = *params.temperature;
+        }
+        if (params.topP) {
+            request["top_p"] = *params.topP;
         }
     }
 
-    if (isToolsEnabled) {
-        const LLMCore::RunToolsFilter filter = (type == LLMCore::RequestType::QuickRefactoring)
-                                                    ? LLMCore::RunToolsFilter::OnlyRead
-                                                    : LLMCore::RunToolsFilter::ALL;
+    request["reasoning"] = reasoning;
+    request["stream"] = params.stream;
 
+    if (params.enableTools) {
         const auto toolsDefinitions = m_toolsManager->getToolsDefinitions(
-            LLMCore::ToolSchemaFormat::OpenAI, filter);
+            LLMCore::ToolSchemaFormat::OpenAI, LLMCore::RunToolsFilter::ALL);
         if (!toolsDefinitions.isEmpty()) {
             QJsonArray responsesTools;
 
@@ -151,8 +141,6 @@ void OpenAIResponsesProvider::prepareRequest(
             request["tools"] = responsesTools;
         }
     }
-
-    request["stream"] = true;
 }
 
 QList<QString> OpenAIResponsesProvider::getInstalledModels(const QString &url)

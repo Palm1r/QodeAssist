@@ -27,6 +27,7 @@
 #include "ContextData.hpp"
 #include "DataBuffers.hpp"
 #include "HttpClient.hpp"
+#include "InputParameters.hpp"
 #include "PromptTemplate.hpp"
 #include "RequestType.hpp"
 
@@ -52,9 +53,7 @@ public:
         QJsonObject &request,
         LLMCore::PromptTemplate *prompt,
         LLMCore::ContextData context,
-        LLMCore::RequestType type,
-        bool isToolsEnabled,
-        bool isThinkingEnabled)
+        const LLMCore::InputParameters &params)
         = 0;
     virtual QList<QString> getInstalledModels(const QString &url) = 0;
     virtual QList<QString> validateRequest(const QJsonObject &request, TemplateType type) = 0;

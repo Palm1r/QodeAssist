@@ -76,9 +76,7 @@ void ClaudeProvider::prepareRequest(
     QJsonObject &request,
     LLMCore::PromptTemplate *prompt,
     LLMCore::ContextData context,
-    LLMCore::RequestType type,
-    bool isToolsEnabled,
-    bool isThinkingEnabled)
+    const LLMCore::InputParameters &params)
 {
     if (!prompt->isSupportProvider(providerID())) {
         LOG_MESSAGE(QString("Template %1 doesn't support %2 provider").arg(name(), prompt->name()));
@@ -86,55 +84,38 @@ void ClaudeProvider::prepareRequest(
 
     prompt->prepareRequest(request, context);
 
-    auto applyModelParams = [&request](const auto &settings) {
-        request["max_tokens"] = settings.maxTokens();
-        if (settings.useTopP())
-            request["top_p"] = settings.topP();
-        if (settings.useTopK())
-            request["top_k"] = settings.topK();
-        request["stream"] = true;
-    };
-
-    auto applyThinkingMode = [&request](const auto &settings) {
-        QJsonObject thinkingObj;
-        thinkingObj["type"] = "enabled";
-        thinkingObj["budget_tokens"] = settings.thinkingBudgetTokens();
-        request["thinking"] = thinkingObj;
-        request["max_tokens"] = settings.thinkingMaxTokens();
-        request["temperature"] = 1.0;
-    };
-
-    if (type == LLMCore::RequestType::CodeCompletion) {
-        applyModelParams(Settings::codeCompletionSettings());
-        request["temperature"] = Settings::codeCompletionSettings().temperature();
-    } else if (type == LLMCore::RequestType::QuickRefactoring) {
-        const auto &qrSettings = Settings::quickRefactorSettings();
-        applyModelParams(qrSettings);
-
-        if (isThinkingEnabled) {
-            applyThinkingMode(qrSettings);
-        } else {
-            request["temperature"] = qrSettings.temperature();
-        }
-    } else {
-        const auto &chatSettings = Settings::chatAssistantSettings();
-        applyModelParams(chatSettings);
-
-        if (isThinkingEnabled) {
-            applyThinkingMode(chatSettings);
-        } else {
-            request["temperature"] = chatSettings.temperature();
-        }
+    if (params.maxTokens) {
+        request["max_tokens"] = *params.maxTokens;
+    }
+    if (params.temperature) {
+        request["temperature"] = *params.temperature;
+    }
+    if (params.topP) {
+        request["top_p"] = *params.topP;
+    }
+    if (params.topK) {
+        request["top_k"] = *params.topK;
     }
 
-    if (isToolsEnabled) {
-        LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL;
-        if (type == LLMCore::RequestType::QuickRefactoring) {
-            filter = LLMCore::RunToolsFilter::OnlyRead;
-        }
+    request["stream"] = params.stream;
 
+    if (params.enableThinking) {
+        QJsonObject thinkingObj;
+        thinkingObj["type"] = "enabled";
+        if (params.thinkingBudgetTokens) {
+            thinkingObj["budget_tokens"] = *params.thinkingBudgetTokens;
+        }
+        request["thinking"] = thinkingObj;
+
+        if (params.thinkingMaxTokens) {
+            request["max_tokens"] = *params.thinkingMaxTokens;
+        }
+        request["temperature"] = 1.0;
+    }
+
+    if (params.enableTools) {
         auto toolsDefinitions = m_toolsManager->getToolsDefinitions(
-            LLMCore::ToolSchemaFormat::Claude, filter);
+            LLMCore::ToolSchemaFormat::Claude, LLMCore::RunToolsFilter::ALL);
         if (!toolsDefinitions.isEmpty()) {
             request["tools"] = toolsDefinitions;
             LOG_MESSAGE(QString("Added %1 tools to Claude request").arg(toolsDefinitions.size()));

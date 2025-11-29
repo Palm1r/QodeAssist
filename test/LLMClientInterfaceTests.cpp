@@ -68,9 +68,7 @@ public:
         QJsonObject &request,
         LLMCore::PromptTemplate *promptTemplate,
         LLMCore::ContextData context,
-        LLMCore::RequestType requestType,
-        bool isToolsEnabled,
-        bool isThinkingEnabled) override
+        const LLMCore::InputParameters &params) override
     {
         promptTemplate->prepareRequest(request, context);
     }

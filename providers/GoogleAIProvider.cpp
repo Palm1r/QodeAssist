@@ -76,9 +76,7 @@ void GoogleAIProvider::prepareRequest(
     QJsonObject &request,
     LLMCore::PromptTemplate *prompt,
     LLMCore::ContextData context,
-    LLMCore::RequestType type,
-    bool isToolsEnabled,
-    bool isThinkingEnabled)
+    const LLMCore::InputParameters &params)
 {
     if (!prompt->isSupportProvider(providerID())) {
         LOG_MESSAGE(QString("Template %1 doesn't support %2 provider").arg(name(), prompt->name()));
@@ -86,69 +84,41 @@ void GoogleAIProvider::prepareRequest(
 
     prompt->prepareRequest(request, context);
 
-    auto applyModelParams = [&request](const auto &settings) {
-        QJsonObject generationConfig;
-        generationConfig["maxOutputTokens"] = settings.maxTokens();
-        generationConfig["temperature"] = settings.temperature();
+    QJsonObject generationConfig;
 
-        if (settings.useTopP())
-            generationConfig["topP"] = settings.topP();
-        if (settings.useTopK())
-            generationConfig["topK"] = settings.topK();
-
-        request["generationConfig"] = generationConfig;
-    };
-
-    auto applyThinkingMode = [&request](const auto &settings) {
-        QJsonObject generationConfig;
-        generationConfig["maxOutputTokens"] = settings.thinkingMaxTokens();
-
-        if (settings.useTopP())
-            generationConfig["topP"] = settings.topP();
-        if (settings.useTopK())
-            generationConfig["topK"] = settings.topK();
-
+    if (params.enableThinking) {
+        if (params.thinkingMaxTokens) {
+            generationConfig["maxOutputTokens"] = *params.thinkingMaxTokens;
+        }
         generationConfig["temperature"] = 1.0;
 
         QJsonObject thinkingConfig;
         thinkingConfig["includeThoughts"] = true;
-        int budgetTokens = settings.thinkingBudgetTokens();
-        if (budgetTokens != -1) {
-            thinkingConfig["thinkingBudget"] = budgetTokens;
+        if (params.thinkingBudgetTokens && *params.thinkingBudgetTokens != -1) {
+            thinkingConfig["thinkingBudget"] = *params.thinkingBudgetTokens;
         }
-
         generationConfig["thinkingConfig"] = thinkingConfig;
-        request["generationConfig"] = generationConfig;
-    };
-
-    if (type == LLMCore::RequestType::CodeCompletion) {
-        applyModelParams(Settings::codeCompletionSettings());
-    } else if (type == LLMCore::RequestType::QuickRefactoring) {
-        const auto &qrSettings = Settings::quickRefactorSettings();
-
-        if (isThinkingEnabled) {
-            applyThinkingMode(qrSettings);
-        } else {
-            applyModelParams(qrSettings);
-        }
     } else {
-        const auto &chatSettings = Settings::chatAssistantSettings();
-
-        if (isThinkingEnabled) {
-            applyThinkingMode(chatSettings);
-        } else {
-            applyModelParams(chatSettings);
+        if (params.maxTokens) {
+            generationConfig["maxOutputTokens"] = *params.maxTokens;
+        }
+        if (params.temperature) {
+            generationConfig["temperature"] = *params.temperature;
         }
     }
 
-    if (isToolsEnabled) {
-        LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL;
-        if (type == LLMCore::RequestType::QuickRefactoring) {
-            filter = LLMCore::RunToolsFilter::OnlyRead;
-        }
+    if (params.topP) {
+        generationConfig["topP"] = *params.topP;
+    }
+    if (params.topK) {
+        generationConfig["topK"] = *params.topK;
+    }
 
+    request["generationConfig"] = generationConfig;
+
+    if (params.enableTools) {
         auto toolsDefinitions = m_toolsManager->getToolsDefinitions(
-            LLMCore::ToolSchemaFormat::Google, filter);
+            LLMCore::ToolSchemaFormat::Google, LLMCore::RunToolsFilter::ALL);
         if (!toolsDefinitions.isEmpty()) {
             request["tools"] = toolsDefinitions;
             LOG_MESSAGE(QString("Added %1 tools to Google AI request").arg(toolsDefinitions.size()));

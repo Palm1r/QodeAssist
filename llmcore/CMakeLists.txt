@@ -3,6 +3,7 @@ add_library(LLMCore STATIC
     Provider.hpp Provider.cpp
     ProvidersManager.hpp ProvidersManager.cpp
     ContextData.hpp
+    InputParameters.hpp
     IPromptProvider.hpp
     IProviderRegistry.hpp
     PromptProviderChat.hpp

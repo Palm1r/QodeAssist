@@ -52,6 +52,54 @@
 
 namespace QodeAssist::Chat {
 
+namespace {
+
+LLMCore::InputParameters createInputParameters(
+    LLMCore::Provider *provider,
+    const Settings::ChatAssistantSettings &settings,
+    bool enableTools,
+    bool enableThinking)
+{
+    LLMCore::InputParametersBuilder baseBuilder;
+    baseBuilder.setMaxTokens(settings.maxTokens())
+               .setTemperature(settings.temperature())
+               .setStream(true)
+               .setEnableTools(enableTools)
+               .setEnableThinking(enableThinking);
+
+    if (settings.useTopP()) baseBuilder.setTopP(settings.topP());
+    if (settings.useTopK()) baseBuilder.setTopK(settings.topK());
+    if (settings.useFrequencyPenalty()) baseBuilder.setFrequencyPenalty(settings.frequencyPenalty());
+    if (settings.usePresencePenalty()) baseBuilder.setPresencePenalty(settings.presencePenalty());
+
+    if (enableThinking) {
+        baseBuilder.setThinkingMaxTokens(settings.thinkingMaxTokens())
+                   .setThinkingBudgetTokens(settings.thinkingBudgetTokens());
+    }
+    
+    if (provider->providerID() == LLMCore::ProviderID::Ollama) {
+        LLMCore::OllamaInputParametersBuilder builder(std::move(baseBuilder));
+        builder.setKeepAlive(settings.ollamaLivetime());
+        return builder.build();
+    }
+    
+    if (provider->providerID() == LLMCore::ProviderID::OpenAIResponses) {
+        LLMCore::OpenAIResponsesInputParametersBuilder builder(std::move(baseBuilder));
+        builder.setStore(true);
+        
+        if (enableThinking) {
+            builder.setThinkingEffort("medium")
+                   .setIncludeReasoningContent(true);
+        }
+        
+        return builder.build();
+    }
+    
+    return baseBuilder.build();
+}
+
+} // anonymous namespace
+
 ClientInterface::ClientInterface(
     ChatModel *chatModel, LLMCore::IPromptProvider *promptProvider, QObject *parent)
     : QObject(parent)
@@ -253,13 +301,14 @@ void ClientInterface::sendMessage(
 
     config.apiKey = provider->apiKey();
 
+    const auto &chatSettings = Settings::chatAssistantSettings();
+    auto inputParams = createInputParameters(provider, chatSettings, useTools, useThinking);
+
     config.provider->prepareRequest(
         config.providerRequest,
         promptTemplate,
         context,
-        LLMCore::RequestType::Chat,
-        useTools,
-        useThinking);
+        inputParams);
 
     QString requestId = QUuid::createUuid().toString();
     QJsonObject request{{"id", requestId}};

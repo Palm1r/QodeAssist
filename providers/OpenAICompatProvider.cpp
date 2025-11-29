@@ -74,9 +74,7 @@ void OpenAICompatProvider::prepareRequest(
     QJsonObject &request,
     LLMCore::PromptTemplate *prompt,
     LLMCore::ContextData context,
-    LLMCore::RequestType type,
-    bool isToolsEnabled,
-    bool isThinkingEnabled)
+    const LLMCore::InputParameters &params)
 {
     if (!prompt->isSupportProvider(providerID())) {
         LOG_MESSAGE(QString("Template %1 doesn't support %2 provider").arg(name(), prompt->name()));
@@ -84,36 +82,30 @@ void OpenAICompatProvider::prepareRequest(
 
     prompt->prepareRequest(request, context);
 
-    auto applyModelParams = [&request](const auto &settings) {
-        request["max_tokens"] = settings.maxTokens();
-        request["temperature"] = settings.temperature();
-
-        if (settings.useTopP())
-            request["top_p"] = settings.topP();
-        if (settings.useTopK())
-            request["top_k"] = settings.topK();
-        if (settings.useFrequencyPenalty())
-            request["frequency_penalty"] = settings.frequencyPenalty();
-        if (settings.usePresencePenalty())
-            request["presence_penalty"] = settings.presencePenalty();
-    };
-
-    if (type == LLMCore::RequestType::CodeCompletion) {
-        applyModelParams(Settings::codeCompletionSettings());
-    } else if (type == LLMCore::RequestType::QuickRefactoring) {
-        applyModelParams(Settings::quickRefactorSettings());
-    } else {
-        applyModelParams(Settings::chatAssistantSettings());
+    if (params.maxTokens) {
+        request["max_tokens"] = *params.maxTokens;
+    }
+    if (params.temperature) {
+        request["temperature"] = *params.temperature;
+    }
+    if (params.topP) {
+        request["top_p"] = *params.topP;
+    }
+    if (params.topK) {
+        request["top_k"] = *params.topK;
+    }
+    if (params.frequencyPenalty) {
+        request["frequency_penalty"] = *params.frequencyPenalty;
+    }
+    if (params.presencePenalty) {
+        request["presence_penalty"] = *params.presencePenalty;
     }
 
-    if (isToolsEnabled) {
-        LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL;
-        if (type == LLMCore::RequestType::QuickRefactoring) {
-            filter = LLMCore::RunToolsFilter::OnlyRead;
-        }
+    request["stream"] = params.stream;
 
+    if (params.enableTools) {
         auto toolsDefinitions = m_toolsManager->getToolsDefinitions(
-            LLMCore::ToolSchemaFormat::OpenAI, filter);
+            LLMCore::ToolSchemaFormat::OpenAI, LLMCore::RunToolsFilter::ALL);
         if (!toolsDefinitions.isEmpty()) {
             request["tools"] = toolsDefinitions;
             LOG_MESSAGE(

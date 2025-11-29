@@ -75,9 +75,7 @@ void OllamaProvider::prepareRequest(
     QJsonObject &request,
     LLMCore::PromptTemplate *prompt,
     LLMCore::ContextData context,
-    LLMCore::RequestType type,
-    bool isToolsEnabled,
-    bool isThinkingEnabled)
+    const LLMCore::InputParameters &params)
 {
     if (!prompt->isSupportProvider(providerID())) {
         LOG_MESSAGE(QString("Template %1 doesn't support %2 provider").arg(name(), prompt->name()));
@@ -85,60 +83,45 @@ void OllamaProvider::prepareRequest(
 
     prompt->prepareRequest(request, context);
 
-    auto applySettings = [&request](const auto &settings) {
-        QJsonObject options;
-        options["num_predict"] = settings.maxTokens();
-        options["temperature"] = settings.temperature();
-        options["stop"] = request.take("stop");
+    QJsonObject options;
+    options["stop"] = request.take("stop");
 
-        if (settings.useTopP())
-            options["top_p"] = settings.topP();
-        if (settings.useTopK())
-            options["top_k"] = settings.topK();
-        if (settings.useFrequencyPenalty())
-            options["frequency_penalty"] = settings.frequencyPenalty();
-        if (settings.usePresencePenalty())
-            options["presence_penalty"] = settings.presencePenalty();
+    if (params.maxTokens) {
+        options["num_predict"] = *params.maxTokens;
+    }
+    if (params.temperature) {
+        options["temperature"] = *params.temperature;
+    }
+    if (params.topP) {
+        options["top_p"] = *params.topP;
+    }
+    if (params.topK) {
+        options["top_k"] = *params.topK;
+    }
+    if (params.frequencyPenalty) {
+        options["frequency_penalty"] = *params.frequencyPenalty;
+    }
+    if (params.presencePenalty) {
+        options["presence_penalty"] = *params.presencePenalty;
+    }
 
-        request["options"] = options;
-        request["keep_alive"] = settings.ollamaLivetime();
-    };
-
-    auto applyThinkingMode = [&request]() {
+    if (params.enableThinking) {
         request["enable_thinking"] = true;
-        QJsonObject options = request["options"].toObject();
         options["temperature"] = 1.0;
-        request["options"] = options;
-    };
+        LOG_MESSAGE(QString("OllamaProvider: Thinking mode enabled"));
+    }
 
-    if (type == LLMCore::RequestType::CodeCompletion) {
-        applySettings(Settings::codeCompletionSettings());
-    } else if (type == LLMCore::RequestType::QuickRefactoring) {
-        const auto &qrSettings = Settings::quickRefactorSettings();
-        applySettings(qrSettings);
-        
-        if (isThinkingEnabled) {
-            applyThinkingMode();
-            LOG_MESSAGE(QString("OllamaProvider: Thinking mode enabled for QuickRefactoring"));
-        }
-    } else {
-        const auto &chatSettings = Settings::chatAssistantSettings();
-        applySettings(chatSettings);
+    request["options"] = options;
 
-        if (isThinkingEnabled) {
-            applyThinkingMode();
-            LOG_MESSAGE(QString("OllamaProvider: Thinking mode enabled for Chat"));
+    if (const auto *ollamaParams = dynamic_cast<const LLMCore::OllamaInputParameters*>(&params)) {
+        if (ollamaParams->keepAlive) {
+            request["keep_alive"] = *ollamaParams->keepAlive;
         }
     }
 
-    if (isToolsEnabled) {
-        LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL;
-        if (type == LLMCore::RequestType::QuickRefactoring) {
-            filter = LLMCore::RunToolsFilter::OnlyRead;
-        }
-
+    if (params.enableTools) {
         auto toolsDefinitions = m_toolsManager->toolsFactory()->getToolsDefinitions(
-            LLMCore::ToolSchemaFormat::Ollama, filter);
+            LLMCore::ToolSchemaFormat::Ollama, LLMCore::RunToolsFilter::ALL);
         if (!toolsDefinitions.isEmpty()) {
             request["tools"] = toolsDefinitions;
             LOG_MESSAGE(
