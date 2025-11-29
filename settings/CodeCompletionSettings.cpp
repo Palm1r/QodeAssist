@@ -313,6 +313,25 @@ CodeCompletionSettings::CodeCompletionSettings()
     contextWindow.setRange(-1, 10000);
     contextWindow.setDefaultValue(2048);
 
+    // OpenAI Responses API Settings
+    openAIResponsesReasoningEffort.setSettingsKey(Constants::CC_OPENAI_RESPONSES_REASONING_EFFORT);
+    openAIResponsesReasoningEffort.setLabelText(Tr::tr("Reasoning effort:"));
+    openAIResponsesReasoningEffort.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+    openAIResponsesReasoningEffort.addOption("None");
+    openAIResponsesReasoningEffort.addOption("Minimal");
+    openAIResponsesReasoningEffort.addOption("Low");
+    openAIResponsesReasoningEffort.addOption("Medium");
+    openAIResponsesReasoningEffort.addOption("High");
+    openAIResponsesReasoningEffort.setDefaultValue("Medium");
+    openAIResponsesReasoningEffort.setToolTip(
+        Tr::tr("Constrains effort on reasoning for OpenAI gpt-5 and o-series models:\n\n"
+               "None: No reasoning (gpt-5.1 only)\n"
+               "Minimal: Minimal reasoning effort (o-series only)\n"
+               "Low: Low reasoning effort\n"
+               "Medium: Balanced reasoning (default for most models)\n"
+               "High: Maximum reasoning effort (gpt-5-pro only supports this)\n\n"
+               "Note: Reducing effort = faster responses + fewer tokens"));
+
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
 
     readSettings();
@@ -337,6 +356,9 @@ CodeCompletionSettings::CodeCompletionSettings()
         auto ollamaGrid = Grid{};
         ollamaGrid.addRow({ollamaLivetime});
         ollamaGrid.addRow({contextWindow});
+
+        auto openAIResponsesGrid = Grid{};
+        openAIResponsesGrid.addRow({openAIResponsesReasoningEffort});
 
         auto contextGrid = Grid{};
         contextGrid.addRow({Row{readFullFile}});
@@ -398,6 +420,8 @@ CodeCompletionSettings::CodeCompletionSettings()
                       Group{title(Tr::tr("Quick Refactor Settings")),
                             Column{useOpenFilesInQuickRefactor, quickRefactorSystemPrompt}},
                       Space{8},
+                      Group{title(Tr::tr("OpenAI Responses API")), Column{Row{openAIResponsesGrid, Stretch{1}}}},
+                      Space{8},
                       Group{title(Tr::tr("Ollama Settings")), Column{Row{ollamaGrid, Stretch{1}}}},
                       Stretch{1}};
     });
@@ -458,6 +482,7 @@ void CodeCompletionSettings::resetSettingsToDefaults()
         resetAspect(maxChangesCacheSize);
         resetAspect(ollamaLivetime);
         resetAspect(contextWindow);
+        resetAspect(openAIResponsesReasoningEffort);
         resetAspect(useUserMessageTemplateForCC);
         resetAspect(userMessageTemplateForCC);
         resetAspect(systemPromptForNonFimModels);

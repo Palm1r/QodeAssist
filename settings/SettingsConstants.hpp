@@ -182,6 +182,10 @@ const char CC_USE_FREQUENCY_PENALTY[] = "QodeAssist.fimUseFrequencyPenalty";
 const char CC_FREQUENCY_PENALTY[] = "QodeAssist.fimFrequencyPenalty";
 const char CC_OLLAMA_LIVETIME[] = "QodeAssist.fimOllamaLivetime";
 const char CC_OLLAMA_CONTEXT_WINDOW[] = "QodeAssist.ccOllamaContextWindow";
+
+// OpenAI Responses API Settings
+const char CC_OPENAI_RESPONSES_REASONING_EFFORT[] = "QodeAssist.ccOpenAIResponsesReasoningEffort";
+
 const char CA_TEMPERATURE[] = "QodeAssist.chatTemperature";
 const char CA_MAX_TOKENS[] = "QodeAssist.chatMaxTokens";
 const char CA_USE_TOP_P[] = "QodeAssist.chatUseTopP";
@@ -197,6 +201,10 @@ const char CA_OLLAMA_CONTEXT_WINDOW[] = "QodeAssist.caOllamaContextWindow";
 const char CA_ENABLE_THINKING_MODE[] = "QodeAssist.caEnableThinkingMode";
 const char CA_THINKING_BUDGET_TOKENS[] = "QodeAssist.caThinkingBudgetTokens";
 const char CA_THINKING_MAX_TOKENS[] = "QodeAssist.caThinkingMaxTokens";
+
+// OpenAI Responses API Settings
+const char CA_OPENAI_RESPONSES_REASONING_EFFORT[] = "QodeAssist.caOpenAIResponsesReasoningEffort";
+
 const char CA_TEXT_FONT_FAMILY[] = "QodeAssist.caTextFontFamily";
 const char CA_TEXT_FONT_SIZE[] = "QodeAssist.caTextFontSize";
 const char CA_CODE_FONT_FAMILY[] = "QodeAssist.caCodeFontFamily";
@@ -221,6 +229,10 @@ const char QR_USE_TOOLS[] = "QodeAssist.qrUseTools";
 const char QR_USE_THINKING[] = "QodeAssist.qrUseThinking";
 const char QR_THINKING_BUDGET_TOKENS[] = "QodeAssist.qrThinkingBudgetTokens";
 const char QR_THINKING_MAX_TOKENS[] = "QodeAssist.qrThinkingMaxTokens";
+
+// OpenAI Responses API Settings
+const char QR_OPENAI_RESPONSES_REASONING_EFFORT[] = "QodeAssist.qrOpenAIResponsesReasoningEffort";
+
 const char QR_READ_FULL_FILE[] = "QodeAssist.qrReadFullFile";
 const char QR_READ_STRINGS_BEFORE_CURSOR[] = "QodeAssist.qrReadStringsBeforeCursor";
 const char QR_READ_STRINGS_AFTER_CURSOR[] = "QodeAssist.qrReadStringsAfterCursor";

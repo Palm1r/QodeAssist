@@ -125,8 +125,7 @@ void LLMClientInterface::sendData(const QByteArray &data)
         QString requestId = request["id"].toString();
         m_performanceLogger.startTimeMeasurement(requestId);
         handleCompletion(request);
-    } else if (method == "cancelRequest") {
-        qDebug() << "Cancelling request";
+    } else if (method == "$/cancelRequest") {
         handleCancelRequest();
     } else if (method == "exit") {
         // TODO make exit handler

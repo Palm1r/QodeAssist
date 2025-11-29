@@ -61,6 +61,9 @@ public:
     Utils::IntegerAspect thinkingBudgetTokens{this};
     Utils::IntegerAspect thinkingMaxTokens{this};
 
+    // OpenAI Responses API Settings
+    Utils::SelectionAspect openAIResponsesReasoningEffort{this};
+
     // Context Settings
     Utils::BoolAspect readFullFile{this};
     Utils::BoolAspect readFileParts{this};
