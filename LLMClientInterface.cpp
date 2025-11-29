@@ -38,10 +38,12 @@ namespace {
 
 LLMCore::InputParameters createInputParameters(
     LLMCore::Provider *provider,
-    const Settings::CodeCompletionSettings &settings,
+    const QString &modelName,
     bool enableTools,
     bool enableThinking)
 {
+    const auto &settings = Settings::codeCompletionSettings();
+    
     LLMCore::InputParametersBuilder baseBuilder;
     baseBuilder.setMaxTokens(settings.maxTokens())
                .setTemperature(settings.temperature())
@@ -72,6 +74,10 @@ LLMCore::InputParameters createInputParameters(
     
     if (provider->providerID() == LLMCore::ProviderID::OpenAIResponses) {
         LLMCore::OpenAIResponsesInputParametersBuilder builder(std::move(baseBuilder));
+        if (modelName.contains("codex")) {
+            builder.setEnableThinking(true);
+            builder.setThinkingEffort("low");
+        }
         return builder.build();
     }
     
@@ -390,8 +396,7 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         updatedContext.history = messages;
     }
 
-    const auto &ccSettings = Settings::codeCompletionSettings();
-    auto inputParams = createInputParameters(provider, ccSettings, false, false);
+    auto inputParams = createInputParameters(provider, modelName, false, false);
 
     config.provider->prepareRequest(
         config.providerRequest,

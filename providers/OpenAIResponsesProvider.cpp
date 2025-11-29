@@ -88,11 +88,7 @@ void OpenAIResponsesProvider::prepareRequest(
     
     QJsonObject reasoning;
     if (params.enableThinking) {
-        if (responsesParams && responsesParams->thinkingEffort) {
-            reasoning["effort"] = *responsesParams->thinkingEffort;
-        } else {
-            reasoning["effort"] = "medium";
-        }
+        reasoning["effort"] = *responsesParams->thinkingEffort;
 
         if (params.maxTokens) {
             request["max_output_tokens"] = *params.maxTokens;
