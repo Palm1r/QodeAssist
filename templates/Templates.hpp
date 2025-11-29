@@ -29,6 +29,7 @@
 #include "templates/Ollama.hpp"
 #include "templates/OpenAI.hpp"
 #include "templates/OpenAICompatible.hpp"
+#include "templates/OpenAIResponses.hpp"
 // #include "templates/CustomFimTemplate.hpp"
 // #include "templates/DeepSeekCoderFim.hpp"
 #include "templates/GoogleAI.hpp"
@@ -49,6 +50,7 @@ inline void registerTemplates()
     templateManager.registerTemplate<CodeLlamaFim>();
     templateManager.registerTemplate<Claude>();
     templateManager.registerTemplate<OpenAI>();
+    templateManager.registerTemplate<OpenAIResponses>();
     templateManager.registerTemplate<MistralAIFim>();
     templateManager.registerTemplate<MistralAIChat>();
     templateManager.registerTemplate<CodeLlamaQMLFim>();

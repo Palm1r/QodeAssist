@@ -29,6 +29,7 @@
 #include "providers/OllamaProvider.hpp"
 #include "providers/OpenAICompatProvider.hpp"
 #include "providers/OpenAIProvider.hpp"
+#include "providers/OpenAIResponsesProvider.hpp"
 #include "providers/OpenRouterAIProvider.hpp"
 
 namespace QodeAssist::Providers {
@@ -39,6 +40,7 @@ inline void registerProviders()
     providerManager.registerProvider<OllamaProvider>();
     providerManager.registerProvider<ClaudeProvider>();
     providerManager.registerProvider<OpenAIProvider>();
+    providerManager.registerProvider<OpenAIResponsesProvider>();
     providerManager.registerProvider<OpenAICompatProvider>();
     providerManager.registerProvider<LMStudioProvider>();
     providerManager.registerProvider<OpenRouterProvider>();
