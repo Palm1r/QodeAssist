@@ -105,18 +105,23 @@ void OllamaProvider::prepareRequest(
         options["presence_penalty"] = *params.presencePenalty;
     }
 
-    if (params.enableThinking) {
-        request["enable_thinking"] = true;
-        options["temperature"] = 1.0;
+    request["options"] = options;
+
+    const auto *ollamaParams = dynamic_cast<const LLMCore::OllamaInputParameters*>(&params);
+    
+    if (params.enableThinking && ollamaParams) {
+        if (ollamaParams->thinkLevel) {
+            request["think"] = *ollamaParams->thinkLevel;
+        } else if (ollamaParams->think) {
+            request["think"] = *ollamaParams->think;
+        } else {
+            request["think"] = true;
+        }
         LOG_MESSAGE(QString("OllamaProvider: Thinking mode enabled"));
     }
 
-    request["options"] = options;
-
-    if (const auto *ollamaParams = dynamic_cast<const LLMCore::OllamaInputParameters*>(&params)) {
-        if (ollamaParams->keepAlive) {
-            request["keep_alive"] = *ollamaParams->keepAlive;
-        }
+    if (ollamaParams && ollamaParams->keepAlive) {
+        request["keep_alive"] = *ollamaParams->keepAlive;
     }
 
     if (params.enableTools) {

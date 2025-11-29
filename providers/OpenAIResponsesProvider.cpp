@@ -94,15 +94,20 @@ void OpenAIResponsesProvider::prepareRequest(
             reasoning["effort"] = "medium";
         }
 
-        if (params.thinkingMaxTokens) {
-            request["max_output_tokens"] = *params.thinkingMaxTokens;
+        if (params.maxTokens) {
+            request["max_output_tokens"] = *params.maxTokens;
         }
         request["temperature"] = 1.0;
-        request["store"] = true;
+        
+        if (responsesParams && responsesParams->store) {
+            request["store"] = *responsesParams->store;
+        }
 
-        QJsonArray include;
-        include.append("reasoning.encrypted_content");
-        request["include"] = include;
+        if (responsesParams && responsesParams->includeReasoningContent) {
+            QJsonArray include;
+            include.append("reasoning.encrypted_content");
+            request["include"] = include;
+        }
     } else {
         reasoning["effort"] = "none";
 

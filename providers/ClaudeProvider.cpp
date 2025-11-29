@@ -28,9 +28,6 @@
 
 #include "llmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
-#include "settings/ChatAssistantSettings.hpp"
-#include "settings/CodeCompletionSettings.hpp"
-#include "settings/QuickRefactorSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProviderSettings.hpp"
 
@@ -84,12 +81,29 @@ void ClaudeProvider::prepareRequest(
 
     prompt->prepareRequest(request, context);
 
-    if (params.maxTokens) {
-        request["max_tokens"] = *params.maxTokens;
+    const auto *claudeParams = dynamic_cast<const LLMCore::ClaudeInputParameters*>(&params);
+
+    if (params.enableThinking && claudeParams) {
+        QJsonObject thinkingObj;
+        thinkingObj["type"] = "enabled";
+        if (claudeParams->thinkingBudgetTokens) {
+            thinkingObj["budget_tokens"] = *claudeParams->thinkingBudgetTokens;
+        }
+        request["thinking"] = thinkingObj;
+
+        if (claudeParams->thinkingMaxTokens) {
+            request["max_tokens"] = *claudeParams->thinkingMaxTokens;
+        }
+        request["temperature"] = 1.0;
+    } else {
+        if (params.maxTokens) {
+            request["max_tokens"] = *params.maxTokens;
+        }
+        if (params.temperature) {
+            request["temperature"] = *params.temperature;
+        }
     }
-    if (params.temperature) {
-        request["temperature"] = *params.temperature;
-    }
+
     if (params.topP) {
         request["top_p"] = *params.topP;
     }
@@ -98,20 +112,6 @@ void ClaudeProvider::prepareRequest(
     }
 
     request["stream"] = params.stream;
-
-    if (params.enableThinking) {
-        QJsonObject thinkingObj;
-        thinkingObj["type"] = "enabled";
-        if (params.thinkingBudgetTokens) {
-            thinkingObj["budget_tokens"] = *params.thinkingBudgetTokens;
-        }
-        request["thinking"] = thinkingObj;
-
-        if (params.thinkingMaxTokens) {
-            request["max_tokens"] = *params.thinkingMaxTokens;
-        }
-        request["temperature"] = 1.0;
-    }
 
     if (params.enableTools) {
         auto toolsDefinitions = m_toolsManager->getToolsDefinitions(

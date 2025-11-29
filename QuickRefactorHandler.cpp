@@ -58,14 +58,31 @@ LLMCore::InputParameters createInputParameters(
     if (settings.useFrequencyPenalty()) baseBuilder.setFrequencyPenalty(settings.frequencyPenalty());
     if (settings.usePresencePenalty()) baseBuilder.setPresencePenalty(settings.presencePenalty());
 
-    if (enableThinking) {
-        baseBuilder.setThinkingMaxTokens(settings.thinkingMaxTokens())
+    if (provider->providerID() == LLMCore::ProviderID::Claude) {
+        LLMCore::ClaudeInputParametersBuilder builder(std::move(baseBuilder));
+        
+        if (enableThinking) {
+            builder.setThinkingMaxTokens(settings.thinkingMaxTokens())
                    .setThinkingBudgetTokens(settings.thinkingBudgetTokens());
+        }
+        
+        return builder.build();
     }
     
     if (provider->providerID() == LLMCore::ProviderID::Ollama) {
         LLMCore::OllamaInputParametersBuilder builder(std::move(baseBuilder));
         builder.setKeepAlive(settings.ollamaLivetime());
+        return builder.build();
+    }
+    
+    if (provider->providerID() == LLMCore::ProviderID::GoogleAI) {
+        LLMCore::GoogleAIInputParametersBuilder builder(std::move(baseBuilder));
+        
+        if (enableThinking) {
+            builder.setThinkingMaxTokens(settings.thinkingMaxTokens())
+                   .setThinkingBudget(1024);
+        }
+        
         return builder.build();
     }
     

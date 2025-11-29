@@ -54,9 +54,19 @@ LLMCore::InputParameters createInputParameters(
     if (settings.useFrequencyPenalty()) baseBuilder.setFrequencyPenalty(settings.frequencyPenalty());
     if (settings.usePresencePenalty()) baseBuilder.setPresencePenalty(settings.presencePenalty());
     
+    if (provider->providerID() == LLMCore::ProviderID::Claude) {
+        LLMCore::ClaudeInputParametersBuilder builder(std::move(baseBuilder));
+        return builder.build();
+    }
+    
     if (provider->providerID() == LLMCore::ProviderID::Ollama) {
         LLMCore::OllamaInputParametersBuilder builder(std::move(baseBuilder));
         builder.setKeepAlive(settings.ollamaLivetime());
+        return builder.build();
+    }
+    
+    if (provider->providerID() == LLMCore::ProviderID::GoogleAI) {
+        LLMCore::GoogleAIInputParametersBuilder builder(std::move(baseBuilder));
         return builder.build();
     }
     

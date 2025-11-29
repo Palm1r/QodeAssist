@@ -20,7 +20,9 @@
 #pragma once
 
 #include <optional>
+#include <QMap>
 #include <QString>
+#include <QVariant>
 
 namespace QodeAssist::LLMCore {
 
@@ -33,9 +35,6 @@ struct InputParameters
     std::optional<double> frequencyPenalty;
     std::optional<double> presencePenalty;
 
-    std::optional<int> thinkingMaxTokens;
-    std::optional<int> thinkingBudgetTokens;
-
     bool stream = true;
     bool enableThinking = false;
     bool enableTools = false;
@@ -45,11 +44,30 @@ struct InputParameters
     bool operator==(const InputParameters &) const = default;
 };
 
+struct ClaudeInputParameters : InputParameters
+{
+    std::optional<int> thinkingMaxTokens;
+    std::optional<int> thinkingBudgetTokens;
+
+    bool operator==(const ClaudeInputParameters &) const = default;
+};
+
 struct OllamaInputParameters : InputParameters
 {
     std::optional<QString> keepAlive;
+    std::optional<bool> think;          // для обычных моделей: true
+    std::optional<QString> thinkLevel;  // для GPT-OSS: "low"/"medium"/"high"
 
     bool operator==(const OllamaInputParameters &) const = default;
+};
+
+struct GoogleAIInputParameters : InputParameters
+{
+    std::optional<int> thinkingMaxTokens;
+    std::optional<int> thinkingBudget;
+    std::optional<QString> thinkingLevel;
+    
+    bool operator==(const GoogleAIInputParameters &) const = default;
 };
 
 struct OpenAIResponsesInputParameters : InputParameters
@@ -58,7 +76,7 @@ struct OpenAIResponsesInputParameters : InputParameters
     std::optional<bool> store;
     std::optional<QMap<QString, QVariant>> metadata;
     bool includeReasoningContent = false;
-
+    
     bool operator==(const OpenAIResponsesInputParameters &) const = default;
 };
 
@@ -103,18 +121,6 @@ public:
         return *this;
     }
 
-    InputParametersBuilder &setThinkingMaxTokens(int tokens) noexcept
-    {
-        m_params.thinkingMaxTokens = tokens;
-        return *this;
-    }
-
-    InputParametersBuilder &setThinkingBudgetTokens(int tokens) noexcept
-    {
-        m_params.thinkingBudgetTokens = tokens;
-        return *this;
-    }
-
     InputParametersBuilder &setStream(bool stream) noexcept
     {
         m_params.stream = stream;
@@ -145,6 +151,51 @@ private:
     InputParameters m_params;
 };
 
+class ClaudeInputParametersBuilder
+{
+public:
+    ClaudeInputParametersBuilder() = default;
+    
+    explicit ClaudeInputParametersBuilder(InputParametersBuilder &&base)
+    {
+        const auto baseParams = base.build();
+        static_cast<InputParameters&>(m_params) = baseParams;
+    }
+
+    ClaudeInputParametersBuilder &setTemperature(double temp) noexcept { m_params.temperature = temp; return *this; }
+    ClaudeInputParametersBuilder &setTopP(double topP) noexcept { m_params.topP = topP; return *this; }
+    ClaudeInputParametersBuilder &setTopK(int topK) noexcept { m_params.topK = topK; return *this; }
+    ClaudeInputParametersBuilder &setMaxTokens(int tokens) noexcept { m_params.maxTokens = tokens; return *this; }
+    ClaudeInputParametersBuilder &setFrequencyPenalty(double penalty) noexcept { m_params.frequencyPenalty = penalty; return *this; }
+    ClaudeInputParametersBuilder &setPresencePenalty(double penalty) noexcept { m_params.presencePenalty = penalty; return *this; }
+    ClaudeInputParametersBuilder &setStream(bool stream) noexcept { m_params.stream = stream; return *this; }
+    ClaudeInputParametersBuilder &setEnableThinking(bool enable) noexcept { m_params.enableThinking = enable; return *this; }
+    ClaudeInputParametersBuilder &setEnableTools(bool enable) noexcept { m_params.enableTools = enable; return *this; }
+
+    ClaudeInputParametersBuilder &setThinkingMaxTokens(int tokens) noexcept
+    {
+        m_params.thinkingMaxTokens = tokens;
+        return *this;
+    }
+
+    ClaudeInputParametersBuilder &setThinkingBudgetTokens(int tokens) noexcept
+    {
+        m_params.thinkingBudgetTokens = tokens;
+        return *this;
+    }
+
+    ClaudeInputParametersBuilder &clear() noexcept
+    {
+        m_params = ClaudeInputParameters{};
+        return *this;
+    }
+
+    ClaudeInputParameters build() const noexcept { return m_params; }
+
+private:
+    ClaudeInputParameters m_params;
+};
+
 class OllamaInputParametersBuilder
 {
 public:
@@ -162,8 +213,6 @@ public:
     OllamaInputParametersBuilder &setMaxTokens(int tokens) noexcept { m_params.maxTokens = tokens; return *this; }
     OllamaInputParametersBuilder &setFrequencyPenalty(double penalty) noexcept { m_params.frequencyPenalty = penalty; return *this; }
     OllamaInputParametersBuilder &setPresencePenalty(double penalty) noexcept { m_params.presencePenalty = penalty; return *this; }
-    OllamaInputParametersBuilder &setThinkingMaxTokens(int tokens) noexcept { m_params.thinkingMaxTokens = tokens; return *this; }
-    OllamaInputParametersBuilder &setThinkingBudgetTokens(int tokens) noexcept { m_params.thinkingBudgetTokens = tokens; return *this; }
     OllamaInputParametersBuilder &setStream(bool stream) noexcept { m_params.stream = stream; return *this; }
     OllamaInputParametersBuilder &setEnableThinking(bool enable) noexcept { m_params.enableThinking = enable; return *this; }
     OllamaInputParametersBuilder &setEnableTools(bool enable) noexcept { m_params.enableTools = enable; return *this; }
@@ -171,6 +220,18 @@ public:
     OllamaInputParametersBuilder &setKeepAlive(QString keepAlive)
     {
         m_params.keepAlive = std::move(keepAlive);
+        return *this;
+    }
+
+    OllamaInputParametersBuilder &setThink(bool think) noexcept
+    {
+        m_params.think = think;
+        return *this;
+    }
+
+    OllamaInputParametersBuilder &setThinkLevel(QString level)
+    {
+        m_params.thinkLevel = std::move(level);
         return *this;
     }
 
@@ -186,11 +247,62 @@ private:
     OllamaInputParameters m_params;
 };
 
+class GoogleAIInputParametersBuilder
+{
+public:
+    GoogleAIInputParametersBuilder() = default;
+    
+    explicit GoogleAIInputParametersBuilder(InputParametersBuilder &&base)
+    {
+        const auto baseParams = base.build();
+        static_cast<InputParameters&>(m_params) = baseParams;
+    }
+
+    GoogleAIInputParametersBuilder &setTemperature(double temp) noexcept { m_params.temperature = temp; return *this; }
+    GoogleAIInputParametersBuilder &setTopP(double topP) noexcept { m_params.topP = topP; return *this; }
+    GoogleAIInputParametersBuilder &setTopK(int topK) noexcept { m_params.topK = topK; return *this; }
+    GoogleAIInputParametersBuilder &setMaxTokens(int tokens) noexcept { m_params.maxTokens = tokens; return *this; }
+    GoogleAIInputParametersBuilder &setFrequencyPenalty(double penalty) noexcept { m_params.frequencyPenalty = penalty; return *this; }
+    GoogleAIInputParametersBuilder &setPresencePenalty(double penalty) noexcept { m_params.presencePenalty = penalty; return *this; }
+    GoogleAIInputParametersBuilder &setStream(bool stream) noexcept { m_params.stream = stream; return *this; }
+    
+    GoogleAIInputParametersBuilder &setThinkingMaxTokens(int tokens) noexcept
+    {
+        m_params.thinkingMaxTokens = tokens;
+        return *this;
+    }
+    GoogleAIInputParametersBuilder &setEnableThinking(bool enable) noexcept { m_params.enableThinking = enable; return *this; }
+    GoogleAIInputParametersBuilder &setEnableTools(bool enable) noexcept { m_params.enableTools = enable; return *this; }
+
+    GoogleAIInputParametersBuilder &setThinkingBudget(int budget) noexcept
+    {
+        m_params.thinkingBudget = budget;
+        return *this;
+    }
+
+    GoogleAIInputParametersBuilder &setThinkingLevel(QString level)
+    {
+        m_params.thinkingLevel = std::move(level);
+        return *this;
+    }
+
+    GoogleAIInputParametersBuilder &clear() noexcept
+    {
+        m_params = GoogleAIInputParameters{};
+        return *this;
+    }
+
+    GoogleAIInputParameters build() const noexcept { return m_params; }
+
+private:
+    GoogleAIInputParameters m_params;
+};
+
 class OpenAIResponsesInputParametersBuilder
 {
 public:
     OpenAIResponsesInputParametersBuilder() = default;
-
+    
     explicit OpenAIResponsesInputParametersBuilder(InputParametersBuilder &&base)
     {
         const auto baseParams = base.build();
@@ -203,8 +315,6 @@ public:
     OpenAIResponsesInputParametersBuilder &setMaxTokens(int tokens) noexcept { m_params.maxTokens = tokens; return *this; }
     OpenAIResponsesInputParametersBuilder &setFrequencyPenalty(double penalty) noexcept { m_params.frequencyPenalty = penalty; return *this; }
     OpenAIResponsesInputParametersBuilder &setPresencePenalty(double penalty) noexcept { m_params.presencePenalty = penalty; return *this; }
-    OpenAIResponsesInputParametersBuilder &setThinkingMaxTokens(int tokens) noexcept { m_params.thinkingMaxTokens = tokens; return *this; }
-    OpenAIResponsesInputParametersBuilder &setThinkingBudgetTokens(int tokens) noexcept { m_params.thinkingBudgetTokens = tokens; return *this; }
     OpenAIResponsesInputParametersBuilder &setStream(bool stream) noexcept { m_params.stream = stream; return *this; }
     OpenAIResponsesInputParametersBuilder &setEnableThinking(bool enable) noexcept { m_params.enableThinking = enable; return *this; }
     OpenAIResponsesInputParametersBuilder &setEnableTools(bool enable) noexcept { m_params.enableTools = enable; return *this; }

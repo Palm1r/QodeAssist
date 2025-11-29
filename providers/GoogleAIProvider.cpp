@@ -84,19 +84,26 @@ void GoogleAIProvider::prepareRequest(
 
     prompt->prepareRequest(request, context);
 
+    const auto *googleParams = dynamic_cast<const LLMCore::GoogleAIInputParameters*>(&params);
+
     QJsonObject generationConfig;
 
-    if (params.enableThinking) {
-        if (params.thinkingMaxTokens) {
-            generationConfig["maxOutputTokens"] = *params.thinkingMaxTokens;
+    if (params.enableThinking && googleParams) {
+        if (googleParams->thinkingMaxTokens) {
+            generationConfig["maxOutputTokens"] = *googleParams->thinkingMaxTokens;
         }
         generationConfig["temperature"] = 1.0;
 
         QJsonObject thinkingConfig;
         thinkingConfig["includeThoughts"] = true;
-        if (params.thinkingBudgetTokens && *params.thinkingBudgetTokens != -1) {
-            thinkingConfig["thinkingBudget"] = *params.thinkingBudgetTokens;
+        
+        if (googleParams->thinkingBudget) {
+            thinkingConfig["thinkingBudget"] = *googleParams->thinkingBudget;
         }
+        if (googleParams->thinkingLevel) {
+            thinkingConfig["thinkingLevel"] = *googleParams->thinkingLevel;
+        }
+        
         generationConfig["thinkingConfig"] = thinkingConfig;
     } else {
         if (params.maxTokens) {
