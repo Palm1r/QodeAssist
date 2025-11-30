@@ -63,6 +63,9 @@ private slots:
     void handleFullResponse(const QString &requestId, const QString &fullText);
     void handleRequestFailed(const QString &requestId, const QString &error);
     void handleCleanAccumulatedData(const QString &requestId);
+    void handleThinkingBlockReceived(
+        const QString &requestId, const QString &thinking, const QString &signature);
+    void handleRedactedThinkingBlockReceived(const QString &requestId, const QString &signature);
 
 private:
     void handleLLMResponse(const QString &response, const QJsonObject &request);

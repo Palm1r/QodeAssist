@@ -307,14 +307,14 @@ void ClientInterface::sendMessage(
     connect(
         provider,
         &LLMCore::Provider::thinkingBlockReceived,
-        m_chatModel,
-        &ChatModel::addThinkingBlock,
+        this,
+        &ClientInterface::handleThinkingBlockReceived,
         Qt::UniqueConnection);
     connect(
         provider,
         &LLMCore::Provider::redactedThinkingBlockReceived,
-        m_chatModel,
-        &ChatModel::addRedactedThinkingBlock,
+        this,
+        &ClientInterface::handleRedactedThinkingBlockReceived,
         Qt::UniqueConnection);
 
     provider->sendRequest(requestId, config.url, config.providerRequest);
@@ -473,6 +473,29 @@ void ClientInterface::handleCleanAccumulatedData(const QString &requestId)
 {
     m_accumulatedResponses[requestId].clear();
     LOG_MESSAGE(QString("Cleared accumulated responses for continuation request %1").arg(requestId));
+}
+
+void ClientInterface::handleThinkingBlockReceived(
+    const QString &requestId, const QString &thinking, const QString &signature)
+{
+    if (!m_activeRequests.contains(requestId)) {
+        LOG_MESSAGE(QString("Ignoring thinking block for non-chat request: %1").arg(requestId));
+        return;
+    }
+
+    m_chatModel->addThinkingBlock(requestId, thinking, signature);
+}
+
+void ClientInterface::handleRedactedThinkingBlockReceived(
+    const QString &requestId, const QString &signature)
+{
+    if (!m_activeRequests.contains(requestId)) {
+        LOG_MESSAGE(
+            QString("Ignoring redacted thinking block for non-chat request: %1").arg(requestId));
+        return;
+    }
+
+    m_chatModel->addRedactedThinkingBlock(requestId, signature);
 }
 
 bool ClientInterface::isImageFile(const QString &filePath) const
