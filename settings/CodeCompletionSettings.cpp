@@ -151,7 +151,7 @@ CodeCompletionSettings::CodeCompletionSettings()
     maxTokens.setSettingsKey(Constants::CC_MAX_TOKENS);
     maxTokens.setLabelText(Tr::tr("Max Tokens:"));
     maxTokens.setRange(-1, 900000);
-    maxTokens.setDefaultValue(100);
+    maxTokens.setDefaultValue(500);
 
     // Advanced Parameters
     useTopP.setSettingsKey(Constants::CC_USE_TOP_P);
