@@ -362,7 +362,7 @@ LLMCore::ContextData QuickRefactorHandler::prepareContext(
                     "\n- Preserve the original code structure when possible"
                     "\n- Only change what is necessary to fulfill the user's request";
 
-    if (Settings::codeCompletionSettings().useOpenFilesInQuickRefactor()) {
+    if (Settings::quickRefactorSettings().useOpenFilesInQuickRefactor()) {
         systemPrompt += "\n\n" + m_contextManager.openedFilesContext({documentInfo.filePath});
     }
 

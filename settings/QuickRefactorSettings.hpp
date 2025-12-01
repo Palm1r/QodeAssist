@@ -80,6 +80,7 @@ public:
 
     // Prompt Settings
     Utils::StringAspect systemPrompt{this};
+    Utils::BoolAspect useOpenFilesInQuickRefactor{this};
 
 private:
     void setupConnections();

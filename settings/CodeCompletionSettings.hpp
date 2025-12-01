@@ -82,10 +82,6 @@ public:
     Utils::BoolAspect useProjectChangesCache{this};
     Utils::IntegerAspect maxChangesCacheSize{this};
 
-    // Quick refactor command settings
-    Utils::BoolAspect useOpenFilesInQuickRefactor{this};
-    Utils::StringAspect quickRefactorSystemPrompt{this};
-
     // Ollama Settings
     Utils::StringAspect ollamaLivetime{this};
     Utils::IntegerAspect contextWindow{this};

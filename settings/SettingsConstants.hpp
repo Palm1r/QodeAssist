@@ -165,10 +165,6 @@ const char CC_MAX_CHANGES_CACHE_SIZE[] = "QodeAssist.ccMaxChangesCacheSize";
 const char CA_USE_SYSTEM_PROMPT[] = "QodeAssist.useChatSystemPrompt";
 const char CA_SYSTEM_PROMPT[] = "QodeAssist.chatSystemPrompt";
 
-// quick refactor command settings
-const char CC_QUICK_REFACTOR_SYSTEM_PROMPT[] = "QodeAssist.ccQuickRefactorSystemPrompt";
-const char CC_USE_OPEN_FILES_IN_QUICK_REFACTOR[] = "QodeAssist.ccUseOpenFilesInQuickRefactor";
-
 // preset prompt settings
 const char CC_TEMPERATURE[] = "QodeAssist.ccTemperature";
 const char CC_MAX_TOKENS[] = "QodeAssist.ccMaxTokens";
@@ -237,6 +233,7 @@ const char QR_READ_FULL_FILE[] = "QodeAssist.qrReadFullFile";
 const char QR_READ_STRINGS_BEFORE_CURSOR[] = "QodeAssist.qrReadStringsBeforeCursor";
 const char QR_READ_STRINGS_AFTER_CURSOR[] = "QodeAssist.qrReadStringsAfterCursor";
 const char QR_SYSTEM_PROMPT[] = "QodeAssist.qrSystemPrompt";
+const char QR_USE_OPEN_FILES_IN_QUICK_REFACTOR[] = "QodeAssist.qrUseOpenFilesInQuickRefactor";
 const char QR_DISPLAY_MODE[] = "QodeAssist.qrDisplayMode";
 const char QR_WIDGET_ORIENTATION[] = "QodeAssist.qrWidgetOrientation";
 const char QR_WIDGET_MIN_WIDTH[] = "QodeAssist.qrWidgetMinWidth";

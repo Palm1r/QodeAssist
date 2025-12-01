@@ -93,8 +93,9 @@ QuickRefactorSettings::QuickRefactorSettings()
     // Ollama Settings
     ollamaLivetime.setSettingsKey(Constants::QR_OLLAMA_LIVETIME);
     ollamaLivetime.setToolTip(
-        Tr::tr("Time to suspend Ollama after completion request (in minutes), "
-               "Only Ollama,  -1 to disable"));
+        Tr::tr(
+            "Time to suspend Ollama after completion request (in minutes), "
+            "Only Ollama,  -1 to disable"));
     ollamaLivetime.setLabelText("Livetime:");
     ollamaLivetime.setDefaultValue("5m");
     ollamaLivetime.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
@@ -107,29 +108,33 @@ QuickRefactorSettings::QuickRefactorSettings()
     useTools.setSettingsKey(Constants::QR_USE_TOOLS);
     useTools.setLabelText(Tr::tr("Enable Tools"));
     useTools.setToolTip(
-        Tr::tr("Enable AI tools/functions for quick refactoring (allows reading project files, "
-               "searching code, etc.)"));
+        Tr::tr(
+            "Enable AI tools/functions for quick refactoring (allows reading project files, "
+            "searching code, etc.)"));
     useTools.setDefaultValue(false);
 
     useThinking.setSettingsKey(Constants::QR_USE_THINKING);
     useThinking.setLabelText(Tr::tr("Enable Thinking Mode"));
     useThinking.setToolTip(
-        Tr::tr("Enable extended thinking mode for complex refactoring tasks (supported by "
-               "compatible models like Claude and Google AI)"));
+        Tr::tr(
+            "Enable extended thinking mode for complex refactoring tasks (supported by "
+            "compatible models like Claude and Google AI)"));
     useThinking.setDefaultValue(false);
 
     thinkingBudgetTokens.setSettingsKey(Constants::QR_THINKING_BUDGET_TOKENS);
     thinkingBudgetTokens.setLabelText(Tr::tr("Thinking Budget Tokens:"));
     thinkingBudgetTokens.setToolTip(
-        Tr::tr("Number of tokens allocated for thinking process. Use -1 for dynamic thinking "
-               "(model decides), 0 to disable, or positive value for custom budget"));
+        Tr::tr(
+            "Number of tokens allocated for thinking process. Use -1 for dynamic thinking "
+            "(model decides), 0 to disable, or positive value for custom budget"));
     thinkingBudgetTokens.setRange(-1, 100000);
     thinkingBudgetTokens.setDefaultValue(10000);
 
     thinkingMaxTokens.setSettingsKey(Constants::QR_THINKING_MAX_TOKENS);
     thinkingMaxTokens.setLabelText(Tr::tr("Thinking Max Output Tokens:"));
     thinkingMaxTokens.setToolTip(
-        Tr::tr("Maximum output tokens when thinking mode is enabled (includes thinking + response)"));
+        Tr::tr(
+            "Maximum output tokens when thinking mode is enabled (includes thinking + response)"));
     thinkingMaxTokens.setRange(1000, 200000);
     thinkingMaxTokens.setDefaultValue(16000);
 
@@ -144,13 +149,14 @@ QuickRefactorSettings::QuickRefactorSettings()
     openAIResponsesReasoningEffort.addOption("High");
     openAIResponsesReasoningEffort.setDefaultValue("Medium");
     openAIResponsesReasoningEffort.setToolTip(
-        Tr::tr("Constrains effort on reasoning for OpenAI gpt-5 and o-series models:\n\n"
-               "None: No reasoning (gpt-5.1 only)\n"
-               "Minimal: Minimal reasoning effort (o-series only)\n"
-               "Low: Low reasoning effort\n"
-               "Medium: Balanced reasoning (default for most models)\n"
-               "High: Maximum reasoning effort (gpt-5-pro only supports this)\n\n"
-               "Note: Reducing effort = faster responses + fewer tokens"));
+        Tr::tr(
+            "Constrains effort on reasoning for OpenAI gpt-5 and o-series models:\n\n"
+            "None: No reasoning (gpt-5.1 only)\n"
+            "Minimal: Minimal reasoning effort (o-series only)\n"
+            "Low: Low reasoning effort\n"
+            "Medium: Balanced reasoning (default for most models)\n"
+            "High: Maximum reasoning effort (gpt-5-pro only supports this)\n\n"
+            "Note: Reducing effort = faster responses + fewer tokens"));
 
     // Context Settings
     readFullFile.setSettingsKey(Constants::QR_READ_FULL_FILE);
@@ -177,9 +183,11 @@ QuickRefactorSettings::QuickRefactorSettings()
     displayMode.setSettingsKey(Constants::QR_DISPLAY_MODE);
     displayMode.setLabelText(Tr::tr("Display Mode:"));
     displayMode.setToolTip(
-        Tr::tr("Choose how to display refactoring suggestions:\n"
-               "- Inline Widget: Shows refactor in a widget overlay with Apply/Decline buttons (default)\n"
-               "- Qt Creator Suggestion: Uses Qt Creator's built-in suggestion system"));
+        Tr::tr(
+            "Choose how to display refactoring suggestions:\n"
+            "- Inline Widget: Shows refactor in a widget overlay with Apply/Decline buttons "
+            "(default)\n"
+            "- Qt Creator Suggestion: Uses Qt Creator's built-in suggestion system"));
     displayMode.addOption(Tr::tr("Inline Widget"));
     displayMode.addOption(Tr::tr("Qt Creator Suggestion"));
     displayMode.setDefaultValue(0);
@@ -187,9 +195,10 @@ QuickRefactorSettings::QuickRefactorSettings()
     widgetOrientation.setSettingsKey(Constants::QR_WIDGET_ORIENTATION);
     widgetOrientation.setLabelText(Tr::tr("Widget Orientation:"));
     widgetOrientation.setToolTip(
-        Tr::tr("Choose default orientation for refactor widget:\n"
-               "- Horizontal: Original and refactored code side by side (default)\n"
-               "- Vertical: Original and refactored code stacked vertically"));
+        Tr::tr(
+            "Choose default orientation for refactor widget:\n"
+            "- Horizontal: Original and refactored code side by side (default)\n"
+            "- Vertical: Original and refactored code stacked vertically"));
     widgetOrientation.addOption(Tr::tr("Horizontal"));
     widgetOrientation.addOption(Tr::tr("Vertical"));
     widgetOrientation.setDefaultValue(0);
@@ -225,6 +234,11 @@ QuickRefactorSettings::QuickRefactorSettings()
         "You are an expert C++, Qt, and QML code completion assistant. Your task is to provide "
         "precise and contextually appropriate code completions to insert depending on user "
         "instructions.\n\n");
+
+    useOpenFilesInQuickRefactor.setSettingsKey(Constants::QR_USE_OPEN_FILES_IN_QUICK_REFACTOR);
+    useOpenFilesInQuickRefactor.setLabelText(
+        Tr::tr("Include context from open files in quick refactor"));
+    useOpenFilesInQuickRefactor.setDefaultValue(false);
 
     resetToDefaults.m_buttonText = TrConstants::RESET_TO_DEFAULTS;
 
@@ -262,7 +276,10 @@ QuickRefactorSettings::QuickRefactorSettings()
 
         auto contextGrid = Grid{};
         contextGrid.addRow({Row{readFullFile}});
-        contextGrid.addRow({Row{readFileParts, readStringsBeforeCursor, readStringsAfterCursor}});
+        contextGrid.addRow({
+            Row{readFileParts, readStringsBeforeCursor, readStringsAfterCursor},
+        });
+        contextGrid.addRow({Row{useOpenFilesInQuickRefactor}});
 
         auto displayGrid = Grid{};
         displayGrid.addRow({Row{displayMode}});
@@ -323,10 +340,13 @@ void QuickRefactorSettings::setupConnections()
         bool isInlineWidget = (displayMode.volatileValue() == 0);
         widgetOrientation.setEnabled(isInlineWidget);
     };
-    
-    connect(&displayMode, &Utils::SelectionAspect::volatileValueChanged, 
-            this, updateWidgetOrientationEnabled);
-    
+
+    connect(
+        &displayMode,
+        &Utils::SelectionAspect::volatileValueChanged,
+        this,
+        updateWidgetOrientationEnabled);
+
     updateWidgetOrientationEnabled();
 
     auto validateWidgetSizes = [this]() {
@@ -382,6 +402,7 @@ void QuickRefactorSettings::resetSettingsToDefaults()
         resetAspect(widgetMinHeight);
         resetAspect(widgetMaxHeight);
         resetAspect(systemPrompt);
+        resetAspect(useOpenFilesInQuickRefactor);
         writeSettings();
     }
 }
@@ -401,4 +422,3 @@ public:
 const QuickRefactorSettingsPage quickRefactorSettingsPage;
 
 } // namespace QodeAssist::Settings
-
