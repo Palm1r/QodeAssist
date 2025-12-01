@@ -36,6 +36,7 @@ Rectangle {
     property alias rulesButton: rulesButtonId
     property alias toolsButton: toolsButtonId
     property alias thinkingMode: thinkingModeId
+    property alias settingsButton: settingsButtonId
     property alias activeRulesCount: activeRulesCountId.text
     property alias configSelector: configSelectorId
 
@@ -138,6 +139,23 @@ Rectangle {
                 ToolTip.text: enabled ? (checked ? qsTr("Thinking Mode enabled (Check model list support it)")
                                                  : qsTr("Thinking Mode disabled"))
                                       : qsTr("Thinking Mode is not available for this provider")
+            }
+
+            QoAButton {
+                id: settingsButtonId
+
+                anchors.verticalCenter: parent.verticalCenter
+
+                icon {
+                    source: "qrc:/qt/qml/ChatView/icons/settings-icon.svg"
+                    color: palette.window.hslLightness > 0.5 ? "#000000" : "#FFFFFF"
+                    height: 15
+                    width: 15
+                }
+
+                ToolTip.visible: hovered
+                ToolTip.delay: 250
+                ToolTip.text: qsTr("Open Chat Assistant Settings")
             }
         }
 

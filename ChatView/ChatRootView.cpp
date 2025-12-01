@@ -38,6 +38,7 @@
 #include "ChatSerializer.hpp"
 #include "ConfigurationManager.hpp"
 #include "GeneralSettings.hpp"
+#include "SettingsConstants.hpp"
 #include "Logger.hpp"
 #include "ProjectSettings.hpp"
 #include "ProvidersManager.hpp"
@@ -694,6 +695,11 @@ void ChatRootView::openRulesFolder()
 
     QUrl url = QUrl::fromLocalFile(dir.absolutePath());
     QDesktopServices::openUrl(url);
+}
+
+void ChatRootView::openSettings()
+{
+    Core::ICore::showOptionsDialog(Constants::QODE_ASSIST_CHAT_ASSISTANT_SETTINGS_PAGE_ID);
 }
 
 void ChatRootView::updateInputTokensCount()

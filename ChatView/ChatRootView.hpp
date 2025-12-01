@@ -94,6 +94,7 @@ public:
     Q_INVOKABLE void setIsSyncOpenFiles(bool state);
     Q_INVOKABLE void openChatHistoryFolder();
     Q_INVOKABLE void openRulesFolder();
+    Q_INVOKABLE void openSettings();
 
     Q_INVOKABLE void updateInputTokensCount();
     int inputTokensCount() const;

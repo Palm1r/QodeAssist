@@ -117,6 +117,7 @@ ChatRootView {
                     root.useThinking = thinkingMode.checked
                 }
             }
+            settingsButton.onClicked: root.openSettings()
             configSelector {
                 model: root.availableConfigurations
                 displayText: root.currentConfiguration

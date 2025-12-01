@@ -51,6 +51,7 @@ qt_add_qml_module(QodeAssistChatView
     icons/thinking-icon-off.svg
     icons/tools-icon-on.svg
     icons/tools-icon-off.svg
+    icons/settings-icon.svg
 
     SOURCES
     ChatWidget.hpp ChatWidget.cpp
