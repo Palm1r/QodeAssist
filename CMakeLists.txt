@@ -11,7 +11,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_package(QtCreator REQUIRED COMPONENTS Core)
-find_package(Qt6 COMPONENTS Core Gui Quick Widgets Network Test LinguistTools REQUIRED)
+find_package(Qt6 COMPONENTS Core Gui Quick Widgets Network Svg Test LinguistTools REQUIRED)
 find_package(GTest)
 
 qt_standard_project_setup(I18N_TRANSLATED_LANGUAGES en)
@@ -57,6 +57,7 @@ add_qtc_plugin(QodeAssist
     Qt::Quick
     Qt::Widgets
     Qt::Network
+    Qt::Svg
     QtCreator::ExtensionSystem
     QtCreator::Utils
     QtCreator::CPlusPlus

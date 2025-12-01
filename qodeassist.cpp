@@ -57,6 +57,7 @@
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProjectSettingsPanel.hpp"
+#include "settings/QuickRefactorSettings.hpp"
 #include "settings/SettingsConstants.hpp"
 #include "templates/Templates.hpp"
 #include "widgets/CustomInstructionsManager.hpp"

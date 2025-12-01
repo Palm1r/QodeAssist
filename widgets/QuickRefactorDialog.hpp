@@ -46,6 +46,8 @@ public:
 
     Action selectedAction() const;
 
+    QString selectedConfiguration() const;
+
     bool eventFilter(QObject *watched, QEvent *event) override;
 
 private slots:
@@ -59,6 +61,8 @@ private slots:
     void onDeleteCustomCommand();
     void onOpenInstructionsFolder();
     void loadCustomCommands();
+    void loadAvailableConfigurations();
+    void onConfigurationChanged(int index);
 
 private:
     void setupUi();
@@ -73,11 +77,20 @@ private:
     QToolButton *m_editCommandButton;
     QToolButton *m_deleteCommandButton;
     QToolButton *m_openFolderButton;
+    QToolButton *m_toolsButton;
+    QToolButton *m_thinkingButton;
     QComboBox *m_commandsComboBox;
+    QComboBox *m_configComboBox;
     QLabel *m_instructionsLabel;
 
     Action m_selectedAction = Action::Custom;
     QString m_lastInstructions;
+    QString m_selectedConfiguration;
+    
+    QIcon m_toolsIconOn;
+    QIcon m_toolsIconOff;
+    QIcon m_thinkingIconOn;
+    QIcon m_thinkingIconOff;
 };
 
 } // namespace QodeAssist

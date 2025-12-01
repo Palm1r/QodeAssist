@@ -22,6 +22,10 @@
 #include "CustomInstructionsManager.hpp"
 #include "QodeAssisttr.h"
 
+#include "settings/ConfigurationManager.hpp"
+#include "settings/GeneralSettings.hpp"
+#include "settings/QuickRefactorSettings.hpp"
+
 #include <QApplication>
 #include <QComboBox>
 #include <QCompleter>
@@ -30,12 +34,15 @@
 #include <QDir>
 #include <QFontMetrics>
 #include <QHBoxLayout>
+#include <QIcon>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
+#include <QPainter>
 #include <QPlainTextEdit>
 #include <QScreen>
 #include <QStringListModel>
+#include <QSvgRenderer>
 #include <QTimer>
 #include <QToolButton>
 #include <QUrl>
@@ -47,6 +54,43 @@
 #include <utils/utilsicons.h>
 
 namespace QodeAssist {
+
+static QIcon createThemedIcon(const QString &svgPath, const QColor &color)
+{
+    QSvgRenderer renderer(svgPath);
+    if (!renderer.isValid()) {
+        return QIcon();
+    }
+
+    QSize iconSize(16, 16);
+    QPixmap pixmap(iconSize);
+    pixmap.fill(Qt::transparent);
+
+    QPainter painter(&pixmap);
+    renderer.render(&painter);
+    painter.end();
+
+    QImage image = pixmap.toImage().convertToFormat(QImage::Format_ARGB32);
+    
+    uchar *bits = image.bits();
+    const int bytesPerPixel = 4;
+    const int totalBytes = image.width() * image.height() * bytesPerPixel;
+    
+    const int newR = color.red();
+    const int newG = color.green();
+    const int newB = color.blue();
+    
+    for (int i = 0; i < totalBytes; i += bytesPerPixel) {
+        int alpha = bits[i + 3];
+        if (alpha > 0) {
+            bits[i] = newB;
+            bits[i + 1] = newG;
+            bits[i + 2] = newR;
+        }
+    }
+
+    return QIcon(QPixmap::fromImage(image));
+}
 
 QuickRefactorDialog::QuickRefactorDialog(QWidget *parent, const QString &lastInstructions)
     : QDialog(parent)
@@ -75,6 +119,49 @@ void QuickRefactorDialog::setupUi()
     actionsLayout->addWidget(m_improveButton);
     actionsLayout->addWidget(m_alternativeButton);
     actionsLayout->addStretch();
+
+    m_configComboBox = new QComboBox(this);
+    m_configComboBox->setMinimumWidth(200);
+    m_configComboBox->setToolTip(Tr::tr("Switch AI configuration"));
+    actionsLayout->addWidget(m_configComboBox);
+
+    Utils::Theme *theme = Utils::creatorTheme();
+    QColor iconColor = theme ? theme->color(Utils::Theme::TextColorNormal) : QColor(Qt::white);
+
+    m_toolsIconOn = createThemedIcon(":/qt/qml/ChatView/icons/tools-icon-on.svg", iconColor);
+    m_toolsIconOff = createThemedIcon(":/qt/qml/ChatView/icons/tools-icon-off.svg", iconColor);
+
+    m_toolsButton = new QToolButton(this);
+    m_toolsButton->setCheckable(true);
+    m_toolsButton->setChecked(Settings::quickRefactorSettings().useTools());
+    m_toolsButton->setIcon(m_toolsButton->isChecked() ? m_toolsIconOn : m_toolsIconOff);
+    m_toolsButton->setToolTip(Tr::tr("Enable/Disable AI Tools"));
+    m_toolsButton->setIconSize(QSize(16, 16));
+    actionsLayout->addWidget(m_toolsButton);
+
+    connect(m_toolsButton, &QToolButton::toggled, this, [this](bool checked) {
+        m_toolsButton->setIcon(checked ? m_toolsIconOn : m_toolsIconOff);
+        Settings::quickRefactorSettings().useTools.setValue(checked);
+        Settings::quickRefactorSettings().writeSettings();
+    });
+
+    m_thinkingIconOn = createThemedIcon(":/qt/qml/ChatView/icons/thinking-icon-on.svg", iconColor);
+    m_thinkingIconOff = createThemedIcon(":/qt/qml/ChatView/icons/thinking-icon-off.svg", iconColor);
+
+    m_thinkingButton = new QToolButton(this);
+    m_thinkingButton->setCheckable(true);
+    m_thinkingButton->setChecked(Settings::quickRefactorSettings().useThinking());
+    m_thinkingButton->setIcon(m_thinkingButton->isChecked() ? m_thinkingIconOn : m_thinkingIconOff);
+    m_thinkingButton->setToolTip(Tr::tr("Enable/Disable Thinking Mode"));
+    m_thinkingButton->setIconSize(QSize(16, 16));
+    actionsLayout->addWidget(m_thinkingButton);
+
+    connect(m_thinkingButton, &QToolButton::toggled, this, [this](bool checked) {
+        m_thinkingButton->setIcon(checked ? m_thinkingIconOn : m_thinkingIconOff);
+        Settings::quickRefactorSettings().useThinking.setValue(checked);
+        Settings::quickRefactorSettings().writeSettings();
+    });
+
     mainLayout->addLayout(actionsLayout);
 
     QHBoxLayout *instructionsLayout = new QHBoxLayout();
@@ -149,6 +236,13 @@ void QuickRefactorDialog::setupUi()
     mainLayout->addWidget(m_textEdit);
 
     loadCustomCommands();
+    loadAvailableConfigurations();
+
+    connect(
+        m_configComboBox,
+        QOverload<int>::of(&QComboBox::currentIndexChanged),
+        this,
+        &QuickRefactorDialog::onConfigurationChanged);
 
     QDialogButtonBox *buttonBox
         = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
@@ -474,6 +568,62 @@ void QuickRefactorDialog::onOpenInstructionsFolder()
     
     QUrl url = QUrl::fromLocalFile(dir.absolutePath());
     QDesktopServices::openUrl(url);
+}
+
+QString QuickRefactorDialog::selectedConfiguration() const
+{
+    return m_selectedConfiguration;
+}
+
+void QuickRefactorDialog::loadAvailableConfigurations()
+{
+    auto &manager = Settings::ConfigurationManager::instance();
+    manager.loadConfigurations(Settings::ConfigurationType::QuickRefactor);
+
+    QVector<Settings::AIConfiguration> configs
+        = manager.configurations(Settings::ConfigurationType::QuickRefactor);
+
+    m_configComboBox->clear();
+    m_configComboBox->addItem(Tr::tr("Current"), QString());
+
+    for (const Settings::AIConfiguration &config : configs) {
+        m_configComboBox->addItem(config.name, config.id);
+    }
+
+    auto &settings = Settings::generalSettings();
+    QString currentProvider = settings.qrProvider.value();
+    QString currentModel = settings.qrModel.value();
+    QString currentConfigText = QString("%1/%2").arg(currentProvider, currentModel);
+    m_configComboBox->setItemText(0, Tr::tr("Current (%1)").arg(currentConfigText));
+}
+
+void QuickRefactorDialog::onConfigurationChanged(int index)
+{
+    if (index == 0) {
+        m_selectedConfiguration.clear();
+        return;
+    }
+
+    QString configId = m_configComboBox->itemData(index).toString();
+    m_selectedConfiguration = m_configComboBox->itemText(index);
+
+    auto &manager = Settings::ConfigurationManager::instance();
+    Settings::AIConfiguration config
+        = manager.getConfigurationById(configId, Settings::ConfigurationType::QuickRefactor);
+
+    if (!config.id.isEmpty()) {
+        auto &settings = Settings::generalSettings();
+
+        settings.qrProvider.setValue(config.provider);
+        settings.qrModel.setValue(config.model);
+        settings.qrTemplate.setValue(config.templateName);
+        settings.qrUrl.setValue(config.url);
+        settings.qrEndpointMode.setValue(
+            settings.qrEndpointMode.indexForDisplay(config.endpointMode));
+        settings.qrCustomEndpoint.setValue(config.customEndpoint);
+
+        settings.writeSettings();
+    }
 }
 
 } // namespace QodeAssist
