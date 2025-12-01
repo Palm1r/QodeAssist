@@ -60,6 +60,7 @@ private slots:
     void onEditCustomCommand();
     void onDeleteCustomCommand();
     void onOpenInstructionsFolder();
+    void onOpenSettings();
     void loadCustomCommands();
     void loadAvailableConfigurations();
     void onConfigurationChanged(int index);
@@ -77,6 +78,7 @@ private:
     QToolButton *m_editCommandButton;
     QToolButton *m_deleteCommandButton;
     QToolButton *m_openFolderButton;
+    QToolButton *m_settingsButton;
     QToolButton *m_toolsButton;
     QToolButton *m_thinkingButton;
     QComboBox *m_commandsComboBox;

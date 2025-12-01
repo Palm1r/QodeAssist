@@ -25,6 +25,7 @@
 #include "settings/ConfigurationManager.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/QuickRefactorSettings.hpp"
+#include "settings/SettingsConstants.hpp"
 
 #include <QApplication>
 #include <QComboBox>
@@ -161,6 +162,14 @@ void QuickRefactorDialog::setupUi()
         Settings::quickRefactorSettings().useThinking.setValue(checked);
         Settings::quickRefactorSettings().writeSettings();
     });
+
+    m_settingsButton = new QToolButton(this);
+    m_settingsButton->setIcon(Utils::Icons::SETTINGS_TOOLBAR.icon());
+    m_settingsButton->setToolTip(Tr::tr("Open Quick Refactor Settings"));
+    m_settingsButton->setIconSize(QSize(16, 16));
+    actionsLayout->addWidget(m_settingsButton);
+
+    connect(m_settingsButton, &QToolButton::clicked, this, &QuickRefactorDialog::onOpenSettings);
 
     mainLayout->addLayout(actionsLayout);
 
@@ -568,6 +577,11 @@ void QuickRefactorDialog::onOpenInstructionsFolder()
     
     QUrl url = QUrl::fromLocalFile(dir.absolutePath());
     QDesktopServices::openUrl(url);
+}
+
+void QuickRefactorDialog::onOpenSettings()
+{
+    Core::ICore::showOptionsDialog(Constants::QODE_ASSIST_QUICK_REFACTOR_SETTINGS_PAGE_ID);
 }
 
 QString QuickRefactorDialog::selectedConfiguration() const
