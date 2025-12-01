@@ -66,6 +66,13 @@ private slots:
     void handleThinkingBlockReceived(
         const QString &requestId, const QString &thinking, const QString &signature);
     void handleRedactedThinkingBlockReceived(const QString &requestId, const QString &signature);
+    void handleToolExecutionStarted(
+        const QString &requestId, const QString &toolId, const QString &toolName);
+    void handleToolExecutionCompleted(
+        const QString &requestId,
+        const QString &toolId,
+        const QString &toolName,
+        const QString &toolOutput);
 
 private:
     void handleLLMResponse(const QString &response, const QJsonObject &request);

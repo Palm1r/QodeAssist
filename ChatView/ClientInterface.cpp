@@ -289,14 +289,14 @@ void ClientInterface::sendMessage(
     connect(
         provider,
         &LLMCore::Provider::toolExecutionStarted,
-        m_chatModel,
-        &ChatModel::addToolExecutionStatus,
+        this,
+        &ClientInterface::handleToolExecutionStarted,
         Qt::UniqueConnection);
     connect(
         provider,
         &LLMCore::Provider::toolExecutionCompleted,
-        m_chatModel,
-        &ChatModel::updateToolResult,
+        this,
+        &ClientInterface::handleToolExecutionCompleted,
         Qt::UniqueConnection);
     connect(
         provider,
@@ -496,6 +496,31 @@ void ClientInterface::handleRedactedThinkingBlockReceived(
     }
 
     m_chatModel->addRedactedThinkingBlock(requestId, signature);
+}
+
+void ClientInterface::handleToolExecutionStarted(
+    const QString &requestId, const QString &toolId, const QString &toolName)
+{
+    if (!m_activeRequests.contains(requestId)) {
+        LOG_MESSAGE(QString("Ignoring tool execution start for non-chat request: %1").arg(requestId));
+        return;
+    }
+
+    m_chatModel->addToolExecutionStatus(requestId, toolId, toolName);
+}
+
+void ClientInterface::handleToolExecutionCompleted(
+    const QString &requestId,
+    const QString &toolId,
+    const QString &toolName,
+    const QString &toolOutput)
+{
+    if (!m_activeRequests.contains(requestId)) {
+        LOG_MESSAGE(QString("Ignoring tool execution result for non-chat request: %1").arg(requestId));
+        return;
+    }
+
+    m_chatModel->updateToolResult(requestId, toolId, toolName, toolOutput);
 }
 
 bool ClientInterface::isImageFile(const QString &filePath) const
