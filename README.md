@@ -132,11 +132,29 @@ QodeAssist supports multiple LLM providers. Choose your preferred provider and f
 - **[Ollama](docs/ollama-configuration.md)** - Local LLM provider
 - **[llama.cpp](docs/llamacpp-configuration.md)** - Local LLM server
 - **[Anthropic Claude](docs/claude-configuration.md)** - Сloud provider
-- **[OpenAI](docs/openai-configuration.md)** - Сloud provider
+- **[OpenAI](docs/openai-configuration.md)** - Сloud provider (includes Responses API support)
 - **[Mistral AI](docs/mistral-configuration.md)** - Сloud provider
 - **[Google AI](docs/google-ai-configuration.md)** - Сloud provider
 - **LM Studio** - Local LLM provider
 - **OpenAI-compatible** - Custom providers (OpenRouter, etc.)
+
+### Recommended Models for Best Experience
+
+For optimal coding assistance, we recommend using these top-tier models:
+
+**Best for Code Completion & Refactoring:**
+- **Claude 4.5 Haiku or Sonnet** (Anthropic)
+- **GPT-5.1-codex or codex-mini** (OpenAI Responses API)
+- **Codestral** (Mistral)
+
+**Best for Chat Assistant:**
+- **Claude 4.5 Sonnet** (Anthropic) - Outstanding reasoning and natural conversation flow
+- **GPT-5.1-codex** (OpenAI Responses API) - Latest model with advanced capabilities
+- **Gemini 2.5 or 3.0** (Google AI) - Latest models from Google
+- **Mistral large** (Mistral) - Fast and capable
+
+**Local models:**
+- **Qwen3-coder** (Qwen) - Best local models
 
 ### Additional Configuration
 
