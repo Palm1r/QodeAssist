@@ -90,6 +90,9 @@ public:
     Utils::StringAspect ollamaLivetime{this};
     Utils::IntegerAspect contextWindow{this};
 
+    // OpenAI Responses API Settings
+    Utils::SelectionAspect openAIResponsesReasoningEffort{this};
+
     QString processMessageToFIM(const QString &prefix, const QString &suffix) const;
 
 private:

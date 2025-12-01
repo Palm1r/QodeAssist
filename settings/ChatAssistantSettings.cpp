@@ -173,6 +173,25 @@ ChatAssistantSettings::ChatAssistantSettings()
     thinkingMaxTokens.setRange(-1, 200000);
     thinkingMaxTokens.setDefaultValue(16000);
 
+    // OpenAI Responses API Settings
+    openAIResponsesReasoningEffort.setSettingsKey(Constants::CA_OPENAI_RESPONSES_REASONING_EFFORT);
+    openAIResponsesReasoningEffort.setLabelText(Tr::tr("Reasoning effort:"));
+    openAIResponsesReasoningEffort.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+    openAIResponsesReasoningEffort.addOption("None");
+    openAIResponsesReasoningEffort.addOption("Minimal");
+    openAIResponsesReasoningEffort.addOption("Low");
+    openAIResponsesReasoningEffort.addOption("Medium");
+    openAIResponsesReasoningEffort.addOption("High");
+    openAIResponsesReasoningEffort.setDefaultValue("Medium");
+    openAIResponsesReasoningEffort.setToolTip(
+        Tr::tr("Constrains effort on reasoning for OpenAI gpt-5 and o-series models:\n\n"
+               "None: No reasoning (gpt-5.1 only)\n"
+               "Minimal: Minimal reasoning effort (o-series only)\n"
+               "Low: Low reasoning effort\n"
+               "Medium: Balanced reasoning (default for most models)\n"
+               "High: Maximum reasoning effort (gpt-5-pro only supports this)\n\n"
+               "Note: Reducing effort = faster responses + fewer tokens"));
+
     autosave.setDefaultValue(true);
     autosave.setLabelText(Tr::tr("Enable autosave when message received"));
 
@@ -270,6 +289,9 @@ ChatAssistantSettings::ChatAssistantSettings()
         thinkingGrid.addRow({thinkingBudgetTokens});
         thinkingGrid.addRow({thinkingMaxTokens});
 
+        auto openAIResponsesGrid = Grid{};
+        openAIResponsesGrid.addRow({openAIResponsesReasoningEffort});
+
         auto chatViewSettingsGrid = Grid{};
         chatViewSettingsGrid.addRow({textFontFamily, textFontSize});
         chatViewSettingsGrid.addRow({codeFontFamily, codeFontSize});
@@ -293,8 +315,12 @@ ChatAssistantSettings::ChatAssistantSettings()
                 Column{enableChatTools}},
             Space{8},
             Group{
-                  title(Tr::tr("Extended Thinking (if provider/model supports)")),
+                  title(Tr::tr("Extended Thinking (Claude)")),
                   Column{enableThinkingMode, Row{thinkingGrid, Stretch{1}}}},
+            Space{8},
+            Group{
+                title(Tr::tr("OpenAI Responses API")),
+                Column{Row{openAIResponsesGrid, Stretch{1}}}},
             Space{8},
             Group{
                 title(Tr::tr("General Parameters")),
@@ -352,6 +378,7 @@ void ChatAssistantSettings::resetSettingsToDefaults()
         resetAspect(enableThinkingMode);
         resetAspect(thinkingBudgetTokens);
         resetAspect(thinkingMaxTokens);
+        resetAspect(openAIResponsesReasoningEffort);
         resetAspect(linkOpenFiles);
         resetAspect(enableChatTools);
         resetAspect(textFontFamily);

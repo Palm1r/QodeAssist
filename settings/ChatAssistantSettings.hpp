@@ -70,6 +70,9 @@ public:
     Utils::IntegerAspect thinkingBudgetTokens{this};
     Utils::IntegerAspect thinkingMaxTokens{this};
 
+    // OpenAI Responses API Settings
+    Utils::SelectionAspect openAIResponsesReasoningEffort{this};
+
     // Visuals settings
     Utils::SelectionAspect textFontFamily{this};
     Utils::IntegerAspect textFontSize{this};

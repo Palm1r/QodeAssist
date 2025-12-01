@@ -89,6 +89,7 @@ add_qtc_plugin(QodeAssist
     templates/GoogleAI.hpp
     templates/LlamaCppFim.hpp
     templates/Qwen3CoderFIM.hpp
+    templates/OpenAIResponses.hpp
     providers/Providers.hpp
     providers/OllamaProvider.hpp providers/OllamaProvider.cpp
     providers/ClaudeProvider.hpp providers/ClaudeProvider.cpp
@@ -100,6 +101,17 @@ add_qtc_plugin(QodeAssist
     providers/GoogleAIProvider.hpp providers/GoogleAIProvider.cpp
     providers/LlamaCppProvider.hpp providers/LlamaCppProvider.cpp
     providers/CodestralProvider.hpp providers/CodestralProvider.cpp
+    providers/OpenAIResponses/ModelRequest.hpp
+    providers/OpenAIResponses/ResponseObject.hpp
+    providers/OpenAIResponses/GetResponseRequest.hpp
+    providers/OpenAIResponses/DeleteResponseRequest.hpp
+    providers/OpenAIResponses/CancelResponseRequest.hpp
+    providers/OpenAIResponses/ListInputItemsRequest.hpp
+    providers/OpenAIResponses/InputTokensRequest.hpp
+    providers/OpenAIResponses/ItemTypesReference.hpp
+    providers/OpenAIResponsesRequestBuilder.hpp
+    providers/OpenAIResponsesProvider.hpp providers/OpenAIResponsesProvider.cpp
+    providers/OpenAIResponsesMessage.hpp providers/OpenAIResponsesMessage.cpp
     QodeAssist.qrc
     LSPCompletion.hpp
     LLMSuggestion.hpp LLMSuggestion.cpp
