@@ -165,7 +165,7 @@ jobs:
           execute_process(COMMAND ${CMAKE_COMMAND} -E tar xvf ../${archive} WORKING_DIRECTORY qt6)
         endfunction()
 
-        foreach(package qtbase qtdeclarative qttools)
+        foreach(package qtbase qtdeclarative qttools qtsvg)
           downloadAndExtract(
             "${qt_base_url}/qt.qt6.${qt_version_dotless}.${qt_package_arch_suffix}/${qt_package_version}${package}${qt_package_suffix}.7z"
             ${package}.7z
