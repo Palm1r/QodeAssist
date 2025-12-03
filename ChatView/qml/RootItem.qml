@@ -446,7 +446,7 @@ ChatRootView {
     }
 
     function clearChat() {
-        root.chatModel.clear()
+        root.clearMessages()
         root.clearAttachmentFiles()
         root.updateInputTokensCount()
     }

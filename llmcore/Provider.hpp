@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024-2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -27,6 +27,7 @@
 #include "ContextData.hpp"
 #include "DataBuffers.hpp"
 #include "HttpClient.hpp"
+#include "IToolsManager.hpp"
 #include "PromptTemplate.hpp"
 #include "RequestType.hpp"
 
@@ -70,6 +71,8 @@ public:
     virtual bool supportImage() const { return false; };
 
     virtual void cancelRequest(const RequestID &requestId);
+
+    virtual IToolsManager *toolsManager() const { return nullptr; }
 
     HttpClient *httpClient() const;
 

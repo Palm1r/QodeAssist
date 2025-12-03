@@ -18,6 +18,7 @@
  */
 
 #include "ToolsManager.hpp"
+#include "TodoTool.hpp"
 #include "logger/Logger.hpp"
 
 namespace QodeAssist::Tools {
@@ -74,6 +75,10 @@ void ToolsManager::executeToolCall(
 
     QJsonObject modifiedInput = input;
     modifiedInput["_request_id"] = requestId;
+    
+    if (!m_currentSessionId.isEmpty()) {
+        modifiedInput["session_id"] = m_currentSessionId;
+    }
 
     PendingTool pendingTool{toolId, toolName, modifiedInput, "", false};
     queue.queue.append(pendingTool);
@@ -140,27 +145,21 @@ QJsonArray ToolsManager::getToolsDefinitions(
 void ToolsManager::cleanupRequest(const QString &requestId)
 {
     if (m_toolQueues.contains(requestId)) {
-        LOG_MESSAGE(QString("ToolsManager: Canceling pending tools for request %1").arg(requestId));
         m_toolHandler->cleanupRequest(requestId);
         m_toolQueues.remove(requestId);
     }
-
-    LOG_MESSAGE(QString("ToolsManager: Cleaned up request %1").arg(requestId));
 }
 
 void ToolsManager::onToolFinished(
     const QString &requestId, const QString &toolId, const QString &result, bool success)
 {
     if (!m_toolQueues.contains(requestId)) {
-        LOG_MESSAGE(QString("ToolsManager: Tool result for unknown request %1").arg(requestId));
         return;
     }
 
     auto &queue = m_toolQueues[requestId];
 
     if (!queue.completed.contains(toolId)) {
-        LOG_MESSAGE(QString("ToolsManager: Tool result for unknown tool %1 in request %2")
-                        .arg(toolId, requestId));
         return;
     }
 
@@ -195,6 +194,19 @@ QHash<QString, QString> ToolsManager::getToolResults(const QString &requestId) c
     }
 
     return results;
+}
+
+void ToolsManager::clearTodoSession(const QString &sessionId)
+{
+    auto *todoTool = qobject_cast<TodoTool *>(m_toolsFactory->getToolByName("todo_tool"));
+    if (todoTool) {
+        todoTool->clearSession(sessionId);
+    }
+}
+
+void ToolsManager::setCurrentSessionId(const QString &sessionId)
+{
+    m_currentSessionId = sessionId;
 }
 
 } // namespace QodeAssist::Tools

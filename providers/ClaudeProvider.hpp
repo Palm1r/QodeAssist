@@ -57,6 +57,8 @@ public:
     bool supportThinking() const override;
     bool supportImage() const override;
     void cancelRequest(const LLMCore::RequestID &requestId) override;
+    
+    LLMCore::IToolsManager *toolsManager() const override;
 
 public slots:
     void onDataReceived(

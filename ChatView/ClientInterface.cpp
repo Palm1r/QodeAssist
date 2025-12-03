@@ -318,12 +318,23 @@ void ClientInterface::sendMessage(
         Qt::UniqueConnection);
 
     provider->sendRequest(requestId, config.url, config.providerRequest);
+    
+    if (provider->supportsTools() && provider->toolsManager()) {
+        provider->toolsManager()->setCurrentSessionId(m_chatFilePath);
+    }
 }
 
 void ClientInterface::clearMessages()
 {
+    const auto providerName = Settings::generalSettings().caProvider();
+    auto *provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
+
+    if (provider && !m_chatFilePath.isEmpty() && provider->supportsTools()
+        && provider->toolsManager()) {
+        provider->toolsManager()->clearTodoSession(m_chatFilePath);
+    }
+
     m_chatModel->clear();
-    LOG_MESSAGE("Chat history cleared");
 }
 
 void ClientInterface::cancelRequest()
@@ -596,6 +607,15 @@ QVector<LLMCore::ImageAttachment> ClientInterface::loadImagesFromStorage(
 
 void ClientInterface::setChatFilePath(const QString &filePath)
 {
+    if (!m_chatFilePath.isEmpty() && m_chatFilePath != filePath) {
+        const auto providerName = Settings::generalSettings().caProvider();
+        auto *provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
+
+        if (provider && provider->supportsTools() && provider->toolsManager()) {
+            provider->toolsManager()->clearTodoSession(m_chatFilePath);
+        }
+    }
+
     m_chatFilePath = filePath;
     m_chatModel->setChatFilePath(filePath);
 }

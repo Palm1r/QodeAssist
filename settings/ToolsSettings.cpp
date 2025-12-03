@@ -97,6 +97,13 @@ ToolsSettings::ToolsSettings()
                "unexpected behavior."));
     enableTerminalCommandTool.setDefaultValue(false);
 
+    enableTodoTool.setSettingsKey(Constants::CA_ENABLE_TODO_TOOL);
+    enableTodoTool.setLabelText(Tr::tr("Enable Todo Tool"));
+    enableTodoTool.setToolTip(
+        Tr::tr("Enable the todo_tool that helps AI track and organize multi-step tasks. "
+               "Useful for complex refactoring, debugging, and feature implementation workflows."));
+    enableTodoTool.setDefaultValue(true);
+
     allowedTerminalCommandsLinux.setSettingsKey(Constants::CA_ALLOWED_TERMINAL_COMMANDS_LINUX);
     allowedTerminalCommandsLinux.setLabelText(Tr::tr("Allowed Commands (Linux)"));
     allowedTerminalCommandsLinux.setToolTip(
@@ -158,6 +165,7 @@ ToolsSettings::ToolsSettings()
                     enableEditFileTool,
                     enableBuildProjectTool,
                     enableTerminalCommandTool,
+                    enableTodoTool,
                     currentOsCommands,
                     autoApplyFileEdits}},
             Stretch{1}};
@@ -191,6 +199,7 @@ void ToolsSettings::resetSettingsToDefaults()
         resetAspect(enableEditFileTool);
         resetAspect(enableBuildProjectTool);
         resetAspect(enableTerminalCommandTool);
+        resetAspect(enableTodoTool);
         resetAspect(allowedTerminalCommandsLinux);
         resetAspect(allowedTerminalCommandsMacOS);
         resetAspect(allowedTerminalCommandsWindows);

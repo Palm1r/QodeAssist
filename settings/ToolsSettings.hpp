@@ -41,6 +41,7 @@ public:
     Utils::BoolAspect enableEditFileTool{this};
     Utils::BoolAspect enableBuildProjectTool{this};
     Utils::BoolAspect enableTerminalCommandTool{this};
+    Utils::BoolAspect enableTodoTool{this};
     Utils::StringAspect allowedTerminalCommandsLinux{this};
     Utils::StringAspect allowedTerminalCommandsMacOS{this};
     Utils::StringAspect allowedTerminalCommandsWindows{this};
