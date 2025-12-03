@@ -111,6 +111,7 @@ const char CA_ALLOW_ACCESS_OUTSIDE_PROJECT[] = "QodeAssist.caAllowAccessOutsideP
 const char CA_ENABLE_EDIT_FILE_TOOL[] = "QodeAssist.caEnableEditFileTool";
 const char CA_ENABLE_BUILD_PROJECT_TOOL[] = "QodeAssist.caEnableBuildProjectTool";
 const char CA_ENABLE_TERMINAL_COMMAND_TOOL[] = "QodeAssist.caEnableTerminalCommandTool";
+const char CA_ENABLE_TODO_TOOL[] = "QodeAssist.caEnableTodoTool";
 const char CA_ALLOWED_TERMINAL_COMMANDS[] = "QodeAssist.caAllowedTerminalCommands";
 const char CA_ALLOWED_TERMINAL_COMMANDS_LINUX[] = "QodeAssist.caAllowedTerminalCommandsLinux";
 const char CA_ALLOWED_TERMINAL_COMMANDS_MACOS[] = "QodeAssist.caAllowedTerminalCommandsMacOS";

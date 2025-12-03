@@ -268,6 +268,11 @@ void ClaudeProvider::cancelRequest(const LLMCore::RequestID &requestId)
     cleanupRequest(requestId);
 }
 
+LLMCore::IToolsManager *ClaudeProvider::toolsManager() const
+{
+    return m_toolsManager;
+}
+
 void ClaudeProvider::onDataReceived(
     const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data)
 {
@@ -531,6 +536,7 @@ void ClaudeProvider::handleMessageComplete(const QString &requestId)
         for (auto toolContent : toolUseContent) {
             auto toolStringName = m_toolsManager->toolsFactory()->getStringName(toolContent->name());
             emit toolExecutionStarted(requestId, toolContent->id(), toolStringName);
+            
             m_toolsManager->executeToolCall(
                 requestId, toolContent->id(), toolContent->name(), toolContent->input());
         }

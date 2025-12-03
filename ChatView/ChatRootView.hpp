@@ -161,6 +161,7 @@ public slots:
     void cancelRequest();
     void clearAttachmentFiles();
     void clearLinkedFiles();
+    void clearMessages();
 
 signals:
     void chatModelChanged();

@@ -311,6 +311,12 @@ void ChatRootView::clearLinkedFiles()
     emit linkedFilesChanged();
 }
 
+void ChatRootView::clearMessages()
+{
+    m_clientInterface->clearMessages();
+    clearLinkedFiles();
+}
+
 QString ChatRootView::getChatsHistoryDir() const
 {
     QString path;

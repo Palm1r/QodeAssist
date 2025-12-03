@@ -27,6 +27,7 @@
 #include "ToolHandler.hpp"
 #include "ToolsFactory.hpp"
 #include <llmcore/BaseTool.hpp>
+#include <llmcore/IToolsManager.hpp>
 
 namespace QodeAssist::Tools {
 
@@ -46,7 +47,7 @@ struct ToolQueue
     bool isExecuting = false;
 };
 
-class ToolsManager : public QObject
+class ToolsManager : public QObject, public LLMCore::IToolsManager
 {
     Q_OBJECT
 
@@ -57,12 +58,15 @@ public:
         const QString &requestId,
         const QString &toolId,
         const QString &toolName,
-        const QJsonObject &input);
+        const QJsonObject &input) override;
 
     QJsonArray getToolsDefinitions(
         LLMCore::ToolSchemaFormat format,
-        LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL) const;
-    void cleanupRequest(const QString &requestId);
+        LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL) const override;
+    
+    void cleanupRequest(const QString &requestId) override;
+    void setCurrentSessionId(const QString &sessionId) override;
+    void clearTodoSession(const QString &sessionId) override;
 
     ToolsFactory *toolsFactory() const;
 
@@ -77,6 +81,7 @@ private:
     ToolsFactory *m_toolsFactory;
     ToolHandler *m_toolHandler;
     QHash<QString, ToolQueue> m_toolQueues;
+    QString m_currentSessionId;
 
     void executeNextTool(const QString &requestId);
     QHash<QString, QString> getToolResults(const QString &requestId) const;

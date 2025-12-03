@@ -34,6 +34,7 @@
 #include "ListProjectFilesTool.hpp"
 #include "ProjectSearchTool.hpp"
 #include "ReadVisibleFilesTool.hpp"
+#include "TodoTool.hpp"
 
 namespace QodeAssist::Tools {
 
@@ -54,6 +55,7 @@ void ToolsFactory::registerTools()
     registerTool(new ExecuteTerminalCommandTool(this));
     registerTool(new ProjectSearchTool(this));
     registerTool(new FindAndReadFileTool(this));
+    registerTool(new TodoTool(this));
 
     LOG_MESSAGE(QString("Registered %1 tools").arg(m_tools.size()));
 }
@@ -104,6 +106,10 @@ QJsonArray ToolsFactory::getToolsDefinitions(
 
         if (it.value()->name() == "execute_terminal_command"
             && !settings.enableTerminalCommandTool()) {
+            continue;
+        }
+
+        if (it.value()->name() == "todo_tool" && !settings.enableTodoTool()) {
             continue;
         }
 
