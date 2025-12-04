@@ -158,6 +158,7 @@ For optimal coding assistance, we recommend using these top-tier models:
 
 ### Additional Configuration
 
+- **[Agent Roles](docs/agent-roles.md)** - Create AI personas with specialized system prompts
 - **[Project Rules](docs/project-rules.md)** - Customize AI behavior for your project
 - **[Ignoring Files](docs/ignoring-files.md)** - Exclude files from context using `.qodeassistignore`
 
@@ -194,6 +195,7 @@ Configure in: `Tools → Options → QodeAssist → Code Completion → General 
 - Multiple chat panels: side panel, bottom panel, and popup window
 - Chat history with auto-save and restore
 - Token usage monitoring
+- **[Agent Roles](docs/agent-roles.md)** - Switch between AI personas (Developer, Reviewer, custom roles)
 - **[File Context](docs/file-context.md)** - Attach or link files for better context
 - Automatic syncing with open editor files (optional)
 - Extended thinking mode (Claude, other providers in plan) - Enable deeper reasoning for complex tasks
@@ -278,22 +280,24 @@ QodeAssist uses a flexible prompt composition system that adapts to different co
 │                            CHAT ASSISTANT                                   │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  1. System Prompt (from Chat Assistant Settings)                           │
-│  2. Project Rules:                                                          │
+│  2. Agent Role (optional, from role selector):                             │
+│     └─ Role-specific system prompt (Developer, Reviewer, custom)           │
+│  3. Project Rules:                                                          │
 │     ├─ .qodeassist/rules/common/*.md                                       │
 │     └─ .qodeassist/rules/chat/*.md                                         │
-│  3. File Context (optional):                                               │
+│  4. File Context (optional):                                               │
 │     ├─ Attached files (manual)                                             │
 │     ├─ Linked files (persistent)                                           │
 │     └─ Open editor files (if auto-sync enabled)                            │
-│  4. Tool Definitions (if enabled):                                         │
+│  5. Tool Definitions (if enabled):                                         │
 │     ├─ ReadProjectFileByName                                               │
 │     ├─ ListProjectFiles                                                    │
 │     ├─ SearchInProject                                                     │
 │     └─ GetIssuesList                                                       │
-│  5. Conversation History                                                    │
-│  6. User Message                                                            │
+│  6. Conversation History                                                    │
+│  7. User Message                                                            │
 │                                                                              │
-│  Final Prompt: [System: SystemPrompt + Rules + Tools]                      │
+│  Final Prompt: [System: SystemPrompt + AgentRole + Rules + Tools]          │
 │                [History: Previous messages]                                 │
 │                [User: FileContext + UserMessage]                            │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -339,6 +343,7 @@ QodeAssist uses a flexible prompt composition system that adapts to different co
 
 - **Project Rules** are automatically loaded from `.qodeassist/rules/` directory structure
 - **System Prompts** are configured independently for each feature in Settings
+- **Agent Roles** add role-specific prompts on top of the base system prompt (Chat only)
 - **FIM vs Non-FIM models** for code completion use different System Prompts:
   - FIM models: Direct completion prompt
   - Non-FIM models: Prompt includes response formatting instructions
@@ -346,7 +351,7 @@ QodeAssist uses a flexible prompt composition system that adapts to different co
 - **Custom Instructions** provide reusable templates that can be augmented with specific details
 - **Tool Calling** is available for Chat and Quick Refactor when enabled
 
-See [Project Rules Documentation](docs/project-rules.md) and [Quick Refactoring Guide](docs/quick-refactoring.md) for more details.
+See [Project Rules Documentation](docs/project-rules.md), [Agent Roles Guide](docs/agent-roles.md), and [Quick Refactoring Guide](docs/quick-refactoring.md) for more details.
 
 ## QtCreator Version Compatibility
 

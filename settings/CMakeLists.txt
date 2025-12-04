@@ -16,11 +16,15 @@ add_library(QodeAssistSettings STATIC
     ProviderSettings.hpp ProviderSettings.cpp
     PluginUpdater.hpp PluginUpdater.cpp
     UpdateDialog.hpp UpdateDialog.cpp
+    AgentRole.hpp AgentRole.cpp
+    AgentRoleDialog.hpp AgentRoleDialog.cpp
+    AgentRolesWidget.hpp AgentRolesWidget.cpp
 )
 
 target_link_libraries(QodeAssistSettings
     PUBLIC
     Qt::Core
+    Qt::Widgets
     Qt::Network
     QtCreator::Core
     QtCreator::Utils

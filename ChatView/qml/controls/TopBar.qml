@@ -33,12 +33,12 @@ Rectangle {
     property alias recentPath: recentPathId
     property alias openChatHistory: openChatHistoryId
     property alias pinButton: pinButtonId
-    property alias rulesButton: rulesButtonId
+    property alias contextButton: contextButtonId
     property alias toolsButton: toolsButtonId
     property alias thinkingMode: thinkingModeId
     property alias settingsButton: settingsButtonId
-    property alias activeRulesCount: activeRulesCountId.text
     property alias configSelector: configSelectorId
+    property alias roleSelector: roleSelector
 
     color: palette.window.hslLightness > 0.5 ?
                Qt.darker(palette.window, 1.1) :
@@ -88,6 +88,19 @@ Rectangle {
                 ToolTip.visible: hovered
                 ToolTip.delay: 250
                 ToolTip.text: qsTr("Switch AI configuration")
+            }
+
+            QoAComboBox {
+                id: roleSelector
+
+                implicitHeight: 25
+
+                model: []
+                currentIndex: 0
+
+                ToolTip.visible: hovered
+                ToolTip.delay: 250
+                ToolTip.text: qsTr("Switch agent role (different system prompts)")
             }
 
             QoAButton {
@@ -244,35 +257,18 @@ Rectangle {
             }
 
             QoAButton {
-                id: rulesButtonId
+                id: contextButtonId
 
                 icon {
-                    source: "qrc:/qt/qml/ChatView/icons/rules-icon.svg"
+                    source: "qrc:/qt/qml/ChatView/icons/context-icon.svg"
+                    color: palette.window.hslLightness > 0.5 ? "#000000" : "#FFFFFF"
                     height: 15
                     width: 15
                 }
-                text: " "
 
                 ToolTip.visible: hovered
                 ToolTip.delay: 250
-                ToolTip.text: root.activeRulesCount > 0
-                              ? qsTr("View active project rules (%1)").arg(root.activeRulesCount)
-                              : qsTr("View active project rules (no rules found)")
-
-                Text {
-                    id: activeRulesCountId
-
-                    anchors {
-                        bottom: parent.bottom
-                        bottomMargin: 2
-                        right: parent.right
-                        rightMargin: 4
-                    }
-
-                    color: palette.text
-                    font.pixelSize: 10
-                    font.bold: true
-                }
+                ToolTip.text: qsTr("View chat context (system prompt, role, rules)")
             }
 
             Badge {

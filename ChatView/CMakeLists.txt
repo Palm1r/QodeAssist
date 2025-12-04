@@ -21,7 +21,7 @@ qt_add_qml_module(QodeAssistChatView
     qml/controls/AttachedFilesPlace.qml
     qml/controls/BottomBar.qml
     qml/controls/FileEditsActionBar.qml
-    qml/controls/RulesViewer.qml
+    qml/controls/ContextViewer.qml
     qml/controls/Toast.qml
     qml/controls/TopBar.qml
     qml/controls/SplitDropZone.qml
@@ -43,6 +43,7 @@ qt_add_qml_module(QodeAssistChatView
     icons/chat-icon.svg
     icons/chat-pause-icon.svg
     icons/rules-icon.svg
+    icons/context-icon.svg
     icons/open-in-editor.svg
     icons/apply-changes-button.svg
     icons/undo-changes-button.svg
