@@ -20,6 +20,11 @@
 #include "ToolsManager.hpp"
 #include "TodoTool.hpp"
 #include "logger/Logger.hpp"
+#include <QTimer>
+
+namespace {
+constexpr int kToolExecutionDelayMs = 300;
+}
 
 namespace QodeAssist::Tools {
 
@@ -172,7 +177,13 @@ void ToolsManager::onToolFinished(
                     .arg(success ? QString("completed") : QString("failed"))
                     .arg(requestId));
 
-    executeNextTool(requestId);
+    if (kToolExecutionDelayMs > 0 && !queue.queue.isEmpty()) {
+        QTimer::singleShot(kToolExecutionDelayMs, this, [this, requestId]() {
+            executeNextTool(requestId);
+        });
+    } else {
+        executeNextTool(requestId);
+    }
 }
 
 ToolsFactory *ToolsManager::toolsFactory() const
