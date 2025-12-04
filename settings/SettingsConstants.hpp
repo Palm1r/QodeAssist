@@ -209,6 +209,8 @@ const char CA_CODE_FONT_SIZE[] = "QodeAssist.caCodeFontSize";
 const char CA_TEXT_FORMAT[] = "QodeAssist.caTextFormat";
 const char CA_CHAT_RENDERER[] = "QodeAssist.caChatRenderer";
 
+const char CA_LAST_USED_ROLE[] = "QodeAssist.caLastUsedRole";
+
 // quick refactor preset prompt settings
 const char QR_TEMPERATURE[] = "QodeAssist.qrTemperature";
 const char QR_MAX_TOKENS[] = "QodeAssist.qrMaxTokens";

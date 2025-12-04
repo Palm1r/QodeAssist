@@ -160,6 +160,13 @@ void ClientInterface::sendMessage(
     if (chatAssistantSettings.useSystemPrompt()) {
         QString systemPrompt = chatAssistantSettings.systemPrompt();
 
+        const QString lastRoleId = chatAssistantSettings.lastUsedRoleId();
+        if (!lastRoleId.isEmpty()) {
+            const Settings::AgentRole role = Settings::AgentRolesManager::loadRole(lastRoleId);
+            if (!role.id.isEmpty())
+                systemPrompt = systemPrompt + "\n\n" + role.systemPrompt;
+        }
+
         auto project = LLMCore::RulesLoader::getActiveProject();
 
         if (project) {

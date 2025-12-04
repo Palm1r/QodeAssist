@@ -59,6 +59,11 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(bool isThinkingSupport READ isThinkingSupport NOTIFY isThinkingSupportChanged FINAL)
     Q_PROPERTY(QStringList availableConfigurations READ availableConfigurations NOTIFY availableConfigurationsChanged FINAL)
     Q_PROPERTY(QString currentConfiguration READ currentConfiguration NOTIFY currentConfigurationChanged FINAL)
+    Q_PROPERTY(QStringList availableAgentRoles READ availableAgentRoles NOTIFY availableAgentRolesChanged FINAL)
+    Q_PROPERTY(QString currentAgentRole READ currentAgentRole NOTIFY currentAgentRoleChanged FINAL)
+    Q_PROPERTY(QString baseSystemPrompt READ baseSystemPrompt NOTIFY baseSystemPromptChanged FINAL)
+    Q_PROPERTY(QString currentAgentRoleDescription READ currentAgentRoleDescription NOTIFY currentAgentRoleChanged FINAL)
+    Q_PROPERTY(QString currentAgentRoleSystemPrompt READ currentAgentRoleSystemPrompt NOTIFY currentAgentRoleChanged FINAL)
 
     QML_ELEMENT
 
@@ -146,6 +151,15 @@ public:
     QStringList availableConfigurations() const;
     QString currentConfiguration() const;
     
+    Q_INVOKABLE void loadAvailableAgentRoles();
+    Q_INVOKABLE void applyAgentRole(const QString &roleId);
+    Q_INVOKABLE void openAgentRolesSettings();
+    QStringList availableAgentRoles() const;
+    QString currentAgentRole() const;
+    QString baseSystemPrompt() const;
+    QString currentAgentRoleDescription() const;
+    QString currentAgentRoleSystemPrompt() const;
+    
     int currentMessageTotalEdits() const;
     int currentMessageAppliedEdits() const;
     int currentMessagePendingEdits() const;
@@ -191,6 +205,9 @@ signals:
     void isThinkingSupportChanged();
     void availableConfigurationsChanged();
     void currentConfigurationChanged();
+    void availableAgentRolesChanged();
+    void currentAgentRoleChanged();
+    void baseSystemPromptChanged();
 
 private:
     void updateFileEditStatus(const QString &editId, const QString &status);
@@ -224,6 +241,9 @@ private:
     
     QStringList m_availableConfigurations;
     QString m_currentConfiguration;
+    
+    QStringList m_availableAgentRoles;
+    QString m_currentAgentRole;
 };
 
 } // namespace QodeAssist::Chat

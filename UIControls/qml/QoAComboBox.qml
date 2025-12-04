@@ -27,6 +27,27 @@ Basic.ComboBox {
     implicitWidth: Math.min(contentItem.implicitWidth + 8, 300)
     implicitHeight: 30
 
+    property real popupContentWidth: 100
+
+    TextMetrics {
+        id: textMetrics
+        font.pixelSize: 12
+    }
+
+    function updatePopupWidth() {
+        var maxWidth = 100;
+        if (model) {
+            for (var i = 0; i < model.length; i++) {
+                textMetrics.text = model[i];
+                maxWidth = Math.max(maxWidth, textMetrics.width + 40);
+            }
+        }
+        popupContentWidth = Math.min(maxWidth, 350);
+    }
+
+    onModelChanged: updatePopupWidth()
+    Component.onCompleted: updatePopupWidth()
+
     indicator: Image {
         id: dropdownIcon
 
@@ -94,7 +115,7 @@ Basic.ComboBox {
 
     popup: Popup {
         y: control.height + 2
-        width: control.width
+        width: Math.max(control.width, control.popupContentWidth)
         implicitHeight: Math.min(contentItem.implicitHeight, 300)
         padding: 4
 
@@ -128,7 +149,7 @@ Basic.ComboBox {
     }
 
     delegate: ItemDelegate {
-        width: control.width - 8
+        width: control.popup.width - 8
         height: 32
 
         contentItem: Text {

@@ -21,6 +21,7 @@
 
 #include <utils/aspects.h>
 
+#include "AgentRole.hpp"
 #include "ButtonAspect.hpp"
 
 namespace QodeAssist::Settings {
@@ -81,6 +82,8 @@ public:
     Utils::SelectionAspect textFormat{this};
 
     Utils::SelectionAspect chatRenderer{this};
+
+    Utils::StringAspect lastUsedRoleId{this};
 
 private:
     void setupConnections();

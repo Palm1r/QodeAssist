@@ -26,6 +26,7 @@ import UIControls
 import Qt.labs.platform as Platform
 
 import "./chatparts"
+import "./controls"
 
 ChatRootView {
     id: root
@@ -97,8 +98,7 @@ ChatRootView {
                 text: qsTr("Сhat name: %1").arg(root.chatFileName.length > 0 ? root.chatFileName : "Unsaved")
             }
             openChatHistory.onClicked: root.openChatHistoryFolder()
-            rulesButton.onClicked: rulesViewer.open()
-            activeRulesCount: root.activeRulesCount
+            contextButton.onClicked: contextViewer.open()
             pinButton {
                 visible: typeof _chatview !== 'undefined'
                 checked: typeof _chatview !== 'undefined' ? _chatview.isPin : false
@@ -129,6 +129,18 @@ ChatRootView {
                 
                 popup.onAboutToShow: {
                     root.loadAvailableConfigurations()
+                }
+            }
+            
+            roleSelector {
+                model: root.availableAgentRoles
+                displayText: root.currentAgentRole
+                onActivated: function(index) {
+                    root.applyAgentRole(root.availableAgentRoles[index])
+                }
+                
+                popup.onAboutToShow: {
+                    root.loadAvailableAgentRoles()
                 }
             }
         }
@@ -479,19 +491,28 @@ ChatRootView {
         toastTextColor: "#FFFFFF"
     }
 
-    RulesViewer {
-        id: rulesViewer
+    ContextViewer {
+        id: contextViewer
 
-        width: parent.width * 0.8
-        height: parent.height * 0.8
+        width: Math.min(parent.width * 0.85, 800)
+        height: Math.min(parent.height * 0.85, 700)
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
 
+        baseSystemPrompt: root.baseSystemPrompt
+        currentAgentRole: root.currentAgentRole
+        currentAgentRoleDescription: root.currentAgentRoleDescription
+        currentAgentRoleSystemPrompt: root.currentAgentRoleSystemPrompt
         activeRules: root.activeRules
-        ruleContentAreaText: root.getRuleContent(rulesViewer.rulesCurrentIndex)
-        
-        onRefreshRules: root.refreshRules()
+        activeRulesCount: root.activeRulesCount
+
+        onOpenSettings: root.openSettings()
+        onOpenAgentRolesSettings: root.openAgentRolesSettings()
         onOpenRulesFolder: root.openRulesFolder()
+        onRefreshRules: root.refreshRules()
+        onRuleSelected: function(index) {
+            contextViewer.selectedRuleContent = root.getRuleContent(index)
+        }
     }
 
     Connections {
