@@ -36,6 +36,7 @@
 
 #include "AgentRole.hpp"
 #include "ChatAssistantSettings.hpp"
+#include "ChatCompressor.hpp"
 #include "ChatSerializer.hpp"
 #include "ConfigurationManager.hpp"
 #include "GeneralSettings.hpp"
@@ -58,6 +59,7 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     , m_clientInterface(new ClientInterface(m_chatModel, &m_promptProvider, this))
     , m_fileManager(new ChatFileManager(this))
     , m_isRequestInProgress(false)
+    , m_chatCompressor(new ChatCompressor(this))
 {
     m_isSyncOpenFiles = Settings::chatAssistantSettings().linkOpenFiles();
     connect(
@@ -244,6 +246,27 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     connect(m_fileManager, &ChatFileManager::fileOperationFailed, this, [this](const QString &error) {
         m_lastErrorMessage = error;
         emit lastErrorMessageChanged();
+    });
+
+    // ChatCompressor signals
+    connect(m_chatCompressor, &ChatCompressor::compressionStarted, this, [this]() {
+        emit isCompressingChanged();
+    });
+
+    connect(m_chatCompressor, &ChatCompressor::compressionCompleted, this, [this](const QString &compressedChatPath) {
+        emit isCompressingChanged();
+        m_lastInfoMessage = tr("Chat compressed successfully!");
+        emit lastInfoMessageChanged();
+        emit compressionCompleted(compressedChatPath);
+
+        loadHistory(compressedChatPath);
+    });
+
+    connect(m_chatCompressor, &ChatCompressor::compressionFailed, this, [this](const QString &error) {
+        emit isCompressingChanged();
+        m_lastErrorMessage = error;
+        emit lastErrorMessageChanged();
+        emit compressionFailed(error);
     });
 }
 
@@ -1468,6 +1491,35 @@ QString ChatRootView::currentAgentRoleSystemPrompt() const
 void ChatRootView::openAgentRolesSettings()
 {
     Core::ICore::showOptionsDialog(Utils::Id("QodeAssist.AgentRoles"));
+}
+
+void ChatRootView::compressCurrentChat()
+{
+    if (m_chatCompressor->isCompressing()) {
+        m_lastErrorMessage = tr("Compression is already in progress");
+        emit lastErrorMessageChanged();
+        return;
+    }
+
+    if (m_recentFilePath.isEmpty()) {
+        m_lastErrorMessage = tr("No chat file to compress. Please save the chat first.");
+        emit lastErrorMessageChanged();
+        return;
+    }
+
+    autosave();
+
+    m_chatCompressor->startCompression(m_recentFilePath, m_chatModel);
+}
+
+void ChatRootView::cancelCompression()
+{
+    m_chatCompressor->cancelCompression();
+}
+
+bool ChatRootView::isCompressing() const
+{
+    return m_chatCompressor->isCompressing();
 }
 
 } // namespace QodeAssist::Chat

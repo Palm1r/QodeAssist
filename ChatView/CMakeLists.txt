@@ -53,6 +53,7 @@ qt_add_qml_module(QodeAssistChatView
     icons/tools-icon-on.svg
     icons/tools-icon-off.svg
     icons/settings-icon.svg
+    icons/compress-icon.svg
 
     SOURCES
     ChatWidget.hpp ChatWidget.cpp
@@ -66,6 +67,7 @@ qt_add_qml_module(QodeAssistChatView
     ChatData.hpp
     FileItem.hpp FileItem.cpp
     ChatFileManager.hpp ChatFileManager.cpp
+    ChatCompressor.hpp ChatCompressor.cpp
 )
 
 target_link_libraries(QodeAssistChatView

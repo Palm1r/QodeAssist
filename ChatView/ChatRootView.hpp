@@ -21,13 +21,15 @@
 
 #include <QQuickItem>
 
+#include "ChatFileManager.hpp"
 #include "ChatModel.hpp"
 #include "ClientInterface.hpp"
-#include "ChatFileManager.hpp"
 #include "llmcore/PromptProviderChat.hpp"
 #include <coreplugin/editormanager/editormanager.h>
 
 namespace QodeAssist::Chat {
+
+class ChatCompressor;
 
 class ChatRootView : public QQuickItem
 {
@@ -64,6 +66,7 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(QString baseSystemPrompt READ baseSystemPrompt NOTIFY baseSystemPromptChanged FINAL)
     Q_PROPERTY(QString currentAgentRoleDescription READ currentAgentRoleDescription NOTIFY currentAgentRoleChanged FINAL)
     Q_PROPERTY(QString currentAgentRoleSystemPrompt READ currentAgentRoleSystemPrompt NOTIFY currentAgentRoleChanged FINAL)
+    Q_PROPERTY(bool isCompressing READ isCompressing NOTIFY isCompressingChanged FINAL)
 
     QML_ELEMENT
 
@@ -150,7 +153,10 @@ public:
     Q_INVOKABLE void applyConfiguration(const QString &configName);
     QStringList availableConfigurations() const;
     QString currentConfiguration() const;
-    
+
+    Q_INVOKABLE void compressCurrentChat();
+    Q_INVOKABLE void cancelCompression();
+
     Q_INVOKABLE void loadAvailableAgentRoles();
     Q_INVOKABLE void applyAgentRole(const QString &roleId);
     Q_INVOKABLE void openAgentRolesSettings();
@@ -168,6 +174,8 @@ public:
     QString lastInfoMessage() const;
 
     bool isThinkingSupport() const;
+    
+    bool isCompressing() const;
 
 public slots:
     void sendMessage(const QString &message);
@@ -205,9 +213,14 @@ signals:
     void isThinkingSupportChanged();
     void availableConfigurationsChanged();
     void currentConfigurationChanged();
+
     void availableAgentRolesChanged();
     void currentAgentRoleChanged();
     void baseSystemPromptChanged();
+
+    void isCompressingChanged();
+    void compressionCompleted(const QString &compressedChatPath);
+    void compressionFailed(const QString &error);
 
 private:
     void updateFileEditStatus(const QString &editId, const QString &status);
@@ -241,9 +254,11 @@ private:
     
     QStringList m_availableConfigurations;
     QString m_currentConfiguration;
-    
+
     QStringList m_availableAgentRoles;
     QString m_currentAgentRole;
+
+    ChatCompressor *m_chatCompressor;
 };
 
 } // namespace QodeAssist::Chat
