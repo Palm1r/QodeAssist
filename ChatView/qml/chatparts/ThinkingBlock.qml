@@ -24,10 +24,12 @@ Rectangle {
     id: root
 
     property string thinkingContent: ""
-    // property string signature: ""
     property bool isRedacted: false
-    property bool expanded: false
-    
+
+    enum DisplayMode { Collapsed, Compact, Expanded }
+    property int displayMode: ThinkingBlock.DisplayMode.Compact
+    property int compactHeight: 120
+
     property alias headerOpacity: headerRow.opacity
 
     radius: 6
@@ -38,13 +40,32 @@ Rectangle {
         NumberAnimation { duration: 200; easing.type: Easing.InOutQuad }
     }
 
+    implicitHeight: {
+        if (displayMode === ThinkingBlock.DisplayMode.Collapsed) {
+            return header.height
+        } else if (displayMode === ThinkingBlock.DisplayMode.Compact) {
+            let fullHeight = header.height + contentColumn.height + 20
+            return Math.min(fullHeight, header.height + compactHeight)
+        } else {
+            return header.height + contentColumn.height + 20
+        }
+    }
+
     MouseArea {
         id: header
 
         width: parent.width
         height: headerRow.height + 10
         cursorShape: Qt.PointingHandCursor
-        onClicked: root.expanded = !root.expanded
+        onClicked: {
+            if (root.displayMode === ThinkingBlock.DisplayMode.Collapsed) {
+                root.displayMode = ThinkingBlock.DisplayMode.Compact
+            } else if (root.displayMode === ThinkingBlock.DisplayMode.Compact) {
+                root.displayMode = ThinkingBlock.DisplayMode.Collapsed
+            } else {
+                root.displayMode = ThinkingBlock.DisplayMode.Compact
+            }
+        }
 
         Row {
             id: headerRow
@@ -67,72 +88,96 @@ Rectangle {
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: root.expanded ? "▼" : "▶"
+                text: root.displayMode === ThinkingBlock.DisplayMode.Collapsed ? "▶" : "▼"
                 font.pixelSize: 10
                 color: palette.mid
             }
         }
     }
 
-    Column {
-        id: contentColumn
+    Item {
+        id: contentWrapper
 
         anchors {
             left: parent.left
             right: parent.right
             top: header.bottom
+            bottom: parent.bottom
             margins: 10
+            bottomMargin: expandButton.visible ? expandButton.height + 15 : 10
         }
-        spacing: 8
+        clip: true
+        visible: root.displayMode !== ThinkingBlock.DisplayMode.Collapsed
+
+        Column {
+            id: contentColumn
+
+            width: parent.width
+            spacing: 8
+
+            Text {
+                visible: root.isRedacted
+                width: parent.width
+                text: qsTr("Thinking content was redacted by safety systems")
+                font.pixelSize: 11
+                font.italic: true
+                color: Qt.rgba(0.8, 0.4, 0.4, 1.0)
+                wrapMode: Text.WordWrap
+            }
+
+            TextEdit {
+                id: thinkingText
+
+                visible: !root.isRedacted
+                width: parent.width
+                text: root.thinkingContent
+                readOnly: true
+                selectByMouse: true
+                color: palette.text
+                wrapMode: Text.WordWrap
+                font.family: "monospace"
+                font.pixelSize: 11
+                selectionColor: palette.highlight
+            }
+        }
+    }
+
+    Rectangle {
+        id: expandButton
+
+        property bool needsExpand: contentColumn.height > compactHeight - 20
+
+        anchors {
+            bottom: parent.bottom
+            left: parent.left
+            right: parent.right
+            bottomMargin: 5
+            leftMargin: 10
+            rightMargin: 10
+        }
+        height: 24
+        radius: 4
+        color: palette.button
+        visible: needsExpand && root.displayMode !== ThinkingBlock.DisplayMode.Collapsed
 
         Text {
-            visible: root.isRedacted
-            width: parent.width
-            text: qsTr("Thinking content was redacted by safety systems")
+            anchors.centerIn: parent
+            text: root.displayMode === ThinkingBlock.DisplayMode.Expanded ? qsTr("▲ Show less") : qsTr("▼ Show more")
             font.pixelSize: 11
-            font.italic: true
-            color: Qt.rgba(0.8, 0.4, 0.4, 1.0)
-            wrapMode: Text.WordWrap
+            color: palette.buttonText
         }
 
-        TextEdit {
-            id: thinkingText
-
-            visible: !root.isRedacted
-            width: parent.width
-            text: root.thinkingContent
-            readOnly: true
-            selectByMouse: true
-            color: palette.text
-            wrapMode: Text.WordWrap
-            font.family: "monospace"
-            font.pixelSize: 11
-            selectionColor: palette.highlight
+        MouseArea {
+            anchors.fill: parent
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                if (root.displayMode === ThinkingBlock.DisplayMode.Expanded) {
+                    root.displayMode = ThinkingBlock.DisplayMode.Compact
+                } else {
+                    root.displayMode = ThinkingBlock.DisplayMode.Expanded
+                }
+            }
         }
-
-        // Rectangle {
-        //     visible: root.signature.length > 0 && root.expanded
-        //     width: parent.width
-        //     height: signatureText.height + 10
-        //     color: palette.alternateBase
-        //     radius: 4
-
-        //     Text {
-        //         id: signatureText
-
-        //         anchors {
-        //             left: parent.left
-        //             right: parent.right
-        //             verticalCenter: parent.verticalCenter
-        //             margins: 5
-        //         }
-        //         text: qsTr("Signature: %1").arg(root.signature.substring(0, Math.min(40, root.signature.length)) + "...")
-        //         font.pixelSize: 9
-        //         font.family: "monospace"
-        //         color: palette.mid
-        //         elide: Text.ElideRight
-        //     }
-        // }
     }
 
     MouseArea {
@@ -146,8 +191,26 @@ Rectangle {
         id: contextMenu
 
         Platform.MenuItem {
-            text: root.expanded ? qsTr("Collapse") : qsTr("Expand")
-            onTriggered: root.expanded = !root.expanded
+            text: root.displayMode === ThinkingBlock.DisplayMode.Collapsed ? qsTr("Expand") : qsTr("Collapse")
+            onTriggered: {
+                if (root.displayMode === ThinkingBlock.DisplayMode.Collapsed) {
+                    root.displayMode = ThinkingBlock.DisplayMode.Compact
+                } else {
+                    root.displayMode = ThinkingBlock.DisplayMode.Collapsed
+                }
+            }
+        }
+
+        Platform.MenuItem {
+            text: root.displayMode === ThinkingBlock.DisplayMode.Expanded ? qsTr("Compact view") : qsTr("Full view")
+            enabled: root.displayMode !== ThinkingBlock.DisplayMode.Collapsed
+            onTriggered: {
+                if (root.displayMode === ThinkingBlock.DisplayMode.Expanded) {
+                    root.displayMode = ThinkingBlock.DisplayMode.Compact
+                } else {
+                    root.displayMode = ThinkingBlock.DisplayMode.Expanded
+                }
+            }
         }
     }
 
@@ -162,22 +225,4 @@ Rectangle {
                                                                 : Qt.lighter(palette.alternateBase, 1.3))
         radius: root.radius
     }
-
-    states: [
-        State {
-            when: !root.expanded
-            PropertyChanges {
-                target: root
-                implicitHeight: header.height
-            }
-        },
-        State {
-            when: root.expanded
-            PropertyChanges {
-                target: root
-                implicitHeight: header.height + contentColumn.height + 20
-            }
-        }
-    ]
 }
-

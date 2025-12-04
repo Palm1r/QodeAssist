@@ -148,7 +148,7 @@ ChatRootView {
         ListView {
             id: chatListView
 
-            signal hideServiceComponents(int itemIndex)
+            property bool userScrolledUp: false
 
             Layout.fillWidth: true
             Layout.fillHeight: true
@@ -158,6 +158,18 @@ ChatRootView {
             spacing: 0
             boundsBehavior: Flickable.StopAtBounds
             cacheBuffer: 2000
+
+            onMovingChanged: {
+                if (moving) {
+                    userScrolledUp = !atYEnd
+                }
+            }
+
+            onAtYEndChanged: {
+                if (atYEnd) {
+                    userScrolledUp = false
+                }
+            }
 
             delegate: Loader {
                 id: componentLoader
@@ -179,11 +191,6 @@ ChatRootView {
                     }
                 }
 
-                onLoaded: {
-                    if (componentLoader.sourceComponent == chatItemComponent) {
-                        chatListView.hideServiceComponents(index)
-                    }
-                }
             }
 
             header: Item {
@@ -195,12 +202,53 @@ ChatRootView {
                 id: scroll
             }
 
+            Rectangle {
+                id: scrollToBottomButton
+
+                anchors {
+                    bottom: parent.bottom
+                    horizontalCenter: parent.horizontalCenter
+                    bottomMargin: 10
+                }
+                width: 36
+                height: 36
+                radius: 18
+                color: palette.button
+                border.color: palette.mid
+                border.width: 1
+                visible: chatListView.userScrolledUp
+                opacity: 0.9
+                z: 100
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "▼"
+                    font.pixelSize: 14
+                    color: palette.buttonText
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        chatListView.userScrolledUp = false
+                        root.scrollToBottom()
+                    }
+                }
+
+                Behavior on visible {
+                    enabled: false
+                }
+            }
+
             onCountChanged: {
-                root.scrollToBottom()
+                if (!userScrolledUp) {
+                    root.scrollToBottom()
+                }
             }
 
             onContentHeightChanged: {
-                if (atYEnd) {
+                if (!userScrolledUp && atYEnd) {
                     root.scrollToBottom()
                 }
             }
@@ -236,19 +284,8 @@ ChatRootView {
                 id: toolMessageComponent
 
                 ToolBlock {
-                    id: toolsItem
-
                     width: parent.width
                     toolContent: model.content
-
-                    Connections {
-                        target: chatListView
-                        function onHideServiceComponents(itemIndex) {
-                            if (index !== itemIndex) {
-                                toolsItem.headerOpacity = 0.5
-                            }
-                        }
-                    }
                 }
             }
 
@@ -281,8 +318,6 @@ ChatRootView {
                 id: thinkingMessageComponent
 
                 ThinkingBlock {
-                    id: thinking
-
                     width: parent.width
                     thinkingContent: {
                         let content = model.content
@@ -293,15 +328,6 @@ ChatRootView {
                         return content
                     }
                     isRedacted: model.isRedacted !== undefined ? model.isRedacted : false
-
-                    Connections {
-                        target: chatListView
-                        function onHideServiceComponents(itemIndex) {
-                            if (index !== itemIndex) {
-                                thinking.headerOpacity = 0.5
-                            }
-                        }
-                    }
                 }
             }
         }
