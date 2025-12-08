@@ -106,6 +106,10 @@ Rectangle {
                 ToolTip.delay: 250
                 ToolTip.text: qsTr("Switch agent role (different system prompts)")
             }
+        }
+
+        Row {
+            spacing: 10
 
             QoAButton {
                 id: toolsButtonId
@@ -179,6 +183,7 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
             }
         }
+
 
         Item {
             height: firstRow.height
@@ -270,11 +275,14 @@ Rectangle {
 
             Row {
                 id: compressingRow
+
                 visible: root.isCompressing
                 spacing: 6
 
                 BusyIndicator {
                     id: compressBusyIndicator
+
+                    anchors.verticalCenter: parent.verticalCenter
                     running: root.isCompressing
                     width: 16
                     height: 16
@@ -282,14 +290,15 @@ Rectangle {
 
                 Text {
                     text: qsTr("Compressing...")
+                    height: parent.height
                     color: palette.text
                     font.pixelSize: 12
                     verticalAlignment: Text.AlignVCenter
-                    height: parent.height
                 }
 
                 QoAButton {
                     id: cancelCompressButtonId
+
                     text: qsTr("Cancel")
 
                     ToolTip.visible: hovered
