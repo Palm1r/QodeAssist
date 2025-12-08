@@ -15,13 +15,16 @@ Agent Roles are reusable system prompt configurations that modify how the AI ass
 
 ## Default Roles
 
-QodeAssist comes with two built-in roles:
+QodeAssist comes with three built-in roles:
 
 ### Developer
-General coding assistance focused on writing clean, maintainable code following industry standards. Best for implementation tasks, debugging, and code explanations.
+Experienced Qt/C++ developer with a structured workflow: analyze the problem, propose a solution, wait for approval, then implement. Best for implementation tasks where you want thoughtful, minimal code changes.
 
 ### Code Reviewer
-Expert code review persona that identifies bugs, performance issues, and adherence to best practices. Provides constructive feedback with specific suggestions for improvement.
+Expert C++/QML code reviewer specializing in C++20 and Qt6. Checks for bugs, memory leaks, thread safety, Qt patterns, and production readiness. Provides direct, specific feedback with code examples.
+
+### Researcher
+Research-oriented developer who investigates problems and explores solutions. Analyzes problems, presents multiple approaches with trade-offs, and recommends the best option. Does not write implementation code — focuses on helping you make informed decisions.
 
 ## Using Agent Roles
 

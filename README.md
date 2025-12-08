@@ -159,6 +159,7 @@ For optimal coding assistance, we recommend using these top-tier models:
 ### Additional Configuration
 
 - **[Agent Roles](docs/agent-roles.md)** - Create AI personas with specialized system prompts
+- **[Chat Summarization](docs/chat-summarization.md)** - Compress conversations to save context tokens
 - **[Project Rules](docs/project-rules.md)** - Customize AI behavior for your project
 - **[Ignoring Files](docs/ignoring-files.md)** - Exclude files from context using `.qodeassistignore`
 
@@ -196,6 +197,7 @@ Configure in: `Tools → Options → QodeAssist → Code Completion → General 
 - Chat history with auto-save and restore
 - Token usage monitoring
 - **[Agent Roles](docs/agent-roles.md)** - Switch between AI personas (Developer, Reviewer, custom roles)
+- **[Chat Summarization](docs/chat-summarization.md)** - Compress long conversations into AI-generated summaries
 - **[File Context](docs/file-context.md)** - Attach or link files for better context
 - Automatic syncing with open editor files (optional)
 - Extended thinking mode (Claude, other providers in plan) - Enable deeper reasoning for complex tasks

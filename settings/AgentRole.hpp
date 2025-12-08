@@ -76,6 +76,7 @@ public:
 private:
     static AgentRole getDefaultDeveloperRole();
     static AgentRole getDefaultReviewerRole();
+    static AgentRole getDefaultResearcherRole();
 };
 
 } // namespace QodeAssist::Settings
