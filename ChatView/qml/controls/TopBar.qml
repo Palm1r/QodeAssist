@@ -91,7 +91,7 @@ Rectangle {
 
                 ToolTip.visible: hovered
                 ToolTip.delay: 250
-                ToolTip.text: qsTr("Switch AI configuration")
+                ToolTip.text: qsTr("Switch saved AI configuration")
             }
 
             QoAComboBox {
@@ -174,6 +174,10 @@ Rectangle {
                 ToolTip.delay: 250
                 ToolTip.text: qsTr("Open Chat Assistant Settings")
             }
+
+            QoASeparator {
+                anchors.verticalCenter: parent.verticalCenter
+            }
         }
 
         Item {
@@ -235,17 +239,19 @@ Rectangle {
             }
 
             QoAButton {
-                id: clearButtonId
+                id: openChatHistoryId
 
                 icon {
-                    source: "qrc:/qt/qml/ChatView/icons/clean-icon-dark.svg"
+                    source: "qrc:/qt/qml/ChatView/icons/file-in-system.svg"
                     height: 15
-                    width: 8
+                    width: 15
                 }
                 ToolTip.visible: hovered
                 ToolTip.delay: 250
-                ToolTip.text: qsTr("Clean chat")
+                ToolTip.text: qsTr("Show in system")
             }
+
+            QoASeparator {}
 
             QoAButton {
                 id: compressButtonId
@@ -293,19 +299,6 @@ Rectangle {
             }
 
             QoAButton {
-                id: openChatHistoryId
-
-                icon {
-                    source: "qrc:/qt/qml/ChatView/icons/file-in-system.svg"
-                    height: 15
-                    width: 15
-                }
-                ToolTip.visible: hovered
-                ToolTip.delay: 250
-                ToolTip.text: qsTr("Show in system")
-            }
-
-            QoAButton {
                 id: contextButtonId
 
                 icon {
@@ -326,6 +319,21 @@ Rectangle {
                 ToolTip.visible: hovered
                 ToolTip.delay: 250
                 ToolTip.text: qsTr("Current amount tokens in chat and LLM limit threshold")
+            }
+
+            QoASeparator {}
+
+            QoAButton {
+                id: clearButtonId
+
+                icon {
+                    source: "qrc:/qt/qml/ChatView/icons/clean-icon-dark.svg"
+                    height: 15
+                    width: 8
+                }
+                ToolTip.visible: hovered
+                ToolTip.delay: 250
+                ToolTip.text: qsTr("Clean chat")
             }
         }
     }

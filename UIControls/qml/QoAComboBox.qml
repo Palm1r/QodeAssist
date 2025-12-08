@@ -24,15 +24,10 @@ import QtQuick.Controls.Basic as Basic
 Basic.ComboBox {
     id: control
 
-    implicitWidth: Math.min(contentItem.implicitWidth + 8, 300)
-    implicitHeight: 30
-
     property real popupContentWidth: 100
 
-    TextMetrics {
-        id: textMetrics
-        font.pixelSize: 12
-    }
+    implicitWidth: Math.min(contentItem.implicitWidth + 8, 300)
+    implicitHeight: 30
 
     function updatePopupWidth() {
         var maxWidth = 100;
@@ -47,6 +42,7 @@ Basic.ComboBox {
 
     onModelChanged: updatePopupWidth()
     Component.onCompleted: updatePopupWidth()
+    clip: true
 
     indicator: Image {
         id: dropdownIcon
@@ -177,6 +173,11 @@ Basic.ComboBox {
                 ColorAnimation { duration: 100 }
             }
         }
+    }
+
+    TextMetrics {
+        id: textMetrics
+        font.pixelSize: 12
     }
 }
 
