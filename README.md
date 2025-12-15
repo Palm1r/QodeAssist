@@ -360,7 +360,7 @@ See [Project Rules Documentation](docs/project-rules.md), [Agent Roles Guide](do
 | Qt Creator Version | QodeAssist Version |
 |-------------------|-------------------|
 | 17.0.0+ | 0.6.0 - 0.x.x |
-| 16.0.2 | 0.5.13 - 0.x.x |
+| 16.0.2 | 0.5.13 - 0.9.6 |
 | 16.0.1 | 0.5.7 - 0.5.13 |
 | 16.0.0 | 0.5.2 - 0.5.6 |
 | 15.0.1 | 0.4.8 - 0.5.1 |
