@@ -23,6 +23,7 @@
 #include <coreplugin/icore.h>
 #include <utils/layoutbuilder.h>
 #include <QMessageBox>
+#include <logger/Logger.hpp>
 
 #include "SettingsConstants.hpp"
 #include "SettingsTr.hpp"
@@ -488,8 +489,41 @@ void CodeCompletionSettings::resetSettingsToDefaults()
 QString CodeCompletionSettings::processMessageToFIM(const QString &prefix, const QString &suffix) const
 {
     QString result = userMessageTemplateForCC();
+
+    // Always replace basic tags
     result.replace("${prefix}", prefix);
     result.replace("${suffix}", suffix);
+
+    // Check if extra tags are needed
+    bool needsExtraTags = result.contains("${cursor_line}") ||
+                          result.contains("${prefix-1}") ||
+                          result.contains("${suffix-1}");
+    if (needsExtraTags) {
+        // Extract line part from prefix (last line before cursor)
+        int lastNewlineInPrefix = prefix.lastIndexOf('\n');
+        QString head = (lastNewlineInPrefix == -1) ? prefix : prefix.mid(lastNewlineInPrefix + 1);
+
+        // Extract line part from suffix (first line after cursor)
+        int firstNewlineInSuffix = suffix.indexOf('\n');
+        QString tail = (firstNewlineInSuffix == -1) ? suffix : suffix.left(firstNewlineInSuffix);
+
+        // Build cursor_line (cursor line without newlines)
+        QString cursor_line = head + tail;
+
+        // Build prefix-1 (prefix without cursor line head)
+        QString prefix_1 = (lastNewlineInPrefix != -1) ? prefix.left(lastNewlineInPrefix + 1) : "";
+
+        // Build suffix-1 (suffix without cursor line tail)
+        QString suffix_1 = (firstNewlineInSuffix != -1) ? suffix.mid(firstNewlineInSuffix) : "";
+
+        // Replace new tags
+        LOG_MESSAGE("Applying extended placeholders: cursor_line, prefix-1, suffix-1");
+        LOG_MESSAGE(QString("cursor_line=\n'%1'").arg(cursor_line));
+        result.replace("${cursor_line}", cursor_line);
+        result.replace("${prefix-1}", prefix_1);
+        result.replace("${suffix-1}", suffix_1);
+    }
+
     return result;
 }
 
