@@ -37,9 +37,9 @@ public:
         request["input_prefix"] = context.prefix.value_or("");
         request["input_suffix"] = context.suffix.value_or("");
 
-        if (context.filesMetadata && !context.filesMetadata->isEmpty()) {
+        if (context.filesContent && !context.filesContent->isEmpty()) {
             QJsonArray filesArray;
-            for (const auto &file : *context.filesMetadata) {
+            for (const auto &file : *context.filesContent) {
                 QJsonObject fileObj;
                 fileObj["filename"] = file.filePath;
                 fileObj["text"] = file.content;

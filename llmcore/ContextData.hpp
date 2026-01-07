@@ -47,11 +47,11 @@ struct Message
     // clang-format on
 };
 
-struct FileMetadata
+struct FileContent
 {
     QString filePath;
     QString content;
-    bool operator==(const FileMetadata &) const = default;
+    bool operator==(const FileContent &) const = default;
 };
 
 struct ContextData
@@ -61,7 +61,7 @@ struct ContextData
     std::optional<QString> suffix;
     std::optional<QString> fileContext;
     std::optional<QVector<Message>> history;
-    std::optional<QList<FileMetadata>> filesMetadata;
+    std::optional<QList<FileContent>> filesContent;
 
     bool operator==(const ContextData &) const = default;
 };

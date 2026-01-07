@@ -144,9 +144,12 @@ QList<QPair<QString, QString>> ContextManager::openedFiles(const QStringList exc
             continue;
         }
 
-        if (!excludeFiles.contains(filePath)) {
-            files.append({filePath, textDocument->plainText()});
+        //skip the cursor-heaving file
+        if (excludeFiles.contains(filePath)) {
+            continue;
         }
+
+        files.append({filePath, textDocument->plainText()});
     }
 
     return files;

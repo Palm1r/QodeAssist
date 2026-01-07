@@ -229,7 +229,7 @@ void LLMClientInterface::sendErrorResponse(const QJsonObject &request, const QSt
 
 void LLMClientInterface::handleCompletion(const QJsonObject &request)
 {
-    auto filePath = Context::extractFilePathFromRequest(request);
+    auto filePath = Context::extractFilePathFromRequest(request); //file heaving cursor
     auto documentInfo = m_documentReader.readDocument(filePath);
     if (!documentInfo.document) {
         QString error = QString("Document is not available: %1").arg(filePath);
@@ -314,15 +314,19 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         systemPrompt.append(updatedContext.fileContext.value());
 
     if (m_completeSettings.useOpenFilesContext()) {
+        QStringList listExcludeFile = {filePath}; //Exclude list: skipping the file that is currently being edited
         if (provider->providerID() == LLMCore::ProviderID::LlamaCpp) {
-            for (const auto openedFilePath : m_contextManager->openedFiles({filePath})) {
-                if (!updatedContext.filesMetadata) {
-                    updatedContext.filesMetadata = QList<LLMCore::FileMetadata>();
+            // for each text document, EXCLUDE the editing one
+            for (const auto openedFile : m_contextManager->openedFiles(listExcludeFile)) {
+                auto path = openedFile.first;
+                auto plainText = openedFile.second;
+                if (!updatedContext.filesContent) {
+                    updatedContext.filesContent = QList<LLMCore::FileContent>();
                 }
-                updatedContext.filesMetadata->append({openedFilePath.first, openedFilePath.second});
+                updatedContext.filesContent->append({path, plainText});
             }
         } else {
-            systemPrompt.append(m_contextManager->openedFilesContext({filePath}));
+            systemPrompt.append(m_contextManager->openedFilesContext(listExcludeFile));
         }
     }
 
@@ -330,11 +334,12 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
 
     if (promptTemplate->type() == LLMCore::TemplateType::Chat) {
         QString userMessage;
+        auto prefix = updatedContext.prefix.value_or("");
+        auto suffix = updatedContext.suffix.value_or("");
         if (m_completeSettings.useUserMessageTemplateForCC()) {
-            userMessage = m_completeSettings.generateUserMessage(
-                updatedContext.prefix.value_or(""), updatedContext.suffix.value_or(""));
+            userMessage = m_completeSettings.generateUserMessage(prefix, suffix);
         } else {
-            userMessage = updatedContext.prefix.value_or("") + updatedContext.suffix.value_or("");
+            userMessage = prefix + suffix;
         }
 
         // TODO refactor add message
