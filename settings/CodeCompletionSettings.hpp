@@ -89,7 +89,7 @@ public:
     // OpenAI Responses API Settings
     Utils::SelectionAspect openAIResponsesReasoningEffort{this};
 
-    QString processMessageToFIM(const QString &prefix, const QString &suffix) const;
+    QString generateUserMessage(const QString &prefix, const QString &suffix) const;
 
 private:
     void setupConnections();

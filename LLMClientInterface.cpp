@@ -331,7 +331,7 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     if (promptTemplate->type() == LLMCore::TemplateType::Chat) {
         QString userMessage;
         if (m_completeSettings.useUserMessageTemplateForCC()) {
-            userMessage = m_completeSettings.processMessageToFIM(
+            userMessage = m_completeSettings.generateUserMessage(
                 updatedContext.prefix.value_or(""), updatedContext.suffix.value_or(""));
         } else {
             userMessage = updatedContext.prefix.value_or("") + updatedContext.suffix.value_or("");

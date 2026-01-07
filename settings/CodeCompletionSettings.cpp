@@ -486,7 +486,7 @@ void CodeCompletionSettings::resetSettingsToDefaults()
     }
 }
 
-QString CodeCompletionSettings::processMessageToFIM(const QString &prefix, const QString &suffix) const
+QString CodeCompletionSettings::generateUserMessage(const QString &prefix, const QString &suffix) const
 {
     QString result = userMessageTemplateForCC();
 
