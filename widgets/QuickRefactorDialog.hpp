@@ -27,6 +27,8 @@ class QPlainTextEdit;
 class QToolButton;
 class QLabel;
 class QComboBox;
+class QLineEdit;
+class QFrame;
 
 namespace QodeAssist {
 
@@ -70,6 +72,7 @@ private:
     void createActionButtons();
     CustomInstruction findCurrentInstruction() const;
 
+    QLineEdit *m_quickInstructionEdit;
     QPlainTextEdit *m_textEdit;
     QToolButton *m_repeatButton;
     QToolButton *m_improveButton;
