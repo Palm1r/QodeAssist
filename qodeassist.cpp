@@ -250,8 +250,6 @@ public:
             editorContextMenu->addAction(requestAction.command(), Core::Constants::G_DEFAULT_THREE);
             editorContextMenu->addAction(showChatViewAction.command(),
                                          Core::Constants::G_DEFAULT_THREE);
-            editorContextMenu->addAction(closeChatViewAction.command(),
-                                         Core::Constants::G_DEFAULT_THREE);
         }
 
         Chat::ChatFileManager::cleanupGlobalIntermediateStorage();
