@@ -128,6 +128,10 @@ For more information, visit the [QodeAssistUpdater repository](https://github.co
 ### Quick Setup (Recommended for Beginners)
 
 The Quick Setup feature provides one-click configuration for popular cloud AI models. Get started in 3 easy steps:
+<details>
+  <summary>Quick setup: (click to expand)</summary>
+  <img width="600" alt="Quick Setup" src="https://github.com/user-attachments/assets/20df9155-9095-420c-8387-908bd931bcfa">
+</details>
 
 1. **Open QodeAssist Settings**
 2. **Select a Preset** - Choose from the Quick Setup dropdown:
