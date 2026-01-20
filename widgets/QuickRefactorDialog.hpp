@@ -51,6 +51,7 @@ public:
     QString selectedConfiguration() const;
 
     bool eventFilter(QObject *watched, QEvent *event) override;
+    void keyPressEvent(QKeyEvent *event) override;
 
 private slots:
     void useLastInstructions();
@@ -66,14 +67,14 @@ private slots:
     void loadCustomCommands();
     void loadAvailableConfigurations();
     void onConfigurationChanged(int index);
+    void validateAndAccept();
 
 private:
     void setupUi();
     void createActionButtons();
     CustomInstruction findCurrentInstruction() const;
 
-    QLineEdit *m_quickInstructionEdit;
-    QPlainTextEdit *m_textEdit;
+    QPlainTextEdit *m_instructionEdit;
     QToolButton *m_repeatButton;
     QToolButton *m_improveButton;
     QToolButton *m_alternativeButton;
@@ -86,7 +87,6 @@ private:
     QToolButton *m_thinkingButton;
     QComboBox *m_commandsComboBox;
     QComboBox *m_configComboBox;
-    QLabel *m_instructionsLabel;
 
     Action m_selectedAction = Action::Custom;
     QString m_lastInstructions;
