@@ -41,6 +41,7 @@ struct AIConfiguration
     QString customEndpoint;
     ConfigurationType type;
     int formatVersion = CONFIGURATION_FORMAT_VERSION;
+    bool isPredefined = false;
 };
 
 class ConfigurationManager : public QObject
@@ -58,6 +59,8 @@ public:
     AIConfiguration getConfigurationById(const QString &id, ConfigurationType type) const;
 
     QString getConfigurationDirectory(ConfigurationType type) const;
+    
+    static QVector<AIConfiguration> getPredefinedConfigurations(ConfigurationType type);
 
 signals:
     void configurationsChanged(ConfigurationType type);

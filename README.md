@@ -125,16 +125,30 @@ For more information, visit the [QodeAssistUpdater repository](https://github.co
 
 ## Configuration
 
-QodeAssist supports multiple LLM providers. Choose your preferred provider and follow the configuration guide:
+### Quick Setup (Recommended for Beginners)
 
-### Supported Providers
+The Quick Setup feature provides one-click configuration for popular cloud AI models. Get started in 3 easy steps:
+
+1. **Open QodeAssist Settings**
+2. **Select a Preset** - Choose from the Quick Setup dropdown:
+   - **Anthropic Claude** (Sonnet 4.5, Haiku 4.5, Opus 4.5)
+   - **OpenAI** (gpt-5.2-codex)
+   - **Mistral AI** (Codestral 2501)
+   - **Google AI** (Gemini 2.5 Flash)
+3. **Configure API Key** - Click "Configure API Key" button and enter your API key in Provider Settings
+
+All settings (provider, model, template, URL) are configured automatically. Just add your API key and you're ready to go!
+
+### Manual Provider Configuration
+
+For advanced users or local models, choose your preferred provider and follow the detailed configuration guide:
 
 - **[Ollama](docs/ollama-configuration.md)** - Local LLM provider
 - **[llama.cpp](docs/llamacpp-configuration.md)** - Local LLM server
-- **[Anthropic Claude](docs/claude-configuration.md)** - Сloud provider
-- **[OpenAI](docs/openai-configuration.md)** - Сloud provider (includes Responses API support)
-- **[Mistral AI](docs/mistral-configuration.md)** - Сloud provider
-- **[Google AI](docs/google-ai-configuration.md)** - Сloud provider
+- **[Anthropic Claude](docs/claude-configuration.md)** - Cloud provider (manual setup)
+- **[OpenAI](docs/openai-configuration.md)** - Cloud provider (includes Responses API support)
+- **[Mistral AI](docs/mistral-configuration.md)** - Cloud provider
+- **[Google AI](docs/google-ai-configuration.md)** - Cloud provider
 - **LM Studio** - Local LLM provider
 - **OpenAI-compatible** - Custom providers (OpenRouter, etc.)
 

@@ -23,6 +23,7 @@
 #include <coreplugin/icore.h>
 #include <utils/layoutbuilder.h>
 #include <utils/utilsicons.h>
+#include <QComboBox>
 #include <QDesktopServices>
 #include <QDir>
 #include <QInputDialog>
@@ -88,6 +89,27 @@ GeneralSettings::GeneralSettings()
 
     resetToDefaults.m_buttonText = TrConstants::RESET_TO_DEFAULTS;
     checkUpdate.m_buttonText = TrConstants::CHECK_UPDATE;
+    
+    ccPresetConfig.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+    ccPresetConfig.setLabelText(Tr::tr("Quick Setup"));
+    loadPresetConfigurations(ccPresetConfig, ConfigurationType::CodeCompletion);
+    
+    ccConfigureApiKey.m_buttonText = Tr::tr("Configure API Key");
+    ccConfigureApiKey.m_tooltip = Tr::tr("Open Provider Settings to configure API keys");
+    
+    caPresetConfig.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+    caPresetConfig.setLabelText(Tr::tr("Quick Setup"));
+    loadPresetConfigurations(caPresetConfig, ConfigurationType::Chat);
+    
+    caConfigureApiKey.m_buttonText = Tr::tr("Configure API Key");
+    caConfigureApiKey.m_tooltip = Tr::tr("Open Provider Settings to configure API keys");
+    
+    qrPresetConfig.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+    qrPresetConfig.setLabelText(Tr::tr("Quick Setup"));
+    loadPresetConfigurations(qrPresetConfig, ConfigurationType::QuickRefactor);
+    
+    qrConfigureApiKey.m_buttonText = Tr::tr("Configure API Key");
+    qrConfigureApiKey.m_tooltip = Tr::tr("Open Provider Settings to configure API keys");
 
     initStringAspect(ccProvider, Constants::CC_PROVIDER, TrConstants::PROVIDER, "Ollama");
     ccProvider.setReadOnly(true);
@@ -127,6 +149,7 @@ GeneralSettings::GeneralSettings()
 
     ccSaveConfig.m_buttonText = TrConstants::SAVE_CONFIG;
     ccLoadConfig.m_buttonText = TrConstants::LOAD_CONFIG;
+    ccLoadConfig.m_tooltip = Tr::tr("Load configuration (includes predefined cloud models)");
     ccOpenConfigFolder.m_buttonText = TrConstants::OPEN_CONFIG_FOLDER;
     ccOpenConfigFolder.m_icon = Utils::Icons::OPENFILE.icon();
     ccOpenConfigFolder.m_isCompact = true;
@@ -218,6 +241,7 @@ GeneralSettings::GeneralSettings()
 
     caSaveConfig.m_buttonText = TrConstants::SAVE_CONFIG;
     caLoadConfig.m_buttonText = TrConstants::LOAD_CONFIG;
+    caLoadConfig.m_tooltip = Tr::tr("Load configuration (includes predefined cloud models)");
     caOpenConfigFolder.m_buttonText = TrConstants::OPEN_CONFIG_FOLDER;
     caOpenConfigFolder.m_icon = Utils::Icons::OPENFILE.icon();
     caOpenConfigFolder.m_isCompact = true;
@@ -262,6 +286,7 @@ GeneralSettings::GeneralSettings()
 
     qrSaveConfig.m_buttonText = TrConstants::SAVE_CONFIG;
     qrLoadConfig.m_buttonText = TrConstants::LOAD_CONFIG;
+    qrLoadConfig.m_tooltip = Tr::tr("Load configuration (includes predefined cloud models)");
     qrOpenConfigFolder.m_buttonText = TrConstants::OPEN_CONFIG_FOLDER;
     qrOpenConfigFolder.m_icon = Utils::Icons::OPENFILE.icon();
     qrOpenConfigFolder.m_isCompact = true;
@@ -325,17 +350,24 @@ GeneralSettings::GeneralSettings()
             title(TrConstants::CODE_COMPLETION),
             Column{
                 Row{ccSaveConfig, ccLoadConfig, ccOpenConfigFolder, Stretch{1}},
+                Row{ccPresetConfig, ccConfigureApiKey, Stretch{1}},
                 ccGrid,
                 Row{specifyPreset1, preset1Language, Stretch{1}},
                 ccPreset1Grid}};
 
         auto caGroup = Group{
             title(TrConstants::CHAT_ASSISTANT),
-            Column{Row{caSaveConfig, caLoadConfig, caOpenConfigFolder, Stretch{1}}, caGrid}};
+            Column{
+                Row{caSaveConfig, caLoadConfig, caOpenConfigFolder, Stretch{1}},
+                Row{caPresetConfig, caConfigureApiKey, Stretch{1}},
+                caGrid}};
 
         auto qrGroup = Group{
             title(TrConstants::QUICK_REFACTOR),
-            Column{Row{qrSaveConfig, qrLoadConfig, qrOpenConfigFolder, Stretch{1}}, qrGrid}};
+            Column{
+                Row{qrSaveConfig, qrLoadConfig, qrOpenConfigFolder, Stretch{1}},
+                Row{qrPresetConfig, qrConfigureApiKey, Stretch{1}},
+                qrGrid}};
 
         auto rootLayout = Column{
             Row{enableQodeAssist, Stretch{1}, Row{checkUpdate, resetToDefaults}},
@@ -570,6 +602,33 @@ void GeneralSettings::setupConnections()
     connect(&checkUpdate, &ButtonAspect::clicked, this, [this]() {
         QodeAssist::UpdateDialog::checkForUpdatesAndShow(Core::ICore::dialogParent());
     });
+    
+    connect(&ccPresetConfig, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
+        applyPresetConfiguration(ccPresetConfig.volatileValue(), ConfigurationType::CodeCompletion);
+        ccPresetConfig.setValue(0);
+    });
+    
+    connect(&ccConfigureApiKey, &ButtonAspect::clicked, this, []() {
+        Core::ICore::showOptionsDialog(Constants::QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID);
+    });
+    
+    connect(&caPresetConfig, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
+        applyPresetConfiguration(caPresetConfig.volatileValue(), ConfigurationType::Chat);
+        caPresetConfig.setValue(0);
+    });
+    
+    connect(&caConfigureApiKey, &ButtonAspect::clicked, this, []() {
+        Core::ICore::showOptionsDialog(Constants::QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID);
+    });
+    
+    connect(&qrPresetConfig, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
+        applyPresetConfiguration(qrPresetConfig.volatileValue(), ConfigurationType::QuickRefactor);
+        qrPresetConfig.setValue(0);
+    });
+    
+    connect(&qrConfigureApiKey, &ButtonAspect::clicked, this, []() {
+        Core::ICore::showOptionsDialog(Constants::QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID);
+    });
 
     connect(&specifyPreset1, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
         updatePreset1Visiblity(specifyPreset1.volatileValue());
@@ -776,11 +835,33 @@ void GeneralSettings::onLoadConfiguration(const QString &prefix)
 
     SettingsDialog dialog(TrConstants::LOAD_CONFIGURATION);
     dialog.addLabel(TrConstants::SELECT_CONFIGURATION);
+    
+    int predefinedCount = 0;
+    for (const AIConfiguration &config : configs) {
+        if (config.isPredefined) {
+            predefinedCount++;
+        }
+    }
+    
+    if (predefinedCount > 0) {
+        auto *hintLabel = dialog.addLabel(
+            Tr::tr("[Preset] configurations are predefined cloud models ready to use."));
+        QFont hintFont = hintLabel->font();
+        hintFont.setItalic(true);
+        hintFont.setPointSize(hintFont.pointSize() - 1);
+        hintLabel->setFont(hintFont);
+        hintLabel->setStyleSheet("color: gray;");
+    }
+    
     dialog.addSpacing();
 
     QStringList configNames;
     for (const AIConfiguration &config : configs) {
-        configNames.append(config.name);
+        QString displayName = config.name;
+        if (config.isPredefined) {
+            displayName = QString("[Preset] %1").arg(config.name);
+        }
+        configNames.append(displayName);
     }
 
     auto configList = dialog.addComboBox(configNames, QString());
@@ -790,9 +871,31 @@ void GeneralSettings::onLoadConfiguration(const QString &prefix)
     auto *okButton = new QPushButton(TrConstants::OK);
     auto *cancelButton = new QPushButton(TrConstants::CANCEL);
 
+    auto updateDeleteButtonState = [&]() {
+        int currentIndex = configList->currentIndex();
+        if (currentIndex >= 0 && currentIndex < configs.size()) {
+            deleteButton->setEnabled(!configs[currentIndex].isPredefined);
+        }
+    };
+
+    connect(configList,
+            QOverload<int>::of(&QComboBox::currentIndexChanged),
+            updateDeleteButtonState);
+
+    updateDeleteButtonState();
+
     connect(deleteButton, &QPushButton::clicked, &dialog, [&]() {
         int currentIndex = configList->currentIndex();
         if (currentIndex >= 0 && currentIndex < configs.size()) {
+            const AIConfiguration &configToDelete = configs[currentIndex];
+            if (configToDelete.isPredefined) {
+                QMessageBox::information(
+                    &dialog,
+                    TrConstants::DELETE_CONFIGURATION,
+                    Tr::tr("Predefined configurations cannot be deleted."));
+                return;
+            }
+
             QMessageBox::StandardButton reply = QMessageBox::question(
                 &dialog,
                 TrConstants::DELETE_CONFIGURATION,
@@ -800,7 +903,6 @@ void GeneralSettings::onLoadConfiguration(const QString &prefix)
                 QMessageBox::Yes | QMessageBox::No);
 
             if (reply == QMessageBox::Yes) {
-                const AIConfiguration &configToDelete = configs[currentIndex];
                 if (manager.deleteConfiguration(configToDelete.id, type)) {
                     dialog.accept();
                     onLoadConfiguration(prefix);
@@ -858,6 +960,73 @@ void GeneralSettings::onLoadConfiguration(const QString &prefix)
 
     configList->setFocus();
     dialog.exec();
+}
+
+void GeneralSettings::loadPresetConfigurations(Utils::SelectionAspect &aspect,
+                                                ConfigurationType type)
+{
+    QVector<AIConfiguration> presets = ConfigurationManager::getPredefinedConfigurations(type);
+    
+    if (type == ConfigurationType::CodeCompletion) {
+        m_ccPresets = presets;
+    } else if (type == ConfigurationType::Chat) {
+        m_caPresets = presets;
+    } else if (type == ConfigurationType::QuickRefactor) {
+        m_qrPresets = presets;
+    }
+    
+    aspect.addOption(Tr::tr("-- Select Preset --"));
+    for (const AIConfiguration &config : presets) {
+        aspect.addOption(config.name);
+    }
+    aspect.setDefaultValue(0);
+}
+
+void GeneralSettings::applyPresetConfiguration(int index, ConfigurationType type)
+{
+    if (index <= 0) {
+        return;
+    }
+    
+    QVector<AIConfiguration> *presets = nullptr;
+    if (type == ConfigurationType::CodeCompletion) {
+        presets = &m_ccPresets;
+    } else if (type == ConfigurationType::Chat) {
+        presets = &m_caPresets;
+    } else if (type == ConfigurationType::QuickRefactor) {
+        presets = &m_qrPresets;
+    }
+    
+    if (!presets || index - 1 >= presets->size()) {
+        return;
+    }
+    
+    const AIConfiguration &config = presets->at(index - 1);
+    
+    if (type == ConfigurationType::CodeCompletion) {
+        ccProvider.setValue(config.provider);
+        ccModel.setValue(config.model);
+        ccTemplate.setValue(config.templateName);
+        ccUrl.setValue(config.url);
+        ccEndpointMode.setValue(ccEndpointMode.indexForDisplay(config.endpointMode));
+        ccCustomEndpoint.setValue(config.customEndpoint);
+    } else if (type == ConfigurationType::Chat) {
+        caProvider.setValue(config.provider);
+        caModel.setValue(config.model);
+        caTemplate.setValue(config.templateName);
+        caUrl.setValue(config.url);
+        caEndpointMode.setValue(caEndpointMode.indexForDisplay(config.endpointMode));
+        caCustomEndpoint.setValue(config.customEndpoint);
+    } else if (type == ConfigurationType::QuickRefactor) {
+        qrProvider.setValue(config.provider);
+        qrModel.setValue(config.model);
+        qrTemplate.setValue(config.templateName);
+        qrUrl.setValue(config.url);
+        qrEndpointMode.setValue(qrEndpointMode.indexForDisplay(config.endpointMode));
+        qrCustomEndpoint.setValue(config.customEndpoint);
+    }
+    
+    writeSettings();
 }
 
 class GeneralSettingsPage : public Core::IOptionsPage

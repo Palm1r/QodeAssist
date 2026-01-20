@@ -23,6 +23,7 @@
 #include <QPointer>
 
 #include "ButtonAspect.hpp"
+#include "ConfigurationManager.hpp"
 
 namespace Utils {
 class DetailsWidget;
@@ -46,6 +47,9 @@ public:
     ButtonAspect resetToDefaults{this};
 
     // code completion setttings
+    Utils::SelectionAspect ccPresetConfig{this};
+    ButtonAspect ccConfigureApiKey{this};
+    
     Utils::StringAspect ccProvider{this};
     ButtonAspect ccSelectProvider{this};
 
@@ -91,6 +95,9 @@ public:
     ButtonAspect ccPreset1SelectTemplate{this};
 
     // chat assistant settings
+    Utils::SelectionAspect caPresetConfig{this};
+    ButtonAspect caConfigureApiKey{this};
+    
     Utils::StringAspect caProvider{this};
     ButtonAspect caSelectProvider{this};
 
@@ -116,6 +123,9 @@ public:
     ButtonAspect caOpenConfigFolder{this};
 
     // quick refactor settings
+    Utils::SelectionAspect qrPresetConfig{this};
+    ButtonAspect qrConfigureApiKey{this};
+    
     Utils::StringAspect qrProvider{this};
     ButtonAspect qrSelectProvider{this};
 
@@ -162,10 +172,17 @@ public:
 
     void onSaveConfiguration(const QString &prefix);
     void onLoadConfiguration(const QString &prefix);
+    
+    void loadPresetConfigurations(Utils::SelectionAspect &aspect, ConfigurationType type);
+    void applyPresetConfiguration(int index, ConfigurationType type);
 
 private:
     void setupConnections();
     void resetPageToDefaults();
+    
+    QVector<AIConfiguration> m_ccPresets;
+    QVector<AIConfiguration> m_caPresets;
+    QVector<AIConfiguration> m_qrPresets;
 };
 
 GeneralSettings &generalSettings();

@@ -43,6 +43,93 @@ ConfigurationManager &ConfigurationManager::instance()
     return instance;
 }
 
+QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
+    ConfigurationType type)
+{
+    QVector<AIConfiguration> presets;
+
+    AIConfiguration claudeOpus;
+    claudeOpus.id = "preset_claude_opus";
+    claudeOpus.name = "Claude Opus 4.5";
+    claudeOpus.provider = "Claude";
+    claudeOpus.model = "claude-opus-4-5-20251101";
+    claudeOpus.url = "https://api.anthropic.com";
+    claudeOpus.endpointMode = "Auto";
+    claudeOpus.customEndpoint = "";
+    claudeOpus.templateName = "Claude";
+    claudeOpus.type = type;
+    claudeOpus.isPredefined = true;
+
+    AIConfiguration claudeSonnet;
+    claudeSonnet.id = "preset_claude_sonnet";
+    claudeSonnet.name = "Claude Sonnet 4.5";
+    claudeSonnet.provider = "Claude";
+    claudeSonnet.model = "claude-sonnet-4-5-20250929";
+    claudeSonnet.url = "https://api.anthropic.com";
+    claudeSonnet.endpointMode = "Auto";
+    claudeSonnet.customEndpoint = "";
+    claudeSonnet.templateName = "Claude";
+    claudeSonnet.type = type;
+    claudeSonnet.isPredefined = true;
+
+    AIConfiguration claudeHaiku;
+    claudeHaiku.id = "preset_claude_haiku";
+    claudeHaiku.name = "Claude Haiku 4.5";
+    claudeHaiku.provider = "Claude";
+    claudeHaiku.model = "claude-haiku-4-5-20251001";
+    claudeHaiku.url = "https://api.anthropic.com";
+    claudeHaiku.endpointMode = "Auto";
+    claudeHaiku.customEndpoint = "";
+    claudeHaiku.templateName = "Claude";
+    claudeHaiku.type = type;
+    claudeHaiku.isPredefined = true;
+
+    AIConfiguration mistralCodestral;
+    mistralCodestral.id = "preset_mistral_codestral";
+    mistralCodestral.name = "Mistral Codestral";
+    mistralCodestral.provider = "Mistral AI";
+    mistralCodestral.model = "codestral-2501";
+    mistralCodestral.url = "https://api.mistral.ai";
+    mistralCodestral.endpointMode = "Auto";
+    mistralCodestral.customEndpoint = "";
+    mistralCodestral.templateName = type == ConfigurationType::CodeCompletion ? "Mistral AI FIM" : "Mistral AI Chat";
+    mistralCodestral.type = type;
+    mistralCodestral.isPredefined = true;
+
+    AIConfiguration geminiFlash;
+    geminiFlash.id = "preset_gemini_flash";
+    geminiFlash.name = "Gemini 2.5 Flash";
+    geminiFlash.provider = "Google AI";
+    geminiFlash.model = "gemini-2.5-flash";
+    geminiFlash.url = "https://generativelanguage.googleapis.com/v1beta";
+    geminiFlash.endpointMode = "Auto";
+    geminiFlash.customEndpoint = "";
+    geminiFlash.templateName = "Google AI";
+    geminiFlash.type = type;
+    geminiFlash.isPredefined = true;
+
+    AIConfiguration gpt52codex;
+    gpt52codex.id = "preset_gpt52codex";
+    gpt52codex.name = "gpt-5.2-codex";
+    gpt52codex.provider = "OpenAI Responses";
+    gpt52codex.model = "gpt-5.2-codex";
+    gpt52codex.url = "https://api.openai.com";
+    gpt52codex.endpointMode = "Auto";
+    gpt52codex.customEndpoint = "";
+    gpt52codex.templateName = "OpenAI Responses";
+    gpt52codex.type = type;
+    gpt52codex.isPredefined = true;
+
+    presets.append(claudeSonnet);
+    presets.append(claudeHaiku);
+    presets.append(claudeOpus);
+    presets.append(gpt52codex);
+    presets.append(mistralCodestral);
+    presets.append(geminiFlash);
+
+    return presets;
+}
+
 QString ConfigurationManager::configurationTypeToString(ConfigurationType type) const
 {
     switch (type) {
@@ -94,6 +181,9 @@ bool ConfigurationManager::loadConfigurations(ConfigurationType type)
 
     configs->clear();
 
+    QVector<AIConfiguration> predefinedConfigs = getPredefinedConfigurations(type);
+    configs->append(predefinedConfigs);
+
     if (!ensureDirectoryExists(type)) {
         LOG_MESSAGE("Failed to create configuration directory");
         return false;
@@ -131,6 +221,7 @@ bool ConfigurationManager::loadConfigurations(ConfigurationType type)
         config.customEndpoint = obj["customEndpoint"].toString();
         config.type = type;
         config.formatVersion = obj.value("formatVersion").toInt(1);
+        config.isPredefined = false;
 
         if (config.id.isEmpty() || config.name.isEmpty()) {
             LOG_MESSAGE(QString("Invalid configuration data in file: %1").arg(fileInfo.fileName()));
@@ -185,6 +276,12 @@ bool ConfigurationManager::saveConfiguration(const AIConfiguration &config)
 
 bool ConfigurationManager::deleteConfiguration(const QString &id, ConfigurationType type)
 {
+    AIConfiguration config = getConfigurationById(id, type);
+    if (config.isPredefined) {
+        LOG_MESSAGE(QString("Cannot delete predefined configuration: %1").arg(id));
+        return false;
+    }
+
     QDir dir(getConfigurationDirectory(type));
     QStringList filters;
     filters << QString("*_%1.json").arg(id);
