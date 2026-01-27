@@ -236,7 +236,7 @@ public:
         closeChatViewAction.setText(Tr::tr("Close QodeAssist Chat"));
         closeChatViewAction.setIcon(QCODEASSIST_CHAT_ICON.icon());
         closeChatViewAction.addOnTriggered(this, [this] {
-            if (m_chatView->isVisible()) {
+            if (m_chatView && m_chatView->isActive() && m_chatView->isVisible()) {
                 m_chatView->close();
             }
         });
