@@ -84,17 +84,29 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     claudeHaiku.type = type;
     claudeHaiku.isPredefined = true;
 
-    AIConfiguration mistralCodestral;
-    mistralCodestral.id = "preset_mistral_codestral";
-    mistralCodestral.name = "Mistral Codestral";
-    mistralCodestral.provider = "Mistral AI";
-    mistralCodestral.model = "codestral-2501";
-    mistralCodestral.url = "https://api.mistral.ai";
-    mistralCodestral.endpointMode = "Auto";
-    mistralCodestral.customEndpoint = "";
-    mistralCodestral.templateName = type == ConfigurationType::CodeCompletion ? "Mistral AI FIM" : "Mistral AI Chat";
-    mistralCodestral.type = type;
-    mistralCodestral.isPredefined = true;
+    AIConfiguration codestral;
+    codestral.id = "preset_codestral";
+    codestral.name = "Codestral";
+    codestral.provider = "Codestral";
+    codestral.model = "codestral-2501";
+    codestral.url = "https://codestral.mistral.ai";
+    codestral.endpointMode = "Auto";
+    codestral.customEndpoint = "";
+    codestral.templateName = type == ConfigurationType::CodeCompletion ? "Mistral AI FIM" : "Mistral AI Chat";
+    codestral.type = type;
+    codestral.isPredefined = true;
+
+    AIConfiguration mistral;
+    mistral.id = "preset_mistral";
+    mistral.name = "Mistral";
+    mistral.provider = "Mistral AI";
+    mistral.model = type == ConfigurationType::CodeCompletion ? "mistral-medium-latest" : "mistral-large-latest";
+    mistral.url = "https://api.mistral.ai";
+    mistral.endpointMode = "Auto";
+    mistral.customEndpoint = "";
+    mistral.templateName = type == ConfigurationType::CodeCompletion ? "Mistral AI FIM" : "Mistral AI Chat";
+    mistral.type = type;
+    mistral.isPredefined = true;
 
     AIConfiguration geminiFlash;
     geminiFlash.id = "preset_gemini_flash";
@@ -124,7 +136,8 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     presets.append(claudeHaiku);
     presets.append(claudeOpus);
     presets.append(gpt52codex);
-    presets.append(mistralCodestral);
+    presets.append(codestral);
+    presets.append(mistral);
     presets.append(geminiFlash);
 
     return presets;
