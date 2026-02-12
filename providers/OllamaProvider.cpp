@@ -27,10 +27,6 @@
 
 #include "llmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
-#include "settings/ChatAssistantSettings.hpp"
-#include "settings/CodeCompletionSettings.hpp"
-#include "settings/QuickRefactorSettings.hpp"
-#include "settings/GeneralSettings.hpp"
 #include "settings/ProviderSettings.hpp"
 
 namespace QodeAssist::Providers {
@@ -76,6 +72,7 @@ void OllamaProvider::prepareRequest(
     LLMCore::PromptTemplate *prompt,
     LLMCore::ContextData context,
     LLMCore::RequestType type,
+    const QJsonObject &config,
     bool isToolsEnabled,
     bool isThinkingEnabled)
 {
@@ -85,64 +82,45 @@ void OllamaProvider::prepareRequest(
 
     prompt->prepareRequest(request, context);
 
-    auto applySettings = [&request](const auto &settings) {
-        QJsonObject options;
-        options["num_predict"] = settings.maxTokens();
-        options["temperature"] = settings.temperature();
+    bool thinking = config.value("enable_thinking").toBool(false);
+
+    QJsonObject options;
+    options["num_predict"] = config.value("num_predict").toInt(2048);
+    options["temperature"] = thinking ? 1.0 : config.value("temperature").toDouble(0.7);
+
+    if (request.contains("stop")) {
         options["stop"] = request.take("stop");
+    } else if (config.contains("stop")) {
+        options["stop"] = config["stop"];
+    }
 
-        if (settings.useTopP())
-            options["top_p"] = settings.topP();
-        if (settings.useTopK())
-            options["top_k"] = settings.topK();
-        if (settings.useFrequencyPenalty())
-            options["frequency_penalty"] = settings.frequencyPenalty();
-        if (settings.usePresencePenalty())
-            options["presence_penalty"] = settings.presencePenalty();
+    if (config.contains("top_p"))
+        options["top_p"] = config["top_p"];
+    if (config.contains("top_k"))
+        options["top_k"] = config["top_k"];
+    if (config.contains("frequency_penalty"))
+        options["frequency_penalty"] = config["frequency_penalty"];
+    if (config.contains("presence_penalty"))
+        options["presence_penalty"] = config["presence_penalty"];
 
-        request["options"] = options;
-        request["keep_alive"] = settings.ollamaLivetime();
-    };
+    request["options"] = options;
+    request["keep_alive"] = config.value("keep_alive").toString("5m");
 
-    auto applyThinkingMode = [&request]() {
+    if (thinking) {
         request["enable_thinking"] = true;
-        QJsonObject options = request["options"].toObject();
-        options["temperature"] = 1.0;
-        request["options"] = options;
-    };
-
-    if (type == LLMCore::RequestType::CodeCompletion) {
-        applySettings(Settings::codeCompletionSettings());
-    } else if (type == LLMCore::RequestType::QuickRefactoring) {
-        const auto &qrSettings = Settings::quickRefactorSettings();
-        applySettings(qrSettings);
-        
-        if (isThinkingEnabled) {
-            applyThinkingMode();
-            LOG_MESSAGE(QString("OllamaProvider: Thinking mode enabled for QuickRefactoring"));
-        }
-    } else {
-        const auto &chatSettings = Settings::chatAssistantSettings();
-        applySettings(chatSettings);
-
-        if (isThinkingEnabled) {
-            applyThinkingMode();
-            LOG_MESSAGE(QString("OllamaProvider: Thinking mode enabled for Chat"));
-        }
+        LOG_MESSAGE(QString("OllamaProvider: Thinking mode enabled"));
     }
 
     if (isToolsEnabled) {
-        LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL;
-        if (type == LLMCore::RequestType::QuickRefactoring) {
-            filter = LLMCore::RunToolsFilter::OnlyRead;
-        }
+        auto filter = (type == LLMCore::RequestType::QuickRefactoring)
+            ? LLMCore::RunToolsFilter::OnlyRead
+            : LLMCore::RunToolsFilter::ALL;
 
-        auto toolsDefinitions = m_toolsManager->toolsFactory()->getToolsDefinitions(
+        auto tools = m_toolsManager->toolsFactory()->getToolsDefinitions(
             LLMCore::ToolSchemaFormat::Ollama, filter);
-        if (!toolsDefinitions.isEmpty()) {
-            request["tools"] = toolsDefinitions;
-            LOG_MESSAGE(
-                QString("OllamaProvider: Added %1 tools to request").arg(toolsDefinitions.size()));
+        if (!tools.isEmpty()) {
+            request["tools"] = tools;
+            LOG_MESSAGE(QString("OllamaProvider: Added %1 tools to request").arg(tools.size()));
         }
     }
 }

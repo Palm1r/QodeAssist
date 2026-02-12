@@ -217,7 +217,7 @@ void ChatCompressor::buildRequestPayload(
     context.history = messages;
 
     m_provider->prepareRequest(
-        payload, promptTemplate, context, LLMCore::RequestType::Chat, false, false);
+        payload, promptTemplate, context, LLMCore::RequestType::Chat, QJsonObject{}, false, false);
 }
 
 bool ChatCompressor::createCompressedChatFile(

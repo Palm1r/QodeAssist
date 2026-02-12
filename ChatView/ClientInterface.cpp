@@ -49,6 +49,7 @@
 #include "ToolsSettings.hpp"
 #include <RulesLoader.hpp>
 #include <context/ChangesManager.h>
+#include <params/ConfigBuilder.hpp>
 
 namespace QodeAssist::Chat {
 
@@ -260,11 +261,17 @@ void ClientInterface::sendMessage(
 
     config.apiKey = provider->apiKey();
 
+    auto providerConfig = ConfigBuilder::create(
+        provider->providerID(), Settings::chatAssistantSettings());
+    if (useThinking)
+        ConfigBuilder::addThinking(providerConfig, provider->providerID(), Settings::chatAssistantSettings());
+
     config.provider->prepareRequest(
         config.providerRequest,
         promptTemplate,
         context,
         LLMCore::RequestType::Chat,
+        providerConfig,
         useTools,
         useThinking);
 

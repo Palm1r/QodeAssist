@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024-2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -16,6 +16,8 @@
  * You should have received a copy of the GNU General Public License
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
+
+#pragma once
 
 namespace QodeAssist::LLMCore {
 

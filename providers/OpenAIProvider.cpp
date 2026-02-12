@@ -21,10 +21,6 @@
 
 #include "llmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
-#include "settings/ChatAssistantSettings.hpp"
-#include "settings/CodeCompletionSettings.hpp"
-#include "settings/QuickRefactorSettings.hpp"
-#include "settings/GeneralSettings.hpp"
 #include "settings/ProviderSettings.hpp"
 
 #include <QEventLoop>
@@ -76,6 +72,7 @@ void OpenAIProvider::prepareRequest(
     LLMCore::PromptTemplate *prompt,
     LLMCore::ContextData context,
     LLMCore::RequestType type,
+    const QJsonObject &config,
     bool isToolsEnabled,
     bool isThinkingEnabled)
 {
@@ -85,46 +82,37 @@ void OpenAIProvider::prepareRequest(
 
     prompt->prepareRequest(request, context);
 
-    auto applyModelParams = [&request](const auto &settings) {
-        QString model = request.value("model").toString().toLower();
-        bool useNewParameter = model.contains("gpt-4o") || model.contains("gpt-4-turbo")
-                               || model.contains("o1-") || model.contains("gpt-5")
-                               || model.startsWith("o1") || model.contains("o3");
+    QString model = request.value("model").toString().toLower();
+    bool useNewParameter = model.contains("gpt-4o") || model.contains("gpt-4-turbo")
+                           || model.contains("o1-") || model.contains("gpt-5")
+                           || model.startsWith("o1") || model.contains("o3");
 
-        bool isReasoningModel = model.contains("o1-") || model.contains("gpt-5")
-                                || model.startsWith("o1") || model.contains("o3");
+    bool isReasoningModel = model.contains("o1-") || model.contains("gpt-5")
+                            || model.startsWith("o1") || model.contains("o3");
 
-        if (useNewParameter) {
-            request["max_completion_tokens"] = settings.maxTokens();
-        } else {
-            request["max_tokens"] = settings.maxTokens();
-        }
-
-        if (!isReasoningModel) {
-            request["temperature"] = settings.temperature();
-
-            if (settings.useTopP())
-                request["top_p"] = settings.topP();
-            if (settings.useTopK())
-                request["top_k"] = settings.topK();
-
-        } else {
-            request["temperature"] = 1.0;
-        }
-
-        if (settings.useFrequencyPenalty())
-            request["frequency_penalty"] = settings.frequencyPenalty();
-        if (settings.usePresencePenalty())
-            request["presence_penalty"] = settings.presencePenalty();
-    };
-
-    if (type == LLMCore::RequestType::CodeCompletion) {
-        applyModelParams(Settings::codeCompletionSettings());
-    } else if (type == LLMCore::RequestType::QuickRefactoring) {
-        applyModelParams(Settings::quickRefactorSettings());
+    int maxTokens = config.value("max_tokens").toInt(1024);
+    if (useNewParameter) {
+        request["max_completion_tokens"] = maxTokens;
     } else {
-        applyModelParams(Settings::chatAssistantSettings());
+        request["max_tokens"] = maxTokens;
     }
+
+    if (!isReasoningModel) {
+        request["temperature"] = config.value("temperature").toDouble(0.7);
+
+        if (config.contains("top_p"))
+            request["top_p"] = config["top_p"].toDouble();
+        if (config.contains("top_k"))
+            request["top_k"] = config["top_k"].toInt();
+
+    } else {
+        request["temperature"] = 1.0;
+    }
+
+    if (config.contains("frequency_penalty"))
+        request["frequency_penalty"] = config["frequency_penalty"].toDouble();
+    if (config.contains("presence_penalty"))
+        request["presence_penalty"] = config["presence_penalty"].toDouble();
 
     if (isToolsEnabled) {
         LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL;

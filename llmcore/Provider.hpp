@@ -54,6 +54,7 @@ public:
         LLMCore::PromptTemplate *prompt,
         LLMCore::ContextData context,
         LLMCore::RequestType type,
+        const QJsonObject &config,
         bool isToolsEnabled,
         bool isThinkingEnabled)
         = 0;

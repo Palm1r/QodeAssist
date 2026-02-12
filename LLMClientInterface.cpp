@@ -31,6 +31,7 @@
 #include "settings/GeneralSettings.hpp"
 #include <llmcore/RequestConfig.hpp>
 #include <llmcore/RulesLoader.hpp>
+#include <params/ConfigBuilder.hpp>
 
 namespace QodeAssist {
 
@@ -343,11 +344,14 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         updatedContext.history = messages;
     }
 
+    auto providerConfig = ConfigBuilder::create(provider->providerID(), m_completeSettings);
+
     config.provider->prepareRequest(
         config.providerRequest,
         promptTemplate,
         updatedContext,
         LLMCore::RequestType::CodeCompletion,
+        providerConfig,
         false,
         false);
 

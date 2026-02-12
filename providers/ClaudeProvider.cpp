@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024-2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -28,10 +28,6 @@
 
 #include "llmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
-#include "settings/ChatAssistantSettings.hpp"
-#include "settings/CodeCompletionSettings.hpp"
-#include "settings/QuickRefactorSettings.hpp"
-#include "settings/GeneralSettings.hpp"
 #include "settings/ProviderSettings.hpp"
 
 namespace QodeAssist::Providers {
@@ -77,6 +73,7 @@ void ClaudeProvider::prepareRequest(
     LLMCore::PromptTemplate *prompt,
     LLMCore::ContextData context,
     LLMCore::RequestType type,
+    const QJsonObject &config,
     bool isToolsEnabled,
     bool isThinkingEnabled)
 {
@@ -86,58 +83,47 @@ void ClaudeProvider::prepareRequest(
 
     prompt->prepareRequest(request, context);
 
-    auto applyModelParams = [&request](const auto &settings) {
-        request["max_tokens"] = settings.maxTokens();
-        if (settings.useTopP())
-            request["top_p"] = settings.topP();
-        if (settings.useTopK())
-            request["top_k"] = settings.topK();
-        request["stream"] = true;
-    };
+    request["max_tokens"] = config.value("max_tokens").toInt(8192);
+    request["stream"] = config.value("stream").toBool(true);
 
-    auto applyThinkingMode = [&request](const auto &settings) {
-        QJsonObject thinkingObj;
-        thinkingObj["type"] = "enabled";
-        thinkingObj["budget_tokens"] = settings.thinkingBudgetTokens();
+    if (config.contains("top_p"))
+        request["top_p"] = config["top_p"];
+    if (config.contains("top_k"))
+        request["top_k"] = config["top_k"];
+    if (config.contains("stop_sequences"))
+        request["stop_sequences"] = config["stop_sequences"];
+
+    if (config.contains("thinking")) {
+        auto thinkingObj = config["thinking"].toObject();
+        int maxTokens = request["max_tokens"].toInt();
+
+        if (thinkingObj["type"].toString() == "enabled" && thinkingObj.contains("budget_tokens")) {
+            int budget = std::max(thinkingObj["budget_tokens"].toInt(), 1024);
+            if (maxTokens <= budget) {
+                LOG_MESSAGE(
+                    QString("Warning: max_tokens (%1) must be greater than budget_tokens "
+                            "(%2), adjusting")
+                        .arg(maxTokens)
+                        .arg(budget));
+                request["max_tokens"] = budget + 1024;
+            }
+            thinkingObj["budget_tokens"] = budget;
+        }
+
         request["thinking"] = thinkingObj;
-        request["max_tokens"] = settings.thinkingMaxTokens();
-        request["temperature"] = 1.0;
-    };
-
-    if (type == LLMCore::RequestType::CodeCompletion) {
-        applyModelParams(Settings::codeCompletionSettings());
-        request["temperature"] = Settings::codeCompletionSettings().temperature();
-    } else if (type == LLMCore::RequestType::QuickRefactoring) {
-        const auto &qrSettings = Settings::quickRefactorSettings();
-        applyModelParams(qrSettings);
-
-        if (isThinkingEnabled) {
-            applyThinkingMode(qrSettings);
-        } else {
-            request["temperature"] = qrSettings.temperature();
-        }
+        request["temperature"] = 1.0; // in thinking temperature always 1.0
     } else {
-        const auto &chatSettings = Settings::chatAssistantSettings();
-        applyModelParams(chatSettings);
-
-        if (isThinkingEnabled) {
-            applyThinkingMode(chatSettings);
-        } else {
-            request["temperature"] = chatSettings.temperature();
-        }
+        request["temperature"] = config.value("temperature").toDouble(1.0);
     }
 
     if (isToolsEnabled) {
-        LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL;
-        if (type == LLMCore::RequestType::QuickRefactoring) {
-            filter = LLMCore::RunToolsFilter::OnlyRead;
-        }
-
-        auto toolsDefinitions = m_toolsManager->getToolsDefinitions(
-            LLMCore::ToolSchemaFormat::Claude, filter);
-        if (!toolsDefinitions.isEmpty()) {
-            request["tools"] = toolsDefinitions;
-            LOG_MESSAGE(QString("Added %1 tools to Claude request").arg(toolsDefinitions.size()));
+        auto filter = (type == LLMCore::RequestType::QuickRefactoring)
+            ? LLMCore::RunToolsFilter::OnlyRead
+            : LLMCore::RunToolsFilter::ALL;
+        auto tools = m_toolsManager->getToolsDefinitions(LLMCore::ToolSchemaFormat::Claude, filter);
+        if (!tools.isEmpty()) {
+            request["tools"] = tools;
+            LOG_MESSAGE(QString("Added %1 tools to Claude request").arg(tools.size()));
         }
     }
 }

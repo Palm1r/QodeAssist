@@ -22,11 +22,7 @@
 
 #include "llmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
-#include "settings/ChatAssistantSettings.hpp"
-#include "settings/CodeCompletionSettings.hpp"
-#include "settings/GeneralSettings.hpp"
 #include "settings/ProviderSettings.hpp"
-#include "settings/QuickRefactorSettings.hpp"
 
 #include <QEventLoop>
 #include <QJsonArray>
@@ -77,6 +73,7 @@ void OpenAIResponsesProvider::prepareRequest(
     LLMCore::PromptTemplate *prompt,
     LLMCore::ContextData context,
     LLMCore::RequestType type,
+    const QJsonObject &config,
     bool isToolsEnabled,
     bool isThinkingEnabled)
 {
@@ -86,47 +83,29 @@ void OpenAIResponsesProvider::prepareRequest(
 
     prompt->prepareRequest(request, context);
 
-    auto applyModelParams = [&request](const auto &settings) {
-        request["max_output_tokens"] = settings.maxTokens();
+    request["max_output_tokens"] = config.value("max_output_tokens").toInt(1024);
 
-        if (settings.useTopP()) {
-            request["top_p"] = settings.topP();
-        }
-    };
+    if (config.contains("top_p")) {
+        request["top_p"] = config["top_p"].toDouble();
+    }
 
-    auto applyThinkingMode = [&request](const auto &settings) {
-        QString effortStr = settings.openAIResponsesReasoningEffort.stringValue().toLower();
+    if (isThinkingEnabled && type != LLMCore::RequestType::CodeCompletion
+        && config.contains("reasoning")) {
+        QJsonObject reasoningObj = config["reasoning"].toObject();
+        QString effortStr = reasoningObj.value("effort").toString("medium").toLower();
         if (effortStr.isEmpty()) {
             effortStr = "medium";
         }
-        
+
         QJsonObject reasoning;
         reasoning["effort"] = effortStr;
         request["reasoning"] = reasoning;
-        request["max_output_tokens"] = settings.thinkingMaxTokens();
+        request["max_output_tokens"] = config.value("thinking_max_tokens").toInt(8192);
         request["store"] = true;
 
         QJsonArray include;
         include.append("reasoning.encrypted_content");
         request["include"] = include;
-    };
-
-    if (type == LLMCore::RequestType::CodeCompletion) {
-        applyModelParams(Settings::codeCompletionSettings());
-    } else if (type == LLMCore::RequestType::QuickRefactoring) {
-        const auto &qrSettings = Settings::quickRefactorSettings();
-        applyModelParams(qrSettings);
-
-        if (isThinkingEnabled) {
-            applyThinkingMode(qrSettings);
-        }
-    } else {
-        const auto &chatSettings = Settings::chatAssistantSettings();
-        applyModelParams(chatSettings);
-
-        if (isThinkingEnabled) {
-            applyThinkingMode(chatSettings);
-        }
     }
 
     if (isToolsEnabled) {

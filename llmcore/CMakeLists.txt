@@ -19,6 +19,13 @@ add_library(LLMCore STATIC
     ContentBlocks.hpp
     RulesLoader.hpp RulesLoader.cpp
     ResponseCleaner.hpp
+    ClaudeConfig.hpp
+    OllamaConfig.hpp
+    LMStudioConfig.hpp
+    MistralConfig.hpp
+    OpenAIConfig.hpp
+    OpenAIResponsesConfig.hpp
+    GoogleAIConfig.hpp
 )
 
 target_link_libraries(LLMCore

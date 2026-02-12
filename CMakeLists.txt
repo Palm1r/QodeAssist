@@ -140,6 +140,7 @@ add_qtc_plugin(QodeAssist
     widgets/ContextExtractor.hpp
     widgets/DiffStatistics.hpp
 
+    params/ConfigBuilder.hpp
     QuickRefactorHandler.hpp QuickRefactorHandler.cpp
     tools/ToolsFactory.hpp tools/ToolsFactory.cpp
     tools/ReadVisibleFilesTool.hpp tools/ReadVisibleFilesTool.cpp

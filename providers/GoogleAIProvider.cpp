@@ -28,10 +28,6 @@
 
 #include "llmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
-#include "settings/ChatAssistantSettings.hpp"
-#include "settings/CodeCompletionSettings.hpp"
-#include "settings/QuickRefactorSettings.hpp"
-#include "settings/GeneralSettings.hpp"
 #include "settings/ProviderSettings.hpp"
 
 namespace QodeAssist::Providers {
@@ -77,6 +73,7 @@ void GoogleAIProvider::prepareRequest(
     LLMCore::PromptTemplate *prompt,
     LLMCore::ContextData context,
     LLMCore::RequestType type,
+    const QJsonObject &config,
     bool isToolsEnabled,
     bool isThinkingEnabled)
 {
@@ -86,59 +83,39 @@ void GoogleAIProvider::prepareRequest(
 
     prompt->prepareRequest(request, context);
 
-    auto applyModelParams = [&request](const auto &settings) {
+    if (isThinkingEnabled && type != LLMCore::RequestType::CodeCompletion) {
         QJsonObject generationConfig;
-        generationConfig["maxOutputTokens"] = settings.maxTokens();
-        generationConfig["temperature"] = settings.temperature();
+        generationConfig["maxOutputTokens"] = config.value("thinking_max_tokens").toInt(8192);
 
-        if (settings.useTopP())
-            generationConfig["topP"] = settings.topP();
-        if (settings.useTopK())
-            generationConfig["topK"] = settings.topK();
-
-        request["generationConfig"] = generationConfig;
-    };
-
-    auto applyThinkingMode = [&request](const auto &settings) {
-        QJsonObject generationConfig;
-        generationConfig["maxOutputTokens"] = settings.thinkingMaxTokens();
-
-        if (settings.useTopP())
-            generationConfig["topP"] = settings.topP();
-        if (settings.useTopK())
-            generationConfig["topK"] = settings.topK();
+        if (config.contains("top_p"))
+            generationConfig["topP"] = config["top_p"].toDouble();
+        if (config.contains("top_k"))
+            generationConfig["topK"] = config["top_k"].toInt();
 
         generationConfig["temperature"] = 1.0;
 
         QJsonObject thinkingConfig;
         thinkingConfig["includeThoughts"] = true;
-        int budgetTokens = settings.thinkingBudgetTokens();
-        if (budgetTokens != -1) {
-            thinkingConfig["thinkingBudget"] = budgetTokens;
+        if (config.contains("thinking_budget")) {
+            int budgetTokens = config.value("thinking_budget").toInt(-1);
+            if (budgetTokens != -1) {
+                thinkingConfig["thinkingBudget"] = budgetTokens;
+            }
         }
 
         generationConfig["thinkingConfig"] = thinkingConfig;
         request["generationConfig"] = generationConfig;
-    };
-
-    if (type == LLMCore::RequestType::CodeCompletion) {
-        applyModelParams(Settings::codeCompletionSettings());
-    } else if (type == LLMCore::RequestType::QuickRefactoring) {
-        const auto &qrSettings = Settings::quickRefactorSettings();
-
-        if (isThinkingEnabled) {
-            applyThinkingMode(qrSettings);
-        } else {
-            applyModelParams(qrSettings);
-        }
     } else {
-        const auto &chatSettings = Settings::chatAssistantSettings();
+        QJsonObject generationConfig;
+        generationConfig["maxOutputTokens"] = config.value("max_output_tokens").toInt(1024);
+        generationConfig["temperature"] = config.value("temperature").toDouble(0.7);
 
-        if (isThinkingEnabled) {
-            applyThinkingMode(chatSettings);
-        } else {
-            applyModelParams(chatSettings);
-        }
+        if (config.contains("top_p"))
+            generationConfig["topP"] = config["top_p"].toDouble();
+        if (config.contains("top_k"))
+            generationConfig["topK"] = config["top_k"].toInt();
+
+        request["generationConfig"] = generationConfig;
     }
 
     if (isToolsEnabled) {

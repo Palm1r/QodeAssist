@@ -69,6 +69,7 @@ public:
         LLMCore::PromptTemplate *promptTemplate,
         LLMCore::ContextData context,
         LLMCore::RequestType requestType,
+        const QJsonObject & /*config*/,
         bool isToolsEnabled,
         bool isThinkingEnabled) override
     {

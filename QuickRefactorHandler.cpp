@@ -32,6 +32,7 @@
 #include <llmcore/RequestConfig.hpp>
 #include <llmcore/RulesLoader.hpp>
 #include <logger/Logger.hpp>
+#include <params/ConfigBuilder.hpp>
 #include <settings/ChatAssistantSettings.hpp>
 #include <settings/GeneralSettings.hpp>
 #include <settings/QuickRefactorSettings.hpp>
@@ -165,11 +166,18 @@ void QuickRefactorHandler::prepareAndSendRequest(
 
     bool enableTools = Settings::quickRefactorSettings().useTools();
     bool enableThinking = Settings::quickRefactorSettings().useThinking();
+
+    auto providerConfig = ConfigBuilder::create(
+        provider->providerID(), Settings::quickRefactorSettings());
+    if (enableThinking)
+        ConfigBuilder::addThinking(providerConfig, provider->providerID(), Settings::quickRefactorSettings());
+
     provider->prepareRequest(
         config.providerRequest,
         promptTemplate,
         context,
         LLMCore::RequestType::QuickRefactoring,
+        providerConfig,
         enableTools,
         enableThinking);
 

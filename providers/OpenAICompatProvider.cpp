@@ -21,10 +21,6 @@
 
 #include "llmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
-#include "settings/ChatAssistantSettings.hpp"
-#include "settings/CodeCompletionSettings.hpp"
-#include "settings/QuickRefactorSettings.hpp"
-#include "settings/GeneralSettings.hpp"
 #include "settings/ProviderSettings.hpp"
 
 #include <QJsonArray>
@@ -75,6 +71,7 @@ void OpenAICompatProvider::prepareRequest(
     LLMCore::PromptTemplate *prompt,
     LLMCore::ContextData context,
     LLMCore::RequestType type,
+    const QJsonObject &config,
     bool isToolsEnabled,
     bool isThinkingEnabled)
 {
@@ -84,27 +81,17 @@ void OpenAICompatProvider::prepareRequest(
 
     prompt->prepareRequest(request, context);
 
-    auto applyModelParams = [&request](const auto &settings) {
-        request["max_tokens"] = settings.maxTokens();
-        request["temperature"] = settings.temperature();
+    request["max_tokens"] = config.value("max_tokens").toInt(1024);
+    request["temperature"] = config.value("temperature").toDouble(0.7);
 
-        if (settings.useTopP())
-            request["top_p"] = settings.topP();
-        if (settings.useTopK())
-            request["top_k"] = settings.topK();
-        if (settings.useFrequencyPenalty())
-            request["frequency_penalty"] = settings.frequencyPenalty();
-        if (settings.usePresencePenalty())
-            request["presence_penalty"] = settings.presencePenalty();
-    };
-
-    if (type == LLMCore::RequestType::CodeCompletion) {
-        applyModelParams(Settings::codeCompletionSettings());
-    } else if (type == LLMCore::RequestType::QuickRefactoring) {
-        applyModelParams(Settings::quickRefactorSettings());
-    } else {
-        applyModelParams(Settings::chatAssistantSettings());
-    }
+    if (config.contains("top_p"))
+        request["top_p"] = config["top_p"].toDouble();
+    if (config.contains("top_k"))
+        request["top_k"] = config["top_k"].toInt();
+    if (config.contains("frequency_penalty"))
+        request["frequency_penalty"] = config["frequency_penalty"].toDouble();
+    if (config.contains("presence_penalty"))
+        request["presence_penalty"] = config["presence_penalty"].toDouble();
 
     if (isToolsEnabled) {
         LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL;

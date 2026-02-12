@@ -250,6 +250,7 @@ void MistralAIProvider::prepareRequest(
     LLMCore::PromptTemplate *prompt,
     LLMCore::ContextData context,
     LLMCore::RequestType type,
+    const QJsonObject &config,
     bool isToolsEnabled,
     bool isThinkingEnabled)
 {
@@ -259,39 +260,29 @@ void MistralAIProvider::prepareRequest(
 
     prompt->prepareRequest(request, context);
 
-    auto applyModelParams = [&request](const auto &settings) {
-        request["max_tokens"] = settings.maxTokens();
-        request["temperature"] = settings.temperature();
+    request["max_tokens"] = config.value("max_tokens").toInt(2048);
+    request["stream"] = config.value("stream").toBool(true);
+    request["temperature"] = config.value("temperature").toDouble(0.7);
 
-        if (settings.useTopP())
-            request["top_p"] = settings.topP();
-        if (settings.useTopK())
-            request["top_k"] = settings.topK();
-        if (settings.useFrequencyPenalty())
-            request["frequency_penalty"] = settings.frequencyPenalty();
-        if (settings.usePresencePenalty())
-            request["presence_penalty"] = settings.presencePenalty();
-    };
-
-    if (type == LLMCore::RequestType::CodeCompletion) {
-        applyModelParams(Settings::codeCompletionSettings());
-    } else if (type == LLMCore::RequestType::QuickRefactoring) {
-        applyModelParams(Settings::quickRefactorSettings());
-    } else {
-        applyModelParams(Settings::chatAssistantSettings());
-    }
+    if (config.contains("top_p"))
+        request["top_p"] = config["top_p"];
+    if (config.contains("top_k"))
+        request["top_k"] = config["top_k"];
+    if (config.contains("frequency_penalty"))
+        request["frequency_penalty"] = config["frequency_penalty"];
+    if (config.contains("presence_penalty"))
+        request["presence_penalty"] = config["presence_penalty"];
+    if (config.contains("stop"))
+        request["stop"] = config["stop"];
 
     if (isToolsEnabled) {
-        LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL;
-        if (type == LLMCore::RequestType::QuickRefactoring) {
-            filter = LLMCore::RunToolsFilter::OnlyRead;
-        }
-
-        auto toolsDefinitions = m_toolsManager->getToolsDefinitions(
-            LLMCore::ToolSchemaFormat::OpenAI, filter);
-        if (!toolsDefinitions.isEmpty()) {
-            request["tools"] = toolsDefinitions;
-            LOG_MESSAGE(QString("Added %1 tools to Mistral request").arg(toolsDefinitions.size()));
+        auto filter = (type == LLMCore::RequestType::QuickRefactoring)
+            ? LLMCore::RunToolsFilter::OnlyRead
+            : LLMCore::RunToolsFilter::ALL;
+        auto tools = m_toolsManager->getToolsDefinitions(LLMCore::ToolSchemaFormat::OpenAI, filter);
+        if (!tools.isEmpty()) {
+            request["tools"] = tools;
+            LOG_MESSAGE(QString("Added %1 tools to Mistral request").arg(tools.size()));
         }
     }
 }
