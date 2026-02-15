@@ -156,7 +156,6 @@ add_qtc_plugin(QodeAssist
     tools/FindAndReadFileTool.hpp tools/FindAndReadFileTool.cpp
     tools/FileSearchUtils.hpp tools/FileSearchUtils.cpp
     tools/TodoTool.hpp tools/TodoTool.cpp
-    providers/ClaudeMessage.hpp providers/ClaudeMessage.cpp
     providers/OpenAIMessage.hpp providers/OpenAIMessage.cpp
     providers/OllamaMessage.hpp providers/OllamaMessage.cpp
     providers/GoogleMessage.hpp providers/GoogleMessage.cpp

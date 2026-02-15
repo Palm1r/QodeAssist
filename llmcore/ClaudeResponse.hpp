@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -21,13 +21,32 @@
 
 #include <llmcore/ContentBlocks.hpp>
 
-namespace QodeAssist {
+namespace QodeAssist::LLMCore {
 
-class ClaudeMessage : public QObject
+struct StreamEvent {
+    enum class Type {
+        None,
+        MessageStart,
+        TextDelta,
+        ThinkingBlockComplete,
+        RedactedThinkingBlockComplete,
+        MessageComplete
+    };
+
+    Type type = Type::None;
+    QString text;
+    QString thinking;
+    QString signature;
+    int blockIndex = -1;
+};
+
+class ClaudeResponse : public QObject
 {
     Q_OBJECT
 public:
-    explicit ClaudeMessage(QObject *parent = nullptr);
+    explicit ClaudeResponse(QObject *parent = nullptr);
+
+    StreamEvent processEvent(const QJsonObject &event);
 
     void handleContentBlockStart(int index, const QString &blockType, const QJsonObject &data);
     void handleContentBlockDelta(int index, const QString &deltaType, const QJsonObject &delta);
@@ -37,18 +56,18 @@ public:
     QJsonObject toProviderFormat() const;
     QJsonArray createToolResultsContent(const QHash<QString, QString> &toolResults) const;
 
-    LLMCore::MessageState state() const { return m_state; }
-    QList<LLMCore::ToolUseContent *> getCurrentToolUseContent() const;
-    QList<LLMCore::ThinkingContent *> getCurrentThinkingContent() const;
-    QList<LLMCore::RedactedThinkingContent *> getCurrentRedactedThinkingContent() const;
-    const QList<LLMCore::ContentBlock *> &getCurrentBlocks() const { return m_currentBlocks; }
+    MessageState state() const { return m_state; }
+    QList<ToolUseContent *> getCurrentToolUseContent() const;
+    QList<ThinkingContent *> getCurrentThinkingContent() const;
+    QList<RedactedThinkingContent *> getCurrentRedactedThinkingContent() const;
+    const QList<ContentBlock *> &getCurrentBlocks() const { return m_currentBlocks; }
 
     void startNewContinuation();
 
 private:
     QString m_stopReason;
-    LLMCore::MessageState m_state = LLMCore::MessageState::Building;
-    QList<LLMCore::ContentBlock *> m_currentBlocks;
+    MessageState m_state = MessageState::Building;
+    QList<ContentBlock *> m_currentBlocks;
     QHash<int, QString> m_pendingToolInputs;
 
     void updateStateFromStopReason();
@@ -63,4 +82,4 @@ private:
     }
 };
 
-} // namespace QodeAssist
+} // namespace QodeAssist::LLMCore

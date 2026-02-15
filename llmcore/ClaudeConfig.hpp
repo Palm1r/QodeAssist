@@ -64,6 +64,26 @@ public:
         }
     }
 
+    static QJsonObject requestTemplate()
+    {
+        return QJsonObject{
+            {"model", {}},
+            {"system", {}},
+            {"messages", QJsonArray{{QJsonObject{{"role", {}}, {"content", {}}}}}},
+            {"temperature", {}},
+            {"max_tokens", {}},
+            {"anthropic-version", {}},
+            {"top_p", {}},
+            {"top_k", {}},
+            {"stop", QJsonArray{}},
+            {"stop_sequences", QJsonArray{}},
+            {"stream", {}},
+            {"tools", {}},
+            {"thinking", QJsonObject{{"type", {}}, {"budget_tokens", {}}}},
+            {"metadata", {}},
+            {"tool_choice", {}}};
+    }
+
     struct ValidationResult {
         bool adjusted = false;
         QString warning;

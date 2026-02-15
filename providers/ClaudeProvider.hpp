@@ -19,9 +19,9 @@
 
 #pragma once
 
+#include <llmcore/ClaudeResponse.hpp>
 #include <llmcore/Provider.hpp>
 
-#include "ClaudeMessage.hpp"
 #include "tools/ToolsManager.hpp"
 
 namespace QodeAssist::Providers {
@@ -78,7 +78,7 @@ private:
     void handleMessageComplete(const QString &requestId);
     void cleanupRequest(const LLMCore::RequestID &requestId);
 
-    QHash<QodeAssist::LLMCore::RequestID, ClaudeMessage *> m_messages;
+    QHash<QodeAssist::LLMCore::RequestID, LLMCore::ClaudeResponse *> m_messages;
     QHash<QodeAssist::LLMCore::RequestID, QUrl> m_requestUrls;
     QHash<QodeAssist::LLMCore::RequestID, QJsonObject> m_originalRequests;
     Tools::ToolsManager *m_toolsManager;

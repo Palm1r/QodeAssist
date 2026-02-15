@@ -27,6 +27,7 @@
 #include <QUrlQuery>
 
 #include "llmcore/ClaudeConfig.hpp"
+#include "llmcore/ClaudeRequest.hpp"
 #include "llmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ProviderSettings.hpp"
@@ -56,12 +57,12 @@ QString ClaudeProvider::url() const
 
 QString ClaudeProvider::completionEndpoint() const
 {
-    return "/v1/messages";
+    return LLMCore::ClaudeRequest::messagesEndpoint();
 }
 
 QString ClaudeProvider::chatEndpoint() const
 {
-    return "/v1/messages";
+    return LLMCore::ClaudeRequest::messagesEndpoint();
 }
 
 bool ClaudeProvider::supportsModelListing() const
@@ -105,42 +106,20 @@ void ClaudeProvider::prepareRequest(
 
 QList<QString> ClaudeProvider::getInstalledModels(const QString &baseUrl)
 {
-    QList<QString> models;
+    LLMCore::ClaudeListModelsRequest listModelsRequest;
+    QNetworkRequest request = listModelsRequest.createNetworkRequest(baseUrl, apiKey());
+
     QNetworkAccessManager manager;
-
-    QUrl url(baseUrl + "/v1/models");
-    QUrlQuery query;
-    query.addQueryItem("limit", "1000");
-    url.setQuery(query);
-
-    QNetworkRequest request(url);
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    request.setRawHeader("anthropic-version", "2023-06-01");
-
-    if (!apiKey().isEmpty()) {
-        request.setRawHeader("x-api-key", apiKey().toUtf8());
-    }
-
     QNetworkReply *reply = manager.get(request);
+
     QEventLoop loop;
     QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
     loop.exec();
 
+    QList<QString> models;
     if (reply->error() == QNetworkReply::NoError) {
-        QByteArray responseData = reply->readAll();
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(responseData);
-        QJsonObject jsonObject = jsonResponse.object();
-
-        if (jsonObject.contains("data")) {
-            QJsonArray modelArray = jsonObject["data"].toArray();
-            for (const QJsonValue &value : modelArray) {
-                QJsonObject modelObject = value.toObject();
-                if (modelObject.contains("id")) {
-                    QString modelId = modelObject["id"].toString();
-                    models.append(modelId);
-                }
-            }
-        }
+        QJsonObject response = QJsonDocument::fromJson(reply->readAll()).object();
+        models = LLMCore::ClaudeListModelsRequest::parseResponse(response);
     } else {
         LOG_MESSAGE(QString("Error fetching Claude models: %1").arg(reply->errorString()));
     }
@@ -151,21 +130,8 @@ QList<QString> ClaudeProvider::getInstalledModels(const QString &baseUrl)
 
 QList<QString> ClaudeProvider::validateRequest(const QJsonObject &request, LLMCore::TemplateType type)
 {
-    const auto templateReq = QJsonObject{
-        {"model", {}},
-        {"system", {}},
-        {"messages", QJsonArray{{QJsonObject{{"role", {}}, {"content", {}}}}}},
-        {"temperature", {}},
-        {"max_tokens", {}},
-        {"anthropic-version", {}},
-        {"top_p", {}},
-        {"top_k", {}},
-        {"stop", QJsonArray{}},
-        {"stream", {}},
-        {"tools", {}},
-        {"thinking", QJsonObject{{"type", {}}, {"budget_tokens", {}}}}};
-
-    return LLMCore::ValidationUtils::validateRequestFields(request, templateReq);
+    return LLMCore::ValidationUtils::validateRequestFields(
+        request, LLMCore::ClaudeConfig::requestTemplate());
 }
 
 QString ClaudeProvider::apiKey() const
@@ -175,17 +141,12 @@ QString ClaudeProvider::apiKey() const
 
 void ClaudeProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
 {
-    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    networkRequest.setRawHeader("anthropic-version", "2023-06-01");
-
-    if (!apiKey().isEmpty()) {
-        networkRequest.setRawHeader("x-api-key", apiKey().toUtf8());
-    }
+    LLMCore::ClaudeRequest::prepareNetworkRequest(networkRequest, apiKey());
 }
 
 LLMCore::ProviderID ClaudeProvider::providerID() const
 {
-    return LLMCore::ProviderID::Claude;
+    return LLMCore::ClaudeRequest::providerID();
 }
 
 void ClaudeProvider::sendRequest(
@@ -214,13 +175,15 @@ bool ClaudeProvider::supportsTools() const
     return true;
 }
 
-bool ClaudeProvider::supportThinking() const {
+bool ClaudeProvider::supportThinking() const
+{
     return true;
-};
+}
 
-bool ClaudeProvider::supportImage() const {
+bool ClaudeProvider::supportImage() const
+{
     return true;
-};
+}
 
 void ClaudeProvider::cancelRequest(const LLMCore::RequestID &requestId)
 {
@@ -260,7 +223,7 @@ void ClaudeProvider::onRequestFinished(
     }
 
     if (m_messages.contains(requestId)) {
-        ClaudeMessage *message = m_messages[requestId];
+        LLMCore::ClaudeResponse *message = m_messages[requestId];
         if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
             LOG_MESSAGE(QString("Waiting for tools to complete for %1").arg(requestId));
             m_dataBuffers.remove(requestId);
@@ -291,7 +254,7 @@ void ClaudeProvider::onToolExecutionComplete(
     LOG_MESSAGE(QString("Tool execution complete for Claude request %1").arg(requestId));
 
     for (auto it = toolResults.begin(); it != toolResults.end(); ++it) {
-        ClaudeMessage *message = m_messages[requestId];
+        LLMCore::ClaudeResponse *message = m_messages[requestId];
         auto toolContent = message->getCurrentToolUseContent();
         for (auto tool : toolContent) {
             if (tool->id() == it.key()) {
@@ -303,7 +266,7 @@ void ClaudeProvider::onToolExecutionComplete(
         }
     }
 
-    ClaudeMessage *message = m_messages[requestId];
+    LLMCore::ClaudeResponse *message = m_messages[requestId];
     QJsonObject continuationRequest = m_originalRequests[requestId];
     QJsonArray messages = continuationRequest["messages"].toArray();
 
@@ -332,148 +295,43 @@ void ClaudeProvider::onToolExecutionComplete(
 
 void ClaudeProvider::processStreamEvent(const QString &requestId, const QJsonObject &event)
 {
-    QString eventType = event["type"].toString();
+    LLMCore::ClaudeResponse *response = m_messages.value(requestId);
+    if (!response && event["type"].toString() == "message_start") {
+        response = new LLMCore::ClaudeResponse(this);
+        m_messages[requestId] = response;
+        LOG_MESSAGE(QString("Created ClaudeResponse for request %1").arg(requestId));
+    }
 
-    if (eventType == "message_stop") {
+    if (!response) {
         return;
     }
 
-    ClaudeMessage *message = m_messages.value(requestId);
-    if (!message) {
-        if (eventType == "message_start") {
-            message = new ClaudeMessage(this);
-            m_messages[requestId] = message;
-            LOG_MESSAGE(QString("Created NEW ClaudeMessage for request %1").arg(requestId));
-        } else {
-            return;
-        }
-    }
+    LLMCore::StreamEvent streamEvent = response->processEvent(event);
 
-    if (eventType == "message_start") {
-        message->startNewContinuation();
+    switch (streamEvent.type) {
+    case LLMCore::StreamEvent::Type::MessageStart:
         emit continuationStarted(requestId);
-        LOG_MESSAGE(QString("Starting NEW continuation for request %1").arg(requestId));
+        break;
 
-    } else if (eventType == "content_block_start") {
-        int index = event["index"].toInt();
-        QJsonObject contentBlock = event["content_block"].toObject();
-        QString blockType = contentBlock["type"].toString();
+    case LLMCore::StreamEvent::Type::TextDelta:
+        m_dataBuffers[requestId].responseContent += streamEvent.text;
+        emit partialResponseReceived(requestId, streamEvent.text);
+        break;
 
-        LOG_MESSAGE(
-            QString("Adding new content block: type=%1, index=%2").arg(blockType).arg(index));
-        
-        if (blockType == "thinking" || blockType == "redacted_thinking") {
-            QJsonDocument eventDoc(event);
-            LOG_MESSAGE(QString("content_block_start event for %1: %2")
-                            .arg(blockType)
-                            .arg(QString::fromUtf8(eventDoc.toJson(QJsonDocument::Compact))));
-        }
+    case LLMCore::StreamEvent::Type::ThinkingBlockComplete:
+        emit thinkingBlockReceived(requestId, streamEvent.thinking, streamEvent.signature);
+        break;
 
-        message->handleContentBlockStart(index, blockType, contentBlock);
+    case LLMCore::StreamEvent::Type::RedactedThinkingBlockComplete:
+        emit redactedThinkingBlockReceived(requestId, streamEvent.signature);
+        break;
 
-    } else if (eventType == "content_block_delta") {
-        int index = event["index"].toInt();
-        QJsonObject delta = event["delta"].toObject();
-        QString deltaType = delta["type"].toString();
+    case LLMCore::StreamEvent::Type::MessageComplete:
+        handleMessageComplete(requestId);
+        break;
 
-        message->handleContentBlockDelta(index, deltaType, delta);
-
-        if (deltaType == "text_delta") {
-            QString text = delta["text"].toString();
-            LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
-            buffers.responseContent += text;
-            emit partialResponseReceived(requestId, text);
-        } else if (deltaType == "signature_delta") {
-            QString signature = delta["signature"].toString();
-        }
-
-    } else if (eventType == "content_block_stop") {
-        int index = event["index"].toInt();
-        
-        auto allBlocks = message->getCurrentBlocks();
-        if (index < allBlocks.size()) {
-            QString blockType = allBlocks[index]->type();
-            if (blockType == "thinking" || blockType == "redacted_thinking") {
-                QJsonDocument eventDoc(event);
-                LOG_MESSAGE(QString("content_block_stop event for %1 at index %2: %3")
-                                .arg(blockType)
-                                .arg(index)
-                                .arg(QString::fromUtf8(eventDoc.toJson(QJsonDocument::Compact))));
-            }
-        }
-        
-        if (event.contains("content_block")) {
-            QJsonObject contentBlock = event["content_block"].toObject();
-            QString blockType = contentBlock["type"].toString();
-            
-            if (blockType == "thinking") {
-                QString signature = contentBlock["signature"].toString();
-                if (!signature.isEmpty()) {
-                    auto allBlocks = message->getCurrentBlocks();
-                    if (index < allBlocks.size()) {
-                        if (auto thinkingContent = qobject_cast<LLMCore::ThinkingContent *>(allBlocks[index])) {
-                            thinkingContent->setSignature(signature);
-                            LOG_MESSAGE(
-                                QString("Updated thinking block signature from content_block_stop, "
-                                        "signature length=%1")
-                                    .arg(signature.length()));
-                        }
-                    }
-                }
-            } else if (blockType == "redacted_thinking") {
-                QString signature = contentBlock["signature"].toString();
-                if (!signature.isEmpty()) {
-                    auto allBlocks = message->getCurrentBlocks();
-                    if (index < allBlocks.size()) {
-                        if (auto redactedContent = qobject_cast<LLMCore::RedactedThinkingContent *>(allBlocks[index])) {
-                            redactedContent->setSignature(signature);
-                            LOG_MESSAGE(
-                                QString("Updated redacted_thinking block signature from content_block_stop, "
-                                        "signature length=%1")
-                                    .arg(signature.length()));
-                        }
-                    }
-                }
-            }
-        }
-        
-        message->handleContentBlockStop(index);
-
-        auto thinkingBlocks = message->getCurrentThinkingContent();
-        for (auto thinkingContent : thinkingBlocks) {
-            auto allBlocks = message->getCurrentBlocks();
-            if (index < allBlocks.size() && allBlocks[index] == thinkingContent) {
-                emit thinkingBlockReceived(
-                    requestId, thinkingContent->thinking(), thinkingContent->signature());
-                LOG_MESSAGE(
-                    QString("Emitted thinking block for request %1, thinking length=%2, signature length=%3")
-                        .arg(requestId)
-                        .arg(thinkingContent->thinking().length())
-                        .arg(thinkingContent->signature().length()));
-                break;
-            }
-        }
-
-        auto redactedBlocks = message->getCurrentRedactedThinkingContent();
-        for (auto redactedContent : redactedBlocks) {
-            auto allBlocks = message->getCurrentBlocks();
-            if (index < allBlocks.size() && allBlocks[index] == redactedContent) {
-                emit redactedThinkingBlockReceived(requestId, redactedContent->signature());
-                LOG_MESSAGE(
-                    QString("Emitted redacted thinking block for request %1, signature length=%2")
-                        .arg(requestId)
-                        .arg(redactedContent->signature().length()));
-                break;
-            }
-        }
-
-    } else if (eventType == "message_delta") {
-        QJsonObject delta = event["delta"].toObject();
-        if (delta.contains("stop_reason")) {
-            QString stopReason = delta["stop_reason"].toString();
-            message->handleStopReason(stopReason);
-            handleMessageComplete(requestId);
-        }
+    default:
+        break;
     }
 }
 
@@ -482,7 +340,7 @@ void ClaudeProvider::handleMessageComplete(const QString &requestId)
     if (!m_messages.contains(requestId))
         return;
 
-    ClaudeMessage *message = m_messages[requestId];
+    LLMCore::ClaudeResponse *message = m_messages[requestId];
 
     if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
         LOG_MESSAGE(QString("Claude message requires tool execution for %1").arg(requestId));
@@ -512,7 +370,7 @@ void ClaudeProvider::cleanupRequest(const LLMCore::RequestID &requestId)
     LOG_MESSAGE(QString("Cleaning up Claude request %1").arg(requestId));
 
     if (m_messages.contains(requestId)) {
-        ClaudeMessage *message = m_messages.take(requestId);
+        LLMCore::ClaudeResponse *message = m_messages.take(requestId);
         message->deleteLater();
     }
 
