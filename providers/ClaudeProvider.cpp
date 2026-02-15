@@ -26,6 +26,7 @@
 #include <QNetworkReply>
 #include <QUrlQuery>
 
+#include "llmcore/ClaudeConfig.hpp"
 #include "llmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ProviderSettings.hpp"
@@ -83,37 +84,11 @@ void ClaudeProvider::prepareRequest(
 
     prompt->prepareRequest(request, context);
 
-    request["max_tokens"] = config.value("max_tokens").toInt(8192);
-    request["stream"] = config.value("stream").toBool(true);
+    LLMCore::ClaudeConfig::applyTo(request, config);
 
-    if (config.contains("top_p"))
-        request["top_p"] = config["top_p"];
-    if (config.contains("top_k"))
-        request["top_k"] = config["top_k"];
-    if (config.contains("stop_sequences"))
-        request["stop_sequences"] = config["stop_sequences"];
-
-    if (config.contains("thinking")) {
-        auto thinkingObj = config["thinking"].toObject();
-        int maxTokens = request["max_tokens"].toInt();
-
-        if (thinkingObj["type"].toString() == "enabled" && thinkingObj.contains("budget_tokens")) {
-            int budget = std::max(thinkingObj["budget_tokens"].toInt(), 1024);
-            if (maxTokens <= budget) {
-                LOG_MESSAGE(
-                    QString("Warning: max_tokens (%1) must be greater than budget_tokens "
-                            "(%2), adjusting")
-                        .arg(maxTokens)
-                        .arg(budget));
-                request["max_tokens"] = budget + 1024;
-            }
-            thinkingObj["budget_tokens"] = budget;
-        }
-
-        request["thinking"] = thinkingObj;
-        request["temperature"] = 1.0; // in thinking temperature always 1.0
-    } else {
-        request["temperature"] = config.value("temperature").toDouble(1.0);
+    auto result = LLMCore::ClaudeConfig::validate(request);
+    if (result.adjusted) {
+        LOG_MESSAGE(QString("Warning: %1").arg(result.warning));
     }
 
     if (isToolsEnabled) {
