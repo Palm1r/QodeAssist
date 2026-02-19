@@ -33,7 +33,6 @@
 #include "GetIssuesListTool.hpp"
 #include "ListProjectFilesTool.hpp"
 #include "ProjectSearchTool.hpp"
-#include "ReadVisibleFilesTool.hpp"
 #include "TodoTool.hpp"
 
 namespace QodeAssist::Tools {
@@ -46,7 +45,6 @@ ToolsFactory::ToolsFactory(QObject *parent)
 
 void ToolsFactory::registerTools()
 {
-    registerTool(new ReadVisibleFilesTool(this));
     registerTool(new ListProjectFilesTool(this));
     registerTool(new GetIssuesListTool(this));
     registerTool(new CreateNewFileTool(this));
