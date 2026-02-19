@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Petr Mironychev
+ * Copyright (C) 2024-2026 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -21,9 +21,12 @@
 
 #include <QClipboard>
 #include <QDesktopServices>
+#include <QDir>
+#include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QMessageBox>
+#include <QTextStream>
 
 #include <coreplugin/editormanager/editormanager.h>
 #include <coreplugin/icore.h>
@@ -224,6 +227,18 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         &ProjectExplorer::ProjectManager::startupProjectChanged,
         this,
         &ChatRootView::refreshRules);
+
+    connect(
+        ProjectExplorer::ProjectManager::instance(),
+        &ProjectExplorer::ProjectManager::projectAdded,
+        this,
+        &ChatRootView::openFilesChanged);
+
+    connect(
+        ProjectExplorer::ProjectManager::instance(),
+        &ProjectExplorer::ProjectManager::projectRemoved,
+        this,
+        &ChatRootView::openFilesChanged);
 
     connect(
         &Settings::chatAssistantSettings().enableChatTools,
@@ -738,6 +753,13 @@ void ChatRootView::openSettings()
     Core::ICore::showOptionsDialog(Constants::QODE_ASSIST_CHAT_ASSISTANT_SETTINGS_PAGE_ID);
 }
 
+void ChatRootView::openFileInEditor(const QString &filePath)
+{
+    if (filePath.isEmpty())
+        return;
+    Core::EditorManager::openEditor(Utils::FilePath::fromString(filePath));
+}
+
 void ChatRootView::updateInputTokensCount()
 {
     int inputTokens = m_messageTokensCount;
@@ -788,6 +810,8 @@ void ChatRootView::onEditorAboutToClose(Core::IEditor *editor)
     if (editor) {
         m_currentEditors.removeOne(editor);
     }
+
+    emit openFilesChanged();
 }
 
 void ChatRootView::onAppendLinkFileFromEditor(Core::IEditor *editor)
@@ -805,6 +829,7 @@ void ChatRootView::onEditorCreated(Core::IEditor *editor, const Utils::FilePath 
 {
     if (editor && editor->document()) {
         m_currentEditors.append(editor);
+        emit openFilesChanged();
     }
 }
 

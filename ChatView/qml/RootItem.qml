@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Petr Mironychev
+ * Copyright (C) 2024-2026 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -280,6 +280,10 @@ ChatRootView {
                         messageInput.cursorPosition = model.content.length
                         root.chatModel.resetModelTo(idx)
                     }
+
+                    onOpenFileRequested: function(filePath) {
+                        root.openFileInEditor(filePath)
+                    }
                 }
             }
 
@@ -368,7 +372,38 @@ ChatRootView {
                     }
                 }
 
-                onTextChanged: root.calculateMessageTokensCount(messageInput.text)
+                onTextChanged: {
+                    root.calculateMessageTokensCount(messageInput.text)
+                    var cursorPos = messageInput.cursorPosition
+                    var textBefore = messageInput.text.substring(0, cursorPos)
+                    var atIndex = textBefore.lastIndexOf('@')
+                    if (atIndex >= 0) {
+                        var query = textBefore.substring(atIndex + 1)
+                        if (query.indexOf(' ') === -1 && query.indexOf('\n') === -1) {
+                            fileMention.updateSearch(query)
+                            return
+                        }
+                    }
+                    fileMention.dismiss()
+                }
+
+                Keys.onPressed: function(event) {
+                    if (fileMentionPopup.visible) {
+                        if (event.key === Qt.Key_Down) {
+                            fileMention.moveDown()
+                            event.accepted = true
+                        } else if (event.key === Qt.Key_Up) {
+                            fileMention.moveUp()
+                            event.accepted = true
+                        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                            fileMention.selectCurrent()
+                            event.accepted = true
+                        } else if (event.key === Qt.Key_Escape) {
+                            fileMention.dismiss()
+                            event.accepted = true
+                        }
+                    }
+                }
 
                 MouseArea {
                     anchors.fill: parent
@@ -480,7 +515,7 @@ ChatRootView {
         sequences: ["Ctrl+Return", "Ctrl+Enter"]
         context: Qt.WindowShortcut
         onActivated: {
-            if (messageInput.activeFocus && !Qt.inputMethod.visible) {
+            if (messageInput.activeFocus && !Qt.inputMethod.visible && !fileMentionPopup.visible) {
                 root.sendChatMessage()
             }
         }
@@ -497,8 +532,9 @@ ChatRootView {
     }
 
     function sendChatMessage() {
-        root.sendMessage(messageInput.text)
+        root.sendMessage(fileMention.expandMentions(messageInput.text))
         messageInput.text = ""
+        fileMention.clearMentions()
         scrollToBottom()
     }
 
@@ -571,6 +607,93 @@ ChatRootView {
             if (root.lastInfoMessage.length > 0) {
                 infoToast.show(root.lastInfoMessage)
             }
+        }
+        function onOpenFilesChanged() {
+            if (fileMentionPopup.visible)
+                Qt.callLater(fileMention.refreshSearch)
+        }
+    }
+
+    FileMentionItem {
+        id: fileMention
+
+        onProjectSelected: function(projectName) {
+            var cursorPos = messageInput.cursorPosition
+            var text = messageInput.text
+            var textBefore = text.substring(0, cursorPos)
+            var atIndex = textBefore.lastIndexOf('@')
+            var mention = '@' + projectName + ':'
+            if (atIndex >= 0) {
+                var newText = text.substring(0, atIndex) + mention + text.substring(cursorPos)
+                messageInput.text = newText
+                messageInput.cursorPosition = atIndex + mention.length
+            }
+            fileMention.dismiss()
+        }
+
+        onFileSelected: function(absolutePath, relativePath, projectName) {
+            var cursorPos = messageInput.cursorPosition
+            var text = messageInput.text
+            var textBefore = text.substring(0, cursorPos)
+            var atIndex = textBefore.lastIndexOf('@')
+            var currentQuery = atIndex >= 0 ? textBefore.substring(atIndex + 1) : ""
+
+            var result = fileMention.handleFileSelection(
+                absolutePath, relativePath, projectName, currentQuery, root.useTools)
+
+            if (result.mode === "mention") {
+                if (atIndex >= 0) {
+                    let newText = text.substring(0, atIndex) + result.mentionText + text.substring(cursorPos)
+                    messageInput.text = newText
+                    messageInput.cursorPosition = atIndex + result.mentionText.length
+                }
+            } else {
+                if (atIndex >= 0) {
+                    let newText = text.substring(0, atIndex) + text.substring(cursorPos)
+                    messageInput.text = newText
+                    messageInput.cursorPosition = atIndex
+                }
+            }
+
+            fileMention.dismiss()
+        }
+
+        onFileAttachRequested: function(filePaths) {
+            root.addFilesToAttachList(filePaths)
+        }
+    }
+
+    FileMentionPopup {
+        id: fileMentionPopup
+
+        z: 999
+        width: Math.min(480, root.width - 20)
+
+        x: Math.max(5, Math.min(view.x + 5, root.width - width - 5))
+        y: view.y - height - 4
+
+        searchResults: fileMention.searchResults
+
+        onFileSelected: function(absolutePath, relativePath, projectName) {
+            fileMention.fileSelected(absolutePath, relativePath, projectName)
+        }
+        onProjectSelected: function(projectName) {
+            fileMention.projectSelected(projectName)
+        }
+        onDismissed: fileMention.dismiss()
+    }
+
+    Connections {
+        target: fileMention
+        function onCurrentIndexChanged() {
+            fileMentionPopup.currentIndex = fileMention.currentIndex
+        }
+    }
+
+    Connections {
+        target: fileMentionPopup
+        function onCurrentIndexChanged() {
+            fileMention.currentIndex = fileMentionPopup.currentIndex
         }
     }
 

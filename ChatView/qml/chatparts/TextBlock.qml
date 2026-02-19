@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Petr Mironychev
+ * Copyright (C) 2024-2026 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -28,8 +28,6 @@ TextEdit {
     wrapMode: Text.WordWrap
     selectionColor: palette.highlight
     color: palette.text
-
-    onLinkActivated: (link) => Qt.openUrlExternally(link)
 
     MouseArea {
         anchors.fill: parent
