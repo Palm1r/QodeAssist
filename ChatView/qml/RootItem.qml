@@ -380,26 +380,26 @@ ChatRootView {
                     if (atIndex >= 0) {
                         var query = textBefore.substring(atIndex + 1)
                         if (query.indexOf(' ') === -1 && query.indexOf('\n') === -1) {
-                            fileMention.updateSearch(query)
+                            fileMentionPopup.updateSearch(query)
                             return
                         }
                     }
-                    fileMention.dismiss()
+                    fileMentionPopup.dismiss()
                 }
 
                 Keys.onPressed: function(event) {
                     if (fileMentionPopup.visible) {
                         if (event.key === Qt.Key_Down) {
-                            fileMention.moveDown()
+                            fileMentionPopup.moveDown()
                             event.accepted = true
                         } else if (event.key === Qt.Key_Up) {
-                            fileMention.moveUp()
+                            fileMentionPopup.moveUp()
                             event.accepted = true
                         } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                            fileMention.selectCurrent()
+                            root.applyMentionSelection()
                             event.accepted = true
                         } else if (event.key === Qt.Key_Escape) {
-                            fileMention.dismiss()
+                            fileMentionPopup.dismiss()
                             event.accepted = true
                         }
                     }
@@ -531,10 +531,19 @@ ChatRootView {
         Qt.callLater(chatListView.positionViewAtEnd)
     }
 
+    function applyMentionSelection() {
+        var result = fileMentionPopup.applyCurrentSelection(
+            messageInput.text, messageInput.cursorPosition, root.useTools)
+        if (result.text !== undefined) {
+            messageInput.text = result.text
+            messageInput.cursorPosition = result.cursorPosition
+        }
+    }
+
     function sendChatMessage() {
-        root.sendMessage(fileMention.expandMentions(messageInput.text))
+        root.sendMessage(fileMentionPopup.expandMentions(messageInput.text))
         messageInput.text = ""
-        fileMention.clearMentions()
+        fileMentionPopup.clearMentions()
         scrollToBottom()
     }
 
@@ -610,56 +619,7 @@ ChatRootView {
         }
         function onOpenFilesChanged() {
             if (fileMentionPopup.visible)
-                Qt.callLater(fileMention.refreshSearch)
-        }
-    }
-
-    FileMentionItem {
-        id: fileMention
-
-        onProjectSelected: function(projectName) {
-            var cursorPos = messageInput.cursorPosition
-            var text = messageInput.text
-            var textBefore = text.substring(0, cursorPos)
-            var atIndex = textBefore.lastIndexOf('@')
-            var mention = '@' + projectName + ':'
-            if (atIndex >= 0) {
-                var newText = text.substring(0, atIndex) + mention + text.substring(cursorPos)
-                messageInput.text = newText
-                messageInput.cursorPosition = atIndex + mention.length
-            }
-            fileMention.dismiss()
-        }
-
-        onFileSelected: function(absolutePath, relativePath, projectName) {
-            var cursorPos = messageInput.cursorPosition
-            var text = messageInput.text
-            var textBefore = text.substring(0, cursorPos)
-            var atIndex = textBefore.lastIndexOf('@')
-            var currentQuery = atIndex >= 0 ? textBefore.substring(atIndex + 1) : ""
-
-            var result = fileMention.handleFileSelection(
-                absolutePath, relativePath, projectName, currentQuery, root.useTools)
-
-            if (result.mode === "mention") {
-                if (atIndex >= 0) {
-                    let newText = text.substring(0, atIndex) + result.mentionText + text.substring(cursorPos)
-                    messageInput.text = newText
-                    messageInput.cursorPosition = atIndex + result.mentionText.length
-                }
-            } else {
-                if (atIndex >= 0) {
-                    let newText = text.substring(0, atIndex) + text.substring(cursorPos)
-                    messageInput.text = newText
-                    messageInput.cursorPosition = atIndex
-                }
-            }
-
-            fileMention.dismiss()
-        }
-
-        onFileAttachRequested: function(filePaths) {
-            root.addFilesToAttachList(filePaths)
+                Qt.callLater(fileMentionPopup.refreshSearch)
         }
     }
 
@@ -672,28 +632,10 @@ ChatRootView {
         x: Math.max(5, Math.min(view.x + 5, root.width - width - 5))
         y: view.y - height - 4
 
-        searchResults: fileMention.searchResults
+        onSelectionRequested: root.applyMentionSelection()
 
-        onFileSelected: function(absolutePath, relativePath, projectName) {
-            fileMention.fileSelected(absolutePath, relativePath, projectName)
-        }
-        onProjectSelected: function(projectName) {
-            fileMention.projectSelected(projectName)
-        }
-        onDismissed: fileMention.dismiss()
-    }
-
-    Connections {
-        target: fileMention
-        function onCurrentIndexChanged() {
-            fileMentionPopup.currentIndex = fileMention.currentIndex
-        }
-    }
-
-    Connections {
-        target: fileMentionPopup
-        function onCurrentIndexChanged() {
-            fileMention.currentIndex = fileMentionPopup.currentIndex
+        onFileAttachRequested: function(filePaths) {
+            root.addFilesToAttachList(filePaths)
         }
     }
 

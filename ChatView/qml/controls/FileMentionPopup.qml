@@ -21,22 +21,27 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 
-Rectangle {
+FileMentionItem {
     id: root
 
-    property var searchResults: []
-    property int currentIndex: 0
-
-    signal fileSelected(string absolutePath, string relativePath, string projectName)
-    signal projectSelected(string projectName)
-    signal dismissed()
+    signal selectionRequested()
 
     visible: searchResults.length > 0
     height: Math.min(searchResults.length * 36, 36 * 6) + 2
-    color: palette.window
-    border.color: palette.mid
-    border.width: 1
-    radius: 4
+
+    onCurrentIndexChanged: {
+        listView.positionViewAtIndex(root.currentIndex, ListView.Contain)
+    }
+
+    Rectangle {
+        id: background
+
+        anchors.fill: parent
+        color: palette.window
+        border.color: palette.mid
+        border.width: 1
+        radius: 4
+    }
 
     ListView {
         id: listView
@@ -151,34 +156,12 @@ Rectangle {
 
                 anchors.fill: parent
                 hoverEnabled: true
-                onClicked: handleSelection(delegateItem.modelData)
+                onClicked: {
+                    root.currentIndex = delegateItem.index
+                    root.selectionRequested()
+                }
                 onEntered: root.currentIndex = delegateItem.index
             }
         }
-    }
-
-    function handleSelection(item) {
-        if (item.isProject === true) {
-            root.projectSelected(item.projectName)
-        } else {
-            root.fileSelected(item.absolutePath, item.relativePath, item.projectName)
-        }
-    }
-
-    function selectCurrent() {
-        if (currentIndex >= 0 && currentIndex < searchResults.length)
-            handleSelection(searchResults[currentIndex])
-    }
-
-    function moveDown() {
-        if (currentIndex < searchResults.length - 1)
-            currentIndex++
-        listView.positionViewAtIndex(currentIndex, ListView.Contain)
-    }
-
-    function moveUp() {
-        if (currentIndex > 0)
-            currentIndex--
-        listView.positionViewAtIndex(currentIndex, ListView.Contain)
     }
 }

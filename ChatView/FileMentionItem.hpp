@@ -33,7 +33,6 @@ class FileMentionItem : public QQuickItem
     Q_PROPERTY(int currentIndex READ currentIndex WRITE setCurrentIndex NOTIFY currentIndexChanged FINAL)
 
     QML_ELEMENT
-
 public:
     explicit FileMentionItem(QQuickItem *parent = nullptr);
 
@@ -54,6 +53,9 @@ public:
         const QString &projectName,
         const QString &currentQuery,
         bool useTools);
+
+    Q_INVOKABLE QVariantMap applyCurrentSelection(
+        const QString &text, int cursorPosition, bool useTools);
 
     Q_INVOKABLE void registerMention(const QString &mentionKey, const QString &absolutePath);
     Q_INVOKABLE void clearMentions();

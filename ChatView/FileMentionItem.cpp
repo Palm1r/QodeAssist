@@ -128,6 +128,47 @@ void FileMentionItem::dismiss()
     emit dismissed();
 }
 
+QVariantMap FileMentionItem::applyCurrentSelection(
+    const QString &text, int cursorPosition, bool useTools)
+{
+    if (m_currentIndex < 0 || m_currentIndex >= m_searchResults.size()) {
+        dismiss();
+        return {};
+    }
+
+    const QString textBefore = text.left(cursorPosition);
+    const int atIndex = textBefore.lastIndexOf('@');
+    if (atIndex < 0) {
+        dismiss();
+        return {};
+    }
+
+    const QVariantMap item = m_searchResults[m_currentIndex].toMap();
+    QString replacement;
+
+    if (item.value("isProject").toBool()) {
+        replacement = QStringLiteral("@") + item.value("projectName").toString() + ":";
+    } else {
+        const QString currentQuery = textBefore.mid(atIndex + 1);
+        const QVariantMap result = handleFileSelection(
+            item.value("absolutePath").toString(),
+            item.value("relativePath").toString(),
+            item.value("projectName").toString(),
+            currentQuery,
+            useTools);
+
+        if (result.value("mode").toString() == "mention")
+            replacement = result.value("mentionText").toString();
+    }
+
+    const QString newText = text.left(atIndex) + replacement + text.mid(cursorPosition);
+    const int newCursorPosition = atIndex + replacement.length();
+
+    dismiss();
+
+    return {{"text", newText}, {"cursorPosition", newCursorPosition}};
+}
+
 QVariantMap FileMentionItem::handleFileSelection(
     const QString &absolutePath,
     const QString &relativePath,
