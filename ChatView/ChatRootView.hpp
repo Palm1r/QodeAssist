@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Petr Mironychev
+ * Copyright (C) 2024-2026 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -20,6 +20,7 @@
 #pragma once
 
 #include <QQuickItem>
+#include <QVariantList>
 
 #include "ChatFileManager.hpp"
 #include "ChatModel.hpp"
@@ -103,6 +104,8 @@ public:
     Q_INVOKABLE void openChatHistoryFolder();
     Q_INVOKABLE void openRulesFolder();
     Q_INVOKABLE void openSettings();
+
+    Q_INVOKABLE void openFileInEditor(const QString &filePath);
 
     Q_INVOKABLE void updateInputTokensCount();
     int inputTokensCount() const;
@@ -221,6 +224,8 @@ signals:
     void isCompressingChanged();
     void compressionCompleted(const QString &compressedChatPath);
     void compressionFailed(const QString &error);
+
+    void openFilesChanged();
 
 private:
     void updateFileEditStatus(const QString &editId, const QString &status);

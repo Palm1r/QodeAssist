@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Petr Mironychev
+ * Copyright (C) 2024-2026 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -51,6 +51,7 @@ Rectangle {
     property int messageIndex: -1
 
     signal resetChatToMessage(int index)
+    signal openFileRequested(string filePath)
 
     height: msgColumn.implicitHeight + 10
     radius: 8
@@ -201,6 +202,15 @@ Rectangle {
                 return Text.RichText
             } else {
                 return Text.PlainText
+            }
+        }
+
+        onLinkActivated: function(link) {
+            if (link.startsWith("file://")) {
+                var filePath = link.replace(/^file:\/\//, "")
+                root.openFileRequested(filePath)
+            } else {
+                Qt.openUrlExternally(link)
             }
         }
 

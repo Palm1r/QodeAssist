@@ -142,7 +142,6 @@ add_qtc_plugin(QodeAssist
 
     QuickRefactorHandler.hpp QuickRefactorHandler.cpp
     tools/ToolsFactory.hpp tools/ToolsFactory.cpp
-    tools/ReadVisibleFilesTool.hpp tools/ReadVisibleFilesTool.cpp
     tools/ToolHandler.hpp tools/ToolHandler.cpp
     tools/ListProjectFilesTool.hpp tools/ListProjectFilesTool.cpp
     tools/ToolsManager.hpp tools/ToolsManager.cpp

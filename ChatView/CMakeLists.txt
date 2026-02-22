@@ -20,6 +20,7 @@ qt_add_qml_module(QodeAssistChatView
 
     qml/controls/AttachedFilesPlace.qml
     qml/controls/BottomBar.qml
+    qml/controls/FileMentionPopup.qml
     qml/controls/FileEditsActionBar.qml
     qml/controls/ContextViewer.qml
     qml/controls/Toast.qml
@@ -68,6 +69,7 @@ qt_add_qml_module(QodeAssistChatView
     FileItem.hpp FileItem.cpp
     ChatFileManager.hpp ChatFileManager.cpp
     ChatCompressor.hpp ChatCompressor.cpp
+    FileMentionItem.hpp FileMentionItem.cpp
 )
 
 target_link_libraries(QodeAssistChatView

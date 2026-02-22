@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Petr Mironychev
+ * Copyright (C) 2024-2026 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -280,6 +280,10 @@ ChatRootView {
                         messageInput.cursorPosition = model.content.length
                         root.chatModel.resetModelTo(idx)
                     }
+
+                    onOpenFileRequested: function(filePath) {
+                        root.openFileInEditor(filePath)
+                    }
                 }
             }
 
@@ -368,7 +372,38 @@ ChatRootView {
                     }
                 }
 
-                onTextChanged: root.calculateMessageTokensCount(messageInput.text)
+                onTextChanged: {
+                    root.calculateMessageTokensCount(messageInput.text)
+                    var cursorPos = messageInput.cursorPosition
+                    var textBefore = messageInput.text.substring(0, cursorPos)
+                    var atIndex = textBefore.lastIndexOf('@')
+                    if (atIndex >= 0) {
+                        var query = textBefore.substring(atIndex + 1)
+                        if (query.indexOf(' ') === -1 && query.indexOf('\n') === -1) {
+                            fileMentionPopup.updateSearch(query)
+                            return
+                        }
+                    }
+                    fileMentionPopup.dismiss()
+                }
+
+                Keys.onPressed: function(event) {
+                    if (fileMentionPopup.visible) {
+                        if (event.key === Qt.Key_Down) {
+                            fileMentionPopup.moveDown()
+                            event.accepted = true
+                        } else if (event.key === Qt.Key_Up) {
+                            fileMentionPopup.moveUp()
+                            event.accepted = true
+                        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                            root.applyMentionSelection()
+                            event.accepted = true
+                        } else if (event.key === Qt.Key_Escape) {
+                            fileMentionPopup.dismiss()
+                            event.accepted = true
+                        }
+                    }
+                }
 
                 MouseArea {
                     anchors.fill: parent
@@ -480,7 +515,7 @@ ChatRootView {
         sequences: ["Ctrl+Return", "Ctrl+Enter"]
         context: Qt.WindowShortcut
         onActivated: {
-            if (messageInput.activeFocus && !Qt.inputMethod.visible) {
+            if (messageInput.activeFocus && !Qt.inputMethod.visible && !fileMentionPopup.visible) {
                 root.sendChatMessage()
             }
         }
@@ -496,9 +531,19 @@ ChatRootView {
         Qt.callLater(chatListView.positionViewAtEnd)
     }
 
+    function applyMentionSelection() {
+        var result = fileMentionPopup.applyCurrentSelection(
+            messageInput.text, messageInput.cursorPosition, root.useTools)
+        if (result.text !== undefined) {
+            messageInput.text = result.text
+            messageInput.cursorPosition = result.cursorPosition
+        }
+    }
+
     function sendChatMessage() {
-        root.sendMessage(messageInput.text)
+        root.sendMessage(fileMentionPopup.expandMentions(messageInput.text))
         messageInput.text = ""
+        fileMentionPopup.clearMentions()
         scrollToBottom()
     }
 
@@ -571,6 +616,26 @@ ChatRootView {
             if (root.lastInfoMessage.length > 0) {
                 infoToast.show(root.lastInfoMessage)
             }
+        }
+        function onOpenFilesChanged() {
+            if (fileMentionPopup.visible)
+                Qt.callLater(fileMentionPopup.refreshSearch)
+        }
+    }
+
+    FileMentionPopup {
+        id: fileMentionPopup
+
+        z: 999
+        width: Math.min(480, root.width - 20)
+
+        x: Math.max(5, Math.min(view.x + 5, root.width - width - 5))
+        y: view.y - height - 4
+
+        onSelectionRequested: root.applyMentionSelection()
+
+        onFileAttachRequested: function(filePaths) {
+            root.addFilesToAttachList(filePaths)
         }
     }
 
