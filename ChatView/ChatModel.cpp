@@ -117,8 +117,10 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
                 QString contentFolder = QDir(dirPath).filePath(baseName + "_content");
                 QString fullPath = QDir(contentFolder).filePath(image.storedPath);
                 imageMap["imageUrl"] = QUrl::fromLocalFile(fullPath).toString();
+                imageMap["filePath"] = fullPath;
             } else {
                 imageMap["imageUrl"] = QString();
+                imageMap["filePath"] = QString();
             }
             
             imagesList.append(imageMap);

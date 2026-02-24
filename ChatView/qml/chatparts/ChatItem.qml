@@ -267,34 +267,20 @@ Rectangle {
 
             anchors.fill: parent
             hoverEnabled: true
-            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            acceptedButtons: Qt.LeftButton
             cursorShape: Qt.PointingHandCursor
 
             onClicked: (mouse) => {
-                if (mouse.button === Qt.LeftButton) {
+                if (mouse.modifiers & Qt.ShiftModifier) {
+                    fileItem.openFileInExternalEditor()
+                } else {
                     fileItem.openFileInEditor()
-                } else if (mouse.button === Qt.RightButton) {
-                    attachmentContextMenu.popup()
                 }
             }
 
             ToolTip.visible: containsMouse
-            ToolTip.text: qsTr("Left click: Open in Qt Creator\nRight click: More options")
+            ToolTip.text: qsTr("Click: Open in Qt Creator\nShift+Click: Open in System Editor")
             ToolTip.delay: 500
-        }
-
-        Menu {
-            id: attachmentContextMenu
-
-            MenuItem {
-                text: qsTr("Open in Qt Creator")
-                onTriggered: fileItem.openFileInEditor()
-            }
-
-            MenuItem {
-                text: qsTr("Open in System Editor")
-                onTriggered: fileItem.openFileInExternalEditor()
-            }
         }
     }
 
@@ -315,7 +301,7 @@ Rectangle {
 
         FileItem {
             id: imageFileItem
-            filePath: itemData.imageUrl ? itemData.imageUrl.toString().replace("file://", "") : ""
+            filePath: itemData.filePath || ""
         }
 
         ColumnLayout {
@@ -371,34 +357,20 @@ Rectangle {
 
             anchors.fill: parent
             hoverEnabled: true
-            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            acceptedButtons: Qt.LeftButton
             cursorShape: Qt.PointingHandCursor
 
             onClicked: (mouse) => {
-                if (mouse.button === Qt.LeftButton) {
+                if (mouse.modifiers & Qt.ShiftModifier) {
+                    imageFileItem.openFileInExternalEditor()
+                } else {
                     imageFileItem.openFileInEditor()
-                } else if (mouse.button === Qt.RightButton) {
-                    imageContextMenu.popup()
                 }
             }
 
             ToolTip.visible: containsMouse
-            ToolTip.text: qsTr("Left click: Open in System\nRight click: More options")
+            ToolTip.text: qsTr("Click: Open in Qt Creator\nShift+Click: Open in System Editor")
             ToolTip.delay: 500
-        }
-
-        Menu {
-            id: imageContextMenu
-
-            MenuItem {
-                text: qsTr("Open in Qt Creator")
-                onTriggered: imageFileItem.openFileInEditor()
-            }
-
-            MenuItem {
-                text: qsTr("Open in System Viewer")
-                onTriggered: imageFileItem.openFileInExternalEditor()
-            }
         }
     }
 }
