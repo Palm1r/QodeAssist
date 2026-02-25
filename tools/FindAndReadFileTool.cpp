@@ -18,7 +18,9 @@
  */
 
 #include "FindAndReadFileTool.hpp"
-#include "ToolExceptions.hpp"
+#include <llmcore/ToolExceptions.hpp>
+
+using QodeAssist::LLMCore::ToolInvalidArgument;
 
 #include <logger/Logger.hpp>
 #include <QJsonArray>

@@ -49,7 +49,7 @@ public:
 
     QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
 
-    void clearSession(const QString &sessionId);
+    void clearSession(const QString &sessionId) override;
 
 private:
     QString addTodos(const QString &sessionId, const QStringList &tasks);

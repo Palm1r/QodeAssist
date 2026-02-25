@@ -18,7 +18,9 @@
  */
 
 #include "ListProjectFilesTool.hpp"
-#include "ToolExceptions.hpp"
+#include <llmcore/ToolExceptions.hpp>
+
+using QodeAssist::LLMCore::ToolRuntimeError;
 
 #include <logger/Logger.hpp>
 #include <projectexplorer/project.h>

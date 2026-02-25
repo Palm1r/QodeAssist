@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2025 Petr Mironychev
+/*
+ * Copyright (C) 2025-2026 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -24,9 +24,9 @@
 #include <QTimer>
 #include <QtConcurrent>
 
-#include "logger/Logger.hpp"
+#include <Logger.hpp>
 
-namespace QodeAssist::Tools {
+namespace QodeAssist::LLMCore {
 
 ToolHandler::ToolHandler(QObject *parent)
     : QObject(parent)
@@ -35,7 +35,7 @@ ToolHandler::ToolHandler(QObject *parent)
 QFuture<QString> ToolHandler::executeToolAsync(
     const QString &requestId,
     const QString &toolId,
-    LLMCore::BaseTool *tool,
+    BaseTool *tool,
     const QJsonObject &input)
 {
     if (!tool) {
@@ -139,4 +139,4 @@ void ToolHandler::onToolExecutionFinished(const QString &toolId)
     delete execution;
 }
 
-} // namespace QodeAssist::Tools
+} // namespace QodeAssist::LLMCore

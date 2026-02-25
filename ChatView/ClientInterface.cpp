@@ -46,6 +46,7 @@
 #include "Logger.hpp"
 #include "ProvidersManager.hpp"
 #include "RequestConfig.hpp"
+#include "ToolsManager.hpp"
 #include "ToolsSettings.hpp"
 #include <RulesLoader.hpp>
 #include <context/ChangesManager.h>
@@ -223,7 +224,7 @@ void ClientInterface::sendMessage(
         apiMessage.isRedacted = msg.isRedacted;
         apiMessage.signature = msg.signature;
 
-        if (provider->supportImage() && !m_chatFilePath.isEmpty() && !msg.images.isEmpty()) {
+        if (provider->hasCapability(LLMCore::ImageCapability) && !m_chatFilePath.isEmpty() && !msg.images.isEmpty()) {
             auto apiImages = loadImagesFromStorage(msg.images);
             if (!apiImages.isEmpty()) {
                 apiMessage.images = apiImages;
@@ -233,7 +234,7 @@ void ClientInterface::sendMessage(
         messages.append(apiMessage);
     }
 
-    if (!imageFiles.isEmpty() && !provider->supportImage()) {
+    if (!imageFiles.isEmpty() && !provider->hasCapability(LLMCore::ImageCapability)) {
         LOG_MESSAGE(QString("Provider %1 doesn't support images, %2 ignored")
                         .arg(provider->name(), QString::number(imageFiles.size())));
     }
@@ -326,7 +327,7 @@ void ClientInterface::sendMessage(
 
     provider->sendRequest(requestId, config.url, config.providerRequest);
     
-    if (provider->supportsTools() && provider->toolsManager()) {
+    if (provider->hasCapability(LLMCore::ToolsCapability) && provider->toolsManager()) {
         provider->toolsManager()->setCurrentSessionId(m_chatFilePath);
     }
 }
@@ -336,9 +337,9 @@ void ClientInterface::clearMessages()
     const auto providerName = Settings::generalSettings().caProvider();
     auto *provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
-    if (provider && !m_chatFilePath.isEmpty() && provider->supportsTools()
+    if (provider && !m_chatFilePath.isEmpty() && provider->hasCapability(LLMCore::ToolsCapability)
         && provider->toolsManager()) {
-        provider->toolsManager()->clearTodoSession(m_chatFilePath);
+        provider->toolsManager()->clearSession(m_chatFilePath);
     }
 
     m_chatModel->clear();
@@ -618,8 +619,8 @@ void ClientInterface::setChatFilePath(const QString &filePath)
         const auto providerName = Settings::generalSettings().caProvider();
         auto *provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
-        if (provider && provider->supportsTools() && provider->toolsManager()) {
-            provider->toolsManager()->clearTodoSession(m_chatFilePath);
+        if (provider && provider->hasCapability(LLMCore::ToolsCapability) && provider->toolsManager()) {
+            provider->toolsManager()->clearSession(m_chatFilePath);
         }
     }
 

@@ -19,7 +19,6 @@
 
 #pragma once
 
-#include <optional>
 
 #include <QFuture>
 #include <utils/environment.h>
@@ -29,8 +28,6 @@
 
 #include "ContextData.hpp"
 #include "DataBuffers.hpp"
-#include "HttpClient.hpp"
-#include "IToolsManager.hpp"
 #include "PromptTemplate.hpp"
 #include "RequestType.hpp"
 
@@ -38,6 +35,18 @@ class QNetworkReply;
 class QJsonObject;
 
 namespace QodeAssist::LLMCore {
+
+enum ProviderCapability {
+    NoCapabilities = 0,
+    ToolsCapability = 1 << 0,
+    ThinkingCapability = 1 << 1,
+    ImageCapability = 1 << 2
+};
+Q_DECLARE_FLAGS(ProviderCapabilities, ProviderCapability)
+Q_DECLARE_OPERATORS_FOR_FLAGS(ProviderCapabilities)
+
+class BaseClient;
+class ToolsManager;
 
 class Provider : public QObject
 {
@@ -63,29 +72,20 @@ public:
     virtual QFuture<QList<QString>> getInstalledModels(const QString &url) = 0;
     virtual QList<QString> validateRequest(const QJsonObject &request, TemplateType type) = 0;
     virtual QString apiKey() const = 0;
-    virtual void prepareNetworkRequest(QNetworkRequest &networkRequest) const = 0;
     virtual ProviderID providerID() const = 0;
 
     virtual void sendRequest(const RequestID &requestId, const QUrl &url, const QJsonObject &payload)
         = 0;
 
-    virtual bool supportsTools() const { return false; };
-    virtual bool supportThinking() const { return false; };
-    virtual bool supportImage() const { return false; };
+    virtual ProviderCapabilities capabilities() const { return NoCapabilities; }
+    bool hasCapability(ProviderCapability cap) const { return capabilities().testFlag(cap); }
 
-    virtual void cancelRequest(const RequestID &requestId);
+    virtual void cancelRequest(const RequestID &requestId) = 0;
 
-    virtual IToolsManager *toolsManager() const { return nullptr; }
+    virtual ToolsManager *toolsManager() const { return nullptr; }
 
-    HttpClient *httpClient() const;
-
-public slots:
-    virtual void onDataReceived(
-        const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data)
-        = 0;
-    virtual void onRequestFinished(
-        const QodeAssist::LLMCore::RequestID &requestId, std::optional<QString> error)
-        = 0;
+protected:
+    void connectClientSignals(BaseClient *client);
 
 signals:
     void partialResponseReceived(
@@ -104,15 +104,6 @@ signals:
     void thinkingBlockReceived(
         const QString &requestId, const QString &thinking, const QString &signature);
     void redactedThinkingBlockReceived(const QString &requestId, const QString &signature);
-
-protected:
-    QJsonObject parseEventLine(const QString &line);
-
-    QHash<RequestID, DataBuffers> m_dataBuffers;
-    QHash<RequestID, QUrl> m_requestUrls;
-
-private:
-    HttpClient *m_httpClient;
 };
 
 } // namespace QodeAssist::LLMCore

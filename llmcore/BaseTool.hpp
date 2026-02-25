@@ -60,11 +60,19 @@ public:
 
     virtual QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) = 0;
 
+    bool isEnabled() const;
+    void setEnabled(bool enabled);
+
+    virtual void clearSession(const QString &sessionId);
+
 protected:
     virtual QJsonObject customizeForOpenAI(const QJsonObject &baseDefinition) const;
     virtual QJsonObject customizeForClaude(const QJsonObject &baseDefinition) const;
     virtual QJsonObject customizeForOllama(const QJsonObject &baseDefinition) const;
     virtual QJsonObject customizeForGoogle(const QJsonObject &baseDefinition) const;
+
+private:
+    bool m_enabled = true;
 };
 
 } // namespace QodeAssist::LLMCore

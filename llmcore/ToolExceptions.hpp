@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2025 Petr Mironychev
+/*
+ * Copyright (C) 2025-2026 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -22,7 +22,7 @@
 #include <QException>
 #include <QString>
 
-namespace QodeAssist::Tools {
+namespace QodeAssist::LLMCore {
 
 class ToolException : public QException
 {
@@ -35,7 +35,7 @@ public:
     void raise() const override { throw *this; }
     ToolException *clone() const override { return new ToolException(*this); }
     const char *what() const noexcept override { return m_stdMessage.c_str(); }
-    
+
     QString message() const { return m_message; }
 
 private:
@@ -65,5 +65,4 @@ public:
     ToolInvalidArgument *clone() const override { return new ToolInvalidArgument(*this); }
 };
 
-} // namespace QodeAssist::Tools
-
+} // namespace QodeAssist::LLMCore

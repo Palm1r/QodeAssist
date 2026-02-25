@@ -25,6 +25,21 @@ BaseTool::BaseTool(QObject *parent)
     : QObject(parent)
 {}
 
+bool BaseTool::isEnabled() const
+{
+    return m_enabled;
+}
+
+void BaseTool::setEnabled(bool enabled)
+{
+    m_enabled = enabled;
+}
+
+void BaseTool::clearSession(const QString &sessionId)
+{
+    Q_UNUSED(sessionId)
+}
+
 QJsonObject BaseTool::customizeForOpenAI(const QJsonObject &baseDefinition) const
 {
     QJsonObject function;

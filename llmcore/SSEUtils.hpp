@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Petr Mironychev
+ * Copyright (C) 2026 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -19,13 +19,20 @@
 
 #pragma once
 
-namespace QodeAssist::LLMCore {
-class ToolsManager;
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QString>
+
+namespace QodeAssist::LLMCore::SSEUtils {
+
+inline QJsonObject parseEventLine(const QString &line)
+{
+    if (!line.startsWith("data: "))
+        return QJsonObject();
+
+    QString jsonStr = line.mid(6);
+    QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8());
+    return doc.object();
 }
 
-namespace QodeAssist::Tools {
-
-void registerAppTools(LLMCore::ToolsManager *manager);
-void configureToolSettings(LLMCore::ToolsManager *manager);
-
-} // namespace QodeAssist::Tools
+} // namespace QodeAssist::LLMCore::SSEUtils

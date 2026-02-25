@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -19,12 +19,12 @@
 
 #include "OpenAIMessage.hpp"
 
-#include "logger/Logger.hpp"
+#include <Logger.hpp>
 
 #include <QJsonArray>
 #include <QJsonDocument>
 
-namespace QodeAssist::Providers {
+namespace QodeAssist::LLMCore {
 
 OpenAIMessage::OpenAIMessage(QObject *parent)
     : QObject(parent)
@@ -46,7 +46,7 @@ void OpenAIMessage::handleToolCallStart(int index, const QString &id, const QStr
         m_currentBlocks.append(nullptr);
     }
 
-    auto toolContent = new LLMCore::ToolUseContent(id, name);
+    auto toolContent = new ToolUseContent(id, name);
     toolContent->setParent(this);
     m_currentBlocks[index] = toolContent;
     m_pendingToolArguments[index] = "";
@@ -73,7 +73,7 @@ void OpenAIMessage::handleToolCallComplete(int index)
         }
 
         if (index < m_currentBlocks.size()) {
-            if (auto toolContent = qobject_cast<LLMCore::ToolUseContent *>(m_currentBlocks[index])) {
+            if (auto toolContent = qobject_cast<ToolUseContent *>(m_currentBlocks[index])) {
                 toolContent->setInput(argsObject);
             }
         }
@@ -100,10 +100,10 @@ QJsonObject OpenAIMessage::toProviderFormat() const
         if (!block)
             continue;
 
-        if (auto text = qobject_cast<LLMCore::TextContent *>(block)) {
+        if (auto text = qobject_cast<TextContent *>(block)) {
             textContent += text->text();
-        } else if (auto tool = qobject_cast<LLMCore::ToolUseContent *>(block)) {
-            toolCalls.append(tool->toJson(LLMCore::ProviderFormat::OpenAI));
+        } else if (auto tool = qobject_cast<ToolUseContent *>(block)) {
+            toolCalls.append(tool->toJson(ProviderFormat::OpenAI));
         }
     }
 
@@ -126,20 +126,20 @@ QJsonArray OpenAIMessage::createToolResultMessages(const QHash<QString, QString>
 
     for (auto toolContent : getCurrentToolUseContent()) {
         if (toolResults.contains(toolContent->id())) {
-            auto toolResult = std::make_unique<LLMCore::ToolResultContent>(
+            auto toolResult = std::make_unique<ToolResultContent>(
                 toolContent->id(), toolResults[toolContent->id()]);
-            messages.append(toolResult->toJson(LLMCore::ProviderFormat::OpenAI));
+            messages.append(toolResult->toJson(ProviderFormat::OpenAI));
         }
     }
 
     return messages;
 }
 
-QList<LLMCore::ToolUseContent *> OpenAIMessage::getCurrentToolUseContent() const
+QList<ToolUseContent *> OpenAIMessage::getCurrentToolUseContent() const
 {
-    QList<LLMCore::ToolUseContent *> toolBlocks;
+    QList<ToolUseContent *> toolBlocks;
     for (auto block : m_currentBlocks) {
-        if (auto toolContent = qobject_cast<LLMCore::ToolUseContent *>(block)) {
+        if (auto toolContent = qobject_cast<ToolUseContent *>(block)) {
             toolBlocks.append(toolContent);
         }
     }
@@ -148,34 +148,34 @@ QList<LLMCore::ToolUseContent *> OpenAIMessage::getCurrentToolUseContent() const
 
 void OpenAIMessage::startNewContinuation()
 {
-    LOG_MESSAGE(QString("OpenAIAPIMessage: Starting new continuation"));
+    LOG_MESSAGE(QString("OpenAIMessage: Starting new continuation"));
 
     m_currentBlocks.clear();
     m_pendingToolArguments.clear();
     m_finishReason.clear();
-    m_state = LLMCore::MessageState::Building;
+    m_state = MessageState::Building;
 }
 
 void OpenAIMessage::updateStateFromFinishReason()
 {
     if (m_finishReason == "tool_calls" && !getCurrentToolUseContent().empty()) {
-        m_state = LLMCore::MessageState::RequiresToolExecution;
+        m_state = MessageState::RequiresToolExecution;
     } else if (m_finishReason == "stop") {
-        m_state = LLMCore::MessageState::Final;
+        m_state = MessageState::Final;
     } else {
-        m_state = LLMCore::MessageState::Complete;
+        m_state = MessageState::Complete;
     }
 }
 
-LLMCore::TextContent *OpenAIMessage::getOrCreateTextContent()
+TextContent *OpenAIMessage::getOrCreateTextContent()
 {
     for (auto block : m_currentBlocks) {
-        if (auto textContent = qobject_cast<LLMCore::TextContent *>(block)) {
+        if (auto textContent = qobject_cast<TextContent *>(block)) {
             return textContent;
         }
     }
 
-    return addCurrentContent<LLMCore::TextContent>();
+    return addCurrentContent<TextContent>();
 }
 
-} // namespace QodeAssist::Providers
+} // namespace QodeAssist::LLMCore

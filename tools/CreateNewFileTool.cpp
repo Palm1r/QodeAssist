@@ -18,7 +18,10 @@
  */
 
 #include "CreateNewFileTool.hpp"
-#include "ToolExceptions.hpp"
+#include <llmcore/ToolExceptions.hpp>
+
+using QodeAssist::LLMCore::ToolInvalidArgument;
+using QodeAssist::LLMCore::ToolRuntimeError;
 
 #include <context/ProjectUtils.hpp>
 #include <logger/Logger.hpp>

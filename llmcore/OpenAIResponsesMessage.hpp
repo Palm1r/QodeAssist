@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024-2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -19,9 +19,9 @@
 
 #pragma once
 
-#include <llmcore/ContentBlocks.hpp>
+#include "ContentBlocks.hpp"
 
-namespace QodeAssist::Providers {
+namespace QodeAssist::LLMCore {
 
 class OpenAIResponsesMessage : public QObject
 {
@@ -29,7 +29,7 @@ class OpenAIResponsesMessage : public QObject
 public:
     explicit OpenAIResponsesMessage(QObject *parent = nullptr);
 
-    void handleItemDelta(const QJsonObject &item);
+    void handleContentDelta(const QString &text);
     void handleToolCallStart(const QString &callId, const QString &name);
     void handleToolCallDelta(const QString &callId, const QString &argumentsDelta);
     void handleToolCallComplete(const QString &callId);
@@ -41,11 +41,11 @@ public:
     QList<QJsonObject> toItemsFormat() const;
     QJsonArray createToolResultItems(const QHash<QString, QString> &toolResults) const;
 
-    LLMCore::MessageState state() const noexcept { return m_state; }
+    MessageState state() const noexcept { return m_state; }
     QString accumulatedText() const;
-    QList<LLMCore::ToolUseContent *> getCurrentToolUseContent() const;
-    QList<LLMCore::ThinkingContent *> getCurrentThinkingContent() const;
-    
+    QList<ToolUseContent *> getCurrentToolUseContent() const;
+    QList<ThinkingContent *> getCurrentThinkingContent() const;
+
     bool hasToolCalls() const noexcept { return !m_toolCalls.isEmpty(); }
     bool hasThinkingContent() const noexcept { return !m_thinkingBlocks.isEmpty(); }
 
@@ -53,15 +53,14 @@ public:
 
 private:
     QString m_status;
-    LLMCore::MessageState m_state = LLMCore::MessageState::Building;
-    QList<LLMCore::ContentBlock *> m_items;
+    MessageState m_state = MessageState::Building;
+    QList<ContentBlock *> m_items;
     QHash<QString, QString> m_pendingToolArguments;
-    QHash<QString, LLMCore::ToolUseContent *> m_toolCalls;
-    QHash<QString, LLMCore::ThinkingContent *> m_thinkingBlocks;
+    QHash<QString, ToolUseContent *> m_toolCalls;
+    QHash<QString, ThinkingContent *> m_thinkingBlocks;
 
     void updateStateFromStatus();
-    LLMCore::TextContent *getOrCreateTextItem();
+    TextContent *getOrCreateTextItem();
 };
 
-} // namespace QodeAssist::Providers
-
+} // namespace QodeAssist::LLMCore

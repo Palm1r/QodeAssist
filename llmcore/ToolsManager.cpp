@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2025 Petr Mironychev
+/*
+ * Copyright (C) 2025-2026 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -18,20 +18,25 @@
  */
 
 #include "ToolsManager.hpp"
-#include "TodoTool.hpp"
-#include "logger/Logger.hpp"
+#include <Logger.hpp>
 #include <QTimer>
 
 namespace {
 constexpr int kToolExecutionDelayMs = 300;
 }
 
-namespace QodeAssist::Tools {
+namespace QodeAssist::LLMCore {
 
 ToolsManager::ToolsManager(QObject *parent)
     : QObject(parent)
-    , m_toolsFactory(new ToolsFactory(this))
     , m_toolHandler(new ToolHandler(this))
+    , m_allowedPermissions(ToolPermission::FileSystemRead | ToolPermission::FileSystemWrite
+                           | ToolPermission::NetworkAccess)
+{
+    initConnections();
+}
+
+void ToolsManager::initConnections()
 {
     connect(
         m_toolHandler,
@@ -48,6 +53,66 @@ ToolsManager::ToolsManager(QObject *parent)
         [this](const QString &requestId, const QString &toolId, const QString &error) {
             onToolFinished(requestId, toolId, error, false);
         });
+}
+
+void ToolsManager::addTool(BaseTool *tool)
+{
+    if (!tool) {
+        LOG_MESSAGE("ToolsManager: Attempted to add null tool");
+        return;
+    }
+
+    const QString toolName = tool->name();
+    if (m_tools.contains(toolName)) {
+        LOG_MESSAGE(QString("ToolsManager: Tool '%1' already registered, replacing").arg(toolName));
+    }
+
+    tool->setParent(this);
+    m_tools.insert(toolName, tool);
+    LOG_MESSAGE(QString("ToolsManager: Added tool '%1'").arg(toolName));
+}
+
+void ToolsManager::removeTool(const QString &name)
+{
+    if (auto *t = m_tools.take(name)) {
+        t->deleteLater();
+        LOG_MESSAGE(QString("ToolsManager: Removed tool '%1'").arg(name));
+    }
+}
+
+BaseTool *ToolsManager::tool(const QString &name) const
+{
+    return m_tools.value(name, nullptr);
+}
+
+QList<BaseTool *> ToolsManager::registeredTools() const
+{
+    return m_tools.values();
+}
+
+void ToolsManager::setAllowedPermissions(ToolPermissions permissions)
+{
+    m_allowedPermissions = permissions;
+}
+
+ToolPermissions ToolsManager::allowedPermissions() const
+{
+    return m_allowedPermissions;
+}
+
+QString ToolsManager::stringName(const QString &toolName) const
+{
+    if (auto *t = m_tools.value(toolName)) {
+        return t->stringName();
+    }
+    return QStringLiteral("Unknown tool");
+}
+
+void ToolsManager::clearSession(const QString &sessionId)
+{
+    for (auto *t : m_tools) {
+        t->clearSession(sessionId);
+    }
 }
 
 void ToolsManager::executeToolCall(
@@ -80,7 +145,7 @@ void ToolsManager::executeToolCall(
 
     QJsonObject modifiedInput = input;
     modifiedInput["_request_id"] = requestId;
-    
+
     if (!m_currentSessionId.isEmpty()) {
         modifiedInput["session_id"] = m_currentSessionId;
     }
@@ -114,37 +179,101 @@ void ToolsManager::executeNextTool(const QString &requestId)
         return;
     }
 
-    PendingTool tool = queue.queue.takeFirst();
+    PendingTool pendingTool = queue.queue.takeFirst();
     queue.isExecuting = true;
 
     LOG_MESSAGE(QString("ToolsManager: Executing tool %1 (ID: %2) for request %3 (%4 remaining)")
-                    .arg(tool.name, tool.id, requestId)
+                    .arg(pendingTool.name, pendingTool.id, requestId)
                     .arg(queue.queue.size()));
 
-    auto toolInstance = m_toolsFactory->getToolByName(tool.name);
+    BaseTool *toolInstance = m_tools.value(pendingTool.name);
     if (!toolInstance) {
-        LOG_MESSAGE(QString("ToolsManager: Tool not found: %1").arg(tool.name));
-        tool.result = QString("Error: Tool not found: %1").arg(tool.name);
-        tool.complete = true;
-        queue.completed[tool.id] = tool;
+        LOG_MESSAGE(QString("ToolsManager: Tool not found: %1").arg(pendingTool.name));
+        pendingTool.result = QString("Error: Tool not found: %1").arg(pendingTool.name);
+        pendingTool.complete = true;
+        queue.completed[pendingTool.id] = pendingTool;
         executeNextTool(requestId);
         return;
     }
 
-    queue.completed[tool.id] = tool;
+    queue.completed[pendingTool.id] = pendingTool;
 
-    m_toolHandler->executeToolAsync(requestId, tool.id, toolInstance, tool.input);
-    LOG_MESSAGE(QString("ToolsManager: Started async execution of %1").arg(tool.name));
+    m_toolHandler->executeToolAsync(requestId, pendingTool.id, toolInstance, pendingTool.input);
+    LOG_MESSAGE(QString("ToolsManager: Started async execution of %1").arg(pendingTool.name));
 }
 
 QJsonArray ToolsManager::getToolsDefinitions(
-    LLMCore::ToolSchemaFormat format, LLMCore::RunToolsFilter filter) const
+    ToolSchemaFormat format, RunToolsFilter filter) const
 {
-    if (!m_toolsFactory) {
-        return QJsonArray();
+    return buildToolsDefinitions(format, filter);
+}
+
+QJsonArray ToolsManager::buildToolsDefinitions(
+    ToolSchemaFormat format, RunToolsFilter filter) const
+{
+    QJsonArray toolsArray;
+
+    for (auto it = m_tools.constBegin(); it != m_tools.constEnd(); ++it) {
+        BaseTool *t = it.value();
+        if (!t || !t->isEnabled()) {
+            continue;
+        }
+
+        const auto requiredPerms = t->requiredPermissions();
+
+        // Apply RunToolsFilter
+        if (filter != RunToolsFilter::ALL) {
+            bool matchesFilter = false;
+
+            switch (filter) {
+            case RunToolsFilter::OnlyRead:
+                if (requiredPerms == ToolPermission::None
+                    || requiredPerms.testFlag(ToolPermission::FileSystemRead)) {
+                    matchesFilter = true;
+                }
+                break;
+            case RunToolsFilter::OnlyWrite:
+                if (requiredPerms.testFlag(ToolPermission::FileSystemWrite)) {
+                    matchesFilter = true;
+                }
+                break;
+            case RunToolsFilter::OnlyNetworking:
+                if (requiredPerms.testFlag(ToolPermission::NetworkAccess)) {
+                    matchesFilter = true;
+                }
+                break;
+            case RunToolsFilter::ALL:
+                matchesFilter = true;
+                break;
+            }
+
+            if (!matchesFilter) {
+                continue;
+            }
+        }
+
+        // Apply permission filter
+        bool hasPermission = true;
+
+        if (requiredPerms.testFlag(ToolPermission::FileSystemRead)
+            && !m_allowedPermissions.testFlag(ToolPermission::FileSystemRead)) {
+            hasPermission = false;
+        }
+        if (requiredPerms.testFlag(ToolPermission::FileSystemWrite)
+            && !m_allowedPermissions.testFlag(ToolPermission::FileSystemWrite)) {
+            hasPermission = false;
+        }
+        if (requiredPerms.testFlag(ToolPermission::NetworkAccess)
+            && !m_allowedPermissions.testFlag(ToolPermission::NetworkAccess)) {
+            hasPermission = false;
+        }
+
+        if (hasPermission) {
+            toolsArray.append(t->getDefinition(format));
+        }
     }
 
-    return m_toolsFactory->getToolsDefinitions(format, filter);
+    return toolsArray;
 }
 
 void ToolsManager::cleanupRequest(const QString &requestId)
@@ -168,9 +297,9 @@ void ToolsManager::onToolFinished(
         return;
     }
 
-    PendingTool &tool = queue.completed[toolId];
-    tool.result = success ? result : QString("Error: %1").arg(result);
-    tool.complete = true;
+    PendingTool &pendingTool = queue.completed[toolId];
+    pendingTool.result = success ? result : QString("Error: %1").arg(result);
+    pendingTool.complete = true;
 
     LOG_MESSAGE(QString("ToolsManager: Tool %1 %2 for request %3")
                     .arg(toolId)
@@ -184,11 +313,6 @@ void ToolsManager::onToolFinished(
     } else {
         executeNextTool(requestId);
     }
-}
-
-ToolsFactory *ToolsManager::toolsFactory() const
-{
-    return m_toolsFactory;
 }
 
 QHash<QString, QString> ToolsManager::getToolResults(const QString &requestId) const
@@ -207,17 +331,9 @@ QHash<QString, QString> ToolsManager::getToolResults(const QString &requestId) c
     return results;
 }
 
-void ToolsManager::clearTodoSession(const QString &sessionId)
-{
-    auto *todoTool = qobject_cast<TodoTool *>(m_toolsFactory->getToolByName("todo_tool"));
-    if (todoTool) {
-        todoTool->clearSession(sessionId);
-    }
-}
-
 void ToolsManager::setCurrentSessionId(const QString &sessionId)
 {
     m_currentSessionId = sessionId;
 }
 
-} // namespace QodeAssist::Tools
+} // namespace QodeAssist::LLMCore

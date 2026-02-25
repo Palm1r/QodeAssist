@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024-2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -18,41 +18,28 @@
  */
 
 #include "OpenAIResponsesMessage.hpp"
-#include "OpenAIResponses/ResponseObject.hpp"
 
-#include "logger/Logger.hpp"
+#include <Logger.hpp>
 
 #include <QJsonArray>
 
-namespace QodeAssist::Providers {
+namespace QodeAssist::LLMCore {
 
 OpenAIResponsesMessage::OpenAIResponsesMessage(QObject *parent)
     : QObject(parent)
 {}
 
-void OpenAIResponsesMessage::handleItemDelta(const QJsonObject &item)
+void OpenAIResponsesMessage::handleContentDelta(const QString &text)
 {
-    using namespace QodeAssist::OpenAIResponses;
-
-    const QString itemType = item["type"].toString();
-
-    if (itemType == "message" || (itemType.isEmpty() && item.contains("content"))) {
-        OutputItem outputItem = OutputItem::fromJson(item);
-
-        if (const auto *msg = outputItem.asMessage()) {
-            for (const auto &outputText : msg->outputTexts) {
-                if (!outputText.text.isEmpty()) {
-                    auto textItem = getOrCreateTextItem();
-                    textItem->appendText(outputText.text);
-                }
-            }
-        }
+    if (!text.isEmpty()) {
+        auto textItem = getOrCreateTextItem();
+        textItem->appendText(text);
     }
 }
 
 void OpenAIResponsesMessage::handleToolCallStart(const QString &callId, const QString &name)
 {
-    auto toolContent = new LLMCore::ToolUseContent(callId, name);
+    auto toolContent = new ToolUseContent(callId, name);
     toolContent->setParent(this);
     m_items.append(toolContent);
     m_toolCalls[callId] = toolContent;
@@ -86,7 +73,7 @@ void OpenAIResponsesMessage::handleToolCallComplete(const QString &callId)
 
 void OpenAIResponsesMessage::handleReasoningStart(const QString &itemId)
 {
-    auto thinkingContent = new LLMCore::ThinkingContent();
+    auto thinkingContent = new ThinkingContent();
     thinkingContent->setParent(this);
     m_items.append(thinkingContent);
     m_thinkingBlocks[itemId] = thinkingContent;
@@ -115,13 +102,13 @@ QList<QJsonObject> OpenAIResponsesMessage::toItemsFormat() const
     QList<QJsonObject> items;
 
     QString textContent;
-    QList<LLMCore::ToolUseContent *> toolCalls;
+    QList<ToolUseContent *> toolCalls;
 
     for (const auto *block : m_items) {
-        if (const auto *text = qobject_cast<const LLMCore::TextContent *>(block)) {
+        if (const auto *text = qobject_cast<const TextContent *>(block)) {
             textContent += text->text();
-        } else if (auto *tool = qobject_cast<LLMCore::ToolUseContent *>(
-                       const_cast<LLMCore::ContentBlock *>(block))) {
+        } else if (auto *tool = qobject_cast<ToolUseContent *>(
+                       const_cast<ContentBlock *>(block))) {
             toolCalls.append(tool);
         }
     }
@@ -146,22 +133,22 @@ QList<QJsonObject> OpenAIResponsesMessage::toItemsFormat() const
     return items;
 }
 
-QList<LLMCore::ToolUseContent *> OpenAIResponsesMessage::getCurrentToolUseContent() const
+QList<ToolUseContent *> OpenAIResponsesMessage::getCurrentToolUseContent() const
 {
-    QList<LLMCore::ToolUseContent *> toolBlocks;
+    QList<ToolUseContent *> toolBlocks;
     for (auto *block : m_items) {
-        if (auto *toolContent = qobject_cast<LLMCore::ToolUseContent *>(block)) {
+        if (auto *toolContent = qobject_cast<ToolUseContent *>(block)) {
             toolBlocks.append(toolContent);
         }
     }
     return toolBlocks;
 }
 
-QList<LLMCore::ThinkingContent *> OpenAIResponsesMessage::getCurrentThinkingContent() const
+QList<ThinkingContent *> OpenAIResponsesMessage::getCurrentThinkingContent() const
 {
-    QList<LLMCore::ThinkingContent *> thinkingBlocks;
+    QList<ThinkingContent *> thinkingBlocks;
     for (auto *block : m_items) {
-        if (auto *thinkingContent = qobject_cast<LLMCore::ThinkingContent *>(block)) {
+        if (auto *thinkingContent = qobject_cast<ThinkingContent *>(block)) {
             thinkingBlocks.append(thinkingContent);
         }
     }
@@ -189,7 +176,7 @@ QString OpenAIResponsesMessage::accumulatedText() const
 {
     QString text;
     for (const auto *block : m_items) {
-        if (const auto *textContent = qobject_cast<const LLMCore::TextContent *>(block)) {
+        if (const auto *textContent = qobject_cast<const TextContent *>(block)) {
             text += textContent->text();
         }
     }
@@ -198,32 +185,30 @@ QString OpenAIResponsesMessage::accumulatedText() const
 
 void OpenAIResponsesMessage::updateStateFromStatus()
 {
-    using namespace QodeAssist::OpenAIResponses;
-
     if (m_status == "completed") {
         if (!getCurrentToolUseContent().isEmpty()) {
-            m_state = LLMCore::MessageState::RequiresToolExecution;
+            m_state = MessageState::RequiresToolExecution;
         } else {
-            m_state = LLMCore::MessageState::Complete;
+            m_state = MessageState::Complete;
         }
     } else if (m_status == "in_progress") {
-        m_state = LLMCore::MessageState::Building;
+        m_state = MessageState::Building;
     } else if (m_status == "failed" || m_status == "cancelled" || m_status == "incomplete") {
-        m_state = LLMCore::MessageState::Final;
+        m_state = MessageState::Final;
     } else {
-        m_state = LLMCore::MessageState::Building;
+        m_state = MessageState::Building;
     }
 }
 
-LLMCore::TextContent *OpenAIResponsesMessage::getOrCreateTextItem()
+TextContent *OpenAIResponsesMessage::getOrCreateTextItem()
 {
     for (auto *block : m_items) {
-        if (auto *textContent = qobject_cast<LLMCore::TextContent *>(block)) {
+        if (auto *textContent = qobject_cast<TextContent *>(block)) {
             return textContent;
         }
     }
 
-    auto *textContent = new LLMCore::TextContent();
+    auto *textContent = new TextContent();
     textContent->setParent(this);
     m_items.append(textContent);
     return textContent;
@@ -233,14 +218,13 @@ void OpenAIResponsesMessage::startNewContinuation()
 {
     m_toolCalls.clear();
     m_thinkingBlocks.clear();
-    
+
     qDeleteAll(m_items);
     m_items.clear();
-    
+
     m_pendingToolArguments.clear();
     m_status.clear();
-    m_state = LLMCore::MessageState::Building;
+    m_state = MessageState::Building;
 }
 
-} // namespace QodeAssist::Providers
-
+} // namespace QodeAssist::LLMCore

@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -19,38 +19,45 @@
 
 #pragma once
 
-#include <llmcore/ContentBlocks.hpp>
+#include "ContentBlocks.hpp"
 
-namespace QodeAssist::Providers {
+namespace QodeAssist::LLMCore {
 
-class OpenAIMessage : public QObject
+class OllamaMessage : public QObject
 {
     Q_OBJECT
 public:
-    explicit OpenAIMessage(QObject *parent = nullptr);
+    explicit OllamaMessage(QObject *parent = nullptr);
 
     void handleContentDelta(const QString &content);
-    void handleToolCallStart(int index, const QString &id, const QString &name);
-    void handleToolCallDelta(int index, const QString &argumentsDelta);
-    void handleToolCallComplete(int index);
-    void handleFinishReason(const QString &finishReason);
+    void handleToolCall(const QJsonObject &toolCall);
+    void handleThinkingDelta(const QString &thinking);
+    void handleThinkingComplete(const QString &signature);
+    void handleDone(bool done);
 
     QJsonObject toProviderFormat() const;
     QJsonArray createToolResultMessages(const QHash<QString, QString> &toolResults) const;
 
-    LLMCore::MessageState state() const { return m_state; }
-    QList<LLMCore::ToolUseContent *> getCurrentToolUseContent() const;
+    MessageState state() const { return m_state; }
+    QList<ToolUseContent *> getCurrentToolUseContent() const;
+    QList<ThinkingContent *> getCurrentThinkingContent() const;
+    QList<ContentBlock *> currentBlocks() const { return m_currentBlocks; }
 
     void startNewContinuation();
 
 private:
-    QString m_finishReason;
-    LLMCore::MessageState m_state = LLMCore::MessageState::Building;
-    QList<LLMCore::ContentBlock *> m_currentBlocks;
-    QHash<int, QString> m_pendingToolArguments;
+    bool m_done = false;
+    MessageState m_state = MessageState::Building;
+    QList<ContentBlock *> m_currentBlocks;
+    QString m_accumulatedContent;
+    bool m_contentAddedToTextBlock = false;
+    ThinkingContent *m_currentThinkingContent = nullptr;
 
-    void updateStateFromFinishReason();
-    LLMCore::TextContent *getOrCreateTextContent();
+    void updateStateFromDone();
+    bool tryParseToolCall();
+    bool isLikelyToolCallJson(const QString &content) const;
+    TextContent *getOrCreateTextContent();
+    ThinkingContent *getOrCreateThinkingContent();
 
     template<typename T, typename... Args>
     T *addCurrentContent(Args &&...args)
@@ -62,4 +69,4 @@ private:
     }
 };
 
-} // namespace QodeAssist::Providers
+} // namespace QodeAssist::LLMCore

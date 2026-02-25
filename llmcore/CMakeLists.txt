@@ -13,9 +13,24 @@ add_library(LLMCore STATIC
     ValidationUtils.hpp ValidationUtils.cpp
     ProviderID.hpp
     HttpClient.hpp HttpClient.cpp
+    BaseClient.hpp BaseClient.cpp
+    ClaudeClient.hpp ClaudeClient.cpp
+    ClaudeMessage.hpp ClaudeMessage.cpp
+    OpenAIMessage.hpp OpenAIMessage.cpp
+    OpenAIClient.hpp OpenAIClient.cpp
+    OllamaMessage.hpp OllamaMessage.cpp
+    OllamaClient.hpp OllamaClient.cpp
+    GoogleMessage.hpp GoogleMessage.cpp
+    GoogleAIClient.hpp GoogleAIClient.cpp
+    OpenAIResponsesMessage.hpp OpenAIResponsesMessage.cpp
+    OpenAIResponsesClient.hpp OpenAIResponsesClient.cpp
     DataBuffers.hpp
+    SSEUtils.hpp
     SSEBuffer.hpp SSEBuffer.cpp
     BaseTool.hpp BaseTool.cpp
+    ToolExceptions.hpp
+    ToolHandler.hpp ToolHandler.cpp
+    ToolsManager.hpp ToolsManager.cpp
     ContentBlocks.hpp
     RulesLoader.hpp RulesLoader.cpp
     ResponseCleaner.hpp

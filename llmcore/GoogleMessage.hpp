@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -24,9 +24,9 @@
 #include <QJsonObject>
 #include <QObject>
 
-#include <llmcore/ContentBlocks.hpp>
+#include "ContentBlocks.hpp"
 
-namespace QodeAssist::Providers {
+namespace QodeAssist::LLMCore {
 
 class GoogleMessage : public QObject
 {
@@ -45,11 +45,11 @@ public:
     QJsonObject toProviderFormat() const;
     QJsonArray createToolResultParts(const QHash<QString, QString> &toolResults) const;
 
-    QList<LLMCore::ToolUseContent *> getCurrentToolUseContent() const;
-    QList<LLMCore::ThinkingContent *> getCurrentThinkingContent() const;
-    QList<LLMCore::ContentBlock *> currentBlocks() const { return m_currentBlocks; }
+    QList<ToolUseContent *> getCurrentToolUseContent() const;
+    QList<ThinkingContent *> getCurrentThinkingContent() const;
+    QList<ContentBlock *> currentBlocks() const { return m_currentBlocks; }
 
-    LLMCore::MessageState state() const { return m_state; }
+    MessageState state() const { return m_state; }
     QString finishReason() const { return m_finishReason; }
     bool isErrorFinishReason() const;
     QString getErrorMessage() const;
@@ -58,11 +58,11 @@ public:
 private:
     void updateStateFromFinishReason();
 
-    QList<LLMCore::ContentBlock *> m_currentBlocks;
+    QList<ContentBlock *> m_currentBlocks;
     QString m_pendingFunctionArgs;
     QString m_currentFunctionName;
     QString m_finishReason;
-    LLMCore::MessageState m_state = LLMCore::MessageState::Building;
+    MessageState m_state = MessageState::Building;
 };
 
-} // namespace QodeAssist::Providers
+} // namespace QodeAssist::LLMCore

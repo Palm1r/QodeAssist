@@ -18,7 +18,9 @@
  */
 
 #include "ProjectSearchTool.hpp"
-#include "ToolExceptions.hpp"
+#include <llmcore/ToolExceptions.hpp>
+
+using QodeAssist::LLMCore::ToolInvalidArgument;
 
 #include <cplusplus/Overview.h>
 #include <cplusplus/Scope.h>

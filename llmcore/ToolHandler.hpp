@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2025 Petr Mironychev
+/*
+ * Copyright (C) 2025-2026 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -19,33 +19,47 @@
 
 #pragma once
 
+#include <QFutureWatcher>
 #include <QHash>
-#include <QJsonArray>
 #include <QJsonObject>
+#include <QObject>
 #include <QString>
 
 #include "BaseTool.hpp"
 
 namespace QodeAssist::LLMCore {
 
-class IToolsManager
+class ToolHandler : public QObject
 {
-public:
-    virtual ~IToolsManager() = default;
+    Q_OBJECT
 
-    virtual void executeToolCall(
+public:
+    explicit ToolHandler(QObject *parent = nullptr);
+
+    QFuture<QString> executeToolAsync(
         const QString &requestId,
         const QString &toolId,
-        const QString &toolName,
-        const QJsonObject &input) = 0;
+        BaseTool *tool,
+        const QJsonObject &input);
 
-    virtual QJsonArray getToolsDefinitions(
-        ToolSchemaFormat format,
-        RunToolsFilter filter = RunToolsFilter::ALL) const = 0;
+    void cleanupRequest(const QString &requestId);
 
-    virtual void cleanupRequest(const QString &requestId) = 0;
-    virtual void setCurrentSessionId(const QString &sessionId) = 0;
-    virtual void clearTodoSession(const QString &sessionId) = 0;
+signals:
+    void toolCompleted(const QString &requestId, const QString &toolId, const QString &result);
+    void toolFailed(const QString &requestId, const QString &toolId, const QString &error);
+
+private:
+    struct ToolExecution
+    {
+        QString requestId;
+        QString toolId;
+        QString toolName;
+        QFutureWatcher<QString> *watcher;
+    };
+
+    QHash<QString, ToolExecution *> m_activeExecutions; // toolId -> execution
+
+    void onToolExecutionFinished(const QString &toolId);
 };
 
 } // namespace QodeAssist::LLMCore

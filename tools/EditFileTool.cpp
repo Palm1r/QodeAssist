@@ -18,7 +18,10 @@
  */
 
 #include "EditFileTool.hpp"
-#include "ToolExceptions.hpp"
+#include <llmcore/ToolExceptions.hpp>
+
+using QodeAssist::LLMCore::ToolInvalidArgument;
+using QodeAssist::LLMCore::ToolRuntimeError;
 
 #include <context/ChangesManager.h>
 #include <context/ProjectUtils.hpp>

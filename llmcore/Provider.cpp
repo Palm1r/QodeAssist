@@ -1,36 +1,30 @@
 #include "Provider.hpp"
 
-#include <QJsonDocument>
+#include "BaseClient.hpp"
 
 namespace QodeAssist::LLMCore {
 
 Provider::Provider(QObject *parent)
     : QObject(parent)
-    , m_httpClient(new HttpClient(this))
 {
-    connect(m_httpClient, &HttpClient::dataReceived, this, &Provider::onDataReceived);
-    connect(m_httpClient, &HttpClient::requestFinished, this, &Provider::onRequestFinished);
 }
 
-void Provider::cancelRequest(const RequestID &requestId)
+void Provider::connectClientSignals(BaseClient *client)
 {
-    m_httpClient->cancelRequest(requestId);
-}
-
-HttpClient *Provider::httpClient() const
-{
-    return m_httpClient;
-}
-
-QJsonObject Provider::parseEventLine(const QString &line)
-{
-    if (!line.startsWith("data: "))
-        return QJsonObject();
-
-    QString jsonStr = line.mid(6);
-
-    QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8());
-    return doc.object();
+    connect(
+        client, &BaseClient::partialResponseReceived, this, &Provider::partialResponseReceived);
+    connect(client, &BaseClient::fullResponseReceived, this, &Provider::fullResponseReceived);
+    connect(client, &BaseClient::requestFailed, this, &Provider::requestFailed);
+    connect(client, &BaseClient::toolExecutionStarted, this, &Provider::toolExecutionStarted);
+    connect(
+        client, &BaseClient::toolExecutionCompleted, this, &Provider::toolExecutionCompleted);
+    connect(client, &BaseClient::continuationStarted, this, &Provider::continuationStarted);
+    connect(client, &BaseClient::thinkingBlockReceived, this, &Provider::thinkingBlockReceived);
+    connect(
+        client,
+        &BaseClient::redactedThinkingBlockReceived,
+        this,
+        &Provider::redactedThinkingBlockReceived);
 }
 
 } // namespace QodeAssist::LLMCore

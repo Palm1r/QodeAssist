@@ -1295,7 +1295,7 @@ bool ChatRootView::isThinkingSupport() const
     auto providerName = Settings::generalSettings().caProvider();
     auto provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
-    return provider && provider->supportThinking();
+    return provider && provider->hasCapability(LLMCore::ThinkingCapability);
 }
 
 QString ChatRootView::generateChatFileName(const QString &shortMessage, const QString &dir) const

@@ -18,7 +18,9 @@
  */
 
 #include "TodoTool.hpp"
-#include "ToolExceptions.hpp"
+#include <llmcore/ToolExceptions.hpp>
+
+using QodeAssist::LLMCore::ToolRuntimeError;
 
 #include <QJsonArray>
 #include <QJsonObject>

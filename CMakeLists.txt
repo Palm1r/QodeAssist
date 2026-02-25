@@ -112,7 +112,6 @@ add_qtc_plugin(QodeAssist
     providers/OpenAIResponses/ItemTypesReference.hpp
     providers/OpenAIResponsesRequestBuilder.hpp
     providers/OpenAIResponsesProvider.hpp providers/OpenAIResponsesProvider.cpp
-    providers/OpenAIResponsesMessage.hpp providers/OpenAIResponsesMessage.cpp
     QodeAssist.qrc
     LSPCompletion.hpp
     LLMSuggestion.hpp LLMSuggestion.cpp
@@ -142,9 +141,7 @@ add_qtc_plugin(QodeAssist
 
     QuickRefactorHandler.hpp QuickRefactorHandler.cpp
     tools/ToolsFactory.hpp tools/ToolsFactory.cpp
-    tools/ToolHandler.hpp tools/ToolHandler.cpp
     tools/ListProjectFilesTool.hpp tools/ListProjectFilesTool.cpp
-    tools/ToolsManager.hpp tools/ToolsManager.cpp
     tools/GetIssuesListTool.hpp tools/GetIssuesListTool.cpp
     tools/CreateNewFileTool.hpp tools/CreateNewFileTool.cpp
     tools/EditFileTool.hpp tools/EditFileTool.cpp
@@ -154,10 +151,6 @@ add_qtc_plugin(QodeAssist
     tools/FindAndReadFileTool.hpp tools/FindAndReadFileTool.cpp
     tools/FileSearchUtils.hpp tools/FileSearchUtils.cpp
     tools/TodoTool.hpp tools/TodoTool.cpp
-    providers/ClaudeMessage.hpp providers/ClaudeMessage.cpp
-    providers/OpenAIMessage.hpp providers/OpenAIMessage.cpp
-    providers/OllamaMessage.hpp providers/OllamaMessage.cpp
-    providers/GoogleMessage.hpp providers/GoogleMessage.cpp
 )
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)

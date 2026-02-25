@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2025 Petr Mironychev
+ * Copyright (C) 2026 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -17,15 +17,18 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include "BaseClient.hpp"
 
 namespace QodeAssist::LLMCore {
-class ToolsManager;
+
+BaseClient::BaseClient(QObject *parent)
+    : QObject(parent)
+    , m_toolsManager(new ToolsManager(this))
+{}
+
+ToolsManager *BaseClient::tools() const
+{
+    return m_toolsManager;
 }
 
-namespace QodeAssist::Tools {
-
-void registerAppTools(LLMCore::ToolsManager *manager);
-void configureToolSettings(LLMCore::ToolsManager *manager);
-
-} // namespace QodeAssist::Tools
+} // namespace QodeAssist::LLMCore

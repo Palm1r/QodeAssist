@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2025 Petr Mironychev
+/*
+ * Copyright (C) 2025-2026 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -24,12 +24,10 @@
 #include <QJsonObject>
 #include <QObject>
 
+#include "BaseTool.hpp"
 #include "ToolHandler.hpp"
-#include "ToolsFactory.hpp"
-#include <llmcore/BaseTool.hpp>
-#include <llmcore/IToolsManager.hpp>
 
-namespace QodeAssist::Tools {
+namespace QodeAssist::LLMCore {
 
 struct PendingTool
 {
@@ -47,28 +45,40 @@ struct ToolQueue
     bool isExecuting = false;
 };
 
-class ToolsManager : public QObject, public LLMCore::IToolsManager
+class ToolsManager : public QObject
 {
     Q_OBJECT
 
 public:
     explicit ToolsManager(QObject *parent = nullptr);
 
+    // Tool registration (direct storage)
+    void addTool(BaseTool *tool);
+    void removeTool(const QString &name);
+    BaseTool *tool(const QString &name) const;
+    QList<BaseTool *> registeredTools() const;
+
+    // Permission filtering
+    void setAllowedPermissions(ToolPermissions permissions);
+    ToolPermissions allowedPermissions() const;
+
+    // Tool definitions and metadata
+    QJsonArray getToolsDefinitions(
+        ToolSchemaFormat format,
+        RunToolsFilter filter = RunToolsFilter::ALL) const;
+    QString stringName(const QString &toolName) const;
+
+    // Tool execution
     void executeToolCall(
         const QString &requestId,
         const QString &toolId,
         const QString &toolName,
-        const QJsonObject &input) override;
+        const QJsonObject &input);
+    void cleanupRequest(const QString &requestId);
 
-    QJsonArray getToolsDefinitions(
-        LLMCore::ToolSchemaFormat format,
-        LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL) const override;
-    
-    void cleanupRequest(const QString &requestId) override;
-    void setCurrentSessionId(const QString &sessionId) override;
-    void clearTodoSession(const QString &sessionId) override;
-
-    ToolsFactory *toolsFactory() const;
+    // Session management
+    void setCurrentSessionId(const QString &sessionId);
+    void clearSession(const QString &sessionId);
 
 signals:
     void toolExecutionComplete(const QString &requestId, const QHash<QString, QString> &toolResults);
@@ -78,13 +88,18 @@ private slots:
         const QString &requestId, const QString &toolId, const QString &result, bool success);
 
 private:
-    ToolsFactory *m_toolsFactory;
+    void initConnections();
+    void executeNextTool(const QString &requestId);
+    QHash<QString, QString> getToolResults(const QString &requestId) const;
+    QJsonArray buildToolsDefinitions(ToolSchemaFormat format, RunToolsFilter filter) const;
+
     ToolHandler *m_toolHandler;
     QHash<QString, ToolQueue> m_toolQueues;
     QString m_currentSessionId;
 
-    void executeNextTool(const QString &requestId);
-    QHash<QString, QString> getToolResults(const QString &requestId) const;
+    // Direct tool storage
+    QHash<QString, BaseTool *> m_tools;
+    ToolPermissions m_allowedPermissions;
 };
 
-} // namespace QodeAssist::Tools
+} // namespace QodeAssist::LLMCore

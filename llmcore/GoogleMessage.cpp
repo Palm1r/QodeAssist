@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -22,9 +22,9 @@
 #include <QJsonDocument>
 #include <QUuid>
 
-#include "logger/Logger.hpp"
+#include <Logger.hpp>
 
-namespace QodeAssist::Providers {
+namespace QodeAssist::LLMCore {
 
 GoogleMessage::GoogleMessage(QObject *parent)
     : QObject(parent)
@@ -32,26 +32,26 @@ GoogleMessage::GoogleMessage(QObject *parent)
 
 void GoogleMessage::handleContentDelta(const QString &text)
 {
-    if (m_currentBlocks.isEmpty() || !qobject_cast<LLMCore::TextContent *>(m_currentBlocks.last())) {
-        auto textContent = new LLMCore::TextContent();
+    if (m_currentBlocks.isEmpty() || !qobject_cast<TextContent *>(m_currentBlocks.last())) {
+        auto textContent = new TextContent();
         textContent->setParent(this);
         m_currentBlocks.append(textContent);
     }
 
-    if (auto textContent = qobject_cast<LLMCore::TextContent *>(m_currentBlocks.last())) {
+    if (auto textContent = qobject_cast<TextContent *>(m_currentBlocks.last())) {
         textContent->appendText(text);
     }
 }
 
 void GoogleMessage::handleThoughtDelta(const QString &text)
 {
-    if (m_currentBlocks.isEmpty() || !qobject_cast<LLMCore::ThinkingContent *>(m_currentBlocks.last())) {
-        auto thinkingContent = new LLMCore::ThinkingContent();
+    if (m_currentBlocks.isEmpty() || !qobject_cast<ThinkingContent *>(m_currentBlocks.last())) {
+        auto thinkingContent = new ThinkingContent();
         thinkingContent->setParent(this);
         m_currentBlocks.append(thinkingContent);
     }
 
-    if (auto thinkingContent = qobject_cast<LLMCore::ThinkingContent *>(m_currentBlocks.last())) {
+    if (auto thinkingContent = qobject_cast<ThinkingContent *>(m_currentBlocks.last())) {
         thinkingContent->appendThinking(text);
     }
 }
@@ -59,13 +59,13 @@ void GoogleMessage::handleThoughtDelta(const QString &text)
 void GoogleMessage::handleThoughtSignature(const QString &signature)
 {
     for (int i = m_currentBlocks.size() - 1; i >= 0; --i) {
-        if (auto thinkingContent = qobject_cast<LLMCore::ThinkingContent *>(m_currentBlocks[i])) {
+        if (auto thinkingContent = qobject_cast<ThinkingContent *>(m_currentBlocks[i])) {
             thinkingContent->setSignature(signature);
             return;
         }
     }
-    
-    auto thinkingContent = new LLMCore::ThinkingContent();
+
+    auto thinkingContent = new ThinkingContent();
     thinkingContent->setParent(this);
     thinkingContent->setSignature(signature);
     m_currentBlocks.append(thinkingContent);
@@ -97,7 +97,7 @@ void GoogleMessage::handleFunctionCallComplete()
     }
 
     QString id = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    auto toolContent = new LLMCore::ToolUseContent(id, m_currentFunctionName, args);
+    auto toolContent = new ToolUseContent(id, m_currentFunctionName, args);
     toolContent->setParent(this);
     m_currentBlocks.append(toolContent);
 
@@ -122,21 +122,19 @@ QJsonObject GoogleMessage::toProviderFormat() const
         if (!block)
             continue;
 
-        if (auto text = qobject_cast<LLMCore::TextContent *>(block)) {
+        if (auto text = qobject_cast<TextContent *>(block)) {
             parts.append(QJsonObject{{"text", text->text()}});
-        } else if (auto tool = qobject_cast<LLMCore::ToolUseContent *>(block)) {
+        } else if (auto tool = qobject_cast<ToolUseContent *>(block)) {
             QJsonObject functionCall;
             functionCall["name"] = tool->name();
             functionCall["args"] = tool->input();
             parts.append(QJsonObject{{"functionCall", functionCall}});
-        } else if (auto thinking = qobject_cast<LLMCore::ThinkingContent *>(block)) {
-            // Include thinking blocks with their text
+        } else if (auto thinking = qobject_cast<ThinkingContent *>(block)) {
             QJsonObject thinkingPart;
             thinkingPart["text"] = thinking->thinking();
             thinkingPart["thought"] = true;
             parts.append(thinkingPart);
-            
-            // If there's a signature, add it as a separate part
+
             if (!thinking->signature().isEmpty()) {
                 QJsonObject signaturePart;
                 signaturePart["thoughtSignature"] = thinking->signature();
@@ -169,22 +167,22 @@ QJsonArray GoogleMessage::createToolResultParts(const QHash<QString, QString> &t
     return parts;
 }
 
-QList<LLMCore::ToolUseContent *> GoogleMessage::getCurrentToolUseContent() const
+QList<ToolUseContent *> GoogleMessage::getCurrentToolUseContent() const
 {
-    QList<LLMCore::ToolUseContent *> toolBlocks;
+    QList<ToolUseContent *> toolBlocks;
     for (auto block : m_currentBlocks) {
-        if (auto toolContent = qobject_cast<LLMCore::ToolUseContent *>(block)) {
+        if (auto toolContent = qobject_cast<ToolUseContent *>(block)) {
             toolBlocks.append(toolContent);
         }
     }
     return toolBlocks;
 }
 
-QList<LLMCore::ThinkingContent *> GoogleMessage::getCurrentThinkingContent() const
+QList<ThinkingContent *> GoogleMessage::getCurrentThinkingContent() const
 {
-    QList<LLMCore::ThinkingContent *> thinkingBlocks;
+    QList<ThinkingContent *> thinkingBlocks;
     for (auto block : m_currentBlocks) {
-        if (auto thinkingContent = qobject_cast<LLMCore::ThinkingContent *>(block)) {
+        if (auto thinkingContent = qobject_cast<ThinkingContent *>(block)) {
             thinkingBlocks.append(thinkingContent);
         }
     }
@@ -199,12 +197,12 @@ void GoogleMessage::startNewContinuation()
     m_pendingFunctionArgs.clear();
     m_currentFunctionName.clear();
     m_finishReason.clear();
-    m_state = LLMCore::MessageState::Building;
+    m_state = MessageState::Building;
 }
 
 bool GoogleMessage::isErrorFinishReason() const
 {
-    return m_finishReason == "SAFETY" 
+    return m_finishReason == "SAFETY"
         || m_finishReason == "RECITATION"
         || m_finishReason == "MALFORMED_FUNCTION_CALL"
         || m_finishReason == "PROHIBITED_CONTENT"
@@ -234,11 +232,11 @@ void GoogleMessage::updateStateFromFinishReason()
 {
     if (m_finishReason == "STOP" || m_finishReason == "MAX_TOKENS") {
         m_state = getCurrentToolUseContent().isEmpty()
-                      ? LLMCore::MessageState::Complete
-                      : LLMCore::MessageState::RequiresToolExecution;
+                      ? MessageState::Complete
+                      : MessageState::RequiresToolExecution;
     } else {
-        m_state = LLMCore::MessageState::Complete;
+        m_state = MessageState::Complete;
     }
 }
 
-} // namespace QodeAssist::Providers
+} // namespace QodeAssist::LLMCore
