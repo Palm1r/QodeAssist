@@ -181,9 +181,12 @@ Rectangle {
         onClicked: function() {
             root.resetChatToMessage(root.messageIndex)
         }
-        ToolTip.visible: hovered
-        ToolTip.text: qsTr("Reset chat to this message and edit")
-        ToolTip.delay: 500
+
+        QoAToolTip {
+            visible: stopButtonId.hovered
+            text: qsTr("Reset chat to this message and edit")
+            delay: 500
+        }
     }
 
     component TextComponent : TextBlock {
@@ -278,9 +281,11 @@ Rectangle {
                 }
             }
 
-            ToolTip.visible: containsMouse
-            ToolTip.text: qsTr("Click: Open in Qt Creator\nShift+Click: Open in System Editor")
-            ToolTip.delay: 500
+            QoAToolTip {
+                visible: attachFileMouseArea.containsMouse
+                text: qsTr("Click: Open in Qt Creator\nShift+Click: Open in System Editor")
+                delay: 500
+            }
         }
     }
 
@@ -368,9 +373,11 @@ Rectangle {
                 }
             }
 
-            ToolTip.visible: containsMouse
-            ToolTip.text: qsTr("Click: Open in Qt Creator\nShift+Click: Open in System Editor")
-            ToolTip.delay: 500
+            QoAToolTip {
+                visible: imageMouseArea.containsMouse
+                text: qsTr("Click: Open in Qt Creator\nShift+Click: Open in System Editor")
+                delay: 500
+            }
         }
     }
 }

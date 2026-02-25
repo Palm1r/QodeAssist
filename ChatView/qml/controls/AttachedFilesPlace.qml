@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024-2025 Petr Mironychev
+ * Copyright (C) 2024-2026 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -21,6 +21,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import ChatView
+import UIControls
 
 Flow {
     id: root
@@ -78,9 +79,11 @@ Flow {
                     }
                 }
 
-                ToolTip.visible: containsMouse
-                ToolTip.delay: 500
-                ToolTip.text: "Click: Open in Qt Creator\nShift+Click: Open in external editor\nCtrl+Click / Middle Click: Remove"
+                QoAToolTip {
+                    visible: mouse.containsMouse
+                    delay: 500
+                    text: "Click: Open in Qt Creator\nShift+Click: Open in external editor\nCtrl+Click / Middle Click: Remove"
+                }
             }
 
             Menu {

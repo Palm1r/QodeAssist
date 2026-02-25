@@ -13,11 +13,12 @@ qt_add_qml_module(QodeAssistUIControls
     qml/QoATextSlider.qml
     qml/QoAComboBox.qml
     qml/FadeListItemAnimation.qml
+    qml/QoASeparator.qml
+    qml/QoAToolTip.qml
     
     RESOURCES
     icons/dropdown-arrow-light.svg
     icons/dropdown-arrow-dark.svg
-    QML_FILES qml/QoASeparator.qml
 )
 
 target_link_libraries(QodeAssistUIControls
