@@ -19,6 +19,9 @@
 
 #pragma once
 
+#include <optional>
+
+#include <QFuture>
 #include <utils/environment.h>
 #include <QNetworkRequest>
 #include <QObject>
@@ -57,7 +60,7 @@ public:
         bool isToolsEnabled,
         bool isThinkingEnabled)
         = 0;
-    virtual QList<QString> getInstalledModels(const QString &url) = 0;
+    virtual QFuture<QList<QString>> getInstalledModels(const QString &url) = 0;
     virtual QList<QString> validateRequest(const QJsonObject &request, TemplateType type) = 0;
     virtual QString apiKey() const = 0;
     virtual void prepareNetworkRequest(QNetworkRequest &networkRequest) const = 0;
@@ -81,7 +84,7 @@ public slots:
         const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data)
         = 0;
     virtual void onRequestFinished(
-        const QodeAssist::LLMCore::RequestID &requestId, bool success, const QString &error)
+        const QodeAssist::LLMCore::RequestID &requestId, std::optional<QString> error)
         = 0;
 
 signals:

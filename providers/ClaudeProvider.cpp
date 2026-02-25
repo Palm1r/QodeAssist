@@ -19,11 +19,9 @@
 
 #include "ClaudeProvider.hpp"
 
-#include <QEventLoop>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QNetworkReply>
 #include <QUrlQuery>
 
 #include "llmcore/ValidationUtils.hpp"
@@ -142,11 +140,8 @@ void ClaudeProvider::prepareRequest(
     }
 }
 
-QList<QString> ClaudeProvider::getInstalledModels(const QString &baseUrl)
+QFuture<QList<QString>> ClaudeProvider::getInstalledModels(const QString &baseUrl)
 {
-    QList<QString> models;
-    QNetworkAccessManager manager;
-
     QUrl url(baseUrl + "/v1/models");
     QUrlQuery query;
     query.addQueryItem("limit", "1000");
@@ -160,32 +155,24 @@ QList<QString> ClaudeProvider::getInstalledModels(const QString &baseUrl)
         request.setRawHeader("x-api-key", apiKey().toUtf8());
     }
 
-    QNetworkReply *reply = manager.get(request);
-    QEventLoop loop;
-    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    loop.exec();
-
-    if (reply->error() == QNetworkReply::NoError) {
-        QByteArray responseData = reply->readAll();
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(responseData);
-        QJsonObject jsonObject = jsonResponse.object();
+    return httpClient()->get(request).then([](const QByteArray &data) {
+        QList<QString> models;
+        QJsonObject jsonObject = QJsonDocument::fromJson(data).object();
 
         if (jsonObject.contains("data")) {
             QJsonArray modelArray = jsonObject["data"].toArray();
             for (const QJsonValue &value : modelArray) {
                 QJsonObject modelObject = value.toObject();
                 if (modelObject.contains("id")) {
-                    QString modelId = modelObject["id"].toString();
-                    models.append(modelId);
+                    models.append(modelObject["id"].toString());
                 }
             }
         }
-    } else {
-        LOG_MESSAGE(QString("Error fetching Claude models: %1").arg(reply->errorString()));
-    }
-
-    reply->deleteLater();
-    return models;
+        return models;
+    }).onFailed([](const std::exception &e) {
+        LOG_MESSAGE(QString("Error fetching Claude models: %1").arg(e.what()));
+        return QList<QString>{};
+    });
 }
 
 QList<QString> ClaudeProvider::validateRequest(const QJsonObject &request, LLMCore::TemplateType type)
@@ -240,12 +227,9 @@ void ClaudeProvider::sendRequest(
     QNetworkRequest networkRequest(url);
     prepareNetworkRequest(networkRequest);
 
-    LLMCore::HttpRequest
-        request{.networkRequest = networkRequest, .requestId = requestId, .payload = payload};
-
     LOG_MESSAGE(QString("ClaudeProvider: Sending request %1 to %2").arg(requestId, url.toString()));
 
-    emit httpClient()->sendRequest(request);
+    httpClient()->postStreaming(requestId, networkRequest, payload);
 }
 
 bool ClaudeProvider::supportsTools() const
@@ -289,11 +273,11 @@ void ClaudeProvider::onDataReceived(
 }
 
 void ClaudeProvider::onRequestFinished(
-    const QodeAssist::LLMCore::RequestID &requestId, bool success, const QString &error)
+    const QodeAssist::LLMCore::RequestID &requestId, std::optional<QString> error)
 {
-    if (!success) {
-        LOG_MESSAGE(QString("ClaudeProvider request %1 failed: %2").arg(requestId, error));
-        emit requestFailed(requestId, error);
+    if (error) {
+        LOG_MESSAGE(QString("ClaudeProvider request %1 failed: %2").arg(requestId, *error));
+        emit requestFailed(requestId, *error);
         cleanupRequest(requestId);
         return;
     }

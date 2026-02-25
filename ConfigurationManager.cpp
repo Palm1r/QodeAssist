@@ -170,28 +170,26 @@ void ConfigurationManager::selectModel()
                              : isQuickRefactor ? m_generalSettings.qrUrl.volatileValue()
                                               : m_generalSettings.caUrl.volatileValue();
 
-    auto &targetSettings = isCodeCompletion ? m_generalSettings.ccModel
-                           : isPreset1      ? m_generalSettings.ccPreset1Model
-                           : isQuickRefactor ? m_generalSettings.qrModel
-                                            : m_generalSettings.caModel;
+    auto *targetSettings = &(isCodeCompletion ? m_generalSettings.ccModel
+                              : isPreset1      ? m_generalSettings.ccPreset1Model
+                              : isQuickRefactor ? m_generalSettings.qrModel
+                                               : m_generalSettings.caModel);
 
     if (auto provider = m_providersManager.getProviderByName(providerName)) {
         if (!provider->supportsModelListing()) {
-            m_generalSettings.showModelsNotSupportedDialog(targetSettings);
+            m_generalSettings.showModelsNotSupportedDialog(*targetSettings);
             return;
         }
 
-        const auto modelList = provider->getInstalledModels(providerUrl);
-
-        if (modelList.isEmpty()) {
-            m_generalSettings.showModelsNotFoundDialog(targetSettings);
-            return;
-        }
-
-        QTimer::singleShot(0, &m_generalSettings, [this, modelList, &targetSettings]() {
-            m_generalSettings.showSelectionDialog(
-                modelList, targetSettings, Tr::tr("Select LLM Model"), Tr::tr("Models:"));
-        });
+        provider->getInstalledModels(providerUrl)
+            .then(this, [this, targetSettings](const QList<QString> &modelList) {
+                if (modelList.isEmpty()) {
+                    m_generalSettings.showModelsNotFoundDialog(*targetSettings);
+                    return;
+                }
+                m_generalSettings.showSelectionDialog(
+                    modelList, *targetSettings, Tr::tr("Select LLM Model"), Tr::tr("Models:"));
+            });
     }
 }
 

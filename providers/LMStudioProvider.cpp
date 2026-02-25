@@ -27,11 +27,9 @@
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProviderSettings.hpp"
 
-#include <QEventLoop>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QNetworkReply>
 
 namespace QodeAssist::Providers {
 
@@ -71,35 +69,24 @@ bool LMStudioProvider::supportsModelListing() const
     return true;
 }
 
-QList<QString> LMStudioProvider::getInstalledModels(const QString &url)
+QFuture<QList<QString>> LMStudioProvider::getInstalledModels(const QString &url)
 {
-    QList<QString> models;
-    QNetworkAccessManager manager;
     QNetworkRequest request(QString("%1%2").arg(url, "/v1/models"));
 
-    QNetworkReply *reply = manager.get(request);
+    return httpClient()->get(request).then([](const QByteArray &data) {
+        QList<QString> models;
+        QJsonObject jsonObject = QJsonDocument::fromJson(data).object();
+        QJsonArray modelArray = jsonObject["data"].toArray();
 
-    QEventLoop loop;
-    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    loop.exec();
-
-    if (reply->error() == QNetworkReply::NoError) {
-        QByteArray responseData = reply->readAll();
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(responseData);
-        QJsonObject jsonObject = jsonResponse.object();
-            QJsonArray modelArray = jsonObject["data"].toArray();
-
-            for (const QJsonValue &value : modelArray) {
-                QJsonObject modelObject = value.toObject();
-                    QString modelId = modelObject["id"].toString();
-                    models.append(modelId);
+        for (const QJsonValue &value : modelArray) {
+            QJsonObject modelObject = value.toObject();
+            models.append(modelObject["id"].toString());
         }
-    } else {
-        LOG_MESSAGE(QString("Error fetching LMStudio models: %1").arg(reply->errorString()));
-    }
-
-    reply->deleteLater();
-    return models;
+        return models;
+    }).onFailed([](const std::exception &e) {
+        LOG_MESSAGE(QString("Error fetching LMStudio models: %1").arg(e.what()));
+        return QList<QString>{};
+    });
 }
 
 QList<QString> LMStudioProvider::validateRequest(
@@ -149,13 +136,10 @@ void LMStudioProvider::sendRequest(
     QNetworkRequest networkRequest(url);
     prepareNetworkRequest(networkRequest);
 
-    LLMCore::HttpRequest
-        request{.networkRequest = networkRequest, .requestId = requestId, .payload = payload};
-
     LOG_MESSAGE(
         QString("LMStudioProvider: Sending request %1 to %2").arg(requestId, url.toString()));
 
-    emit httpClient()->sendRequest(request);
+    httpClient()->postStreaming(requestId, networkRequest, payload);
 }
 
 bool LMStudioProvider::supportsTools() const
@@ -195,11 +179,11 @@ void LMStudioProvider::onDataReceived(
 }
 
 void LMStudioProvider::onRequestFinished(
-    const QodeAssist::LLMCore::RequestID &requestId, bool success, const QString &error)
+    const QodeAssist::LLMCore::RequestID &requestId, std::optional<QString> error)
 {
-    if (!success) {
-        LOG_MESSAGE(QString("LMStudioProvider request %1 failed: %2").arg(requestId, error));
-        emit requestFailed(requestId, error);
+    if (error) {
+        LOG_MESSAGE(QString("LMStudioProvider request %1 failed: %2").arg(requestId, *error));
+        emit requestFailed(requestId, *error);
         cleanupRequest(requestId);
         return;
     }

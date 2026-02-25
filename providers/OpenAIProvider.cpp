@@ -27,11 +27,9 @@
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProviderSettings.hpp"
 
-#include <QEventLoop>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QNetworkReply>
 
 namespace QodeAssist::Providers {
 
@@ -141,26 +139,17 @@ void OpenAIProvider::prepareRequest(
     }
 }
 
-QList<QString> OpenAIProvider::getInstalledModels(const QString &url)
+QFuture<QList<QString>> OpenAIProvider::getInstalledModels(const QString &url)
 {
-    QList<QString> models;
-    QNetworkAccessManager manager;
     QNetworkRequest request(QString("%1/v1/models").arg(url));
-
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     if (!apiKey().isEmpty()) {
         request.setRawHeader("Authorization", QString("Bearer %1").arg(apiKey()).toUtf8());
     }
 
-    QNetworkReply *reply = manager.get(request);
-    QEventLoop loop;
-    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    loop.exec();
-
-    if (reply->error() == QNetworkReply::NoError) {
-        QByteArray responseData = reply->readAll();
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(responseData);
-        QJsonObject jsonObject = jsonResponse.object();
+    return httpClient()->get(request).then([](const QByteArray &data) {
+        QList<QString> models;
+        QJsonObject jsonObject = QJsonDocument::fromJson(data).object();
 
         if (jsonObject.contains("data")) {
             QJsonArray modelArray = jsonObject["data"].toArray();
@@ -176,12 +165,11 @@ QList<QString> OpenAIProvider::getInstalledModels(const QString &url)
                 }
             }
         }
-    } else {
-        LOG_MESSAGE(QString("Error fetching OpenAI models: %1").arg(reply->errorString()));
-    }
-
-    reply->deleteLater();
-    return models;
+        return models;
+    }).onFailed([](const std::exception &e) {
+        LOG_MESSAGE(QString("Error fetching OpenAI models: %1").arg(e.what()));
+        return QList<QString>{};
+    });
 }
 
 QList<QString> OpenAIProvider::validateRequest(const QJsonObject &request, LLMCore::TemplateType type)
@@ -235,12 +223,9 @@ void OpenAIProvider::sendRequest(
     QNetworkRequest networkRequest(url);
     prepareNetworkRequest(networkRequest);
 
-    LLMCore::HttpRequest
-        request{.networkRequest = networkRequest, .requestId = requestId, .payload = payload};
-
     LOG_MESSAGE(QString("OpenAIProvider: Sending request %1 to %2").arg(requestId, url.toString()));
 
-    emit httpClient()->sendRequest(request);
+    httpClient()->postStreaming(requestId, networkRequest, payload);
 }
 
 bool OpenAIProvider::supportsTools() const
@@ -280,11 +265,11 @@ void OpenAIProvider::onDataReceived(
 }
 
 void OpenAIProvider::onRequestFinished(
-    const QodeAssist::LLMCore::RequestID &requestId, bool success, const QString &error)
+    const QodeAssist::LLMCore::RequestID &requestId, std::optional<QString> error)
 {
-    if (!success) {
-        LOG_MESSAGE(QString("OpenAIProvider request %1 failed: %2").arg(requestId, error));
-        emit requestFailed(requestId, error);
+    if (error) {
+        LOG_MESSAGE(QString("OpenAIProvider request %1 failed: %2").arg(requestId, *error));
+        emit requestFailed(requestId, *error);
         cleanupRequest(requestId);
         return;
     }
