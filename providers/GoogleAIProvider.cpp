@@ -19,11 +19,9 @@
 
 #include "GoogleAIProvider.hpp"
 
-#include <QEventLoop>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QNetworkReply>
 #include <QtCore/qurlquery.h>
 
 #include "llmcore/ValidationUtils.hpp"
@@ -156,29 +154,17 @@ void GoogleAIProvider::prepareRequest(
     }
 }
 
-QList<QString> GoogleAIProvider::getInstalledModels(const QString &url)
+QFuture<QList<QString>> GoogleAIProvider::getInstalledModels(const QString &url)
 {
-    QList<QString> models;
-
-    QNetworkAccessManager manager;
     QNetworkRequest request(QString("%1/models?key=%2").arg(url, apiKey()));
-
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 
-    QNetworkReply *reply = manager.get(request);
-    QEventLoop loop;
-    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    loop.exec();
-
-    if (reply->error() == QNetworkReply::NoError) {
-        QByteArray responseData = reply->readAll();
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(responseData);
-        QJsonObject jsonObject = jsonResponse.object();
+    return httpClient()->get(request).then([](const QByteArray &data) {
+        QList<QString> models;
+        QJsonObject jsonObject = QJsonDocument::fromJson(data).object();
 
         if (jsonObject.contains("models")) {
             QJsonArray modelArray = jsonObject["models"].toArray();
-            models.clear();
-
             for (const QJsonValue &value : modelArray) {
                 QJsonObject modelObject = value.toObject();
                 if (modelObject.contains("name")) {
@@ -190,12 +176,11 @@ QList<QString> GoogleAIProvider::getInstalledModels(const QString &url)
                 }
             }
         }
-    } else {
-        LOG_MESSAGE(QString("Error fetching Google AI models: %1").arg(reply->errorString()));
-    }
-
-    reply->deleteLater();
-    return models;
+        return models;
+    }).onFailed([](const std::exception &e) {
+        LOG_MESSAGE(QString("Error fetching Google AI models: %1").arg(e.what()));
+        return QList<QString>{};
+    });
 }
 
 QList<QString> GoogleAIProvider::validateRequest(
@@ -254,13 +239,10 @@ void GoogleAIProvider::sendRequest(
     QNetworkRequest networkRequest(url);
     prepareNetworkRequest(networkRequest);
 
-    LLMCore::HttpRequest
-        request{.networkRequest = networkRequest, .requestId = requestId, .payload = payload};
-
     LOG_MESSAGE(
         QString("GoogleAIProvider: Sending request %1 to %2").arg(requestId, url.toString()));
 
-    emit httpClient()->sendRequest(request);
+    httpClient()->postStreaming(requestId, networkRequest, payload);
 }
 
 bool GoogleAIProvider::supportsTools() const
@@ -327,11 +309,11 @@ void GoogleAIProvider::onDataReceived(
 }
 
 void GoogleAIProvider::onRequestFinished(
-    const QodeAssist::LLMCore::RequestID &requestId, bool success, const QString &error)
+    const QodeAssist::LLMCore::RequestID &requestId, std::optional<QString> error)
 {
-    if (!success) {
-        LOG_MESSAGE(QString("GoogleAIProvider request %1 failed: %2").arg(requestId, error));
-        emit requestFailed(requestId, error);
+    if (error) {
+        LOG_MESSAGE(QString("GoogleAIProvider request %1 failed: %2").arg(requestId, *error));
+        emit requestFailed(requestId, *error);
         cleanupRequest(requestId);
         return;
     }

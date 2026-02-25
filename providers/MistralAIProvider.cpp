@@ -27,11 +27,9 @@
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProviderSettings.hpp"
 
-#include <QEventLoop>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QNetworkReply>
 
 namespace QodeAssist::Providers {
 
@@ -71,43 +69,32 @@ bool MistralAIProvider::supportsModelListing() const
     return true;
 }
 
-QList<QString> MistralAIProvider::getInstalledModels(const QString &url)
+QFuture<QList<QString>> MistralAIProvider::getInstalledModels(const QString &url)
 {
-    QList<QString> models;
-    QNetworkAccessManager manager;
     QNetworkRequest request(QString("%1/v1/models").arg(url));
-
     request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
     if (!apiKey().isEmpty()) {
         request.setRawHeader("Authorization", QString("Bearer %1").arg(apiKey()).toUtf8());
     }
 
-    QNetworkReply *reply = manager.get(request);
-    QEventLoop loop;
-    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    loop.exec();
-
-    if (reply->error() == QNetworkReply::NoError) {
-        QByteArray responseData = reply->readAll();
-        QJsonDocument jsonResponse = QJsonDocument::fromJson(responseData);
-        QJsonObject jsonObject = jsonResponse.object();
+    return httpClient()->get(request).then([](const QByteArray &data) {
+        QList<QString> models;
+        QJsonObject jsonObject = QJsonDocument::fromJson(data).object();
 
         if (jsonObject.contains("data") && jsonObject["object"].toString() == "list") {
             QJsonArray modelArray = jsonObject["data"].toArray();
             for (const QJsonValue &value : modelArray) {
                 QJsonObject modelObject = value.toObject();
                 if (modelObject.contains("id")) {
-                    QString modelId = modelObject["id"].toString();
-                    models.append(modelId);
+                    models.append(modelObject["id"].toString());
                 }
             }
         }
-    } else {
-        LOG_MESSAGE(QString("Error fetching Mistral AI models: %1").arg(reply->errorString()));
-    }
-
-    reply->deleteLater();
-    return models;
+        return models;
+    }).onFailed([](const std::exception &e) {
+        LOG_MESSAGE(QString("Error fetching Mistral AI models: %1").arg(e.what()));
+        return QList<QString>{};
+    });
 }
 
 QList<QString> MistralAIProvider::validateRequest(
@@ -170,13 +157,10 @@ void MistralAIProvider::sendRequest(
     QNetworkRequest networkRequest(url);
     prepareNetworkRequest(networkRequest);
 
-    LLMCore::HttpRequest
-        request{.networkRequest = networkRequest, .requestId = requestId, .payload = payload};
-
     LOG_MESSAGE(
         QString("MistralAIProvider: Sending request %1 to %2").arg(requestId, url.toString()));
 
-    emit httpClient()->sendRequest(request);
+    httpClient()->postStreaming(requestId, networkRequest, payload);
 }
 
 bool MistralAIProvider::supportsTools() const
@@ -216,11 +200,11 @@ void MistralAIProvider::onDataReceived(
 }
 
 void MistralAIProvider::onRequestFinished(
-    const QodeAssist::LLMCore::RequestID &requestId, bool success, const QString &error)
+    const QodeAssist::LLMCore::RequestID &requestId, std::optional<QString> error)
 {
-    if (!success) {
-        LOG_MESSAGE(QString("MistralAIProvider request %1 failed: %2").arg(requestId, error));
-        emit requestFailed(requestId, error);
+    if (error) {
+        LOG_MESSAGE(QString("MistralAIProvider request %1 failed: %2").arg(requestId, *error));
+        emit requestFailed(requestId, *error);
         cleanupRequest(requestId);
         return;
     }

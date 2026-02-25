@@ -26,11 +26,9 @@
 #include "settings/QuickRefactorSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 
-#include <QEventLoop>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QNetworkReply>
 
 namespace QodeAssist::Providers {
 
@@ -121,9 +119,9 @@ void LlamaCppProvider::prepareRequest(
     }
 }
 
-QList<QString> LlamaCppProvider::getInstalledModels(const QString &url)
+QFuture<QList<QString>> LlamaCppProvider::getInstalledModels(const QString &)
 {
-    return {};
+    return QtFuture::makeReadyFuture(QList<QString>{});
 }
 
 QList<QString> LlamaCppProvider::validateRequest(
@@ -192,13 +190,10 @@ void LlamaCppProvider::sendRequest(
     QNetworkRequest networkRequest(url);
     prepareNetworkRequest(networkRequest);
 
-    LLMCore::HttpRequest
-        request{.networkRequest = networkRequest, .requestId = requestId, .payload = payload};
-
     LOG_MESSAGE(
         QString("LlamaCppProvider: Sending request %1 to %2").arg(requestId, url.toString()));
 
-    emit httpClient()->sendRequest(request);
+    httpClient()->postStreaming(requestId, networkRequest, payload);
 }
 
 bool LlamaCppProvider::supportsTools() const
@@ -250,11 +245,11 @@ void LlamaCppProvider::onDataReceived(
 }
 
 void LlamaCppProvider::onRequestFinished(
-    const QodeAssist::LLMCore::RequestID &requestId, bool success, const QString &error)
+    const QodeAssist::LLMCore::RequestID &requestId, std::optional<QString> error)
 {
-    if (!success) {
-        LOG_MESSAGE(QString("LlamaCppProvider request %1 failed: %2").arg(requestId, error));
-        emit requestFailed(requestId, error);
+    if (error) {
+        LOG_MESSAGE(QString("LlamaCppProvider request %1 failed: %2").arg(requestId, *error));
+        emit requestFailed(requestId, *error);
         cleanupRequest(requestId);
         return;
     }

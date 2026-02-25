@@ -43,7 +43,7 @@ public:
         LLMCore::RequestType type,
         bool isToolsEnabled,
         bool isThinkingEnabled) override;
-    QList<QString> getInstalledModels(const QString &url) override;
+    QFuture<QList<QString>> getInstalledModels(const QString &url) override;
     QList<QString> validateRequest(const QJsonObject &request, LLMCore::TemplateType type) override;
     QString apiKey() const override;
     void prepareNetworkRequest(QNetworkRequest &networkRequest) const override;
@@ -62,8 +62,7 @@ public slots:
         const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data) override;
     void onRequestFinished(
         const QodeAssist::LLMCore::RequestID &requestId,
-        bool success,
-        const QString &error) override;
+        std::optional<QString> error) override;
 
 private slots:
     void onToolExecutionComplete(

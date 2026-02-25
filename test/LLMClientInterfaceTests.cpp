@@ -80,7 +80,10 @@ public:
         return true;
     }
 
-    QList<QString> getInstalledModels(const QString &url) override { return {}; }
+    QFuture<QList<QString>> getInstalledModels(const QString &) override
+    {
+        return QtFuture::makeReadyFuture(QList<QString>{});
+    }
 
     QStringList validateRequest(
         const QJsonObject &request, LLMCore::TemplateType templateType) override

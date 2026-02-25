@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -19,23 +19,18 @@
 
 #pragma once
 
+#include <optional>
+
+#include <QFuture>
 #include <QHash>
 #include <QJsonObject>
-#include <QMap>
 #include <QMutex>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QObject>
-#include <QUrl>
+#include <QPromise>
 
 namespace QodeAssist::LLMCore {
-
-struct HttpRequest
-{
-    QNetworkRequest networkRequest;
-    QString requestId;
-    QJsonObject payload;
-};
 
 class HttpClient : public QObject
 {
@@ -45,21 +40,33 @@ public:
     HttpClient(QObject *parent = nullptr);
     ~HttpClient();
 
+    // Non-streaming — return QFuture with full response
+    QFuture<QByteArray> get(const QNetworkRequest &request);
+    QFuture<QByteArray> post(const QNetworkRequest &request, const QJsonObject &payload);
+    QFuture<QByteArray> del(const QNetworkRequest &request,
+                            std::optional<QJsonObject> payload = std::nullopt);
+
+    // Streaming — signal-based with requestId
+    void postStreaming(const QString &requestId, const QNetworkRequest &request,
+                       const QJsonObject &payload);
+
     void cancelRequest(const QString &requestId);
 
 signals:
-    void sendRequest(const QodeAssist::LLMCore::HttpRequest &request);
     void dataReceived(const QString &requestId, const QByteArray &data);
-    void requestFinished(const QString &requestId, bool success, const QString &error);
+    void requestFinished(const QString &requestId, std::optional<QString> error);
 
 private slots:
-    void onSendRequest(const QodeAssist::LLMCore::HttpRequest &request);
     void onReadyRead();
-    void onFinished();
+    void onStreamingFinished();
 
 private:
-    QString addActiveRequest(QNetworkReply *reply, const QString &requestId);
-    QString parseErrorFromResponse(int statusCode, const QByteArray &responseBody, const QString &networkErrorString);
+    void setupNonStreamingReply(QNetworkReply *reply, std::shared_ptr<QPromise<QByteArray>> promise);
+
+    QString findRequestId(QNetworkReply *reply);
+    void addActiveRequest(QNetworkReply *reply, const QString &requestId);
+    QString parseErrorFromResponse(int statusCode, const QByteArray &responseBody,
+                                   const QString &networkErrorString);
 
     QNetworkAccessManager *m_manager;
     QHash<QString, QNetworkReply *> m_activeRequests;
