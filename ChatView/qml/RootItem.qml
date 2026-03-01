@@ -514,11 +514,8 @@ ChatRootView {
 
         sequences: ["Ctrl+Return", "Ctrl+Enter"]
         context: Qt.WindowShortcut
-        onActivated: {
-            if (messageInput.activeFocus && !Qt.inputMethod.visible && !fileMentionPopup.visible) {
-                root.sendChatMessage()
-            }
-        }
+        enabled: messageInput.activeFocus && !Qt.inputMethod.visible && !fileMentionPopup.visible
+        onActivated: root.sendChatMessage()
     }
 
     function clearChat() {
