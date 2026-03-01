@@ -23,7 +23,8 @@
 
 namespace QodeAssist::Chat {
 
-NavigationPanel::NavigationPanel()
+NavigationPanel::NavigationPanel(QQmlEngine* engine)
+    : m_engine{engine}
 {
     setDisplayName(tr("QodeAssist Chat"));
     setPriority(500);
@@ -35,10 +36,7 @@ NavigationPanel::~NavigationPanel() {}
 
 Core::NavigationView NavigationPanel::createWidget()
 {
-    Core::NavigationView view;
-    view.widget = new ChatWidget;
-
-    return view;
+    return {.widget = new ChatWidget{m_engine}};
 }
 
 } // namespace QodeAssist::Chat

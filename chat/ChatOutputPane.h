@@ -29,7 +29,7 @@ class ChatOutputPane : public Core::IOutputPane
     Q_OBJECT
 
 public:
-    explicit ChatOutputPane(QObject *parent = nullptr);
+    explicit ChatOutputPane(QQmlEngine* engine, QObject *parent = nullptr);
     ~ChatOutputPane() override;
 
     QWidget *outputWidget(QWidget *parent) override;

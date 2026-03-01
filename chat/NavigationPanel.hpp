@@ -22,16 +22,21 @@
 #include <coreplugin/inavigationwidgetfactory.h>
 #include <QObject>
 
+class QQmlEngine;
+
 namespace QodeAssist::Chat {
 
 class NavigationPanel : public Core::INavigationWidgetFactory
 {
     Q_OBJECT
 public:
-    explicit NavigationPanel();
+    explicit NavigationPanel(QQmlEngine* engine);
     ~NavigationPanel();
 
     Core::NavigationView createWidget() override;
+
+private:
+    QPointer<QQmlEngine> m_engine;
 };
 
 } // namespace QodeAssist::Chat

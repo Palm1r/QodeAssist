@@ -19,6 +19,7 @@
 
 #include "ChatView.hpp"
 
+#include <QQmlComponent>
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QSettings>
@@ -35,12 +36,21 @@ constexpr Qt::WindowFlags baseFlags = Qt::Window | Qt::WindowTitleHint | Qt::Win
 
 namespace QodeAssist::Chat {
 
-ChatView::ChatView()
-    : m_isPin(false)
+ChatView::ChatView(QQmlEngine* engine)
+    : QQuickView{engine, nullptr}
+    , m_isPin(false)
 {
     setTitle("QodeAssist Chat");
-    engine()->rootContext()->setContextProperty("_chatview", this);
-    setSource(QUrl("qrc:/qt/qml/ChatView/qml/RootItem.qml"));
+    /// @note setup quick view content
+    {
+        auto context = new QQmlContext{engine, this};
+        context->setContextProperty("_chatview", this);
+
+        auto component = new QQmlComponent{engine, QUrl{"qrc:/qt/qml/ChatView/qml/RootItem.qml"}, this};
+        auto rootItem = component->create(context);
+
+        setContent(component->url(), component, rootItem);
+    }
     setResizeMode(QQuickView::SizeRootObjectToView);
     setMinimumSize({400, 300});
     setFlags(baseFlags);
