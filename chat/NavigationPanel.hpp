@@ -21,6 +21,7 @@
 
 #include <coreplugin/inavigationwidgetfactory.h>
 #include <QObject>
+#include <QPointer>
 
 class QQmlEngine;
 
