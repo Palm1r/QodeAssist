@@ -170,7 +170,7 @@ void AgentRolesWidget::onEditRole()
         return;
     }
 
-    AgentRoleDialog dialog(role, this);
+    AgentRoleDialog dialog(role, true, this);
     if (dialog.exec() != QDialog::Accepted)
         return;
 
