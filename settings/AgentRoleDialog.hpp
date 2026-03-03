@@ -34,8 +34,18 @@ class AgentRoleDialog : public QDialog
     Q_OBJECT
 
 public:
-    explicit AgentRoleDialog(QWidget *parent = nullptr);
-    explicit AgentRoleDialog(const AgentRole &role, bool editMode = true, QWidget *parent = nullptr);
+    enum class Action {
+        Add,
+        Duplicate,
+        Edit,
+    };
+
+    explicit AgentRoleDialog(Action action, QWidget *parent = nullptr);
+    explicit AgentRoleDialog(const AgentRole &role, Action action, QWidget *parent = nullptr)
+        : AgentRoleDialog{action, parent}
+    {
+        setRole(role);
+    }
 
     AgentRole getRole() const;
     void setRole(const AgentRole &role);
@@ -49,7 +59,7 @@ private:
     QTextEdit *m_descriptionEdit = nullptr;
     QTextEdit *m_systemPromptEdit = nullptr;
     QDialogButtonBox *m_buttonBox = nullptr;
-    bool m_editMode = false;
+    Action m_action;
 };
 
 } // namespace QodeAssist::Settings
