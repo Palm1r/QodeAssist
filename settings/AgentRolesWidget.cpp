@@ -129,7 +129,7 @@ void AgentRolesWidget::updateButtons()
 
 void AgentRolesWidget::onAddRole()
 {
-    AgentRoleDialog dialog(this);
+    AgentRoleDialog dialog{AgentRoleDialog::Action::Add, this};
     if (dialog.exec() != QDialog::Accepted)
         return;
 
@@ -170,7 +170,7 @@ void AgentRolesWidget::onEditRole()
         return;
     }
 
-    AgentRoleDialog dialog(role, this);
+    AgentRoleDialog dialog{role, AgentRoleDialog::Action::Edit, this};
     if (dialog.exec() != QDialog::Accepted)
         return;
 
@@ -203,7 +203,7 @@ void AgentRolesWidget::onDuplicateRole()
         role.id = baseId + QString::number(counter++);
     }
 
-    AgentRoleDialog dialog(role, false, this);
+    AgentRoleDialog dialog{role, AgentRoleDialog::Action::Duplicate, this};
     if (dialog.exec() != QDialog::Accepted)
         return;
 
