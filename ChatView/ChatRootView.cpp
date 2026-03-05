@@ -750,7 +750,7 @@ void ChatRootView::openRulesFolder()
 
 void ChatRootView::openSettings()
 {
-    Core::ICore::showOptionsDialog(Constants::QODE_ASSIST_CHAT_ASSISTANT_SETTINGS_PAGE_ID);
+    Settings::showSettings(Constants::QODE_ASSIST_CHAT_ASSISTANT_SETTINGS_PAGE_ID);
 }
 
 void ChatRootView::openFileInEditor(const QString &filePath)
@@ -1515,7 +1515,7 @@ QString ChatRootView::currentAgentRoleSystemPrompt() const
 
 void ChatRootView::openAgentRolesSettings()
 {
-    Core::ICore::showOptionsDialog(Utils::Id("QodeAssist.AgentRoles"));
+    Settings::showSettings(Utils::Id("QodeAssist.AgentRoles"));
 }
 
 void ChatRootView::compressCurrentChat()

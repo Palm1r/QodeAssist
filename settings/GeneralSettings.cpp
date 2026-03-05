@@ -452,7 +452,7 @@ void GeneralSettings::showModelsNotFoundDialog(Utils::StringAspect &aspect)
 
         connect(configureApiKeyBtn, &QPushButton::clicked, &dialog, [&dialog]() {
             dialog.close();
-            Core::ICore::showOptionsDialog(Constants::QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID);
+            Settings::showSettings(Constants::QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID);
         });
 
         dialog.buttonLayout()->addWidget(selectProviderBtn);
@@ -609,7 +609,7 @@ void GeneralSettings::setupConnections()
     });
     
     connect(&ccConfigureApiKey, &ButtonAspect::clicked, this, []() {
-        Core::ICore::showOptionsDialog(Constants::QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID);
+        Settings::showSettings(Constants::QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID);
     });
     
     connect(&caPresetConfig, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
@@ -618,7 +618,7 @@ void GeneralSettings::setupConnections()
     });
     
     connect(&caConfigureApiKey, &ButtonAspect::clicked, this, []() {
-        Core::ICore::showOptionsDialog(Constants::QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID);
+        Settings::showSettings(Constants::QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID);
     });
     
     connect(&qrPresetConfig, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
@@ -627,7 +627,7 @@ void GeneralSettings::setupConnections()
     });
     
     connect(&qrConfigureApiKey, &ButtonAspect::clicked, this, []() {
-        Core::ICore::showOptionsDialog(Constants::QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID);
+        Settings::showSettings(Constants::QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID);
     });
 
     connect(&specifyPreset1, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
@@ -1046,5 +1046,29 @@ public:
 };
 
 const GeneralSettingsPage generalSettingsPage;
+/*!
+    \sa {Core::ICore::showOptionsDialog()}, {Core::ICore::showSettings()}
+    \note This function was added to fix Qt Creator API broken changes in v19.0.0-beta2 version
+*/
+void showSettings(const Utils::Id page)
+{
+#if QODEASSIST_QT_CREATOR_VERSION >= QT_VERSION_CHECK(18, 0, 83)
+    Core::ICore::showSettings(page);
+#else
+    Core::ICore::showOptionsDialog(page);
+#endif
+}
+/*!
+    \sa {Core::ICore::showOptionsDialog()}, {Core::ICore::showSettings()}
+    \note This function was added to fix Qt Creator API broken changes in v19.0.0-beta2 version
+ */
+void showSettings(const Utils::Id page, Utils::Id item)
+{
+#if QODEASSIST_QT_CREATOR_VERSION >= QT_VERSION_CHECK(18, 0, 83)
+    Core::ICore::showSettings(page, item);
+#else
+    Core::ICore::showOptionsDialog(page, item);
+#endif
+}
 
 } // namespace QodeAssist::Settings

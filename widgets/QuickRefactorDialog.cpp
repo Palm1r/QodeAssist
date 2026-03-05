@@ -589,7 +589,7 @@ void QuickRefactorDialog::onOpenInstructionsFolder()
 
 void QuickRefactorDialog::onOpenSettings()
 {
-    Core::ICore::showOptionsDialog(Constants::QODE_ASSIST_QUICK_REFACTOR_SETTINGS_PAGE_ID);
+    Settings::showSettings(Constants::QODE_ASSIST_QUICK_REFACTOR_SETTINGS_PAGE_ID);
 }
 
 QString QuickRefactorDialog::selectedConfiguration() const
