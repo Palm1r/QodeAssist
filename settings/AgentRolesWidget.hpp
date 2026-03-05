@@ -19,19 +19,23 @@
 
 #pragma once
 
-#include <QWidget>
+#include <coreplugin/dialogs/ioptionspage.h>
 
 class QListWidget;
 class QPushButton;
 
 namespace QodeAssist::Settings {
 
-class AgentRolesWidget : public QWidget
+class AgentRolesWidget : public Core::IOptionsPageWidget
 {
     Q_OBJECT
 
 public:
-    explicit AgentRolesWidget(QWidget *parent = nullptr);
+    explicit AgentRolesWidget()
+    {
+        setupUI();
+        loadRoles();
+    }
 
 private:
     void setupUI();
