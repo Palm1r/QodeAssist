@@ -187,4 +187,7 @@ private:
 
 GeneralSettings &generalSettings();
 
+void showSettings(const Utils::Id page);
+void showSettings(const Utils::Id page, Utils::Id item);
+
 } // namespace QodeAssist::Settings

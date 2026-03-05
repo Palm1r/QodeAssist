@@ -34,13 +34,6 @@
 
 namespace QodeAssist::Settings {
 
-AgentRolesWidget::AgentRolesWidget(QWidget *parent)
-    : QWidget(parent)
-{
-    setupUI();
-    loadRoles();
-}
-
 void AgentRolesWidget::setupUI()
 {
     auto *mainLayout = new QVBoxLayout(this);
