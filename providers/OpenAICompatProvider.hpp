@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <llmcore/Provider.hpp>
+#include <llmcore/core/Provider.hpp>
 
 namespace QodeAssist::LLMCore {
 class OpenAIClient;

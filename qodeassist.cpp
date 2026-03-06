@@ -50,8 +50,9 @@
 #include "chat/ChatOutputPane.h"
 #include "chat/NavigationPanel.hpp"
 #include "context/DocumentReaderQtCreator.hpp"
-#include "llmcore/PromptProviderFim.hpp"
-#include "llmcore/ProvidersManager.hpp"
+#include "PromptProviderFim.hpp"
+#include <llmcore/core/ProvidersManager.hpp>
+#include "logger/Logger.hpp"
 #include "logger/RequestPerformanceLogger.hpp"
 #include "providers/Providers.hpp"
 #include "settings/ChatAssistantSettings.hpp"
@@ -119,6 +120,8 @@ public:
 
     void initialize() final
     {
+        Logger::instance();
+
 #if QODEASSIST_QT_CREATOR_VERSION >= QT_VERSION_CHECK(15, 0, 83)
         Core::IOptionsPage::registerCategory(
             Constants::QODE_ASSIST_GENERAL_OPTIONS_CATEGORY,

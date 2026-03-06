@@ -18,7 +18,7 @@
  */
 
 #include <iostream>
-#include <llmcore/ContextData.hpp>
+#include <llmcore/core/ContextData.hpp>
 #include <QString>
 
 QT_BEGIN_NAMESPACE

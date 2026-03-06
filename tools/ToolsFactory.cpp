@@ -20,7 +20,7 @@
 #include "ToolsFactory.hpp"
 
 #include "logger/Logger.hpp"
-#include <llmcore/ToolsManager.hpp>
+#include <llmcore/tools/ToolsManager.hpp>
 #include <settings/ToolsSettings.hpp>
 
 #include "BuildProjectTool.hpp"

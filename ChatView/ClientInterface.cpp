@@ -44,11 +44,11 @@
 #include "ChatSerializer.hpp"
 #include "GeneralSettings.hpp"
 #include "Logger.hpp"
-#include "ProvidersManager.hpp"
-#include "RequestConfig.hpp"
-#include "ToolsManager.hpp"
+#include <llmcore/core/ProvidersManager.hpp>
+#include <llmcore/core/RequestConfig.hpp>
+#include <llmcore/tools/ToolsManager.hpp>
 #include "ToolsSettings.hpp"
-#include <RulesLoader.hpp>
+#include "RulesLoader.hpp"
 #include <context/ChangesManager.h>
 
 namespace QodeAssist::Chat {
@@ -168,7 +168,7 @@ void ClientInterface::sendMessage(
                 systemPrompt = systemPrompt + "\n\n" + role.systemPrompt;
         }
 
-        auto project = LLMCore::RulesLoader::getActiveProject();
+        auto project = RulesLoader::getActiveProject();
 
         if (project) {
             systemPrompt += QString("\n# Active project name: %1").arg(project->displayName());
@@ -183,7 +183,7 @@ void ClientInterface::sendMessage(
             }
 
             QString projectRules
-                = LLMCore::RulesLoader::loadRulesForProject(project, LLMCore::RulesContext::Chat);
+                = RulesLoader::loadRulesForProject(project, RulesContext::Chat);
 
             if (!projectRules.isEmpty()) {
                 systemPrompt += QString("\n# Project Rules\n\n") + projectRules;

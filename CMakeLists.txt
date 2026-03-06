@@ -70,6 +70,10 @@ add_qtc_plugin(QodeAssist
     QodeAssistConstants.hpp
     QodeAssisttr.h
     LLMClientInterface.hpp LLMClientInterface.cpp
+    RulesLoader.hpp RulesLoader.cpp
+    ResponseCleaner.hpp
+    PromptProviderChat.hpp
+    PromptProviderFim.hpp
     RefactorContextHelper.hpp
     templates/Templates.hpp
     templates/CodeLlamaFim.hpp

@@ -29,8 +29,8 @@
 #include "logger/Logger.hpp"
 #include "settings/CodeCompletionSettings.hpp"
 #include "settings/GeneralSettings.hpp"
-#include <llmcore/RequestConfig.hpp>
-#include <llmcore/RulesLoader.hpp>
+#include <llmcore/core/RequestConfig.hpp>
+#include "RulesLoader.hpp"
 
 namespace QodeAssist {
 
@@ -285,7 +285,6 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         config.providerRequest = {{"model", modelName}, {"stream", true}};
     }
     config.apiKey = provider->apiKey();
-    config.multiLineCompletion = m_completeSettings.multiLineCompletion();
 
     const auto stopWords = QJsonArray::fromStringList(config.promptTemplate->stopWords());
     if (!stopWords.isEmpty())
@@ -299,10 +298,10 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
                 ? m_completeSettings.systemPromptForNonFimModels()
                 : m_completeSettings.systemPrompt());
 
-    auto project = LLMCore::RulesLoader::getActiveProject();
+    auto project = RulesLoader::getActiveProject();
     if (project) {
         QString projectRules
-            = LLMCore::RulesLoader::loadRulesForProject(project, LLMCore::RulesContext::Completions);
+            = RulesLoader::loadRulesForProject(project, RulesContext::Completions);
 
         if (!projectRules.isEmpty()) {
             systemPrompt += "\n\n# Project Rules\n\n" + projectRules;

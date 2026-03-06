@@ -28,8 +28,8 @@
 #include "LLMClientInterface.hpp"
 #include "MockDocumentReader.hpp"
 #include "MockRequestHandler.hpp"
-#include "llmcore/IPromptProvider.hpp"
-#include "llmcore/IProviderRegistry.hpp"
+#include <llmcore/core/IPromptProvider.hpp>
+#include <llmcore/core/IProviderRegistry.hpp>
 #include "logger/EmptyRequestPerformanceLogger.hpp"
 #include "settings/CodeCompletionSettings.hpp"
 #include "settings/GeneralSettings.hpp"

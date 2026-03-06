@@ -21,8 +21,8 @@
 
 #include <QObject>
 
-#include "llmcore/PromptTemplateManager.hpp"
-#include "llmcore/ProvidersManager.hpp"
+#include <llmcore/prompt/PromptTemplateManager.hpp>
+#include <llmcore/core/ProvidersManager.hpp>
 #include "settings/GeneralSettings.hpp"
 
 namespace QodeAssist {

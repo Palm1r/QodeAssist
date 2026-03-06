@@ -25,9 +25,9 @@
 #include <context/ContextManager.hpp>
 #include <context/IDocumentReader.hpp>
 #include <context/ProgrammingLanguage.hpp>
-#include <llmcore/ContextData.hpp>
-#include <llmcore/IPromptProvider.hpp>
-#include <llmcore/IProviderRegistry.hpp>
+#include <llmcore/core/ContextData.hpp>
+#include <llmcore/core/IPromptProvider.hpp>
+#include <llmcore/core/IProviderRegistry.hpp>
 #include <logger/IRequestPerformanceLogger.hpp>
 #include <settings/CodeCompletionSettings.hpp>
 #include <settings/GeneralSettings.hpp>

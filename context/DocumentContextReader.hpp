@@ -22,7 +22,7 @@
 #include <texteditor/textdocument.h>
 #include <QTextDocument>
 
-#include <llmcore/ContextData.hpp>
+#include <llmcore/core/ContextData.hpp>
 #include <settings/CodeCompletionSettings.hpp>
 
 namespace QodeAssist::Context {

@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "llmcore/PromptTemplateManager.hpp"
+#include <llmcore/prompt/PromptTemplateManager.hpp>
 #include "templates/Alpaca.hpp"
 #include "templates/ChatML.hpp"
 #include "templates/Claude.hpp"

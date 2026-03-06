@@ -27,8 +27,8 @@
 
 #include <context/ContextManager.hpp>
 #include <context/IDocumentReader.hpp>
-#include <llmcore/ContextData.hpp>
-#include <llmcore/Provider.hpp>
+#include <llmcore/core/ContextData.hpp>
+#include <llmcore/core/Provider.hpp>
 
 namespace QodeAssist {
 

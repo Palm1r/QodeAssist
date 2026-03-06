@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "llmcore/ProvidersManager.hpp"
+#include <llmcore/core/ProvidersManager.hpp>
 #include "providers/ClaudeProvider.hpp"
 #include "providers/CodestralProvider.hpp"
 #include "providers/GoogleAIProvider.hpp"

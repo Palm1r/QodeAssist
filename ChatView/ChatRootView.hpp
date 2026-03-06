@@ -25,7 +25,7 @@
 #include "ChatFileManager.hpp"
 #include "ChatModel.hpp"
 #include "ClientInterface.hpp"
-#include "llmcore/PromptProviderChat.hpp"
+#include "PromptProviderChat.hpp"
 #include <coreplugin/editormanager/editormanager.h>
 
 namespace QodeAssist::Chat {
@@ -235,7 +235,7 @@ private:
     bool hasImageAttachments(const QStringList &attachments) const;
 
     ChatModel *m_chatModel;
-    LLMCore::PromptProviderChat m_promptProvider;
+    PromptProviderChat m_promptProvider;
     ClientInterface *m_clientInterface;
     ChatFileManager *m_fileManager;
     QString m_currentTemplate;

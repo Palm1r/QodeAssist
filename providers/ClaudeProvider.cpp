@@ -19,13 +19,13 @@
 
 #include "ClaudeProvider.hpp"
 
-#include "llmcore/ClaudeClient.hpp"
+#include <llmcore/clients/claude/ClaudeClient.hpp>
 #include "tools/ToolsFactory.hpp"
 
 #include <QJsonArray>
 #include <QJsonObject>
 
-#include "llmcore/ValidationUtils.hpp"
+#include <llmcore/prompt/ValidationUtils.hpp>
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"

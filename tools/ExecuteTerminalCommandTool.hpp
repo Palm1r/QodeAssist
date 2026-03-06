@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <llmcore/BaseTool.hpp>
+#include <llmcore/tools/BaseTool.hpp>
 #include <QObject>
 
 namespace QodeAssist::Tools {

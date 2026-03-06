@@ -19,10 +19,10 @@
 
 #include "LlamaCppProvider.hpp"
 
-#include "llmcore/OpenAIClient.hpp"
+#include <llmcore/clients/openai/OpenAIClient.hpp>
 #include "tools/ToolsFactory.hpp"
 
-#include "llmcore/ValidationUtils.hpp"
+#include <llmcore/prompt/ValidationUtils.hpp>
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"

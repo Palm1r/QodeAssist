@@ -24,13 +24,13 @@
 #include <QUuid>
 
 #include <context/DocumentContextReader.hpp>
-#include <llmcore/ResponseCleaner.hpp>
+#include "ResponseCleaner.hpp"
 #include <context/DocumentReaderQtCreator.hpp>
 #include <context/Utils.hpp>
-#include <llmcore/PromptTemplateManager.hpp>
-#include <llmcore/ProvidersManager.hpp>
-#include <llmcore/RequestConfig.hpp>
-#include <llmcore/RulesLoader.hpp>
+#include <llmcore/prompt/PromptTemplateManager.hpp>
+#include <llmcore/core/ProvidersManager.hpp>
+#include <llmcore/core/RequestConfig.hpp>
+#include "RulesLoader.hpp"
 #include <logger/Logger.hpp>
 #include <settings/ChatAssistantSettings.hpp>
 #include <settings/GeneralSettings.hpp>
@@ -287,10 +287,10 @@ LLMCore::ContextData QuickRefactorHandler::prepareContext(
 
     QString systemPrompt = Settings::quickRefactorSettings().systemPrompt();
 
-    auto project = LLMCore::RulesLoader::getActiveProject();
+    auto project = RulesLoader::getActiveProject();
     if (project) {
-        QString projectRules = LLMCore::RulesLoader::loadRulesForProject(
-            project, LLMCore::RulesContext::QuickRefactor);
+        QString projectRules = RulesLoader::loadRulesForProject(
+            project, RulesContext::QuickRefactor);
 
         if (!projectRules.isEmpty()) {
             systemPrompt += "\n\n# Project Rules\n\n" + projectRules;
@@ -387,7 +387,7 @@ void QuickRefactorHandler::handleLLMResponse(
 
     if (isComplete) {
         m_isRefactoringInProgress = false;
-        QString cleanedResponse = LLMCore::ResponseCleaner::clean(response);
+        QString cleanedResponse = ResponseCleaner::clean(response);
 
         RefactorResult result;
         result.newText = cleanedResponse;

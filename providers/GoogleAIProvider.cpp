@@ -19,7 +19,7 @@
 
 #include "GoogleAIProvider.hpp"
 
-#include "llmcore/GoogleAIClient.hpp"
+#include <llmcore/clients/google/GoogleAIClient.hpp>
 #include "tools/ToolsFactory.hpp"
 
 #include <QJsonArray>
@@ -27,7 +27,7 @@
 #include <QJsonObject>
 #include <QtCore/qurlquery.h>
 
-#include "llmcore/ValidationUtils.hpp"
+#include <llmcore/prompt/ValidationUtils.hpp>
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"

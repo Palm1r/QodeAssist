@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <llmcore/RequestHandlerBase.hpp>
+#include <llmcore/network/RequestHandlerBase.hpp>
 
 namespace QodeAssist::LLMCore {
 

@@ -1,7 +1,12 @@
 #include "Logger.hpp"
+
+#include <QLatin1String>
+
 #include <coreplugin/messagemanager.h>
 
 namespace QodeAssist {
+
+QtMessageHandler Logger::s_previousHandler = nullptr;
 
 Logger &Logger::instance()
 {
@@ -11,7 +16,30 @@ Logger &Logger::instance()
 
 Logger::Logger()
     : m_loggingEnabled(false)
-{}
+{
+    installMessageHandler();
+}
+
+void Logger::installMessageHandler()
+{
+    s_previousHandler = qInstallMessageHandler(qtMessageHandler);
+}
+
+void Logger::qtMessageHandler(QtMsgType type,
+                              const QMessageLogContext &context,
+                              const QString &msg)
+{
+    if (context.category
+        && QLatin1String(context.category).startsWith(QLatin1String("qodeassist."))) {
+        const QString prefixed = QLatin1String("[") + QLatin1String(context.category)
+                                 + QLatin1String("] ") + msg;
+        instance().log(prefixed);
+        return;
+    }
+
+    if (s_previousHandler)
+        s_previousHandler(type, context, msg);
+}
 
 void Logger::setLoggingEnabled(bool enable)
 {

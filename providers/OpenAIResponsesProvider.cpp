@@ -19,10 +19,10 @@
 
 #include "OpenAIResponsesProvider.hpp"
 
-#include "llmcore/OpenAIResponsesClient.hpp"
+#include <llmcore/clients/openai/OpenAIResponsesClient.hpp>
 #include "tools/ToolsFactory.hpp"
 
-#include "llmcore/ValidationUtils.hpp"
+#include <llmcore/prompt/ValidationUtils.hpp>
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"

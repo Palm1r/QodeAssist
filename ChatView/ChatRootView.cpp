@@ -46,12 +46,12 @@
 #include "SettingsConstants.hpp"
 #include "Logger.hpp"
 #include "ProjectSettings.hpp"
-#include "ProvidersManager.hpp"
+#include <llmcore/core/ProvidersManager.hpp>
 #include "ToolsSettings.hpp"
 #include "context/ChangesManager.h"
 #include "context/ContextManager.hpp"
 #include "context/TokenUtils.hpp"
-#include "llmcore/RulesLoader.hpp"
+#include "RulesLoader.hpp"
 
 namespace QodeAssist::Chat {
 
@@ -926,7 +926,7 @@ QString ChatRootView::getRuleContent(int index)
     if (index < 0 || index >= m_activeRules.size())
         return QString();
 
-    return LLMCore::RulesLoader::loadRuleFileContent(
+    return RulesLoader::loadRuleFileContent(
         m_activeRules[index].toMap()["filePath"].toString());
 }
 
@@ -934,7 +934,7 @@ void ChatRootView::refreshRules()
 {
     m_activeRules.clear();
 
-    auto project = LLMCore::RulesLoader::getActiveProject();
+    auto project = RulesLoader::getActiveProject();
     if (!project) {
         emit activeRulesChanged();
         emit activeRulesCountChanged();
@@ -942,7 +942,7 @@ void ChatRootView::refreshRules()
     }
 
     auto ruleFiles
-        = LLMCore::RulesLoader::getRuleFilesForProject(project, LLMCore::RulesContext::Chat);
+        = RulesLoader::getRuleFilesForProject(project, RulesContext::Chat);
 
     for (const auto &ruleFile : ruleFiles) {
         QVariantMap ruleMap;

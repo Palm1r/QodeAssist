@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "ContextData.hpp"
+#include <llmcore/core/ContextData.hpp>
 #include "MessagePart.hpp"
 
 #include <QAbstractListModel>

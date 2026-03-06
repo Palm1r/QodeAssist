@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "llmcore/PromptTemplate.hpp"
+#include <llmcore/prompt/PromptTemplate.hpp>
 #include <QJsonArray>
 
 namespace QodeAssist::Templates {

@@ -22,7 +22,7 @@
 #include "FileSearchUtils.hpp"
 
 #include <context/IgnoreManager.hpp>
-#include <llmcore/BaseTool.hpp>
+#include <llmcore/tools/BaseTool.hpp>
 #include <QFuture>
 #include <QJsonObject>
 #include <QObject>

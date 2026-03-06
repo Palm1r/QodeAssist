@@ -18,13 +18,20 @@ public:
     void log(const QString &message, bool silent = true);
     void logMessages(const QStringList &messages, bool silent = true);
 
+    void installMessageHandler();
+
 private:
     Logger();
     ~Logger() = default;
     Logger(const Logger &) = delete;
     Logger &operator=(const Logger &) = delete;
 
+    static void qtMessageHandler(QtMsgType type,
+                                 const QMessageLogContext &context,
+                                 const QString &msg);
+
     bool m_loggingEnabled;
+    static QtMessageHandler s_previousHandler;
 };
 
 #define LOG_MESSAGE(msg) QodeAssist::Logger::instance().log(msg)

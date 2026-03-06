@@ -1,50 +1,59 @@
 add_library(LLMCore STATIC
-    RequestType.hpp
-    Provider.hpp Provider.cpp
-    ProvidersManager.hpp ProvidersManager.cpp
-    ContextData.hpp
-    IPromptProvider.hpp
-    IProviderRegistry.hpp
-    PromptProviderChat.hpp
-    PromptProviderFim.hpp
-    PromptTemplate.hpp
-    PromptTemplateManager.hpp PromptTemplateManager.cpp
-    RequestConfig.hpp
-    ValidationUtils.hpp ValidationUtils.cpp
-    ProviderID.hpp
-    HttpClient.hpp HttpClient.cpp
-    BaseClient.hpp BaseClient.cpp
-    ClaudeClient.hpp ClaudeClient.cpp
-    ClaudeMessage.hpp ClaudeMessage.cpp
-    OpenAIMessage.hpp OpenAIMessage.cpp
-    OpenAIClient.hpp OpenAIClient.cpp
-    OllamaMessage.hpp OllamaMessage.cpp
-    OllamaClient.hpp OllamaClient.cpp
-    GoogleMessage.hpp GoogleMessage.cpp
-    GoogleAIClient.hpp GoogleAIClient.cpp
-    OpenAIResponsesMessage.hpp OpenAIResponsesMessage.cpp
-    OpenAIResponsesClient.hpp OpenAIResponsesClient.cpp
-    DataBuffers.hpp
-    SSEUtils.hpp
-    SSEBuffer.hpp SSEBuffer.cpp
-    BaseTool.hpp BaseTool.cpp
-    ToolExceptions.hpp
-    ToolHandler.hpp ToolHandler.cpp
-    ToolsManager.hpp ToolsManager.cpp
-    ContentBlocks.hpp
-    RulesLoader.hpp RulesLoader.cpp
-    ResponseCleaner.hpp
+    # core
+    core/RequestType.hpp
+    core/ContextData.hpp
+    core/RequestConfig.hpp
+    core/ContentBlocks.hpp
+    core/DataBuffers.hpp
+    core/Provider.hpp core/Provider.cpp
+    core/ProviderID.hpp
+    core/ProvidersManager.hpp core/ProvidersManager.cpp
+    core/IProviderRegistry.hpp
+    core/IPromptProvider.hpp
+    core/Log.hpp core/Log.cpp
+
+    # prompt
+    prompt/PromptTemplate.hpp
+    prompt/PromptTemplateManager.hpp prompt/PromptTemplateManager.cpp
+    prompt/ValidationUtils.hpp prompt/ValidationUtils.cpp
+
+    # network
+    network/HttpClient.hpp network/HttpClient.cpp
+    network/BaseClient.hpp network/BaseClient.cpp
+    network/SSEUtils.hpp
+    network/SSEBuffer.hpp network/SSEBuffer.cpp
+    network/RequestHandlerBase.hpp network/RequestHandlerBase.cpp
+
+    # clients/claude
+    clients/claude/ClaudeClient.hpp clients/claude/ClaudeClient.cpp
+    clients/claude/ClaudeMessage.hpp clients/claude/ClaudeMessage.cpp
+
+    # clients/openai
+    clients/openai/OpenAIClient.hpp clients/openai/OpenAIClient.cpp
+    clients/openai/OpenAIMessage.hpp clients/openai/OpenAIMessage.cpp
+    clients/openai/OpenAIResponsesClient.hpp clients/openai/OpenAIResponsesClient.cpp
+    clients/openai/OpenAIResponsesMessage.hpp clients/openai/OpenAIResponsesMessage.cpp
+
+    # clients/ollama
+    clients/ollama/OllamaClient.hpp clients/ollama/OllamaClient.cpp
+    clients/ollama/OllamaMessage.hpp clients/ollama/OllamaMessage.cpp
+
+    # clients/google
+    clients/google/GoogleAIClient.hpp clients/google/GoogleAIClient.cpp
+    clients/google/GoogleMessage.hpp clients/google/GoogleMessage.cpp
+
+    # tools
+    tools/BaseTool.hpp tools/BaseTool.cpp
+    tools/ToolExceptions.hpp
+    tools/ToolHandler.hpp tools/ToolHandler.cpp
+    tools/ToolsManager.hpp tools/ToolsManager.cpp
 )
 
 target_link_libraries(LLMCore
-    PUBLIC
+    PRIVATE
     Qt::Core
     Qt::Network
-    QtCreator::Core
-    QtCreator::Utils
-    QtCreator::ExtensionSystem
-    PRIVATE
-    QodeAssistLogger
+    Qt::Concurrent
 )
 
-target_include_directories(LLMCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(LLMCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)

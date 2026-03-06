@@ -24,8 +24,8 @@
 #include <QVector>
 
 #include "ChatModel.hpp"
-#include "Provider.hpp"
-#include "llmcore/IPromptProvider.hpp"
+#include <llmcore/core/Provider.hpp>
+#include <llmcore/core/IPromptProvider.hpp>
 #include <context/ContextManager.hpp>
 
 namespace QodeAssist::Chat {

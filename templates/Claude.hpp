@@ -21,7 +21,7 @@
 
 #include <QJsonArray>
 
-#include "llmcore/PromptTemplate.hpp"
+#include <llmcore/prompt/PromptTemplate.hpp>
 
 namespace QodeAssist::Templates {
 

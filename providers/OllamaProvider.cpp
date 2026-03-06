@@ -19,14 +19,14 @@
 
 #include "OllamaProvider.hpp"
 
-#include "llmcore/OllamaClient.hpp"
+#include <llmcore/clients/ollama/OllamaClient.hpp>
 #include "tools/ToolsFactory.hpp"
 
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 
-#include "llmcore/ValidationUtils.hpp"
+#include <llmcore/prompt/ValidationUtils.hpp>
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"

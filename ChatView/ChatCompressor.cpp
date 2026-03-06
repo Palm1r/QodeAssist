@@ -20,8 +20,8 @@
 #include "ChatCompressor.hpp"
 #include "ChatModel.hpp"
 #include "GeneralSettings.hpp"
-#include "PromptTemplateManager.hpp"
-#include "ProvidersManager.hpp"
+#include <llmcore/prompt/PromptTemplateManager.hpp>
+#include <llmcore/core/ProvidersManager.hpp>
 #include "logger/Logger.hpp"
 
 #include <QDateTime>
