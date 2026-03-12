@@ -50,9 +50,9 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
 
     AIConfiguration claudeOpus;
     claudeOpus.id = "preset_claude_opus";
-    claudeOpus.name = "Claude Opus 4.5";
+    claudeOpus.name = "Claude Opus 4.6";
     claudeOpus.provider = "Claude";
-    claudeOpus.model = "claude-opus-4-5-20251101";
+    claudeOpus.model = "claude-opus-4-6";
     claudeOpus.url = "https://api.anthropic.com";
     claudeOpus.endpointMode = "Auto";
     claudeOpus.customEndpoint = "";
@@ -62,9 +62,9 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
 
     AIConfiguration claudeSonnet;
     claudeSonnet.id = "preset_claude_sonnet";
-    claudeSonnet.name = "Claude Sonnet 4.5";
+    claudeSonnet.name = "Claude Sonnet 4.6";
     claudeSonnet.provider = "Claude";
-    claudeSonnet.model = "claude-sonnet-4-5-20250929";
+    claudeSonnet.model = "claude-sonnet-4-6";
     claudeSonnet.url = "https://api.anthropic.com";
     claudeSonnet.endpointMode = "Auto";
     claudeSonnet.customEndpoint = "";
@@ -88,7 +88,7 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     codestral.id = "preset_codestral";
     codestral.name = "Codestral";
     codestral.provider = "Codestral";
-    codestral.model = "codestral-2501";
+    codestral.model = "codestral-latest";
     codestral.url = "https://codestral.mistral.ai";
     codestral.endpointMode = "Auto";
     codestral.customEndpoint = "";
@@ -120,22 +120,22 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     geminiFlash.type = type;
     geminiFlash.isPredefined = true;
 
-    AIConfiguration gpt52codex;
-    gpt52codex.id = "preset_gpt52codex";
-    gpt52codex.name = "gpt-5.2-codex";
-    gpt52codex.provider = "OpenAI Responses";
-    gpt52codex.model = "gpt-5.2-codex";
-    gpt52codex.url = "https://api.openai.com";
-    gpt52codex.endpointMode = "Auto";
-    gpt52codex.customEndpoint = "";
-    gpt52codex.templateName = "OpenAI Responses";
-    gpt52codex.type = type;
-    gpt52codex.isPredefined = true;
+    AIConfiguration gpt;
+    gpt.id = "preset_gpt";
+    gpt.name = "gpt-5.4";
+    gpt.provider = "OpenAI Responses";
+    gpt.model = "gpt-5.4";
+    gpt.url = "https://api.openai.com";
+    gpt.endpointMode = "Auto";
+    gpt.customEndpoint = "";
+    gpt.templateName = "OpenAI Responses";
+    gpt.type = type;
+    gpt.isPredefined = true;
 
     presets.append(claudeSonnet);
     presets.append(claudeHaiku);
     presets.append(claudeOpus);
-    presets.append(gpt52codex);
+    presets.append(gpt);
     presets.append(codestral);
     presets.append(mistral);
     presets.append(geminiFlash);
