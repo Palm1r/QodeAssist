@@ -45,6 +45,7 @@ public:
     Utils::StringAspect allowedTerminalCommandsLinux{this};
     Utils::StringAspect allowedTerminalCommandsMacOS{this};
     Utils::StringAspect allowedTerminalCommandsWindows{this};
+    Utils::IntegerAspect terminalCommandTimeout{this};
     Utils::BoolAspect autoApplyFileEdits{this};
 
 private:

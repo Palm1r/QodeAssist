@@ -128,6 +128,14 @@ ToolsSettings::ToolsSettings()
     allowedTerminalCommandsWindows.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
     allowedTerminalCommandsWindows.setDefaultValue("git, dir, type, findstr, where");
 
+    terminalCommandTimeout.setSettingsKey(Constants::CA_TERMINAL_COMMAND_TIMEOUT);
+    terminalCommandTimeout.setLabelText(Tr::tr("Command Timeout (seconds)"));
+    terminalCommandTimeout.setToolTip(
+        Tr::tr("Maximum time in seconds to wait for a terminal command to complete. "
+               "Increase for long-running commands like builds."));
+    terminalCommandTimeout.setRange(5, 3600);
+    terminalCommandTimeout.setDefaultValue(30);
+
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
 
     readSettings();
@@ -167,6 +175,7 @@ ToolsSettings::ToolsSettings()
                     enableTerminalCommandTool,
                     enableTodoTool,
                     currentOsCommands,
+                    terminalCommandTimeout,
                     autoApplyFileEdits}},
             Stretch{1}};
     });
@@ -203,6 +212,7 @@ void ToolsSettings::resetSettingsToDefaults()
         resetAspect(allowedTerminalCommandsLinux);
         resetAspect(allowedTerminalCommandsMacOS);
         resetAspect(allowedTerminalCommandsWindows);
+        resetAspect(terminalCommandTimeout);
         writeSettings();
     }
 }

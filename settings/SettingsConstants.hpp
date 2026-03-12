@@ -116,6 +116,7 @@ const char CA_ALLOWED_TERMINAL_COMMANDS[] = "QodeAssist.caAllowedTerminalCommand
 const char CA_ALLOWED_TERMINAL_COMMANDS_LINUX[] = "QodeAssist.caAllowedTerminalCommandsLinux";
 const char CA_ALLOWED_TERMINAL_COMMANDS_MACOS[] = "QodeAssist.caAllowedTerminalCommandsMacOS";
 const char CA_ALLOWED_TERMINAL_COMMANDS_WINDOWS[] = "QodeAssist.caAllowedTerminalCommandsWindows";
+const char CA_TERMINAL_COMMAND_TIMEOUT[] = "QodeAssist.caTerminalCommandTimeout";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
 const char QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID[] = "QodeAssist.1GeneralSettingsPageId";
