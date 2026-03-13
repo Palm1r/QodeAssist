@@ -98,6 +98,7 @@ public:
         if (m_navigationPanel) {
             delete m_navigationPanel;
         }
+        delete m_engine;
     }
 
     void loadTranslations()
@@ -169,11 +170,13 @@ public:
             UpdateDialog::checkForUpdatesAndShow(Core::ICore::mainWindow());
         });
 
+        m_engine = new QQmlEngine{};
+
         if (Settings::chatAssistantSettings().enableChatInBottomToolBar()) {
-            m_chatOutputPane = new Chat::ChatOutputPane(this);
+            m_chatOutputPane = new Chat::ChatOutputPane{m_engine};
         }
         if (Settings::chatAssistantSettings().enableChatInNavigationPanel()) {
-            m_navigationPanel = new Chat::NavigationPanel();
+            m_navigationPanel = new Chat::NavigationPanel{m_engine};
         }
 
         Settings::setupProjectPanel();
@@ -217,7 +220,7 @@ public:
         showChatViewAction.setIcon(QCODEASSIST_CHAT_ICON.icon());
         showChatViewAction.addOnTriggered(this, [this] {
             if (!m_chatView) {
-                m_chatView.reset(new Chat::ChatView());
+                m_chatView.reset(new Chat::ChatView{m_engine});
             }
 
             if (!m_chatView->isVisible()) {
@@ -314,6 +317,7 @@ private:
     UpdateStatusWidget *m_statusWidget{nullptr};
     QString m_lastRefactorInstructions;
     QScopedPointer<Chat::ChatView> m_chatView;
+    QPointer<QQmlEngine> m_engine;
 };
 
 } // namespace QodeAssist::Internal

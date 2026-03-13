@@ -28,7 +28,7 @@ class ChatWidget : public QQuickWidget
     Q_OBJECT
 
 public:
-    explicit ChatWidget(QWidget *parent = nullptr);
+    explicit ChatWidget(QQmlEngine* engine, QWidget *parent = nullptr);
     ~ChatWidget() = default;
 
     Q_INVOKABLE void clear();
