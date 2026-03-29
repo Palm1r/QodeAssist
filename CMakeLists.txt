@@ -35,6 +35,7 @@ add_definitions(
 )
 
 add_subdirectory(llmcore)
+add_subdirectory(sources/external/llmcore)
 add_subdirectory(settings)
 add_subdirectory(logger)
 add_subdirectory(UIControls)

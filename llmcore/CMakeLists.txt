@@ -1,4 +1,4 @@
-add_library(LLMCore STATIC
+add_library(PluginLLMCore STATIC
     RequestType.hpp
     Provider.hpp Provider.cpp
     ProvidersManager.hpp ProvidersManager.cpp
@@ -21,7 +21,7 @@ add_library(LLMCore STATIC
     ResponseCleaner.hpp
 )
 
-target_link_libraries(LLMCore
+target_link_libraries(PluginLLMCore
     PUBLIC
     Qt::Core
     Qt::Network
@@ -32,4 +32,4 @@ target_link_libraries(LLMCore
     QodeAssistLogger
 )
 
-target_include_directories(LLMCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(PluginLLMCore PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
