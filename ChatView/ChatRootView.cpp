@@ -750,7 +750,10 @@ void ChatRootView::openRulesFolder()
 
 void ChatRootView::openSettings()
 {
-    Settings::showSettings(Constants::QODE_ASSIST_CHAT_ASSISTANT_SETTINGS_PAGE_ID);
+    QMetaObject::invokeMethod(
+        this,
+        []() { Settings::showSettings(Constants::QODE_ASSIST_CHAT_ASSISTANT_SETTINGS_PAGE_ID); },
+        Qt::QueuedConnection);
 }
 
 void ChatRootView::openFileInEditor(const QString &filePath)
