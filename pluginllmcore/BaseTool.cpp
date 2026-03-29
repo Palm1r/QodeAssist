@@ -19,7 +19,7 @@
 
 #include "BaseTool.hpp"
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
 BaseTool::BaseTool(QObject *parent)
     : QObject(parent)
@@ -70,4 +70,4 @@ QJsonObject BaseTool::customizeForGoogle(const QJsonObject &baseDefinition) cons
     return tool;
 }
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

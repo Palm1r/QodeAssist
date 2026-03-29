@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2024-2025 Petr Mironychev
+/*
+ * Copyright (C) 2025 Povilas Kanapickas <povilas@radix.lt>
  *
  * This file is part of QodeAssist.
  *
@@ -17,19 +17,20 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-namespace QodeAssist::LLMCore {
+#pragma once
 
-enum class ProviderID {
-    Any,
-    Ollama,
-    LMStudio,
-    Claude,
-    OpenAI,
-    OpenAICompatible,
-    OpenAIResponses,
-    MistralAI,
-    OpenRouter,
-    GoogleAI,
-    LlamaCpp
+#include "Provider.hpp"
+
+namespace QodeAssist::PluginLLMCore {
+
+class IProviderRegistry
+{
+public:
+    virtual ~IProviderRegistry() = default;
+
+    virtual Provider *getProviderByName(const QString &providerName) = 0;
+
+    virtual QStringList providersNames() const = 0;
 };
-}
+
+} // namespace QodeAssist::PluginLLMCore

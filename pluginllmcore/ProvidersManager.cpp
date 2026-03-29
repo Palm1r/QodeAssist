@@ -17,13 +17,31 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include <QString>
+#include "ProvidersManager.hpp"
 
-#pragma once
+namespace QodeAssist::PluginLLMCore {
 
-namespace QodeAssist::LLMCore {
-
-enum RequestType { CodeCompletion, Chat, Embedding, QuickRefactoring };
-
-using RequestID = QString;
+ProvidersManager &ProvidersManager::instance()
+{
+    static ProvidersManager instance;
+    return instance;
 }
+
+QStringList ProvidersManager::providersNames() const
+{
+    return m_providers.keys();
+}
+
+ProvidersManager::~ProvidersManager()
+{
+    qDeleteAll(m_providers);
+}
+
+Provider *ProvidersManager::getProviderByName(const QString &providerName)
+{
+    if (!m_providers.contains(providerName))
+        return m_providers.first();
+    return m_providers[providerName];
+}
+
+} // namespace QodeAssist::PluginLLMCore

@@ -19,24 +19,24 @@
 
 #pragma once
 
-#include "llmcore/PromptTemplate.hpp"
+#include "pluginllmcore/PromptTemplate.hpp"
 #include "providers/OpenAIResponsesRequestBuilder.hpp"
 
 namespace QodeAssist::Templates {
 
-class OpenAIResponses : public LLMCore::PromptTemplate
+class OpenAIResponses : public PluginLLMCore::PromptTemplate
 {
 public:
-    LLMCore::TemplateType type() const noexcept override 
+    PluginLLMCore::TemplateType type() const noexcept override 
     { 
-        return LLMCore::TemplateType::Chat; 
+        return PluginLLMCore::TemplateType::Chat; 
     }
     
     QString name() const override { return "OpenAI Responses"; }
     
     QStringList stopWords() const override { return {}; }
     
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
+    void prepareRequest(QJsonObject &request, const PluginLLMCore::ContextData &context) const override
     {
         using namespace QodeAssist::OpenAIResponses;
         RequestBuilder builder;
@@ -108,9 +108,9 @@ public:
                "}\n\n"
                "Uses type-safe RequestBuilder for OpenAI Responses API.";
     }
-    bool isSupportProvider(LLMCore::ProviderID id) const noexcept override
+    bool isSupportProvider(PluginLLMCore::ProviderID id) const noexcept override
     {
-        return id == QodeAssist::LLMCore::ProviderID::OpenAIResponses;
+        return id == QodeAssist::PluginLLMCore::ProviderID::OpenAIResponses;
     }
 
 private:

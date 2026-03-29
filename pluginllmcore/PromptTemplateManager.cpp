@@ -21,7 +21,7 @@
 
 #include <QMessageBox>
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
 PromptTemplateManager &PromptTemplateManager::instance()
 {
@@ -96,4 +96,4 @@ PromptTemplate *PromptTemplateManager::getChatTemplateByName(const QString &temp
     return m_chatTemplates[templateName];
 }
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

@@ -37,32 +37,32 @@ void ClaudeMessage::handleContentBlockStart(
                     .arg(blockType));
 
     if (blockType == "text") {
-        addCurrentContent<LLMCore::TextContent>();
+        addCurrentContent<PluginLLMCore::TextContent>();
 
     } else if (blockType == "image") {
         QJsonObject source = data["source"].toObject();
         QString sourceType = source["type"].toString();
         QString imageData;
         QString mediaType;
-        LLMCore::ImageContent::ImageSourceType imgSourceType = LLMCore::ImageContent::ImageSourceType::Base64;
+        PluginLLMCore::ImageContent::ImageSourceType imgSourceType = PluginLLMCore::ImageContent::ImageSourceType::Base64;
 
         if (sourceType == "base64") {
             imageData = source["data"].toString();
             mediaType = source["media_type"].toString();
-            imgSourceType = LLMCore::ImageContent::ImageSourceType::Base64;
+            imgSourceType = PluginLLMCore::ImageContent::ImageSourceType::Base64;
         } else if (sourceType == "url") {
             imageData = source["url"].toString();
-            imgSourceType = LLMCore::ImageContent::ImageSourceType::Url;
+            imgSourceType = PluginLLMCore::ImageContent::ImageSourceType::Url;
         }
 
-        addCurrentContent<LLMCore::ImageContent>(imageData, mediaType, imgSourceType);
+        addCurrentContent<PluginLLMCore::ImageContent>(imageData, mediaType, imgSourceType);
 
     } else if (blockType == "tool_use") {
         QString toolId = data["id"].toString();
         QString toolName = data["name"].toString();
         QJsonObject toolInput = data["input"].toObject();
 
-        addCurrentContent<LLMCore::ToolUseContent>(toolId, toolName, toolInput);
+        addCurrentContent<PluginLLMCore::ToolUseContent>(toolId, toolName, toolInput);
         m_pendingToolInputs[index] = "";
 
     } else if (blockType == "thinking") {
@@ -70,13 +70,13 @@ void ClaudeMessage::handleContentBlockStart(
         QString signature = data["signature"].toString();
         LOG_MESSAGE(QString("ClaudeMessage: Creating thinking block with signature length=%1")
                         .arg(signature.length()));
-        addCurrentContent<LLMCore::ThinkingContent>(thinking, signature);
+        addCurrentContent<PluginLLMCore::ThinkingContent>(thinking, signature);
 
     } else if (blockType == "redacted_thinking") {
         QString signature = data["signature"].toString();
         LOG_MESSAGE(QString("ClaudeMessage: Creating redacted_thinking block with signature length=%1")
                         .arg(signature.length()));
-        addCurrentContent<LLMCore::RedactedThinkingContent>(signature);
+        addCurrentContent<PluginLLMCore::RedactedThinkingContent>(signature);
     }
 }
 
@@ -88,7 +88,7 @@ void ClaudeMessage::handleContentBlockDelta(
     }
 
     if (deltaType == "text_delta") {
-        if (auto textContent = qobject_cast<LLMCore::TextContent *>(m_currentBlocks[index])) {
+        if (auto textContent = qobject_cast<PluginLLMCore::TextContent *>(m_currentBlocks[index])) {
             textContent->appendText(delta["text"].toString());
         }
 
@@ -99,17 +99,17 @@ void ClaudeMessage::handleContentBlockDelta(
         }
 
     } else if (deltaType == "thinking_delta") {
-        if (auto thinkingContent = qobject_cast<LLMCore::ThinkingContent *>(m_currentBlocks[index])) {
+        if (auto thinkingContent = qobject_cast<PluginLLMCore::ThinkingContent *>(m_currentBlocks[index])) {
             thinkingContent->appendThinking(delta["thinking"].toString());
         }
         
     } else if (deltaType == "signature_delta") {
-        if (auto thinkingContent = qobject_cast<LLMCore::ThinkingContent *>(m_currentBlocks[index])) {
+        if (auto thinkingContent = qobject_cast<PluginLLMCore::ThinkingContent *>(m_currentBlocks[index])) {
             QString signature = delta["signature"].toString();
             thinkingContent->setSignature(signature);
             LOG_MESSAGE(QString("Set signature for thinking block %1: length=%2")
                             .arg(index).arg(signature.length()));
-        } else if (auto redactedContent = qobject_cast<LLMCore::RedactedThinkingContent *>(m_currentBlocks[index])) {
+        } else if (auto redactedContent = qobject_cast<PluginLLMCore::RedactedThinkingContent *>(m_currentBlocks[index])) {
             QString signature = delta["signature"].toString();
             redactedContent->setSignature(signature);
             LOG_MESSAGE(QString("Set signature for redacted_thinking block %1: length=%2")
@@ -132,7 +132,7 @@ void ClaudeMessage::handleContentBlockStop(int index)
         }
 
         if (index < m_currentBlocks.size()) {
-            if (auto toolContent = qobject_cast<LLMCore::ToolUseContent *>(m_currentBlocks[index])) {
+            if (auto toolContent = qobject_cast<PluginLLMCore::ToolUseContent *>(m_currentBlocks[index])) {
                 toolContent->setInput(inputObject);
             }
         }
@@ -155,7 +155,7 @@ QJsonObject ClaudeMessage::toProviderFormat() const
     QJsonArray content;
     
     for (auto block : m_currentBlocks) {
-        QJsonValue blockJson = block->toJson(LLMCore::ProviderFormat::Claude);
+        QJsonValue blockJson = block->toJson(PluginLLMCore::ProviderFormat::Claude);
         content.append(blockJson);
     }
 
@@ -173,42 +173,42 @@ QJsonArray ClaudeMessage::createToolResultsContent(const QHash<QString, QString>
 
     for (auto toolContent : getCurrentToolUseContent()) {
         if (toolResults.contains(toolContent->id())) {
-            auto toolResult = std::make_unique<LLMCore::ToolResultContent>(
+            auto toolResult = std::make_unique<PluginLLMCore::ToolResultContent>(
                 toolContent->id(), toolResults[toolContent->id()]);
-            results.append(toolResult->toJson(LLMCore::ProviderFormat::Claude));
+            results.append(toolResult->toJson(PluginLLMCore::ProviderFormat::Claude));
         }
     }
 
     return results;
 }
 
-QList<LLMCore::ToolUseContent *> ClaudeMessage::getCurrentToolUseContent() const
+QList<PluginLLMCore::ToolUseContent *> ClaudeMessage::getCurrentToolUseContent() const
 {
-    QList<LLMCore::ToolUseContent *> toolBlocks;
+    QList<PluginLLMCore::ToolUseContent *> toolBlocks;
     for (auto block : m_currentBlocks) {
-        if (auto toolContent = qobject_cast<LLMCore::ToolUseContent *>(block)) {
+        if (auto toolContent = qobject_cast<PluginLLMCore::ToolUseContent *>(block)) {
             toolBlocks.append(toolContent);
         }
     }
     return toolBlocks;
 }
 
-QList<LLMCore::ThinkingContent *> ClaudeMessage::getCurrentThinkingContent() const
+QList<PluginLLMCore::ThinkingContent *> ClaudeMessage::getCurrentThinkingContent() const
 {
-    QList<LLMCore::ThinkingContent *> thinkingBlocks;
+    QList<PluginLLMCore::ThinkingContent *> thinkingBlocks;
     for (auto block : m_currentBlocks) {
-        if (auto thinkingContent = qobject_cast<LLMCore::ThinkingContent *>(block)) {
+        if (auto thinkingContent = qobject_cast<PluginLLMCore::ThinkingContent *>(block)) {
             thinkingBlocks.append(thinkingContent);
         }
     }
     return thinkingBlocks;
 }
 
-QList<LLMCore::RedactedThinkingContent *> ClaudeMessage::getCurrentRedactedThinkingContent() const
+QList<PluginLLMCore::RedactedThinkingContent *> ClaudeMessage::getCurrentRedactedThinkingContent() const
 {
-    QList<LLMCore::RedactedThinkingContent *> redactedBlocks;
+    QList<PluginLLMCore::RedactedThinkingContent *> redactedBlocks;
     for (auto block : m_currentBlocks) {
-        if (auto redactedContent = qobject_cast<LLMCore::RedactedThinkingContent *>(block)) {
+        if (auto redactedContent = qobject_cast<PluginLLMCore::RedactedThinkingContent *>(block)) {
             redactedBlocks.append(redactedContent);
         }
     }
@@ -222,17 +222,17 @@ void ClaudeMessage::startNewContinuation()
     m_currentBlocks.clear();
     m_pendingToolInputs.clear();
     m_stopReason.clear();
-    m_state = LLMCore::MessageState::Building;
+    m_state = PluginLLMCore::MessageState::Building;
 }
 
 void ClaudeMessage::updateStateFromStopReason()
 {
     if (m_stopReason == "tool_use" && !getCurrentToolUseContent().empty()) {
-        m_state = LLMCore::MessageState::RequiresToolExecution;
+        m_state = PluginLLMCore::MessageState::RequiresToolExecution;
     } else if (m_stopReason == "end_turn") {
-        m_state = LLMCore::MessageState::Final;
+        m_state = PluginLLMCore::MessageState::Final;
     } else {
-        m_state = LLMCore::MessageState::Complete;
+        m_state = PluginLLMCore::MessageState::Complete;
     }
 }
 

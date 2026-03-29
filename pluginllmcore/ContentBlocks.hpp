@@ -26,7 +26,7 @@
 #include <QObject>
 #include <QString>
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
 enum class MessageState { Building, Complete, RequiresToolExecution, Final };
 
@@ -249,4 +249,4 @@ private:
     QString m_signature;
 };
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

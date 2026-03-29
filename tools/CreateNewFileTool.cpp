@@ -54,7 +54,7 @@ QString CreateNewFileTool::description() const
            "to the project file";
 }
 
-QJsonObject CreateNewFileTool::getDefinition(LLMCore::ToolSchemaFormat format) const
+QJsonObject CreateNewFileTool::getDefinition(PluginLLMCore::ToolSchemaFormat format) const
 {
     QJsonObject properties;
 
@@ -71,22 +71,22 @@ QJsonObject CreateNewFileTool::getDefinition(LLMCore::ToolSchemaFormat format) c
     definition["required"] = required;
 
     switch (format) {
-    case LLMCore::ToolSchemaFormat::OpenAI:
+    case PluginLLMCore::ToolSchemaFormat::OpenAI:
         return customizeForOpenAI(definition);
-    case LLMCore::ToolSchemaFormat::Claude:
+    case PluginLLMCore::ToolSchemaFormat::Claude:
         return customizeForClaude(definition);
-    case LLMCore::ToolSchemaFormat::Ollama:
+    case PluginLLMCore::ToolSchemaFormat::Ollama:
         return customizeForOllama(definition);
-    case LLMCore::ToolSchemaFormat::Google:
+    case PluginLLMCore::ToolSchemaFormat::Google:
         return customizeForGoogle(definition);
     }
 
     return definition;
 }
 
-LLMCore::ToolPermissions CreateNewFileTool::requiredPermissions() const
+PluginLLMCore::ToolPermissions CreateNewFileTool::requiredPermissions() const
 {
-    return LLMCore::ToolPermission::FileSystemWrite;
+    return PluginLLMCore::ToolPermission::FileSystemWrite;
 }
 
 QFuture<QString> CreateNewFileTool::executeAsync(const QJsonObject &input)

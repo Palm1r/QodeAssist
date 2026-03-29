@@ -21,7 +21,7 @@
 
 #include <QJsonArray>
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
 QStringList ValidationUtils::validateRequestFields(
     const QJsonObject &request, const QJsonObject &templateObj)
@@ -54,4 +54,4 @@ void ValidationUtils::validateNestedObjects(
     }
 }
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

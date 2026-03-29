@@ -19,14 +19,14 @@
 
 #pragma once
 
-#include <llmcore/Provider.hpp>
+#include <pluginllmcore/Provider.hpp>
 
 #include "ClaudeMessage.hpp"
 #include "tools/ToolsManager.hpp"
 
 namespace QodeAssist::Providers {
 
-class ClaudeProvider : public LLMCore::Provider
+class ClaudeProvider : public PluginLLMCore::Provider
 {
     Q_OBJECT
 public:
@@ -39,32 +39,32 @@ public:
     bool supportsModelListing() const override;
     void prepareRequest(
         QJsonObject &request,
-        LLMCore::PromptTemplate *prompt,
-        LLMCore::ContextData context,
-        LLMCore::RequestType type,
+        PluginLLMCore::PromptTemplate *prompt,
+        PluginLLMCore::ContextData context,
+        PluginLLMCore::RequestType type,
         bool isToolsEnabled,
         bool isThinkingEnabled) override;
     QFuture<QList<QString>> getInstalledModels(const QString &url) override;
-    QList<QString> validateRequest(const QJsonObject &request, LLMCore::TemplateType type) override;
+    QList<QString> validateRequest(const QJsonObject &request, PluginLLMCore::TemplateType type) override;
     QString apiKey() const override;
     void prepareNetworkRequest(QNetworkRequest &networkRequest) const override;
-    LLMCore::ProviderID providerID() const override;
+    PluginLLMCore::ProviderID providerID() const override;
 
     void sendRequest(
-        const LLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload) override;
+        const PluginLLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload) override;
 
     bool supportsTools() const override;
     bool supportThinking() const override;
     bool supportImage() const override;
-    void cancelRequest(const LLMCore::RequestID &requestId) override;
+    void cancelRequest(const PluginLLMCore::RequestID &requestId) override;
     
-    LLMCore::IToolsManager *toolsManager() const override;
+    PluginLLMCore::IToolsManager *toolsManager() const override;
 
 public slots:
     void onDataReceived(
-        const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data) override;
+        const QodeAssist::PluginLLMCore::RequestID &requestId, const QByteArray &data) override;
     void onRequestFinished(
-        const QodeAssist::LLMCore::RequestID &requestId,
+        const QodeAssist::PluginLLMCore::RequestID &requestId,
         std::optional<QString> error) override;
 
 private slots:
@@ -74,11 +74,11 @@ private slots:
 private:
     void processStreamEvent(const QString &requestId, const QJsonObject &event);
     void handleMessageComplete(const QString &requestId);
-    void cleanupRequest(const LLMCore::RequestID &requestId);
+    void cleanupRequest(const PluginLLMCore::RequestID &requestId);
 
-    QHash<QodeAssist::LLMCore::RequestID, ClaudeMessage *> m_messages;
-    QHash<QodeAssist::LLMCore::RequestID, QUrl> m_requestUrls;
-    QHash<QodeAssist::LLMCore::RequestID, QJsonObject> m_originalRequests;
+    QHash<QodeAssist::PluginLLMCore::RequestID, ClaudeMessage *> m_messages;
+    QHash<QodeAssist::PluginLLMCore::RequestID, QUrl> m_requestUrls;
+    QHash<QodeAssist::PluginLLMCore::RequestID, QJsonObject> m_originalRequests;
     Tools::ToolsManager *m_toolsManager;
 };
 

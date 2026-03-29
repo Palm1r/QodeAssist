@@ -19,7 +19,7 @@
 
 #include "MistralAIProvider.hpp"
 
-#include "llmcore/ValidationUtils.hpp"
+#include "pluginllmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -34,7 +34,7 @@
 namespace QodeAssist::Providers {
 
 MistralAIProvider::MistralAIProvider(QObject *parent)
-    : LLMCore::Provider(parent)
+    : PluginLLMCore::Provider(parent)
     , m_toolsManager(new Tools::ToolsManager(this))
 {
     connect(
@@ -98,7 +98,7 @@ QFuture<QList<QString>> MistralAIProvider::getInstalledModels(const QString &url
 }
 
 QList<QString> MistralAIProvider::validateRequest(
-    const QJsonObject &request, LLMCore::TemplateType type)
+    const QJsonObject &request, PluginLLMCore::TemplateType type)
 {
     const auto fimReq = QJsonObject{
         {"model", {}},
@@ -121,8 +121,8 @@ QList<QString> MistralAIProvider::validateRequest(
         {"stream", {}},
         {"tools", {}}};
 
-    return LLMCore::ValidationUtils::validateRequestFields(
-        request, type == LLMCore::TemplateType::FIM ? fimReq : templateReq);
+    return PluginLLMCore::ValidationUtils::validateRequestFields(
+        request, type == PluginLLMCore::TemplateType::FIM ? fimReq : templateReq);
 }
 
 QString MistralAIProvider::apiKey() const
@@ -139,13 +139,13 @@ void MistralAIProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) c
     }
 }
 
-LLMCore::ProviderID MistralAIProvider::providerID() const
+PluginLLMCore::ProviderID MistralAIProvider::providerID() const
 {
-    return LLMCore::ProviderID::MistralAI;
+    return PluginLLMCore::ProviderID::MistralAI;
 }
 
 void MistralAIProvider::sendRequest(
-    const LLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
+    const PluginLLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
 {
     if (!m_messages.contains(requestId)) {
         m_dataBuffers[requestId].clear();
@@ -173,17 +173,17 @@ bool MistralAIProvider::supportImage() const
     return true;
 }
 
-void MistralAIProvider::cancelRequest(const LLMCore::RequestID &requestId)
+void MistralAIProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)
 {
     LOG_MESSAGE(QString("MistralAIProvider: Cancelling request %1").arg(requestId));
-    LLMCore::Provider::cancelRequest(requestId);
+    PluginLLMCore::Provider::cancelRequest(requestId);
     cleanupRequest(requestId);
 }
 
 void MistralAIProvider::onDataReceived(
-    const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data)
+    const QodeAssist::PluginLLMCore::RequestID &requestId, const QByteArray &data)
 {
-    LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+    PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
     QStringList lines = buffers.rawStreamBuffer.processData(data);
 
     for (const QString &line : lines) {
@@ -200,7 +200,7 @@ void MistralAIProvider::onDataReceived(
 }
 
 void MistralAIProvider::onRequestFinished(
-    const QodeAssist::LLMCore::RequestID &requestId, std::optional<QString> error)
+    const QodeAssist::PluginLLMCore::RequestID &requestId, std::optional<QString> error)
 {
     if (error) {
         LOG_MESSAGE(QString("MistralAIProvider request %1 failed: %2").arg(requestId, *error));
@@ -211,7 +211,7 @@ void MistralAIProvider::onRequestFinished(
 
     if (m_messages.contains(requestId)) {
         OpenAIMessage *message = m_messages[requestId];
-        if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
+        if (message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
             LOG_MESSAGE(QString("Waiting for tools to complete for %1").arg(requestId));
             m_dataBuffers.remove(requestId);
             return;
@@ -219,7 +219,7 @@ void MistralAIProvider::onRequestFinished(
     }
 
     if (m_dataBuffers.contains(requestId)) {
-        const LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+        const PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
         if (!buffers.responseContent.isEmpty()) {
             LOG_MESSAGE(QString("Emitting full response for %1").arg(requestId));
             emit fullResponseReceived(requestId, buffers.responseContent);
@@ -231,9 +231,9 @@ void MistralAIProvider::onRequestFinished(
 
 void MistralAIProvider::prepareRequest(
     QJsonObject &request,
-    LLMCore::PromptTemplate *prompt,
-    LLMCore::ContextData context,
-    LLMCore::RequestType type,
+    PluginLLMCore::PromptTemplate *prompt,
+    PluginLLMCore::ContextData context,
+    PluginLLMCore::RequestType type,
     bool isToolsEnabled,
     bool isThinkingEnabled)
 {
@@ -257,22 +257,22 @@ void MistralAIProvider::prepareRequest(
             request["presence_penalty"] = settings.presencePenalty();
     };
 
-    if (type == LLMCore::RequestType::CodeCompletion) {
+    if (type == PluginLLMCore::RequestType::CodeCompletion) {
         applyModelParams(Settings::codeCompletionSettings());
-    } else if (type == LLMCore::RequestType::QuickRefactoring) {
+    } else if (type == PluginLLMCore::RequestType::QuickRefactoring) {
         applyModelParams(Settings::quickRefactorSettings());
     } else {
         applyModelParams(Settings::chatAssistantSettings());
     }
 
     if (isToolsEnabled) {
-        LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL;
-        if (type == LLMCore::RequestType::QuickRefactoring) {
-            filter = LLMCore::RunToolsFilter::OnlyRead;
+        PluginLLMCore::RunToolsFilter filter = PluginLLMCore::RunToolsFilter::ALL;
+        if (type == PluginLLMCore::RequestType::QuickRefactoring) {
+            filter = PluginLLMCore::RunToolsFilter::OnlyRead;
         }
 
         auto toolsDefinitions = m_toolsManager->getToolsDefinitions(
-            LLMCore::ToolSchemaFormat::OpenAI, filter);
+            PluginLLMCore::ToolSchemaFormat::OpenAI, filter);
         if (!toolsDefinitions.isEmpty()) {
             request["tools"] = toolsDefinitions;
             LOG_MESSAGE(QString("Added %1 tools to Mistral request").arg(toolsDefinitions.size()));
@@ -347,7 +347,7 @@ void MistralAIProvider::processStreamChunk(const QString &requestId, const QJson
         }
     } else if (
         m_dataBuffers.contains(requestId)
-        && message->state() == LLMCore::MessageState::RequiresToolExecution) {
+        && message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
         message->startNewContinuation();
         emit continuationStarted(requestId);
         LOG_MESSAGE(QString("Cleared message state for continuation request %1").arg(requestId));
@@ -357,7 +357,7 @@ void MistralAIProvider::processStreamChunk(const QString &requestId, const QJson
         QString content = delta["content"].toString();
         message->handleContentDelta(content);
 
-        LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+        PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
         buffers.responseContent += content;
         emit partialResponseReceived(requestId, content);
     }
@@ -402,7 +402,7 @@ void MistralAIProvider::handleMessageComplete(const QString &requestId)
 
     OpenAIMessage *message = m_messages[requestId];
 
-    if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
+    if (message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
         LOG_MESSAGE(QString("Mistral message requires tool execution for %1").arg(requestId));
 
         auto toolUseContent = message->getCurrentToolUseContent();
@@ -424,7 +424,7 @@ void MistralAIProvider::handleMessageComplete(const QString &requestId)
     }
 }
 
-void MistralAIProvider::cleanupRequest(const LLMCore::RequestID &requestId)
+void MistralAIProvider::cleanupRequest(const PluginLLMCore::RequestID &requestId)
 {
     LOG_MESSAGE(QString("Cleaning up Mistral request %1").arg(requestId));
 

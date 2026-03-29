@@ -52,7 +52,7 @@ void OpenAIResponsesMessage::handleItemDelta(const QJsonObject &item)
 
 void OpenAIResponsesMessage::handleToolCallStart(const QString &callId, const QString &name)
 {
-    auto toolContent = new LLMCore::ToolUseContent(callId, name);
+    auto toolContent = new PluginLLMCore::ToolUseContent(callId, name);
     toolContent->setParent(this);
     m_items.append(toolContent);
     m_toolCalls[callId] = toolContent;
@@ -86,7 +86,7 @@ void OpenAIResponsesMessage::handleToolCallComplete(const QString &callId)
 
 void OpenAIResponsesMessage::handleReasoningStart(const QString &itemId)
 {
-    auto thinkingContent = new LLMCore::ThinkingContent();
+    auto thinkingContent = new PluginLLMCore::ThinkingContent();
     thinkingContent->setParent(this);
     m_items.append(thinkingContent);
     m_thinkingBlocks[itemId] = thinkingContent;
@@ -115,13 +115,13 @@ QList<QJsonObject> OpenAIResponsesMessage::toItemsFormat() const
     QList<QJsonObject> items;
 
     QString textContent;
-    QList<LLMCore::ToolUseContent *> toolCalls;
+    QList<PluginLLMCore::ToolUseContent *> toolCalls;
 
     for (const auto *block : m_items) {
-        if (const auto *text = qobject_cast<const LLMCore::TextContent *>(block)) {
+        if (const auto *text = qobject_cast<const PluginLLMCore::TextContent *>(block)) {
             textContent += text->text();
-        } else if (auto *tool = qobject_cast<LLMCore::ToolUseContent *>(
-                       const_cast<LLMCore::ContentBlock *>(block))) {
+        } else if (auto *tool = qobject_cast<PluginLLMCore::ToolUseContent *>(
+                       const_cast<PluginLLMCore::ContentBlock *>(block))) {
             toolCalls.append(tool);
         }
     }
@@ -146,22 +146,22 @@ QList<QJsonObject> OpenAIResponsesMessage::toItemsFormat() const
     return items;
 }
 
-QList<LLMCore::ToolUseContent *> OpenAIResponsesMessage::getCurrentToolUseContent() const
+QList<PluginLLMCore::ToolUseContent *> OpenAIResponsesMessage::getCurrentToolUseContent() const
 {
-    QList<LLMCore::ToolUseContent *> toolBlocks;
+    QList<PluginLLMCore::ToolUseContent *> toolBlocks;
     for (auto *block : m_items) {
-        if (auto *toolContent = qobject_cast<LLMCore::ToolUseContent *>(block)) {
+        if (auto *toolContent = qobject_cast<PluginLLMCore::ToolUseContent *>(block)) {
             toolBlocks.append(toolContent);
         }
     }
     return toolBlocks;
 }
 
-QList<LLMCore::ThinkingContent *> OpenAIResponsesMessage::getCurrentThinkingContent() const
+QList<PluginLLMCore::ThinkingContent *> OpenAIResponsesMessage::getCurrentThinkingContent() const
 {
-    QList<LLMCore::ThinkingContent *> thinkingBlocks;
+    QList<PluginLLMCore::ThinkingContent *> thinkingBlocks;
     for (auto *block : m_items) {
-        if (auto *thinkingContent = qobject_cast<LLMCore::ThinkingContent *>(block)) {
+        if (auto *thinkingContent = qobject_cast<PluginLLMCore::ThinkingContent *>(block)) {
             thinkingBlocks.append(thinkingContent);
         }
     }
@@ -189,7 +189,7 @@ QString OpenAIResponsesMessage::accumulatedText() const
 {
     QString text;
     for (const auto *block : m_items) {
-        if (const auto *textContent = qobject_cast<const LLMCore::TextContent *>(block)) {
+        if (const auto *textContent = qobject_cast<const PluginLLMCore::TextContent *>(block)) {
             text += textContent->text();
         }
     }
@@ -202,28 +202,28 @@ void OpenAIResponsesMessage::updateStateFromStatus()
 
     if (m_status == "completed") {
         if (!getCurrentToolUseContent().isEmpty()) {
-            m_state = LLMCore::MessageState::RequiresToolExecution;
+            m_state = PluginLLMCore::MessageState::RequiresToolExecution;
         } else {
-            m_state = LLMCore::MessageState::Complete;
+            m_state = PluginLLMCore::MessageState::Complete;
         }
     } else if (m_status == "in_progress") {
-        m_state = LLMCore::MessageState::Building;
+        m_state = PluginLLMCore::MessageState::Building;
     } else if (m_status == "failed" || m_status == "cancelled" || m_status == "incomplete") {
-        m_state = LLMCore::MessageState::Final;
+        m_state = PluginLLMCore::MessageState::Final;
     } else {
-        m_state = LLMCore::MessageState::Building;
+        m_state = PluginLLMCore::MessageState::Building;
     }
 }
 
-LLMCore::TextContent *OpenAIResponsesMessage::getOrCreateTextItem()
+PluginLLMCore::TextContent *OpenAIResponsesMessage::getOrCreateTextItem()
 {
     for (auto *block : m_items) {
-        if (auto *textContent = qobject_cast<LLMCore::TextContent *>(block)) {
+        if (auto *textContent = qobject_cast<PluginLLMCore::TextContent *>(block)) {
             return textContent;
         }
     }
 
-    auto *textContent = new LLMCore::TextContent();
+    auto *textContent = new PluginLLMCore::TextContent();
     textContent->setParent(this);
     m_items.append(textContent);
     return textContent;
@@ -239,7 +239,7 @@ void OpenAIResponsesMessage::startNewContinuation()
     
     m_pendingToolArguments.clear();
     m_status.clear();
-    m_state = LLMCore::MessageState::Building;
+    m_state = PluginLLMCore::MessageState::Building;
 }
 
 } // namespace QodeAssist::Providers

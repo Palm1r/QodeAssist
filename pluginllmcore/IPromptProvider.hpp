@@ -1,5 +1,5 @@
-/* 
- * Copyright (C) 2024-2025 Petr Mironychev
+/*
+ * Copyright (C) 2025 Povilas Kanapickas <povilas@radix.lt>
  *
  * This file is part of QodeAssist.
  *
@@ -17,31 +17,23 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "ProvidersManager.hpp"
+#pragma once
 
-namespace QodeAssist::LLMCore {
+#include "PromptTemplate.hpp"
+#include <QString>
 
-ProvidersManager &ProvidersManager::instance()
+namespace QodeAssist::PluginLLMCore {
+
+class IPromptProvider
 {
-    static ProvidersManager instance;
-    return instance;
-}
+public:
+    virtual ~IPromptProvider() = default;
 
-QStringList ProvidersManager::providersNames() const
-{
-    return m_providers.keys();
-}
+    virtual PromptTemplate *getTemplateByName(const QString &templateName) const = 0;
 
-ProvidersManager::~ProvidersManager()
-{
-    qDeleteAll(m_providers);
-}
+    virtual QStringList templatesNames() const = 0;
 
-Provider *ProvidersManager::getProviderByName(const QString &providerName)
-{
-    if (!m_providers.contains(providerName))
-        return m_providers.first();
-    return m_providers[providerName];
-}
+    virtual QStringList getTemplatesForProvider(ProviderID id) const = 0;
+};
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

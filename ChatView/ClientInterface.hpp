@@ -25,7 +25,7 @@
 
 #include "ChatModel.hpp"
 #include "Provider.hpp"
-#include "llmcore/IPromptProvider.hpp"
+#include "pluginllmcore/IPromptProvider.hpp"
 #include <context/ContextManager.hpp>
 
 namespace QodeAssist::Chat {
@@ -36,7 +36,7 @@ class ClientInterface : public QObject
 
 public:
     explicit ClientInterface(
-        ChatModel *chatModel, LLMCore::IPromptProvider *promptProvider, QObject *parent = nullptr);
+        ChatModel *chatModel, PluginLLMCore::IPromptProvider *promptProvider, QObject *parent = nullptr);
     ~ClientInterface();
 
     void sendMessage(
@@ -82,15 +82,15 @@ private:
     bool isImageFile(const QString &filePath) const;
     QString getMediaTypeForImage(const QString &filePath) const;
     QString encodeImageToBase64(const QString &filePath) const;
-    QVector<LLMCore::ImageAttachment> loadImagesFromStorage(const QList<ChatModel::ImageAttachment> &storedImages) const;
+    QVector<PluginLLMCore::ImageAttachment> loadImagesFromStorage(const QList<ChatModel::ImageAttachment> &storedImages) const;
 
     struct RequestContext
     {
         QJsonObject originalRequest;
-        LLMCore::Provider *provider;
+        PluginLLMCore::Provider *provider;
     };
 
-    LLMCore::IPromptProvider *m_promptProvider = nullptr;
+    PluginLLMCore::IPromptProvider *m_promptProvider = nullptr;
     ChatModel *m_chatModel;
     Context::ContextManager *m_contextManager;
     QString m_chatFilePath;

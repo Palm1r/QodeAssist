@@ -21,8 +21,8 @@
 
 #include <QObject>
 
-#include "llmcore/PromptTemplateManager.hpp"
-#include "llmcore/ProvidersManager.hpp"
+#include "pluginllmcore/PromptTemplateManager.hpp"
+#include "pluginllmcore/ProvidersManager.hpp"
 #include "settings/GeneralSettings.hpp"
 
 namespace QodeAssist {
@@ -54,8 +54,8 @@ private:
     ConfigurationManager &operator=(const ConfigurationManager &) = delete;
 
     Settings::GeneralSettings &m_generalSettings;
-    LLMCore::ProvidersManager &m_providersManager;
-    LLMCore::PromptTemplateManager &m_templateManger;
+    PluginLLMCore::ProvidersManager &m_providersManager;
+    PluginLLMCore::PromptTemplateManager &m_templateManger;
 
     void setupConnections();
 };

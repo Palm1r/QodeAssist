@@ -25,7 +25,7 @@ namespace ProjectExplorer {
 class Project;
 }
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
 enum class RulesContext { Completions, Chat, QuickRefactor };
 
@@ -54,4 +54,4 @@ private:
     static QString getProjectPath(ProjectExplorer::Project *project);
 };
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

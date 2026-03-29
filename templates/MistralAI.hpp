@@ -21,17 +21,17 @@
 
 #include <QJsonArray>
 
-#include "llmcore/PromptTemplate.hpp"
+#include "pluginllmcore/PromptTemplate.hpp"
 
 namespace QodeAssist::Templates {
 
-class MistralAIFim : public LLMCore::PromptTemplate
+class MistralAIFim : public PluginLLMCore::PromptTemplate
 {
 public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::FIM; }
+    PluginLLMCore::TemplateType type() const override { return PluginLLMCore::TemplateType::FIM; }
     QString name() const override { return "Mistral AI FIM"; }
     QStringList stopWords() const override { return QStringList(); }
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
+    void prepareRequest(QJsonObject &request, const PluginLLMCore::ContextData &context) const override
     {
         request["prompt"] = context.prefix.value_or("");
         request["suffix"] = context.suffix.value_or("");
@@ -45,10 +45,10 @@ public:
                "}\n\n"
                "Optimized for code completion with MistralAI models.";
     }
-    bool isSupportProvider(LLMCore::ProviderID id) const override
+    bool isSupportProvider(PluginLLMCore::ProviderID id) const override
     {
         switch (id) {
-        case QodeAssist::LLMCore::ProviderID::MistralAI:
+        case QodeAssist::PluginLLMCore::ProviderID::MistralAI:
             return true;
         default:
             return false;
@@ -56,14 +56,14 @@ public:
     }
 };
 
-class MistralAIChat : public LLMCore::PromptTemplate
+class MistralAIChat : public PluginLLMCore::PromptTemplate
 {
 public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
+    PluginLLMCore::TemplateType type() const override { return PluginLLMCore::TemplateType::Chat; }
     QString name() const override { return "Mistral AI Chat"; }
     QStringList stopWords() const override { return QStringList(); }
 
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
+    void prepareRequest(QJsonObject &request, const PluginLLMCore::ContextData &context) const override
     {
         QJsonArray messages;
 
@@ -116,10 +116,10 @@ public:
                "}\n\n"
                "Supports system messages, conversation history, and images.";
     }
-    bool isSupportProvider(LLMCore::ProviderID id) const override
+    bool isSupportProvider(PluginLLMCore::ProviderID id) const override
     {
         switch (id) {
-        case QodeAssist::LLMCore::ProviderID::MistralAI:
+        case QodeAssist::PluginLLMCore::ProviderID::MistralAI:
             return true;
         default:
             return false;

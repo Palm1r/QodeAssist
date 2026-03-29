@@ -20,22 +20,25 @@
 #pragma once
 
 #include <QJsonObject>
-#include <QStringList>
+#include <QList>
+#include <QString>
 
-namespace QodeAssist::LLMCore {
+#include "ContextData.hpp"
+#include "ProviderID.hpp"
 
-class ValidationUtils
+namespace QodeAssist::PluginLLMCore {
+
+enum class TemplateType { Chat, FIM, FIMOnChat };
+
+class PromptTemplate
 {
 public:
-    static QStringList validateRequestFields(
-        const QJsonObject &request, const QJsonObject &templateObj);
-
-private:
-    static void validateFields(
-        const QJsonObject &request, const QJsonObject &templateObj, QStringList &errors);
-
-    static void validateNestedObjects(
-        const QJsonObject &request, const QJsonObject &templateObj, QStringList &errors);
+    virtual ~PromptTemplate() = default;
+    virtual TemplateType type() const = 0;
+    virtual QString name() const = 0;
+    virtual QStringList stopWords() const = 0;
+    virtual void prepareRequest(QJsonObject &request, const ContextData &context) const = 0;
+    virtual QString description() const = 0;
+    virtual bool isSupportProvider(ProviderID id) const = 0;
 };
-
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

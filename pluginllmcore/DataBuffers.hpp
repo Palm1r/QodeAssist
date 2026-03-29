@@ -19,33 +19,21 @@
 
 #pragma once
 
-#include <QHash>
-#include <QJsonArray>
-#include <QJsonObject>
+#include "SSEBuffer.hpp"
 #include <QString>
 
-#include "BaseTool.hpp"
+namespace QodeAssist::PluginLLMCore {
 
-namespace QodeAssist::LLMCore {
-
-class IToolsManager
+struct DataBuffers
 {
-public:
-    virtual ~IToolsManager() = default;
+    SSEBuffer rawStreamBuffer;
+    QString responseContent;
 
-    virtual void executeToolCall(
-        const QString &requestId,
-        const QString &toolId,
-        const QString &toolName,
-        const QJsonObject &input) = 0;
-
-    virtual QJsonArray getToolsDefinitions(
-        ToolSchemaFormat format,
-        RunToolsFilter filter = RunToolsFilter::ALL) const = 0;
-
-    virtual void cleanupRequest(const QString &requestId) = 0;
-    virtual void setCurrentSessionId(const QString &sessionId) = 0;
-    virtual void clearTodoSession(const QString &sessionId) = 0;
+    void clear()
+    {
+        rawStreamBuffer.clear();
+        responseContent.clear();
+    }
 };
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

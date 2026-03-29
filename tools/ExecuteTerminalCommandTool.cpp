@@ -56,7 +56,7 @@ QString ExecuteTerminalCommandTool::description() const
     return getCommandDescription();
 }
 
-QJsonObject ExecuteTerminalCommandTool::getDefinition(LLMCore::ToolSchemaFormat format) const
+QJsonObject ExecuteTerminalCommandTool::getDefinition(PluginLLMCore::ToolSchemaFormat format) const
 {
     QJsonObject definition;
     definition["type"] = "object";
@@ -78,24 +78,24 @@ QJsonObject ExecuteTerminalCommandTool::getDefinition(LLMCore::ToolSchemaFormat 
     definition["required"] = QJsonArray{"command"};
 
     switch (format) {
-    case LLMCore::ToolSchemaFormat::OpenAI:
+    case PluginLLMCore::ToolSchemaFormat::OpenAI:
         return customizeForOpenAI(definition);
-    case LLMCore::ToolSchemaFormat::Claude:
+    case PluginLLMCore::ToolSchemaFormat::Claude:
         return customizeForClaude(definition);
-    case LLMCore::ToolSchemaFormat::Ollama:
+    case PluginLLMCore::ToolSchemaFormat::Ollama:
         return customizeForOllama(definition);
-    case LLMCore::ToolSchemaFormat::Google:
+    case PluginLLMCore::ToolSchemaFormat::Google:
         return customizeForGoogle(definition);
     }
 
     return definition;
 }
 
-LLMCore::ToolPermissions ExecuteTerminalCommandTool::requiredPermissions() const
+PluginLLMCore::ToolPermissions ExecuteTerminalCommandTool::requiredPermissions() const
 {
-    return LLMCore::ToolPermission::FileSystemRead 
-         | LLMCore::ToolPermission::FileSystemWrite 
-         | LLMCore::ToolPermission::NetworkAccess;
+    return PluginLLMCore::ToolPermission::FileSystemRead 
+         | PluginLLMCore::ToolPermission::FileSystemWrite 
+         | PluginLLMCore::ToolPermission::NetworkAccess;
 }
 
 QFuture<QString> ExecuteTerminalCommandTool::executeAsync(const QJsonObject &input)

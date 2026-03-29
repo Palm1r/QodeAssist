@@ -1,5 +1,5 @@
-/*
- * Copyright (C) 2025 Povilas Kanapickas <povilas@radix.lt>
+/* 
+ * Copyright (C) 2024-2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -20,20 +20,22 @@
 #pragma once
 
 #include "PromptTemplate.hpp"
-#include <QString>
+#include "Provider.hpp"
+#include "RequestType.hpp"
+#include <QJsonObject>
+#include <QUrl>
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
-class IPromptProvider
+struct LLMConfig
 {
-public:
-    virtual ~IPromptProvider() = default;
-
-    virtual PromptTemplate *getTemplateByName(const QString &templateName) const = 0;
-
-    virtual QStringList templatesNames() const = 0;
-
-    virtual QStringList getTemplatesForProvider(ProviderID id) const = 0;
+    QUrl url;
+    Provider *provider;
+    PromptTemplate *promptTemplate;
+    QJsonObject providerRequest;
+    RequestType requestType;
+    bool multiLineCompletion;
+    QString apiKey;
 };
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

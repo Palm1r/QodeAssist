@@ -37,7 +37,7 @@
 class QNetworkReply;
 class QJsonObject;
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
 class Provider : public QObject
 {
@@ -54,9 +54,9 @@ public:
     virtual bool supportsModelListing() const = 0;
     virtual void prepareRequest(
         QJsonObject &request,
-        LLMCore::PromptTemplate *prompt,
-        LLMCore::ContextData context,
-        LLMCore::RequestType type,
+        PluginLLMCore::PromptTemplate *prompt,
+        PluginLLMCore::ContextData context,
+        PluginLLMCore::RequestType type,
         bool isToolsEnabled,
         bool isThinkingEnabled)
         = 0;
@@ -81,18 +81,18 @@ public:
 
 public slots:
     virtual void onDataReceived(
-        const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data)
+        const QodeAssist::PluginLLMCore::RequestID &requestId, const QByteArray &data)
         = 0;
     virtual void onRequestFinished(
-        const QodeAssist::LLMCore::RequestID &requestId, std::optional<QString> error)
+        const QodeAssist::PluginLLMCore::RequestID &requestId, std::optional<QString> error)
         = 0;
 
 signals:
     void partialResponseReceived(
-        const QodeAssist::LLMCore::RequestID &requestId, const QString &partialText);
+        const QodeAssist::PluginLLMCore::RequestID &requestId, const QString &partialText);
     void fullResponseReceived(
-        const QodeAssist::LLMCore::RequestID &requestId, const QString &fullText);
-    void requestFailed(const QodeAssist::LLMCore::RequestID &requestId, const QString &error);
+        const QodeAssist::PluginLLMCore::RequestID &requestId, const QString &fullText);
+    void requestFailed(const QodeAssist::PluginLLMCore::RequestID &requestId, const QString &error);
     void toolExecutionStarted(
         const QString &requestId, const QString &toolId, const QString &toolName);
     void toolExecutionCompleted(
@@ -100,7 +100,7 @@ signals:
         const QString &toolId,
         const QString &toolName,
         const QString &result);
-    void continuationStarted(const QodeAssist::LLMCore::RequestID &requestId);
+    void continuationStarted(const QodeAssist::PluginLLMCore::RequestID &requestId);
     void thinkingBlockReceived(
         const QString &requestId, const QString &thinking, const QString &signature);
     void redactedThinkingBlockReceived(const QString &requestId, const QString &signature);
@@ -115,4 +115,4 @@ private:
     HttpClient *m_httpClient;
 };
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

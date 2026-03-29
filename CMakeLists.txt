@@ -34,8 +34,8 @@ add_definitions(
   -DQODEASSIST_QT_CREATOR_VERSION_PATCH=${QODEASSIST_QT_CREATOR_VERSION_PATCH}
 )
 
-add_subdirectory(llmcore)
-add_subdirectory(sources/external/llmcore)
+add_subdirectory(pluginllmcore)
+# add_subdirectory(sources/external/llmcore)
 add_subdirectory(settings)
 add_subdirectory(logger)
 add_subdirectory(UIControls)

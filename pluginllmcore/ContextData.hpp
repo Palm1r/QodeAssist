@@ -22,7 +22,7 @@
 #include <QString>
 #include <QVector>
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
 struct ImageAttachment
 {
@@ -66,4 +66,4 @@ struct ContextData
     bool operator==(const ContextData &) const = default;
 };
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

@@ -24,7 +24,7 @@
 #include <QJsonObject>
 #include <QtCore/qurlquery.h>
 
-#include "llmcore/ValidationUtils.hpp"
+#include "pluginllmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -35,7 +35,7 @@
 namespace QodeAssist::Providers {
 
 GoogleAIProvider::GoogleAIProvider(QObject *parent)
-    : LLMCore::Provider(parent)
+    : PluginLLMCore::Provider(parent)
     , m_toolsManager(new Tools::ToolsManager(this))
 {
     connect(
@@ -72,9 +72,9 @@ bool GoogleAIProvider::supportsModelListing() const
 
 void GoogleAIProvider::prepareRequest(
     QJsonObject &request,
-    LLMCore::PromptTemplate *prompt,
-    LLMCore::ContextData context,
-    LLMCore::RequestType type,
+    PluginLLMCore::PromptTemplate *prompt,
+    PluginLLMCore::ContextData context,
+    PluginLLMCore::RequestType type,
     bool isToolsEnabled,
     bool isThinkingEnabled)
 {
@@ -119,9 +119,9 @@ void GoogleAIProvider::prepareRequest(
         request["generationConfig"] = generationConfig;
     };
 
-    if (type == LLMCore::RequestType::CodeCompletion) {
+    if (type == PluginLLMCore::RequestType::CodeCompletion) {
         applyModelParams(Settings::codeCompletionSettings());
-    } else if (type == LLMCore::RequestType::QuickRefactoring) {
+    } else if (type == PluginLLMCore::RequestType::QuickRefactoring) {
         const auto &qrSettings = Settings::quickRefactorSettings();
 
         if (isThinkingEnabled) {
@@ -140,13 +140,13 @@ void GoogleAIProvider::prepareRequest(
     }
 
     if (isToolsEnabled) {
-        LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL;
-        if (type == LLMCore::RequestType::QuickRefactoring) {
-            filter = LLMCore::RunToolsFilter::OnlyRead;
+        PluginLLMCore::RunToolsFilter filter = PluginLLMCore::RunToolsFilter::ALL;
+        if (type == PluginLLMCore::RequestType::QuickRefactoring) {
+            filter = PluginLLMCore::RunToolsFilter::OnlyRead;
         }
 
         auto toolsDefinitions = m_toolsManager->getToolsDefinitions(
-            LLMCore::ToolSchemaFormat::Google, filter);
+            PluginLLMCore::ToolSchemaFormat::Google, filter);
         if (!toolsDefinitions.isEmpty()) {
             request["tools"] = toolsDefinitions;
             LOG_MESSAGE(QString("Added %1 tools to Google AI request").arg(toolsDefinitions.size()));
@@ -184,7 +184,7 @@ QFuture<QList<QString>> GoogleAIProvider::getInstalledModels(const QString &url)
 }
 
 QList<QString> GoogleAIProvider::validateRequest(
-    const QJsonObject &request, LLMCore::TemplateType type)
+    const QJsonObject &request, PluginLLMCore::TemplateType type)
 {
     QJsonObject templateReq;
 
@@ -202,7 +202,7 @@ QList<QString> GoogleAIProvider::validateRequest(
         {"safetySettings", QJsonArray{}},
         {"tools", QJsonArray{}}};
 
-    return LLMCore::ValidationUtils::validateRequestFields(request, templateReq);
+    return PluginLLMCore::ValidationUtils::validateRequestFields(request, templateReq);
 }
 
 QString GoogleAIProvider::apiKey() const
@@ -221,13 +221,13 @@ void GoogleAIProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) co
     networkRequest.setUrl(url);
 }
 
-LLMCore::ProviderID GoogleAIProvider::providerID() const
+PluginLLMCore::ProviderID GoogleAIProvider::providerID() const
 {
-    return LLMCore::ProviderID::GoogleAI;
+    return PluginLLMCore::ProviderID::GoogleAI;
 }
 
 void GoogleAIProvider::sendRequest(
-    const LLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
+    const PluginLLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
 {
     if (!m_messages.contains(requestId)) {
         m_dataBuffers[requestId].clear();
@@ -260,15 +260,15 @@ bool GoogleAIProvider::supportImage() const
     return true;
 }
 
-void GoogleAIProvider::cancelRequest(const LLMCore::RequestID &requestId)
+void GoogleAIProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)
 {
     LOG_MESSAGE(QString("GoogleAIProvider: Cancelling request %1").arg(requestId));
-    LLMCore::Provider::cancelRequest(requestId);
+    PluginLLMCore::Provider::cancelRequest(requestId);
     cleanupRequest(requestId);
 }
 
 void GoogleAIProvider::onDataReceived(
-    const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data)
+    const QodeAssist::PluginLLMCore::RequestID &requestId, const QByteArray &data)
 {
     if (data.isEmpty()) {
         return;
@@ -292,7 +292,7 @@ void GoogleAIProvider::onDataReceived(
         }
     }
 
-    LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+    PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
     QStringList lines = buffers.rawStreamBuffer.processData(data);
 
     for (const QString &line : lines) {
@@ -309,7 +309,7 @@ void GoogleAIProvider::onDataReceived(
 }
 
 void GoogleAIProvider::onRequestFinished(
-    const QodeAssist::LLMCore::RequestID &requestId, std::optional<QString> error)
+    const QodeAssist::PluginLLMCore::RequestID &requestId, std::optional<QString> error)
 {
     if (error) {
         LOG_MESSAGE(QString("GoogleAIProvider request %1 failed: %2").arg(requestId, *error));
@@ -330,7 +330,7 @@ void GoogleAIProvider::onRequestFinished(
         
         handleMessageComplete(requestId);
         
-        if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
+        if (message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
             LOG_MESSAGE(QString("Waiting for tools to complete for %1").arg(requestId));
             m_dataBuffers.remove(requestId);
             return;
@@ -338,7 +338,7 @@ void GoogleAIProvider::onRequestFinished(
     }
 
     if (m_dataBuffers.contains(requestId)) {
-        const LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+        const PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
         if (!buffers.responseContent.isEmpty()) {
             emit fullResponseReceived(requestId, buffers.responseContent);
         } else {
@@ -407,7 +407,7 @@ void GoogleAIProvider::processStreamChunk(const QString &requestId, const QJsonO
         }
     } else if (
         m_dataBuffers.contains(requestId)
-        && message->state() == LLMCore::MessageState::RequiresToolExecution) {
+        && message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
         message->startNewContinuation();
         m_emittedThinkingBlocksCount[requestId] = 0;
         LOG_MESSAGE(QString("Cleared message state for continuation request %1").arg(requestId));
@@ -440,7 +440,7 @@ void GoogleAIProvider::processStreamChunk(const QString &requestId, const QJsonO
                             
                             message->handleContentDelta(text);
 
-                            LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+                            PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
                             buffers.responseContent += text;
                             emit partialResponseReceived(requestId, text);
                         }
@@ -533,7 +533,7 @@ void GoogleAIProvider::handleMessageComplete(const QString &requestId)
 
     GoogleMessage *message = m_messages[requestId];
 
-    if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
+    if (message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
         LOG_MESSAGE(QString("Google AI message requires tool execution for %1").arg(requestId));
 
         auto toolUseContent = message->getCurrentToolUseContent();
@@ -555,7 +555,7 @@ void GoogleAIProvider::handleMessageComplete(const QString &requestId)
     }
 }
 
-void GoogleAIProvider::cleanupRequest(const LLMCore::RequestID &requestId)
+void GoogleAIProvider::cleanupRequest(const PluginLLMCore::RequestID &requestId)
 {
     LOG_MESSAGE(QString("Cleaning up Google AI request %1").arg(requestId));
 

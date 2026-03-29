@@ -20,33 +20,34 @@
 #pragma once
 
 #include "IPromptProvider.hpp"
+#include "PromptTemplate.hpp"
 #include "PromptTemplateManager.hpp"
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
-class PromptProviderFim : public IPromptProvider
+class PromptProviderChat : public IPromptProvider
 {
 public:
-    explicit PromptProviderFim(PromptTemplateManager &templateManager)
+    explicit PromptProviderChat(PromptTemplateManager &templateManager)
         : m_templateManager(templateManager)
     {}
 
-    ~PromptProviderFim() = default;
+    ~PromptProviderChat() = default;
 
     PromptTemplate *getTemplateByName(const QString &templateName) const override
     {
-        return m_templateManager.getFimTemplateByName(templateName);
+        return m_templateManager.getChatTemplateByName(templateName);
     }
 
-    QStringList templatesNames() const override { return m_templateManager.fimTemplatesNames(); }
+    QStringList templatesNames() const override { return m_templateManager.chatTemplatesNames(); }
 
     QStringList getTemplatesForProvider(ProviderID id) const override
     {
-        return m_templateManager.getFimTemplatesForProvider(id);
+        return m_templateManager.getChatTemplatesForProvider(id);
     }
 
 private:
     PromptTemplateManager &m_templateManager;
 };
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

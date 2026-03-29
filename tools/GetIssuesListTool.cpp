@@ -138,7 +138,7 @@ QString GetIssuesListTool::description() const
            "Optional severity filter: 'error', 'warning', or 'all' (default).";
 }
 
-QJsonObject GetIssuesListTool::getDefinition(LLMCore::ToolSchemaFormat format) const
+QJsonObject GetIssuesListTool::getDefinition(PluginLLMCore::ToolSchemaFormat format) const
 {
     QJsonObject definition;
     definition["type"] = "object";
@@ -153,22 +153,22 @@ QJsonObject GetIssuesListTool::getDefinition(LLMCore::ToolSchemaFormat format) c
     definition["required"] = QJsonArray();
 
     switch (format) {
-    case LLMCore::ToolSchemaFormat::OpenAI:
+    case PluginLLMCore::ToolSchemaFormat::OpenAI:
         return customizeForOpenAI(definition);
-    case LLMCore::ToolSchemaFormat::Claude:
+    case PluginLLMCore::ToolSchemaFormat::Claude:
         return customizeForClaude(definition);
-    case LLMCore::ToolSchemaFormat::Ollama:
+    case PluginLLMCore::ToolSchemaFormat::Ollama:
         return customizeForOllama(definition);
-    case LLMCore::ToolSchemaFormat::Google:
+    case PluginLLMCore::ToolSchemaFormat::Google:
         return customizeForGoogle(definition);
     }
 
     return definition;
 }
 
-LLMCore::ToolPermissions GetIssuesListTool::requiredPermissions() const
+PluginLLMCore::ToolPermissions GetIssuesListTool::requiredPermissions() const
 {
-    return LLMCore::ToolPermission::FileSystemRead;
+    return PluginLLMCore::ToolPermission::FileSystemRead;
 }
 
 QFuture<QString> GetIssuesListTool::executeAsync(const QJsonObject &input)

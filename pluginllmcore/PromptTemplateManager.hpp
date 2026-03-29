@@ -24,7 +24,7 @@
 
 #include "PromptTemplate.hpp"
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
 class PromptTemplateManager
 {
@@ -62,4 +62,4 @@ private:
     QMap<QString, PromptTemplate *> m_chatTemplates;
 };
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

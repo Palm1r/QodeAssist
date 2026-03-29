@@ -26,7 +26,7 @@
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectmanager.h>
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
 QString RulesLoader::loadRules(const QString &projectPath, RulesContext context)
 {
@@ -178,4 +178,4 @@ QVector<RuleFileInfo> RulesLoader::collectMarkdownFiles(
     return result;
 }
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

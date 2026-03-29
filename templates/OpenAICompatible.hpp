@@ -21,17 +21,17 @@
 
 #include <QJsonArray>
 
-#include "llmcore/PromptTemplate.hpp"
+#include "pluginllmcore/PromptTemplate.hpp"
 
 namespace QodeAssist::Templates {
 
-class OpenAICompatible : public LLMCore::PromptTemplate
+class OpenAICompatible : public PluginLLMCore::PromptTemplate
 {
 public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
+    PluginLLMCore::TemplateType type() const override { return PluginLLMCore::TemplateType::Chat; }
     QString name() const override { return "OpenAI Compatible"; }
     QStringList stopWords() const override { return QStringList(); }
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
+    void prepareRequest(QJsonObject &request, const PluginLLMCore::ContextData &context) const override
     {
         QJsonArray messages;
 
@@ -85,13 +85,13 @@ public:
                "Works with any service implementing the OpenAI Chat API specification.\n"
                "Supports images.";
     }
-    bool isSupportProvider(LLMCore::ProviderID id) const override
+    bool isSupportProvider(PluginLLMCore::ProviderID id) const override
     {
         switch (id) {
-        case LLMCore::ProviderID::OpenAICompatible:
-        case LLMCore::ProviderID::OpenRouter:
-        case LLMCore::ProviderID::LMStudio:
-        case LLMCore::ProviderID::LlamaCpp:
+        case PluginLLMCore::ProviderID::OpenAICompatible:
+        case PluginLLMCore::ProviderID::OpenRouter:
+        case PluginLLMCore::ProviderID::LMStudio:
+        case PluginLLMCore::ProviderID::LlamaCpp:
             return true;
         default:
             return false;

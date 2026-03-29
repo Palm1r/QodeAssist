@@ -22,14 +22,14 @@
 #include "FileSearchUtils.hpp"
 
 #include <context/IgnoreManager.hpp>
-#include <llmcore/BaseTool.hpp>
+#include <pluginllmcore/BaseTool.hpp>
 #include <QFuture>
 #include <QJsonObject>
 #include <QObject>
 
 namespace QodeAssist::Tools {
 
-class FindAndReadFileTool : public LLMCore::BaseTool
+class FindAndReadFileTool : public PluginLLMCore::BaseTool
 {
     Q_OBJECT
 
@@ -39,8 +39,8 @@ public:
     QString name() const override;
     QString stringName() const override;
     QString description() const override;
-    QJsonObject getDefinition(LLMCore::ToolSchemaFormat format) const override;
-    LLMCore::ToolPermissions requiredPermissions() const override;
+    QJsonObject getDefinition(PluginLLMCore::ToolSchemaFormat format) const override;
+    PluginLLMCore::ToolPermissions requiredPermissions() const override;
     QFuture<QString> executeAsync(const QJsonObject &input) override;
 
 private:

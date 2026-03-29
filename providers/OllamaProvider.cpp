@@ -23,7 +23,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
-#include "llmcore/ValidationUtils.hpp"
+#include "pluginllmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -34,7 +34,7 @@
 namespace QodeAssist::Providers {
 
 OllamaProvider::OllamaProvider(QObject *parent)
-    : LLMCore::Provider(parent)
+    : PluginLLMCore::Provider(parent)
     , m_toolsManager(new Tools::ToolsManager(this))
 {
     connect(
@@ -71,9 +71,9 @@ bool OllamaProvider::supportsModelListing() const
 
 void OllamaProvider::prepareRequest(
     QJsonObject &request,
-    LLMCore::PromptTemplate *prompt,
-    LLMCore::ContextData context,
-    LLMCore::RequestType type,
+    PluginLLMCore::PromptTemplate *prompt,
+    PluginLLMCore::ContextData context,
+    PluginLLMCore::RequestType type,
     bool isToolsEnabled,
     bool isThinkingEnabled)
 {
@@ -109,9 +109,9 @@ void OllamaProvider::prepareRequest(
         request["options"] = options;
     };
 
-    if (type == LLMCore::RequestType::CodeCompletion) {
+    if (type == PluginLLMCore::RequestType::CodeCompletion) {
         applySettings(Settings::codeCompletionSettings());
-    } else if (type == LLMCore::RequestType::QuickRefactoring) {
+    } else if (type == PluginLLMCore::RequestType::QuickRefactoring) {
         const auto &qrSettings = Settings::quickRefactorSettings();
         applySettings(qrSettings);
         
@@ -130,13 +130,13 @@ void OllamaProvider::prepareRequest(
     }
 
     if (isToolsEnabled) {
-        LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL;
-        if (type == LLMCore::RequestType::QuickRefactoring) {
-            filter = LLMCore::RunToolsFilter::OnlyRead;
+        PluginLLMCore::RunToolsFilter filter = PluginLLMCore::RunToolsFilter::ALL;
+        if (type == PluginLLMCore::RequestType::QuickRefactoring) {
+            filter = PluginLLMCore::RunToolsFilter::OnlyRead;
         }
 
         auto toolsDefinitions = m_toolsManager->toolsFactory()->getToolsDefinitions(
-            LLMCore::ToolSchemaFormat::Ollama, filter);
+            PluginLLMCore::ToolSchemaFormat::Ollama, filter);
         if (!toolsDefinitions.isEmpty()) {
             request["tools"] = toolsDefinitions;
             LOG_MESSAGE(
@@ -166,7 +166,7 @@ QFuture<QList<QString>> OllamaProvider::getInstalledModels(const QString &url)
     });
 }
 
-QList<QString> OllamaProvider::validateRequest(const QJsonObject &request, LLMCore::TemplateType type)
+QList<QString> OllamaProvider::validateRequest(const QJsonObject &request, PluginLLMCore::TemplateType type)
 {
     const auto fimReq = QJsonObject{
         {"keep_alive", {}},
@@ -202,8 +202,8 @@ QList<QString> OllamaProvider::validateRequest(const QJsonObject &request, LLMCo
              {"frequency_penalty", {}},
              {"presence_penalty", {}}}}};
 
-    return LLMCore::ValidationUtils::validateRequestFields(
-        request, type == LLMCore::TemplateType::FIM ? fimReq : messageReq);
+    return PluginLLMCore::ValidationUtils::validateRequestFields(
+        request, type == PluginLLMCore::TemplateType::FIM ? fimReq : messageReq);
 }
 
 QString OllamaProvider::apiKey() const
@@ -220,13 +220,13 @@ void OllamaProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) cons
     }
 }
 
-LLMCore::ProviderID OllamaProvider::providerID() const
+PluginLLMCore::ProviderID OllamaProvider::providerID() const
 {
-    return LLMCore::ProviderID::Ollama;
+    return PluginLLMCore::ProviderID::Ollama;
 }
 
 void OllamaProvider::sendRequest(
-    const LLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
+    const PluginLLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
 {
     m_dataBuffers[requestId].clear();
 
@@ -256,17 +256,17 @@ bool OllamaProvider::supportThinking() const
     return true;
 }
 
-void OllamaProvider::cancelRequest(const LLMCore::RequestID &requestId)
+void OllamaProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)
 {
     LOG_MESSAGE(QString("OllamaProvider: Cancelling request %1").arg(requestId));
-    LLMCore::Provider::cancelRequest(requestId);
+    PluginLLMCore::Provider::cancelRequest(requestId);
     cleanupRequest(requestId);
 }
 
 void OllamaProvider::onDataReceived(
-    const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data)
+    const QodeAssist::PluginLLMCore::RequestID &requestId, const QByteArray &data)
 {
-    LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+    PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
     QStringList lines = buffers.rawStreamBuffer.processData(data);
 
     if (data.isEmpty()) {
@@ -297,7 +297,7 @@ void OllamaProvider::onDataReceived(
 }
 
 void OllamaProvider::onRequestFinished(
-    const QodeAssist::LLMCore::RequestID &requestId, std::optional<QString> error)
+    const QodeAssist::PluginLLMCore::RequestID &requestId, std::optional<QString> error)
 {
     if (error) {
         LOG_MESSAGE(QString("OllamaProvider request %1 failed: %2").arg(requestId, *error));
@@ -308,7 +308,7 @@ void OllamaProvider::onRequestFinished(
 
     if (m_messages.contains(requestId)) {
         OllamaMessage *message = m_messages[requestId];
-        if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
+        if (message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
             LOG_MESSAGE(QString("Waiting for tools to complete for %1").arg(requestId));
             return;
         }
@@ -319,7 +319,7 @@ void OllamaProvider::onRequestFinished(
         OllamaMessage *message = m_messages[requestId];
 
         for (auto block : message->currentBlocks()) {
-            if (auto textContent = qobject_cast<LLMCore::TextContent *>(block)) {
+            if (auto textContent = qobject_cast<PluginLLMCore::TextContent *>(block)) {
                 finalText += textContent->text();
             }
         }
@@ -408,7 +408,7 @@ void OllamaProvider::processStreamData(const QString &requestId, const QJsonObje
         }
     } else if (
         m_dataBuffers.contains(requestId)
-        && message->state() == LLMCore::MessageState::RequiresToolExecution) {
+        && message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
         message->startNewContinuation();
         emit continuationStarted(requestId);
         LOG_MESSAGE(QString("Cleared message state for continuation request %1").arg(requestId));
@@ -455,14 +455,14 @@ void OllamaProvider::processStreamData(const QString &requestId, const QJsonObje
 
                 bool hasTextContent = false;
                 for (auto block : message->currentBlocks()) {
-                    if (qobject_cast<LLMCore::TextContent *>(block)) {
+                    if (qobject_cast<PluginLLMCore::TextContent *>(block)) {
                         hasTextContent = true;
                         break;
                     }
                 }
 
                 if (hasTextContent) {
-                    LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+                    PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
                     buffers.responseContent += content;
                     emit partialResponseReceived(requestId, content);
                 }
@@ -485,14 +485,14 @@ void OllamaProvider::processStreamData(const QString &requestId, const QJsonObje
 
             bool hasTextContent = false;
             for (auto block : message->currentBlocks()) {
-                if (qobject_cast<LLMCore::TextContent *>(block)) {
+                if (qobject_cast<PluginLLMCore::TextContent *>(block)) {
                     hasTextContent = true;
                     break;
                 }
             }
 
             if (hasTextContent) {
-                LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+                PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
                 buffers.responseContent += content;
                 emit partialResponseReceived(requestId, content);
             }
@@ -521,7 +521,7 @@ void OllamaProvider::handleMessageComplete(const QString &requestId)
 
     emitThinkingBlocks(requestId, message);
 
-    if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
+    if (message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
         LOG_MESSAGE(QString("Ollama message requires tool execution for %1").arg(requestId));
 
         auto toolUseContent = message->getCurrentToolUseContent();
@@ -554,7 +554,7 @@ void OllamaProvider::handleMessageComplete(const QString &requestId)
     }
 }
 
-void OllamaProvider::cleanupRequest(const LLMCore::RequestID &requestId)
+void OllamaProvider::cleanupRequest(const PluginLLMCore::RequestID &requestId)
 {
     LOG_MESSAGE(QString("Cleaning up Ollama request %1").arg(requestId));
 

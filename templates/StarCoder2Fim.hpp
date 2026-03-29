@@ -19,21 +19,21 @@
 
 #pragma once
 
-#include "llmcore/PromptTemplate.hpp"
+#include "pluginllmcore/PromptTemplate.hpp"
 
 namespace QodeAssist::Templates {
 
-class StarCoder2Fim : public LLMCore::PromptTemplate
+class StarCoder2Fim : public PluginLLMCore::PromptTemplate
 {
 public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::FIM; }
+    PluginLLMCore::TemplateType type() const override { return PluginLLMCore::TemplateType::FIM; }
     QString name() const override { return "StarCoder2 FIM"; }
     QStringList stopWords() const override
     {
         return QStringList() << "<|endoftext|>" << "<file_sep>" << "<fim_prefix>" << "<fim_suffix>"
                              << "<fim_middle>";
     }
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
+    void prepareRequest(QJsonObject &request, const PluginLLMCore::ContextData &context) const override
     {
         request["prompt"] = QString("<fim_prefix>%1<fim_suffix>%2<fim_middle>")
                                 .arg(context.prefix.value_or(""), context.suffix.value_or(""));
@@ -48,10 +48,10 @@ public:
                "}\n\n"
                "Includes stop words to prevent token duplication.";
     }
-    bool isSupportProvider(LLMCore::ProviderID id) const override
+    bool isSupportProvider(PluginLLMCore::ProviderID id) const override
     {
         switch (id) {
-        case QodeAssist::LLMCore::ProviderID::Ollama:
+        case QodeAssist::PluginLLMCore::ProviderID::Ollama:
             return true;
         default:
             return false;

@@ -20,7 +20,7 @@
 #include "OpenAIResponsesProvider.hpp"
 #include "OpenAIResponses/ResponseObject.hpp"
 
-#include "llmcore/ValidationUtils.hpp"
+#include "pluginllmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -35,7 +35,7 @@
 namespace QodeAssist::Providers {
 
 OpenAIResponsesProvider::OpenAIResponsesProvider(QObject *parent)
-    : LLMCore::Provider(parent)
+    : PluginLLMCore::Provider(parent)
     , m_toolsManager(new Tools::ToolsManager(this))
 {
     connect(
@@ -72,9 +72,9 @@ bool OpenAIResponsesProvider::supportsModelListing() const
 
 void OpenAIResponsesProvider::prepareRequest(
     QJsonObject &request,
-    LLMCore::PromptTemplate *prompt,
-    LLMCore::ContextData context,
-    LLMCore::RequestType type,
+    PluginLLMCore::PromptTemplate *prompt,
+    PluginLLMCore::ContextData context,
+    PluginLLMCore::RequestType type,
     bool isToolsEnabled,
     bool isThinkingEnabled)
 {
@@ -109,9 +109,9 @@ void OpenAIResponsesProvider::prepareRequest(
         request["include"] = include;
     };
 
-    if (type == LLMCore::RequestType::CodeCompletion) {
+    if (type == PluginLLMCore::RequestType::CodeCompletion) {
         applyModelParams(Settings::codeCompletionSettings());
-    } else if (type == LLMCore::RequestType::QuickRefactoring) {
+    } else if (type == PluginLLMCore::RequestType::QuickRefactoring) {
         const auto &qrSettings = Settings::quickRefactorSettings();
         applyModelParams(qrSettings);
 
@@ -128,12 +128,12 @@ void OpenAIResponsesProvider::prepareRequest(
     }
 
     if (isToolsEnabled) {
-        const LLMCore::RunToolsFilter filter = (type == LLMCore::RequestType::QuickRefactoring)
-                                                   ? LLMCore::RunToolsFilter::OnlyRead
-                                                   : LLMCore::RunToolsFilter::ALL;
+        const PluginLLMCore::RunToolsFilter filter = (type == PluginLLMCore::RequestType::QuickRefactoring)
+                                                   ? PluginLLMCore::RunToolsFilter::OnlyRead
+                                                   : PluginLLMCore::RunToolsFilter::ALL;
 
         const auto toolsDefinitions
-            = m_toolsManager->getToolsDefinitions(LLMCore::ToolSchemaFormat::OpenAI, filter);
+            = m_toolsManager->getToolsDefinitions(PluginLLMCore::ToolSchemaFormat::OpenAI, filter);
         if (!toolsDefinitions.isEmpty()) {
             QJsonArray responsesTools;
 
@@ -197,7 +197,7 @@ QFuture<QList<QString>> OpenAIResponsesProvider::getInstalledModels(const QStrin
 }
 
 QList<QString> OpenAIResponsesProvider::validateRequest(
-    const QJsonObject &request, LLMCore::TemplateType type)
+    const QJsonObject &request, PluginLLMCore::TemplateType type)
 {
     Q_UNUSED(type);
 
@@ -250,13 +250,13 @@ void OpenAIResponsesProvider::prepareNetworkRequest(QNetworkRequest &networkRequ
     }
 }
 
-LLMCore::ProviderID OpenAIResponsesProvider::providerID() const
+PluginLLMCore::ProviderID OpenAIResponsesProvider::providerID() const
 {
-    return LLMCore::ProviderID::OpenAIResponses;
+    return PluginLLMCore::ProviderID::OpenAIResponses;
 }
 
 void OpenAIResponsesProvider::sendRequest(
-    const LLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
+    const PluginLLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
 {
     if (!m_messages.contains(requestId)) {
         m_dataBuffers[requestId].clear();
@@ -286,16 +286,16 @@ bool OpenAIResponsesProvider::supportThinking() const
     return true;
 }
 
-void OpenAIResponsesProvider::cancelRequest(const LLMCore::RequestID &requestId)
+void OpenAIResponsesProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)
 {
-    LLMCore::Provider::cancelRequest(requestId);
+    PluginLLMCore::Provider::cancelRequest(requestId);
     cleanupRequest(requestId);
 }
 
 void OpenAIResponsesProvider::onDataReceived(
-    const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data)
+    const QodeAssist::PluginLLMCore::RequestID &requestId, const QByteArray &data)
 {
-    LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+    PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
     const QStringList lines = buffers.rawStreamBuffer.processData(data);
 
     QString currentEventType;
@@ -329,7 +329,7 @@ void OpenAIResponsesProvider::onDataReceived(
 }
 
 void OpenAIResponsesProvider::onRequestFinished(
-    const QodeAssist::LLMCore::RequestID &requestId, std::optional<QString> error)
+    const QodeAssist::PluginLLMCore::RequestID &requestId, std::optional<QString> error)
 {
     if (error) {
         LOG_MESSAGE(QString("OpenAIResponses request %1 failed: %2").arg(requestId, *error));
@@ -340,13 +340,13 @@ void OpenAIResponsesProvider::onRequestFinished(
 
     if (m_messages.contains(requestId)) {
         OpenAIResponsesMessage *message = m_messages[requestId];
-        if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
+        if (message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
             return;
         }
     }
 
     if (m_dataBuffers.contains(requestId)) {
-        const LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+        const PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
         if (!buffers.responseContent.isEmpty()) {
             emit fullResponseReceived(requestId, buffers.responseContent);
         } else {
@@ -376,7 +376,7 @@ void OpenAIResponsesProvider::processStreamEvent(
         }
     } else if (
         m_dataBuffers.contains(requestId)
-        && message->state() == LLMCore::MessageState::RequiresToolExecution) {
+        && message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
         message->startNewContinuation();
         emit continuationStarted(requestId);
     }
@@ -571,7 +571,7 @@ void OpenAIResponsesProvider::handleMessageComplete(const QString &requestId)
 
     emitPendingThinkingBlocks(requestId);
 
-    if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
+    if (message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
         const auto toolUseContent = message->getCurrentToolUseContent();
 
         if (toolUseContent.isEmpty()) {
@@ -633,7 +633,7 @@ void OpenAIResponsesProvider::onToolExecutionComplete(
     sendRequest(requestId, m_requestUrls[requestId], continuationRequest);
 }
 
-void OpenAIResponsesProvider::cleanupRequest(const LLMCore::RequestID &requestId)
+void OpenAIResponsesProvider::cleanupRequest(const PluginLLMCore::RequestID &requestId)
 {
     if (m_messages.contains(requestId)) {
         OpenAIResponsesMessage *message = m_messages.take(requestId);

@@ -25,7 +25,7 @@
 #include <QObject>
 #include <QString>
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
 enum class ToolSchemaFormat { OpenAI, Claude, Ollama, Google };
 
@@ -67,4 +67,4 @@ protected:
     virtual QJsonObject customizeForGoogle(const QJsonObject &baseDefinition) const;
 };
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

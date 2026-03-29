@@ -24,10 +24,10 @@
 #include <QObject>
 #include <QString>
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 class Provider;
 class PromptTemplate;
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore
 
 namespace QodeAssist::Chat {
 
@@ -64,13 +64,13 @@ private:
     void disconnectAllSignals();
     void cleanupState();
     void handleCompressionError(const QString &error);
-    void buildRequestPayload(QJsonObject &payload, LLMCore::PromptTemplate *promptTemplate);
+    void buildRequestPayload(QJsonObject &payload, PluginLLMCore::PromptTemplate *promptTemplate);
 
     bool m_isCompressing = false;
     QString m_currentRequestId;
     QString m_originalChatPath;
     QString m_accumulatedSummary;
-    LLMCore::Provider *m_provider = nullptr;
+    PluginLLMCore::Provider *m_provider = nullptr;
     ChatModel *m_chatModel = nullptr;
 
     QList<QMetaObject::Connection> m_connections;

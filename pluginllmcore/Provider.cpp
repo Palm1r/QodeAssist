@@ -2,7 +2,7 @@
 
 #include <QJsonDocument>
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
 Provider::Provider(QObject *parent)
     : QObject(parent)
@@ -33,4 +33,4 @@ QJsonObject Provider::parseEventLine(const QString &line)
     return doc.object();
 }
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

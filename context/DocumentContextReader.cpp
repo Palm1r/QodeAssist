@@ -269,7 +269,7 @@ CopyrightInfo DocumentContextReader::copyrightInfo() const
     return m_copyrightInfo;
 }
 
-LLMCore::ContextData DocumentContextReader::prepareContext(
+PluginLLMCore::ContextData DocumentContextReader::prepareContext(
     int lineNumber, int cursorPosition, const Settings::CodeCompletionSettings &settings) const
 {
     QString contextBefore;

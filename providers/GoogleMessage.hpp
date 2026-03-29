@@ -24,7 +24,7 @@
 #include <QJsonObject>
 #include <QObject>
 
-#include <llmcore/ContentBlocks.hpp>
+#include <pluginllmcore/ContentBlocks.hpp>
 
 namespace QodeAssist::Providers {
 
@@ -45,11 +45,11 @@ public:
     QJsonObject toProviderFormat() const;
     QJsonArray createToolResultParts(const QHash<QString, QString> &toolResults) const;
 
-    QList<LLMCore::ToolUseContent *> getCurrentToolUseContent() const;
-    QList<LLMCore::ThinkingContent *> getCurrentThinkingContent() const;
-    QList<LLMCore::ContentBlock *> currentBlocks() const { return m_currentBlocks; }
+    QList<PluginLLMCore::ToolUseContent *> getCurrentToolUseContent() const;
+    QList<PluginLLMCore::ThinkingContent *> getCurrentThinkingContent() const;
+    QList<PluginLLMCore::ContentBlock *> currentBlocks() const { return m_currentBlocks; }
 
-    LLMCore::MessageState state() const { return m_state; }
+    PluginLLMCore::MessageState state() const { return m_state; }
     QString finishReason() const { return m_finishReason; }
     bool isErrorFinishReason() const;
     QString getErrorMessage() const;
@@ -58,11 +58,11 @@ public:
 private:
     void updateStateFromFinishReason();
 
-    QList<LLMCore::ContentBlock *> m_currentBlocks;
+    QList<PluginLLMCore::ContentBlock *> m_currentBlocks;
     QString m_pendingFunctionArgs;
     QString m_currentFunctionName;
     QString m_finishReason;
-    LLMCore::MessageState m_state = LLMCore::MessageState::Building;
+    PluginLLMCore::MessageState m_state = PluginLLMCore::MessageState::Building;
 };
 
 } // namespace QodeAssist::Providers

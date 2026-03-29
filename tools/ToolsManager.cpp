@@ -138,7 +138,7 @@ void ToolsManager::executeNextTool(const QString &requestId)
 }
 
 QJsonArray ToolsManager::getToolsDefinitions(
-    LLMCore::ToolSchemaFormat format, LLMCore::RunToolsFilter filter) const
+    PluginLLMCore::ToolSchemaFormat format, PluginLLMCore::RunToolsFilter filter) const
 {
     if (!m_toolsFactory) {
         return QJsonArray();

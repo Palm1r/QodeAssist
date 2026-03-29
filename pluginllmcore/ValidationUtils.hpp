@@ -19,23 +19,23 @@
 
 #pragma once
 
-#include "PromptTemplate.hpp"
-#include "Provider.hpp"
-#include "RequestType.hpp"
 #include <QJsonObject>
-#include <QUrl>
+#include <QStringList>
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
-struct LLMConfig
+class ValidationUtils
 {
-    QUrl url;
-    Provider *provider;
-    PromptTemplate *promptTemplate;
-    QJsonObject providerRequest;
-    RequestType requestType;
-    bool multiLineCompletion;
-    QString apiKey;
+public:
+    static QStringList validateRequestFields(
+        const QJsonObject &request, const QJsonObject &templateObj);
+
+private:
+    static void validateFields(
+        const QJsonObject &request, const QJsonObject &templateObj, QStringList &errors);
+
+    static void validateNestedObjects(
+        const QJsonObject &request, const QJsonObject &templateObj, QStringList &errors);
 };
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

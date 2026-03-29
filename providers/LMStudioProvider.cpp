@@ -19,7 +19,7 @@
 
 #include "LMStudioProvider.hpp"
 
-#include "llmcore/ValidationUtils.hpp"
+#include "pluginllmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -34,7 +34,7 @@
 namespace QodeAssist::Providers {
 
 LMStudioProvider::LMStudioProvider(QObject *parent)
-    : LLMCore::Provider(parent)
+    : PluginLLMCore::Provider(parent)
     , m_toolsManager(new Tools::ToolsManager(this))
 {
     connect(
@@ -90,7 +90,7 @@ QFuture<QList<QString>> LMStudioProvider::getInstalledModels(const QString &url)
 }
 
 QList<QString> LMStudioProvider::validateRequest(
-    const QJsonObject &request, LLMCore::TemplateType type)
+    const QJsonObject &request, PluginLLMCore::TemplateType type)
 {
     const auto templateReq = QJsonObject{
         {"model", {}},
@@ -105,7 +105,7 @@ QList<QString> LMStudioProvider::validateRequest(
         {"stream", {}},
         {"tools", {}}};
 
-    return LLMCore::ValidationUtils::validateRequestFields(request, templateReq);
+    return PluginLLMCore::ValidationUtils::validateRequestFields(request, templateReq);
 }
 
 QString LMStudioProvider::apiKey() const
@@ -118,13 +118,13 @@ void LMStudioProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) co
     networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 }
 
-LLMCore::ProviderID LMStudioProvider::providerID() const
+PluginLLMCore::ProviderID LMStudioProvider::providerID() const
 {
-    return LLMCore::ProviderID::LMStudio;
+    return PluginLLMCore::ProviderID::LMStudio;
 }
 
 void LMStudioProvider::sendRequest(
-    const LLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
+    const PluginLLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
 {
     if (!m_messages.contains(requestId)) {
         m_dataBuffers[requestId].clear();
@@ -152,17 +152,17 @@ bool LMStudioProvider::supportImage() const
     return true;
 }
 
-void LMStudioProvider::cancelRequest(const LLMCore::RequestID &requestId)
+void LMStudioProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)
 {
     LOG_MESSAGE(QString("LMStudioProvider: Cancelling request %1").arg(requestId));
-    LLMCore::Provider::cancelRequest(requestId);
+    PluginLLMCore::Provider::cancelRequest(requestId);
     cleanupRequest(requestId);
 }
 
 void LMStudioProvider::onDataReceived(
-    const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data)
+    const QodeAssist::PluginLLMCore::RequestID &requestId, const QByteArray &data)
 {
-    LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+    PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
     QStringList lines = buffers.rawStreamBuffer.processData(data);
 
     for (const QString &line : lines) {
@@ -179,7 +179,7 @@ void LMStudioProvider::onDataReceived(
 }
 
 void LMStudioProvider::onRequestFinished(
-    const QodeAssist::LLMCore::RequestID &requestId, std::optional<QString> error)
+    const QodeAssist::PluginLLMCore::RequestID &requestId, std::optional<QString> error)
 {
     if (error) {
         LOG_MESSAGE(QString("LMStudioProvider request %1 failed: %2").arg(requestId, *error));
@@ -190,7 +190,7 @@ void LMStudioProvider::onRequestFinished(
 
     if (m_messages.contains(requestId)) {
         OpenAIMessage *message = m_messages[requestId];
-        if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
+        if (message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
             LOG_MESSAGE(QString("Waiting for tools to complete for %1").arg(requestId));
             m_dataBuffers.remove(requestId);
             return;
@@ -198,7 +198,7 @@ void LMStudioProvider::onRequestFinished(
     }
 
     if (m_dataBuffers.contains(requestId)) {
-        const LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+        const PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
         if (!buffers.responseContent.isEmpty()) {
             LOG_MESSAGE(QString("Emitting full response for %1").arg(requestId));
             emit fullResponseReceived(requestId, buffers.responseContent);
@@ -210,9 +210,9 @@ void LMStudioProvider::onRequestFinished(
 
 void LMStudioProvider::prepareRequest(
     QJsonObject &request,
-    LLMCore::PromptTemplate *prompt,
-    LLMCore::ContextData context,
-    LLMCore::RequestType type,
+    PluginLLMCore::PromptTemplate *prompt,
+    PluginLLMCore::ContextData context,
+    PluginLLMCore::RequestType type,
     bool isToolsEnabled,
     bool isThinkingEnabled)
 {
@@ -236,22 +236,22 @@ void LMStudioProvider::prepareRequest(
             request["presence_penalty"] = settings.presencePenalty();
     };
 
-    if (type == LLMCore::RequestType::CodeCompletion) {
+    if (type == PluginLLMCore::RequestType::CodeCompletion) {
         applyModelParams(Settings::codeCompletionSettings());
-    } else if (type == LLMCore::RequestType::QuickRefactoring) {
+    } else if (type == PluginLLMCore::RequestType::QuickRefactoring) {
         applyModelParams(Settings::quickRefactorSettings());
     } else {
         applyModelParams(Settings::chatAssistantSettings());
     }
 
     if (isToolsEnabled) {
-        LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL;
-        if (type == LLMCore::RequestType::QuickRefactoring) {
-            filter = LLMCore::RunToolsFilter::OnlyRead;
+        PluginLLMCore::RunToolsFilter filter = PluginLLMCore::RunToolsFilter::ALL;
+        if (type == PluginLLMCore::RequestType::QuickRefactoring) {
+            filter = PluginLLMCore::RunToolsFilter::OnlyRead;
         }
 
         auto toolsDefinitions = m_toolsManager->getToolsDefinitions(
-            LLMCore::ToolSchemaFormat::OpenAI, filter);
+            PluginLLMCore::ToolSchemaFormat::OpenAI, filter);
         if (!toolsDefinitions.isEmpty()) {
             request["tools"] = toolsDefinitions;
             LOG_MESSAGE(QString("Added %1 tools to LMStudio request").arg(toolsDefinitions.size()));
@@ -326,7 +326,7 @@ void LMStudioProvider::processStreamChunk(const QString &requestId, const QJsonO
         }
     } else if (
         m_dataBuffers.contains(requestId)
-        && message->state() == LLMCore::MessageState::RequiresToolExecution) {
+        && message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
         message->startNewContinuation();
         emit continuationStarted(requestId);
         LOG_MESSAGE(QString("Cleared message state for continuation request %1").arg(requestId));
@@ -336,7 +336,7 @@ void LMStudioProvider::processStreamChunk(const QString &requestId, const QJsonO
         QString content = delta["content"].toString();
         message->handleContentDelta(content);
 
-        LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+        PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
         buffers.responseContent += content;
         emit partialResponseReceived(requestId, content);
     }
@@ -381,7 +381,7 @@ void LMStudioProvider::handleMessageComplete(const QString &requestId)
 
     OpenAIMessage *message = m_messages[requestId];
 
-    if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
+    if (message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
         LOG_MESSAGE(QString("LMStudio message requires tool execution for %1").arg(requestId));
 
         auto toolUseContent = message->getCurrentToolUseContent();
@@ -403,7 +403,7 @@ void LMStudioProvider::handleMessageComplete(const QString &requestId)
     }
 }
 
-void LMStudioProvider::cleanupRequest(const LLMCore::RequestID &requestId)
+void LMStudioProvider::cleanupRequest(const PluginLLMCore::RequestID &requestId)
 {
     LOG_MESSAGE(QString("Cleaning up LMStudio request %1").arg(requestId));
 

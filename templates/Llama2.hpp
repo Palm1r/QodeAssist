@@ -19,18 +19,18 @@
 
 #pragma once
 
-#include "llmcore/PromptTemplate.hpp"
+#include "pluginllmcore/PromptTemplate.hpp"
 #include <QJsonArray>
 
 namespace QodeAssist::Templates {
 
-class Llama2 : public LLMCore::PromptTemplate
+class Llama2 : public PluginLLMCore::PromptTemplate
 {
 public:
     QString name() const override { return "Llama 2"; }
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
+    PluginLLMCore::TemplateType type() const override { return PluginLLMCore::TemplateType::Chat; }
     QStringList stopWords() const override { return QStringList() << "[INST]"; }
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
+    void prepareRequest(QJsonObject &request, const PluginLLMCore::ContextData &context) const override
     {
         QJsonArray messages;
 
@@ -70,14 +70,14 @@ public:
                "}\n\n"
                "Compatible with Ollama, LM Studio, and other services for Llama 2.";
     }
-    bool isSupportProvider(LLMCore::ProviderID id) const override
+    bool isSupportProvider(PluginLLMCore::ProviderID id) const override
     {
         switch (id) {
-        case LLMCore::ProviderID::Ollama:
-        case LLMCore::ProviderID::LMStudio:
-        case LLMCore::ProviderID::OpenRouter:
-        case LLMCore::ProviderID::OpenAICompatible:
-        case LLMCore::ProviderID::LlamaCpp:
+        case PluginLLMCore::ProviderID::Ollama:
+        case PluginLLMCore::ProviderID::LMStudio:
+        case PluginLLMCore::ProviderID::OpenRouter:
+        case PluginLLMCore::ProviderID::OpenAICompatible:
+        case PluginLLMCore::ProviderID::LlamaCpp:
             return true;
         default:
             return false;

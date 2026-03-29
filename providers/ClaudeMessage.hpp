@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <llmcore/ContentBlocks.hpp>
+#include <pluginllmcore/ContentBlocks.hpp>
 
 namespace QodeAssist {
 
@@ -37,18 +37,18 @@ public:
     QJsonObject toProviderFormat() const;
     QJsonArray createToolResultsContent(const QHash<QString, QString> &toolResults) const;
 
-    LLMCore::MessageState state() const { return m_state; }
-    QList<LLMCore::ToolUseContent *> getCurrentToolUseContent() const;
-    QList<LLMCore::ThinkingContent *> getCurrentThinkingContent() const;
-    QList<LLMCore::RedactedThinkingContent *> getCurrentRedactedThinkingContent() const;
-    const QList<LLMCore::ContentBlock *> &getCurrentBlocks() const { return m_currentBlocks; }
+    PluginLLMCore::MessageState state() const { return m_state; }
+    QList<PluginLLMCore::ToolUseContent *> getCurrentToolUseContent() const;
+    QList<PluginLLMCore::ThinkingContent *> getCurrentThinkingContent() const;
+    QList<PluginLLMCore::RedactedThinkingContent *> getCurrentRedactedThinkingContent() const;
+    const QList<PluginLLMCore::ContentBlock *> &getCurrentBlocks() const { return m_currentBlocks; }
 
     void startNewContinuation();
 
 private:
     QString m_stopReason;
-    LLMCore::MessageState m_state = LLMCore::MessageState::Building;
-    QList<LLMCore::ContentBlock *> m_currentBlocks;
+    PluginLLMCore::MessageState m_state = PluginLLMCore::MessageState::Building;
+    QList<PluginLLMCore::ContentBlock *> m_currentBlocks;
     QHash<int, QString> m_pendingToolInputs;
 
     void updateStateFromStopReason();

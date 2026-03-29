@@ -53,7 +53,7 @@ QString TodoTool::description() const
            "The list persists throughout the conversation.";
 }
 
-QJsonObject TodoTool::getDefinition(LLMCore::ToolSchemaFormat format) const
+QJsonObject TodoTool::getDefinition(PluginLLMCore::ToolSchemaFormat format) const
 {
     QJsonObject definition;
     definition["type"] = "object";
@@ -98,22 +98,22 @@ QJsonObject TodoTool::getDefinition(LLMCore::ToolSchemaFormat format) const
     definition["required"] = required;
 
     switch (format) {
-    case LLMCore::ToolSchemaFormat::OpenAI:
+    case PluginLLMCore::ToolSchemaFormat::OpenAI:
         return customizeForOpenAI(definition);
-    case LLMCore::ToolSchemaFormat::Claude:
+    case PluginLLMCore::ToolSchemaFormat::Claude:
         return customizeForClaude(definition);
-    case LLMCore::ToolSchemaFormat::Ollama:
+    case PluginLLMCore::ToolSchemaFormat::Ollama:
         return customizeForOllama(definition);
-    case LLMCore::ToolSchemaFormat::Google:
+    case PluginLLMCore::ToolSchemaFormat::Google:
         return customizeForGoogle(definition);
     }
 
     return definition;
 }
 
-LLMCore::ToolPermissions TodoTool::requiredPermissions() const
+PluginLLMCore::ToolPermissions TodoTool::requiredPermissions() const
 {
-    return LLMCore::ToolPermission::None;
+    return PluginLLMCore::ToolPermission::None;
 }
 
 QFuture<QString> TodoTool::executeAsync(const QJsonObject &input)

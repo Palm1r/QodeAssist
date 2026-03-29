@@ -17,23 +17,35 @@
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#pragma once
-
 #include "SSEBuffer.hpp"
-#include <QString>
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
-struct DataBuffers
+QStringList SSEBuffer::processData(const QByteArray &data)
 {
-    SSEBuffer rawStreamBuffer;
-    QString responseContent;
+    m_buffer += QString::fromUtf8(data);
 
-    void clear()
-    {
-        rawStreamBuffer.clear();
-        responseContent.clear();
-    }
-};
+    QStringList lines = m_buffer.split('\n');
+    m_buffer = lines.takeLast();
 
-} // namespace QodeAssist::LLMCore
+    lines.removeAll(QString());
+
+    return lines;
+}
+
+void SSEBuffer::clear()
+{
+    m_buffer.clear();
+}
+
+QString SSEBuffer::currentBuffer() const
+{
+    return m_buffer;
+}
+
+bool SSEBuffer::hasIncompleteData() const
+{
+    return !m_buffer.isEmpty();
+}
+
+} // namespace QodeAssist::PluginLLMCore

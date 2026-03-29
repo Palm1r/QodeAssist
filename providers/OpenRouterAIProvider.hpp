@@ -29,7 +29,7 @@ public:
     QString name() const override;
     QString url() const override;
     QString apiKey() const override;
-    LLMCore::ProviderID providerID() const override;
+    PluginLLMCore::ProviderID providerID() const override;
 };
 
 } // namespace QodeAssist::Providers

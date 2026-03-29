@@ -22,18 +22,18 @@
 #include <QJsonArray>
 #include <QJsonObject>
 
-#include "llmcore/PromptTemplate.hpp"
+#include "pluginllmcore/PromptTemplate.hpp"
 
 namespace QodeAssist::Templates {
 
-class GoogleAI : public LLMCore::PromptTemplate
+class GoogleAI : public PluginLLMCore::PromptTemplate
 {
 public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
+    PluginLLMCore::TemplateType type() const override { return PluginLLMCore::TemplateType::Chat; }
     QString name() const override { return "Google AI"; }
     QStringList stopWords() const override { return QStringList(); }
 
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
+    void prepareRequest(QJsonObject &request, const PluginLLMCore::ContextData &context) const override
     {
         QJsonArray contents;
 
@@ -128,9 +128,9 @@ public:
                "Supports proper role mapping (model/user roles), images, and thinking blocks.";
     }
 
-    bool isSupportProvider(LLMCore::ProviderID id) const override
+    bool isSupportProvider(PluginLLMCore::ProviderID id) const override
     {
-        return id == QodeAssist::LLMCore::ProviderID::GoogleAI;
+        return id == QodeAssist::PluginLLMCore::ProviderID::GoogleAI;
     }
 };
 

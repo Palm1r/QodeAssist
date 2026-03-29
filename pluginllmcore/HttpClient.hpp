@@ -30,7 +30,7 @@
 #include <QObject>
 #include <QPromise>
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
 class HttpClient : public QObject
 {
@@ -73,4 +73,4 @@ private:
     mutable QMutex m_mutex;
 };
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

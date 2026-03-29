@@ -24,7 +24,7 @@
 #include "IProviderRegistry.hpp"
 #include <QMap>
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
 class ProvidersManager : public IProviderRegistry
 {
@@ -53,4 +53,4 @@ private:
     QMap<QString, Provider *> m_providers;
 };
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

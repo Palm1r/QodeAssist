@@ -1,5 +1,5 @@
-/*
- * Copyright (C) 2025 Povilas Kanapickas <povilas@radix.lt>
+/* 
+ * Copyright (C) 2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -19,18 +19,24 @@
 
 #pragma once
 
-#include "Provider.hpp"
+#include <QString>
+#include <QStringList>
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
-class IProviderRegistry
+class SSEBuffer
 {
 public:
-    virtual ~IProviderRegistry() = default;
+    SSEBuffer() = default;
 
-    virtual Provider *getProviderByName(const QString &providerName) = 0;
+    QStringList processData(const QByteArray &data);
 
-    virtual QStringList providersNames() const = 0;
+    void clear();
+    QString currentBuffer() const;
+    bool hasIncompleteData() const;
+
+private:
+    QString m_buffer;
 };
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

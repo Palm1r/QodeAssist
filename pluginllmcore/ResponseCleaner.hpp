@@ -23,7 +23,7 @@
 #include <QStringList>
 #include <QRegularExpression>
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
 class ResponseCleaner
 {
@@ -115,5 +115,5 @@ private:
     }
 };
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore
 

@@ -53,7 +53,7 @@
 namespace QodeAssist::Chat {
 
 ClientInterface::ClientInterface(
-    ChatModel *chatModel, LLMCore::IPromptProvider *promptProvider, QObject *parent)
+    ChatModel *chatModel, PluginLLMCore::IPromptProvider *promptProvider, QObject *parent)
     : QObject(parent)
     , m_chatModel(chatModel)
     , m_promptProvider(promptProvider)
@@ -138,7 +138,7 @@ void ClientInterface::sendMessage(
     auto &chatAssistantSettings = Settings::chatAssistantSettings();
 
     auto providerName = Settings::generalSettings().caProvider();
-    auto provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
+    auto provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
     if (!provider) {
         LOG_MESSAGE(QString("No provider found with name: %1").arg(providerName));
@@ -153,7 +153,7 @@ void ClientInterface::sendMessage(
         return;
     }
 
-    LLMCore::ContextData context;
+    PluginLLMCore::ContextData context;
 
     const bool isToolsEnabled = useTools;
 
@@ -167,7 +167,7 @@ void ClientInterface::sendMessage(
                 systemPrompt = systemPrompt + "\n\n" + role.systemPrompt;
         }
 
-        auto project = LLMCore::RulesLoader::getActiveProject();
+        auto project = PluginLLMCore::RulesLoader::getActiveProject();
 
         if (project) {
             systemPrompt += QString("\n# Active project name: %1").arg(project->displayName());
@@ -182,7 +182,7 @@ void ClientInterface::sendMessage(
             }
 
             QString projectRules
-                = LLMCore::RulesLoader::loadRulesForProject(project, LLMCore::RulesContext::Chat);
+                = PluginLLMCore::RulesLoader::loadRulesForProject(project, PluginLLMCore::RulesContext::Chat);
 
             if (!projectRules.isEmpty()) {
                 systemPrompt += QString("\n# Project Rules\n\n") + projectRules;
@@ -197,13 +197,13 @@ void ClientInterface::sendMessage(
         context.systemPrompt = systemPrompt;
     }
 
-    QVector<LLMCore::Message> messages;
+    QVector<PluginLLMCore::Message> messages;
     for (const auto &msg : m_chatModel->getChatHistory()) {
         if (msg.role == ChatModel::ChatRole::Tool || msg.role == ChatModel::ChatRole::FileEdit) {
             continue;
         }
 
-        LLMCore::Message apiMessage;
+        PluginLLMCore::Message apiMessage;
         apiMessage.role = msg.role == ChatModel::ChatRole::User ? "user" : "assistant";
         apiMessage.content = msg.content;
 
@@ -240,11 +240,11 @@ void ClientInterface::sendMessage(
 
     context.history = messages;
 
-    LLMCore::LLMConfig config;
-    config.requestType = LLMCore::RequestType::Chat;
+    PluginLLMCore::LLMConfig config;
+    config.requestType = PluginLLMCore::RequestType::Chat;
     config.provider = provider;
     config.promptTemplate = promptTemplate;
-    if (provider->providerID() == LLMCore::ProviderID::GoogleAI) {
+    if (provider->providerID() == PluginLLMCore::ProviderID::GoogleAI) {
         QString stream = QString{"streamGenerateContent?alt=sse"};
         config.url = QUrl(QString("%1/models/%2:%3")
                               .arg(
@@ -264,7 +264,7 @@ void ClientInterface::sendMessage(
         config.providerRequest,
         promptTemplate,
         context,
-        LLMCore::RequestType::Chat,
+        PluginLLMCore::RequestType::Chat,
         useTools,
         useThinking);
 
@@ -277,49 +277,49 @@ void ClientInterface::sendMessage(
 
     connect(
         provider,
-        &LLMCore::Provider::partialResponseReceived,
+        &PluginLLMCore::Provider::partialResponseReceived,
         this,
         &ClientInterface::handlePartialResponse,
         Qt::UniqueConnection);
     connect(
         provider,
-        &LLMCore::Provider::fullResponseReceived,
+        &PluginLLMCore::Provider::fullResponseReceived,
         this,
         &ClientInterface::handleFullResponse,
         Qt::UniqueConnection);
     connect(
         provider,
-        &LLMCore::Provider::requestFailed,
+        &PluginLLMCore::Provider::requestFailed,
         this,
         &ClientInterface::handleRequestFailed,
         Qt::UniqueConnection);
     connect(
         provider,
-        &LLMCore::Provider::toolExecutionStarted,
+        &PluginLLMCore::Provider::toolExecutionStarted,
         this,
         &ClientInterface::handleToolExecutionStarted,
         Qt::UniqueConnection);
     connect(
         provider,
-        &LLMCore::Provider::toolExecutionCompleted,
+        &PluginLLMCore::Provider::toolExecutionCompleted,
         this,
         &ClientInterface::handleToolExecutionCompleted,
         Qt::UniqueConnection);
     connect(
         provider,
-        &LLMCore::Provider::continuationStarted,
+        &PluginLLMCore::Provider::continuationStarted,
         this,
         &ClientInterface::handleCleanAccumulatedData,
         Qt::UniqueConnection);
     connect(
         provider,
-        &LLMCore::Provider::thinkingBlockReceived,
+        &PluginLLMCore::Provider::thinkingBlockReceived,
         this,
         &ClientInterface::handleThinkingBlockReceived,
         Qt::UniqueConnection);
     connect(
         provider,
-        &LLMCore::Provider::redactedThinkingBlockReceived,
+        &PluginLLMCore::Provider::redactedThinkingBlockReceived,
         this,
         &ClientInterface::handleRedactedThinkingBlockReceived,
         Qt::UniqueConnection);
@@ -334,7 +334,7 @@ void ClientInterface::sendMessage(
 void ClientInterface::clearMessages()
 {
     const auto providerName = Settings::generalSettings().caProvider();
-    auto *provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
+    auto *provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
     if (provider && !m_chatFilePath.isEmpty() && provider->supportsTools()
         && provider->toolsManager()) {
@@ -346,7 +346,7 @@ void ClientInterface::clearMessages()
 
 void ClientInterface::cancelRequest()
 {
-    QSet<LLMCore::Provider *> providers;
+    QSet<PluginLLMCore::Provider *> providers;
     for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
         if (it.value().provider) {
             providers.insert(it.value().provider);
@@ -588,10 +588,10 @@ QString ClientInterface::encodeImageToBase64(const QString &filePath) const
     return imageData.toBase64();
 }
 
-QVector<LLMCore::ImageAttachment> ClientInterface::loadImagesFromStorage(
+QVector<PluginLLMCore::ImageAttachment> ClientInterface::loadImagesFromStorage(
     const QList<ChatModel::ImageAttachment> &storedImages) const
 {
-    QVector<LLMCore::ImageAttachment> apiImages;
+    QVector<PluginLLMCore::ImageAttachment> apiImages;
 
     for (const auto &storedImage : storedImages) {
         QString base64Data
@@ -601,7 +601,7 @@ QVector<LLMCore::ImageAttachment> ClientInterface::loadImagesFromStorage(
             continue;
         }
 
-        LLMCore::ImageAttachment apiImage;
+        PluginLLMCore::ImageAttachment apiImage;
         apiImage.data = base64Data;
         apiImage.mediaType = storedImage.mediaType;
         apiImage.isUrl = false;
@@ -616,7 +616,7 @@ void ClientInterface::setChatFilePath(const QString &filePath)
 {
     if (!m_chatFilePath.isEmpty() && m_chatFilePath != filePath) {
         const auto providerName = Settings::generalSettings().caProvider();
-        auto *provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
+        auto *provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
         if (provider && provider->supportsTools() && provider->toolsManager()) {
             provider->toolsManager()->clearTodoSession(m_chatFilePath);

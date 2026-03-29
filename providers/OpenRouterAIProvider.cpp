@@ -43,9 +43,9 @@ QString OpenRouterProvider::apiKey() const
     return Settings::providerSettings().openRouterApiKey();
 }
 
-LLMCore::ProviderID OpenRouterProvider::providerID() const
+PluginLLMCore::ProviderID OpenRouterProvider::providerID() const
 {
-    return LLMCore::ProviderID::OpenRouter;
+    return PluginLLMCore::ProviderID::OpenRouter;
 }
 
 } // namespace QodeAssist::Providers

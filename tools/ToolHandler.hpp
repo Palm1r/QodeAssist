@@ -25,7 +25,7 @@
 #include <QObject>
 #include <QString>
 
-#include <llmcore/BaseTool.hpp>
+#include <pluginllmcore/BaseTool.hpp>
 
 namespace QodeAssist::Tools {
 
@@ -39,7 +39,7 @@ public:
     QFuture<QString> executeToolAsync(
         const QString &requestId,
         const QString &toolId,
-        LLMCore::BaseTool *tool,
+        PluginLLMCore::BaseTool *tool,
         const QJsonObject &input);
 
     void cleanupRequest(const QString &requestId);

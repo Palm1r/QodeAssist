@@ -21,17 +21,17 @@
 
 #include <QJsonArray>
 
-#include "llmcore/PromptTemplate.hpp"
+#include "pluginllmcore/PromptTemplate.hpp"
 
 namespace QodeAssist::Templates {
 
-class Claude : public LLMCore::PromptTemplate
+class Claude : public PluginLLMCore::PromptTemplate
 {
 public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
+    PluginLLMCore::TemplateType type() const override { return PluginLLMCore::TemplateType::Chat; }
     QString name() const override { return "Claude"; }
     QStringList stopWords() const override { return QStringList(); }
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
+    void prepareRequest(QJsonObject &request, const PluginLLMCore::ContextData &context) const override
     {
         QJsonArray messages;
 
@@ -111,10 +111,10 @@ public:
                "}\n\n"
                "Formats content according to Claude API specifications.";
     }
-    bool isSupportProvider(LLMCore::ProviderID id) const override
+    bool isSupportProvider(PluginLLMCore::ProviderID id) const override
     {
         switch (id) {
-        case QodeAssist::LLMCore::ProviderID::Claude:
+        case QodeAssist::PluginLLMCore::ProviderID::Claude:
             return true;
         default:
             return false;

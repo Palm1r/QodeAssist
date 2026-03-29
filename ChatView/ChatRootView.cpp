@@ -51,14 +51,14 @@
 #include "context/ChangesManager.h"
 #include "context/ContextManager.hpp"
 #include "context/TokenUtils.hpp"
-#include "llmcore/RulesLoader.hpp"
+#include "pluginllmcore/RulesLoader.hpp"
 
 namespace QodeAssist::Chat {
 
 ChatRootView::ChatRootView(QQuickItem *parent)
     : QQuickItem(parent)
     , m_chatModel(new ChatModel(this))
-    , m_promptProvider(LLMCore::PromptTemplateManager::instance())
+    , m_promptProvider(PluginLLMCore::PromptTemplateManager::instance())
     , m_clientInterface(new ClientInterface(m_chatModel, &m_promptProvider, this))
     , m_fileManager(new ChatFileManager(this))
     , m_isRequestInProgress(false)
@@ -929,7 +929,7 @@ QString ChatRootView::getRuleContent(int index)
     if (index < 0 || index >= m_activeRules.size())
         return QString();
 
-    return LLMCore::RulesLoader::loadRuleFileContent(
+    return PluginLLMCore::RulesLoader::loadRuleFileContent(
         m_activeRules[index].toMap()["filePath"].toString());
 }
 
@@ -937,7 +937,7 @@ void ChatRootView::refreshRules()
 {
     m_activeRules.clear();
 
-    auto project = LLMCore::RulesLoader::getActiveProject();
+    auto project = PluginLLMCore::RulesLoader::getActiveProject();
     if (!project) {
         emit activeRulesChanged();
         emit activeRulesCountChanged();
@@ -945,7 +945,7 @@ void ChatRootView::refreshRules()
     }
 
     auto ruleFiles
-        = LLMCore::RulesLoader::getRuleFilesForProject(project, LLMCore::RulesContext::Chat);
+        = PluginLLMCore::RulesLoader::getRuleFilesForProject(project, PluginLLMCore::RulesContext::Chat);
 
     for (const auto &ruleFile : ruleFiles) {
         QVariantMap ruleMap;
@@ -1296,7 +1296,7 @@ QString ChatRootView::lastInfoMessage() const
 bool ChatRootView::isThinkingSupport() const
 {
     auto providerName = Settings::generalSettings().caProvider();
-    auto provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
+    auto provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
     return provider && provider->supportThinking();
 }

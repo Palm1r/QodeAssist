@@ -58,7 +58,7 @@ void ToolsFactory::registerTools()
     LOG_MESSAGE(QString("Registered %1 tools").arg(m_tools.size()));
 }
 
-void ToolsFactory::registerTool(LLMCore::BaseTool *tool)
+void ToolsFactory::registerTool(PluginLLMCore::BaseTool *tool)
 {
     if (!tool) {
         LOG_MESSAGE("Warning: Attempted to register null tool");
@@ -73,18 +73,18 @@ void ToolsFactory::registerTool(LLMCore::BaseTool *tool)
     m_tools.insert(toolName, tool);
 }
 
-QList<LLMCore::BaseTool *> ToolsFactory::getAvailableTools() const
+QList<PluginLLMCore::BaseTool *> ToolsFactory::getAvailableTools() const
 {
     return m_tools.values();
 }
 
-LLMCore::BaseTool *ToolsFactory::getToolByName(const QString &name) const
+PluginLLMCore::BaseTool *ToolsFactory::getToolByName(const QString &name) const
 {
     return m_tools.value(name, nullptr);
 }
 
 QJsonArray ToolsFactory::getToolsDefinitions(
-    LLMCore::ToolSchemaFormat format, LLMCore::RunToolsFilter filter) const
+    PluginLLMCore::ToolSchemaFormat format, PluginLLMCore::RunToolsFilter filter) const
 {
     QJsonArray toolsArray;
     const auto &settings = Settings::toolsSettings();
@@ -113,30 +113,30 @@ QJsonArray ToolsFactory::getToolsDefinitions(
 
         const auto requiredPerms = it.value()->requiredPermissions();
 
-        if (filter != LLMCore::RunToolsFilter::ALL) {
+        if (filter != PluginLLMCore::RunToolsFilter::ALL) {
             bool matchesFilter = false;
 
             switch (filter) {
-            case LLMCore::RunToolsFilter::OnlyRead:
-                if (requiredPerms == LLMCore::ToolPermission::None
-                    || requiredPerms.testFlag(LLMCore::ToolPermission::FileSystemRead)) {
+            case PluginLLMCore::RunToolsFilter::OnlyRead:
+                if (requiredPerms == PluginLLMCore::ToolPermission::None
+                    || requiredPerms.testFlag(PluginLLMCore::ToolPermission::FileSystemRead)) {
                     matchesFilter = true;
                 }
                 break;
 
-            case LLMCore::RunToolsFilter::OnlyWrite:
-                if (requiredPerms.testFlag(LLMCore::ToolPermission::FileSystemWrite)) {
+            case PluginLLMCore::RunToolsFilter::OnlyWrite:
+                if (requiredPerms.testFlag(PluginLLMCore::ToolPermission::FileSystemWrite)) {
                     matchesFilter = true;
                 }
                 break;
 
-            case LLMCore::RunToolsFilter::OnlyNetworking:
-                if (requiredPerms.testFlag(LLMCore::ToolPermission::NetworkAccess)) {
+            case PluginLLMCore::RunToolsFilter::OnlyNetworking:
+                if (requiredPerms.testFlag(PluginLLMCore::ToolPermission::NetworkAccess)) {
                     matchesFilter = true;
                 }
                 break;
 
-            case LLMCore::RunToolsFilter::ALL:
+            case PluginLLMCore::RunToolsFilter::ALL:
                 matchesFilter = true;
                 break;
             }
@@ -150,19 +150,19 @@ QJsonArray ToolsFactory::getToolsDefinitions(
 
         bool hasPermission = true;
 
-        if (requiredPerms.testFlag(LLMCore::ToolPermission::FileSystemRead)) {
+        if (requiredPerms.testFlag(PluginLLMCore::ToolPermission::FileSystemRead)) {
             if (!settings.allowFileSystemRead()) {
                 hasPermission = false;
             }
         }
 
-        if (requiredPerms.testFlag(LLMCore::ToolPermission::FileSystemWrite)) {
+        if (requiredPerms.testFlag(PluginLLMCore::ToolPermission::FileSystemWrite)) {
             if (!settings.allowFileSystemWrite()) {
                 hasPermission = false;
             }
         }
 
-        if (requiredPerms.testFlag(LLMCore::ToolPermission::NetworkAccess)) {
+        if (requiredPerms.testFlag(PluginLLMCore::ToolPermission::NetworkAccess)) {
             if (!settings.allowNetworkAccess()) {
                 hasPermission = false;
             }

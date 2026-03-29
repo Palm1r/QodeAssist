@@ -24,7 +24,7 @@
 #include <QJsonObject>
 #include <QUrlQuery>
 
-#include "llmcore/ValidationUtils.hpp"
+#include "pluginllmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -35,7 +35,7 @@
 namespace QodeAssist::Providers {
 
 ClaudeProvider::ClaudeProvider(QObject *parent)
-    : LLMCore::Provider(parent)
+    : PluginLLMCore::Provider(parent)
     , m_toolsManager(new Tools::ToolsManager(this))
 {
     connect(
@@ -72,9 +72,9 @@ bool ClaudeProvider::supportsModelListing() const
 
 void ClaudeProvider::prepareRequest(
     QJsonObject &request,
-    LLMCore::PromptTemplate *prompt,
-    LLMCore::ContextData context,
-    LLMCore::RequestType type,
+    PluginLLMCore::PromptTemplate *prompt,
+    PluginLLMCore::ContextData context,
+    PluginLLMCore::RequestType type,
     bool isToolsEnabled,
     bool isThinkingEnabled)
 {
@@ -102,10 +102,10 @@ void ClaudeProvider::prepareRequest(
         request["temperature"] = 1.0;
     };
 
-    if (type == LLMCore::RequestType::CodeCompletion) {
+    if (type == PluginLLMCore::RequestType::CodeCompletion) {
         applyModelParams(Settings::codeCompletionSettings());
         request["temperature"] = Settings::codeCompletionSettings().temperature();
-    } else if (type == LLMCore::RequestType::QuickRefactoring) {
+    } else if (type == PluginLLMCore::RequestType::QuickRefactoring) {
         const auto &qrSettings = Settings::quickRefactorSettings();
         applyModelParams(qrSettings);
 
@@ -126,13 +126,13 @@ void ClaudeProvider::prepareRequest(
     }
 
     if (isToolsEnabled) {
-        LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL;
-        if (type == LLMCore::RequestType::QuickRefactoring) {
-            filter = LLMCore::RunToolsFilter::OnlyRead;
+        PluginLLMCore::RunToolsFilter filter = PluginLLMCore::RunToolsFilter::ALL;
+        if (type == PluginLLMCore::RequestType::QuickRefactoring) {
+            filter = PluginLLMCore::RunToolsFilter::OnlyRead;
         }
 
         auto toolsDefinitions = m_toolsManager->getToolsDefinitions(
-            LLMCore::ToolSchemaFormat::Claude, filter);
+            PluginLLMCore::ToolSchemaFormat::Claude, filter);
         if (!toolsDefinitions.isEmpty()) {
             request["tools"] = toolsDefinitions;
             LOG_MESSAGE(QString("Added %1 tools to Claude request").arg(toolsDefinitions.size()));
@@ -175,7 +175,7 @@ QFuture<QList<QString>> ClaudeProvider::getInstalledModels(const QString &baseUr
     });
 }
 
-QList<QString> ClaudeProvider::validateRequest(const QJsonObject &request, LLMCore::TemplateType type)
+QList<QString> ClaudeProvider::validateRequest(const QJsonObject &request, PluginLLMCore::TemplateType type)
 {
     const auto templateReq = QJsonObject{
         {"model", {}},
@@ -191,7 +191,7 @@ QList<QString> ClaudeProvider::validateRequest(const QJsonObject &request, LLMCo
         {"tools", {}},
         {"thinking", QJsonObject{{"type", {}}, {"budget_tokens", {}}}}};
 
-    return LLMCore::ValidationUtils::validateRequestFields(request, templateReq);
+    return PluginLLMCore::ValidationUtils::validateRequestFields(request, templateReq);
 }
 
 QString ClaudeProvider::apiKey() const
@@ -209,13 +209,13 @@ void ClaudeProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) cons
     }
 }
 
-LLMCore::ProviderID ClaudeProvider::providerID() const
+PluginLLMCore::ProviderID ClaudeProvider::providerID() const
 {
-    return LLMCore::ProviderID::Claude;
+    return PluginLLMCore::ProviderID::Claude;
 }
 
 void ClaudeProvider::sendRequest(
-    const LLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
+    const PluginLLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
 {
     if (!m_messages.contains(requestId)) {
         m_dataBuffers[requestId].clear();
@@ -245,22 +245,22 @@ bool ClaudeProvider::supportImage() const {
     return true;
 };
 
-void ClaudeProvider::cancelRequest(const LLMCore::RequestID &requestId)
+void ClaudeProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)
 {
     LOG_MESSAGE(QString("ClaudeProvider: Cancelling request %1").arg(requestId));
-    LLMCore::Provider::cancelRequest(requestId);
+    PluginLLMCore::Provider::cancelRequest(requestId);
     cleanupRequest(requestId);
 }
 
-LLMCore::IToolsManager *ClaudeProvider::toolsManager() const
+PluginLLMCore::IToolsManager *ClaudeProvider::toolsManager() const
 {
     return m_toolsManager;
 }
 
 void ClaudeProvider::onDataReceived(
-    const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data)
+    const QodeAssist::PluginLLMCore::RequestID &requestId, const QByteArray &data)
 {
-    LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+    PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
     QStringList lines = buffers.rawStreamBuffer.processData(data);
 
     for (const QString &line : lines) {
@@ -273,7 +273,7 @@ void ClaudeProvider::onDataReceived(
 }
 
 void ClaudeProvider::onRequestFinished(
-    const QodeAssist::LLMCore::RequestID &requestId, std::optional<QString> error)
+    const QodeAssist::PluginLLMCore::RequestID &requestId, std::optional<QString> error)
 {
     if (error) {
         LOG_MESSAGE(QString("ClaudeProvider request %1 failed: %2").arg(requestId, *error));
@@ -284,7 +284,7 @@ void ClaudeProvider::onRequestFinished(
 
     if (m_messages.contains(requestId)) {
         ClaudeMessage *message = m_messages[requestId];
-        if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
+        if (message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
             LOG_MESSAGE(QString("Waiting for tools to complete for %1").arg(requestId));
             m_dataBuffers.remove(requestId);
             return;
@@ -292,7 +292,7 @@ void ClaudeProvider::onRequestFinished(
     }
 
     if (m_dataBuffers.contains(requestId)) {
-        const LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+        const PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
         if (!buffers.responseContent.isEmpty()) {
             LOG_MESSAGE(QString("Emitting full response for %1").arg(requestId));
             emit fullResponseReceived(requestId, buffers.responseContent);
@@ -403,7 +403,7 @@ void ClaudeProvider::processStreamEvent(const QString &requestId, const QJsonObj
 
         if (deltaType == "text_delta") {
             QString text = delta["text"].toString();
-            LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
+            PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
             buffers.responseContent += text;
             emit partialResponseReceived(requestId, text);
         } else if (deltaType == "signature_delta") {
@@ -434,7 +434,7 @@ void ClaudeProvider::processStreamEvent(const QString &requestId, const QJsonObj
                 if (!signature.isEmpty()) {
                     auto allBlocks = message->getCurrentBlocks();
                     if (index < allBlocks.size()) {
-                        if (auto thinkingContent = qobject_cast<LLMCore::ThinkingContent *>(allBlocks[index])) {
+                        if (auto thinkingContent = qobject_cast<PluginLLMCore::ThinkingContent *>(allBlocks[index])) {
                             thinkingContent->setSignature(signature);
                             LOG_MESSAGE(
                                 QString("Updated thinking block signature from content_block_stop, "
@@ -448,7 +448,7 @@ void ClaudeProvider::processStreamEvent(const QString &requestId, const QJsonObj
                 if (!signature.isEmpty()) {
                     auto allBlocks = message->getCurrentBlocks();
                     if (index < allBlocks.size()) {
-                        if (auto redactedContent = qobject_cast<LLMCore::RedactedThinkingContent *>(allBlocks[index])) {
+                        if (auto redactedContent = qobject_cast<PluginLLMCore::RedactedThinkingContent *>(allBlocks[index])) {
                             redactedContent->setSignature(signature);
                             LOG_MESSAGE(
                                 QString("Updated redacted_thinking block signature from content_block_stop, "
@@ -507,7 +507,7 @@ void ClaudeProvider::handleMessageComplete(const QString &requestId)
 
     ClaudeMessage *message = m_messages[requestId];
 
-    if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
+    if (message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
         LOG_MESSAGE(QString("Claude message requires tool execution for %1").arg(requestId));
 
         auto toolUseContent = message->getCurrentToolUseContent();
@@ -530,7 +530,7 @@ void ClaudeProvider::handleMessageComplete(const QString &requestId)
     }
 }
 
-void ClaudeProvider::cleanupRequest(const LLMCore::RequestID &requestId)
+void ClaudeProvider::cleanupRequest(const PluginLLMCore::RequestID &requestId)
 {
     LOG_MESSAGE(QString("Cleaning up Claude request %1").arg(requestId));
 

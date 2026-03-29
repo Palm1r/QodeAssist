@@ -24,7 +24,7 @@
 
 #include <Logger.hpp>
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
 HttpClient::HttpClient(QObject *parent)
     : QObject(parent)
@@ -273,4 +273,4 @@ QString HttpClient::parseErrorFromResponse(
     return QString("HTTP %1: %2").arg(statusCode).arg(networkErrorString);
 }
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

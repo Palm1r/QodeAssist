@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "llmcore/PromptTemplateManager.hpp"
+#include "pluginllmcore/PromptTemplateManager.hpp"
 #include "templates/Alpaca.hpp"
 #include "templates/ChatML.hpp"
 #include "templates/Claude.hpp"
@@ -44,7 +44,7 @@ namespace QodeAssist::Templates {
 
 inline void registerTemplates()
 {
-    auto &templateManager = LLMCore::PromptTemplateManager::instance();
+    auto &templateManager = PluginLLMCore::PromptTemplateManager::instance();
     templateManager.registerTemplate<OllamaChat>();
     templateManager.registerTemplate<OllamaFim>();
     templateManager.registerTemplate<CodeLlamaFim>();

@@ -48,7 +48,7 @@ QString FindAndReadFileTool::description() const
            "Returns the best matching file and its content.";
 }
 
-QJsonObject FindAndReadFileTool::getDefinition(LLMCore::ToolSchemaFormat format) const
+QJsonObject FindAndReadFileTool::getDefinition(PluginLLMCore::ToolSchemaFormat format) const
 {
     QJsonObject properties;
 
@@ -69,21 +69,21 @@ QJsonObject FindAndReadFileTool::getDefinition(LLMCore::ToolSchemaFormat format)
     definition["required"] = QJsonArray{"query"};
 
     switch (format) {
-    case LLMCore::ToolSchemaFormat::OpenAI:
+    case PluginLLMCore::ToolSchemaFormat::OpenAI:
         return customizeForOpenAI(definition);
-    case LLMCore::ToolSchemaFormat::Claude:
+    case PluginLLMCore::ToolSchemaFormat::Claude:
         return customizeForClaude(definition);
-    case LLMCore::ToolSchemaFormat::Ollama:
+    case PluginLLMCore::ToolSchemaFormat::Ollama:
         return customizeForOllama(definition);
-    case LLMCore::ToolSchemaFormat::Google:
+    case PluginLLMCore::ToolSchemaFormat::Google:
         return customizeForGoogle(definition);
     }
     return definition;
 }
 
-LLMCore::ToolPermissions FindAndReadFileTool::requiredPermissions() const
+PluginLLMCore::ToolPermissions FindAndReadFileTool::requiredPermissions() const
 {
-    return LLMCore::ToolPermission::FileSystemRead;
+    return PluginLLMCore::ToolPermission::FileSystemRead;
 }
 
 QFuture<QString> FindAndReadFileTool::executeAsync(const QJsonObject &input)

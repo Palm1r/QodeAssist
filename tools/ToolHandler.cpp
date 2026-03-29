@@ -35,7 +35,7 @@ ToolHandler::ToolHandler(QObject *parent)
 QFuture<QString> ToolHandler::executeToolAsync(
     const QString &requestId,
     const QString &toolId,
-    LLMCore::BaseTool *tool,
+    PluginLLMCore::BaseTool *tool,
     const QJsonObject &input)
 {
     if (!tool) {
