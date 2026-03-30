@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024-2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -19,7 +19,8 @@
 
 #pragma once
 
-#include "OpenAIResponsesMessage.hpp"
+#include <QSet>
+
 #include <LLMCore/OpenAIResponsesClient.hpp>
 #include <pluginllmcore/Provider.hpp>
 
@@ -59,30 +60,11 @@ public:
 
     ::LLMCore::ToolsManager *toolsManager() const override;
 
-public slots:
-    void onDataReceived(
-        const QodeAssist::PluginLLMCore::RequestID &requestId, const QByteArray &data) override;
-    void onRequestFinished(
-        const QodeAssist::PluginLLMCore::RequestID &requestId,
-        std::optional<QString> error) override;
-
-private slots:
-    void onToolExecutionComplete(
-        const QString &requestId, const QHash<QString, QString> &toolResults);
-
 private:
-    void processStreamEvent(const QString &requestId, const QString &eventType, const QJsonObject &data);
-    void emitPendingThinkingBlocks(const QString &requestId);
-    void handleMessageComplete(const QString &requestId);
-    void cleanupRequest(const PluginLLMCore::RequestID &requestId);
-
-    QHash<PluginLLMCore::RequestID, OpenAIResponsesMessage *> m_messages;
-    QHash<PluginLLMCore::RequestID, QUrl> m_requestUrls;
-    QHash<PluginLLMCore::RequestID, QJsonObject> m_originalRequests;
-    QHash<PluginLLMCore::RequestID, QHash<QString, QString>> m_itemIdToCallId;
-    QHash<PluginLLMCore::RequestID, int> m_emittedThinkingBlocksCount;
     ::LLMCore::OpenAIResponsesClient *m_client;
+    QHash<PluginLLMCore::RequestID, ::LLMCore::RequestID> m_providerToClientIds;
+    QHash<::LLMCore::RequestID, PluginLLMCore::RequestID> m_clientToProviderIds;
+    QSet<PluginLLMCore::RequestID> m_awaitingContinuation;
 };
 
 } // namespace QodeAssist::Providers
-

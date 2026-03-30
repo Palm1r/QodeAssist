@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024-2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -22,7 +22,6 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QUrlQuery>
 
 #include <LLMCore/ToolsManager.hpp>
 
@@ -39,15 +38,10 @@ namespace QodeAssist::Providers {
 
 ClaudeProvider::ClaudeProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
-    , m_client(new ::LLMCore::ClaudeClient(url(), apiKey(), QString(), this))
+    , m_client(new ::LLMCore::ClaudeClient(
+          url(), Settings::providerSettings().claudeApiKey(), QString(), this))
 {
     Tools::registerQodeAssistTools(m_client->tools());
-
-    connect(
-        m_client->tools(),
-        &::LLMCore::ToolsManager::toolExecutionComplete,
-        this,
-        &ClaudeProvider::onToolExecutionComplete);
 }
 
 QString ClaudeProvider::name() const
@@ -131,11 +125,6 @@ void ClaudeProvider::prepareRequest(
     }
 
     if (isToolsEnabled) {
-        PluginLLMCore::RunToolsFilter filter = PluginLLMCore::RunToolsFilter::ALL;
-        if (type == PluginLLMCore::RequestType::QuickRefactoring) {
-            filter = PluginLLMCore::RunToolsFilter::OnlyRead;
-        }
-
         auto toolsDefinitions = m_client->tools()->getToolsDefinitions();
 
         if (!toolsDefinitions.isEmpty()) {
@@ -147,40 +136,13 @@ void ClaudeProvider::prepareRequest(
 
 QFuture<QList<QString>> ClaudeProvider::getInstalledModels(const QString &baseUrl)
 {
-    QUrl url(baseUrl + "/v1/models");
-    QUrlQuery query;
-    query.addQueryItem("limit", "1000");
-    url.setQuery(query);
-
-    QNetworkRequest request(url);
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    request.setRawHeader("anthropic-version", "2023-06-01");
-
-    if (!apiKey().isEmpty()) {
-        request.setRawHeader("x-api-key", apiKey().toUtf8());
-    }
-
-    return httpClient()->get(request).then([](const QByteArray &data) {
-        QList<QString> models;
-        QJsonObject jsonObject = QJsonDocument::fromJson(data).object();
-
-        if (jsonObject.contains("data")) {
-            QJsonArray modelArray = jsonObject["data"].toArray();
-            for (const QJsonValue &value : modelArray) {
-                QJsonObject modelObject = value.toObject();
-                if (modelObject.contains("id")) {
-                    models.append(modelObject["id"].toString());
-                }
-            }
-        }
-        return models;
-    }).onFailed([](const std::exception &e) {
-        LOG_MESSAGE(QString("Error fetching Claude models: %1").arg(e.what()));
-        return QList<QString>{};
-    });
+    m_client->setUrl(baseUrl);
+    m_client->setApiKey(apiKey());
+    return m_client->listModels();
 }
 
-QList<QString> ClaudeProvider::validateRequest(const QJsonObject &request, PluginLLMCore::TemplateType type)
+QList<QString> ClaudeProvider::validateRequest(
+    const QJsonObject &request, PluginLLMCore::TemplateType type)
 {
     const auto templateReq = QJsonObject{
         {"model", {}},
@@ -222,19 +184,69 @@ PluginLLMCore::ProviderID ClaudeProvider::providerID() const
 void ClaudeProvider::sendRequest(
     const PluginLLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
 {
-    if (!m_messages.contains(requestId)) {
-        m_dataBuffers[requestId].clear();
-    }
+    QUrl baseUrl(url);
+    baseUrl.setPath("");
+    m_client->setUrl(baseUrl.toString());
+    m_client->setApiKey(apiKey());
 
-    m_requestUrls[requestId] = url;
-    m_originalRequests[requestId] = payload;
+    ::LLMCore::RequestCallbacks callbacks;
 
-    QNetworkRequest networkRequest(url);
-    prepareNetworkRequest(networkRequest);
+    callbacks.onChunk = [this, requestId](const ::LLMCore::RequestID &, const QString &chunk) {
+        if (m_awaitingContinuation.remove(requestId)) {
+            emit continuationStarted(requestId);
+        }
+        emit partialResponseReceived(requestId, chunk);
+    };
 
-    LOG_MESSAGE(QString("ClaudeProvider: Sending request %1 to %2").arg(requestId, url.toString()));
+    callbacks.onCompleted
+        = [this, requestId](const ::LLMCore::RequestID &clientId, const QString &fullText) {
+              emit fullResponseReceived(requestId, fullText);
+              m_providerToClientIds.remove(requestId);
+              m_clientToProviderIds.remove(clientId);
+              m_awaitingContinuation.remove(requestId);
+          };
 
-    httpClient()->postStreaming(requestId, networkRequest, payload);
+    callbacks.onFailed
+        = [this, requestId](const ::LLMCore::RequestID &clientId, const QString &error) {
+              emit requestFailed(requestId, error);
+              m_providerToClientIds.remove(requestId);
+              m_clientToProviderIds.remove(clientId);
+              m_awaitingContinuation.remove(requestId);
+          };
+
+    callbacks.onThinkingBlock = [this, requestId](const ::LLMCore::RequestID &,
+                                                   const QString &thinking,
+                                                   const QString &signature) {
+        if (m_awaitingContinuation.remove(requestId)) {
+            emit continuationStarted(requestId);
+        }
+        if (thinking.isEmpty()) {
+            emit redactedThinkingBlockReceived(requestId, signature);
+        } else {
+            emit thinkingBlockReceived(requestId, thinking, signature);
+        }
+    };
+
+    callbacks.onToolStarted = [this, requestId](const ::LLMCore::RequestID &,
+                                                 const QString &toolId,
+                                                 const QString &toolName) {
+        emit toolExecutionStarted(requestId, toolId, toolName);
+        m_awaitingContinuation.insert(requestId);
+    };
+
+    callbacks.onToolResult = [this, requestId](const ::LLMCore::RequestID &,
+                                               const QString &toolId,
+                                               const QString &toolName,
+                                               const QString &result) {
+        emit toolExecutionCompleted(requestId, toolId, toolName, result);
+    };
+
+    auto clientId = m_client->sendMessage(payload, callbacks);
+    m_providerToClientIds[requestId] = clientId;
+    m_clientToProviderIds[clientId] = requestId;
+
+    LOG_MESSAGE(QString("ClaudeProvider: Sending request %1 (client: %2) to %3")
+                    .arg(requestId, clientId, url.toString()));
 }
 
 bool ClaudeProvider::supportsTools() const
@@ -242,312 +254,31 @@ bool ClaudeProvider::supportsTools() const
     return true;
 }
 
-bool ClaudeProvider::supportThinking() const {
+bool ClaudeProvider::supportThinking() const
+{
     return true;
-};
+}
 
-bool ClaudeProvider::supportImage() const {
+bool ClaudeProvider::supportImage() const
+{
     return true;
-};
+}
 
 void ClaudeProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)
 {
     LOG_MESSAGE(QString("ClaudeProvider: Cancelling request %1").arg(requestId));
-    PluginLLMCore::Provider::cancelRequest(requestId);
-    cleanupRequest(requestId);
+
+    if (m_providerToClientIds.contains(requestId)) {
+        auto clientId = m_providerToClientIds.take(requestId);
+        m_clientToProviderIds.remove(clientId);
+        m_client->cancelRequest(clientId);
+    }
+    m_awaitingContinuation.remove(requestId);
 }
 
 ::LLMCore::ToolsManager *ClaudeProvider::toolsManager() const
 {
     return m_client->tools();
-}
-
-void ClaudeProvider::onDataReceived(
-    const QodeAssist::PluginLLMCore::RequestID &requestId, const QByteArray &data)
-{
-    PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
-    QStringList lines = buffers.rawStreamBuffer.processData(data);
-
-    for (const QString &line : lines) {
-        QJsonObject responseObj = parseEventLine(line);
-        if (responseObj.isEmpty())
-            continue;
-
-        processStreamEvent(requestId, responseObj);
-    }
-}
-
-void ClaudeProvider::onRequestFinished(
-    const QodeAssist::PluginLLMCore::RequestID &requestId, std::optional<QString> error)
-{
-    if (error) {
-        LOG_MESSAGE(QString("ClaudeProvider request %1 failed: %2").arg(requestId, *error));
-        emit requestFailed(requestId, *error);
-        cleanupRequest(requestId);
-        return;
-    }
-
-    if (m_messages.contains(requestId)) {
-        ClaudeMessage *message = m_messages[requestId];
-        if (message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
-            LOG_MESSAGE(QString("Waiting for tools to complete for %1").arg(requestId));
-            m_dataBuffers.remove(requestId);
-            return;
-        }
-    }
-
-    if (m_dataBuffers.contains(requestId)) {
-        const PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
-        if (!buffers.responseContent.isEmpty()) {
-            LOG_MESSAGE(QString("Emitting full response for %1").arg(requestId));
-            emit fullResponseReceived(requestId, buffers.responseContent);
-        }
-    }
-
-    cleanupRequest(requestId);
-}
-
-void ClaudeProvider::onToolExecutionComplete(
-    const QString &requestId, const QHash<QString, QString> &toolResults)
-{
-    if (!m_messages.contains(requestId) || !m_requestUrls.contains(requestId)) {
-        LOG_MESSAGE(QString("ERROR: Missing data for continuation request %1").arg(requestId));
-        cleanupRequest(requestId);
-        return;
-    }
-
-    LOG_MESSAGE(QString("Tool execution complete for Claude request %1").arg(requestId));
-
-    for (auto it = toolResults.begin(); it != toolResults.end(); ++it) {
-        ClaudeMessage *message = m_messages[requestId];
-        auto toolContent = message->getCurrentToolUseContent();
-        for (auto tool : toolContent) {
-            if (tool->id() == it.key()) {
-                auto toolStringName = m_client->tools()->displayName(tool->name());
-                emit toolExecutionCompleted(
-                    requestId, tool->id(), toolStringName, toolResults[tool->id()]);
-                break;
-            }
-        }
-    }
-
-    ClaudeMessage *message = m_messages[requestId];
-    QJsonObject continuationRequest = m_originalRequests[requestId];
-    QJsonArray messages = continuationRequest["messages"].toArray();
-
-    messages.append(message->toProviderFormat());
-
-    QJsonObject userMessage;
-    userMessage["role"] = "user";
-    userMessage["content"] = message->createToolResultsContent(toolResults);
-    messages.append(userMessage);
-
-    continuationRequest["messages"] = messages;
-    
-    if (continuationRequest.contains("thinking")) {
-        QJsonObject thinkingObj = continuationRequest["thinking"].toObject();
-        LOG_MESSAGE(QString("Thinking mode preserved for continuation: type=%1, budget=%2 tokens")
-                        .arg(thinkingObj["type"].toString())
-                        .arg(thinkingObj["budget_tokens"].toInt()));
-    }
-    
-    LOG_MESSAGE(QString("Sending continuation request for %1 with %2 tool results")
-                    .arg(requestId)
-                    .arg(toolResults.size()));
-
-    sendRequest(requestId, m_requestUrls[requestId], continuationRequest);
-}
-
-void ClaudeProvider::processStreamEvent(const QString &requestId, const QJsonObject &event)
-{
-    QString eventType = event["type"].toString();
-
-    if (eventType == "message_stop") {
-        return;
-    }
-
-    ClaudeMessage *message = m_messages.value(requestId);
-    if (!message) {
-        if (eventType == "message_start") {
-            message = new ClaudeMessage(this);
-            m_messages[requestId] = message;
-            LOG_MESSAGE(QString("Created NEW ClaudeMessage for request %1").arg(requestId));
-        } else {
-            return;
-        }
-    }
-
-    if (eventType == "message_start") {
-        message->startNewContinuation();
-        emit continuationStarted(requestId);
-        LOG_MESSAGE(QString("Starting NEW continuation for request %1").arg(requestId));
-
-    } else if (eventType == "content_block_start") {
-        int index = event["index"].toInt();
-        QJsonObject contentBlock = event["content_block"].toObject();
-        QString blockType = contentBlock["type"].toString();
-
-        LOG_MESSAGE(
-            QString("Adding new content block: type=%1, index=%2").arg(blockType).arg(index));
-        
-        if (blockType == "thinking" || blockType == "redacted_thinking") {
-            QJsonDocument eventDoc(event);
-            LOG_MESSAGE(QString("content_block_start event for %1: %2")
-                            .arg(blockType)
-                            .arg(QString::fromUtf8(eventDoc.toJson(QJsonDocument::Compact))));
-        }
-
-        message->handleContentBlockStart(index, blockType, contentBlock);
-
-    } else if (eventType == "content_block_delta") {
-        int index = event["index"].toInt();
-        QJsonObject delta = event["delta"].toObject();
-        QString deltaType = delta["type"].toString();
-
-        message->handleContentBlockDelta(index, deltaType, delta);
-
-        if (deltaType == "text_delta") {
-            QString text = delta["text"].toString();
-            PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
-            buffers.responseContent += text;
-            emit partialResponseReceived(requestId, text);
-        } else if (deltaType == "signature_delta") {
-            QString signature = delta["signature"].toString();
-        }
-
-    } else if (eventType == "content_block_stop") {
-        int index = event["index"].toInt();
-        
-        auto allBlocks = message->getCurrentBlocks();
-        if (index < allBlocks.size()) {
-            QString blockType = allBlocks[index]->type();
-            if (blockType == "thinking" || blockType == "redacted_thinking") {
-                QJsonDocument eventDoc(event);
-                LOG_MESSAGE(QString("content_block_stop event for %1 at index %2: %3")
-                                .arg(blockType)
-                                .arg(index)
-                                .arg(QString::fromUtf8(eventDoc.toJson(QJsonDocument::Compact))));
-            }
-        }
-        
-        if (event.contains("content_block")) {
-            QJsonObject contentBlock = event["content_block"].toObject();
-            QString blockType = contentBlock["type"].toString();
-            
-            if (blockType == "thinking") {
-                QString signature = contentBlock["signature"].toString();
-                if (!signature.isEmpty()) {
-                    auto allBlocks = message->getCurrentBlocks();
-                    if (index < allBlocks.size()) {
-                        if (auto thinkingContent = dynamic_cast<::LLMCore::ThinkingContent *>(allBlocks[index])) {
-                            thinkingContent->setSignature(signature);
-                            LOG_MESSAGE(
-                                QString("Updated thinking block signature from content_block_stop, "
-                                        "signature length=%1")
-                                    .arg(signature.length()));
-                        }
-                    }
-                }
-            } else if (blockType == "redacted_thinking") {
-                QString signature = contentBlock["signature"].toString();
-                if (!signature.isEmpty()) {
-                    auto allBlocks = message->getCurrentBlocks();
-                    if (index < allBlocks.size()) {
-                        if (auto redactedContent = dynamic_cast<::LLMCore::RedactedThinkingContent *>(allBlocks[index])) {
-                            redactedContent->setSignature(signature);
-                            LOG_MESSAGE(
-                                QString("Updated redacted_thinking block signature from content_block_stop, "
-                                        "signature length=%1")
-                                    .arg(signature.length()));
-                        }
-                    }
-                }
-            }
-        }
-        
-        message->handleContentBlockStop(index);
-
-        auto thinkingBlocks = message->getCurrentThinkingContent();
-        for (auto thinkingContent : thinkingBlocks) {
-            auto allBlocks = message->getCurrentBlocks();
-            if (index < allBlocks.size() && allBlocks[index] == thinkingContent) {
-                emit thinkingBlockReceived(
-                    requestId, thinkingContent->thinking(), thinkingContent->signature());
-                LOG_MESSAGE(
-                    QString("Emitted thinking block for request %1, thinking length=%2, signature length=%3")
-                        .arg(requestId)
-                        .arg(thinkingContent->thinking().length())
-                        .arg(thinkingContent->signature().length()));
-                break;
-            }
-        }
-
-        auto redactedBlocks = message->getCurrentRedactedThinkingContent();
-        for (auto redactedContent : redactedBlocks) {
-            auto allBlocks = message->getCurrentBlocks();
-            if (index < allBlocks.size() && allBlocks[index] == redactedContent) {
-                emit redactedThinkingBlockReceived(requestId, redactedContent->signature());
-                LOG_MESSAGE(
-                    QString("Emitted redacted thinking block for request %1, signature length=%2")
-                        .arg(requestId)
-                        .arg(redactedContent->signature().length()));
-                break;
-            }
-        }
-
-    } else if (eventType == "message_delta") {
-        QJsonObject delta = event["delta"].toObject();
-        if (delta.contains("stop_reason")) {
-            QString stopReason = delta["stop_reason"].toString();
-            message->handleStopReason(stopReason);
-            handleMessageComplete(requestId);
-        }
-    }
-}
-
-void ClaudeProvider::handleMessageComplete(const QString &requestId)
-{
-    if (!m_messages.contains(requestId))
-        return;
-
-    ClaudeMessage *message = m_messages[requestId];
-
-    if (message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
-        LOG_MESSAGE(QString("Claude message requires tool execution for %1").arg(requestId));
-
-        auto toolUseContent = message->getCurrentToolUseContent();
-
-        if (toolUseContent.isEmpty()) {
-            LOG_MESSAGE(QString("No tools to execute for %1").arg(requestId));
-            return;
-        }
-
-        for (auto toolContent : toolUseContent) {
-            auto toolStringName = m_client->tools()->displayName(toolContent->name());
-            emit toolExecutionStarted(requestId, toolContent->id(), toolStringName);
-            
-            m_client->tools()->executeToolCall(
-                requestId, toolContent->id(), toolContent->name(), toolContent->input());
-        }
-
-    } else {
-        LOG_MESSAGE(QString("Claude message marked as complete for %1").arg(requestId));
-    }
-}
-
-void ClaudeProvider::cleanupRequest(const PluginLLMCore::RequestID &requestId)
-{
-    LOG_MESSAGE(QString("Cleaning up Claude request %1").arg(requestId));
-
-    if (m_messages.contains(requestId)) {
-        ClaudeMessage *message = m_messages.take(requestId);
-        message->deleteLater();
-    }
-
-    m_dataBuffers.remove(requestId);
-    m_requestUrls.remove(requestId);
-    m_originalRequests.remove(requestId);
-    m_client->tools()->cleanupRequest(requestId);
 }
 
 } // namespace QodeAssist::Providers

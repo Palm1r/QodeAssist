@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024-2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -19,9 +19,10 @@
 
 #pragma once
 
+#include <QSet>
+
 #include <pluginllmcore/Provider.hpp>
 
-#include "ClaudeMessage.hpp"
 #include <LLMCore/ClaudeClient.hpp>
 
 namespace QodeAssist::Providers {
@@ -57,29 +58,14 @@ public:
     bool supportThinking() const override;
     bool supportImage() const override;
     void cancelRequest(const PluginLLMCore::RequestID &requestId) override;
-    
+
     ::LLMCore::ToolsManager *toolsManager() const override;
 
-public slots:
-    void onDataReceived(
-        const QodeAssist::PluginLLMCore::RequestID &requestId, const QByteArray &data) override;
-    void onRequestFinished(
-        const QodeAssist::PluginLLMCore::RequestID &requestId,
-        std::optional<QString> error) override;
-
-private slots:
-    void onToolExecutionComplete(
-        const QString &requestId, const QHash<QString, QString> &toolResults);
-
 private:
-    void processStreamEvent(const QString &requestId, const QJsonObject &event);
-    void handleMessageComplete(const QString &requestId);
-    void cleanupRequest(const PluginLLMCore::RequestID &requestId);
-
-    QHash<QodeAssist::PluginLLMCore::RequestID, ClaudeMessage *> m_messages;
-    QHash<QodeAssist::PluginLLMCore::RequestID, QUrl> m_requestUrls;
-    QHash<QodeAssist::PluginLLMCore::RequestID, QJsonObject> m_originalRequests;
     ::LLMCore::ClaudeClient *m_client;
+    QHash<PluginLLMCore::RequestID, ::LLMCore::RequestID> m_providerToClientIds;
+    QHash<::LLMCore::RequestID, PluginLLMCore::RequestID> m_clientToProviderIds;
+    QSet<PluginLLMCore::RequestID> m_awaitingContinuation;
 };
 
 } // namespace QodeAssist::Providers

@@ -19,8 +19,6 @@
 
 #pragma once
 
-#include <optional>
-
 #include <QFuture>
 #include <utils/environment.h>
 #include <QNetworkRequest>
@@ -28,8 +26,6 @@
 #include <QString>
 
 #include "ContextData.hpp"
-#include "DataBuffers.hpp"
-#include "HttpClient.hpp"
 #include "IToolsManager.hpp"
 #include "PromptTemplate.hpp"
 #include "RequestType.hpp"
@@ -38,7 +34,6 @@ namespace LLMCore {
 class ToolsManager;
 }
 
-class QNetworkReply;
 class QJsonObject;
 
 namespace QodeAssist::PluginLLMCore {
@@ -77,19 +72,9 @@ public:
     virtual bool supportThinking() const { return false; };
     virtual bool supportImage() const { return false; };
 
-    virtual void cancelRequest(const RequestID &requestId);
+    virtual void cancelRequest(const RequestID &requestId) = 0;
 
     virtual ::LLMCore::ToolsManager *toolsManager() const { return nullptr; }
-
-    HttpClient *httpClient() const;
-
-public slots:
-    virtual void onDataReceived(
-        const QodeAssist::PluginLLMCore::RequestID &requestId, const QByteArray &data)
-        = 0;
-    virtual void onRequestFinished(
-        const QodeAssist::PluginLLMCore::RequestID &requestId, std::optional<QString> error)
-        = 0;
 
 signals:
     void partialResponseReceived(
@@ -109,14 +94,6 @@ signals:
         const QString &requestId, const QString &thinking, const QString &signature);
     void redactedThinkingBlockReceived(const QString &requestId, const QString &signature);
 
-protected:
-    QJsonObject parseEventLine(const QString &line);
-
-    QHash<RequestID, DataBuffers> m_dataBuffers;
-    QHash<RequestID, QUrl> m_requestUrls;
-
-private:
-    HttpClient *m_httpClient;
 };
 
 } // namespace QodeAssist::PluginLLMCore

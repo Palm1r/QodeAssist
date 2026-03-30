@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024-2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -19,7 +19,8 @@
 
 #pragma once
 
-#include "OpenAIMessage.hpp"
+#include <QSet>
+
 #include <LLMCore/OpenAIClient.hpp>
 #include <pluginllmcore/Provider.hpp>
 
@@ -58,26 +59,11 @@ public:
 
     ::LLMCore::ToolsManager *toolsManager() const override;
 
-public slots:
-    void onDataReceived(
-        const QodeAssist::PluginLLMCore::RequestID &requestId, const QByteArray &data) override;
-    void onRequestFinished(
-        const QodeAssist::PluginLLMCore::RequestID &requestId,
-        std::optional<QString> error) override;
-
-private slots:
-    void onToolExecutionComplete(
-        const QString &requestId, const QHash<QString, QString> &toolResults);
-
 private:
-    void processStreamChunk(const QString &requestId, const QJsonObject &chunk);
-    void handleMessageComplete(const QString &requestId);
-    void cleanupRequest(const PluginLLMCore::RequestID &requestId);
-
-    QHash<PluginLLMCore::RequestID, OpenAIMessage *> m_messages;
-    QHash<PluginLLMCore::RequestID, QUrl> m_requestUrls;
-    QHash<PluginLLMCore::RequestID, QJsonObject> m_originalRequests;
     ::LLMCore::OpenAIClient *m_client;
+    QHash<PluginLLMCore::RequestID, ::LLMCore::RequestID> m_providerToClientIds;
+    QHash<::LLMCore::RequestID, PluginLLMCore::RequestID> m_clientToProviderIds;
+    QSet<PluginLLMCore::RequestID> m_awaitingContinuation;
 };
 
 } // namespace QodeAssist::Providers

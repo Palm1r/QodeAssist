@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024-2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -42,12 +42,6 @@ GoogleAIProvider::GoogleAIProvider(QObject *parent)
     , m_client(new ::LLMCore::GoogleAIClient(url(), apiKey(), QString(), this))
 {
     Tools::registerQodeAssistTools(m_client->tools());
-
-    connect(
-        m_client->tools(),
-        &::LLMCore::ToolsManager::toolExecutionComplete,
-        this,
-        &GoogleAIProvider::onToolExecutionComplete);
 }
 
 QString GoogleAIProvider::name() const
@@ -145,11 +139,6 @@ void GoogleAIProvider::prepareRequest(
     }
 
     if (isToolsEnabled) {
-        PluginLLMCore::RunToolsFilter filter = PluginLLMCore::RunToolsFilter::ALL;
-        if (type == PluginLLMCore::RequestType::QuickRefactoring) {
-            filter = PluginLLMCore::RunToolsFilter::OnlyRead;
-        }
-
         auto toolsDefinitions = m_client->tools()->getToolsDefinitions();
         if (!toolsDefinitions.isEmpty()) {
             request["tools"] = toolsDefinitions;
@@ -158,33 +147,11 @@ void GoogleAIProvider::prepareRequest(
     }
 }
 
-QFuture<QList<QString>> GoogleAIProvider::getInstalledModels(const QString &url)
+QFuture<QList<QString>> GoogleAIProvider::getInstalledModels(const QString &baseUrl)
 {
-    QNetworkRequest request(QString("%1/models?key=%2").arg(url, apiKey()));
-    request.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-
-    return httpClient()->get(request).then([](const QByteArray &data) {
-        QList<QString> models;
-        QJsonObject jsonObject = QJsonDocument::fromJson(data).object();
-
-        if (jsonObject.contains("models")) {
-            QJsonArray modelArray = jsonObject["models"].toArray();
-            for (const QJsonValue &value : modelArray) {
-                QJsonObject modelObject = value.toObject();
-                if (modelObject.contains("name")) {
-                    QString modelName = modelObject["name"].toString();
-                    if (modelName.contains("/")) {
-                        modelName = modelName.split("/").last();
-                    }
-                    models.append(modelName);
-                }
-            }
-        }
-        return models;
-    }).onFailed([](const std::exception &e) {
-        LOG_MESSAGE(QString("Error fetching Google AI models: %1").arg(e.what()));
-        return QList<QString>{};
-    });
+    m_client->setUrl(baseUrl);
+    m_client->setApiKey(apiKey());
+    return m_client->listModels();
 }
 
 QList<QString> GoogleAIProvider::validateRequest(
@@ -233,20 +200,69 @@ PluginLLMCore::ProviderID GoogleAIProvider::providerID() const
 void GoogleAIProvider::sendRequest(
     const PluginLLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
 {
-    if (!m_messages.contains(requestId)) {
-        m_dataBuffers[requestId].clear();
-    }
+    QUrl baseUrl(url);
+    baseUrl.setPath("");
+    m_client->setUrl(baseUrl.toString());
+    m_client->setApiKey(apiKey());
 
-    m_requestUrls[requestId] = url;
-    m_originalRequests[requestId] = payload;
+    ::LLMCore::RequestCallbacks callbacks;
 
-    QNetworkRequest networkRequest(url);
-    prepareNetworkRequest(networkRequest);
+    callbacks.onChunk = [this, requestId](const ::LLMCore::RequestID &, const QString &chunk) {
+        if (m_awaitingContinuation.remove(requestId)) {
+            emit continuationStarted(requestId);
+        }
+        emit partialResponseReceived(requestId, chunk);
+    };
 
-    LOG_MESSAGE(
-        QString("GoogleAIProvider: Sending request %1 to %2").arg(requestId, url.toString()));
+    callbacks.onCompleted
+        = [this, requestId](const ::LLMCore::RequestID &clientId, const QString &fullText) {
+              emit fullResponseReceived(requestId, fullText);
+              m_providerToClientIds.remove(requestId);
+              m_clientToProviderIds.remove(clientId);
+              m_awaitingContinuation.remove(requestId);
+          };
 
-    httpClient()->postStreaming(requestId, networkRequest, payload);
+    callbacks.onFailed
+        = [this, requestId](const ::LLMCore::RequestID &clientId, const QString &error) {
+              emit requestFailed(requestId, error);
+              m_providerToClientIds.remove(requestId);
+              m_clientToProviderIds.remove(clientId);
+              m_awaitingContinuation.remove(requestId);
+          };
+
+    callbacks.onThinkingBlock = [this, requestId](const ::LLMCore::RequestID &,
+                                                   const QString &thinking,
+                                                   const QString &signature) {
+        if (m_awaitingContinuation.remove(requestId)) {
+            emit continuationStarted(requestId);
+        }
+        if (thinking.isEmpty()) {
+            emit redactedThinkingBlockReceived(requestId, signature);
+        } else {
+            emit thinkingBlockReceived(requestId, thinking, signature);
+        }
+    };
+
+    callbacks.onToolStarted = [this, requestId](const ::LLMCore::RequestID &,
+                                                 const QString &toolId,
+                                                 const QString &toolName) {
+        emit toolExecutionStarted(requestId, toolId, toolName);
+        m_awaitingContinuation.insert(requestId);
+    };
+
+    callbacks.onToolResult = [this, requestId](const ::LLMCore::RequestID &,
+                                               const QString &toolId,
+                                               const QString &toolName,
+                                               const QString &result) {
+        emit toolExecutionCompleted(requestId, toolId, toolName, result);
+    };
+
+    auto clientId = m_client->sendMessage(payload, callbacks);
+    m_providerToClientIds[requestId] = clientId;
+    m_clientToProviderIds[clientId] = requestId;
+
+    LOG_MESSAGE(QString("GoogleAIProvider: Sending request %1 (client: %2) to %3")
+                    .arg(requestId, clientId, url.toString()));
 }
 
 bool GoogleAIProvider::supportsTools() const
@@ -267,313 +283,13 @@ bool GoogleAIProvider::supportImage() const
 void GoogleAIProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)
 {
     LOG_MESSAGE(QString("GoogleAIProvider: Cancelling request %1").arg(requestId));
-    PluginLLMCore::Provider::cancelRequest(requestId);
-    cleanupRequest(requestId);
-}
 
-void GoogleAIProvider::onDataReceived(
-    const QodeAssist::PluginLLMCore::RequestID &requestId, const QByteArray &data)
-{
-    if (data.isEmpty()) {
-        return;
+    if (m_providerToClientIds.contains(requestId)) {
+        auto clientId = m_providerToClientIds.take(requestId);
+        m_clientToProviderIds.remove(clientId);
+        m_client->cancelRequest(clientId);
     }
-
-    QJsonParseError parseError;
-    QJsonDocument doc = QJsonDocument::fromJson(data, &parseError);
-    if (!doc.isNull() && doc.isObject()) {
-        QJsonObject obj = doc.object();
-        if (obj.contains("error")) {
-            QJsonObject error = obj["error"].toObject();
-            QString errorMessage = error["message"].toString();
-            int errorCode = error["code"].toInt();
-            QString fullError
-                = QString("Google AI API Error %1: %2").arg(errorCode).arg(errorMessage);
-
-            LOG_MESSAGE(fullError);
-            emit requestFailed(requestId, fullError);
-            cleanupRequest(requestId);
-            return;
-        }
-    }
-
-    PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
-    QStringList lines = buffers.rawStreamBuffer.processData(data);
-
-    for (const QString &line : lines) {
-        if (line.trimmed().isEmpty()) {
-            continue;
-        }
-
-        QJsonObject chunk = parseEventLine(line);
-        if (chunk.isEmpty())
-            continue;
-
-        processStreamChunk(requestId, chunk);
-    }
-}
-
-void GoogleAIProvider::onRequestFinished(
-    const QodeAssist::PluginLLMCore::RequestID &requestId, std::optional<QString> error)
-{
-    if (error) {
-        LOG_MESSAGE(QString("GoogleAIProvider request %1 failed: %2").arg(requestId, *error));
-        emit requestFailed(requestId, *error);
-        cleanupRequest(requestId);
-        return;
-    }
-
-    if (m_failedRequests.contains(requestId)) {
-        cleanupRequest(requestId);
-        return;
-    }
-
-    emitPendingThinkingBlocks(requestId);
-
-    if (m_messages.contains(requestId)) {
-        GoogleMessage *message = m_messages[requestId];
-        
-        handleMessageComplete(requestId);
-        
-        if (message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
-            LOG_MESSAGE(QString("Waiting for tools to complete for %1").arg(requestId));
-            m_dataBuffers.remove(requestId);
-            return;
-        }
-    }
-
-    if (m_dataBuffers.contains(requestId)) {
-        const PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
-        if (!buffers.responseContent.isEmpty()) {
-            emit fullResponseReceived(requestId, buffers.responseContent);
-        } else {
-            emit fullResponseReceived(requestId, QString());
-        }
-    } else {
-        emit fullResponseReceived(requestId, QString());
-    }
-
-    cleanupRequest(requestId);
-}
-
-void GoogleAIProvider::onToolExecutionComplete(
-    const QString &requestId, const QHash<QString, QString> &toolResults)
-{
-    if (!m_messages.contains(requestId) || !m_requestUrls.contains(requestId)) {
-        LOG_MESSAGE(QString("ERROR: Missing data for continuation request %1").arg(requestId));
-        cleanupRequest(requestId);
-        return;
-    }
-
-    for (auto it = toolResults.begin(); it != toolResults.end(); ++it) {
-        GoogleMessage *message = m_messages[requestId];
-        auto toolContent = message->getCurrentToolUseContent();
-        for (auto tool : toolContent) {
-            if (tool->id() == it.key()) {
-                auto toolStringName = m_client->tools()->displayName(tool->name());
-                emit toolExecutionCompleted(
-                    requestId, tool->id(), toolStringName, toolResults[tool->id()]);
-                break;
-            }
-        }
-    }
-
-    GoogleMessage *message = m_messages[requestId];
-    QJsonObject continuationRequest = m_originalRequests[requestId];
-    QJsonArray contents = continuationRequest["contents"].toArray();
-
-    contents.append(message->toProviderFormat());
-
-    QJsonObject userMessage;
-    userMessage["role"] = "user";
-    userMessage["parts"] = message->createToolResultParts(toolResults);
-    contents.append(userMessage);
-
-    continuationRequest["contents"] = contents;
-
-    sendRequest(requestId, m_requestUrls[requestId], continuationRequest);
-}
-
-void GoogleAIProvider::processStreamChunk(const QString &requestId, const QJsonObject &chunk)
-{
-    if (!chunk.contains("candidates")) {
-        return;
-    }
-
-    GoogleMessage *message = m_messages.value(requestId);
-    if (!message) {
-        message = new GoogleMessage(this);
-        m_messages[requestId] = message;
-        LOG_MESSAGE(QString("Created NEW GoogleMessage for request %1").arg(requestId));
-
-        if (m_dataBuffers.contains(requestId)) {
-            emit continuationStarted(requestId);
-            LOG_MESSAGE(QString("Starting continuation for request %1").arg(requestId));
-        }
-    } else if (
-        m_dataBuffers.contains(requestId)
-        && message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
-        message->startNewContinuation();
-        m_emittedThinkingBlocksCount[requestId] = 0;
-        LOG_MESSAGE(QString("Cleared message state for continuation request %1").arg(requestId));
-    }
-
-    QJsonArray candidates = chunk["candidates"].toArray();
-    for (const QJsonValue &candidate : candidates) {
-        QJsonObject candidateObj = candidate.toObject();
-
-        if (candidateObj.contains("content")) {
-            QJsonObject content = candidateObj["content"].toObject();
-            if (content.contains("parts")) {
-                QJsonArray parts = content["parts"].toArray();
-                for (const QJsonValue &part : parts) {
-                    QJsonObject partObj = part.toObject();
-
-                    if (partObj.contains("text")) {
-                        QString text = partObj["text"].toString();
-                        bool isThought = partObj.value("thought").toBool(false);
-                        
-                        if (isThought) {
-                            message->handleThoughtDelta(text);
-                            
-                            if (partObj.contains("signature")) {
-                                QString signature = partObj["signature"].toString();
-                                message->handleThoughtSignature(signature);
-                            }
-                        } else {
-                            emitPendingThinkingBlocks(requestId);
-                            
-                            message->handleContentDelta(text);
-
-                            PluginLLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
-                            buffers.responseContent += text;
-                            emit partialResponseReceived(requestId, text);
-                        }
-                    }
-                    
-                    if (partObj.contains("thoughtSignature")) {
-                        QString signature = partObj["thoughtSignature"].toString();
-                        message->handleThoughtSignature(signature);
-                    }
-                    
-                    if (partObj.contains("functionCall")) {
-                        emitPendingThinkingBlocks(requestId);
-                        
-                        QJsonObject functionCall = partObj["functionCall"].toObject();
-                        QString name = functionCall["name"].toString();
-                        QJsonObject args = functionCall["args"].toObject();
-
-                        message->handleFunctionCallStart(name);
-                        message->handleFunctionCallArgsDelta(
-                            QString::fromUtf8(QJsonDocument(args).toJson(QJsonDocument::Compact)));
-                        message->handleFunctionCallComplete();
-                    }
-                }
-            }
-        }
-
-        if (candidateObj.contains("finishReason")) {
-            QString finishReason = candidateObj["finishReason"].toString();
-            message->handleFinishReason(finishReason);
-            
-            if (message->isErrorFinishReason()) {
-                QString errorMessage = message->getErrorMessage();
-                LOG_MESSAGE(QString("Google AI error: %1").arg(errorMessage));
-                m_failedRequests.insert(requestId);
-                emit requestFailed(requestId, errorMessage);
-                return;
-            }
-        }
-    }
-    
-    if (chunk.contains("usageMetadata")) {
-        QJsonObject usageMetadata = chunk["usageMetadata"].toObject();
-        int thoughtsTokenCount = usageMetadata.value("thoughtsTokenCount").toInt(0);
-        int candidatesTokenCount = usageMetadata.value("candidatesTokenCount").toInt(0);
-        int totalTokenCount = usageMetadata.value("totalTokenCount").toInt(0);
-        
-        if (totalTokenCount > 0) {
-            LOG_MESSAGE(QString("Google AI tokens: %1 (thoughts: %2, output: %3)")
-                            .arg(totalTokenCount)
-                            .arg(thoughtsTokenCount)
-                            .arg(candidatesTokenCount));
-        }
-    }
-}
-
-void GoogleAIProvider::emitPendingThinkingBlocks(const QString &requestId)
-{
-    if (!m_messages.contains(requestId))
-        return;
-
-    GoogleMessage *message = m_messages[requestId];
-    auto thinkingBlocks = message->getCurrentThinkingContent();
-    
-    if (thinkingBlocks.isEmpty())
-        return;
-
-    int alreadyEmitted = m_emittedThinkingBlocksCount.value(requestId, 0);
-    int totalBlocks = thinkingBlocks.size();
-
-    for (int i = alreadyEmitted; i < totalBlocks; ++i) {
-        auto thinkingContent = thinkingBlocks[i];
-        
-        if (thinkingContent->thinking().trimmed().isEmpty()) {
-            continue;
-        }
-        
-        emit thinkingBlockReceived(
-            requestId, 
-            thinkingContent->thinking(), 
-            thinkingContent->signature());
-    }
-
-    m_emittedThinkingBlocksCount[requestId] = totalBlocks;
-}
-
-void GoogleAIProvider::handleMessageComplete(const QString &requestId)
-{
-    if (!m_messages.contains(requestId))
-        return;
-
-    GoogleMessage *message = m_messages[requestId];
-
-    if (message->state() == PluginLLMCore::MessageState::RequiresToolExecution) {
-        LOG_MESSAGE(QString("Google AI message requires tool execution for %1").arg(requestId));
-
-        auto toolUseContent = message->getCurrentToolUseContent();
-
-        if (toolUseContent.isEmpty()) {
-            LOG_MESSAGE(QString("No tools to execute for %1").arg(requestId));
-            return;
-        }
-
-        for (auto toolContent : toolUseContent) {
-            auto toolStringName = m_client->tools()->displayName(toolContent->name());
-            emit toolExecutionStarted(requestId, toolContent->id(), toolStringName);
-            m_client->tools()->executeToolCall(
-                requestId, toolContent->id(), toolContent->name(), toolContent->input());
-        }
-
-    } else {
-        LOG_MESSAGE(QString("Google AI message marked as complete for %1").arg(requestId));
-    }
-}
-
-void GoogleAIProvider::cleanupRequest(const PluginLLMCore::RequestID &requestId)
-{
-    LOG_MESSAGE(QString("Cleaning up Google AI request %1").arg(requestId));
-
-    if (m_messages.contains(requestId)) {
-        GoogleMessage *message = m_messages.take(requestId);
-        message->deleteLater();
-    }
-
-    m_dataBuffers.remove(requestId);
-    m_requestUrls.remove(requestId);
-    m_originalRequests.remove(requestId);
-    m_emittedThinkingBlocksCount.remove(requestId);
-    m_failedRequests.remove(requestId);
-    m_client->tools()->cleanupRequest(requestId);
+    m_awaitingContinuation.remove(requestId);
 }
 
 ::LLMCore::ToolsManager *GoogleAIProvider::toolsManager() const
