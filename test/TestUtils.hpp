@@ -18,7 +18,7 @@
  */
 
 #include <iostream>
-#include <llmcore/ContextData.hpp>
+#include <pluginllmcore/ContextData.hpp>
 #include <QString>
 
 QT_BEGIN_NAMESPACE
@@ -61,14 +61,14 @@ std::ostream &operator<<(std::ostream &out, const std::optional<T> &value)
 
 namespace QodeAssist::LLMCore {
 
-inline std::ostream &operator<<(std::ostream &out, const Message &value)
+inline std::ostream &operator<<(std::ostream &out, const PluginLLMCore::Message &value)
 {
     out << "Message{"
         << "role=" << value.role << "content=" << value.content << "}";
     return out;
 }
 
-inline std::ostream &operator<<(std::ostream &out, const ContextData &value)
+inline std::ostream &operator<<(std::ostream &out, const PluginLLMCore::ContextData &value)
 {
     out << "ContextData{"
         << "\n  systemPrompt=" << value.systemPrompt << "\n  prefix=" << value.prefix

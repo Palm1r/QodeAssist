@@ -249,19 +249,10 @@ void ClaudeProvider::sendRequest(
                     .arg(requestId, clientId, url.toString()));
 }
 
-bool ClaudeProvider::supportsTools() const
+PluginLLMCore::ProviderCapabilities ClaudeProvider::capabilities() const
 {
-    return true;
-}
-
-bool ClaudeProvider::supportThinking() const
-{
-    return true;
-}
-
-bool ClaudeProvider::supportImage() const
-{
-    return true;
+    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Thinking
+           | PluginLLMCore::ProviderCapability::Image;
 }
 
 void ClaudeProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)

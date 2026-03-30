@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <QFlags>
 #include <QFuture>
 #include <utils/environment.h>
 #include <QNetworkRequest>
@@ -37,6 +38,14 @@ class ToolsManager;
 class QJsonObject;
 
 namespace QodeAssist::PluginLLMCore {
+
+enum class ProviderCapability {
+    Tools    = 0x1,
+    Thinking = 0x2,
+    Image    = 0x4,
+};
+Q_DECLARE_FLAGS(ProviderCapabilities, ProviderCapability)
+Q_DECLARE_OPERATORS_FOR_FLAGS(ProviderCapabilities)
 
 class Provider : public QObject
 {
@@ -68,9 +77,7 @@ public:
     virtual void sendRequest(const RequestID &requestId, const QUrl &url, const QJsonObject &payload)
         = 0;
 
-    virtual bool supportsTools() const { return false; };
-    virtual bool supportThinking() const { return false; };
-    virtual bool supportImage() const { return false; };
+    virtual ProviderCapabilities capabilities() const { return {}; }
 
     virtual void cancelRequest(const RequestID &requestId) = 0;
 

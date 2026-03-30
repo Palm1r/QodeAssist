@@ -227,7 +227,8 @@ void ClientInterface::sendMessage(
         apiMessage.isRedacted = msg.isRedacted;
         apiMessage.signature = msg.signature;
 
-        if (provider->supportImage() && !m_chatFilePath.isEmpty() && !msg.images.isEmpty()) {
+        if (provider->capabilities().testFlag(PluginLLMCore::ProviderCapability::Image)
+            && !m_chatFilePath.isEmpty() && !msg.images.isEmpty()) {
             auto apiImages = loadImagesFromStorage(msg.images);
             if (!apiImages.isEmpty()) {
                 apiMessage.images = apiImages;
@@ -237,7 +238,8 @@ void ClientInterface::sendMessage(
         messages.append(apiMessage);
     }
 
-    if (!imageFiles.isEmpty() && !provider->supportImage()) {
+    if (!imageFiles.isEmpty()
+        && !provider->capabilities().testFlag(PluginLLMCore::ProviderCapability::Image)) {
         LOG_MESSAGE(QString("Provider %1 doesn't support images, %2 ignored")
                         .arg(provider->name(), QString::number(imageFiles.size())));
     }
@@ -330,7 +332,8 @@ void ClientInterface::sendMessage(
 
     provider->sendRequest(requestId, config.url, config.providerRequest);
     
-    if (provider->supportsTools() && provider->toolsManager()) {
+    if (provider->capabilities().testFlag(PluginLLMCore::ProviderCapability::Tools)
+        && provider->toolsManager()) {
         if (auto *todoTool = qobject_cast<QodeAssist::Tools::TodoTool *>(
                 provider->toolsManager()->tool("todo_tool"))) {
             todoTool->setCurrentSessionId(m_chatFilePath);
@@ -343,7 +346,8 @@ void ClientInterface::clearMessages()
     const auto providerName = Settings::generalSettings().caProvider();
     auto *provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
-    if (provider && !m_chatFilePath.isEmpty() && provider->supportsTools()
+    if (provider && !m_chatFilePath.isEmpty()
+        && provider->capabilities().testFlag(PluginLLMCore::ProviderCapability::Tools)
         && provider->toolsManager()) {
         if (auto *todoTool = qobject_cast<QodeAssist::Tools::TodoTool *>(
                 provider->toolsManager()->tool("todo_tool"))) {
@@ -628,7 +632,9 @@ void ClientInterface::setChatFilePath(const QString &filePath)
         const auto providerName = Settings::generalSettings().caProvider();
         auto *provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
-        if (provider && provider->supportsTools() && provider->toolsManager()) {
+        if (provider
+            && provider->capabilities().testFlag(PluginLLMCore::ProviderCapability::Tools)
+            && provider->toolsManager()) {
             if (auto *todoTool = qobject_cast<QodeAssist::Tools::TodoTool *>(
                     provider->toolsManager()->tool("todo_tool"))) {
                 todoTool->clearSession(m_chatFilePath);

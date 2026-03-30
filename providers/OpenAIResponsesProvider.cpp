@@ -292,19 +292,10 @@ void OpenAIResponsesProvider::sendRequest(
                     .arg(requestId, clientId, url.toString()));
 }
 
-bool OpenAIResponsesProvider::supportsTools() const
+PluginLLMCore::ProviderCapabilities OpenAIResponsesProvider::capabilities() const
 {
-    return true;
-}
-
-bool OpenAIResponsesProvider::supportImage() const
-{
-    return true;
-}
-
-bool OpenAIResponsesProvider::supportThinking() const
-{
-    return true;
+    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Thinking
+           | PluginLLMCore::ProviderCapability::Image;
 }
 
 void OpenAIResponsesProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)

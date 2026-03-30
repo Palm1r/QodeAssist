@@ -272,19 +272,10 @@ void OllamaProvider::sendRequest(
                     .arg(requestId, clientId, url.toString()));
 }
 
-bool OllamaProvider::supportsTools() const
+PluginLLMCore::ProviderCapabilities OllamaProvider::capabilities() const
 {
-    return true;
-}
-
-bool OllamaProvider::supportImage() const
-{
-    return true;
-}
-
-bool OllamaProvider::supportThinking() const
-{
-    return true;
+    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Thinking
+           | PluginLLMCore::ProviderCapability::Image;
 }
 
 void OllamaProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)

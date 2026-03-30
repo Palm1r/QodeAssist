@@ -237,14 +237,9 @@ void LlamaCppProvider::sendRequest(
                     .arg(requestId, clientId, url.toString()));
 }
 
-bool LlamaCppProvider::supportsTools() const
+PluginLLMCore::ProviderCapabilities LlamaCppProvider::capabilities() const
 {
-    return true;
-}
-
-bool LlamaCppProvider::supportImage() const
-{
-    return true;
+    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image;
 }
 
 void LlamaCppProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)

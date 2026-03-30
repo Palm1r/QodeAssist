@@ -254,14 +254,9 @@ void OpenAIProvider::sendRequest(
                     .arg(requestId, clientId, url.toString()));
 }
 
-bool OpenAIProvider::supportsTools() const
+PluginLLMCore::ProviderCapabilities OpenAIProvider::capabilities() const
 {
-    return true;
-}
-
-bool OpenAIProvider::supportImage() const
-{
-    return true;
+    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image;
 }
 
 void OpenAIProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)

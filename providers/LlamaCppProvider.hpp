@@ -54,8 +54,7 @@ public:
     void sendRequest(
         const PluginLLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload) override;
 
-    bool supportsTools() const override;
-    bool supportImage() const override;
+    PluginLLMCore::ProviderCapabilities capabilities() const override;
     void cancelRequest(const PluginLLMCore::RequestID &requestId) override;
 
     ::LLMCore::ToolsManager *toolsManager() const override;

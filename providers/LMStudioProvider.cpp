@@ -177,14 +177,9 @@ void LMStudioProvider::sendRequest(
                     .arg(requestId, clientId, url.toString()));
 }
 
-bool LMStudioProvider::supportsTools() const
+PluginLLMCore::ProviderCapabilities LMStudioProvider::capabilities() const
 {
-    return true;
-}
-
-bool LMStudioProvider::supportImage() const
-{
-    return true;
+    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image;
 }
 
 void LMStudioProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)

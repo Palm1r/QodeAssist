@@ -189,14 +189,9 @@ void MistralAIProvider::sendRequest(
                     .arg(requestId, clientId, url.toString()));
 }
 
-bool MistralAIProvider::supportsTools() const
+PluginLLMCore::ProviderCapabilities MistralAIProvider::capabilities() const
 {
-    return true;
-}
-
-bool MistralAIProvider::supportImage() const
-{
-    return true;
+    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image;
 }
 
 void MistralAIProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)

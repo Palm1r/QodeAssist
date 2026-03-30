@@ -265,19 +265,10 @@ void GoogleAIProvider::sendRequest(
                     .arg(requestId, clientId, url.toString()));
 }
 
-bool GoogleAIProvider::supportsTools() const
+PluginLLMCore::ProviderCapabilities GoogleAIProvider::capabilities() const
 {
-    return true;
-}
-
-bool GoogleAIProvider::supportThinking() const
-{
-    return true;
-}
-
-bool GoogleAIProvider::supportImage() const
-{
-    return true;
+    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Thinking
+           | PluginLLMCore::ProviderCapability::Image;
 }
 
 void GoogleAIProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)
