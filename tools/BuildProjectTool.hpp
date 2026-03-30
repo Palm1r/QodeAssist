@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <pluginllmcore/BaseTool.hpp>
+#include <LLMCore/BaseTool.hpp>
 #include <QHash>
 #include <QObject>
 #include <QPointer>
@@ -42,18 +42,17 @@ struct BuildInfo
     QMetaObject::Connection buildFinishedConnection;
 };
 
-class BuildProjectTool : public PluginLLMCore::BaseTool
+class BuildProjectTool : public ::LLMCore::BaseTool
 {
     Q_OBJECT
 public:
     explicit BuildProjectTool(QObject *parent = nullptr);
     ~BuildProjectTool() override;
 
-    QString name() const override;
-    QString stringName() const override;
+    QString id() const override;
+    QString displayName() const override;
     QString description() const override;
-    QJsonObject getDefinition(PluginLLMCore::ToolSchemaFormat format) const override;
-    PluginLLMCore::ToolPermissions requiredPermissions() const override;
+    QJsonObject parametersSchema() const override;
 
     QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
 

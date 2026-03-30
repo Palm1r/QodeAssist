@@ -20,7 +20,7 @@
 #pragma once
 
 #include "OpenAIResponsesMessage.hpp"
-#include "tools/ToolsManager.hpp"
+#include <LLMCore/OpenAIResponsesClient.hpp>
 #include <pluginllmcore/Provider.hpp>
 
 namespace QodeAssist::Providers {
@@ -57,6 +57,8 @@ public:
     bool supportThinking() const override;
     void cancelRequest(const PluginLLMCore::RequestID &requestId) override;
 
+    ::LLMCore::ToolsManager *toolsManager() const override;
+
 public slots:
     void onDataReceived(
         const QodeAssist::PluginLLMCore::RequestID &requestId, const QByteArray &data) override;
@@ -79,7 +81,7 @@ private:
     QHash<PluginLLMCore::RequestID, QJsonObject> m_originalRequests;
     QHash<PluginLLMCore::RequestID, QHash<QString, QString>> m_itemIdToCallId;
     QHash<PluginLLMCore::RequestID, int> m_emittedThinkingBlocksCount;
-    Tools::ToolsManager *m_toolsManager;
+    ::LLMCore::OpenAIResponsesClient *m_client;
 };
 
 } // namespace QodeAssist::Providers

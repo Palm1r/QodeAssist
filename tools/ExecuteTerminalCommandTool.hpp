@@ -19,22 +19,21 @@
 
 #pragma once
 
-#include <pluginllmcore/BaseTool.hpp>
+#include <LLMCore/BaseTool.hpp>
 #include <QObject>
 
 namespace QodeAssist::Tools {
 
-class ExecuteTerminalCommandTool : public PluginLLMCore::BaseTool
+class ExecuteTerminalCommandTool : public ::LLMCore::BaseTool
 {
     Q_OBJECT
 public:
     explicit ExecuteTerminalCommandTool(QObject *parent = nullptr);
 
-    QString name() const override;
-    QString stringName() const override;
+    QString id() const override;
+    QString displayName() const override;
     QString description() const override;
-    QJsonObject getDefinition(PluginLLMCore::ToolSchemaFormat format) const override;
-    PluginLLMCore::ToolPermissions requiredPermissions() const override;
+    QJsonObject parametersSchema() const override;
 
     QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
 

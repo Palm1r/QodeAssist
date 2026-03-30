@@ -22,7 +22,7 @@
 #include <pluginllmcore/Provider.hpp>
 
 #include "ClaudeMessage.hpp"
-#include "tools/ToolsManager.hpp"
+#include <LLMCore/ClaudeClient.hpp>
 
 namespace QodeAssist::Providers {
 
@@ -58,7 +58,7 @@ public:
     bool supportImage() const override;
     void cancelRequest(const PluginLLMCore::RequestID &requestId) override;
     
-    PluginLLMCore::IToolsManager *toolsManager() const override;
+    ::LLMCore::ToolsManager *toolsManager() const override;
 
 public slots:
     void onDataReceived(
@@ -79,7 +79,7 @@ private:
     QHash<QodeAssist::PluginLLMCore::RequestID, ClaudeMessage *> m_messages;
     QHash<QodeAssist::PluginLLMCore::RequestID, QUrl> m_requestUrls;
     QHash<QodeAssist::PluginLLMCore::RequestID, QJsonObject> m_originalRequests;
-    Tools::ToolsManager *m_toolsManager;
+    ::LLMCore::ClaudeClient *m_client;
 };
 
 } // namespace QodeAssist::Providers

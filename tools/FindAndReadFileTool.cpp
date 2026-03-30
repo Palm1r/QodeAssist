@@ -32,12 +32,12 @@ FindAndReadFileTool::FindAndReadFileTool(QObject *parent)
     , m_ignoreManager(new Context::IgnoreManager(this))
 {}
 
-QString FindAndReadFileTool::name() const
+QString FindAndReadFileTool::id() const
 {
     return "find_and_read_file";
 }
 
-QString FindAndReadFileTool::stringName() const
+QString FindAndReadFileTool::displayName() const
 {
     return "Finding and reading file";
 }
@@ -48,7 +48,7 @@ QString FindAndReadFileTool::description() const
            "Returns the best matching file and its content.";
 }
 
-QJsonObject FindAndReadFileTool::getDefinition(PluginLLMCore::ToolSchemaFormat format) const
+QJsonObject FindAndReadFileTool::parametersSchema() const
 {
     QJsonObject properties;
 
@@ -68,22 +68,7 @@ QJsonObject FindAndReadFileTool::getDefinition(PluginLLMCore::ToolSchemaFormat f
     definition["properties"] = properties;
     definition["required"] = QJsonArray{"query"};
 
-    switch (format) {
-    case PluginLLMCore::ToolSchemaFormat::OpenAI:
-        return customizeForOpenAI(definition);
-    case PluginLLMCore::ToolSchemaFormat::Claude:
-        return customizeForClaude(definition);
-    case PluginLLMCore::ToolSchemaFormat::Ollama:
-        return customizeForOllama(definition);
-    case PluginLLMCore::ToolSchemaFormat::Google:
-        return customizeForGoogle(definition);
-    }
     return definition;
-}
-
-PluginLLMCore::ToolPermissions FindAndReadFileTool::requiredPermissions() const
-{
-    return PluginLLMCore::ToolPermission::FileSystemRead;
 }
 
 QFuture<QString> FindAndReadFileTool::executeAsync(const QJsonObject &input)

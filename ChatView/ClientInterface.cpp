@@ -40,6 +40,10 @@
 #include <texteditor/textdocument.h>
 #include <texteditor/texteditor.h>
 
+#include <LLMCore/ToolsManager.hpp>
+
+#include "tools/TodoTool.hpp"
+
 #include "ChatAssistantSettings.hpp"
 #include "ChatSerializer.hpp"
 #include "GeneralSettings.hpp"
@@ -177,7 +181,7 @@ void ClientInterface::sendMessage(
             if (auto target = project->activeTarget()) {
                 if (auto buildConfig = target->activeBuildConfiguration()) {
                     systemPrompt += QString("\n# Active Build directory: %1")
-                                        .arg(buildConfig->buildDirectory().toUrlishString());
+                    .arg(buildConfig->buildDirectory().toUrlishString());
                 }
             }
 
@@ -327,7 +331,10 @@ void ClientInterface::sendMessage(
     provider->sendRequest(requestId, config.url, config.providerRequest);
     
     if (provider->supportsTools() && provider->toolsManager()) {
-        provider->toolsManager()->setCurrentSessionId(m_chatFilePath);
+        if (auto *todoTool = qobject_cast<QodeAssist::Tools::TodoTool *>(
+                provider->toolsManager()->tool("todo_tool"))) {
+            todoTool->setCurrentSessionId(m_chatFilePath);
+        }
     }
 }
 
@@ -338,7 +345,10 @@ void ClientInterface::clearMessages()
 
     if (provider && !m_chatFilePath.isEmpty() && provider->supportsTools()
         && provider->toolsManager()) {
-        provider->toolsManager()->clearTodoSession(m_chatFilePath);
+        if (auto *todoTool = qobject_cast<QodeAssist::Tools::TodoTool *>(
+                provider->toolsManager()->tool("todo_tool"))) {
+            todoTool->clearSession(m_chatFilePath);
+        }
     }
 
     m_chatModel->clear();
@@ -619,7 +629,10 @@ void ClientInterface::setChatFilePath(const QString &filePath)
         auto *provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
         if (provider && provider->supportsTools() && provider->toolsManager()) {
-            provider->toolsManager()->clearTodoSession(m_chatFilePath);
+            if (auto *todoTool = qobject_cast<QodeAssist::Tools::TodoTool *>(
+                    provider->toolsManager()->tool("todo_tool"))) {
+                todoTool->clearSession(m_chatFilePath);
+            }
         }
     }
 

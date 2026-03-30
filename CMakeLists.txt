@@ -35,7 +35,7 @@ add_definitions(
 )
 
 add_subdirectory(pluginllmcore)
-# add_subdirectory(sources/external/llmcore)
+add_subdirectory(sources/external/llmcore)
 add_subdirectory(settings)
 add_subdirectory(logger)
 add_subdirectory(UIControls)
@@ -63,6 +63,7 @@ add_qtc_plugin(QodeAssist
     QtCreator::Utils
     QtCreator::CPlusPlus
     QodeAssistChatViewplugin
+    LLMCore
   SOURCES
     .github/workflows/build_cmake.yml
     .github/workflows/README.md
@@ -142,10 +143,8 @@ add_qtc_plugin(QodeAssist
     widgets/DiffStatistics.hpp
 
     QuickRefactorHandler.hpp QuickRefactorHandler.cpp
-    tools/ToolsFactory.hpp tools/ToolsFactory.cpp
-    tools/ToolHandler.hpp tools/ToolHandler.cpp
+    tools/ToolsRegistration.hpp tools/ToolsRegistration.cpp
     tools/ListProjectFilesTool.hpp tools/ListProjectFilesTool.cpp
-    tools/ToolsManager.hpp tools/ToolsManager.cpp
     tools/GetIssuesListTool.hpp tools/GetIssuesListTool.cpp
     tools/CreateNewFileTool.hpp tools/CreateNewFileTool.cpp
     tools/EditFileTool.hpp tools/EditFileTool.cpp

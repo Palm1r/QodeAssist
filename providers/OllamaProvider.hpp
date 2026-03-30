@@ -22,7 +22,7 @@
 #include <pluginllmcore/Provider.hpp>
 
 #include "OllamaMessage.hpp"
-#include "tools/ToolsManager.hpp"
+#include <LLMCore/OllamaClient.hpp>
 
 namespace QodeAssist::Providers {
 
@@ -58,6 +58,8 @@ public:
     bool supportThinking() const override;
     void cancelRequest(const PluginLLMCore::RequestID &requestId) override;
 
+    ::LLMCore::ToolsManager *toolsManager() const override;
+
 public slots:
     void onDataReceived(
         const QodeAssist::PluginLLMCore::RequestID &requestId, const QByteArray &data) override;
@@ -80,7 +82,7 @@ private:
     QHash<QodeAssist::PluginLLMCore::RequestID, QJsonObject> m_originalRequests;
     QSet<QString> m_thinkingEmitted;
     QSet<QString> m_thinkingStarted;
-    Tools::ToolsManager *m_toolsManager;
+    ::LLMCore::OllamaClient *m_client;
 };
 
 } // namespace QodeAssist::Providers

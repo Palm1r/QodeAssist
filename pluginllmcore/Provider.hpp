@@ -34,6 +34,10 @@
 #include "PromptTemplate.hpp"
 #include "RequestType.hpp"
 
+namespace LLMCore {
+class ToolsManager;
+}
+
 class QNetworkReply;
 class QJsonObject;
 
@@ -75,7 +79,7 @@ public:
 
     virtual void cancelRequest(const RequestID &requestId);
 
-    virtual IToolsManager *toolsManager() const { return nullptr; }
+    virtual ::LLMCore::ToolsManager *toolsManager() const { return nullptr; }
 
     HttpClient *httpClient() const;
 

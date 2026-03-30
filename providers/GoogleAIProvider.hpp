@@ -21,7 +21,7 @@
 
 #include "GoogleMessage.hpp"
 #include "pluginllmcore/Provider.hpp"
-#include "tools/ToolsManager.hpp"
+#include <LLMCore/GoogleAIClient.hpp>
 
 namespace QodeAssist::Providers {
 
@@ -57,6 +57,8 @@ public:
     bool supportImage() const override;
     void cancelRequest(const PluginLLMCore::RequestID &requestId) override;
 
+    ::LLMCore::ToolsManager *toolsManager() const override;
+
 public slots:
     void onDataReceived(
         const QodeAssist::PluginLLMCore::RequestID &requestId, const QByteArray &data) override;
@@ -79,7 +81,7 @@ private:
     QHash<PluginLLMCore::RequestID, QJsonObject> m_originalRequests;
     QHash<PluginLLMCore::RequestID, int> m_emittedThinkingBlocksCount;
     QSet<PluginLLMCore::RequestID> m_failedRequests;
-    Tools::ToolsManager *m_toolsManager;
+    ::LLMCore::GoogleAIClient *m_client;
 };
 
 } // namespace QodeAssist::Providers

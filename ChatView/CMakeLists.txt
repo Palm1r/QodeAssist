@@ -85,6 +85,7 @@ target_link_libraries(QodeAssistChatView
     Context
     QodeAssistUIControlsplugin
     QodeAssistLogger
+    LLMCore
 )
 
 target_include_directories(QodeAssistChatView

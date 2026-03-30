@@ -41,12 +41,12 @@ ExecuteTerminalCommandTool::ExecuteTerminalCommandTool(QObject *parent)
 {
 }
 
-QString ExecuteTerminalCommandTool::name() const
+QString ExecuteTerminalCommandTool::id() const
 {
     return "execute_terminal_command";
 }
 
-QString ExecuteTerminalCommandTool::stringName() const
+QString ExecuteTerminalCommandTool::displayName() const
 {
     return "Executing terminal command";
 }
@@ -56,7 +56,7 @@ QString ExecuteTerminalCommandTool::description() const
     return getCommandDescription();
 }
 
-QJsonObject ExecuteTerminalCommandTool::getDefinition(PluginLLMCore::ToolSchemaFormat format) const
+QJsonObject ExecuteTerminalCommandTool::parametersSchema() const
 {
     QJsonObject definition;
     definition["type"] = "object";
@@ -70,32 +70,14 @@ QJsonObject ExecuteTerminalCommandTool::getDefinition(PluginLLMCore::ToolSchemaF
 
     properties["args"] = QJsonObject{
         {"type", "string"},
-        {"description", 
+        {"description",
          "Optional arguments for the command. Arguments with spaces should be properly quoted. "
          "Example: '--file \"path with spaces.txt\" --verbose'"}};
 
     definition["properties"] = properties;
     definition["required"] = QJsonArray{"command"};
 
-    switch (format) {
-    case PluginLLMCore::ToolSchemaFormat::OpenAI:
-        return customizeForOpenAI(definition);
-    case PluginLLMCore::ToolSchemaFormat::Claude:
-        return customizeForClaude(definition);
-    case PluginLLMCore::ToolSchemaFormat::Ollama:
-        return customizeForOllama(definition);
-    case PluginLLMCore::ToolSchemaFormat::Google:
-        return customizeForGoogle(definition);
-    }
-
     return definition;
-}
-
-PluginLLMCore::ToolPermissions ExecuteTerminalCommandTool::requiredPermissions() const
-{
-    return PluginLLMCore::ToolPermission::FileSystemRead 
-         | PluginLLMCore::ToolPermission::FileSystemWrite 
-         | PluginLLMCore::ToolPermission::NetworkAccess;
 }
 
 QFuture<QString> ExecuteTerminalCommandTool::executeAsync(const QJsonObject &input)

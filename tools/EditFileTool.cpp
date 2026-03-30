@@ -39,12 +39,12 @@ EditFileTool::EditFileTool(QObject *parent)
     : BaseTool(parent)
 {}
 
-QString EditFileTool::name() const
+QString EditFileTool::id() const
 {
     return "edit_file";
 }
 
-QString EditFileTool::stringName() const
+QString EditFileTool::displayName() const
 {
     return {"Editing file"};
 }
@@ -71,7 +71,7 @@ QString EditFileTool::description() const
            "disabled auto-apply. DO NOT retry the same edit - wait for user action.";
 }
 
-QJsonObject EditFileTool::getDefinition(PluginLLMCore::ToolSchemaFormat format) const
+QJsonObject EditFileTool::parametersSchema() const
 {
     QJsonObject properties;
 
@@ -104,23 +104,7 @@ QJsonObject EditFileTool::getDefinition(PluginLLMCore::ToolSchemaFormat format) 
     required.append("new_content");
     definition["required"] = required;
 
-    switch (format) {
-    case PluginLLMCore::ToolSchemaFormat::OpenAI:
-        return customizeForOpenAI(definition);
-    case PluginLLMCore::ToolSchemaFormat::Claude:
-        return customizeForClaude(definition);
-    case PluginLLMCore::ToolSchemaFormat::Ollama:
-        return customizeForOllama(definition);
-    case PluginLLMCore::ToolSchemaFormat::Google:
-        return customizeForGoogle(definition);
-    }
-
     return definition;
-}
-
-PluginLLMCore::ToolPermissions EditFileTool::requiredPermissions() const
-{
-    return PluginLLMCore::ToolPermission::FileSystemWrite;
 }
 
 QFuture<QString> EditFileTool::executeAsync(const QJsonObject &input)

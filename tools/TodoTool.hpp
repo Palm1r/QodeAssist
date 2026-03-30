@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <pluginllmcore/BaseTool.hpp>
+#include <LLMCore/BaseTool.hpp>
 
 #include <QHash>
 #include <QMutex>
@@ -34,21 +34,21 @@ struct TodoItem
     bool completed;
 };
 
-class TodoTool : public PluginLLMCore::BaseTool
+class TodoTool : public ::LLMCore::BaseTool
 {
     Q_OBJECT
 
 public:
     explicit TodoTool(QObject *parent = nullptr);
 
-    QString name() const override;
-    QString stringName() const override;
+    QString id() const override;
+    QString displayName() const override;
     QString description() const override;
-    QJsonObject getDefinition(PluginLLMCore::ToolSchemaFormat format) const override;
-    PluginLLMCore::ToolPermissions requiredPermissions() const override;
+    QJsonObject parametersSchema() const override;
 
     QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
 
+    void setCurrentSessionId(const QString &sessionId);
     void clearSession(const QString &sessionId);
 
 private:
@@ -59,6 +59,7 @@ private:
     QString listRemainingTodosLocked(const QString &sessionId) const;
 
     mutable QMutex m_mutex;
+    QString m_currentSessionId;
     QHash<QString, QHash<int, TodoItem>> m_sessionTodos;
     QHash<QString, int> m_sessionNextId;
 };

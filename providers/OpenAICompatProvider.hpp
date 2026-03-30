@@ -20,7 +20,7 @@
 #pragma once
 
 #include "OpenAIMessage.hpp"
-#include "tools/ToolsManager.hpp"
+#include <LLMCore/OpenAIClient.hpp>
 #include <pluginllmcore/Provider.hpp>
 
 namespace QodeAssist::Providers {
@@ -56,6 +56,8 @@ public:
     bool supportImage() const override;
     void cancelRequest(const PluginLLMCore::RequestID &requestId) override;
 
+    ::LLMCore::ToolsManager *toolsManager() const override;
+
 public slots:
     void onDataReceived(
         const QodeAssist::PluginLLMCore::RequestID &requestId, const QByteArray &data) override;
@@ -75,7 +77,7 @@ private:
     QHash<PluginLLMCore::RequestID, OpenAIMessage *> m_messages;
     QHash<PluginLLMCore::RequestID, QUrl> m_requestUrls;
     QHash<PluginLLMCore::RequestID, QJsonObject> m_originalRequests;
-    Tools::ToolsManager *m_toolsManager;
+    ::LLMCore::OpenAIClient *m_client;
 };
 
 } // namespace QodeAssist::Providers

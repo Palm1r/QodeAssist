@@ -18,7 +18,9 @@
  */
 
 #include "OpenAIResponsesProvider.hpp"
+#include <LLMCore/ToolsManager.hpp>
 #include "OpenAIResponses/ResponseObject.hpp"
+#include "tools/ToolsRegistration.hpp"
 
 #include "pluginllmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
@@ -36,11 +38,13 @@ namespace QodeAssist::Providers {
 
 OpenAIResponsesProvider::OpenAIResponsesProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
-    , m_toolsManager(new Tools::ToolsManager(this))
+    , m_client(new ::LLMCore::OpenAIResponsesClient(url(), apiKey(), QString(), this))
 {
+    Tools::registerQodeAssistTools(m_client->tools());
+
     connect(
-        m_toolsManager,
-        &Tools::ToolsManager::toolExecutionComplete,
+        m_client->tools(),
+        &::LLMCore::ToolsManager::toolExecutionComplete,
         this,
         &OpenAIResponsesProvider::onToolExecutionComplete);
 }
@@ -133,7 +137,7 @@ void OpenAIResponsesProvider::prepareRequest(
                                                    : PluginLLMCore::RunToolsFilter::ALL;
 
         const auto toolsDefinitions
-            = m_toolsManager->getToolsDefinitions(PluginLLMCore::ToolSchemaFormat::OpenAI, filter);
+            = m_client->tools()->getToolsDefinitions();
         if (!toolsDefinitions.isEmpty()) {
             QJsonArray responsesTools;
 
@@ -579,10 +583,10 @@ void OpenAIResponsesProvider::handleMessageComplete(const QString &requestId)
         }
 
         for (const auto *toolContent : toolUseContent) {
-            const auto toolStringName = m_toolsManager->toolsFactory()->getStringName(
+            const auto toolStringName = m_client->tools()->displayName(
                 toolContent->name());
             emit toolExecutionStarted(requestId, toolContent->id(), toolStringName);
-            m_toolsManager->executeToolCall(
+            m_client->tools()->executeToolCall(
                 requestId, toolContent->id(), toolContent->name(), toolContent->input());
         }
     }
@@ -604,7 +608,7 @@ void OpenAIResponsesProvider::onToolExecutionComplete(
     for (auto it = toolResults.constBegin(); it != toolResults.constEnd(); ++it) {
         for (const auto *tool : toolContent) {
             if (tool->id() == it.key()) {
-                const auto toolStringName = m_toolsManager->toolsFactory()->getStringName(
+                const auto toolStringName = m_client->tools()->displayName(
                     tool->name());
                 emit toolExecutionCompleted(
                     requestId, tool->id(), toolStringName, toolResults[tool->id()]);
@@ -645,7 +649,12 @@ void OpenAIResponsesProvider::cleanupRequest(const PluginLLMCore::RequestID &req
     m_originalRequests.remove(requestId);
     m_itemIdToCallId.remove(requestId);
     m_emittedThinkingBlocksCount.remove(requestId);
-    m_toolsManager->cleanupRequest(requestId);
+    m_client->tools()->cleanupRequest(requestId);
+}
+
+::LLMCore::ToolsManager *OpenAIResponsesProvider::toolsManager() const
+{
+    return m_client->tools();
 }
 
 } // namespace QodeAssist::Providers

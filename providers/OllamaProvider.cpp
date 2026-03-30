@@ -19,7 +19,10 @@
 
 #include "OllamaProvider.hpp"
 
+#include <LLMCore/ToolsManager.hpp>
+
 #include <QJsonArray>
+#include "tools/ToolsRegistration.hpp"
 #include <QJsonDocument>
 #include <QJsonObject>
 
@@ -35,11 +38,13 @@ namespace QodeAssist::Providers {
 
 OllamaProvider::OllamaProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
-    , m_toolsManager(new Tools::ToolsManager(this))
+    , m_client(new ::LLMCore::OllamaClient(url(), apiKey(), QString(), this))
 {
+    Tools::registerQodeAssistTools(m_client->tools());
+
     connect(
-        m_toolsManager,
-        &Tools::ToolsManager::toolExecutionComplete,
+        m_client->tools(),
+        &::LLMCore::ToolsManager::toolExecutionComplete,
         this,
         &OllamaProvider::onToolExecutionComplete);
 }
@@ -135,8 +140,7 @@ void OllamaProvider::prepareRequest(
             filter = PluginLLMCore::RunToolsFilter::OnlyRead;
         }
 
-        auto toolsDefinitions = m_toolsManager->toolsFactory()->getToolsDefinitions(
-            PluginLLMCore::ToolSchemaFormat::Ollama, filter);
+        auto toolsDefinitions = m_client->tools()->getToolsDefinitions();
         if (!toolsDefinitions.isEmpty()) {
             request["tools"] = toolsDefinitions;
             LOG_MESSAGE(
@@ -358,7 +362,7 @@ void OllamaProvider::onToolExecutionComplete(
         auto toolContent = message->getCurrentToolUseContent();
         for (auto tool : toolContent) {
             if (tool->id() == it.key()) {
-                auto toolStringName = m_toolsManager->toolsFactory()->getStringName(tool->name());
+                auto toolStringName = m_client->tools()->displayName(tool->name());
                 emit toolExecutionCompleted(requestId, tool->id(), toolStringName, it.value());
                 break;
             }
@@ -534,7 +538,7 @@ void OllamaProvider::handleMessageComplete(const QString &requestId)
         }
 
         for (auto toolContent : toolUseContent) {
-            auto toolStringName = m_toolsManager->toolsFactory()->getStringName(toolContent->name());
+            auto toolStringName = m_client->tools()->displayName(toolContent->name());
             emit toolExecutionStarted(requestId, toolContent->id(), toolStringName);
 
             LOG_MESSAGE(
@@ -545,7 +549,7 @@ void OllamaProvider::handleMessageComplete(const QString &requestId)
                         QString::fromUtf8(
                             QJsonDocument(toolContent->input()).toJson(QJsonDocument::Compact))));
 
-            m_toolsManager->executeToolCall(
+            m_client->tools()->executeToolCall(
                 requestId, toolContent->id(), toolContent->name(), toolContent->input());
         }
 
@@ -568,7 +572,7 @@ void OllamaProvider::cleanupRequest(const PluginLLMCore::RequestID &requestId)
     m_originalRequests.remove(requestId);
     m_thinkingEmitted.remove(requestId);
     m_thinkingStarted.remove(requestId);
-    m_toolsManager->cleanupRequest(requestId);
+    m_client->tools()->cleanupRequest(requestId);
 }
 
 void OllamaProvider::emitThinkingBlocks(const QString &requestId, OllamaMessage *message)
@@ -592,6 +596,11 @@ void OllamaProvider::emitThinkingBlocks(const QString &requestId, OllamaMessage 
                         .arg(thinkingContent->signature().length()));
     }
     m_thinkingEmitted.insert(requestId);
+}
+
+::LLMCore::ToolsManager *OllamaProvider::toolsManager() const
+{
+    return m_client->tools();
 }
 
 } // namespace QodeAssist::Providers

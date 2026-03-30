@@ -19,7 +19,10 @@
 
 #include "GoogleAIProvider.hpp"
 
+#include <LLMCore/ToolsManager.hpp>
+
 #include <QJsonArray>
+#include "tools/ToolsRegistration.hpp"
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QtCore/qurlquery.h>
@@ -36,11 +39,13 @@ namespace QodeAssist::Providers {
 
 GoogleAIProvider::GoogleAIProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
-    , m_toolsManager(new Tools::ToolsManager(this))
+    , m_client(new ::LLMCore::GoogleAIClient(url(), apiKey(), QString(), this))
 {
+    Tools::registerQodeAssistTools(m_client->tools());
+
     connect(
-        m_toolsManager,
-        &Tools::ToolsManager::toolExecutionComplete,
+        m_client->tools(),
+        &::LLMCore::ToolsManager::toolExecutionComplete,
         this,
         &GoogleAIProvider::onToolExecutionComplete);
 }
@@ -145,8 +150,7 @@ void GoogleAIProvider::prepareRequest(
             filter = PluginLLMCore::RunToolsFilter::OnlyRead;
         }
 
-        auto toolsDefinitions = m_toolsManager->getToolsDefinitions(
-            PluginLLMCore::ToolSchemaFormat::Google, filter);
+        auto toolsDefinitions = m_client->tools()->getToolsDefinitions();
         if (!toolsDefinitions.isEmpty()) {
             request["tools"] = toolsDefinitions;
             LOG_MESSAGE(QString("Added %1 tools to Google AI request").arg(toolsDefinitions.size()));
@@ -365,7 +369,7 @@ void GoogleAIProvider::onToolExecutionComplete(
         auto toolContent = message->getCurrentToolUseContent();
         for (auto tool : toolContent) {
             if (tool->id() == it.key()) {
-                auto toolStringName = m_toolsManager->toolsFactory()->getStringName(tool->name());
+                auto toolStringName = m_client->tools()->displayName(tool->name());
                 emit toolExecutionCompleted(
                     requestId, tool->id(), toolStringName, toolResults[tool->id()]);
                 break;
@@ -544,9 +548,9 @@ void GoogleAIProvider::handleMessageComplete(const QString &requestId)
         }
 
         for (auto toolContent : toolUseContent) {
-            auto toolStringName = m_toolsManager->toolsFactory()->getStringName(toolContent->name());
+            auto toolStringName = m_client->tools()->displayName(toolContent->name());
             emit toolExecutionStarted(requestId, toolContent->id(), toolStringName);
-            m_toolsManager->executeToolCall(
+            m_client->tools()->executeToolCall(
                 requestId, toolContent->id(), toolContent->name(), toolContent->input());
         }
 
@@ -569,7 +573,12 @@ void GoogleAIProvider::cleanupRequest(const PluginLLMCore::RequestID &requestId)
     m_originalRequests.remove(requestId);
     m_emittedThinkingBlocksCount.remove(requestId);
     m_failedRequests.remove(requestId);
-    m_toolsManager->cleanupRequest(requestId);
+    m_client->tools()->cleanupRequest(requestId);
+}
+
+::LLMCore::ToolsManager *GoogleAIProvider::toolsManager() const
+{
+    return m_client->tools();
 }
 
 } // namespace QodeAssist::Providers

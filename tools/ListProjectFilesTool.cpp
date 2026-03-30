@@ -37,12 +37,12 @@ ListProjectFilesTool::ListProjectFilesTool(QObject *parent)
 
 {}
 
-QString ListProjectFilesTool::name() const
+QString ListProjectFilesTool::id() const
 {
     return "list_project_files";
 }
 
-QString ListProjectFilesTool::stringName() const
+QString ListProjectFilesTool::displayName() const
 {
     return {"Reading project files list"};
 }
@@ -53,30 +53,14 @@ QString ListProjectFilesTool::description() const
            "Useful for understanding project structure. No parameters required.";
 }
 
-QJsonObject ListProjectFilesTool::getDefinition(PluginLLMCore::ToolSchemaFormat format) const
+QJsonObject ListProjectFilesTool::parametersSchema() const
 {
     QJsonObject definition;
     definition["type"] = "object";
     definition["properties"] = QJsonObject();
     definition["required"] = QJsonArray();
 
-    switch (format) {
-    case PluginLLMCore::ToolSchemaFormat::OpenAI:
-        return customizeForOpenAI(definition);
-    case PluginLLMCore::ToolSchemaFormat::Claude:
-        return customizeForClaude(definition);
-    case PluginLLMCore::ToolSchemaFormat::Ollama:
-        return customizeForOllama(definition);
-    case PluginLLMCore::ToolSchemaFormat::Google:
-        return customizeForGoogle(definition);
-    }
-
     return definition;
-}
-
-PluginLLMCore::ToolPermissions ListProjectFilesTool::requiredPermissions() const
-{
-    return PluginLLMCore::ToolPermission::FileSystemRead;
 }
 
 QFuture<QString> ListProjectFilesTool::executeAsync(const QJsonObject &input)

@@ -24,6 +24,8 @@
 #include <QJsonObject>
 #include <QUrlQuery>
 
+#include <LLMCore/ToolsManager.hpp>
+
 #include "pluginllmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
@@ -31,16 +33,19 @@
 #include "settings/QuickRefactorSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProviderSettings.hpp"
+#include "tools/ToolsRegistration.hpp"
 
 namespace QodeAssist::Providers {
 
 ClaudeProvider::ClaudeProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
-    , m_toolsManager(new Tools::ToolsManager(this))
+    , m_client(new ::LLMCore::ClaudeClient(url(), apiKey(), QString(), this))
 {
+    Tools::registerQodeAssistTools(m_client->tools());
+
     connect(
-        m_toolsManager,
-        &Tools::ToolsManager::toolExecutionComplete,
+        m_client->tools(),
+        &::LLMCore::ToolsManager::toolExecutionComplete,
         this,
         &ClaudeProvider::onToolExecutionComplete);
 }
@@ -131,8 +136,8 @@ void ClaudeProvider::prepareRequest(
             filter = PluginLLMCore::RunToolsFilter::OnlyRead;
         }
 
-        auto toolsDefinitions = m_toolsManager->getToolsDefinitions(
-            PluginLLMCore::ToolSchemaFormat::Claude, filter);
+        auto toolsDefinitions = m_client->tools()->getToolsDefinitions();
+
         if (!toolsDefinitions.isEmpty()) {
             request["tools"] = toolsDefinitions;
             LOG_MESSAGE(QString("Added %1 tools to Claude request").arg(toolsDefinitions.size()));
@@ -252,9 +257,9 @@ void ClaudeProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)
     cleanupRequest(requestId);
 }
 
-PluginLLMCore::IToolsManager *ClaudeProvider::toolsManager() const
+::LLMCore::ToolsManager *ClaudeProvider::toolsManager() const
 {
-    return m_toolsManager;
+    return m_client->tools();
 }
 
 void ClaudeProvider::onDataReceived(
@@ -318,7 +323,7 @@ void ClaudeProvider::onToolExecutionComplete(
         auto toolContent = message->getCurrentToolUseContent();
         for (auto tool : toolContent) {
             if (tool->id() == it.key()) {
-                auto toolStringName = m_toolsManager->toolsFactory()->getStringName(tool->name());
+                auto toolStringName = m_client->tools()->displayName(tool->name());
                 emit toolExecutionCompleted(
                     requestId, tool->id(), toolStringName, toolResults[tool->id()]);
                 break;
@@ -434,7 +439,7 @@ void ClaudeProvider::processStreamEvent(const QString &requestId, const QJsonObj
                 if (!signature.isEmpty()) {
                     auto allBlocks = message->getCurrentBlocks();
                     if (index < allBlocks.size()) {
-                        if (auto thinkingContent = qobject_cast<PluginLLMCore::ThinkingContent *>(allBlocks[index])) {
+                        if (auto thinkingContent = dynamic_cast<::LLMCore::ThinkingContent *>(allBlocks[index])) {
                             thinkingContent->setSignature(signature);
                             LOG_MESSAGE(
                                 QString("Updated thinking block signature from content_block_stop, "
@@ -448,7 +453,7 @@ void ClaudeProvider::processStreamEvent(const QString &requestId, const QJsonObj
                 if (!signature.isEmpty()) {
                     auto allBlocks = message->getCurrentBlocks();
                     if (index < allBlocks.size()) {
-                        if (auto redactedContent = qobject_cast<PluginLLMCore::RedactedThinkingContent *>(allBlocks[index])) {
+                        if (auto redactedContent = dynamic_cast<::LLMCore::RedactedThinkingContent *>(allBlocks[index])) {
                             redactedContent->setSignature(signature);
                             LOG_MESSAGE(
                                 QString("Updated redacted_thinking block signature from content_block_stop, "
@@ -518,10 +523,10 @@ void ClaudeProvider::handleMessageComplete(const QString &requestId)
         }
 
         for (auto toolContent : toolUseContent) {
-            auto toolStringName = m_toolsManager->toolsFactory()->getStringName(toolContent->name());
+            auto toolStringName = m_client->tools()->displayName(toolContent->name());
             emit toolExecutionStarted(requestId, toolContent->id(), toolStringName);
             
-            m_toolsManager->executeToolCall(
+            m_client->tools()->executeToolCall(
                 requestId, toolContent->id(), toolContent->name(), toolContent->input());
         }
 
@@ -542,7 +547,7 @@ void ClaudeProvider::cleanupRequest(const PluginLLMCore::RequestID &requestId)
     m_dataBuffers.remove(requestId);
     m_requestUrls.remove(requestId);
     m_originalRequests.remove(requestId);
-    m_toolsManager->cleanupRequest(requestId);
+    m_client->tools()->cleanupRequest(requestId);
 }
 
 } // namespace QodeAssist::Providers
