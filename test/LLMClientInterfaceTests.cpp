@@ -83,12 +83,6 @@ public:
         return QtFuture::makeReadyFuture(QList<QString>{});
     }
 
-    QStringList validateRequest(
-        const QJsonObject &request, LLMCore::TemplateType templateType) override
-    {
-        return {};
-    }
-
     QString apiKey() const override { return "mock_api_key"; }
     void prepareNetworkRequest(QNetworkRequest &request) const override {}
     LLMCore::ProviderID providerID() const override { return LLMCore::ProviderID::OpenAI; }

@@ -25,7 +25,6 @@
 
 #include <LLMCore/ToolsManager.hpp>
 
-#include "pluginllmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -134,26 +133,6 @@ QFuture<QList<QString>> ClaudeProvider::getInstalledModels(const QString &baseUr
     m_client->setUrl(baseUrl);
     m_client->setApiKey(apiKey());
     return m_client->listModels();
-}
-
-QList<QString> ClaudeProvider::validateRequest(
-    const QJsonObject &request, PluginLLMCore::TemplateType type)
-{
-    const auto templateReq = QJsonObject{
-        {"model", {}},
-        {"system", {}},
-        {"messages", QJsonArray{{QJsonObject{{"role", {}}, {"content", {}}}}}},
-        {"temperature", {}},
-        {"max_tokens", {}},
-        {"anthropic-version", {}},
-        {"top_p", {}},
-        {"top_k", {}},
-        {"stop", QJsonArray{}},
-        {"stream", {}},
-        {"tools", {}},
-        {"thinking", QJsonObject{{"type", {}}, {"budget_tokens", {}}}}};
-
-    return PluginLLMCore::ValidationUtils::validateRequestFields(request, templateReq);
 }
 
 QString ClaudeProvider::apiKey() const

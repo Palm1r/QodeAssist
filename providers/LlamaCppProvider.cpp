@@ -20,7 +20,6 @@
 #include "LlamaCppProvider.hpp"
 
 #include <LLMCore/ToolsManager.hpp>
-#include "pluginllmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -109,44 +108,6 @@ void LlamaCppProvider::prepareRequest(
 QFuture<QList<QString>> LlamaCppProvider::getInstalledModels(const QString &)
 {
     return QtFuture::makeReadyFuture(QList<QString>{});
-}
-
-QList<QString> LlamaCppProvider::validateRequest(
-    const QJsonObject &request, PluginLLMCore::TemplateType type)
-{
-    if (type == PluginLLMCore::TemplateType::FIM) {
-        const auto infillReq = QJsonObject{
-            {"model", {}},
-            {"input_prefix", {}},
-            {"input_suffix", {}},
-            {"input_extra", {}},
-            {"prompt", {}},
-            {"temperature", {}},
-            {"top_p", {}},
-            {"top_k", {}},
-            {"max_tokens", {}},
-            {"frequency_penalty", {}},
-            {"presence_penalty", {}},
-            {"stop", QJsonArray{}},
-            {"stream", {}}};
-
-        return PluginLLMCore::ValidationUtils::validateRequestFields(request, infillReq);
-    } else {
-        const auto chatReq = QJsonObject{
-            {"model", {}},
-            {"messages", QJsonArray{{QJsonObject{{"role", {}}, {"content", {}}}}}},
-            {"temperature", {}},
-            {"max_tokens", {}},
-            {"top_p", {}},
-            {"top_k", {}},
-            {"frequency_penalty", {}},
-            {"presence_penalty", {}},
-            {"stop", QJsonArray{}},
-            {"stream", {}},
-            {"tools", {}}};
-
-        return PluginLLMCore::ValidationUtils::validateRequestFields(request, chatReq);
-    }
 }
 
 QString LlamaCppProvider::apiKey() const

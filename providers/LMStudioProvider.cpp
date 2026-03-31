@@ -21,7 +21,6 @@
 
 #include <LLMCore/ToolsManager.hpp>
 
-#include "pluginllmcore/ValidationUtils.hpp"
 #include "tools/ToolsRegistration.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
@@ -68,25 +67,6 @@ QFuture<QList<QString>> LMStudioProvider::getInstalledModels(const QString &url)
     m_client->setUrl(url);
     m_client->setApiKey(apiKey());
     return m_client->listModels();
-}
-
-QList<QString> LMStudioProvider::validateRequest(
-    const QJsonObject &request, PluginLLMCore::TemplateType type)
-{
-    const auto templateReq = QJsonObject{
-        {"model", {}},
-        {"messages", QJsonArray{{QJsonObject{{"role", {}}, {"content", {}}}}}},
-        {"temperature", {}},
-        {"max_tokens", {}},
-        {"top_p", {}},
-        {"top_k", {}},
-        {"frequency_penalty", {}},
-        {"presence_penalty", {}},
-        {"stop", QJsonArray{}},
-        {"stream", {}},
-        {"tools", {}}};
-
-    return PluginLLMCore::ValidationUtils::validateRequestFields(request, templateReq);
 }
 
 QString LMStudioProvider::apiKey() const

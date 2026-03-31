@@ -10,7 +10,6 @@ add_library(PluginLLMCore STATIC
     PromptTemplate.hpp
     PromptTemplateManager.hpp PromptTemplateManager.cpp
     RequestConfig.hpp
-    ValidationUtils.hpp ValidationUtils.cpp
     ProviderID.hpp
     HttpClient.hpp HttpClient.cpp
     DataBuffers.hpp

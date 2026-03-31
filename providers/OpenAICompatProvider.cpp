@@ -20,7 +20,6 @@
 #include "OpenAICompatProvider.hpp"
 #include <LLMCore/ToolsManager.hpp>
 
-#include "pluginllmcore/ValidationUtils.hpp"
 #include "tools/ToolsRegistration.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
@@ -111,25 +110,6 @@ void OpenAICompatProvider::prepareRequest(
 QFuture<QList<QString>> OpenAICompatProvider::getInstalledModels(const QString &)
 {
     return QtFuture::makeReadyFuture(QList<QString>{});
-}
-
-QList<QString> OpenAICompatProvider::validateRequest(
-    const QJsonObject &request, PluginLLMCore::TemplateType type)
-{
-    const auto templateReq = QJsonObject{
-        {"model", {}},
-        {"messages", QJsonArray{{QJsonObject{{"role", {}}, {"content", {}}}}}},
-        {"temperature", {}},
-        {"max_tokens", {}},
-        {"top_p", {}},
-        {"top_k", {}},
-        {"frequency_penalty", {}},
-        {"presence_penalty", {}},
-        {"stop", QJsonArray{}},
-        {"stream", {}},
-        {"tools", {}}};
-
-    return PluginLLMCore::ValidationUtils::validateRequestFields(request, templateReq);
 }
 
 QString OpenAICompatProvider::apiKey() const

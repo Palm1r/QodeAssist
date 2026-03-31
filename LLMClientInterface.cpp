@@ -350,15 +350,6 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         false,
         false);
 
-    auto errors = config.provider->validateRequest(config.providerRequest, promptTemplate->type());
-    if (!errors.isEmpty()) {
-        QString error = QString("Request validation failed: %1").arg(errors.join("; "));
-        LOG_MESSAGE("Validate errors for request:");
-        LOG_MESSAGES(errors);
-        sendErrorResponse(request, error);
-        return;
-    }
-
     connect(
         provider->client(),
         &::LLMCore::BaseClient::requestCompleted,

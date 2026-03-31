@@ -27,7 +27,6 @@
 #include <QJsonObject>
 #include <QtCore/qurlquery.h>
 
-#include "pluginllmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -147,28 +146,6 @@ QFuture<QList<QString>> GoogleAIProvider::getInstalledModels(const QString &base
     m_client->setUrl(baseUrl);
     m_client->setApiKey(apiKey());
     return m_client->listModels();
-}
-
-QList<QString> GoogleAIProvider::validateRequest(
-    const QJsonObject &request, PluginLLMCore::TemplateType type)
-{
-    QJsonObject templateReq;
-
-    templateReq = QJsonObject{
-        {"contents", QJsonArray{}},
-        {"system_instruction", QJsonArray{}},
-        {"generationConfig",
-         QJsonObject{
-             {"temperature", {}},
-             {"maxOutputTokens", {}},
-             {"topP", {}},
-             {"topK", {}},
-             {"thinkingConfig",
-              QJsonObject{{"thinkingBudget", {}}, {"includeThoughts", {}}}}}},
-        {"safetySettings", QJsonArray{}},
-        {"tools", QJsonArray{}}};
-
-    return PluginLLMCore::ValidationUtils::validateRequestFields(request, templateReq);
 }
 
 QString GoogleAIProvider::apiKey() const

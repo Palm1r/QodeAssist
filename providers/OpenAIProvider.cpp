@@ -21,7 +21,6 @@
 
 #include <LLMCore/ToolsManager.hpp>
 #include "tools/ToolsRegistration.hpp"
-#include "pluginllmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -141,25 +140,6 @@ QFuture<QList<QString>> OpenAIProvider::getInstalledModels(const QString &baseUr
         }
         return filtered;
     });
-}
-
-QList<QString> OpenAIProvider::validateRequest(const QJsonObject &request, PluginLLMCore::TemplateType type)
-{
-    const auto templateReq = QJsonObject{
-        {"model", {}},
-        {"messages", QJsonArray{{QJsonObject{{"role", {}}, {"content", {}}}}}},
-        {"temperature", {}},
-        {"max_tokens", {}},
-        {"max_completion_tokens", {}}, // New parameter for newer models
-        {"top_p", {}},
-        {"top_k", {}},
-        {"frequency_penalty", {}},
-        {"presence_penalty", {}},
-        {"stop", QJsonArray{}},
-        {"stream", {}},
-        {"tools", {}}};
-
-    return PluginLLMCore::ValidationUtils::validateRequestFields(request, templateReq);
 }
 
 QString OpenAIProvider::apiKey() const

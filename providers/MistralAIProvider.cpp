@@ -20,7 +20,6 @@
 #include "MistralAIProvider.hpp"
 
 #include <LLMCore/ToolsManager.hpp>
-#include "pluginllmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -67,34 +66,6 @@ QFuture<QList<QString>> MistralAIProvider::getInstalledModels(const QString &url
     m_client->setUrl(url);
     m_client->setApiKey(apiKey());
     return m_client->listModels();
-}
-
-QList<QString> MistralAIProvider::validateRequest(
-    const QJsonObject &request, PluginLLMCore::TemplateType type)
-{
-    const auto fimReq = QJsonObject{
-        {"model", {}},
-        {"max_tokens", {}},
-        {"stream", {}},
-        {"temperature", {}},
-        {"prompt", {}},
-        {"suffix", {}}};
-
-    const auto templateReq = QJsonObject{
-        {"model", {}},
-        {"messages", QJsonArray{{QJsonObject{{"role", {}}, {"content", {}}}}}},
-        {"temperature", {}},
-        {"max_tokens", {}},
-        {"top_p", {}},
-        {"top_k", {}},
-        {"frequency_penalty", {}},
-        {"presence_penalty", {}},
-        {"stop", QJsonArray{}},
-        {"stream", {}},
-        {"tools", {}}};
-
-    return PluginLLMCore::ValidationUtils::validateRequestFields(
-        request, type == PluginLLMCore::TemplateType::FIM ? fimReq : templateReq);
 }
 
 QString MistralAIProvider::apiKey() const

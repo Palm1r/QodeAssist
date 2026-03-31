@@ -25,7 +25,6 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
-#include "pluginllmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -138,46 +137,6 @@ QFuture<QList<QString>> OllamaProvider::getInstalledModels(const QString &baseUr
     m_client->setUrl(baseUrl);
     m_client->setApiKey(Settings::providerSettings().ollamaBasicAuthApiKey());
     return m_client->listModels();
-}
-
-QList<QString> OllamaProvider::validateRequest(const QJsonObject &request, PluginLLMCore::TemplateType type)
-{
-    const auto fimReq = QJsonObject{
-        {"keep_alive", {}},
-        {"model", {}},
-        {"stream", {}},
-        {"prompt", {}},
-        {"suffix", {}},
-        {"system", {}},
-        {"images", QJsonArray{}},
-        {"options",
-         QJsonObject{
-             {"temperature", {}},
-             {"stop", {}},
-             {"top_p", {}},
-             {"top_k", {}},
-             {"num_predict", {}},
-             {"frequency_penalty", {}},
-             {"presence_penalty", {}}}}};
-
-    const auto messageReq = QJsonObject{
-        {"keep_alive", {}},
-        {"model", {}},
-        {"stream", {}},
-        {"messages", QJsonArray{{QJsonObject{{"role", {}}, {"content", {}}, {"images", QJsonArray{}}}}}},
-        {"tools", QJsonArray{}},
-        {"options",
-         QJsonObject{
-             {"temperature", {}},
-             {"stop", {}},
-             {"top_p", {}},
-             {"top_k", {}},
-             {"num_predict", {}},
-             {"frequency_penalty", {}},
-             {"presence_penalty", {}}}}};
-
-    return PluginLLMCore::ValidationUtils::validateRequestFields(
-        request, type == PluginLLMCore::TemplateType::FIM ? fimReq : messageReq);
 }
 
 QString OllamaProvider::apiKey() const

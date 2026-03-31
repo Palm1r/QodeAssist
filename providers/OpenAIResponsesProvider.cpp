@@ -21,7 +21,6 @@
 #include <LLMCore/ToolsManager.hpp>
 #include "tools/ToolsRegistration.hpp"
 
-#include "pluginllmcore/ValidationUtils.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -161,46 +160,6 @@ QFuture<QList<QString>> OpenAIResponsesProvider::getInstalledModels(const QStrin
         }
         return filtered;
     });
-}
-
-QList<QString> OpenAIResponsesProvider::validateRequest(
-    const QJsonObject &request, PluginLLMCore::TemplateType type)
-{
-    Q_UNUSED(type);
-
-    QList<QString> errors;
-
-    if (!request.contains("input")) {
-        errors.append("Missing required field: input");
-        return errors;
-    }
-
-    const QJsonValue inputValue = request["input"];
-    if (!inputValue.isString() && !inputValue.isArray()) {
-        errors.append("Field 'input' must be either a string or an array");
-    }
-
-    if (request.contains("max_output_tokens") && !request["max_output_tokens"].isDouble()) {
-        errors.append("Field 'max_output_tokens' must be a number");
-    }
-
-    if (request.contains("top_p") && !request["top_p"].isDouble()) {
-        errors.append("Field 'top_p' must be a number");
-    }
-
-    if (request.contains("reasoning") && !request["reasoning"].isObject()) {
-        errors.append("Field 'reasoning' must be an object");
-    }
-
-    if (request.contains("stream") && !request["stream"].isBool()) {
-        errors.append("Field 'stream' must be a boolean");
-    }
-
-    if (request.contains("tools") && !request["tools"].isArray()) {
-        errors.append("Field 'tools' must be an array");
-    }
-
-    return errors;
 }
 
 QString OpenAIResponsesProvider::apiKey() const
