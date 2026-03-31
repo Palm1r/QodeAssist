@@ -24,6 +24,19 @@
 #include <QSharedPointer>
 #include <QTextDocument>
 
+namespace QodeAssist::PluginLLMCore {
+
+void PrintTo(const ContextData &data, std::ostream *os)
+{
+    *os << "ContextData{prefix="
+        << (data.prefix ? data.prefix->toStdString() : "<nullopt>")
+        << ", suffix=" << (data.suffix ? data.suffix->toStdString() : "<nullopt>")
+        << ", fileContext=" << (data.fileContext ? data.fileContext->toStdString() : "<nullopt>")
+        << "}";
+}
+
+} // namespace QodeAssist::PluginLLMCore
+
 using namespace QodeAssist::Context;
 using namespace QodeAssist::LLMCore;
 using namespace QodeAssist::Settings;
