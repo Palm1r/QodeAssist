@@ -17,6 +17,8 @@ target_link_libraries(QodeAssistTest PRIVATE
     GTest::Main
     QtCreator::LanguageClient
     Context
+    PluginLLMCore
+    LLMCore
 )
 
 target_compile_definitions(QodeAssistTest PRIVATE CMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")

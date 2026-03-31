@@ -20,6 +20,7 @@
 #pragma once
 
 #include <QObject>
+#include <QSet>
 #include <QString>
 #include <QVector>
 
@@ -62,10 +63,8 @@ private slots:
     void handlePartialResponse(const QString &requestId, const QString &partialText);
     void handleFullResponse(const QString &requestId, const QString &fullText);
     void handleRequestFailed(const QString &requestId, const QString &error);
-    void handleCleanAccumulatedData(const QString &requestId);
     void handleThinkingBlockReceived(
         const QString &requestId, const QString &thinking, const QString &signature);
-    void handleRedactedThinkingBlockReceived(const QString &requestId, const QString &signature);
     void handleToolExecutionStarted(
         const QString &requestId, const QString &toolId, const QString &toolName);
     void handleToolExecutionCompleted(
@@ -97,6 +96,7 @@ private:
 
     QHash<QString, RequestContext> m_activeRequests;
     QHash<QString, QString> m_accumulatedResponses;
+    QSet<QString> m_awaitingContinuation;
 };
 
 } // namespace QodeAssist::Chat

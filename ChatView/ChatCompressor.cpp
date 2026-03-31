@@ -18,6 +18,8 @@
  */
 
 #include "ChatCompressor.hpp"
+
+#include <LLMCore/BaseClient.hpp>
 #include "ChatModel.hpp"
 #include "GeneralSettings.hpp"
 #include "PromptTemplateManager.hpp"
@@ -76,7 +78,6 @@ void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *ch
     m_chatModel = chatModel;
     m_originalChatPath = chatFilePath;
     m_accumulatedSummary.clear();
-    m_currentRequestId = QUuid::createUuid().toString(QUuid::WithoutBraces);
 
     emit compressionStarted();
 
@@ -98,8 +99,8 @@ void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *ch
 
     buildRequestPayload(payload, promptTemplate);
 
+    m_currentRequestId = m_provider->sendRequest(requestUrl, payload);
     LOG_MESSAGE(QString("Starting compression request: %1").arg(m_currentRequestId));
-    m_provider->sendRequest(m_currentRequestId, requestUrl, payload);
 }
 
 bool ChatCompressor::isCompressing() const
@@ -266,23 +267,25 @@ bool ChatCompressor::createCompressedChatFile(
 
 void ChatCompressor::connectProviderSignals()
 {
+    auto *c = m_provider->client();
+
     m_connections.append(connect(
-        m_provider,
-        &PluginLLMCore::Provider::partialResponseReceived,
+        c,
+        &::LLMCore::BaseClient::chunkReceived,
         this,
         &ChatCompressor::onPartialResponseReceived,
         Qt::UniqueConnection));
 
     m_connections.append(connect(
-        m_provider,
-        &PluginLLMCore::Provider::fullResponseReceived,
+        c,
+        &::LLMCore::BaseClient::requestCompleted,
         this,
         &ChatCompressor::onFullResponseReceived,
         Qt::UniqueConnection));
 
     m_connections.append(connect(
-        m_provider,
-        &PluginLLMCore::Provider::requestFailed,
+        c,
+        &::LLMCore::BaseClient::requestFailed,
         this,
         &ChatCompressor::onRequestFailed,
         Qt::UniqueConnection));

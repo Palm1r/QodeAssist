@@ -19,6 +19,8 @@
 
 #include "ClientInterface.hpp"
 
+#include <LLMCore/BaseClient.hpp>
+
 #include <projectexplorer/buildconfiguration.h>
 #include <projectexplorer/target.h>
 #include <texteditor/textdocument.h>
@@ -274,63 +276,49 @@ void ClientInterface::sendMessage(
         useTools,
         useThinking);
 
-    QString requestId = QUuid::createUuid().toString();
+    connect(
+        provider->client(),
+        &::LLMCore::BaseClient::chunkReceived,
+        this,
+        &ClientInterface::handlePartialResponse,
+        Qt::UniqueConnection);
+    connect(
+        provider->client(),
+        &::LLMCore::BaseClient::requestCompleted,
+        this,
+        &ClientInterface::handleFullResponse,
+        Qt::UniqueConnection);
+    connect(
+        provider->client(),
+        &::LLMCore::BaseClient::requestFailed,
+        this,
+        &ClientInterface::handleRequestFailed,
+        Qt::UniqueConnection);
+    connect(
+        provider->client(),
+        &::LLMCore::BaseClient::toolStarted,
+        this,
+        &ClientInterface::handleToolExecutionStarted,
+        Qt::UniqueConnection);
+    connect(
+        provider->client(),
+        &::LLMCore::BaseClient::toolResultReady,
+        this,
+        &ClientInterface::handleToolExecutionCompleted,
+        Qt::UniqueConnection);
+    connect(
+        provider->client(),
+        &::LLMCore::BaseClient::thinkingBlockReceived,
+        this,
+        &ClientInterface::handleThinkingBlockReceived,
+        Qt::UniqueConnection);
+
+    auto requestId = provider->sendRequest(config.url, config.providerRequest);
     QJsonObject request{{"id", requestId}};
 
     m_activeRequests[requestId] = {request, provider};
 
     emit requestStarted(requestId);
-
-    connect(
-        provider,
-        &PluginLLMCore::Provider::partialResponseReceived,
-        this,
-        &ClientInterface::handlePartialResponse,
-        Qt::UniqueConnection);
-    connect(
-        provider,
-        &PluginLLMCore::Provider::fullResponseReceived,
-        this,
-        &ClientInterface::handleFullResponse,
-        Qt::UniqueConnection);
-    connect(
-        provider,
-        &PluginLLMCore::Provider::requestFailed,
-        this,
-        &ClientInterface::handleRequestFailed,
-        Qt::UniqueConnection);
-    connect(
-        provider,
-        &PluginLLMCore::Provider::toolExecutionStarted,
-        this,
-        &ClientInterface::handleToolExecutionStarted,
-        Qt::UniqueConnection);
-    connect(
-        provider,
-        &PluginLLMCore::Provider::toolExecutionCompleted,
-        this,
-        &ClientInterface::handleToolExecutionCompleted,
-        Qt::UniqueConnection);
-    connect(
-        provider,
-        &PluginLLMCore::Provider::continuationStarted,
-        this,
-        &ClientInterface::handleCleanAccumulatedData,
-        Qt::UniqueConnection);
-    connect(
-        provider,
-        &PluginLLMCore::Provider::thinkingBlockReceived,
-        this,
-        &ClientInterface::handleThinkingBlockReceived,
-        Qt::UniqueConnection);
-    connect(
-        provider,
-        &PluginLLMCore::Provider::redactedThinkingBlockReceived,
-        this,
-        &ClientInterface::handleRedactedThinkingBlockReceived,
-        Qt::UniqueConnection);
-
-    provider->sendRequest(requestId, config.url, config.providerRequest);
     
     if (provider->capabilities().testFlag(PluginLLMCore::ProviderCapability::Tools)
         && provider->toolsManager()) {
@@ -368,7 +356,7 @@ void ClientInterface::cancelRequest()
     }
 
     for (auto *provider : providers) {
-        disconnect(provider, nullptr, this, nullptr);
+        disconnect(provider->client(), nullptr, this, nullptr);
     }
 
     for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
@@ -380,6 +368,7 @@ void ClientInterface::cancelRequest()
 
     m_activeRequests.clear();
     m_accumulatedResponses.clear();
+    m_awaitingContinuation.clear();
 
     LOG_MESSAGE("All requests cancelled and state cleared");
 }
@@ -446,6 +435,12 @@ void ClientInterface::handlePartialResponse(const QString &requestId, const QStr
     if (it == m_activeRequests.end())
         return;
 
+    if (m_awaitingContinuation.remove(requestId)) {
+        m_accumulatedResponses[requestId].clear();
+        LOG_MESSAGE(
+            QString("Cleared accumulated responses for continuation request %1").arg(requestId));
+    }
+
     m_accumulatedResponses[requestId] += partialText;
 
     const RequestContext &ctx = it.value();
@@ -476,12 +471,9 @@ void ClientInterface::handleFullResponse(const QString &requestId, const QString
         + ": " + finalText);
     emit messageReceivedCompletely();
 
-    if (it != m_activeRequests.end()) {
-        m_activeRequests.erase(it);
-    }
-    if (m_accumulatedResponses.contains(requestId)) {
-        m_accumulatedResponses.remove(requestId);
-    }
+    m_activeRequests.erase(it);
+    m_accumulatedResponses.remove(requestId);
+    m_awaitingContinuation.remove(requestId);
 }
 
 void ClientInterface::handleRequestFailed(const QString &requestId, const QString &error)
@@ -493,18 +485,9 @@ void ClientInterface::handleRequestFailed(const QString &requestId, const QStrin
     LOG_MESSAGE(QString("Chat request %1 failed: %2").arg(requestId, error));
     emit errorOccurred(error);
 
-    if (it != m_activeRequests.end()) {
-        m_activeRequests.erase(it);
-    }
-    if (m_accumulatedResponses.contains(requestId)) {
-        m_accumulatedResponses.remove(requestId);
-    }
-}
-
-void ClientInterface::handleCleanAccumulatedData(const QString &requestId)
-{
-    m_accumulatedResponses[requestId].clear();
-    LOG_MESSAGE(QString("Cleared accumulated responses for continuation request %1").arg(requestId));
+    m_activeRequests.erase(it);
+    m_accumulatedResponses.remove(requestId);
+    m_awaitingContinuation.remove(requestId);
 }
 
 void ClientInterface::handleThinkingBlockReceived(
@@ -515,19 +498,17 @@ void ClientInterface::handleThinkingBlockReceived(
         return;
     }
 
-    m_chatModel->addThinkingBlock(requestId, thinking, signature);
-}
-
-void ClientInterface::handleRedactedThinkingBlockReceived(
-    const QString &requestId, const QString &signature)
-{
-    if (!m_activeRequests.contains(requestId)) {
+    if (m_awaitingContinuation.remove(requestId)) {
+        m_accumulatedResponses[requestId].clear();
         LOG_MESSAGE(
-            QString("Ignoring redacted thinking block for non-chat request: %1").arg(requestId));
-        return;
+            QString("Cleared accumulated responses for continuation request %1").arg(requestId));
     }
 
-    m_chatModel->addRedactedThinkingBlock(requestId, signature);
+    if (thinking.isEmpty()) {
+        m_chatModel->addRedactedThinkingBlock(requestId, signature);
+    } else {
+        m_chatModel->addThinkingBlock(requestId, thinking, signature);
+    }
 }
 
 void ClientInterface::handleToolExecutionStarted(
@@ -539,6 +520,7 @@ void ClientInterface::handleToolExecutionStarted(
     }
 
     m_chatModel->addToolExecutionStatus(requestId, toolId, toolName);
+    m_awaitingContinuation.insert(requestId);
 }
 
 void ClientInterface::handleToolExecutionCompleted(

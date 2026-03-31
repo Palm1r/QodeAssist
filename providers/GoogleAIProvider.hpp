@@ -19,8 +19,6 @@
 
 #pragma once
 
-#include <QSet>
-
 #include <pluginllmcore/Provider.hpp>
 
 #include <LLMCore/GoogleAIClient.hpp>
@@ -49,20 +47,12 @@ public:
     QString apiKey() const override;
     void prepareNetworkRequest(QNetworkRequest &networkRequest) const override;
     PluginLLMCore::ProviderID providerID() const override;
-
-    void sendRequest(
-        const PluginLLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload) override;
-
     PluginLLMCore::ProviderCapabilities capabilities() const override;
-    void cancelRequest(const PluginLLMCore::RequestID &requestId) override;
 
-    ::LLMCore::ToolsManager *toolsManager() const override;
+    ::LLMCore::BaseClient *client() const override;
 
 private:
     ::LLMCore::GoogleAIClient *m_client;
-    QHash<PluginLLMCore::RequestID, ::LLMCore::RequestID> m_providerToClientIds;
-    QHash<::LLMCore::RequestID, PluginLLMCore::RequestID> m_clientToProviderIds;
-    QSet<PluginLLMCore::RequestID> m_awaitingContinuation;
 };
 
 } // namespace QodeAssist::Providers

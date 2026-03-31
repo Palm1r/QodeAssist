@@ -19,6 +19,7 @@
 
 #include "QuickRefactorHandler.hpp"
 
+#include <LLMCore/BaseClient.hpp>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QUuid>
@@ -173,29 +174,27 @@ void QuickRefactorHandler::prepareAndSendRequest(
         enableTools,
         enableThinking);
 
-    QString requestId = QUuid::createUuid().toString();
-    m_lastRequestId = requestId;
-    QJsonObject request{{"id", requestId}};
-
     m_isRefactoringInProgress = true;
 
-    m_activeRequests[requestId] = {request, provider};
-
     connect(
-        provider,
-        &PluginLLMCore::Provider::fullResponseReceived,
+        provider->client(),
+        &::LLMCore::BaseClient::requestCompleted,
         this,
         &QuickRefactorHandler::handleFullResponse,
         Qt::UniqueConnection);
 
     connect(
-        provider,
-        &PluginLLMCore::Provider::requestFailed,
+        provider->client(),
+        &::LLMCore::BaseClient::requestFailed,
         this,
         &QuickRefactorHandler::handleRequestFailed,
         Qt::UniqueConnection);
 
-    provider->sendRequest(requestId, config.url, config.providerRequest);
+    auto requestId = provider->sendRequest(config.url, config.providerRequest);
+    m_lastRequestId = requestId;
+    QJsonObject request{{"id", requestId}};
+
+    m_activeRequests[requestId] = {request, provider};
 }
 
 PluginLLMCore::ContextData QuickRefactorHandler::prepareContext(

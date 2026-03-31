@@ -28,6 +28,7 @@ target_link_libraries(PluginLLMCore
     QtCreator::Core
     QtCreator::Utils
     QtCreator::ExtensionSystem
+    LLMCore
     PRIVATE
     QodeAssistLogger
 )

@@ -19,6 +19,7 @@
 
 #include "LLMClientInterface.hpp"
 
+#include <LLMCore/BaseClient.hpp>
 #include <QJsonDocument>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -122,8 +123,6 @@ void LLMClientInterface::sendData(const QByteArray &data)
     } else if (method == "textDocument/didOpen") {
         handleTextDocumentDidOpen(request);
     } else if (method == "getCompletionsCycling") {
-        QString requestId = request["id"].toString();
-        m_performanceLogger.startTimeMeasurement(requestId);
         handleCompletion(request);
     } else if (method == "$/cancelRequest") {
         handleCancelRequest();
@@ -144,7 +143,7 @@ void LLMClientInterface::handleCancelRequest()
     }
 
     for (auto *provider : providers) {
-        disconnect(provider, nullptr, this, nullptr);
+        disconnect(provider->client(), nullptr, this, nullptr);
     }
 
     for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
@@ -360,25 +359,22 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         return;
     }
 
-    QString requestId = request["id"].toString();
-    m_performanceLogger.startTimeMeasurement(requestId);
-
-    m_activeRequests[requestId] = {request, provider};
-
     connect(
-        provider,
-        &PluginLLMCore::Provider::fullResponseReceived,
+        provider->client(),
+        &::LLMCore::BaseClient::requestCompleted,
         this,
         &LLMClientInterface::handleFullResponse,
         Qt::UniqueConnection);
     connect(
-        provider,
-        &PluginLLMCore::Provider::requestFailed,
+        provider->client(),
+        &::LLMCore::BaseClient::requestFailed,
         this,
         &LLMClientInterface::handleRequestFailed,
         Qt::UniqueConnection);
 
-    provider->sendRequest(requestId, config.url, config.providerRequest);
+    auto requestId = provider->sendRequest(config.url, config.providerRequest);
+    m_activeRequests[requestId] = {request, provider};
+    m_performanceLogger.startTimeMeasurement(requestId);
 }
 
 PluginLLMCore::ContextData LLMClientInterface::prepareContext(

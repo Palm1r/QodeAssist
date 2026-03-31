@@ -21,10 +21,10 @@
 
 #include <QFlags>
 #include <QFuture>
-#include <utils/environment.h>
 #include <QNetworkRequest>
 #include <QObject>
 #include <QString>
+#include <utils/environment.h>
 
 #include "ContextData.hpp"
 #include "IToolsManager.hpp"
@@ -32,6 +32,7 @@
 #include "RequestType.hpp"
 
 namespace LLMCore {
+class BaseClient;
 class ToolsManager;
 }
 
@@ -73,34 +74,13 @@ public:
     virtual QString apiKey() const = 0;
     virtual void prepareNetworkRequest(QNetworkRequest &networkRequest) const = 0;
     virtual ProviderID providerID() const = 0;
-
-    virtual void sendRequest(const RequestID &requestId, const QUrl &url, const QJsonObject &payload)
-        = 0;
-
     virtual ProviderCapabilities capabilities() const { return {}; }
 
-    virtual void cancelRequest(const RequestID &requestId) = 0;
+    virtual ::LLMCore::BaseClient *client() const = 0;
 
-    virtual ::LLMCore::ToolsManager *toolsManager() const { return nullptr; }
-
-signals:
-    void partialResponseReceived(
-        const QodeAssist::PluginLLMCore::RequestID &requestId, const QString &partialText);
-    void fullResponseReceived(
-        const QodeAssist::PluginLLMCore::RequestID &requestId, const QString &fullText);
-    void requestFailed(const QodeAssist::PluginLLMCore::RequestID &requestId, const QString &error);
-    void toolExecutionStarted(
-        const QString &requestId, const QString &toolId, const QString &toolName);
-    void toolExecutionCompleted(
-        const QString &requestId,
-        const QString &toolId,
-        const QString &toolName,
-        const QString &result);
-    void continuationStarted(const QodeAssist::PluginLLMCore::RequestID &requestId);
-    void thinkingBlockReceived(
-        const QString &requestId, const QString &thinking, const QString &signature);
-    void redactedThinkingBlockReceived(const QString &requestId, const QString &signature);
-
+    RequestID sendRequest(const QUrl &url, const QJsonObject &payload);
+    void cancelRequest(const RequestID &requestId);
+    ::LLMCore::ToolsManager *toolsManager() const;
 };
 
 } // namespace QodeAssist::PluginLLMCore
