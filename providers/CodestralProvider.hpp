@@ -28,8 +28,8 @@ class CodestralProvider : public MistralAIProvider
 public:
     QString name() const override;
     QString url() const override;
-    bool supportsModelListing() const override;
     QString apiKey() const override;
+    PluginLLMCore::ProviderCapabilities capabilities() const override;
 };
 
 } // namespace QodeAssist::Providers

@@ -33,9 +33,9 @@ QString CodestralProvider::url() const
     return "https://codestral.mistral.ai";
 }
 
-bool CodestralProvider::supportsModelListing() const
+PluginLLMCore::ProviderCapabilities CodestralProvider::capabilities() const
 {
-    return false;
+    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image;
 }
 
 QString CodestralProvider::apiKey() const

@@ -63,11 +63,6 @@ QString LMStudioProvider::chatEndpoint() const
     return "/v1/chat/completions";
 }
 
-bool LMStudioProvider::supportsModelListing() const
-{
-    return true;
-}
-
 QFuture<QList<QString>> LMStudioProvider::getInstalledModels(const QString &url)
 {
     m_client->setUrl(url);
@@ -179,7 +174,8 @@ void LMStudioProvider::sendRequest(
 
 PluginLLMCore::ProviderCapabilities LMStudioProvider::capabilities() const
 {
-    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image;
+    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image
+           | PluginLLMCore::ProviderCapability::ModelListing;
 }
 
 void LMStudioProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)

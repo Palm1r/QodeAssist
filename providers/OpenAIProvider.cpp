@@ -62,11 +62,6 @@ QString OpenAIProvider::chatEndpoint() const
     return "/v1/chat/completions";
 }
 
-bool OpenAIProvider::supportsModelListing() const
-{
-    return true;
-}
-
 void OpenAIProvider::prepareRequest(
     QJsonObject &request,
     PluginLLMCore::PromptTemplate *prompt,
@@ -256,7 +251,8 @@ void OpenAIProvider::sendRequest(
 
 PluginLLMCore::ProviderCapabilities OpenAIProvider::capabilities() const
 {
-    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image;
+    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image
+           | PluginLLMCore::ProviderCapability::ModelListing;
 }
 
 void OpenAIProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)

@@ -62,8 +62,6 @@ public:
     QString url() const override { return "https://mock_url"; }
     QString completionEndpoint() const override { return "/v1/completions"; }
     QString chatEndpoint() const override { return "/v1/chat/completions"; }
-    bool supportsModelListing() const override { return false; }
-
     void prepareRequest(
         QJsonObject &request,
         LLMCore::PromptTemplate *promptTemplate,

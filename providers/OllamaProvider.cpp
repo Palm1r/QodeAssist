@@ -63,11 +63,6 @@ QString OllamaProvider::chatEndpoint() const
     return "/api/chat";
 }
 
-bool OllamaProvider::supportsModelListing() const
-{
-    return true;
-}
-
 void OllamaProvider::prepareRequest(
     QJsonObject &request,
     PluginLLMCore::PromptTemplate *prompt,
@@ -275,7 +270,8 @@ void OllamaProvider::sendRequest(
 PluginLLMCore::ProviderCapabilities OllamaProvider::capabilities() const
 {
     return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Thinking
-           | PluginLLMCore::ProviderCapability::Image;
+           | PluginLLMCore::ProviderCapability::Image
+           | PluginLLMCore::ProviderCapability::ModelListing;
 }
 
 void OllamaProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)

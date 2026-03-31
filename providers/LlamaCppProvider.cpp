@@ -61,11 +61,6 @@ QString LlamaCppProvider::chatEndpoint() const
     return "/v1/chat/completions";
 }
 
-bool LlamaCppProvider::supportsModelListing() const
-{
-    return false;
-}
-
 void LlamaCppProvider::prepareRequest(
     QJsonObject &request,
     PluginLLMCore::PromptTemplate *prompt,

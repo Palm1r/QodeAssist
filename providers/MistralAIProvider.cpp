@@ -62,11 +62,6 @@ QString MistralAIProvider::chatEndpoint() const
     return "/v1/chat/completions";
 }
 
-bool MistralAIProvider::supportsModelListing() const
-{
-    return true;
-}
-
 QFuture<QList<QString>> MistralAIProvider::getInstalledModels(const QString &url)
 {
     m_client->setUrl(url);
@@ -191,7 +186,8 @@ void MistralAIProvider::sendRequest(
 
 PluginLLMCore::ProviderCapabilities MistralAIProvider::capabilities() const
 {
-    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image;
+    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image
+           | PluginLLMCore::ProviderCapability::ModelListing;
 }
 
 void MistralAIProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)

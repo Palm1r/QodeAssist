@@ -64,11 +64,6 @@ QString ClaudeProvider::chatEndpoint() const
     return "/v1/messages";
 }
 
-bool ClaudeProvider::supportsModelListing() const
-{
-    return true;
-}
-
 void ClaudeProvider::prepareRequest(
     QJsonObject &request,
     PluginLLMCore::PromptTemplate *prompt,
@@ -252,7 +247,8 @@ void ClaudeProvider::sendRequest(
 PluginLLMCore::ProviderCapabilities ClaudeProvider::capabilities() const
 {
     return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Thinking
-           | PluginLLMCore::ProviderCapability::Image;
+           | PluginLLMCore::ProviderCapability::Image
+           | PluginLLMCore::ProviderCapability::ModelListing;
 }
 
 void ClaudeProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)

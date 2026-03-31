@@ -62,11 +62,6 @@ QString OpenAIResponsesProvider::chatEndpoint() const
     return "/v1/responses";
 }
 
-bool OpenAIResponsesProvider::supportsModelListing() const
-{
-    return true;
-}
-
 void OpenAIResponsesProvider::prepareRequest(
     QJsonObject &request,
     PluginLLMCore::PromptTemplate *prompt,
@@ -295,7 +290,8 @@ void OpenAIResponsesProvider::sendRequest(
 PluginLLMCore::ProviderCapabilities OpenAIResponsesProvider::capabilities() const
 {
     return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Thinking
-           | PluginLLMCore::ProviderCapability::Image;
+           | PluginLLMCore::ProviderCapability::Image
+           | PluginLLMCore::ProviderCapability::ModelListing;
 }
 
 void OpenAIResponsesProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)

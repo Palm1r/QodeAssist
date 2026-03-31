@@ -40,9 +40,10 @@ class QJsonObject;
 namespace QodeAssist::PluginLLMCore {
 
 enum class ProviderCapability {
-    Tools    = 0x1,
-    Thinking = 0x2,
-    Image    = 0x4,
+    Tools        = 0x1,
+    Thinking     = 0x2,
+    Image        = 0x4,
+    ModelListing = 0x8,
 };
 Q_DECLARE_FLAGS(ProviderCapabilities, ProviderCapability)
 Q_DECLARE_OPERATORS_FOR_FLAGS(ProviderCapabilities)
@@ -59,7 +60,6 @@ public:
     virtual QString url() const = 0;
     virtual QString completionEndpoint() const = 0;
     virtual QString chatEndpoint() const = 0;
-    virtual bool supportsModelListing() const = 0;
     virtual void prepareRequest(
         QJsonObject &request,
         PluginLLMCore::PromptTemplate *prompt,

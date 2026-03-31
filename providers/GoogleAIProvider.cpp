@@ -64,11 +64,6 @@ QString GoogleAIProvider::chatEndpoint() const
     return {};
 }
 
-bool GoogleAIProvider::supportsModelListing() const
-{
-    return true;
-}
-
 void GoogleAIProvider::prepareRequest(
     QJsonObject &request,
     PluginLLMCore::PromptTemplate *prompt,
@@ -268,7 +263,8 @@ void GoogleAIProvider::sendRequest(
 PluginLLMCore::ProviderCapabilities GoogleAIProvider::capabilities() const
 {
     return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Thinking
-           | PluginLLMCore::ProviderCapability::Image;
+           | PluginLLMCore::ProviderCapability::Image
+           | PluginLLMCore::ProviderCapability::ModelListing;
 }
 
 void GoogleAIProvider::cancelRequest(const PluginLLMCore::RequestID &requestId)

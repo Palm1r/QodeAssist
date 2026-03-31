@@ -176,7 +176,7 @@ void ConfigurationManager::selectModel()
                                                : m_generalSettings.caModel);
 
     if (auto provider = m_providersManager.getProviderByName(providerName)) {
-        if (!provider->supportsModelListing()) {
+        if (!provider->capabilities().testFlag(PluginLLMCore::ProviderCapability::ModelListing)) {
             m_generalSettings.showModelsNotSupportedDialog(*targetSettings);
             return;
         }
