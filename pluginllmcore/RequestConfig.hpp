@@ -35,7 +35,6 @@ struct LLMConfig
     QJsonObject providerRequest;
     RequestType requestType;
     bool multiLineCompletion;
-    QString apiKey;
 };
 
 } // namespace QodeAssist::PluginLLMCore

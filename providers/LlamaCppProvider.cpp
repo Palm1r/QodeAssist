@@ -35,7 +35,7 @@ namespace QodeAssist::Providers {
 
 LlamaCppProvider::LlamaCppProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
-    , m_client(new ::LLMCore::LlamaCppClient(url(), apiKey(), QString(), this))
+    , m_client(new ::LLMCore::LlamaCppClient(QString(), QString(), QString(), this))
 {
     Tools::registerQodeAssistTools(m_client->tools());
 }
@@ -108,16 +108,6 @@ void LlamaCppProvider::prepareRequest(
 QFuture<QList<QString>> LlamaCppProvider::getInstalledModels(const QString &)
 {
     return QtFuture::makeReadyFuture(QList<QString>{});
-}
-
-QString LlamaCppProvider::apiKey() const
-{
-    return {};
-}
-
-void LlamaCppProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
-{
-    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 }
 
 PluginLLMCore::ProviderID LlamaCppProvider::providerID() const

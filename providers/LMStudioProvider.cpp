@@ -37,7 +37,7 @@ namespace QodeAssist::Providers {
 
 LMStudioProvider::LMStudioProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
-    , m_client(new ::LLMCore::OpenAIClient(url(), apiKey(), QString(), this))
+    , m_client(new ::LLMCore::OpenAIClient(QString(), QString(), QString(), this))
 {
     Tools::registerQodeAssistTools(m_client->tools());
 }
@@ -67,16 +67,6 @@ QFuture<QList<QString>> LMStudioProvider::getInstalledModels(const QString &url)
     m_client->setUrl(url);
     m_client->setApiKey(apiKey());
     return m_client->listModels();
-}
-
-QString LMStudioProvider::apiKey() const
-{
-    return {};
-}
-
-void LMStudioProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
-{
-    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
 }
 
 PluginLLMCore::ProviderID LMStudioProvider::providerID() const

@@ -36,8 +36,9 @@ namespace QodeAssist::Providers {
 
 OpenAICompatProvider::OpenAICompatProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
-    , m_client(new ::LLMCore::OpenAIClient(url(), apiKey(), QString(), this))
+    , m_client(new ::LLMCore::OpenAIClient(QString(), QString(), QString(), this))
 {
+    m_apiKeyGetter = [] { return Settings::providerSettings().openAiCompatApiKey(); };
     Tools::registerQodeAssistTools(m_client->tools());
 }
 
@@ -110,20 +111,6 @@ void OpenAICompatProvider::prepareRequest(
 QFuture<QList<QString>> OpenAICompatProvider::getInstalledModels(const QString &)
 {
     return QtFuture::makeReadyFuture(QList<QString>{});
-}
-
-QString OpenAICompatProvider::apiKey() const
-{
-    return Settings::providerSettings().openAiCompatApiKey();
-}
-
-void OpenAICompatProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
-{
-    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-
-    if (!apiKey().isEmpty()) {
-        networkRequest.setRawHeader("Authorization", QString("Bearer %1").arg(apiKey()).toUtf8());
-    }
 }
 
 PluginLLMCore::ProviderID OpenAICompatProvider::providerID() const

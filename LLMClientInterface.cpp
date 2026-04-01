@@ -283,7 +283,6 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
             QString("%1%2").arg(url, endpoint(provider, promptTemplate->type(), isPreset1Active)));
         config.providerRequest = {{"model", modelName}, {"stream", true}};
     }
-    config.apiKey = provider->apiKey();
     config.multiLineCompletion = m_completeSettings.multiLineCompletion();
 
     const auto stopWords = QJsonArray::fromStringList(config.promptTemplate->stopWords());

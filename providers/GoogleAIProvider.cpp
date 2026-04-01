@@ -38,8 +38,9 @@ namespace QodeAssist::Providers {
 
 GoogleAIProvider::GoogleAIProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
-    , m_client(new ::LLMCore::GoogleAIClient(url(), apiKey(), QString(), this))
+    , m_client(new ::LLMCore::GoogleAIClient(QString(), QString(), QString(), this))
 {
+    m_apiKeyGetter = [] { return Settings::providerSettings().googleAiApiKey(); };
     Tools::registerQodeAssistTools(m_client->tools());
 }
 
@@ -146,22 +147,6 @@ QFuture<QList<QString>> GoogleAIProvider::getInstalledModels(const QString &base
     m_client->setUrl(baseUrl);
     m_client->setApiKey(apiKey());
     return m_client->listModels();
-}
-
-QString GoogleAIProvider::apiKey() const
-{
-    return Settings::providerSettings().googleAiApiKey();
-}
-
-void GoogleAIProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
-{
-    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-
-    QUrl url = networkRequest.url();
-    QUrlQuery query(url.query());
-    query.addQueryItem("key", apiKey());
-    url.setQuery(query);
-    networkRequest.setUrl(url);
 }
 
 PluginLLMCore::ProviderID GoogleAIProvider::providerID() const

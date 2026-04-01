@@ -26,9 +26,10 @@ namespace QodeAssist::Providers {
 class CodestralProvider : public MistralAIProvider
 {
 public:
+    explicit CodestralProvider(QObject *parent = nullptr);
+
     QString name() const override;
     QString url() const override;
-    QString apiKey() const override;
     PluginLLMCore::ProviderCapabilities capabilities() const override;
 };
 

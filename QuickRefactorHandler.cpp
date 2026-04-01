@@ -146,7 +146,6 @@ void QuickRefactorHandler::prepareAndSendRequest(
     config.provider = provider;
     config.promptTemplate = promptTemplate;
     config.url = QString("%1%2").arg(settings.qrUrl(), provider->chatEndpoint());
-    config.apiKey = provider->apiKey();
 
     if (provider->providerID() == PluginLLMCore::ProviderID::GoogleAI) {
         QString stream = QString{"streamGenerateContent?alt=sse"};

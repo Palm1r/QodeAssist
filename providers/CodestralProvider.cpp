@@ -23,6 +23,12 @@
 
 namespace QodeAssist::Providers {
 
+CodestralProvider::CodestralProvider(QObject *parent)
+    : MistralAIProvider(parent)
+{
+    m_apiKeyGetter = [] { return Settings::providerSettings().codestralApiKey(); };
+}
+
 QString CodestralProvider::name() const
 {
     return "Codestral";
@@ -36,11 +42,6 @@ QString CodestralProvider::url() const
 PluginLLMCore::ProviderCapabilities CodestralProvider::capabilities() const
 {
     return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image;
-}
-
-QString CodestralProvider::apiKey() const
-{
-    return Settings::providerSettings().codestralApiKey();
 }
 
 } // namespace QodeAssist::Providers

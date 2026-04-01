@@ -36,8 +36,9 @@ namespace QodeAssist::Providers {
 
 OpenAIResponsesProvider::OpenAIResponsesProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
-    , m_client(new ::LLMCore::OpenAIResponsesClient(url(), apiKey(), QString(), this))
+    , m_client(new ::LLMCore::OpenAIResponsesClient(QString(), QString(), QString(), this))
 {
+    m_apiKeyGetter = [] { return Settings::providerSettings().openAiApiKey(); };
     Tools::registerQodeAssistTools(m_client->tools());
 }
 
@@ -160,20 +161,6 @@ QFuture<QList<QString>> OpenAIResponsesProvider::getInstalledModels(const QStrin
         }
         return filtered;
     });
-}
-
-QString OpenAIResponsesProvider::apiKey() const
-{
-    return Settings::providerSettings().openAiApiKey();
-}
-
-void OpenAIResponsesProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
-{
-    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-
-    if (!apiKey().isEmpty()) {
-        networkRequest.setRawHeader("Authorization", QString("Bearer %1").arg(apiKey()).toUtf8());
-    }
 }
 
 PluginLLMCore::ProviderID OpenAIResponsesProvider::providerID() const

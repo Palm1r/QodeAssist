@@ -21,10 +21,11 @@
 
 #include <QFlags>
 #include <QFuture>
-#include <QNetworkRequest>
 #include <QObject>
 #include <QString>
 #include <utils/environment.h>
+
+#include <functional>
 
 #include "ContextData.hpp"
 #include "IToolsManager.hpp"
@@ -53,6 +54,8 @@ class Provider : public QObject
 {
     Q_OBJECT
 public:
+    using ApiKeyGetter = std::function<QString()>;
+
     explicit Provider(QObject *parent = nullptr);
 
     virtual ~Provider() = default;
@@ -70,16 +73,18 @@ public:
         bool isThinkingEnabled)
         = 0;
     virtual QFuture<QList<QString>> getInstalledModels(const QString &url) = 0;
-    virtual QString apiKey() const = 0;
-    virtual void prepareNetworkRequest(QNetworkRequest &networkRequest) const = 0;
     virtual ProviderID providerID() const = 0;
     virtual ProviderCapabilities capabilities() const { return {}; }
 
     virtual ::LLMCore::BaseClient *client() const = 0;
 
+    QString apiKey() const;
     RequestID sendRequest(const QUrl &url, const QJsonObject &payload);
     void cancelRequest(const RequestID &requestId);
     ::LLMCore::ToolsManager *toolsManager() const;
+
+protected:
+    ApiKeyGetter m_apiKeyGetter;
 };
 
 } // namespace QodeAssist::PluginLLMCore

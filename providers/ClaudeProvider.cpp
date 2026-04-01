@@ -37,9 +37,9 @@ namespace QodeAssist::Providers {
 
 ClaudeProvider::ClaudeProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
-    , m_client(new ::LLMCore::ClaudeClient(
-          url(), Settings::providerSettings().claudeApiKey(), QString(), this))
+    , m_client(new ::LLMCore::ClaudeClient(QString(), QString(), QString(), this))
 {
+    m_apiKeyGetter = [] { return Settings::providerSettings().claudeApiKey(); };
     Tools::registerQodeAssistTools(m_client->tools());
 }
 
@@ -133,21 +133,6 @@ QFuture<QList<QString>> ClaudeProvider::getInstalledModels(const QString &baseUr
     m_client->setUrl(baseUrl);
     m_client->setApiKey(apiKey());
     return m_client->listModels();
-}
-
-QString ClaudeProvider::apiKey() const
-{
-    return Settings::providerSettings().claudeApiKey();
-}
-
-void ClaudeProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
-{
-    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    networkRequest.setRawHeader("anthropic-version", "2023-06-01");
-
-    if (!apiKey().isEmpty()) {
-        networkRequest.setRawHeader("x-api-key", apiKey().toUtf8());
-    }
 }
 
 PluginLLMCore::ProviderID ClaudeProvider::providerID() const

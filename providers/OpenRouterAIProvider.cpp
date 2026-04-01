@@ -28,6 +28,12 @@
 
 namespace QodeAssist::Providers {
 
+OpenRouterProvider::OpenRouterProvider(QObject *parent)
+    : OpenAICompatProvider(parent)
+{
+    m_apiKeyGetter = [] { return Settings::providerSettings().openRouterApiKey(); };
+}
+
 QString OpenRouterProvider::name() const
 {
     return "OpenRouter";
@@ -36,11 +42,6 @@ QString OpenRouterProvider::name() const
 QString OpenRouterProvider::url() const
 {
     return "https://openrouter.ai/api";
-}
-
-QString OpenRouterProvider::apiKey() const
-{
-    return Settings::providerSettings().openRouterApiKey();
 }
 
 PluginLLMCore::ProviderID OpenRouterProvider::providerID() const

@@ -266,8 +266,6 @@ void ClientInterface::sendMessage(
             = {{"model", Settings::generalSettings().caModel()}, {"stream", true}};
     }
 
-    config.apiKey = provider->apiKey();
-
     config.provider->prepareRequest(
         config.providerRequest,
         promptTemplate,

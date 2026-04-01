@@ -43,8 +43,6 @@ public:
         bool isToolsEnabled,
         bool isThinkingEnabled) override;
     QFuture<QList<QString>> getInstalledModels(const QString &url) override;
-    QString apiKey() const override;
-    void prepareNetworkRequest(QNetworkRequest &networkRequest) const override;
     PluginLLMCore::ProviderID providerID() const override;
     PluginLLMCore::ProviderCapabilities capabilities() const override;
 

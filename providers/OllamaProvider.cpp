@@ -37,8 +37,9 @@ namespace QodeAssist::Providers {
 
 OllamaProvider::OllamaProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
-    , m_client(new ::LLMCore::OllamaClient(url(), apiKey(), QString(), this))
+    , m_client(new ::LLMCore::OllamaClient(QString(), QString(), QString(), this))
 {
+    m_apiKeyGetter = [] { return Settings::providerSettings().ollamaBasicAuthApiKey(); };
     Tools::registerQodeAssistTools(m_client->tools());
 }
 
@@ -137,20 +138,6 @@ QFuture<QList<QString>> OllamaProvider::getInstalledModels(const QString &baseUr
     m_client->setUrl(baseUrl);
     m_client->setApiKey(Settings::providerSettings().ollamaBasicAuthApiKey());
     return m_client->listModels();
-}
-
-QString OllamaProvider::apiKey() const
-{
-    return {};
-}
-
-void OllamaProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
-{
-    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-    const auto key = Settings::providerSettings().ollamaBasicAuthApiKey();
-    if (!key.isEmpty()) {
-        networkRequest.setRawHeader("Authorization", "Basic " + key.toLatin1());
-    }
 }
 
 PluginLLMCore::ProviderID OllamaProvider::providerID() const

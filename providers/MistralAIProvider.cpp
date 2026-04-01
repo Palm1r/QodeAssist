@@ -36,8 +36,9 @@ namespace QodeAssist::Providers {
 
 MistralAIProvider::MistralAIProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
-    , m_client(new ::LLMCore::OpenAIClient(url(), apiKey(), QString(), this))
+    , m_client(new ::LLMCore::OpenAIClient(QString(), QString(), QString(), this))
 {
+    m_apiKeyGetter = [] { return Settings::providerSettings().mistralAiApiKey(); };
     Tools::registerQodeAssistTools(m_client->tools());
 }
 
@@ -66,20 +67,6 @@ QFuture<QList<QString>> MistralAIProvider::getInstalledModels(const QString &url
     m_client->setUrl(url);
     m_client->setApiKey(apiKey());
     return m_client->listModels();
-}
-
-QString MistralAIProvider::apiKey() const
-{
-    return Settings::providerSettings().mistralAiApiKey();
-}
-
-void MistralAIProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
-{
-    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-
-    if (!apiKey().isEmpty()) {
-        networkRequest.setRawHeader("Authorization", QString("Bearer %1").arg(apiKey()).toUtf8());
-    }
 }
 
 PluginLLMCore::ProviderID MistralAIProvider::providerID() const
