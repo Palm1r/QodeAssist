@@ -25,8 +25,6 @@
 #include <QString>
 #include <utils/environment.h>
 
-#include <functional>
-
 #include "ContextData.hpp"
 #include "IToolsManager.hpp"
 #include "PromptTemplate.hpp"
@@ -54,8 +52,6 @@ class Provider : public QObject
 {
     Q_OBJECT
 public:
-    using ApiKeyGetter = std::function<QString()>;
-
     explicit Provider(QObject *parent = nullptr);
 
     virtual ~Provider() = default;
@@ -77,14 +73,11 @@ public:
     virtual ProviderCapabilities capabilities() const { return {}; }
 
     virtual ::LLMCore::BaseClient *client() const = 0;
+    virtual QString apiKey() const = 0;
 
-    QString apiKey() const;
     RequestID sendRequest(const QUrl &url, const QJsonObject &payload);
     void cancelRequest(const RequestID &requestId);
     ::LLMCore::ToolsManager *toolsManager() const;
-
-protected:
-    ApiKeyGetter m_apiKeyGetter;
 };
 
 } // namespace QodeAssist::PluginLLMCore

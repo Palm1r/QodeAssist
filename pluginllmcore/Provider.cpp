@@ -47,13 +47,6 @@ RequestID Provider::sendRequest(const QUrl &url, const QJsonObject &payload)
     return requestId;
 }
 
-QString Provider::apiKey() const
-{
-    if (m_apiKeyGetter)
-        return m_apiKeyGetter();
-    return {};
-}
-
 void Provider::cancelRequest(const RequestID &requestId)
 {
     LOG_MESSAGE(QString("%1: Cancelling request %2").arg(name(), requestId));

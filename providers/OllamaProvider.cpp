@@ -39,13 +39,17 @@ OllamaProvider::OllamaProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
     , m_client(new ::LLMCore::OllamaClient(QString(), QString(), QString(), this))
 {
-    m_apiKeyGetter = [] { return Settings::providerSettings().ollamaBasicAuthApiKey(); };
     Tools::registerQodeAssistTools(m_client->tools());
 }
 
 QString OllamaProvider::name() const
 {
     return "Ollama";
+}
+
+QString OllamaProvider::apiKey() const
+{
+    return Settings::providerSettings().ollamaBasicAuthApiKey();
 }
 
 QString OllamaProvider::url() const

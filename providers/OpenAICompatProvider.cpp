@@ -38,13 +38,17 @@ OpenAICompatProvider::OpenAICompatProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
     , m_client(new ::LLMCore::OpenAIClient(QString(), QString(), QString(), this))
 {
-    m_apiKeyGetter = [] { return Settings::providerSettings().openAiCompatApiKey(); };
     Tools::registerQodeAssistTools(m_client->tools());
 }
 
 QString OpenAICompatProvider::name() const
 {
     return "OpenAI Compatible";
+}
+
+QString OpenAICompatProvider::apiKey() const
+{
+    return Settings::providerSettings().openAiCompatApiKey();
 }
 
 QString OpenAICompatProvider::url() const

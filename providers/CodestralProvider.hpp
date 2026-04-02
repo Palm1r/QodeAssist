@@ -30,6 +30,7 @@ public:
 
     QString name() const override;
     QString url() const override;
+    QString apiKey() const override;
     PluginLLMCore::ProviderCapabilities capabilities() const override;
 };
 

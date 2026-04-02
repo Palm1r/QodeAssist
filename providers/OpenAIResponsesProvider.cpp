@@ -38,13 +38,17 @@ OpenAIResponsesProvider::OpenAIResponsesProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
     , m_client(new ::LLMCore::OpenAIResponsesClient(QString(), QString(), QString(), this))
 {
-    m_apiKeyGetter = [] { return Settings::providerSettings().openAiApiKey(); };
     Tools::registerQodeAssistTools(m_client->tools());
 }
 
 QString OpenAIResponsesProvider::name() const
 {
     return "OpenAI Responses";
+}
+
+QString OpenAIResponsesProvider::apiKey() const
+{
+    return Settings::providerSettings().openAiApiKey();
 }
 
 QString OpenAIResponsesProvider::url() const

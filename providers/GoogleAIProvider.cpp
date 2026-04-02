@@ -40,13 +40,17 @@ GoogleAIProvider::GoogleAIProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
     , m_client(new ::LLMCore::GoogleAIClient(QString(), QString(), QString(), this))
 {
-    m_apiKeyGetter = [] { return Settings::providerSettings().googleAiApiKey(); };
     Tools::registerQodeAssistTools(m_client->tools());
 }
 
 QString GoogleAIProvider::name() const
 {
     return "Google AI";
+}
+
+QString GoogleAIProvider::apiKey() const
+{
+    return Settings::providerSettings().googleAiApiKey();
 }
 
 QString GoogleAIProvider::url() const

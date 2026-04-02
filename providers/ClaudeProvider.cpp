@@ -39,13 +39,17 @@ ClaudeProvider::ClaudeProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
     , m_client(new ::LLMCore::ClaudeClient(QString(), QString(), QString(), this))
 {
-    m_apiKeyGetter = [] { return Settings::providerSettings().claudeApiKey(); };
     Tools::registerQodeAssistTools(m_client->tools());
 }
 
 QString ClaudeProvider::name() const
 {
     return "Claude";
+}
+
+QString ClaudeProvider::apiKey() const
+{
+    return Settings::providerSettings().claudeApiKey();
 }
 
 QString ClaudeProvider::url() const

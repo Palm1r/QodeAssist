@@ -45,6 +45,11 @@ QString LlamaCppProvider::name() const
     return "llama.cpp";
 }
 
+QString LlamaCppProvider::apiKey() const
+{
+    return {};
+}
+
 QString LlamaCppProvider::url() const
 {
     return "http://localhost:8080";

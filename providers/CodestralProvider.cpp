@@ -25,13 +25,16 @@ namespace QodeAssist::Providers {
 
 CodestralProvider::CodestralProvider(QObject *parent)
     : MistralAIProvider(parent)
-{
-    m_apiKeyGetter = [] { return Settings::providerSettings().codestralApiKey(); };
-}
+{}
 
 QString CodestralProvider::name() const
 {
     return "Codestral";
+}
+
+QString CodestralProvider::apiKey() const
+{
+    return Settings::providerSettings().codestralApiKey();
 }
 
 QString CodestralProvider::url() const

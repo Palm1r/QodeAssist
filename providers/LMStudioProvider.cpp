@@ -47,6 +47,11 @@ QString LMStudioProvider::name() const
     return "LM Studio";
 }
 
+QString LMStudioProvider::apiKey() const
+{
+    return {};
+}
+
 QString LMStudioProvider::url() const
 {
     return "http://localhost:1234";

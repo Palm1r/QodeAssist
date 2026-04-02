@@ -46,6 +46,7 @@ public:
     PluginLLMCore::ProviderCapabilities capabilities() const override;
 
     ::LLMCore::BaseClient *client() const override;
+    QString apiKey() const override;
 
 private:
     ::LLMCore::OpenAIResponsesClient *m_client;

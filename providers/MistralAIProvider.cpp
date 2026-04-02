@@ -38,13 +38,17 @@ MistralAIProvider::MistralAIProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
     , m_client(new ::LLMCore::OpenAIClient(QString(), QString(), QString(), this))
 {
-    m_apiKeyGetter = [] { return Settings::providerSettings().mistralAiApiKey(); };
     Tools::registerQodeAssistTools(m_client->tools());
 }
 
 QString MistralAIProvider::name() const
 {
     return "Mistral AI";
+}
+
+QString MistralAIProvider::apiKey() const
+{
+    return Settings::providerSettings().mistralAiApiKey();
 }
 
 QString MistralAIProvider::url() const
