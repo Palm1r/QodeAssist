@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <llmcore/ContentBlocks.hpp>
+#include <pluginllmcore/ContentBlocks.hpp>
 
 namespace QodeAssist::Providers {
 
@@ -41,10 +41,10 @@ public:
     QList<QJsonObject> toItemsFormat() const;
     QJsonArray createToolResultItems(const QHash<QString, QString> &toolResults) const;
 
-    LLMCore::MessageState state() const noexcept { return m_state; }
+    PluginLLMCore::MessageState state() const noexcept { return m_state; }
     QString accumulatedText() const;
-    QList<LLMCore::ToolUseContent *> getCurrentToolUseContent() const;
-    QList<LLMCore::ThinkingContent *> getCurrentThinkingContent() const;
+    QList<PluginLLMCore::ToolUseContent *> getCurrentToolUseContent() const;
+    QList<PluginLLMCore::ThinkingContent *> getCurrentThinkingContent() const;
     
     bool hasToolCalls() const noexcept { return !m_toolCalls.isEmpty(); }
     bool hasThinkingContent() const noexcept { return !m_thinkingBlocks.isEmpty(); }
@@ -53,14 +53,14 @@ public:
 
 private:
     QString m_status;
-    LLMCore::MessageState m_state = LLMCore::MessageState::Building;
-    QList<LLMCore::ContentBlock *> m_items;
+    PluginLLMCore::MessageState m_state = PluginLLMCore::MessageState::Building;
+    QList<PluginLLMCore::ContentBlock *> m_items;
     QHash<QString, QString> m_pendingToolArguments;
-    QHash<QString, LLMCore::ToolUseContent *> m_toolCalls;
-    QHash<QString, LLMCore::ThinkingContent *> m_thinkingBlocks;
+    QHash<QString, PluginLLMCore::ToolUseContent *> m_toolCalls;
+    QHash<QString, PluginLLMCore::ThinkingContent *> m_thinkingBlocks;
 
     void updateStateFromStatus();
-    LLMCore::TextContent *getOrCreateTextItem();
+    PluginLLMCore::TextContent *getOrCreateTextItem();
 };
 
 } // namespace QodeAssist::Providers

@@ -21,7 +21,7 @@
 
 #include <QObject>
 
-#include <llmcore/BaseTool.hpp>
+#include <pluginllmcore/BaseTool.hpp>
 
 namespace QodeAssist::Tools {
 
@@ -32,17 +32,17 @@ public:
     ToolsFactory(QObject *parent = nullptr);
     ~ToolsFactory() override = default;
 
-    QList<LLMCore::BaseTool *> getAvailableTools() const;
-    LLMCore::BaseTool *getToolByName(const QString &name) const;
+    QList<PluginLLMCore::BaseTool *> getAvailableTools() const;
+    PluginLLMCore::BaseTool *getToolByName(const QString &name) const;
     QJsonArray getToolsDefinitions(
-        LLMCore::ToolSchemaFormat format,
-        LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL) const;
+        PluginLLMCore::ToolSchemaFormat format,
+        PluginLLMCore::RunToolsFilter filter = PluginLLMCore::RunToolsFilter::ALL) const;
     QString getStringName(const QString &name) const;
 
 private:
     void registerTools();
-    void registerTool(LLMCore::BaseTool *tool);
+    void registerTool(PluginLLMCore::BaseTool *tool);
 
-    QHash<QString, LLMCore::BaseTool *> m_tools;
+    QHash<QString, PluginLLMCore::BaseTool *> m_tools;
 };
 } // namespace QodeAssist::Tools

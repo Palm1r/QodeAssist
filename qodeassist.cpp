@@ -50,8 +50,8 @@
 #include "chat/ChatOutputPane.h"
 #include "chat/NavigationPanel.hpp"
 #include "context/DocumentReaderQtCreator.hpp"
-#include "llmcore/PromptProviderFim.hpp"
-#include "llmcore/ProvidersManager.hpp"
+#include "pluginllmcore/PromptProviderFim.hpp"
+#include "pluginllmcore/ProvidersManager.hpp"
 #include "logger/RequestPerformanceLogger.hpp"
 #include "providers/Providers.hpp"
 #include "settings/ChatAssistantSettings.hpp"
@@ -84,7 +84,7 @@ class QodeAssistPlugin final : public ExtensionSystem::IPlugin
 public:
     QodeAssistPlugin()
         : m_updater(new PluginUpdater(this))
-        , m_promptProvider(LLMCore::PromptTemplateManager::instance())
+        , m_promptProvider(PluginLLMCore::PromptTemplateManager::instance())
     {}
 
     ~QodeAssistPlugin() final
@@ -263,7 +263,7 @@ public:
         m_qodeAssistClient = new QodeAssistClient(new LLMClientInterface(
             Settings::generalSettings(),
             Settings::codeCompletionSettings(),
-            LLMCore::ProvidersManager::instance(),
+            PluginLLMCore::ProvidersManager::instance(),
             &m_promptProvider,
             m_documentReader,
             m_performanceLogger));
@@ -305,7 +305,7 @@ private:
     }
 
     QPointer<QodeAssistClient> m_qodeAssistClient;
-    LLMCore::PromptProviderFim m_promptProvider;
+    PluginLLMCore::PromptProviderFim m_promptProvider;
     Context::DocumentReaderQtCreator m_documentReader;
     RequestPerformanceLogger m_performanceLogger;
     QPointer<Chat::ChatOutputPane> m_chatOutputPane;

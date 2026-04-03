@@ -29,7 +29,7 @@ namespace Utils {
 class DetailsWidget;
 }
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 class Provider;
 }
 namespace QodeAssist::Settings {

@@ -36,8 +36,8 @@
 #include "widgets/EditorChatButtonHandler.hpp"
 #include "widgets/RefactorWidgetHandler.hpp"
 #include <languageclient/client.h>
-#include <llmcore/IPromptProvider.hpp>
-#include <llmcore/IProviderRegistry.hpp>
+#include <pluginllmcore/IPromptProvider.hpp>
+#include <pluginllmcore/IProviderRegistry.hpp>
 
 namespace QodeAssist {
 

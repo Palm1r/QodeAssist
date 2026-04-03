@@ -121,12 +121,12 @@ GetIssuesListTool::GetIssuesListTool(QObject *parent)
     IssuesTracker::instance();
 }
 
-QString GetIssuesListTool::name() const
+QString GetIssuesListTool::id() const
 {
     return "get_issues_list";
 }
 
-QString GetIssuesListTool::stringName() const
+QString GetIssuesListTool::displayName() const
 {
     return "Getting issues list from Qt Creator";
 }
@@ -138,7 +138,7 @@ QString GetIssuesListTool::description() const
            "Optional severity filter: 'error', 'warning', or 'all' (default).";
 }
 
-QJsonObject GetIssuesListTool::getDefinition(LLMCore::ToolSchemaFormat format) const
+QJsonObject GetIssuesListTool::parametersSchema() const
 {
     QJsonObject definition;
     definition["type"] = "object";
@@ -152,23 +152,7 @@ QJsonObject GetIssuesListTool::getDefinition(LLMCore::ToolSchemaFormat format) c
     definition["properties"] = properties;
     definition["required"] = QJsonArray();
 
-    switch (format) {
-    case LLMCore::ToolSchemaFormat::OpenAI:
-        return customizeForOpenAI(definition);
-    case LLMCore::ToolSchemaFormat::Claude:
-        return customizeForClaude(definition);
-    case LLMCore::ToolSchemaFormat::Ollama:
-        return customizeForOllama(definition);
-    case LLMCore::ToolSchemaFormat::Google:
-        return customizeForGoogle(definition);
-    }
-
     return definition;
-}
-
-LLMCore::ToolPermissions GetIssuesListTool::requiredPermissions() const
-{
-    return LLMCore::ToolPermission::FileSystemRead;
 }
 
 QFuture<QString> GetIssuesListTool::executeAsync(const QJsonObject &input)

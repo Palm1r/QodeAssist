@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <llmcore/ContentBlocks.hpp>
+#include <pluginllmcore/ContentBlocks.hpp>
 
 namespace QodeAssist::Providers {
 
@@ -38,26 +38,26 @@ public:
     QJsonObject toProviderFormat() const;
     QJsonArray createToolResultMessages(const QHash<QString, QString> &toolResults) const;
 
-    LLMCore::MessageState state() const { return m_state; }
-    QList<LLMCore::ToolUseContent *> getCurrentToolUseContent() const;
-    QList<LLMCore::ThinkingContent *> getCurrentThinkingContent() const;
-    QList<LLMCore::ContentBlock *> currentBlocks() const { return m_currentBlocks; }
+    PluginLLMCore::MessageState state() const { return m_state; }
+    QList<PluginLLMCore::ToolUseContent *> getCurrentToolUseContent() const;
+    QList<PluginLLMCore::ThinkingContent *> getCurrentThinkingContent() const;
+    QList<PluginLLMCore::ContentBlock *> currentBlocks() const { return m_currentBlocks; }
 
     void startNewContinuation();
 
 private:
     bool m_done = false;
-    LLMCore::MessageState m_state = LLMCore::MessageState::Building;
-    QList<LLMCore::ContentBlock *> m_currentBlocks;
+    PluginLLMCore::MessageState m_state = PluginLLMCore::MessageState::Building;
+    QList<PluginLLMCore::ContentBlock *> m_currentBlocks;
     QString m_accumulatedContent;
     bool m_contentAddedToTextBlock = false;
-    LLMCore::ThinkingContent *m_currentThinkingContent = nullptr;
+    PluginLLMCore::ThinkingContent *m_currentThinkingContent = nullptr;
 
     void updateStateFromDone();
     bool tryParseToolCall();
     bool isLikelyToolCallJson(const QString &content) const;
-    LLMCore::TextContent *getOrCreateTextContent();
-    LLMCore::ThinkingContent *getOrCreateThinkingContent();
+    PluginLLMCore::TextContent *getOrCreateTextContent();
+    PluginLLMCore::ThinkingContent *getOrCreateThinkingContent();
 
     template<typename T, typename... Args>
     T *addCurrentContent(Args &&...args)

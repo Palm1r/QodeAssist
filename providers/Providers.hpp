@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "llmcore/ProvidersManager.hpp"
+#include "pluginllmcore/ProvidersManager.hpp"
 #include "providers/ClaudeProvider.hpp"
 #include "providers/CodestralProvider.hpp"
 #include "providers/GoogleAIProvider.hpp"
@@ -36,7 +36,7 @@ namespace QodeAssist::Providers {
 
 inline void registerProviders()
 {
-    auto &providerManager = LLMCore::ProvidersManager::instance();
+    auto &providerManager = PluginLLMCore::ProvidersManager::instance();
     providerManager.registerProvider<OllamaProvider>();
     providerManager.registerProvider<ClaudeProvider>();
     providerManager.registerProvider<OpenAIProvider>();

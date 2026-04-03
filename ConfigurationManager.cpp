@@ -41,7 +41,7 @@ void ConfigurationManager::init()
 
 void ConfigurationManager::updateTemplateDescription(const Utils::StringAspect &templateAspect)
 {
-    LLMCore::PromptTemplate *templ = m_templateManger.getFimTemplateByName(templateAspect.value());
+    PluginLLMCore::PromptTemplate *templ = m_templateManger.getFimTemplateByName(templateAspect.value());
 
     if (!templ) {
         return;
@@ -65,7 +65,7 @@ void ConfigurationManager::updateAllTemplateDescriptions()
 
 void ConfigurationManager::checkTemplate(const Utils::StringAspect &templateAspect)
 {
-    LLMCore::PromptTemplate *templ = m_templateManger.getFimTemplateByName(templateAspect.value());
+    PluginLLMCore::PromptTemplate *templ = m_templateManger.getFimTemplateByName(templateAspect.value());
 
     if (templ->name() == templateAspect.value())
         return;
@@ -86,8 +86,8 @@ void ConfigurationManager::checkAllTemplate()
 ConfigurationManager::ConfigurationManager(QObject *parent)
     : QObject(parent)
     , m_generalSettings(Settings::generalSettings())
-    , m_providersManager(LLMCore::ProvidersManager::instance())
-    , m_templateManger(LLMCore::PromptTemplateManager::instance())
+    , m_providersManager(PluginLLMCore::ProvidersManager::instance())
+    , m_templateManger(PluginLLMCore::PromptTemplateManager::instance())
 {}
 
 void ConfigurationManager::setupConnections()
@@ -176,7 +176,7 @@ void ConfigurationManager::selectModel()
                                                : m_generalSettings.caModel);
 
     if (auto provider = m_providersManager.getProviderByName(providerName)) {
-        if (!provider->supportsModelListing()) {
+        if (!provider->capabilities().testFlag(PluginLLMCore::ProviderCapability::ModelListing)) {
             m_generalSettings.showModelsNotSupportedDialog(*targetSettings);
             return;
         }

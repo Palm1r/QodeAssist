@@ -20,12 +20,13 @@
 #pragma once
 
 #include <QObject>
+#include <QSet>
 #include <QString>
 #include <QVector>
 
 #include "ChatModel.hpp"
 #include "Provider.hpp"
-#include "llmcore/IPromptProvider.hpp"
+#include "pluginllmcore/IPromptProvider.hpp"
 #include <context/ContextManager.hpp>
 
 namespace QodeAssist::Chat {
@@ -36,7 +37,7 @@ class ClientInterface : public QObject
 
 public:
     explicit ClientInterface(
-        ChatModel *chatModel, LLMCore::IPromptProvider *promptProvider, QObject *parent = nullptr);
+        ChatModel *chatModel, PluginLLMCore::IPromptProvider *promptProvider, QObject *parent = nullptr);
     ~ClientInterface();
 
     void sendMessage(
@@ -62,10 +63,8 @@ private slots:
     void handlePartialResponse(const QString &requestId, const QString &partialText);
     void handleFullResponse(const QString &requestId, const QString &fullText);
     void handleRequestFailed(const QString &requestId, const QString &error);
-    void handleCleanAccumulatedData(const QString &requestId);
     void handleThinkingBlockReceived(
         const QString &requestId, const QString &thinking, const QString &signature);
-    void handleRedactedThinkingBlockReceived(const QString &requestId, const QString &signature);
     void handleToolExecutionStarted(
         const QString &requestId, const QString &toolId, const QString &toolName);
     void handleToolExecutionCompleted(
@@ -82,21 +81,22 @@ private:
     bool isImageFile(const QString &filePath) const;
     QString getMediaTypeForImage(const QString &filePath) const;
     QString encodeImageToBase64(const QString &filePath) const;
-    QVector<LLMCore::ImageAttachment> loadImagesFromStorage(const QList<ChatModel::ImageAttachment> &storedImages) const;
+    QVector<PluginLLMCore::ImageAttachment> loadImagesFromStorage(const QList<ChatModel::ImageAttachment> &storedImages) const;
 
     struct RequestContext
     {
         QJsonObject originalRequest;
-        LLMCore::Provider *provider;
+        PluginLLMCore::Provider *provider;
     };
 
-    LLMCore::IPromptProvider *m_promptProvider = nullptr;
+    PluginLLMCore::IPromptProvider *m_promptProvider = nullptr;
     ChatModel *m_chatModel;
     Context::ContextManager *m_contextManager;
     QString m_chatFilePath;
 
     QHash<QString, RequestContext> m_activeRequests;
     QHash<QString, QString> m_accumulatedResponses;
+    QSet<QString> m_awaitingContinuation;
 };
 
 } // namespace QodeAssist::Chat

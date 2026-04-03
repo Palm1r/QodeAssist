@@ -23,9 +23,18 @@
 
 namespace QodeAssist::Providers {
 
+CodestralProvider::CodestralProvider(QObject *parent)
+    : MistralAIProvider(parent)
+{}
+
 QString CodestralProvider::name() const
 {
     return "Codestral";
+}
+
+QString CodestralProvider::apiKey() const
+{
+    return Settings::providerSettings().codestralApiKey();
 }
 
 QString CodestralProvider::url() const
@@ -33,14 +42,9 @@ QString CodestralProvider::url() const
     return "https://codestral.mistral.ai";
 }
 
-bool CodestralProvider::supportsModelListing() const
+PluginLLMCore::ProviderCapabilities CodestralProvider::capabilities() const
 {
-    return false;
-}
-
-QString CodestralProvider::apiKey() const
-{
-    return Settings::providerSettings().codestralApiKey();
+    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image;
 }
 
 } // namespace QodeAssist::Providers

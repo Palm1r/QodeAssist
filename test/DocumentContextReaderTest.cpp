@@ -24,6 +24,19 @@
 #include <QSharedPointer>
 #include <QTextDocument>
 
+namespace QodeAssist::PluginLLMCore {
+
+void PrintTo(const ContextData &data, std::ostream *os)
+{
+    *os << "ContextData{prefix="
+        << (data.prefix ? data.prefix->toStdString() : "<nullopt>")
+        << ", suffix=" << (data.suffix ? data.suffix->toStdString() : "<nullopt>")
+        << ", fileContext=" << (data.fileContext ? data.fileContext->toStdString() : "<nullopt>")
+        << "}";
+}
+
+} // namespace QodeAssist::PluginLLMCore
+
 using namespace QodeAssist::Context;
 using namespace QodeAssist::LLMCore;
 using namespace QodeAssist::Settings;
@@ -369,7 +382,7 @@ TEST_F(DocumentContextReaderTest, testPrepareContext)
 
     EXPECT_EQ(
         reader.prepareContext(2, 3, *createSettingsForWholeFile()),
-        (ContextData{
+        (QodeAssist::PluginLLMCore::ContextData{
             .prefix = "Line 0\nLine 1\nLin",
             .suffix = "e 2\nLine 3\nLine 4",
             .fileContext = "\n Language:  (MIME: text/python) filepath: /path/to/file()\n\n"
@@ -377,7 +390,7 @@ TEST_F(DocumentContextReaderTest, testPrepareContext)
 
     EXPECT_EQ(
         reader.prepareContext(2, 3, *createSettingsForLines(1, 1)),
-        (ContextData{
+        (QodeAssist::PluginLLMCore::ContextData{
             .prefix = "Line 1\nLin",
             .suffix = "e 2\nLine 3",
             .fileContext = "\n Language:  (MIME: text/python) filepath: /path/to/file()\n\n"
@@ -385,7 +398,7 @@ TEST_F(DocumentContextReaderTest, testPrepareContext)
 
     EXPECT_EQ(
         reader.prepareContext(2, 3, *createSettingsForLines(2, 2)),
-        (ContextData{
+        (QodeAssist::PluginLLMCore::ContextData{
             .prefix = "Line 0\nLine 1\nLin",
             .suffix = "e 2\nLine 3\nLine 4",
             .fileContext = "\n Language:  (MIME: text/python) filepath: /path/to/file()\n\n"

@@ -19,23 +19,22 @@
 
 #pragma once
 
-#include <llmcore/BaseTool.hpp>
+#include <LLMCore/BaseTool.hpp>
 
 #include <context/IgnoreManager.hpp>
 
 namespace QodeAssist::Tools {
 
-class ListProjectFilesTool : public LLMCore::BaseTool
+class ListProjectFilesTool : public ::LLMCore::BaseTool
 {
     Q_OBJECT
 public:
     explicit ListProjectFilesTool(QObject *parent = nullptr);
 
-    QString name() const override;
-    QString stringName() const override;
+    QString id() const override;
+    QString displayName() const override;
     QString description() const override;
-    QJsonObject getDefinition(LLMCore::ToolSchemaFormat format) const override;
-    LLMCore::ToolPermissions requiredPermissions() const override;
+    QJsonObject parametersSchema() const override;
 
     QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
 

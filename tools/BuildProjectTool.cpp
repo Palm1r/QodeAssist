@@ -59,12 +59,12 @@ BuildProjectTool::~BuildProjectTool()
     m_activeBuilds.clear();
 }
 
-QString BuildProjectTool::name() const
+QString BuildProjectTool::id() const
 {
     return "build_project";
 }
 
-QString BuildProjectTool::stringName() const
+QString BuildProjectTool::displayName() const
 {
     return "Building and running project";
 }
@@ -80,7 +80,7 @@ QString BuildProjectTool::description() const
            "Note: This operation may take some time depending on project size.";
 }
 
-QJsonObject BuildProjectTool::getDefinition(LLMCore::ToolSchemaFormat format) const
+QJsonObject BuildProjectTool::parametersSchema() const
 {
     QJsonObject definition;
     definition["type"] = "object";
@@ -96,24 +96,7 @@ QJsonObject BuildProjectTool::getDefinition(LLMCore::ToolSchemaFormat format) co
     definition["properties"] = properties;
     definition["required"] = QJsonArray();
 
-    switch (format) {
-    case LLMCore::ToolSchemaFormat::OpenAI:
-        return customizeForOpenAI(definition);
-    case LLMCore::ToolSchemaFormat::Claude:
-        return customizeForClaude(definition);
-    case LLMCore::ToolSchemaFormat::Ollama:
-        return customizeForOllama(definition);
-    case LLMCore::ToolSchemaFormat::Google:
-        return customizeForGoogle(definition);
-    }
-
     return definition;
-}
-
-LLMCore::ToolPermissions BuildProjectTool::requiredPermissions() const
-{
-    return LLMCore::ToolPermission::FileSystemRead 
-         | LLMCore::ToolPermission::FileSystemWrite;
 }
 
 QFuture<QString> BuildProjectTool::executeAsync(const QJsonObject &input)

@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024-2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -19,12 +19,13 @@
 
 #include "LlamaCppProvider.hpp"
 
-#include "llmcore/ValidationUtils.hpp"
+#include <LLMCore/ToolsManager.hpp>
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
 #include "settings/QuickRefactorSettings.hpp"
 #include "settings/GeneralSettings.hpp"
+#include "tools/ToolsRegistration.hpp"
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -33,19 +34,20 @@
 namespace QodeAssist::Providers {
 
 LlamaCppProvider::LlamaCppProvider(QObject *parent)
-    : LLMCore::Provider(parent)
-    , m_toolsManager(new Tools::ToolsManager(this))
+    : PluginLLMCore::Provider(parent)
+    , m_client(new ::LLMCore::LlamaCppClient(QString(), QString(), QString(), this))
 {
-    connect(
-        m_toolsManager,
-        &Tools::ToolsManager::toolExecutionComplete,
-        this,
-        &LlamaCppProvider::onToolExecutionComplete);
+    Tools::registerQodeAssistTools(m_client->tools());
 }
 
 QString LlamaCppProvider::name() const
 {
     return "llama.cpp";
+}
+
+QString LlamaCppProvider::apiKey() const
+{
+    return {};
 }
 
 QString LlamaCppProvider::url() const
@@ -63,16 +65,11 @@ QString LlamaCppProvider::chatEndpoint() const
     return "/v1/chat/completions";
 }
 
-bool LlamaCppProvider::supportsModelListing() const
-{
-    return false;
-}
-
 void LlamaCppProvider::prepareRequest(
     QJsonObject &request,
-    LLMCore::PromptTemplate *prompt,
-    LLMCore::ContextData context,
-    LLMCore::RequestType type,
+    PluginLLMCore::PromptTemplate *prompt,
+    PluginLLMCore::ContextData context,
+    PluginLLMCore::RequestType type,
     bool isToolsEnabled,
     bool isThinkingEnabled)
 {
@@ -96,22 +93,16 @@ void LlamaCppProvider::prepareRequest(
             request["presence_penalty"] = settings.presencePenalty();
     };
 
-    if (type == LLMCore::RequestType::CodeCompletion) {
+    if (type == PluginLLMCore::RequestType::CodeCompletion) {
         applyModelParams(Settings::codeCompletionSettings());
-    } else if (type == LLMCore::RequestType::QuickRefactoring) {
+    } else if (type == PluginLLMCore::RequestType::QuickRefactoring) {
         applyModelParams(Settings::quickRefactorSettings());
     } else {
         applyModelParams(Settings::chatAssistantSettings());
     }
 
     if (isToolsEnabled) {
-        LLMCore::RunToolsFilter filter = LLMCore::RunToolsFilter::ALL;
-        if (type == LLMCore::RequestType::QuickRefactoring) {
-            filter = LLMCore::RunToolsFilter::OnlyRead;
-        }
-
-        auto toolsDefinitions = m_toolsManager->getToolsDefinitions(
-            LLMCore::ToolSchemaFormat::OpenAI, filter);
+        auto toolsDefinitions = m_client->tools()->getToolsDefinitions();
         if (!toolsDefinitions.isEmpty()) {
             request["tools"] = toolsDefinitions;
             LOG_MESSAGE(QString("Added %1 tools to llama.cpp request").arg(toolsDefinitions.size()));
@@ -124,313 +115,19 @@ QFuture<QList<QString>> LlamaCppProvider::getInstalledModels(const QString &)
     return QtFuture::makeReadyFuture(QList<QString>{});
 }
 
-QList<QString> LlamaCppProvider::validateRequest(
-    const QJsonObject &request, LLMCore::TemplateType type)
+PluginLLMCore::ProviderID LlamaCppProvider::providerID() const
 {
-    if (type == LLMCore::TemplateType::FIM) {
-        const auto infillReq = QJsonObject{
-            {"model", {}},
-            {"input_prefix", {}},
-            {"input_suffix", {}},
-            {"input_extra", {}},
-            {"prompt", {}},
-            {"temperature", {}},
-            {"top_p", {}},
-            {"top_k", {}},
-            {"max_tokens", {}},
-            {"frequency_penalty", {}},
-            {"presence_penalty", {}},
-            {"stop", QJsonArray{}},
-            {"stream", {}}};
-
-        return LLMCore::ValidationUtils::validateRequestFields(request, infillReq);
-    } else {
-        const auto chatReq = QJsonObject{
-            {"model", {}},
-            {"messages", QJsonArray{{QJsonObject{{"role", {}}, {"content", {}}}}}},
-            {"temperature", {}},
-            {"max_tokens", {}},
-            {"top_p", {}},
-            {"top_k", {}},
-            {"frequency_penalty", {}},
-            {"presence_penalty", {}},
-            {"stop", QJsonArray{}},
-            {"stream", {}},
-            {"tools", {}}};
-
-        return LLMCore::ValidationUtils::validateRequestFields(request, chatReq);
-    }
+    return PluginLLMCore::ProviderID::LlamaCpp;
 }
 
-QString LlamaCppProvider::apiKey() const
+PluginLLMCore::ProviderCapabilities LlamaCppProvider::capabilities() const
 {
-    return {};
+    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image;
 }
 
-void LlamaCppProvider::prepareNetworkRequest(QNetworkRequest &networkRequest) const
+::LLMCore::BaseClient *LlamaCppProvider::client() const
 {
-    networkRequest.setHeader(QNetworkRequest::ContentTypeHeader, "application/json");
-}
-
-LLMCore::ProviderID LlamaCppProvider::providerID() const
-{
-    return LLMCore::ProviderID::LlamaCpp;
-}
-
-void LlamaCppProvider::sendRequest(
-    const LLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload)
-{
-    if (!m_messages.contains(requestId)) {
-        m_dataBuffers[requestId].clear();
-    }
-
-    m_requestUrls[requestId] = url;
-    m_originalRequests[requestId] = payload;
-
-    QNetworkRequest networkRequest(url);
-    prepareNetworkRequest(networkRequest);
-
-    LOG_MESSAGE(
-        QString("LlamaCppProvider: Sending request %1 to %2").arg(requestId, url.toString()));
-
-    httpClient()->postStreaming(requestId, networkRequest, payload);
-}
-
-bool LlamaCppProvider::supportsTools() const
-{
-    return true;
-}
-
-bool LlamaCppProvider::supportImage() const
-{
-    return true;
-}
-
-void LlamaCppProvider::cancelRequest(const LLMCore::RequestID &requestId)
-{
-    LOG_MESSAGE(QString("LlamaCppProvider: Cancelling request %1").arg(requestId));
-    LLMCore::Provider::cancelRequest(requestId);
-    cleanupRequest(requestId);
-}
-
-void LlamaCppProvider::onDataReceived(
-    const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data)
-{
-    LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
-    QStringList lines = buffers.rawStreamBuffer.processData(data);
-
-    for (const QString &line : lines) {
-        if (line.trimmed().isEmpty() || line == "data: [DONE]") {
-            continue;
-        }
-
-        QJsonObject chunk = parseEventLine(line);
-        if (chunk.isEmpty())
-            continue;
-
-        if (chunk.contains("content")) {
-            QString content = chunk["content"].toString();
-            if (!content.isEmpty()) {
-                buffers.responseContent += content;
-                emit partialResponseReceived(requestId, content);
-            }
-            if (chunk["stop"].toBool()) {
-                emit fullResponseReceived(requestId, buffers.responseContent);
-                m_dataBuffers.remove(requestId);
-            }
-        } else if (chunk.contains("choices")) {
-            processStreamChunk(requestId, chunk);
-        }
-    }
-}
-
-void LlamaCppProvider::onRequestFinished(
-    const QodeAssist::LLMCore::RequestID &requestId, std::optional<QString> error)
-{
-    if (error) {
-        LOG_MESSAGE(QString("LlamaCppProvider request %1 failed: %2").arg(requestId, *error));
-        emit requestFailed(requestId, *error);
-        cleanupRequest(requestId);
-        return;
-    }
-
-    if (m_messages.contains(requestId)) {
-        OpenAIMessage *message = m_messages[requestId];
-        if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
-            LOG_MESSAGE(QString("Waiting for tools to complete for %1").arg(requestId));
-            m_dataBuffers.remove(requestId);
-            return;
-        }
-    }
-
-    if (m_dataBuffers.contains(requestId)) {
-        const LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
-        if (!buffers.responseContent.isEmpty()) {
-            LOG_MESSAGE(QString("Emitting full response for %1").arg(requestId));
-            emit fullResponseReceived(requestId, buffers.responseContent);
-        }
-    }
-
-    cleanupRequest(requestId);
-}
-
-void LlamaCppProvider::onToolExecutionComplete(
-    const QString &requestId, const QHash<QString, QString> &toolResults)
-{
-    if (!m_messages.contains(requestId) || !m_requestUrls.contains(requestId)) {
-        LOG_MESSAGE(QString("ERROR: Missing data for continuation request %1").arg(requestId));
-        cleanupRequest(requestId);
-        return;
-    }
-
-    LOG_MESSAGE(QString("Tool execution complete for llama.cpp request %1").arg(requestId));
-
-    for (auto it = toolResults.begin(); it != toolResults.end(); ++it) {
-        OpenAIMessage *message = m_messages[requestId];
-        auto toolContent = message->getCurrentToolUseContent();
-        for (auto tool : toolContent) {
-            if (tool->id() == it.key()) {
-                auto toolStringName = m_toolsManager->toolsFactory()->getStringName(tool->name());
-                emit toolExecutionCompleted(
-                    requestId, tool->id(), toolStringName, toolResults[tool->id()]);
-                break;
-            }
-        }
-    }
-
-    OpenAIMessage *message = m_messages[requestId];
-    QJsonObject continuationRequest = m_originalRequests[requestId];
-    QJsonArray messages = continuationRequest["messages"].toArray();
-
-    messages.append(message->toProviderFormat());
-
-    QJsonArray toolResultMessages = message->createToolResultMessages(toolResults);
-    for (const auto &toolMsg : toolResultMessages) {
-        messages.append(toolMsg);
-    }
-
-    continuationRequest["messages"] = messages;
-
-    LOG_MESSAGE(QString("Sending continuation request for %1 with %2 tool results")
-                    .arg(requestId)
-                    .arg(toolResults.size()));
-
-    sendRequest(requestId, m_requestUrls[requestId], continuationRequest);
-}
-
-void LlamaCppProvider::processStreamChunk(const QString &requestId, const QJsonObject &chunk)
-{
-    QJsonArray choices = chunk["choices"].toArray();
-    if (choices.isEmpty()) {
-        return;
-    }
-
-    QJsonObject choice = choices[0].toObject();
-    QJsonObject delta = choice["delta"].toObject();
-    QString finishReason = choice["finish_reason"].toString();
-
-    OpenAIMessage *message = m_messages.value(requestId);
-    if (!message) {
-        message = new OpenAIMessage(this);
-        m_messages[requestId] = message;
-        LOG_MESSAGE(QString("Created NEW OpenAIMessage for llama.cpp request %1").arg(requestId));
-
-        if (m_dataBuffers.contains(requestId)) {
-            emit continuationStarted(requestId);
-            LOG_MESSAGE(QString("Starting continuation for request %1").arg(requestId));
-        }
-    } else if (
-        m_dataBuffers.contains(requestId)
-        && message->state() == LLMCore::MessageState::RequiresToolExecution) {
-        message->startNewContinuation();
-        emit continuationStarted(requestId);
-        LOG_MESSAGE(QString("Cleared message state for continuation request %1").arg(requestId));
-    }
-
-    if (delta.contains("content") && !delta["content"].isNull()) {
-        QString content = delta["content"].toString();
-        message->handleContentDelta(content);
-
-        LLMCore::DataBuffers &buffers = m_dataBuffers[requestId];
-        buffers.responseContent += content;
-        emit partialResponseReceived(requestId, content);
-    }
-
-    if (delta.contains("tool_calls")) {
-        QJsonArray toolCalls = delta["tool_calls"].toArray();
-        for (const auto &toolCallValue : toolCalls) {
-            QJsonObject toolCall = toolCallValue.toObject();
-            int index = toolCall["index"].toInt();
-
-            if (toolCall.contains("id")) {
-                QString id = toolCall["id"].toString();
-                QJsonObject function = toolCall["function"].toObject();
-                QString name = function["name"].toString();
-                message->handleToolCallStart(index, id, name);
-            }
-
-            if (toolCall.contains("function")) {
-                QJsonObject function = toolCall["function"].toObject();
-                if (function.contains("arguments")) {
-                    QString args = function["arguments"].toString();
-                    message->handleToolCallDelta(index, args);
-                }
-            }
-        }
-    }
-
-    if (!finishReason.isEmpty() && finishReason != "null") {
-        for (int i = 0; i < 10; ++i) {
-            message->handleToolCallComplete(i);
-        }
-
-        message->handleFinishReason(finishReason);
-        handleMessageComplete(requestId);
-    }
-}
-
-void LlamaCppProvider::handleMessageComplete(const QString &requestId)
-{
-    if (!m_messages.contains(requestId))
-        return;
-
-    OpenAIMessage *message = m_messages[requestId];
-
-    if (message->state() == LLMCore::MessageState::RequiresToolExecution) {
-        LOG_MESSAGE(QString("llama.cpp message requires tool execution for %1").arg(requestId));
-
-        auto toolUseContent = message->getCurrentToolUseContent();
-
-        if (toolUseContent.isEmpty()) {
-            LOG_MESSAGE(QString("No tools to execute for %1").arg(requestId));
-            return;
-        }
-
-        for (auto toolContent : toolUseContent) {
-            auto toolStringName = m_toolsManager->toolsFactory()->getStringName(toolContent->name());
-            emit toolExecutionStarted(requestId, toolContent->id(), toolStringName);
-            m_toolsManager->executeToolCall(
-                requestId, toolContent->id(), toolContent->name(), toolContent->input());
-        }
-
-    } else {
-        LOG_MESSAGE(QString("llama.cpp message marked as complete for %1").arg(requestId));
-    }
-}
-
-void LlamaCppProvider::cleanupRequest(const LLMCore::RequestID &requestId)
-{
-    LOG_MESSAGE(QString("Cleaning up llama.cpp request %1").arg(requestId));
-
-    if (m_messages.contains(requestId)) {
-        OpenAIMessage *message = m_messages.take(requestId);
-        message->deleteLater();
-    }
-
-    m_dataBuffers.remove(requestId);
-    m_requestUrls.remove(requestId);
-    m_originalRequests.remove(requestId);
-    m_toolsManager->cleanupRequest(requestId);
+    return m_client;
 }
 
 } // namespace QodeAssist::Providers

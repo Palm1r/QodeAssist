@@ -21,17 +21,17 @@
 
 #include <QJsonArray>
 
-#include "llmcore/PromptTemplate.hpp"
+#include "pluginllmcore/PromptTemplate.hpp"
 
 namespace QodeAssist::Templates {
 
-class OllamaFim : public LLMCore::PromptTemplate
+class OllamaFim : public PluginLLMCore::PromptTemplate
 {
 public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::FIM; }
+    PluginLLMCore::TemplateType type() const override { return PluginLLMCore::TemplateType::FIM; }
     QString name() const override { return "Ollama FIM"; }
     QStringList stopWords() const override { return QStringList() << "<EOT>"; }
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
+    void prepareRequest(QJsonObject &request, const PluginLLMCore::ContextData &context) const override
     {
         request["prompt"] = context.prefix.value_or("");
         request["suffix"] = context.suffix.value_or("");
@@ -47,10 +47,10 @@ public:
                "}\n\n"
                "Recommended for Ollama models with FIM capability.";
     }
-    bool isSupportProvider(LLMCore::ProviderID id) const override
+    bool isSupportProvider(PluginLLMCore::ProviderID id) const override
     {
         switch (id) {
-        case QodeAssist::LLMCore::ProviderID::Ollama:
+        case QodeAssist::PluginLLMCore::ProviderID::Ollama:
             return true;
         default:
             return false;
@@ -58,14 +58,14 @@ public:
     }
 };
 
-class OllamaChat : public LLMCore::PromptTemplate
+class OllamaChat : public PluginLLMCore::PromptTemplate
 {
 public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
+    PluginLLMCore::TemplateType type() const override { return PluginLLMCore::TemplateType::Chat; }
     QString name() const override { return "Ollama Chat"; }
     QStringList stopWords() const override { return QStringList(); }
 
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
+    void prepareRequest(QJsonObject &request, const PluginLLMCore::ContextData &context) const override
     {
         QJsonArray messages;
 
@@ -107,10 +107,10 @@ public:
                "Recommended for Ollama models with chat capability.\n"
                "Supports images for multimodal models (e.g., llava).";
     }
-    bool isSupportProvider(LLMCore::ProviderID id) const override
+    bool isSupportProvider(PluginLLMCore::ProviderID id) const override
     {
         switch (id) {
-        case QodeAssist::LLMCore::ProviderID::Ollama:
+        case QodeAssist::PluginLLMCore::ProviderID::Ollama:
             return true;
         default:
             return false;

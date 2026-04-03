@@ -19,18 +19,19 @@
 
 #include "QuickRefactorHandler.hpp"
 
+#include <LLMCore/BaseClient.hpp>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QUuid>
 
 #include <context/DocumentContextReader.hpp>
-#include <llmcore/ResponseCleaner.hpp>
+#include <pluginllmcore/ResponseCleaner.hpp>
 #include <context/DocumentReaderQtCreator.hpp>
 #include <context/Utils.hpp>
-#include <llmcore/PromptTemplateManager.hpp>
-#include <llmcore/ProvidersManager.hpp>
-#include <llmcore/RequestConfig.hpp>
-#include <llmcore/RulesLoader.hpp>
+#include <pluginllmcore/PromptTemplateManager.hpp>
+#include <pluginllmcore/ProvidersManager.hpp>
+#include <pluginllmcore/RequestConfig.hpp>
+#include <pluginllmcore/RulesLoader.hpp>
 #include <logger/Logger.hpp>
 #include <settings/ChatAssistantSettings.hpp>
 #include <settings/GeneralSettings.hpp>
@@ -109,8 +110,8 @@ void QuickRefactorHandler::prepareAndSendRequest(
 {
     auto &settings = Settings::generalSettings();
 
-    auto &providerRegistry = LLMCore::ProvidersManager::instance();
-    auto &promptManager = LLMCore::PromptTemplateManager::instance();
+    auto &providerRegistry = PluginLLMCore::ProvidersManager::instance();
+    auto &promptManager = PluginLLMCore::PromptTemplateManager::instance();
 
     const auto providerName = settings.qrProvider();
     auto provider = providerRegistry.getProviderByName(providerName);
@@ -140,14 +141,13 @@ void QuickRefactorHandler::prepareAndSendRequest(
         return;
     }
 
-    LLMCore::LLMConfig config;
-    config.requestType = LLMCore::RequestType::QuickRefactoring;
+    PluginLLMCore::LLMConfig config;
+    config.requestType = PluginLLMCore::RequestType::QuickRefactoring;
     config.provider = provider;
     config.promptTemplate = promptTemplate;
     config.url = QString("%1%2").arg(settings.qrUrl(), provider->chatEndpoint());
-    config.apiKey = provider->apiKey();
 
-    if (provider->providerID() == LLMCore::ProviderID::GoogleAI) {
+    if (provider->providerID() == PluginLLMCore::ProviderID::GoogleAI) {
         QString stream = QString{"streamGenerateContent?alt=sse"};
         config.url = QUrl(QString("%1/models/%2:%3")
                               .arg(
@@ -161,7 +161,7 @@ void QuickRefactorHandler::prepareAndSendRequest(
             = {{"model", Settings::generalSettings().qrModel()}, {"stream", true}};
     }
 
-    LLMCore::ContextData context = prepareContext(editor, range, instructions);
+    PluginLLMCore::ContextData context = prepareContext(editor, range, instructions);
 
     bool enableTools = Settings::quickRefactorSettings().useTools();
     bool enableThinking = Settings::quickRefactorSettings().useThinking();
@@ -169,41 +169,39 @@ void QuickRefactorHandler::prepareAndSendRequest(
         config.providerRequest,
         promptTemplate,
         context,
-        LLMCore::RequestType::QuickRefactoring,
+        PluginLLMCore::RequestType::QuickRefactoring,
         enableTools,
         enableThinking);
 
-    QString requestId = QUuid::createUuid().toString();
-    m_lastRequestId = requestId;
-    QJsonObject request{{"id", requestId}};
-
     m_isRefactoringInProgress = true;
 
-    m_activeRequests[requestId] = {request, provider};
-
     connect(
-        provider,
-        &LLMCore::Provider::fullResponseReceived,
+        provider->client(),
+        &::LLMCore::BaseClient::requestCompleted,
         this,
         &QuickRefactorHandler::handleFullResponse,
         Qt::UniqueConnection);
 
     connect(
-        provider,
-        &LLMCore::Provider::requestFailed,
+        provider->client(),
+        &::LLMCore::BaseClient::requestFailed,
         this,
         &QuickRefactorHandler::handleRequestFailed,
         Qt::UniqueConnection);
 
-    provider->sendRequest(requestId, config.url, config.providerRequest);
+    auto requestId = provider->sendRequest(config.url, config.providerRequest);
+    m_lastRequestId = requestId;
+    QJsonObject request{{"id", requestId}};
+
+    m_activeRequests[requestId] = {request, provider};
 }
 
-LLMCore::ContextData QuickRefactorHandler::prepareContext(
+PluginLLMCore::ContextData QuickRefactorHandler::prepareContext(
     TextEditor::TextEditorWidget *editor,
     const Utils::Text::Range &range,
     const QString &instructions)
 {
-    LLMCore::ContextData context;
+    PluginLLMCore::ContextData context;
 
     auto textDocument = editor->textDocument();
     Context::DocumentReaderQtCreator documentReader;
@@ -287,10 +285,10 @@ LLMCore::ContextData QuickRefactorHandler::prepareContext(
 
     QString systemPrompt = Settings::quickRefactorSettings().systemPrompt();
 
-    auto project = LLMCore::RulesLoader::getActiveProject();
+    auto project = PluginLLMCore::RulesLoader::getActiveProject();
     if (project) {
-        QString projectRules = LLMCore::RulesLoader::loadRulesForProject(
-            project, LLMCore::RulesContext::QuickRefactor);
+        QString projectRules = PluginLLMCore::RulesLoader::loadRulesForProject(
+            project, PluginLLMCore::RulesContext::QuickRefactor);
 
         if (!projectRules.isEmpty()) {
             systemPrompt += "\n\n# Project Rules\n\n" + projectRules;
@@ -368,7 +366,7 @@ LLMCore::ContextData QuickRefactorHandler::prepareContext(
 
     context.systemPrompt = systemPrompt;
 
-    QVector<LLMCore::Message> messages;
+    QVector<PluginLLMCore::Message> messages;
     messages.append(
         {"user",
          instructions.isEmpty() ? "Refactor the code to improve its quality and maintainability."
@@ -387,7 +385,7 @@ void QuickRefactorHandler::handleLLMResponse(
 
     if (isComplete) {
         m_isRefactoringInProgress = false;
-        QString cleanedResponse = LLMCore::ResponseCleaner::clean(response);
+        QString cleanedResponse = PluginLLMCore::ResponseCleaner::clean(response);
 
         RefactorResult result;
         result.newText = cleanedResponse;

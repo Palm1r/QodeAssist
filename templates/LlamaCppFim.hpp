@@ -21,18 +21,18 @@
 
 #include <QJsonArray>
 
-#include "llmcore/PromptTemplate.hpp"
+#include "pluginllmcore/PromptTemplate.hpp"
 
 namespace QodeAssist::Templates {
 
-class LlamaCppFim : public LLMCore::PromptTemplate
+class LlamaCppFim : public PluginLLMCore::PromptTemplate
 {
 public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::FIM; }
+    PluginLLMCore::TemplateType type() const override { return PluginLLMCore::TemplateType::FIM; }
     QString name() const override { return "llama.cpp FIM"; }
     QStringList stopWords() const override { return {}; }
 
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
+    void prepareRequest(QJsonObject &request, const PluginLLMCore::ContextData &context) const override
     {
         request["input_prefix"] = context.prefix.value_or("");
         request["input_suffix"] = context.suffix.value_or("");
@@ -60,9 +60,9 @@ public:
                "Recommended for models with FIM capability.";
     }
 
-    bool isSupportProvider(LLMCore::ProviderID id) const override
+    bool isSupportProvider(PluginLLMCore::ProviderID id) const override
     {
-        return id == QodeAssist::LLMCore::ProviderID::LlamaCpp;
+        return id == QodeAssist::PluginLLMCore::ProviderID::LlamaCpp;
     }
 };
 

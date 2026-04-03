@@ -19,6 +19,8 @@
 
 #include "ClientInterface.hpp"
 
+#include <LLMCore/BaseClient.hpp>
+
 #include <projectexplorer/buildconfiguration.h>
 #include <projectexplorer/target.h>
 #include <texteditor/textdocument.h>
@@ -40,6 +42,10 @@
 #include <texteditor/textdocument.h>
 #include <texteditor/texteditor.h>
 
+#include <LLMCore/ToolsManager.hpp>
+
+#include "tools/TodoTool.hpp"
+
 #include "ChatAssistantSettings.hpp"
 #include "ChatSerializer.hpp"
 #include "GeneralSettings.hpp"
@@ -53,7 +59,7 @@
 namespace QodeAssist::Chat {
 
 ClientInterface::ClientInterface(
-    ChatModel *chatModel, LLMCore::IPromptProvider *promptProvider, QObject *parent)
+    ChatModel *chatModel, PluginLLMCore::IPromptProvider *promptProvider, QObject *parent)
     : QObject(parent)
     , m_chatModel(chatModel)
     , m_promptProvider(promptProvider)
@@ -138,7 +144,7 @@ void ClientInterface::sendMessage(
     auto &chatAssistantSettings = Settings::chatAssistantSettings();
 
     auto providerName = Settings::generalSettings().caProvider();
-    auto provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
+    auto provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
     if (!provider) {
         LOG_MESSAGE(QString("No provider found with name: %1").arg(providerName));
@@ -153,7 +159,7 @@ void ClientInterface::sendMessage(
         return;
     }
 
-    LLMCore::ContextData context;
+    PluginLLMCore::ContextData context;
 
     const bool isToolsEnabled = useTools;
 
@@ -167,7 +173,7 @@ void ClientInterface::sendMessage(
                 systemPrompt = systemPrompt + "\n\n" + role.systemPrompt;
         }
 
-        auto project = LLMCore::RulesLoader::getActiveProject();
+        auto project = PluginLLMCore::RulesLoader::getActiveProject();
 
         if (project) {
             systemPrompt += QString("\n# Active project name: %1").arg(project->displayName());
@@ -177,12 +183,12 @@ void ClientInterface::sendMessage(
             if (auto target = project->activeTarget()) {
                 if (auto buildConfig = target->activeBuildConfiguration()) {
                     systemPrompt += QString("\n# Active Build directory: %1")
-                                        .arg(buildConfig->buildDirectory().toUrlishString());
+                    .arg(buildConfig->buildDirectory().toUrlishString());
                 }
             }
 
             QString projectRules
-                = LLMCore::RulesLoader::loadRulesForProject(project, LLMCore::RulesContext::Chat);
+                = PluginLLMCore::RulesLoader::loadRulesForProject(project, PluginLLMCore::RulesContext::Chat);
 
             if (!projectRules.isEmpty()) {
                 systemPrompt += QString("\n# Project Rules\n\n") + projectRules;
@@ -197,13 +203,13 @@ void ClientInterface::sendMessage(
         context.systemPrompt = systemPrompt;
     }
 
-    QVector<LLMCore::Message> messages;
+    QVector<PluginLLMCore::Message> messages;
     for (const auto &msg : m_chatModel->getChatHistory()) {
         if (msg.role == ChatModel::ChatRole::Tool || msg.role == ChatModel::ChatRole::FileEdit) {
             continue;
         }
 
-        LLMCore::Message apiMessage;
+        PluginLLMCore::Message apiMessage;
         apiMessage.role = msg.role == ChatModel::ChatRole::User ? "user" : "assistant";
         apiMessage.content = msg.content;
 
@@ -223,7 +229,8 @@ void ClientInterface::sendMessage(
         apiMessage.isRedacted = msg.isRedacted;
         apiMessage.signature = msg.signature;
 
-        if (provider->supportImage() && !m_chatFilePath.isEmpty() && !msg.images.isEmpty()) {
+        if (provider->capabilities().testFlag(PluginLLMCore::ProviderCapability::Image)
+            && !m_chatFilePath.isEmpty() && !msg.images.isEmpty()) {
             auto apiImages = loadImagesFromStorage(msg.images);
             if (!apiImages.isEmpty()) {
                 apiMessage.images = apiImages;
@@ -233,18 +240,19 @@ void ClientInterface::sendMessage(
         messages.append(apiMessage);
     }
 
-    if (!imageFiles.isEmpty() && !provider->supportImage()) {
+    if (!imageFiles.isEmpty()
+        && !provider->capabilities().testFlag(PluginLLMCore::ProviderCapability::Image)) {
         LOG_MESSAGE(QString("Provider %1 doesn't support images, %2 ignored")
                         .arg(provider->name(), QString::number(imageFiles.size())));
     }
 
     context.history = messages;
 
-    LLMCore::LLMConfig config;
-    config.requestType = LLMCore::RequestType::Chat;
+    PluginLLMCore::LLMConfig config;
+    config.requestType = PluginLLMCore::RequestType::Chat;
     config.provider = provider;
     config.promptTemplate = promptTemplate;
-    if (provider->providerID() == LLMCore::ProviderID::GoogleAI) {
+    if (provider->providerID() == PluginLLMCore::ProviderID::GoogleAI) {
         QString stream = QString{"streamGenerateContent?alt=sse"};
         config.url = QUrl(QString("%1/models/%2:%3")
                               .arg(
@@ -258,87 +266,79 @@ void ClientInterface::sendMessage(
             = {{"model", Settings::generalSettings().caModel()}, {"stream", true}};
     }
 
-    config.apiKey = provider->apiKey();
-
     config.provider->prepareRequest(
         config.providerRequest,
         promptTemplate,
         context,
-        LLMCore::RequestType::Chat,
+        PluginLLMCore::RequestType::Chat,
         useTools,
         useThinking);
 
-    QString requestId = QUuid::createUuid().toString();
+    connect(
+        provider->client(),
+        &::LLMCore::BaseClient::chunkReceived,
+        this,
+        &ClientInterface::handlePartialResponse,
+        Qt::UniqueConnection);
+    connect(
+        provider->client(),
+        &::LLMCore::BaseClient::requestCompleted,
+        this,
+        &ClientInterface::handleFullResponse,
+        Qt::UniqueConnection);
+    connect(
+        provider->client(),
+        &::LLMCore::BaseClient::requestFailed,
+        this,
+        &ClientInterface::handleRequestFailed,
+        Qt::UniqueConnection);
+    connect(
+        provider->client(),
+        &::LLMCore::BaseClient::toolStarted,
+        this,
+        &ClientInterface::handleToolExecutionStarted,
+        Qt::UniqueConnection);
+    connect(
+        provider->client(),
+        &::LLMCore::BaseClient::toolResultReady,
+        this,
+        &ClientInterface::handleToolExecutionCompleted,
+        Qt::UniqueConnection);
+    connect(
+        provider->client(),
+        &::LLMCore::BaseClient::thinkingBlockReceived,
+        this,
+        &ClientInterface::handleThinkingBlockReceived,
+        Qt::UniqueConnection);
+
+    auto requestId = provider->sendRequest(config.url, config.providerRequest);
     QJsonObject request{{"id", requestId}};
 
     m_activeRequests[requestId] = {request, provider};
 
     emit requestStarted(requestId);
-
-    connect(
-        provider,
-        &LLMCore::Provider::partialResponseReceived,
-        this,
-        &ClientInterface::handlePartialResponse,
-        Qt::UniqueConnection);
-    connect(
-        provider,
-        &LLMCore::Provider::fullResponseReceived,
-        this,
-        &ClientInterface::handleFullResponse,
-        Qt::UniqueConnection);
-    connect(
-        provider,
-        &LLMCore::Provider::requestFailed,
-        this,
-        &ClientInterface::handleRequestFailed,
-        Qt::UniqueConnection);
-    connect(
-        provider,
-        &LLMCore::Provider::toolExecutionStarted,
-        this,
-        &ClientInterface::handleToolExecutionStarted,
-        Qt::UniqueConnection);
-    connect(
-        provider,
-        &LLMCore::Provider::toolExecutionCompleted,
-        this,
-        &ClientInterface::handleToolExecutionCompleted,
-        Qt::UniqueConnection);
-    connect(
-        provider,
-        &LLMCore::Provider::continuationStarted,
-        this,
-        &ClientInterface::handleCleanAccumulatedData,
-        Qt::UniqueConnection);
-    connect(
-        provider,
-        &LLMCore::Provider::thinkingBlockReceived,
-        this,
-        &ClientInterface::handleThinkingBlockReceived,
-        Qt::UniqueConnection);
-    connect(
-        provider,
-        &LLMCore::Provider::redactedThinkingBlockReceived,
-        this,
-        &ClientInterface::handleRedactedThinkingBlockReceived,
-        Qt::UniqueConnection);
-
-    provider->sendRequest(requestId, config.url, config.providerRequest);
     
-    if (provider->supportsTools() && provider->toolsManager()) {
-        provider->toolsManager()->setCurrentSessionId(m_chatFilePath);
+    if (provider->capabilities().testFlag(PluginLLMCore::ProviderCapability::Tools)
+        && provider->toolsManager()) {
+        if (auto *todoTool = qobject_cast<QodeAssist::Tools::TodoTool *>(
+                provider->toolsManager()->tool("todo_tool"))) {
+            todoTool->setCurrentSessionId(m_chatFilePath);
+        }
     }
 }
 
 void ClientInterface::clearMessages()
 {
     const auto providerName = Settings::generalSettings().caProvider();
-    auto *provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
+    auto *provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
-    if (provider && !m_chatFilePath.isEmpty() && provider->supportsTools()
+    if (provider && !m_chatFilePath.isEmpty()
+        && provider->capabilities().testFlag(PluginLLMCore::ProviderCapability::Tools)
         && provider->toolsManager()) {
-        provider->toolsManager()->clearTodoSession(m_chatFilePath);
+        if (auto *todoTool = qobject_cast<QodeAssist::Tools::TodoTool *>(
+                provider->toolsManager()->tool("todo_tool"))) {
+            todoTool->clearSession(m_chatFilePath);
+        }
     }
 
     m_chatModel->clear();
@@ -346,7 +346,7 @@ void ClientInterface::clearMessages()
 
 void ClientInterface::cancelRequest()
 {
-    QSet<LLMCore::Provider *> providers;
+    QSet<PluginLLMCore::Provider *> providers;
     for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
         if (it.value().provider) {
             providers.insert(it.value().provider);
@@ -354,7 +354,7 @@ void ClientInterface::cancelRequest()
     }
 
     for (auto *provider : providers) {
-        disconnect(provider, nullptr, this, nullptr);
+        disconnect(provider->client(), nullptr, this, nullptr);
     }
 
     for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
@@ -366,6 +366,7 @@ void ClientInterface::cancelRequest()
 
     m_activeRequests.clear();
     m_accumulatedResponses.clear();
+    m_awaitingContinuation.clear();
 
     LOG_MESSAGE("All requests cancelled and state cleared");
 }
@@ -432,6 +433,12 @@ void ClientInterface::handlePartialResponse(const QString &requestId, const QStr
     if (it == m_activeRequests.end())
         return;
 
+    if (m_awaitingContinuation.remove(requestId)) {
+        m_accumulatedResponses[requestId].clear();
+        LOG_MESSAGE(
+            QString("Cleared accumulated responses for continuation request %1").arg(requestId));
+    }
+
     m_accumulatedResponses[requestId] += partialText;
 
     const RequestContext &ctx = it.value();
@@ -462,12 +469,9 @@ void ClientInterface::handleFullResponse(const QString &requestId, const QString
         + ": " + finalText);
     emit messageReceivedCompletely();
 
-    if (it != m_activeRequests.end()) {
-        m_activeRequests.erase(it);
-    }
-    if (m_accumulatedResponses.contains(requestId)) {
-        m_accumulatedResponses.remove(requestId);
-    }
+    m_activeRequests.erase(it);
+    m_accumulatedResponses.remove(requestId);
+    m_awaitingContinuation.remove(requestId);
 }
 
 void ClientInterface::handleRequestFailed(const QString &requestId, const QString &error)
@@ -479,18 +483,9 @@ void ClientInterface::handleRequestFailed(const QString &requestId, const QStrin
     LOG_MESSAGE(QString("Chat request %1 failed: %2").arg(requestId, error));
     emit errorOccurred(error);
 
-    if (it != m_activeRequests.end()) {
-        m_activeRequests.erase(it);
-    }
-    if (m_accumulatedResponses.contains(requestId)) {
-        m_accumulatedResponses.remove(requestId);
-    }
-}
-
-void ClientInterface::handleCleanAccumulatedData(const QString &requestId)
-{
-    m_accumulatedResponses[requestId].clear();
-    LOG_MESSAGE(QString("Cleared accumulated responses for continuation request %1").arg(requestId));
+    m_activeRequests.erase(it);
+    m_accumulatedResponses.remove(requestId);
+    m_awaitingContinuation.remove(requestId);
 }
 
 void ClientInterface::handleThinkingBlockReceived(
@@ -501,19 +496,17 @@ void ClientInterface::handleThinkingBlockReceived(
         return;
     }
 
-    m_chatModel->addThinkingBlock(requestId, thinking, signature);
-}
-
-void ClientInterface::handleRedactedThinkingBlockReceived(
-    const QString &requestId, const QString &signature)
-{
-    if (!m_activeRequests.contains(requestId)) {
+    if (m_awaitingContinuation.remove(requestId)) {
+        m_accumulatedResponses[requestId].clear();
         LOG_MESSAGE(
-            QString("Ignoring redacted thinking block for non-chat request: %1").arg(requestId));
-        return;
+            QString("Cleared accumulated responses for continuation request %1").arg(requestId));
     }
 
-    m_chatModel->addRedactedThinkingBlock(requestId, signature);
+    if (thinking.isEmpty()) {
+        m_chatModel->addRedactedThinkingBlock(requestId, signature);
+    } else {
+        m_chatModel->addThinkingBlock(requestId, thinking, signature);
+    }
 }
 
 void ClientInterface::handleToolExecutionStarted(
@@ -525,6 +518,7 @@ void ClientInterface::handleToolExecutionStarted(
     }
 
     m_chatModel->addToolExecutionStatus(requestId, toolId, toolName);
+    m_awaitingContinuation.insert(requestId);
 }
 
 void ClientInterface::handleToolExecutionCompleted(
@@ -588,10 +582,10 @@ QString ClientInterface::encodeImageToBase64(const QString &filePath) const
     return imageData.toBase64();
 }
 
-QVector<LLMCore::ImageAttachment> ClientInterface::loadImagesFromStorage(
+QVector<PluginLLMCore::ImageAttachment> ClientInterface::loadImagesFromStorage(
     const QList<ChatModel::ImageAttachment> &storedImages) const
 {
-    QVector<LLMCore::ImageAttachment> apiImages;
+    QVector<PluginLLMCore::ImageAttachment> apiImages;
 
     for (const auto &storedImage : storedImages) {
         QString base64Data
@@ -601,7 +595,7 @@ QVector<LLMCore::ImageAttachment> ClientInterface::loadImagesFromStorage(
             continue;
         }
 
-        LLMCore::ImageAttachment apiImage;
+        PluginLLMCore::ImageAttachment apiImage;
         apiImage.data = base64Data;
         apiImage.mediaType = storedImage.mediaType;
         apiImage.isUrl = false;
@@ -616,10 +610,15 @@ void ClientInterface::setChatFilePath(const QString &filePath)
 {
     if (!m_chatFilePath.isEmpty() && m_chatFilePath != filePath) {
         const auto providerName = Settings::generalSettings().caProvider();
-        auto *provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
+        auto *provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
-        if (provider && provider->supportsTools() && provider->toolsManager()) {
-            provider->toolsManager()->clearTodoSession(m_chatFilePath);
+        if (provider
+            && provider->capabilities().testFlag(PluginLLMCore::ProviderCapability::Tools)
+            && provider->toolsManager()) {
+            if (auto *todoTool = qobject_cast<QodeAssist::Tools::TodoTool *>(
+                    provider->toolsManager()->tool("todo_tool"))) {
+                todoTool->clearSession(m_chatFilePath);
+            }
         }
     }
 

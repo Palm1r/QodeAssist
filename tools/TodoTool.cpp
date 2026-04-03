@@ -31,12 +31,12 @@ TodoTool::TodoTool(QObject *parent)
     : BaseTool(parent)
 {}
 
-QString TodoTool::name() const
+QString TodoTool::id() const
 {
     return "todo_tool";
 }
 
-QString TodoTool::stringName() const
+QString TodoTool::displayName() const
 {
     return "Managing TODO list for task tracking";
 }
@@ -53,7 +53,7 @@ QString TodoTool::description() const
            "The list persists throughout the conversation.";
 }
 
-QJsonObject TodoTool::getDefinition(LLMCore::ToolSchemaFormat format) const
+QJsonObject TodoTool::parametersSchema() const
 {
     QJsonObject definition;
     definition["type"] = "object";
@@ -97,32 +97,15 @@ QJsonObject TodoTool::getDefinition(LLMCore::ToolSchemaFormat format) const
     required.append("operation");
     definition["required"] = required;
 
-    switch (format) {
-    case LLMCore::ToolSchemaFormat::OpenAI:
-        return customizeForOpenAI(definition);
-    case LLMCore::ToolSchemaFormat::Claude:
-        return customizeForClaude(definition);
-    case LLMCore::ToolSchemaFormat::Ollama:
-        return customizeForOllama(definition);
-    case LLMCore::ToolSchemaFormat::Google:
-        return customizeForGoogle(definition);
-    }
-
     return definition;
-}
-
-LLMCore::ToolPermissions TodoTool::requiredPermissions() const
-{
-    return LLMCore::ToolPermission::None;
 }
 
 QFuture<QString> TodoTool::executeAsync(const QJsonObject &input)
 {
     return QtConcurrent::run([this, input]() -> QString {
-        QString sessionId = input.value("session_id").toString();
-        if (sessionId.isEmpty()) {
-            sessionId = "current";
-        }
+        QMutexLocker sessionLocker(&m_mutex);
+        QString sessionId = m_currentSessionId.isEmpty() ? "current" : m_currentSessionId;
+        sessionLocker.unlock();
 
         const QString operation = input.value("operation").toString();
 
@@ -192,6 +175,12 @@ QFuture<QString> TodoTool::executeAsync(const QJsonObject &input)
                     .arg(operation));
         }
     });
+}
+
+void TodoTool::setCurrentSessionId(const QString &sessionId)
+{
+    QMutexLocker locker(&m_mutex);
+    m_currentSessionId = sessionId;
 }
 
 void TodoTool::clearSession(const QString &sessionId)

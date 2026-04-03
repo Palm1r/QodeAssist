@@ -43,12 +43,12 @@ ProjectSearchTool::ProjectSearchTool(QObject *parent)
     , m_ignoreManager(new Context::IgnoreManager(this))
 {}
 
-QString ProjectSearchTool::name() const
+QString ProjectSearchTool::id() const
 {
     return "search_project";
 }
 
-QString ProjectSearchTool::stringName() const
+QString ProjectSearchTool::displayName() const
 {
     return "Searching in project";
 }
@@ -60,7 +60,7 @@ QString ProjectSearchTool::description() const
            "Symbol mode: finds C++ definitions (classes, functions, etc).";
 }
 
-QJsonObject ProjectSearchTool::getDefinition(LLMCore::ToolSchemaFormat format) const
+QJsonObject ProjectSearchTool::parametersSchema() const
 {
     QJsonObject properties;
 
@@ -94,22 +94,7 @@ QJsonObject ProjectSearchTool::getDefinition(LLMCore::ToolSchemaFormat format) c
     definition["properties"] = properties;
     definition["required"] = QJsonArray{"query", "search_type"};
 
-    switch (format) {
-    case LLMCore::ToolSchemaFormat::OpenAI:
-        return customizeForOpenAI(definition);
-    case LLMCore::ToolSchemaFormat::Claude:
-        return customizeForClaude(definition);
-    case LLMCore::ToolSchemaFormat::Ollama:
-        return customizeForOllama(definition);
-    case LLMCore::ToolSchemaFormat::Google:
-        return customizeForGoogle(definition);
-    }
     return definition;
-}
-
-LLMCore::ToolPermissions ProjectSearchTool::requiredPermissions() const
-{
-    return LLMCore::ToolPermission::FileSystemRead;
 }
 
 QFuture<QString> ProjectSearchTool::executeAsync(const QJsonObject &input)

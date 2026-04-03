@@ -18,6 +18,8 @@
  */
 
 #include "ChatCompressor.hpp"
+
+#include <LLMCore/BaseClient.hpp>
 #include "ChatModel.hpp"
 #include "GeneralSettings.hpp"
 #include "PromptTemplateManager.hpp"
@@ -56,7 +58,7 @@ void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *ch
     }
 
     auto providerName = Settings::generalSettings().caProvider();
-    m_provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
+    m_provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
     if (!m_provider) {
         emit compressionFailed(tr("No provider available"));
@@ -64,7 +66,7 @@ void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *ch
     }
 
     auto templateName = Settings::generalSettings().caTemplate();
-    auto promptTemplate = LLMCore::PromptTemplateManager::instance().getChatTemplateByName(
+    auto promptTemplate = PluginLLMCore::PromptTemplateManager::instance().getChatTemplateByName(
         templateName);
 
     if (!promptTemplate) {
@@ -76,7 +78,6 @@ void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *ch
     m_chatModel = chatModel;
     m_originalChatPath = chatFilePath;
     m_accumulatedSummary.clear();
-    m_currentRequestId = QUuid::createUuid().toString(QUuid::WithoutBraces);
 
     emit compressionStarted();
 
@@ -85,7 +86,7 @@ void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *ch
     QUrl requestUrl;
     QJsonObject payload;
 
-    if (m_provider->providerID() == LLMCore::ProviderID::GoogleAI) {
+    if (m_provider->providerID() == PluginLLMCore::ProviderID::GoogleAI) {
         requestUrl = QUrl(QString("%1/models/%2:streamGenerateContent?alt=sse")
                               .arg(Settings::generalSettings().caUrl(),
                                    Settings::generalSettings().caModel()));
@@ -98,8 +99,8 @@ void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *ch
 
     buildRequestPayload(payload, promptTemplate);
 
+    m_currentRequestId = m_provider->sendRequest(requestUrl, payload);
     LOG_MESSAGE(QString("Starting compression request: %1").arg(m_currentRequestId));
-    m_provider->sendRequest(m_currentRequestId, requestUrl, payload);
 }
 
 bool ChatCompressor::isCompressing() const
@@ -188,28 +189,28 @@ QString ChatCompressor::buildCompressionPrompt() const
 }
 
 void ChatCompressor::buildRequestPayload(
-    QJsonObject &payload, LLMCore::PromptTemplate *promptTemplate)
+    QJsonObject &payload, PluginLLMCore::PromptTemplate *promptTemplate)
 {
-    LLMCore::ContextData context;
+    PluginLLMCore::ContextData context;
 
     context.systemPrompt = QStringLiteral(
         "You are a helpful assistant that creates concise summaries of conversations. "
         "Your summaries preserve key information, technical details, and the flow of discussion.");
 
-    QVector<LLMCore::Message> messages;
+    QVector<PluginLLMCore::Message> messages;
     for (const auto &msg : m_chatModel->getChatHistory()) {
         if (msg.role == ChatModel::ChatRole::Tool 
             || msg.role == ChatModel::ChatRole::FileEdit
             || msg.role == ChatModel::ChatRole::Thinking)
             continue;
 
-        LLMCore::Message apiMessage;
+        PluginLLMCore::Message apiMessage;
         apiMessage.role = (msg.role == ChatModel::ChatRole::User) ? "user" : "assistant";
         apiMessage.content = msg.content;
         messages.append(apiMessage);
     }
 
-    LLMCore::Message compressionRequest;
+    PluginLLMCore::Message compressionRequest;
     compressionRequest.role = "user";
     compressionRequest.content = buildCompressionPrompt();
     messages.append(compressionRequest);
@@ -217,7 +218,7 @@ void ChatCompressor::buildRequestPayload(
     context.history = messages;
 
     m_provider->prepareRequest(
-        payload, promptTemplate, context, LLMCore::RequestType::Chat, false, false);
+        payload, promptTemplate, context, PluginLLMCore::RequestType::Chat, false, false);
 }
 
 bool ChatCompressor::createCompressedChatFile(
@@ -266,23 +267,25 @@ bool ChatCompressor::createCompressedChatFile(
 
 void ChatCompressor::connectProviderSignals()
 {
+    auto *c = m_provider->client();
+
     m_connections.append(connect(
-        m_provider,
-        &LLMCore::Provider::partialResponseReceived,
+        c,
+        &::LLMCore::BaseClient::chunkReceived,
         this,
         &ChatCompressor::onPartialResponseReceived,
         Qt::UniqueConnection));
 
     m_connections.append(connect(
-        m_provider,
-        &LLMCore::Provider::fullResponseReceived,
+        c,
+        &::LLMCore::BaseClient::requestCompleted,
         this,
         &ChatCompressor::onFullResponseReceived,
         Qt::UniqueConnection));
 
     m_connections.append(connect(
-        m_provider,
-        &LLMCore::Provider::requestFailed,
+        c,
+        &::LLMCore::BaseClient::requestFailed,
         this,
         &ChatCompressor::onRequestFailed,
         Qt::UniqueConnection));

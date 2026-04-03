@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <llmcore/ContentBlocks.hpp>
+#include <pluginllmcore/ContentBlocks.hpp>
 
 namespace QodeAssist::Providers {
 
@@ -38,19 +38,19 @@ public:
     QJsonObject toProviderFormat() const;
     QJsonArray createToolResultMessages(const QHash<QString, QString> &toolResults) const;
 
-    LLMCore::MessageState state() const { return m_state; }
-    QList<LLMCore::ToolUseContent *> getCurrentToolUseContent() const;
+    PluginLLMCore::MessageState state() const { return m_state; }
+    QList<PluginLLMCore::ToolUseContent *> getCurrentToolUseContent() const;
 
     void startNewContinuation();
 
 private:
     QString m_finishReason;
-    LLMCore::MessageState m_state = LLMCore::MessageState::Building;
-    QList<LLMCore::ContentBlock *> m_currentBlocks;
+    PluginLLMCore::MessageState m_state = PluginLLMCore::MessageState::Building;
+    QList<PluginLLMCore::ContentBlock *> m_currentBlocks;
     QHash<int, QString> m_pendingToolArguments;
 
     void updateStateFromFinishReason();
-    LLMCore::TextContent *getOrCreateTextContent();
+    PluginLLMCore::TextContent *getOrCreateTextContent();
 
     template<typename T, typename... Args>
     T *addCurrentContent(Args &&...args)

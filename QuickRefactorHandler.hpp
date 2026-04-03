@@ -27,8 +27,8 @@
 
 #include <context/ContextManager.hpp>
 #include <context/IDocumentReader.hpp>
-#include <llmcore/ContextData.hpp>
-#include <llmcore/Provider.hpp>
+#include <pluginllmcore/ContextData.hpp>
+#include <pluginllmcore/Provider.hpp>
 
 namespace QodeAssist {
 
@@ -68,7 +68,7 @@ private:
         const Utils::Text::Range &range);
 
     void handleLLMResponse(const QString &response, const QJsonObject &request, bool isComplete);
-    LLMCore::ContextData prepareContext(
+    PluginLLMCore::ContextData prepareContext(
         TextEditor::TextEditorWidget *editor,
         const Utils::Text::Range &range,
         const QString &instructions);
@@ -76,7 +76,7 @@ private:
     struct RequestContext
     {
         QJsonObject originalRequest;
-        LLMCore::Provider *provider;
+        PluginLLMCore::Provider *provider;
     };
 
     QHash<QString, RequestContext> m_activeRequests;

@@ -19,21 +19,21 @@
 
 #pragma once
 
-#include "llmcore/PromptTemplate.hpp"
+#include "pluginllmcore/PromptTemplate.hpp"
 
 namespace QodeAssist::Templates {
 
-class CodeLlamaQMLFim : public LLMCore::PromptTemplate
+class CodeLlamaQMLFim : public PluginLLMCore::PromptTemplate
 {
 public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::FIM; }
+    PluginLLMCore::TemplateType type() const override { return PluginLLMCore::TemplateType::FIM; }
     QString name() const override { return "CodeLlama QML FIM"; }
     QStringList stopWords() const override
     {
         return QStringList() << "<SUF>" << "<PRE>" << "</PRE>" << "</SUF>" << "< EOT >" << "\\end"
                              << "<MID>" << "</MID>" << "##";
     }
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
+    void prepareRequest(QJsonObject &request, const PluginLLMCore::ContextData &context) const override
     {
         request["prompt"] = QString("<SUF>%1<PRE>%2<MID>")
                                 .arg(context.suffix.value_or(""), context.prefix.value_or(""));
@@ -48,10 +48,10 @@ public:
                "}\n\n"
                "Specifically optimized for QML/JavaScript code completion.";
     }
-    bool isSupportProvider(LLMCore::ProviderID id) const override
+    bool isSupportProvider(PluginLLMCore::ProviderID id) const override
     {
         switch (id) {
-        case QodeAssist::LLMCore::ProviderID::Ollama:
+        case QodeAssist::PluginLLMCore::ProviderID::Ollama:
             return true;
         default:
             return false;

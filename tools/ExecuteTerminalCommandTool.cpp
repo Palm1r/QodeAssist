@@ -41,12 +41,12 @@ ExecuteTerminalCommandTool::ExecuteTerminalCommandTool(QObject *parent)
 {
 }
 
-QString ExecuteTerminalCommandTool::name() const
+QString ExecuteTerminalCommandTool::id() const
 {
     return "execute_terminal_command";
 }
 
-QString ExecuteTerminalCommandTool::stringName() const
+QString ExecuteTerminalCommandTool::displayName() const
 {
     return "Executing terminal command";
 }
@@ -56,7 +56,7 @@ QString ExecuteTerminalCommandTool::description() const
     return getCommandDescription();
 }
 
-QJsonObject ExecuteTerminalCommandTool::getDefinition(LLMCore::ToolSchemaFormat format) const
+QJsonObject ExecuteTerminalCommandTool::parametersSchema() const
 {
     QJsonObject definition;
     definition["type"] = "object";
@@ -70,32 +70,14 @@ QJsonObject ExecuteTerminalCommandTool::getDefinition(LLMCore::ToolSchemaFormat 
 
     properties["args"] = QJsonObject{
         {"type", "string"},
-        {"description", 
+        {"description",
          "Optional arguments for the command. Arguments with spaces should be properly quoted. "
          "Example: '--file \"path with spaces.txt\" --verbose'"}};
 
     definition["properties"] = properties;
     definition["required"] = QJsonArray{"command"};
 
-    switch (format) {
-    case LLMCore::ToolSchemaFormat::OpenAI:
-        return customizeForOpenAI(definition);
-    case LLMCore::ToolSchemaFormat::Claude:
-        return customizeForClaude(definition);
-    case LLMCore::ToolSchemaFormat::Ollama:
-        return customizeForOllama(definition);
-    case LLMCore::ToolSchemaFormat::Google:
-        return customizeForGoogle(definition);
-    }
-
     return definition;
-}
-
-LLMCore::ToolPermissions ExecuteTerminalCommandTool::requiredPermissions() const
-{
-    return LLMCore::ToolPermission::FileSystemRead 
-         | LLMCore::ToolPermission::FileSystemWrite 
-         | LLMCore::ToolPermission::NetworkAccess;
 }
 
 QFuture<QString> ExecuteTerminalCommandTool::executeAsync(const QJsonObject &input)

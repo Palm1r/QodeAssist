@@ -20,25 +20,24 @@
 #pragma once
 
 #include <context/IgnoreManager.hpp>
-#include <llmcore/BaseTool.hpp>
+#include <LLMCore/BaseTool.hpp>
 #include <QFuture>
 #include <QJsonObject>
 #include <QObject>
 
 namespace QodeAssist::Tools {
 
-class ProjectSearchTool : public LLMCore::BaseTool
+class ProjectSearchTool : public ::LLMCore::BaseTool
 {
     Q_OBJECT
 
 public:
     explicit ProjectSearchTool(QObject *parent = nullptr);
 
-    QString name() const override;
-    QString stringName() const override;
+    QString id() const override;
+    QString displayName() const override;
     QString description() const override;
-    QJsonObject getDefinition(LLMCore::ToolSchemaFormat format) const override;
-    LLMCore::ToolPermissions requiredPermissions() const override;
+    QJsonObject parametersSchema() const override;
     QFuture<QString> executeAsync(const QJsonObject &input) override;
 
 private:

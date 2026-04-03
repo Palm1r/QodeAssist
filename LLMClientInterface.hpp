@@ -25,9 +25,9 @@
 #include <context/ContextManager.hpp>
 #include <context/IDocumentReader.hpp>
 #include <context/ProgrammingLanguage.hpp>
-#include <llmcore/ContextData.hpp>
-#include <llmcore/IPromptProvider.hpp>
-#include <llmcore/IProviderRegistry.hpp>
+#include <pluginllmcore/ContextData.hpp>
+#include <pluginllmcore/IPromptProvider.hpp>
+#include <pluginllmcore/IProviderRegistry.hpp>
 #include <logger/IRequestPerformanceLogger.hpp>
 #include <settings/CodeCompletionSettings.hpp>
 #include <settings/GeneralSettings.hpp>
@@ -45,8 +45,8 @@ public:
     LLMClientInterface(
         const Settings::GeneralSettings &generalSettings,
         const Settings::CodeCompletionSettings &completeSettings,
-        LLMCore::IProviderRegistry &providerRegistry,
-        LLMCore::IPromptProvider *promptProvider,
+        PluginLLMCore::IProviderRegistry &providerRegistry,
+        PluginLLMCore::IPromptProvider *promptProvider,
         Context::IDocumentReader &documentReader,
         IRequestPerformanceLogger &performanceLogger);
     ~LLMClientInterface() override;
@@ -82,17 +82,17 @@ private:
     struct RequestContext
     {
         QJsonObject originalRequest;
-        LLMCore::Provider *provider;
+        PluginLLMCore::Provider *provider;
     };
 
-    LLMCore::ContextData prepareContext(
+    PluginLLMCore::ContextData prepareContext(
         const QJsonObject &request, const Context::DocumentInfo &documentInfo);
-    QString endpoint(LLMCore::Provider *provider, LLMCore::TemplateType type, bool isLanguageSpecify);
+    QString endpoint(PluginLLMCore::Provider *provider, PluginLLMCore::TemplateType type, bool isLanguageSpecify);
 
     const Settings::CodeCompletionSettings &m_completeSettings;
     const Settings::GeneralSettings &m_generalSettings;
-    LLMCore::IPromptProvider *m_promptProvider = nullptr;
-    LLMCore::IProviderRegistry &m_providerRegistry;
+    PluginLLMCore::IPromptProvider *m_promptProvider = nullptr;
+    PluginLLMCore::IProviderRegistry &m_providerRegistry;
     Context::IDocumentReader &m_documentReader;
     IRequestPerformanceLogger &m_performanceLogger;
     QElapsedTimer m_completionTimer;

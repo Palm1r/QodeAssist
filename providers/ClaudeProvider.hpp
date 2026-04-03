@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2024-2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -19,14 +19,13 @@
 
 #pragma once
 
-#include <llmcore/Provider.hpp>
+#include <pluginllmcore/Provider.hpp>
 
-#include "ClaudeMessage.hpp"
-#include "tools/ToolsManager.hpp"
+#include <LLMCore/ClaudeClient.hpp>
 
 namespace QodeAssist::Providers {
 
-class ClaudeProvider : public LLMCore::Provider
+class ClaudeProvider : public PluginLLMCore::Provider
 {
     Q_OBJECT
 public:
@@ -36,50 +35,22 @@ public:
     QString url() const override;
     QString completionEndpoint() const override;
     QString chatEndpoint() const override;
-    bool supportsModelListing() const override;
     void prepareRequest(
         QJsonObject &request,
-        LLMCore::PromptTemplate *prompt,
-        LLMCore::ContextData context,
-        LLMCore::RequestType type,
+        PluginLLMCore::PromptTemplate *prompt,
+        PluginLLMCore::ContextData context,
+        PluginLLMCore::RequestType type,
         bool isToolsEnabled,
         bool isThinkingEnabled) override;
     QFuture<QList<QString>> getInstalledModels(const QString &url) override;
-    QList<QString> validateRequest(const QJsonObject &request, LLMCore::TemplateType type) override;
+    PluginLLMCore::ProviderID providerID() const override;
+    PluginLLMCore::ProviderCapabilities capabilities() const override;
+
+    ::LLMCore::BaseClient *client() const override;
     QString apiKey() const override;
-    void prepareNetworkRequest(QNetworkRequest &networkRequest) const override;
-    LLMCore::ProviderID providerID() const override;
-
-    void sendRequest(
-        const LLMCore::RequestID &requestId, const QUrl &url, const QJsonObject &payload) override;
-
-    bool supportsTools() const override;
-    bool supportThinking() const override;
-    bool supportImage() const override;
-    void cancelRequest(const LLMCore::RequestID &requestId) override;
-    
-    LLMCore::IToolsManager *toolsManager() const override;
-
-public slots:
-    void onDataReceived(
-        const QodeAssist::LLMCore::RequestID &requestId, const QByteArray &data) override;
-    void onRequestFinished(
-        const QodeAssist::LLMCore::RequestID &requestId,
-        std::optional<QString> error) override;
-
-private slots:
-    void onToolExecutionComplete(
-        const QString &requestId, const QHash<QString, QString> &toolResults);
 
 private:
-    void processStreamEvent(const QString &requestId, const QJsonObject &event);
-    void handleMessageComplete(const QString &requestId);
-    void cleanupRequest(const LLMCore::RequestID &requestId);
-
-    QHash<QodeAssist::LLMCore::RequestID, ClaudeMessage *> m_messages;
-    QHash<QodeAssist::LLMCore::RequestID, QUrl> m_requestUrls;
-    QHash<QodeAssist::LLMCore::RequestID, QJsonObject> m_originalRequests;
-    Tools::ToolsManager *m_toolsManager;
+    ::LLMCore::ClaudeClient *m_client;
 };
 
 } // namespace QodeAssist::Providers

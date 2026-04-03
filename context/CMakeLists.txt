@@ -20,7 +20,7 @@ target_link_libraries(Context
     QtCreator::Utils
     QtCreator::ProjectExplorer
     PRIVATE
-    LLMCore
+    PluginLLMCore
     QodeAssistSettings
 )
 

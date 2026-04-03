@@ -62,8 +62,6 @@ public:
     QString url() const override { return "https://mock_url"; }
     QString completionEndpoint() const override { return "/v1/completions"; }
     QString chatEndpoint() const override { return "/v1/chat/completions"; }
-    bool supportsModelListing() const override { return false; }
-
     void prepareRequest(
         QJsonObject &request,
         LLMCore::PromptTemplate *promptTemplate,
@@ -85,14 +83,6 @@ public:
         return QtFuture::makeReadyFuture(QList<QString>{});
     }
 
-    QStringList validateRequest(
-        const QJsonObject &request, LLMCore::TemplateType templateType) override
-    {
-        return {};
-    }
-
-    QString apiKey() const override { return "mock_api_key"; }
-    void prepareNetworkRequest(QNetworkRequest &request) const override {}
     LLMCore::ProviderID providerID() const override { return LLMCore::ProviderID::OpenAI; }
 };
 
