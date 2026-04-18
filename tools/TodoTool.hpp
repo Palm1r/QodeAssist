@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <LLMCore/BaseTool.hpp>
+#include <LLMQore/BaseTool.hpp>
 
 #include <QHash>
 #include <QMutex>
@@ -34,7 +34,7 @@ struct TodoItem
     bool completed;
 };
 
-class TodoTool : public ::LLMCore::BaseTool
+class TodoTool : public ::LLMQore::BaseTool
 {
     Q_OBJECT
 
@@ -46,7 +46,7 @@ public:
     QString description() const override;
     QJsonObject parametersSchema() const override;
 
-    QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
+    QFuture<LLMQore::ToolResult> executeAsync(const QJsonObject &input = QJsonObject()) override;
 
     void setCurrentSessionId(const QString &sessionId);
     void clearSession(const QString &sessionId);

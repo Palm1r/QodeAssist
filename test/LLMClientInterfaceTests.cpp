@@ -40,22 +40,22 @@ using namespace testing;
 
 namespace QodeAssist {
 
-class MockPromptProvider : public LLMCore::IPromptProvider
+class MockPromptProvider : public LLMQore::IPromptProvider
 {
 public:
-    MOCK_METHOD(LLMCore::PromptTemplate *, getTemplateByName, (const QString &), (const override));
+    MOCK_METHOD(LLMQore::PromptTemplate *, getTemplateByName, (const QString &), (const override));
     MOCK_METHOD(QStringList, templatesNames, (), (const override));
-    MOCK_METHOD(QStringList, getTemplatesForProvider, (LLMCore::ProviderID id), (const override));
+    MOCK_METHOD(QStringList, getTemplatesForProvider, (LLMQore::ProviderID id), (const override));
 };
 
-class MockProviderRegistry : public LLMCore::IProviderRegistry
+class MockProviderRegistry : public LLMQore::IProviderRegistry
 {
 public:
-    MOCK_METHOD(LLMCore::Provider *, getProviderByName, (const QString &), (override));
+    MOCK_METHOD(LLMQore::Provider *, getProviderByName, (const QString &), (override));
     MOCK_METHOD(QStringList, providersNames, (), (const override));
 };
 
-class MockProvider : public LLMCore::Provider
+class MockProvider : public LLMQore::Provider
 {
 public:
     QString name() const override { return "mock_provider"; }
@@ -64,9 +64,9 @@ public:
     QString chatEndpoint() const override { return "/v1/chat/completions"; }
     void prepareRequest(
         QJsonObject &request,
-        LLMCore::PromptTemplate *promptTemplate,
-        LLMCore::ContextData context,
-        LLMCore::RequestType requestType,
+        LLMQore::PromptTemplate *promptTemplate,
+        LLMQore::ContextData context,
+        LLMQore::RequestType requestType,
         bool isToolsEnabled,
         bool isThinkingEnabled) override
     {
@@ -83,7 +83,7 @@ public:
         return QtFuture::makeReadyFuture(QList<QString>{});
     }
 
-    LLMCore::ProviderID providerID() const override { return LLMCore::ProviderID::OpenAI; }
+    LLMQore::ProviderID providerID() const override { return LLMQore::ProviderID::OpenAI; }
 };
 
 class LLMClientInterfaceTest : public Test
@@ -180,8 +180,8 @@ protected:
     EmptyRequestPerformanceLogger m_performanceLogger;
     std::unique_ptr<LLMClientInterface> m_client;
     std::unique_ptr<MockProvider> m_provider;
-    std::unique_ptr<LLMCore::PromptTemplate> m_fimTemplate;
-    std::unique_ptr<LLMCore::PromptTemplate> m_chatTemplate;
+    std::unique_ptr<LLMQore::PromptTemplate> m_fimTemplate;
+    std::unique_ptr<LLMQore::PromptTemplate> m_chatTemplate;
 };
 
 TEST_F(LLMClientInterfaceTest, initialize)

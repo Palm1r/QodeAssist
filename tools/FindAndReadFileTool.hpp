@@ -22,14 +22,14 @@
 #include "FileSearchUtils.hpp"
 
 #include <context/IgnoreManager.hpp>
-#include <LLMCore/BaseTool.hpp>
+#include <LLMQore/BaseTool.hpp>
 #include <QFuture>
 #include <QJsonObject>
 #include <QObject>
 
 namespace QodeAssist::Tools {
 
-class FindAndReadFileTool : public ::LLMCore::BaseTool
+class FindAndReadFileTool : public ::LLMQore::BaseTool
 {
     Q_OBJECT
 
@@ -40,7 +40,7 @@ public:
     QString displayName() const override;
     QString description() const override;
     QJsonObject parametersSchema() const override;
-    QFuture<QString> executeAsync(const QJsonObject &input) override;
+    QFuture<LLMQore::ToolResult> executeAsync(const QJsonObject &input) override;
 
 private:
     QString formatResult(const FileSearchUtils::FileMatch &match, bool readContent) const;

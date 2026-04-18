@@ -19,7 +19,7 @@
 
 #include "QuickRefactorHandler.hpp"
 
-#include <LLMCore/BaseClient.hpp>
+#include <LLMQore/BaseClient.hpp>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QUuid>
@@ -145,21 +145,9 @@ void QuickRefactorHandler::prepareAndSendRequest(
     config.requestType = PluginLLMCore::RequestType::QuickRefactoring;
     config.provider = provider;
     config.promptTemplate = promptTemplate;
-    config.url = QString("%1%2").arg(settings.qrUrl(), provider->chatEndpoint());
-
-    if (provider->providerID() == PluginLLMCore::ProviderID::GoogleAI) {
-        QString stream = QString{"streamGenerateContent?alt=sse"};
-        config.url = QUrl(QString("%1/models/%2:%3")
-                              .arg(
-                                  Settings::generalSettings().qrUrl(),
-                                  Settings::generalSettings().qrModel(),
-                                  stream));
-    } else {
-        config.url
-            = QString("%1%2").arg(Settings::generalSettings().qrUrl(), provider->chatEndpoint());
-        config.providerRequest
-            = {{"model", Settings::generalSettings().qrModel()}, {"stream", true}};
-    }
+    config.url = QUrl(Settings::generalSettings().qrUrl());
+    config.providerRequest
+        = {{"model", Settings::generalSettings().qrModel()}, {"stream", true}};
 
     PluginLLMCore::ContextData context = prepareContext(editor, range, instructions);
 
@@ -177,19 +165,19 @@ void QuickRefactorHandler::prepareAndSendRequest(
 
     connect(
         provider->client(),
-        &::LLMCore::BaseClient::requestCompleted,
+        &::LLMQore::BaseClient::requestCompleted,
         this,
         &QuickRefactorHandler::handleFullResponse,
         Qt::UniqueConnection);
 
     connect(
         provider->client(),
-        &::LLMCore::BaseClient::requestFailed,
+        &::LLMQore::BaseClient::requestFailed,
         this,
         &QuickRefactorHandler::handleRequestFailed,
         Qt::UniqueConnection);
 
-    auto requestId = provider->sendRequest(config.url, config.providerRequest);
+    auto requestId = provider->sendRequest(config.url, config.providerRequest, config.requestType);
     m_lastRequestId = requestId;
     QJsonObject request{{"id", requestId}};
 
@@ -437,11 +425,16 @@ void QuickRefactorHandler::handleFullResponse(const QString &requestId, const QS
 void QuickRefactorHandler::handleRequestFailed(const QString &requestId, const QString &error)
 {
     if (requestId == m_lastRequestId) {
+        auto it = m_activeRequests.find(requestId);
+        QString enriched = (it != m_activeRequests.end() && it->provider)
+                               ? it->provider->enrichErrorMessage(error)
+                               : error;
+
         m_activeRequests.remove(requestId);
         m_isRefactoringInProgress = false;
         RefactorResult result;
         result.success = false;
-        result.errorMessage = error;
+        result.errorMessage = enriched;
         result.editor = m_currentEditor;
         emit refactoringCompleted(result);
     }

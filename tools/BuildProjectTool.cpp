@@ -99,23 +99,23 @@ QJsonObject BuildProjectTool::parametersSchema() const
     return definition;
 }
 
-QFuture<QString> BuildProjectTool::executeAsync(const QJsonObject &input)
+QFuture<LLMQore::ToolResult> BuildProjectTool::executeAsync(const QJsonObject &input)
 {
     auto *project = ProjectExplorer::ProjectManager::startupProject();
     if (!project) {
         return QtFuture::makeReadyFuture(
-            QString("Error: No active project found. Please open a project in Qt Creator."));
+            LLMQore::ToolResult::error("Error: No active project found. Please open a project in Qt Creator."));
     }
 
     if (ProjectExplorer::BuildManager::isBuilding(project)) {
         return QtFuture::makeReadyFuture(
-            QString("Error: Build is already in progress. Please wait for it to complete."));
+            LLMQore::ToolResult::error("Error: Build is already in progress. Please wait for it to complete."));
     }
 
     if (m_activeBuilds.contains(project)) {
         return QtFuture::makeReadyFuture(
-            QString("Error: Build is already being tracked for project '%1'.")
-                .arg(project->displayName()));
+            LLMQore::ToolResult::error(QString("Error: Build is already being tracked for project '%1'.")
+                .arg(project->displayName())));
     }
 
     bool rebuild = input.value("rebuild").toBool(false);
@@ -126,7 +126,7 @@ QFuture<QString> BuildProjectTool::executeAsync(const QJsonObject &input)
                     .arg(project->displayName())
                     .arg(runAfterBuild ? QString(" (run after build)") : QString()));
 
-    auto promise = QSharedPointer<QPromise<QString>>::create();
+    auto promise = QSharedPointer<QPromise<LLMQore::ToolResult>>::create();
     promise->start();
 
     BuildInfo buildInfo;
@@ -187,7 +187,7 @@ void BuildProjectTool::onBuildQueueFinished(bool success)
             }
 
             if (info.promise) {
-                info.promise->addResult(result);
+                info.promise->addResult(LLMQore::ToolResult::text(result));
                 info.promise->finish();
             }
 

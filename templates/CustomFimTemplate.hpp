@@ -29,17 +29,17 @@
 
 namespace QodeAssist::Templates {
 
-class CustomTemplate : public LLMCore::PromptTemplate
+class CustomTemplate : public LLMQore::PromptTemplate
 {
 public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Fim; }
+    LLMQore::TemplateType type() const override { return LLMQore::TemplateType::Fim; }
     QString name() const override { return "Custom FIM Template"; }
     QString promptTemplate() const override
     {
         return Settings::customPromptSettings().customJsonTemplate();
     }
     QStringList stopWords() const override { return QStringList(); }
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
+    void prepareRequest(QJsonObject &request, const LLMQore::ContextData &context) const override
     {
         QJsonDocument doc = QJsonDocument::fromJson(promptTemplate().toUtf8());
         if (doc.isNull() || !doc.isObject()) {
@@ -58,7 +58,7 @@ public:
     QString description() const override { return promptTemplate(); }
 
 private:
-    QJsonValue processJsonValue(const QJsonValue &value, const LLMCore::ContextData &context) const
+    QJsonValue processJsonValue(const QJsonValue &value, const LLMQore::ContextData &context) const
     {
         if (value.isString()) {
             QString str = value.toString();
@@ -78,7 +78,7 @@ private:
     }
 
     QJsonObject processJsonTemplate(
-        const QJsonObject &templateObj, const LLMCore::ContextData &context) const
+        const QJsonObject &templateObj, const LLMQore::ContextData &context) const
     {
         QJsonObject result;
         for (auto it = templateObj.begin(); it != templateObj.end(); ++it) {

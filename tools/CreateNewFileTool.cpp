@@ -18,7 +18,8 @@
  */
 
 #include "CreateNewFileTool.hpp"
-#include "ToolExceptions.hpp"
+
+#include <LLMQore/ToolExceptions.hpp>
 
 #include <context/ProjectUtils.hpp>
 #include <logger/Logger.hpp>
@@ -73,24 +74,24 @@ QJsonObject CreateNewFileTool::parametersSchema() const
     return definition;
 }
 
-QFuture<QString> CreateNewFileTool::executeAsync(const QJsonObject &input)
+QFuture<LLMQore::ToolResult> CreateNewFileTool::executeAsync(const QJsonObject &input)
 {
-    return QtConcurrent::run([this, input]() -> QString {
+    return QtConcurrent::run([this, input]() -> LLMQore::ToolResult {
         QString filePath = input["filepath"].toString();
 
         if (filePath.isEmpty()) {
-            throw ToolInvalidArgument("Error: 'filepath' parameter is required");
+            throw LLMQore::ToolInvalidArgument("Error: 'filepath' parameter is required");
         }
 
         QFileInfo fileInfo(filePath);
         QString absolutePath = fileInfo.absoluteFilePath();
 
         bool isInProject = Context::ProjectUtils::isFileInProject(absolutePath);
-        
+
         if (!isInProject) {
             const auto &settings = Settings::toolsSettings();
             if (!settings.allowAccessOutsideProject()) {
-                throw ToolRuntimeError(
+                throw LLMQore::ToolRuntimeError(
                     QString("Error: File path '%1' is not within the current project. "
                             "Enable 'Allow file access outside project' in settings to create files outside project scope.")
                         .arg(absolutePath));
@@ -99,14 +100,14 @@ QFuture<QString> CreateNewFileTool::executeAsync(const QJsonObject &input)
         }
 
         if (fileInfo.exists()) {
-            throw ToolRuntimeError(
+            throw LLMQore::ToolRuntimeError(
                 QString("Error: File already exists at path '%1'").arg(filePath));
         }
 
         QDir dir = fileInfo.absoluteDir();
         if (!dir.exists()) {
             if (!dir.mkpath(".")) {
-                throw ToolRuntimeError(
+                throw LLMQore::ToolRuntimeError(
                     QString("Error: Could not create directory: '%1'").arg(dir.absolutePath()));
             }
             LOG_MESSAGE(QString("Created directory path: %1").arg(dir.absolutePath()));
@@ -114,7 +115,7 @@ QFuture<QString> CreateNewFileTool::executeAsync(const QJsonObject &input)
 
         QFile file(absolutePath);
         if (!file.open(QIODevice::WriteOnly)) {
-            throw ToolRuntimeError(
+            throw LLMQore::ToolRuntimeError(
                 QString("Error: Could not create file '%1': %2").arg(absolutePath, file.errorString()));
         }
 
@@ -122,7 +123,7 @@ QFuture<QString> CreateNewFileTool::executeAsync(const QJsonObject &input)
 
         LOG_MESSAGE(QString("Successfully created new file: %1").arg(absolutePath));
 
-        return QString("Successfully created new file: %1").arg(absolutePath);
+        return LLMQore::ToolResult::text(QString("Successfully created new file: %1").arg(absolutePath));
     });
 }
 

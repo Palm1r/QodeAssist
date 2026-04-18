@@ -19,8 +19,13 @@
 
 #include "Provider.hpp"
 
-#include <LLMCore/BaseClient.hpp>
-#include <LLMCore/ToolsManager.hpp>
+#include <LLMQore/BaseClient.hpp>
+#include <LLMQore/LlamaCppClient.hpp>
+#include <LLMQore/OpenAIClient.hpp>
+#include <LLMQore/OpenAIResponsesClient.hpp>
+#include <LLMQore/ToolsManager.hpp>
+
+#include <QJsonDocument>
 
 #include <Logger.hpp>
 
@@ -30,19 +35,26 @@ Provider::Provider(QObject *parent)
     : QObject(parent)
 {}
 
-RequestID Provider::sendRequest(const QUrl &url, const QJsonObject &payload)
+RequestID Provider::sendRequest(
+    const QUrl &url,
+    const QJsonObject &payload,
+    RequestType type,
+    const QString &endpointOverride)
 {
+    Q_UNUSED(type)
+
     auto *c = client();
 
-    QUrl baseUrl(url);
-    baseUrl.setPath("");
-    c->setUrl(baseUrl.toString());
+    c->setUrl(url.toString());
     c->setApiKey(apiKey());
 
-    auto requestId = c->sendMessage(payload);
+    auto requestId = c->sendMessage(payload, endpointOverride);
 
+    LOG_MESSAGE(QString("%1: Sending request %2 to %3%4")
+                    .arg(name(), requestId, url.toString(), endpointOverride));
     LOG_MESSAGE(
-        QString("%1: Sending request %2 to %3").arg(name(), requestId, url.toString()));
+        QString("%1: Payload:\n%2")
+            .arg(name(), QString::fromUtf8(QJsonDocument(payload).toJson(QJsonDocument::Indented))));
 
     return requestId;
 }
@@ -53,9 +65,33 @@ void Provider::cancelRequest(const RequestID &requestId)
     client()->cancelRequest(requestId);
 }
 
-::LLMCore::ToolsManager *Provider::toolsManager() const
+::LLMQore::ToolsManager *Provider::toolsManager() const
 {
     return client()->tools();
+}
+
+QString Provider::enrichErrorMessage(const QString &error) const
+{
+    auto *c = client();
+
+    const bool isOpenAICompatible = qobject_cast<::LLMQore::OpenAIClient *>(c)
+                                    || qobject_cast<::LLMQore::OpenAIResponsesClient *>(c)
+                                    || qobject_cast<::LLMQore::LlamaCppClient *>(c);
+    if (!isOpenAICompatible)
+        return error;
+
+    const QString baseUrl = c->url();
+    const QString path = QUrl(baseUrl).path();
+    const bool hasV1Segment = path == "/v1" || path.startsWith("/v1/") || path.contains("/v1/")
+                              || path.endsWith("/v1");
+    if (hasV1Segment)
+        return error;
+
+    return error
+        + tr("\n\nHint: Your base URL (%1) does not contain a '/v1' path segment. "
+             "Most OpenAI-compatible servers require it (e.g., %1/v1). "
+             "Try updating the URL in settings.")
+              .arg(baseUrl);
 }
 
 } // namespace QodeAssist::PluginLLMCore

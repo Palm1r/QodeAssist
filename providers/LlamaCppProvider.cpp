@@ -19,7 +19,7 @@
 
 #include "LlamaCppProvider.hpp"
 
-#include <LLMCore/ToolsManager.hpp>
+#include <LLMQore/ToolsManager.hpp>
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -35,7 +35,7 @@ namespace QodeAssist::Providers {
 
 LlamaCppProvider::LlamaCppProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
-    , m_client(new ::LLMCore::LlamaCppClient(QString(), QString(), QString(), this))
+    , m_client(new ::LLMQore::LlamaCppClient(QString(), QString(), QString(), this))
 {
     Tools::registerQodeAssistTools(m_client->tools());
 }
@@ -53,16 +53,6 @@ QString LlamaCppProvider::apiKey() const
 QString LlamaCppProvider::url() const
 {
     return "http://localhost:8080";
-}
-
-QString LlamaCppProvider::completionEndpoint() const
-{
-    return "/infill";
-}
-
-QString LlamaCppProvider::chatEndpoint() const
-{
-    return "/v1/chat/completions";
 }
 
 void LlamaCppProvider::prepareRequest(
@@ -125,7 +115,21 @@ PluginLLMCore::ProviderCapabilities LlamaCppProvider::capabilities() const
     return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image;
 }
 
-::LLMCore::BaseClient *LlamaCppProvider::client() const
+PluginLLMCore::RequestID LlamaCppProvider::sendRequest(
+    const QUrl &url,
+    const QJsonObject &payload,
+    PluginLLMCore::RequestType type,
+    const QString &endpointOverride)
+{
+    const QString endpoint = !endpointOverride.isEmpty()
+                                 ? endpointOverride
+                                 : (type == PluginLLMCore::RequestType::CodeCompletion
+                                        ? QStringLiteral("/infill")
+                                        : QString());
+    return PluginLLMCore::Provider::sendRequest(url, payload, type, endpoint);
+}
+
+::LLMQore::BaseClient *LlamaCppProvider::client() const
 {
     return m_client;
 }

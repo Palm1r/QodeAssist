@@ -19,7 +19,7 @@
 
 #include "RequestHandlerBase.hpp"
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
 RequestHandlerBase::RequestHandlerBase(QObject *parent)
     : QObject(parent)
@@ -27,4 +27,4 @@ RequestHandlerBase::RequestHandlerBase(QObject *parent)
 
 RequestHandlerBase::~RequestHandlerBase() = default;
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

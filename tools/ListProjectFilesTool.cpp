@@ -18,7 +18,8 @@
  */
 
 #include "ListProjectFilesTool.hpp"
-#include "ToolExceptions.hpp"
+
+#include <LLMQore/ToolExceptions.hpp>
 
 #include <logger/Logger.hpp>
 #include <projectexplorer/project.h>
@@ -63,15 +64,15 @@ QJsonObject ListProjectFilesTool::parametersSchema() const
     return definition;
 }
 
-QFuture<QString> ListProjectFilesTool::executeAsync(const QJsonObject &input)
+QFuture<LLMQore::ToolResult> ListProjectFilesTool::executeAsync(const QJsonObject &input)
 {
     Q_UNUSED(input)
 
-    return QtConcurrent::run([this]() -> QString {
+    return QtConcurrent::run([this]() -> LLMQore::ToolResult {
         QList<ProjectExplorer::Project *> projects = ProjectExplorer::ProjectManager::projects();
         if (projects.isEmpty()) {
             QString error = "No projects found";
-            throw ToolRuntimeError(error);
+            throw LLMQore::ToolRuntimeError(error);
         }
 
         QString result;
@@ -123,7 +124,7 @@ QFuture<QString> ListProjectFilesTool::executeAsync(const QJsonObject &input)
             result += "\n";
         }
 
-        return result.trimmed();
+        return LLMQore::ToolResult::text(result.trimmed());
     });
 }
 

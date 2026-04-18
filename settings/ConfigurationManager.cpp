@@ -89,7 +89,7 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     codestral.name = "Codestral";
     codestral.provider = "Codestral";
     codestral.model = "codestral-latest";
-    codestral.url = "https://codestral.mistral.ai";
+    codestral.url = "https://codestral.mistral.ai/v1";
     codestral.endpointMode = "Auto";
     codestral.customEndpoint = "";
     codestral.templateName = type == ConfigurationType::CodeCompletion ? "Mistral AI FIM" : "Mistral AI Chat";
@@ -101,7 +101,7 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     mistral.name = "Mistral";
     mistral.provider = "Mistral AI";
     mistral.model = type == ConfigurationType::CodeCompletion ? "mistral-medium-latest" : "mistral-large-latest";
-    mistral.url = "https://api.mistral.ai";
+    mistral.url = "https://api.mistral.ai/v1";
     mistral.endpointMode = "Auto";
     mistral.customEndpoint = "";
     mistral.templateName = type == ConfigurationType::CodeCompletion ? "Mistral AI FIM" : "Mistral AI Chat";
@@ -125,7 +125,7 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     gpt.name = "gpt-5.4";
     gpt.provider = "OpenAI Responses";
     gpt.model = "gpt-5.4";
-    gpt.url = "https://api.openai.com";
+    gpt.url = "https://api.openai.com/v1";
     gpt.endpointMode = "Auto";
     gpt.customEndpoint = "";
     gpt.templateName = "OpenAI Responses";

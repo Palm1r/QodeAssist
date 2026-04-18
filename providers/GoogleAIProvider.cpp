@@ -19,7 +19,7 @@
 
 #include "GoogleAIProvider.hpp"
 
-#include <LLMCore/ToolsManager.hpp>
+#include <LLMQore/ToolsManager.hpp>
 
 #include <QJsonArray>
 #include "tools/ToolsRegistration.hpp"
@@ -38,7 +38,7 @@ namespace QodeAssist::Providers {
 
 GoogleAIProvider::GoogleAIProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
-    , m_client(new ::LLMCore::GoogleAIClient(QString(), QString(), QString(), this))
+    , m_client(new ::LLMQore::GoogleAIClient(QString(), QString(), QString(), this))
 {
     Tools::registerQodeAssistTools(m_client->tools());
 }
@@ -56,16 +56,6 @@ QString GoogleAIProvider::apiKey() const
 QString GoogleAIProvider::url() const
 {
     return "https://generativelanguage.googleapis.com/v1beta";
-}
-
-QString GoogleAIProvider::completionEndpoint() const
-{
-    return {};
-}
-
-QString GoogleAIProvider::chatEndpoint() const
-{
-    return {};
 }
 
 void GoogleAIProvider::prepareRequest(
@@ -165,7 +155,28 @@ PluginLLMCore::ProviderCapabilities GoogleAIProvider::capabilities() const
            | PluginLLMCore::ProviderCapability::ModelListing;
 }
 
-::LLMCore::BaseClient *GoogleAIProvider::client() const
+PluginLLMCore::RequestID GoogleAIProvider::sendRequest(
+    const QUrl &url,
+    const QJsonObject &payload,
+    PluginLLMCore::RequestType type,
+    const QString &endpointOverride)
+{
+    // Gemini takes the model from the URL path and streaming from the
+    // action suffix (:streamGenerateContent vs :generateContent), and
+    // rejects unknown top-level body fields. The shared call-site seeds
+    // payload with {model, stream}; consume them here into client state
+    // before they hit the wire.
+    QJsonObject cleaned = payload;
+    if (cleaned.contains("model")) {
+        m_client->setModel(cleaned["model"].toString());
+        cleaned.remove("model");
+    }
+    cleaned.remove("stream");
+
+    return PluginLLMCore::Provider::sendRequest(url, cleaned, type, endpointOverride);
+}
+
+::LLMQore::BaseClient *GoogleAIProvider::client() const
 {
     return m_client;
 }

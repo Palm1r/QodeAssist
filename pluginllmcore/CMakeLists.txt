@@ -14,7 +14,6 @@ add_library(PluginLLMCore STATIC
     HttpClient.hpp HttpClient.cpp
     DataBuffers.hpp
     SSEBuffer.hpp SSEBuffer.cpp
-    BaseTool.hpp BaseTool.cpp
     ContentBlocks.hpp
     RulesLoader.hpp RulesLoader.cpp
     ResponseCleaner.hpp
@@ -27,7 +26,7 @@ target_link_libraries(PluginLLMCore
     QtCreator::Core
     QtCreator::Utils
     QtCreator::ExtensionSystem
-    LLMCore
+    LLMQore
     PRIVATE
     QodeAssistLogger
 )

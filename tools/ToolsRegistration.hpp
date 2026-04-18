@@ -19,12 +19,12 @@
 
 #pragma once
 
-namespace LLMCore {
+namespace LLMQore {
 class ToolsManager;
 }
 
 namespace QodeAssist::Tools {
 
-void registerQodeAssistTools(::LLMCore::ToolsManager *manager);
+void registerQodeAssistTools(::LLMQore::ToolsManager *manager);
 
 } // namespace QodeAssist::Tools

@@ -87,7 +87,17 @@ private:
 
     PluginLLMCore::ContextData prepareContext(
         const QJsonObject &request, const Context::DocumentInfo &documentInfo);
-    QString endpoint(PluginLLMCore::Provider *provider, PluginLLMCore::TemplateType type, bool isLanguageSpecify);
+
+    struct EndpointResolution
+    {
+        PluginLLMCore::RequestType routingType;
+        QString override;
+    };
+    // Resolve the user's endpoint-mode setting into a routing RequestType
+    // (which the provider uses to pick completion vs chat path) and an
+    // optional explicit override string (for Custom mode).
+    EndpointResolution resolveEndpoint(
+        PluginLLMCore::TemplateType templateType, bool isLanguageSpecify) const;
 
     const Settings::CodeCompletionSettings &m_completeSettings;
     const Settings::GeneralSettings &m_generalSettings;

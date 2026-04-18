@@ -19,11 +19,11 @@
 
 #pragma once
 
-#include <LLMCore/BaseTool.hpp>
+#include <LLMQore/BaseTool.hpp>
 
 namespace QodeAssist::Tools {
 
-class CreateNewFileTool : public ::LLMCore::BaseTool
+class CreateNewFileTool : public ::LLMQore::BaseTool
 {
     Q_OBJECT
 public:
@@ -34,7 +34,7 @@ public:
     QString description() const override;
     QJsonObject parametersSchema() const override;
 
-    QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
+    QFuture<LLMQore::ToolResult> executeAsync(const QJsonObject &input = QJsonObject()) override;
 };
 
 } // namespace QodeAssist::Tools

@@ -23,7 +23,7 @@
 #include <QJsonObject>
 #include <QObject>
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
 class RequestHandlerBase : public QObject
 {
@@ -42,4 +42,4 @@ signals:
     void requestCancelled(const QString &id);
 };
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

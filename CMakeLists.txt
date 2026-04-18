@@ -34,7 +34,7 @@ add_definitions(
   -DQODEASSIST_QT_CREATOR_VERSION_PATCH=${QODEASSIST_QT_CREATOR_VERSION_PATCH}
 )
 
-add_subdirectory(sources/external/llmcore)
+add_subdirectory(sources/external/llmqore)
 add_subdirectory(pluginllmcore)
 add_subdirectory(settings)
 add_subdirectory(logger)
@@ -62,7 +62,7 @@ add_qtc_plugin(QodeAssist
     QtCreator::ExtensionSystem
     QtCreator::Utils
     QtCreator::CPlusPlus
-    LLMCore
+    LLMQore
     PluginLLMCore
     QodeAssistChatViewplugin
   SOURCES

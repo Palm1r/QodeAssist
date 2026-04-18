@@ -38,7 +38,7 @@ void PrintTo(const ContextData &data, std::ostream *os)
 } // namespace QodeAssist::PluginLLMCore
 
 using namespace QodeAssist::Context;
-using namespace QodeAssist::LLMCore;
+using namespace QodeAssist::PluginLLMCore;
 using namespace QodeAssist::Settings;
 
 class DocumentContextReaderTest : public QObject, public testing::Test

@@ -19,9 +19,9 @@
 
 #pragma once
 
-#include <llmcore/RequestHandlerBase.hpp>
+#include <pluginllmcore/RequestHandlerBase.hpp>
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
 class MockRequestHandler : public RequestHandlerBase
 {
@@ -56,4 +56,4 @@ private:
     QVector<LLMConfig> m_receivedRequests;
 };
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore

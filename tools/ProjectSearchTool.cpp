@@ -18,7 +18,8 @@
  */
 
 #include "ProjectSearchTool.hpp"
-#include "ToolExceptions.hpp"
+
+#include <LLMQore/ToolExceptions.hpp>
 
 #include <cplusplus/Overview.h>
 #include <cplusplus/Scope.h>
@@ -97,17 +98,17 @@ QJsonObject ProjectSearchTool::parametersSchema() const
     return definition;
 }
 
-QFuture<QString> ProjectSearchTool::executeAsync(const QJsonObject &input)
+QFuture<LLMQore::ToolResult> ProjectSearchTool::executeAsync(const QJsonObject &input)
 {
-    return QtConcurrent::run([this, input]() -> QString {
+    return QtConcurrent::run([this, input]() -> LLMQore::ToolResult {
         QString query = input["query"].toString().trimmed();
         if (query.isEmpty()) {
-            throw ToolInvalidArgument("Query parameter is required");
+            throw LLMQore::ToolInvalidArgument("Query parameter is required");
         }
 
         QString searchTypeStr = input["search_type"].toString();
         if (searchTypeStr != "text" && searchTypeStr != "symbol") {
-            throw ToolInvalidArgument("search_type must be 'text' or 'symbol'");
+            throw LLMQore::ToolInvalidArgument("search_type must be 'text' or 'symbol'");
         }
 
         SearchType searchType = (searchTypeStr == "symbol") ? SearchType::Symbol : SearchType::Text;
@@ -129,10 +130,10 @@ QFuture<QString> ProjectSearchTool::executeAsync(const QJsonObject &input)
         }
 
         if (results.isEmpty()) {
-            return QString("No matches found for '%1'").arg(query);
+            return LLMQore::ToolResult::text(QString("No matches found for '%1'").arg(query));
         }
 
-        return formatResults(results, query);
+        return LLMQore::ToolResult::text(formatResults(results, query));
     });
 }
 

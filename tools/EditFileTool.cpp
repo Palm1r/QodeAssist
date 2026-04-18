@@ -18,7 +18,8 @@
  */
 
 #include "EditFileTool.hpp"
-#include "ToolExceptions.hpp"
+
+#include <LLMQore/ToolExceptions.hpp>
 
 #include <context/ChangesManager.h>
 #include <context/ProjectUtils.hpp>
@@ -107,20 +108,20 @@ QJsonObject EditFileTool::parametersSchema() const
     return definition;
 }
 
-QFuture<QString> EditFileTool::executeAsync(const QJsonObject &input)
+QFuture<LLMQore::ToolResult> EditFileTool::executeAsync(const QJsonObject &input)
 {
-    return QtConcurrent::run([this, input]() -> QString {
+    return QtConcurrent::run([this, input]() -> LLMQore::ToolResult {
         QString filename = input["filename"].toString().trimmed();
         QString oldContent = input["old_content"].toString();
         QString newContent = input["new_content"].toString();
         QString requestId = input["_request_id"].toString();
 
         if (filename.isEmpty()) {
-            throw ToolInvalidArgument("'filename' parameter is required and cannot be empty");
+            throw LLMQore::ToolInvalidArgument("'filename' parameter is required and cannot be empty");
         }
 
         if (newContent.isEmpty()) {
-            throw ToolInvalidArgument("'new_content' parameter is required and cannot be empty");
+            throw LLMQore::ToolInvalidArgument("'new_content' parameter is required and cannot be empty");
         }
 
 
@@ -132,7 +133,7 @@ QFuture<QString> EditFileTool::executeAsync(const QJsonObject &input)
         } else {
             QString projectRoot = Context::ProjectUtils::getProjectRoot();
             if (projectRoot.isEmpty()) {
-                throw ToolRuntimeError(
+                throw LLMQore::ToolRuntimeError(
                     QString("Cannot resolve relative path '%1': no project is open. "
                             "Please provide an absolute path or open a project.")
                         .arg(filename));
@@ -145,12 +146,12 @@ QFuture<QString> EditFileTool::executeAsync(const QJsonObject &input)
 
         QFile file(filePath);
         if (!file.exists()) {
-            throw ToolRuntimeError(QString("File does not exist: %1").arg(filePath));
+            throw LLMQore::ToolRuntimeError(QString("File does not exist: %1").arg(filePath));
         }
 
         QFileInfo finalFileInfo(filePath);
         if (!finalFileInfo.isWritable()) {
-            throw ToolRuntimeError(
+            throw LLMQore::ToolRuntimeError(
                 QString("File is not writable (read-only or permission denied): %1").arg(filePath));
         }
 
@@ -158,7 +159,7 @@ QFuture<QString> EditFileTool::executeAsync(const QJsonObject &input)
         if (!isInProject) {
             const auto &settings = Settings::toolsSettings();
             if (!settings.allowAccessOutsideProject()) {
-                throw ToolRuntimeError(
+                throw LLMQore::ToolRuntimeError(
                     QString("File path '%1' is not within the current project. "
                             "Enable 'Allow file access outside project' in settings to edit files outside the project.")
                         .arg(filePath));
@@ -220,7 +221,7 @@ QFuture<QString> EditFileTool::executeAsync(const QJsonObject &input)
 
         QString resultStr = "QODEASSIST_FILE_EDIT:"
                             + QString::fromUtf8(QJsonDocument(result).toJson(QJsonDocument::Compact));
-        return resultStr;
+        return LLMQore::ToolResult::text(resultStr);
     });
 }
 

@@ -18,7 +18,7 @@
  */
 
 #include "OpenAIResponsesProvider.hpp"
-#include <LLMCore/ToolsManager.hpp>
+#include <LLMQore/ToolsManager.hpp>
 #include "tools/ToolsRegistration.hpp"
 
 #include "logger/Logger.hpp"
@@ -36,7 +36,7 @@ namespace QodeAssist::Providers {
 
 OpenAIResponsesProvider::OpenAIResponsesProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
-    , m_client(new ::LLMCore::OpenAIResponsesClient(QString(), QString(), QString(), this))
+    , m_client(new ::LLMQore::OpenAIResponsesClient(QString(), QString(), QString(), this))
 {
     Tools::registerQodeAssistTools(m_client->tools());
 }
@@ -53,17 +53,7 @@ QString OpenAIResponsesProvider::apiKey() const
 
 QString OpenAIResponsesProvider::url() const
 {
-    return "https://api.openai.com";
-}
-
-QString OpenAIResponsesProvider::completionEndpoint() const
-{
-    return "/v1/responses";
-}
-
-QString OpenAIResponsesProvider::chatEndpoint() const
-{
-    return "/v1/responses";
+    return "https://api.openai.com/v1";
 }
 
 void OpenAIResponsesProvider::prepareRequest(
@@ -179,7 +169,7 @@ PluginLLMCore::ProviderCapabilities OpenAIResponsesProvider::capabilities() cons
            | PluginLLMCore::ProviderCapability::ModelListing;
 }
 
-::LLMCore::BaseClient *OpenAIResponsesProvider::client() const
+::LLMQore::BaseClient *OpenAIResponsesProvider::client() const
 {
     return m_client;
 }

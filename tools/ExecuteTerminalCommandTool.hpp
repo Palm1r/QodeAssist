@@ -19,12 +19,12 @@
 
 #pragma once
 
-#include <LLMCore/BaseTool.hpp>
+#include <LLMQore/BaseTool.hpp>
 #include <QObject>
 
 namespace QodeAssist::Tools {
 
-class ExecuteTerminalCommandTool : public ::LLMCore::BaseTool
+class ExecuteTerminalCommandTool : public ::LLMQore::BaseTool
 {
     Q_OBJECT
 public:
@@ -35,7 +35,7 @@ public:
     QString description() const override;
     QJsonObject parametersSchema() const override;
 
-    QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
+    QFuture<LLMQore::ToolResult> executeAsync(const QJsonObject &input = QJsonObject()) override;
 
 private:
     bool isCommandAllowed(const QString &command) const;

@@ -19,7 +19,7 @@
 
 #include "LMStudioProvider.hpp"
 
-#include <LLMCore/ToolsManager.hpp>
+#include <LLMQore/ToolsManager.hpp>
 
 #include "tools/ToolsRegistration.hpp"
 #include "logger/Logger.hpp"
@@ -37,7 +37,7 @@ namespace QodeAssist::Providers {
 
 LMStudioProvider::LMStudioProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
-    , m_client(new ::LLMCore::OpenAIClient(QString(), QString(), QString(), this))
+    , m_client(new ::LLMQore::OpenAIClient(QString(), QString(), QString(), this))
 {
     Tools::registerQodeAssistTools(m_client->tools());
 }
@@ -54,17 +54,7 @@ QString LMStudioProvider::apiKey() const
 
 QString LMStudioProvider::url() const
 {
-    return "http://localhost:1234";
-}
-
-QString LMStudioProvider::completionEndpoint() const
-{
-    return "/v1/completions";
-}
-
-QString LMStudioProvider::chatEndpoint() const
-{
-    return "/v1/chat/completions";
+    return "http://localhost:1234/v1";
 }
 
 QFuture<QList<QString>> LMStudioProvider::getInstalledModels(const QString &url)
@@ -130,7 +120,21 @@ void LMStudioProvider::prepareRequest(
     }
 }
 
-::LLMCore::BaseClient *LMStudioProvider::client() const
+PluginLLMCore::RequestID LMStudioProvider::sendRequest(
+    const QUrl &url,
+    const QJsonObject &payload,
+    PluginLLMCore::RequestType type,
+    const QString &endpointOverride)
+{
+    const QString endpoint = !endpointOverride.isEmpty()
+                                 ? endpointOverride
+                                 : (type == PluginLLMCore::RequestType::CodeCompletion
+                                        ? QStringLiteral("/completions")
+                                        : QString());
+    return PluginLLMCore::Provider::sendRequest(url, payload, type, endpoint);
+}
+
+::LLMQore::BaseClient *LMStudioProvider::client() const
 {
     return m_client;
 }

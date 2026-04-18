@@ -59,16 +59,16 @@ std::ostream &operator<<(std::ostream &out, const std::optional<T> &value)
     return out;
 }
 
-namespace QodeAssist::LLMCore {
+namespace QodeAssist::PluginLLMCore {
 
-inline std::ostream &operator<<(std::ostream &out, const PluginLLMCore::Message &value)
+inline std::ostream &operator<<(std::ostream &out, const Message &value)
 {
     out << "Message{"
         << "role=" << value.role << "content=" << value.content << "}";
     return out;
 }
 
-inline std::ostream &operator<<(std::ostream &out, const PluginLLMCore::ContextData &value)
+inline std::ostream &operator<<(std::ostream &out, const ContextData &value)
 {
     out << "ContextData{"
         << "\n  systemPrompt=" << value.systemPrompt << "\n  prefix=" << value.prefix
@@ -77,4 +77,4 @@ inline std::ostream &operator<<(std::ostream &out, const PluginLLMCore::ContextD
     return out;
 }
 
-} // namespace QodeAssist::LLMCore
+} // namespace QodeAssist::PluginLLMCore
