@@ -32,21 +32,24 @@ public:
 
     ButtonAspect resetToDefaults{this};
 
-    Utils::BoolAspect allowFileSystemRead{this};
-    Utils::BoolAspect allowFileSystemWrite{this};
-    Utils::BoolAspect allowNetworkAccess{this};
     Utils::BoolAspect allowAccessOutsideProject{this};
+    Utils::BoolAspect autoApplyFileEdits{this};
 
-    // Experimental features
+    Utils::BoolAspect enableListProjectFilesTool{this};
+    Utils::BoolAspect enableFindFileTool{this};
+    Utils::BoolAspect enableReadFileTool{this};
+    Utils::BoolAspect enableProjectSearchTool{this};
+    Utils::BoolAspect enableCreateNewFileTool{this};
     Utils::BoolAspect enableEditFileTool{this};
     Utils::BoolAspect enableBuildProjectTool{this};
+    Utils::BoolAspect enableGetIssuesListTool{this};
     Utils::BoolAspect enableTerminalCommandTool{this};
     Utils::BoolAspect enableTodoTool{this};
+
     Utils::StringAspect allowedTerminalCommandsLinux{this};
     Utils::StringAspect allowedTerminalCommandsMacOS{this};
     Utils::StringAspect allowedTerminalCommandsWindows{this};
     Utils::IntegerAspect terminalCommandTimeout{this};
-    Utils::BoolAspect autoApplyFileEdits{this};
 
 private:
     void setupConnections();

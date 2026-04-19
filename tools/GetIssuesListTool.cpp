@@ -133,9 +133,10 @@ QString GetIssuesListTool::displayName() const
 
 QString GetIssuesListTool::description() const
 {
-    return "Get compilation errors, warnings, and diagnostics from Qt Creator's Issues panel. "
-           "Returns issue descriptions with file paths and line numbers. "
-           "Optional severity filter: 'error', 'warning', or 'all' (default).";
+    return "Read diagnostics from Qt Creator's Issues panel, including the latest build output and "
+           "live clang-codemodel warnings/errors for open files. Each issue includes file path, "
+           "line number, severity, and message. Run `build_project` first if you need fresh build "
+           "diagnostics.";
 }
 
 QJsonObject GetIssuesListTool::parametersSchema() const

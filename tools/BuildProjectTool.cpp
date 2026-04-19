@@ -71,13 +71,10 @@ QString BuildProjectTool::displayName() const
 
 QString BuildProjectTool::description() const
 {
-    return "Build the current project in Qt Creator and wait for completion. "
-           "Optionally run the project after successful build. "
-           "Returns build status (success/failure) and any compilation errors/warnings after "
-           "the build finishes. "
-           "Optional 'rebuild' parameter: set to true to force a clean rebuild (default: false). "
-           "Optional 'run_after_build' parameter: set to true to run the project after successful build (default: false). "
-           "Note: This operation may take some time depending on project size.";
+    return "Build the active Qt Creator project using its current build configuration and block "
+           "until the build finishes. Returns success/failure along with the full compiler output "
+           "(stdout + stderr). Use `get_issues_list` afterwards to get structured diagnostics. "
+           "This call is blocking and may take a long time for large projects.";
 }
 
 QJsonObject BuildProjectTool::parametersSchema() const

@@ -57,7 +57,7 @@ QString EditFileTool::description() const
            "and new_content to replace it with. Changes are applied immediately if auto-apply "
            "is enabled in settings. The user can undo or reapply changes at any time. "
            "\n\nIMPORTANT:"
-           "\n- ALWAYS read the current file content before editing to ensure accuracy."
+           "\n- ALWAYS use read_file to get current file content before editing to ensure accuracy."
            "\n- Path can be absolute (e.g., /path/to/file.cpp) or relative to project root (e.g., src/main.cpp)."
            "\n- For EMPTY files: use empty old_content (empty string or omit parameter)."
            "\n- To append at the END of file: use empty old_content."
