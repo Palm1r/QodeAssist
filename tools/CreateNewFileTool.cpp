@@ -49,10 +49,10 @@ QString CreateNewFileTool::displayName() const
 
 QString CreateNewFileTool::description() const
 {
-    return "Create a new empty file at the specified path. "
-           "If the directory path does not exist, it will be created automatically. "
-           "Provide absolute file path. After creating files, add the file "
-           "to the project file";
+    return "Create a new empty file at the given absolute path. Any missing parent directories "
+           "are created automatically. The file is written to disk only — it is NOT added to the "
+           "project's build system automatically; the user must register it in CMakeLists.txt or "
+           "the equivalent project file. Use `edit_file` afterwards to populate its content.";
 }
 
 QJsonObject CreateNewFileTool::parametersSchema() const
@@ -61,7 +61,9 @@ QJsonObject CreateNewFileTool::parametersSchema() const
 
     QJsonObject filepathProperty;
     filepathProperty["type"] = "string";
-    filepathProperty["description"] = "The absolute path where the new file should be created";
+    filepathProperty["description"]
+        = "Absolute path where the new file should be created. Parent directories are made if "
+          "missing. Relative paths are rejected.";
     properties["filepath"] = filepathProperty;
 
     QJsonObject definition;

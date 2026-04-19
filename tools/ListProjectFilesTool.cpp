@@ -50,8 +50,10 @@ QString ListProjectFilesTool::displayName() const
 
 QString ListProjectFilesTool::description() const
 {
-    return "Get a list of all source files in the current project with absolute and relative paths. "
-           "Useful for understanding project structure. No parameters required.";
+    return "List every source file tracked by the active Qt Creator project(s), filtered by "
+           ".qodeassistignore. Returns absolute and project-relative paths grouped by project. "
+           "Useful for discovering the project layout before running focused searches or reads. "
+           "Takes no parameters.";
 }
 
 QJsonObject ListProjectFilesTool::parametersSchema() const

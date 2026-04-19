@@ -1,4 +1,4 @@
-/* 
+/*
  * Copyright (C) 2025 Petr Mironychev
  *
  * This file is part of QodeAssist.
@@ -19,8 +19,6 @@
 
 #pragma once
 
-#include "FileSearchUtils.hpp"
-
 #include <context/IgnoreManager.hpp>
 #include <LLMQore/BaseTool.hpp>
 #include <QFuture>
@@ -29,12 +27,12 @@
 
 namespace QodeAssist::Tools {
 
-class FindAndReadFileTool : public ::LLMQore::BaseTool
+class FindFileTool : public ::LLMQore::BaseTool
 {
     Q_OBJECT
 
 public:
-    explicit FindAndReadFileTool(QObject *parent = nullptr);
+    explicit FindFileTool(QObject *parent = nullptr);
 
     QString id() const override;
     QString displayName() const override;
@@ -43,8 +41,6 @@ public:
     QFuture<LLMQore::ToolResult> executeAsync(const QJsonObject &input) override;
 
 private:
-    QString formatResult(const FileSearchUtils::FileMatch &match, bool readContent) const;
-
     Context::IgnoreManager *m_ignoreManager;
 };
 

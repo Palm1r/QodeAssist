@@ -56,39 +56,50 @@ QString ProjectSearchTool::displayName() const
 
 QString ProjectSearchTool::description() const
 {
-    return "Search project for text content or C++ symbols. "
-           "Text mode: finds text patterns in files. "
-           "Symbol mode: finds C++ definitions (classes, functions, etc).";
+    return "Search across all open Qt Creator project(s) for text occurrences or C++ symbol "
+           "definitions. 'text' mode scans source files line-by-line for literal text or regex. "
+           "'symbol' mode uses Qt Creator's C++ code model and works only for C++ "
+           "(not QML, Python, or plain text). Respects .qodeassistignore. "
+           "Use `find_file` for locating files by name, not this tool.";
 }
 
 QJsonObject ProjectSearchTool::parametersSchema() const
 {
     QJsonObject properties;
 
-    properties["query"]
-        = QJsonObject{{"type", "string"}, {"description", "Text or symbol name to search for"}};
+    properties["query"] = QJsonObject{
+        {"type", "string"},
+        {"description", "Text string or symbol name to search for. In text mode with "
+                        "use_regex=true, this is a regular expression."}};
 
     properties["search_type"] = QJsonObject{
         {"type", "string"},
         {"enum", QJsonArray{"text", "symbol"}},
-        {"description", "Search mode: 'text' for content, 'symbol' for C++ definitions"}};
+        {"description", "Search mode: 'text' scans file contents, 'symbol' looks up C++ "
+                        "declarations via the code model."}};
 
     properties["symbol_type"] = QJsonObject{
         {"type", "string"},
         {"enum", QJsonArray{"all", "class", "function", "enum", "variable", "namespace"}},
-        {"description", "Symbol type filter (symbol mode only)"}};
+        {"description", "Filter for symbol mode. Default: 'all'. Ignored in text mode."}};
 
-    properties["case_sensitive"]
-        = QJsonObject{{"type", "boolean"}, {"description", "Case-sensitive search"}};
+    properties["case_sensitive"] = QJsonObject{
+        {"type", "boolean"},
+        {"description", "Case-sensitive matching. Default: false."}};
 
-    properties["use_regex"]
-        = QJsonObject{{"type", "boolean"}, {"description", "Use regex patterns"}};
+    properties["use_regex"] = QJsonObject{
+        {"type", "boolean"},
+        {"description", "Treat the query as a regular expression. Default: false."}};
 
-    properties["whole_words"]
-        = QJsonObject{{"type", "boolean"}, {"description", "Match whole words only (text mode)"}};
+    properties["whole_words"] = QJsonObject{
+        {"type", "boolean"},
+        {"description", "Match whole words only. Text mode only; ignored in symbol mode. "
+                        "Default: false."}};
 
     properties["file_pattern"] = QJsonObject{
-        {"type", "string"}, {"description", "File filter pattern (e.g., '*.cpp', '*.h')"}};
+        {"type", "string"},
+        {"description", "Wildcard to restrict which files are searched in text mode, e.g. "
+                        "'*.cpp' or '*.h'. Default: all files."}};
 
     QJsonObject definition;
     definition["type"] = "object";
