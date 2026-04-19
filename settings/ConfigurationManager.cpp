@@ -54,7 +54,6 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     claudeOpus.provider = "Claude";
     claudeOpus.model = "claude-opus-4-6";
     claudeOpus.url = "https://api.anthropic.com";
-    claudeOpus.endpointMode = "Auto";
     claudeOpus.customEndpoint = "";
     claudeOpus.templateName = "Claude";
     claudeOpus.type = type;
@@ -66,7 +65,6 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     claudeSonnet.provider = "Claude";
     claudeSonnet.model = "claude-sonnet-4-6";
     claudeSonnet.url = "https://api.anthropic.com";
-    claudeSonnet.endpointMode = "Auto";
     claudeSonnet.customEndpoint = "";
     claudeSonnet.templateName = "Claude";
     claudeSonnet.type = type;
@@ -78,7 +76,6 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     claudeHaiku.provider = "Claude";
     claudeHaiku.model = "claude-haiku-4-5-20251001";
     claudeHaiku.url = "https://api.anthropic.com";
-    claudeHaiku.endpointMode = "Auto";
     claudeHaiku.customEndpoint = "";
     claudeHaiku.templateName = "Claude";
     claudeHaiku.type = type;
@@ -90,7 +87,6 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     codestral.provider = "Codestral";
     codestral.model = "codestral-latest";
     codestral.url = "https://codestral.mistral.ai/v1";
-    codestral.endpointMode = "Auto";
     codestral.customEndpoint = "";
     codestral.templateName = type == ConfigurationType::CodeCompletion ? "Mistral AI FIM" : "Mistral AI Chat";
     codestral.type = type;
@@ -102,7 +98,6 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     mistral.provider = "Mistral AI";
     mistral.model = type == ConfigurationType::CodeCompletion ? "mistral-medium-latest" : "mistral-large-latest";
     mistral.url = "https://api.mistral.ai/v1";
-    mistral.endpointMode = "Auto";
     mistral.customEndpoint = "";
     mistral.templateName = type == ConfigurationType::CodeCompletion ? "Mistral AI FIM" : "Mistral AI Chat";
     mistral.type = type;
@@ -114,7 +109,6 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     geminiFlash.provider = "Google AI";
     geminiFlash.model = "gemini-2.5-flash";
     geminiFlash.url = "https://generativelanguage.googleapis.com/v1beta";
-    geminiFlash.endpointMode = "Auto";
     geminiFlash.customEndpoint = "";
     geminiFlash.templateName = "Google AI";
     geminiFlash.type = type;
@@ -126,7 +120,6 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     gpt.provider = "OpenAI Responses";
     gpt.model = "gpt-5.4";
     gpt.url = "https://api.openai.com/v1";
-    gpt.endpointMode = "Auto";
     gpt.customEndpoint = "";
     gpt.templateName = "OpenAI Responses";
     gpt.type = type;
@@ -230,10 +223,10 @@ bool ConfigurationManager::loadConfigurations(ConfigurationType type)
         config.model = obj["model"].toString();
         config.templateName = obj["template"].toString();
         config.url = obj["url"].toString();
-        config.endpointMode = obj["endpointMode"].toString();
         config.customEndpoint = obj["customEndpoint"].toString();
         config.type = type;
         config.formatVersion = obj.value("formatVersion").toInt(1);
+
         config.isPredefined = false;
 
         if (config.id.isEmpty() || config.name.isEmpty()) {
@@ -263,7 +256,6 @@ bool ConfigurationManager::saveConfiguration(const AIConfiguration &config)
     obj["model"] = config.model;
     obj["template"] = config.templateName;
     obj["url"] = config.url;
-    obj["endpointMode"] = config.endpointMode;
     obj["customEndpoint"] = config.customEndpoint;
 
     QString sanitizedName = config.name;

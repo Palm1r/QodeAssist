@@ -43,12 +43,6 @@ public:
     PluginLLMCore::ProviderID providerID() const override;
     PluginLLMCore::ProviderCapabilities capabilities() const override;
 
-    PluginLLMCore::RequestID sendRequest(
-        const QUrl &url,
-        const QJsonObject &payload,
-        PluginLLMCore::RequestType type,
-        const QString &endpointOverride = {}) override;
-
     ::LLMQore::BaseClient *client() const override;
     QString apiKey() const override;
 

@@ -29,6 +29,7 @@ class Qwen25CoderFIM : public PluginLLMCore::PromptTemplate
 public:
     QString name() const override { return "Qwen2.5 Coder FIM"; }
     PluginLLMCore::TemplateType type() const override { return PluginLLMCore::TemplateType::FIM; }
+    QString endpoint() const override { return QStringLiteral("/api/generate"); }
     QStringList stopWords() const override { return QStringList() << "<|endoftext|>" << "<|EOT|>"; }
     void prepareRequest(QJsonObject &request, const PluginLLMCore::ContextData &context) const override
     {

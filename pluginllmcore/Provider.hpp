@@ -72,16 +72,8 @@ public:
     virtual ::LLMQore::BaseClient *client() const = 0;
     virtual QString apiKey() const = 0;
 
-    // Default implementation forwards `endpointOverride` to the client as
-    // is — an empty override means "let the client use its standard path"
-    // (e.g. /chat/completions for OpenAI). Providers with multiple
-    // endpoints (Mistral, LlamaCpp, LMStudio, Ollama) override this to
-    // pick the right path based on `type` when no override is supplied.
     virtual RequestID sendRequest(
-        const QUrl &url,
-        const QJsonObject &payload,
-        RequestType type,
-        const QString &endpointOverride = {});
+        const QUrl &url, const QJsonObject &payload, const QString &endpoint);
     void cancelRequest(const RequestID &requestId);
     ::LLMQore::ToolsManager *toolsManager() const;
 

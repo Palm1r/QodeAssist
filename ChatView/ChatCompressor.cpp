@@ -83,17 +83,13 @@ void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *ch
 
     connectProviderSignals();
 
-    QUrl requestUrl;
-    QJsonObject payload;
-
-    requestUrl = QUrl(Settings::generalSettings().caUrl());
-    payload["model"] = Settings::generalSettings().caModel();
-    payload["stream"] = true;
+    QJsonObject payload{
+        {"model", Settings::generalSettings().caModel()}, {"stream", true}};
 
     buildRequestPayload(payload, promptTemplate);
 
-    m_currentRequestId
-        = m_provider->sendRequest(requestUrl, payload, PluginLLMCore::RequestType::Chat);
+    m_currentRequestId = m_provider->sendRequest(
+        QUrl(Settings::generalSettings().caUrl()), payload, promptTemplate->endpoint());
     LOG_MESSAGE(QString("Starting compression request: %1").arg(m_currentRequestId));
 }
 

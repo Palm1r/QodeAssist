@@ -156,10 +156,7 @@ PluginLLMCore::ProviderCapabilities GoogleAIProvider::capabilities() const
 }
 
 PluginLLMCore::RequestID GoogleAIProvider::sendRequest(
-    const QUrl &url,
-    const QJsonObject &payload,
-    PluginLLMCore::RequestType type,
-    const QString &endpointOverride)
+    const QUrl &url, const QJsonObject &payload, const QString &endpoint)
 {
     // Gemini takes the model from the URL path and streaming from the
     // action suffix (:streamGenerateContent vs :generateContent), and
@@ -173,7 +170,7 @@ PluginLLMCore::RequestID GoogleAIProvider::sendRequest(
     }
     cleaned.remove("stream");
 
-    return PluginLLMCore::Provider::sendRequest(url, cleaned, type, endpointOverride);
+    return PluginLLMCore::Provider::sendRequest(url, cleaned, endpoint);
 }
 
 ::LLMQore::BaseClient *GoogleAIProvider::client() const

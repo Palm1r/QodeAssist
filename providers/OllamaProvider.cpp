@@ -146,20 +146,6 @@ PluginLLMCore::ProviderCapabilities OllamaProvider::capabilities() const
            | PluginLLMCore::ProviderCapability::ModelListing;
 }
 
-PluginLLMCore::RequestID OllamaProvider::sendRequest(
-    const QUrl &url,
-    const QJsonObject &payload,
-    PluginLLMCore::RequestType type,
-    const QString &endpointOverride)
-{
-    const QString endpoint = !endpointOverride.isEmpty()
-                                 ? endpointOverride
-                                 : (type == PluginLLMCore::RequestType::CodeCompletion
-                                        ? QStringLiteral("/api/generate")
-                                        : QString());
-    return PluginLLMCore::Provider::sendRequest(url, payload, type, endpoint);
-}
-
 ::LLMQore::BaseClient *OllamaProvider::client() const
 {
     return m_client;

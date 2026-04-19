@@ -30,7 +30,6 @@
 #include <context/Utils.hpp>
 #include <pluginllmcore/PromptTemplateManager.hpp>
 #include <pluginllmcore/ProvidersManager.hpp>
-#include <pluginllmcore/RequestConfig.hpp>
 #include <pluginllmcore/RulesLoader.hpp>
 #include <logger/Logger.hpp>
 #include <settings/ChatAssistantSettings.hpp>
@@ -141,20 +140,15 @@ void QuickRefactorHandler::prepareAndSendRequest(
         return;
     }
 
-    PluginLLMCore::LLMConfig config;
-    config.requestType = PluginLLMCore::RequestType::QuickRefactoring;
-    config.provider = provider;
-    config.promptTemplate = promptTemplate;
-    config.url = QUrl(Settings::generalSettings().qrUrl());
-    config.providerRequest
-        = {{"model", Settings::generalSettings().qrModel()}, {"stream", true}};
+    QJsonObject payload{
+        {"model", Settings::generalSettings().qrModel()}, {"stream", true}};
 
     PluginLLMCore::ContextData context = prepareContext(editor, range, instructions);
 
     bool enableTools = Settings::quickRefactorSettings().useTools();
     bool enableThinking = Settings::quickRefactorSettings().useThinking();
     provider->prepareRequest(
-        config.providerRequest,
+        payload,
         promptTemplate,
         context,
         PluginLLMCore::RequestType::QuickRefactoring,
@@ -177,7 +171,8 @@ void QuickRefactorHandler::prepareAndSendRequest(
         &QuickRefactorHandler::handleRequestFailed,
         Qt::UniqueConnection);
 
-    auto requestId = provider->sendRequest(config.url, config.providerRequest, config.requestType);
+    auto requestId = provider->sendRequest(
+        QUrl(Settings::generalSettings().qrUrl()), payload, promptTemplate->endpoint());
     m_lastRequestId = requestId;
     QJsonObject request{{"id", requestId}};
 

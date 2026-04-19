@@ -35,7 +35,6 @@ const char CC_MODEL_HISTORY[] = "QodeAssist.ccModelHistory";
 const char CC_TEMPLATE[] = "QodeAssist.ccTemplate";
 const char CC_URL[] = "QodeAssist.ccUrl";
 const char CC_URL_HISTORY[] = "QodeAssist.ccUrlHistory";
-const char CC_ENDPOINT_MODE[] = "QodeAssist.ccEndpointMode";
 const char CC_CUSTOM_ENDPOINT[] = "QodeAssist.ccCustomEndpoint";
 const char CC_CUSTOM_ENDPOINT_HISTORY[] = "QodeAssist.ccCustomEndpointHistory";
 
@@ -45,7 +44,6 @@ const char CA_MODEL_HISTORY[] = "QodeAssist.caModelHistory";
 const char CA_TEMPLATE[] = "QodeAssist.caTemplate";
 const char CA_URL[] = "QodeAssist.caUrl";
 const char CA_URL_HISTORY[] = "QodeAssist.caUrlHistory";
-const char CA_ENDPOINT_MODE[] = "QodeAssist.caEndpointMode";
 const char CA_CUSTOM_ENDPOINT[] = "QodeAssist.caCustomEndpoint";
 const char CA_CUSTOM_ENDPOINT_HISTORY[] = "QodeAssist.caCustomEndpointHistory";
 
@@ -56,7 +54,6 @@ const char QR_MODEL_HISTORY[] = "QodeAssist.qrModelHistory";
 const char QR_TEMPLATE[] = "QodeAssist.qrTemplate";
 const char QR_URL[] = "QodeAssist.qrUrl";
 const char QR_URL_HISTORY[] = "QodeAssist.qrUrlHistory";
-const char QR_ENDPOINT_MODE[] = "QodeAssist.qrEndpointMode";
 const char QR_CUSTOM_ENDPOINT[] = "QodeAssist.qrCustomEndpoint";
 const char QR_CUSTOM_ENDPOINT_HISTORY[] = "QodeAssist.qrCustomEndpointHistory";
 
@@ -68,7 +65,6 @@ const char CC_PRESET1_MODEL_HISTORY[] = "QodeAssist.ccPreset1ModelHistory";
 const char CC_PRESET1_TEMPLATE[] = "QodeAssist.ccPreset1Template";
 const char CC_PRESET1_URL[] = "QodeAssist.ccPreset1Url";
 const char CC_PRESET1_URL_HISTORY[] = "QodeAssist.ccPreset1UrlHistory";
-const char CC_PRESET1_ENDPOINT_MODE[] = "QodeAssist.caPreset1EndpointMode";
 const char CC_PRESET1_CUSTOM_ENDPOINT[] = "QodeAssist.caPreset1CustomEndpointHistory";
 const char CC_PRESET1_CUSTOM_ENDPOINT_HISTORY[] = "QodeAssist.caPreset1CustomEndpointHistory";
 

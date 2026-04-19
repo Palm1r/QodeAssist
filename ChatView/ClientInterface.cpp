@@ -51,7 +51,6 @@
 #include "GeneralSettings.hpp"
 #include "Logger.hpp"
 #include "ProvidersManager.hpp"
-#include "RequestConfig.hpp"
 #include "ToolsSettings.hpp"
 #include <RulesLoader.hpp>
 #include <context/ChangesManager.h>
@@ -248,16 +247,11 @@ void ClientInterface::sendMessage(
 
     context.history = messages;
 
-    PluginLLMCore::LLMConfig config;
-    config.requestType = PluginLLMCore::RequestType::Chat;
-    config.provider = provider;
-    config.promptTemplate = promptTemplate;
-    config.url = QUrl(Settings::generalSettings().caUrl());
-    config.providerRequest
-        = {{"model", Settings::generalSettings().caModel()}, {"stream", true}};
+    QJsonObject payload{
+        {"model", Settings::generalSettings().caModel()}, {"stream", true}};
 
-    config.provider->prepareRequest(
-        config.providerRequest,
+    provider->prepareRequest(
+        payload,
         promptTemplate,
         context,
         PluginLLMCore::RequestType::Chat,
@@ -301,7 +295,8 @@ void ClientInterface::sendMessage(
         &ClientInterface::handleThinkingBlockReceived,
         Qt::UniqueConnection);
 
-    auto requestId = provider->sendRequest(config.url, config.providerRequest, config.requestType);
+    auto requestId = provider->sendRequest(
+        QUrl(Settings::generalSettings().caUrl()), payload, promptTemplate->endpoint());
     QJsonObject request{{"id", requestId}};
 
     m_activeRequests[requestId] = {request, provider};

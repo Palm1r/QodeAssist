@@ -120,20 +120,6 @@ void LMStudioProvider::prepareRequest(
     }
 }
 
-PluginLLMCore::RequestID LMStudioProvider::sendRequest(
-    const QUrl &url,
-    const QJsonObject &payload,
-    PluginLLMCore::RequestType type,
-    const QString &endpointOverride)
-{
-    const QString endpoint = !endpointOverride.isEmpty()
-                                 ? endpointOverride
-                                 : (type == PluginLLMCore::RequestType::CodeCompletion
-                                        ? QStringLiteral("/completions")
-                                        : QString());
-    return PluginLLMCore::Provider::sendRequest(url, payload, type, endpoint);
-}
-
 ::LLMQore::BaseClient *LMStudioProvider::client() const
 {
     return m_client;

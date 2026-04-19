@@ -115,20 +115,6 @@ PluginLLMCore::ProviderCapabilities LlamaCppProvider::capabilities() const
     return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image;
 }
 
-PluginLLMCore::RequestID LlamaCppProvider::sendRequest(
-    const QUrl &url,
-    const QJsonObject &payload,
-    PluginLLMCore::RequestType type,
-    const QString &endpointOverride)
-{
-    const QString endpoint = !endpointOverride.isEmpty()
-                                 ? endpointOverride
-                                 : (type == PluginLLMCore::RequestType::CodeCompletion
-                                        ? QStringLiteral("/infill")
-                                        : QString());
-    return PluginLLMCore::Provider::sendRequest(url, payload, type, endpoint);
-}
-
 ::LLMQore::BaseClient *LlamaCppProvider::client() const
 {
     return m_client;

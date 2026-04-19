@@ -119,20 +119,6 @@ void MistralAIProvider::prepareRequest(
     }
 }
 
-PluginLLMCore::RequestID MistralAIProvider::sendRequest(
-    const QUrl &url,
-    const QJsonObject &payload,
-    PluginLLMCore::RequestType type,
-    const QString &endpointOverride)
-{
-    const QString endpoint = !endpointOverride.isEmpty()
-                                 ? endpointOverride
-                                 : (type == PluginLLMCore::RequestType::CodeCompletion
-                                        ? QStringLiteral("/fim/completions")
-                                        : QStringLiteral("/chat/completions"));
-    return PluginLLMCore::Provider::sendRequest(url, payload, type, endpoint);
-}
-
 ::LLMQore::BaseClient *MistralAIProvider::client() const
 {
     return m_client;

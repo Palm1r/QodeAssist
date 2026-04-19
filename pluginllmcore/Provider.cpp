@@ -36,22 +36,17 @@ Provider::Provider(QObject *parent)
 {}
 
 RequestID Provider::sendRequest(
-    const QUrl &url,
-    const QJsonObject &payload,
-    RequestType type,
-    const QString &endpointOverride)
+    const QUrl &url, const QJsonObject &payload, const QString &endpoint)
 {
-    Q_UNUSED(type)
-
     auto *c = client();
 
     c->setUrl(url.toString());
     c->setApiKey(apiKey());
 
-    auto requestId = c->sendMessage(payload, endpointOverride);
+    auto requestId = c->sendMessage(payload, endpoint);
 
-    LOG_MESSAGE(QString("%1: Sending request %2 to %3%4")
-                    .arg(name(), requestId, url.toString(), endpointOverride));
+    LOG_MESSAGE(
+        QString("%1: Sending request %2 to %3%4").arg(name(), requestId, url.toString(), endpoint));
     LOG_MESSAGE(
         QString("%1: Payload:\n%2")
             .arg(name(), QString::fromUtf8(QJsonDocument(payload).toJson(QJsonDocument::Indented))));
