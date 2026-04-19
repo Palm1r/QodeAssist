@@ -19,7 +19,7 @@
 
 #include "ToolsRegistration.hpp"
 
-#include <LLMCore/ToolsManager.hpp>
+#include <LLMQore/ToolsManager.hpp>
 
 #include "BuildProjectTool.hpp"
 #include "CreateNewFileTool.hpp"
@@ -33,7 +33,7 @@
 
 namespace QodeAssist::Tools {
 
-void registerQodeAssistTools(::LLMCore::ToolsManager *manager)
+void registerQodeAssistTools(::LLMQore::ToolsManager *manager)
 {
     manager->addTool(new ListProjectFilesTool(manager));
     manager->addTool(new GetIssuesListTool(manager));

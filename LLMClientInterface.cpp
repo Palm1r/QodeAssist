@@ -19,7 +19,7 @@
 
 #include "LLMClientInterface.hpp"
 
-#include <LLMCore/BaseClient.hpp>
+#include <LLMQore/BaseClient.hpp>
 #include <QJsonDocument>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
@@ -30,7 +30,6 @@
 #include "logger/Logger.hpp"
 #include "settings/CodeCompletionSettings.hpp"
 #include "settings/GeneralSettings.hpp"
-#include <pluginllmcore/RequestConfig.hpp>
 #include <pluginllmcore/RulesLoader.hpp>
 
 namespace QodeAssist {
@@ -86,17 +85,19 @@ void LLMClientInterface::handleRequestFailed(const QString &requestId, const QSt
     if (it == m_activeRequests.end())
         return;
 
-    LOG_MESSAGE(QString("Request %1 failed: %2").arg(requestId, error));
-    
-    // Send LSP error response to client
     const RequestContext &ctx = it.value();
+    QString enriched = ctx.provider ? ctx.provider->enrichErrorMessage(error) : error;
+
+    LOG_MESSAGE(QString("Request %1 failed: %2").arg(requestId, enriched));
+
+    // Send LSP error response to client
     QJsonObject response;
     response["jsonrpc"] = "2.0";
     response[LanguageServerProtocol::idKey] = ctx.originalRequest["id"];
-    
+
     QJsonObject errorObject;
     errorObject["code"] = -32603; // Internal error code
-    errorObject["message"] = error;
+    errorObject["message"] = enriched;
     response["error"] = errorObject;
     
     emit messageReceived(LanguageServerProtocol::JsonRpcMessage(response));
@@ -269,25 +270,11 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         return;
     }
 
-    // TODO refactor to dynamic presets system
-    PluginLLMCore::LLMConfig config;
-    config.requestType = PluginLLMCore::RequestType::CodeCompletion;
-    config.provider = provider;
-    config.promptTemplate = promptTemplate;
-    // TODO refactor networking
-    if (provider->providerID() == PluginLLMCore::ProviderID::GoogleAI) {
-        QString stream = QString{"streamGenerateContent?alt=sse"};
-        config.url = QUrl(QString("%1/models/%2:%3").arg(url, modelName, stream));
-    } else {
-        config.url = QUrl(
-            QString("%1%2").arg(url, endpoint(provider, promptTemplate->type(), isPreset1Active)));
-        config.providerRequest = {{"model", modelName}, {"stream", true}};
-    }
-    config.multiLineCompletion = m_completeSettings.multiLineCompletion();
+    QJsonObject payload{{"model", modelName}, {"stream", true}};
 
-    const auto stopWords = QJsonArray::fromStringList(config.promptTemplate->stopWords());
+    const auto stopWords = QJsonArray::fromStringList(promptTemplate->stopWords());
     if (!stopWords.isEmpty())
-        config.providerRequest["stop"] = stopWords;
+        payload["stop"] = stopWords;
 
     QString systemPrompt;
     if (m_completeSettings.useSystemPrompt())
@@ -341,8 +328,8 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         updatedContext.history = messages;
     }
 
-    config.provider->prepareRequest(
-        config.providerRequest,
+    provider->prepareRequest(
+        payload,
         promptTemplate,
         updatedContext,
         PluginLLMCore::RequestType::CodeCompletion,
@@ -351,18 +338,19 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
 
     connect(
         provider->client(),
-        &::LLMCore::BaseClient::requestCompleted,
+        &::LLMQore::BaseClient::requestCompleted,
         this,
         &LLMClientInterface::handleFullResponse,
         Qt::UniqueConnection);
     connect(
         provider->client(),
-        &::LLMCore::BaseClient::requestFailed,
+        &::LLMQore::BaseClient::requestFailed,
         this,
         &LLMClientInterface::handleRequestFailed,
         Qt::UniqueConnection);
 
-    auto requestId = provider->sendRequest(config.url, config.providerRequest);
+    auto requestId
+        = provider->sendRequest(QUrl(url), payload, resolveEndpoint(promptTemplate, isPreset1Active));
     m_activeRequests[requestId] = {request, provider};
     m_performanceLogger.startTimeMeasurement(requestId);
 }
@@ -381,24 +369,12 @@ PluginLLMCore::ContextData LLMClientInterface::prepareContext(
     return reader.prepareContext(lineNumber, cursorPosition, m_completeSettings);
 }
 
-QString LLMClientInterface::endpoint(
-    PluginLLMCore::Provider *provider, PluginLLMCore::TemplateType type, bool isLanguageSpecify)
+QString LLMClientInterface::resolveEndpoint(
+    PluginLLMCore::PromptTemplate *promptTemplate, bool isLanguageSpecify) const
 {
-    QString endpoint;
-    auto endpointMode = isLanguageSpecify ? m_generalSettings.ccPreset1EndpointMode.stringValue()
-                                          : m_generalSettings.ccEndpointMode.stringValue();
-    if (endpointMode == "Auto") {
-        endpoint = type == PluginLLMCore::TemplateType::FIM ? provider->completionEndpoint()
-                                                      : provider->chatEndpoint();
-    } else if (endpointMode == "Custom") {
-        endpoint = isLanguageSpecify ? m_generalSettings.ccPreset1CustomEndpoint()
-                                     : m_generalSettings.ccCustomEndpoint();
-    } else if (endpointMode == "FIM") {
-        endpoint = provider->completionEndpoint();
-    } else if (endpointMode == "Chat") {
-        endpoint = provider->chatEndpoint();
-    }
-    return endpoint;
+    const QString custom = isLanguageSpecify ? m_generalSettings.ccPreset1CustomEndpoint()
+                                             : m_generalSettings.ccCustomEndpoint();
+    return !custom.isEmpty() ? custom : promptTemplate->endpoint();
 }
 
 Context::ContextManager *LLMClientInterface::contextManager() const

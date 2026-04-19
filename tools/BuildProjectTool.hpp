@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <LLMCore/BaseTool.hpp>
+#include <LLMQore/BaseTool.hpp>
 #include <QHash>
 #include <QObject>
 #include <QPointer>
@@ -34,7 +34,7 @@ namespace QodeAssist::Tools {
 
 struct BuildInfo
 {
-    QSharedPointer<QPromise<QString>> promise;
+    QSharedPointer<QPromise<LLMQore::ToolResult>> promise;
     QPointer<ProjectExplorer::Project> project;
     QString projectName;
     bool isRebuild = false;
@@ -42,7 +42,7 @@ struct BuildInfo
     QMetaObject::Connection buildFinishedConnection;
 };
 
-class BuildProjectTool : public ::LLMCore::BaseTool
+class BuildProjectTool : public ::LLMQore::BaseTool
 {
     Q_OBJECT
 public:
@@ -54,7 +54,7 @@ public:
     QString description() const override;
     QJsonObject parametersSchema() const override;
 
-    QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
+    QFuture<LLMQore::ToolResult> executeAsync(const QJsonObject &input = QJsonObject()) override;
 
 private slots:
     void onBuildQueueFinished(bool success);

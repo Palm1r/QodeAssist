@@ -23,17 +23,17 @@
 
 namespace QodeAssist::Templates {
 
-class DeepSeekCoderFim : public LLMCore::PromptTemplate
+class DeepSeekCoderFim : public LLMQore::PromptTemplate
 {
 public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Fim; }
+    LLMQore::TemplateType type() const override { return LLMQore::TemplateType::Fim; }
     QString name() const override { return "DeepSeekCoder FIM"; }
     QString promptTemplate() const override
     {
         return "<｜fim▁begin｜>%1<｜fim▁hole｜>%2<｜fim▁end｜>";
     }
     QStringList stopWords() const override { return QStringList(); }
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
+    void prepareRequest(QJsonObject &request, const LLMQore::ContextData &context) const override
     {
         QString formattedPrompt = promptTemplate().arg(context.prefix, context.suffix);
         request["prompt"] = formattedPrompt;

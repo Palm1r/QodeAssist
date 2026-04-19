@@ -155,16 +155,16 @@ QJsonObject GetIssuesListTool::parametersSchema() const
     return definition;
 }
 
-QFuture<QString> GetIssuesListTool::executeAsync(const QJsonObject &input)
+QFuture<LLMQore::ToolResult> GetIssuesListTool::executeAsync(const QJsonObject &input)
 {
-    return QtConcurrent::run([input]() -> QString {
+    return QtConcurrent::run([input]() -> LLMQore::ToolResult {
 
         QString severityFilter = input.value("severity").toString("all");
 
         const auto tasks = IssuesTracker::instance().getTasks();
 
         if (tasks.isEmpty()) {
-            return "No issues found in Qt Creator Issues panel.";
+            return LLMQore::ToolResult::text("No issues found in Qt Creator Issues panel.");
         }
 
         QStringList results;
@@ -235,7 +235,7 @@ QFuture<QString> GetIssuesListTool::executeAsync(const QJsonObject &input)
                               .arg(processedCount);
         results.prepend(summary);
 
-        return results.join("\n\n");
+        return LLMQore::ToolResult::text(results.join("\n\n"));
     });
 }
 

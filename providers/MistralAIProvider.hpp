@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <LLMCore/OpenAIClient.hpp>
+#include <LLMQore/MistralClient.hpp>
 #include <pluginllmcore/Provider.hpp>
 
 namespace QodeAssist::Providers {
@@ -32,8 +32,6 @@ public:
 
     QString name() const override;
     QString url() const override;
-    QString completionEndpoint() const override;
-    QString chatEndpoint() const override;
     void prepareRequest(
         QJsonObject &request,
         PluginLLMCore::PromptTemplate *prompt,
@@ -45,11 +43,11 @@ public:
     PluginLLMCore::ProviderID providerID() const override;
     PluginLLMCore::ProviderCapabilities capabilities() const override;
 
-    ::LLMCore::BaseClient *client() const override;
+    ::LLMQore::BaseClient *client() const override;
     QString apiKey() const override;
 
 private:
-    ::LLMCore::OpenAIClient *m_client;
+    ::LLMQore::MistralClient *m_client;
 };
 
 } // namespace QodeAssist::Providers

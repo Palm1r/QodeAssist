@@ -21,7 +21,7 @@
 
 #include <pluginllmcore/Provider.hpp>
 
-#include <LLMCore/GoogleAIClient.hpp>
+#include <LLMQore/GoogleAIClient.hpp>
 
 namespace QodeAssist::Providers {
 
@@ -33,8 +33,6 @@ public:
 
     QString name() const override;
     QString url() const override;
-    QString completionEndpoint() const override;
-    QString chatEndpoint() const override;
     void prepareRequest(
         QJsonObject &request,
         PluginLLMCore::PromptTemplate *prompt,
@@ -46,11 +44,14 @@ public:
     PluginLLMCore::ProviderID providerID() const override;
     PluginLLMCore::ProviderCapabilities capabilities() const override;
 
-    ::LLMCore::BaseClient *client() const override;
+    PluginLLMCore::RequestID sendRequest(
+        const QUrl &url, const QJsonObject &payload, const QString &endpoint) override;
+
+    ::LLMQore::BaseClient *client() const override;
     QString apiKey() const override;
 
 private:
-    ::LLMCore::GoogleAIClient *m_client;
+    ::LLMQore::GoogleAIClient *m_client;
 };
 
 } // namespace QodeAssist::Providers

@@ -1,3 +1,3 @@
-[submodule "sources/external/llmcore"]
-	path = sources/external/llmcore
-	url = https://github.com/Palm1r/llmcore.git
+[submodule "sources/external/llmqore"]
+	path = sources/external/llmqore
+	url = https://github.com/Palm1r/llmqore.git

@@ -19,13 +19,13 @@
 
 #pragma once
 
-#include <LLMCore/BaseTool.hpp>
+#include <LLMQore/BaseTool.hpp>
 
 #include <context/IgnoreManager.hpp>
 
 namespace QodeAssist::Tools {
 
-class ListProjectFilesTool : public ::LLMCore::BaseTool
+class ListProjectFilesTool : public ::LLMQore::BaseTool
 {
     Q_OBJECT
 public:
@@ -36,7 +36,7 @@ public:
     QString description() const override;
     QJsonObject parametersSchema() const override;
 
-    QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
+    QFuture<LLMQore::ToolResult> executeAsync(const QJsonObject &input = QJsonObject()) override;
 
 private:
     QString formatFileList(const QStringList &files) const;

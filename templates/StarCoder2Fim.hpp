@@ -28,6 +28,7 @@ class StarCoder2Fim : public PluginLLMCore::PromptTemplate
 public:
     PluginLLMCore::TemplateType type() const override { return PluginLLMCore::TemplateType::FIM; }
     QString name() const override { return "StarCoder2 FIM"; }
+    QString endpoint() const override { return QStringLiteral("/api/generate"); }
     QStringList stopWords() const override
     {
         return QStringList() << "<|endoftext|>" << "<file_sep>" << "<fim_prefix>" << "<fim_suffix>"

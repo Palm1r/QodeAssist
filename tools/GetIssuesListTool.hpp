@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <LLMCore/BaseTool.hpp>
+#include <LLMQore/BaseTool.hpp>
 #include <projectexplorer/task.h>
 #include <QList>
 #include <QMutex>
@@ -46,7 +46,7 @@ private:
     mutable QMutex m_mutex;
 };
 
-class GetIssuesListTool : public ::LLMCore::BaseTool
+class GetIssuesListTool : public ::LLMQore::BaseTool
 {
     Q_OBJECT
 public:
@@ -57,7 +57,7 @@ public:
     QString description() const override;
     QJsonObject parametersSchema() const override;
 
-    QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
+    QFuture<LLMQore::ToolResult> executeAsync(const QJsonObject &input = QJsonObject()) override;
 };
 
 } // namespace QodeAssist::Tools

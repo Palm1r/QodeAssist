@@ -87,7 +87,9 @@ private:
 
     PluginLLMCore::ContextData prepareContext(
         const QJsonObject &request, const Context::DocumentInfo &documentInfo);
-    QString endpoint(PluginLLMCore::Provider *provider, PluginLLMCore::TemplateType type, bool isLanguageSpecify);
+
+    QString resolveEndpoint(
+        PluginLLMCore::PromptTemplate *promptTemplate, bool isLanguageSpecify) const;
 
     const Settings::CodeCompletionSettings &m_completeSettings;
     const Settings::GeneralSettings &m_generalSettings;

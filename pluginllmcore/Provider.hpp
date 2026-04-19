@@ -26,11 +26,10 @@
 #include <utils/environment.h>
 
 #include "ContextData.hpp"
-#include "IToolsManager.hpp"
 #include "PromptTemplate.hpp"
 #include "RequestType.hpp"
 
-namespace LLMCore {
+namespace LLMQore {
 class BaseClient;
 class ToolsManager;
 }
@@ -58,8 +57,6 @@ public:
 
     virtual QString name() const = 0;
     virtual QString url() const = 0;
-    virtual QString completionEndpoint() const = 0;
-    virtual QString chatEndpoint() const = 0;
     virtual void prepareRequest(
         QJsonObject &request,
         PluginLLMCore::PromptTemplate *prompt,
@@ -72,12 +69,15 @@ public:
     virtual ProviderID providerID() const = 0;
     virtual ProviderCapabilities capabilities() const { return {}; }
 
-    virtual ::LLMCore::BaseClient *client() const = 0;
+    virtual ::LLMQore::BaseClient *client() const = 0;
     virtual QString apiKey() const = 0;
 
-    RequestID sendRequest(const QUrl &url, const QJsonObject &payload);
+    virtual RequestID sendRequest(
+        const QUrl &url, const QJsonObject &payload, const QString &endpoint);
     void cancelRequest(const RequestID &requestId);
-    ::LLMCore::ToolsManager *toolsManager() const;
+    ::LLMQore::ToolsManager *toolsManager() const;
+
+    QString enrichErrorMessage(const QString &error) const;
 };
 
 } // namespace QodeAssist::PluginLLMCore

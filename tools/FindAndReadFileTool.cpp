@@ -18,7 +18,8 @@
  */
 
 #include "FindAndReadFileTool.hpp"
-#include "ToolExceptions.hpp"
+
+#include <LLMQore/ToolExceptions.hpp>
 
 #include <logger/Logger.hpp>
 #include <QJsonArray>
@@ -71,12 +72,12 @@ QJsonObject FindAndReadFileTool::parametersSchema() const
     return definition;
 }
 
-QFuture<QString> FindAndReadFileTool::executeAsync(const QJsonObject &input)
+QFuture<LLMQore::ToolResult> FindAndReadFileTool::executeAsync(const QJsonObject &input)
 {
-    return QtConcurrent::run([this, input]() -> QString {
+    return QtConcurrent::run([this, input]() -> LLMQore::ToolResult {
         QString query = input["query"].toString().trimmed();
         if (query.isEmpty()) {
-            throw ToolInvalidArgument("Query parameter is required");
+            throw LLMQore::ToolInvalidArgument("Query parameter is required");
         }
 
         QString filePattern = input["file_pattern"].toString();
@@ -90,7 +91,7 @@ QFuture<QString> FindAndReadFileTool::executeAsync(const QJsonObject &input)
             query, filePattern, 10, m_ignoreManager);
 
         if (bestMatch.absolutePath.isEmpty()) {
-            return QString("No file found matching '%1'").arg(query);
+            return LLMQore::ToolResult::text(QString("No file found matching '%1'").arg(query));
         }
 
         if (readContent) {
@@ -100,7 +101,7 @@ QFuture<QString> FindAndReadFileTool::executeAsync(const QJsonObject &input)
             }
         }
 
-        return formatResult(bestMatch, readContent);
+        return LLMQore::ToolResult::text(formatResult(bestMatch, readContent));
     });
 }
 

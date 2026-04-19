@@ -30,6 +30,7 @@ class MistralAIFim : public PluginLLMCore::PromptTemplate
 public:
     PluginLLMCore::TemplateType type() const override { return PluginLLMCore::TemplateType::FIM; }
     QString name() const override { return "Mistral AI FIM"; }
+    QString endpoint() const override { return QStringLiteral("/v1/fim/completions"); }
     QStringList stopWords() const override { return QStringList(); }
     void prepareRequest(QJsonObject &request, const PluginLLMCore::ContextData &context) const override
     {

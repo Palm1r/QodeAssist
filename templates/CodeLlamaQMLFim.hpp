@@ -28,6 +28,7 @@ class CodeLlamaQMLFim : public PluginLLMCore::PromptTemplate
 public:
     PluginLLMCore::TemplateType type() const override { return PluginLLMCore::TemplateType::FIM; }
     QString name() const override { return "CodeLlama QML FIM"; }
+    QString endpoint() const override { return QStringLiteral("/api/generate"); }
     QStringList stopWords() const override
     {
         return QStringList() << "<SUF>" << "<PRE>" << "</PRE>" << "</SUF>" << "< EOT >" << "\\end"

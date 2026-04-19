@@ -19,7 +19,7 @@
 
 #include "ClientInterface.hpp"
 
-#include <LLMCore/BaseClient.hpp>
+#include <LLMQore/BaseClient.hpp>
 
 #include <projectexplorer/buildconfiguration.h>
 #include <projectexplorer/target.h>
@@ -42,7 +42,7 @@
 #include <texteditor/textdocument.h>
 #include <texteditor/texteditor.h>
 
-#include <LLMCore/ToolsManager.hpp>
+#include <LLMQore/ToolsManager.hpp>
 
 #include "tools/TodoTool.hpp"
 
@@ -51,7 +51,6 @@
 #include "GeneralSettings.hpp"
 #include "Logger.hpp"
 #include "ProvidersManager.hpp"
-#include "RequestConfig.hpp"
 #include "ToolsSettings.hpp"
 #include <RulesLoader.hpp>
 #include <context/ChangesManager.h>
@@ -248,26 +247,11 @@ void ClientInterface::sendMessage(
 
     context.history = messages;
 
-    PluginLLMCore::LLMConfig config;
-    config.requestType = PluginLLMCore::RequestType::Chat;
-    config.provider = provider;
-    config.promptTemplate = promptTemplate;
-    if (provider->providerID() == PluginLLMCore::ProviderID::GoogleAI) {
-        QString stream = QString{"streamGenerateContent?alt=sse"};
-        config.url = QUrl(QString("%1/models/%2:%3")
-                              .arg(
-                                  Settings::generalSettings().caUrl(),
-                                  Settings::generalSettings().caModel(),
-                                  stream));
-    } else {
-        config.url
-            = QString("%1%2").arg(Settings::generalSettings().caUrl(), provider->chatEndpoint());
-        config.providerRequest
-            = {{"model", Settings::generalSettings().caModel()}, {"stream", true}};
-    }
+    QJsonObject payload{
+        {"model", Settings::generalSettings().caModel()}, {"stream", true}};
 
-    config.provider->prepareRequest(
-        config.providerRequest,
+    provider->prepareRequest(
+        payload,
         promptTemplate,
         context,
         PluginLLMCore::RequestType::Chat,
@@ -276,42 +260,46 @@ void ClientInterface::sendMessage(
 
     connect(
         provider->client(),
-        &::LLMCore::BaseClient::chunkReceived,
+        &::LLMQore::BaseClient::chunkReceived,
         this,
         &ClientInterface::handlePartialResponse,
         Qt::UniqueConnection);
     connect(
         provider->client(),
-        &::LLMCore::BaseClient::requestCompleted,
+        &::LLMQore::BaseClient::requestCompleted,
         this,
         &ClientInterface::handleFullResponse,
         Qt::UniqueConnection);
     connect(
         provider->client(),
-        &::LLMCore::BaseClient::requestFailed,
+        &::LLMQore::BaseClient::requestFailed,
         this,
         &ClientInterface::handleRequestFailed,
         Qt::UniqueConnection);
     connect(
         provider->client(),
-        &::LLMCore::BaseClient::toolStarted,
+        &::LLMQore::BaseClient::toolStarted,
         this,
         &ClientInterface::handleToolExecutionStarted,
         Qt::UniqueConnection);
     connect(
         provider->client(),
-        &::LLMCore::BaseClient::toolResultReady,
+        &::LLMQore::BaseClient::toolResultReady,
         this,
         &ClientInterface::handleToolExecutionCompleted,
         Qt::UniqueConnection);
     connect(
         provider->client(),
-        &::LLMCore::BaseClient::thinkingBlockReceived,
+        &::LLMQore::BaseClient::thinkingBlockReceived,
         this,
         &ClientInterface::handleThinkingBlockReceived,
         Qt::UniqueConnection);
 
-    auto requestId = provider->sendRequest(config.url, config.providerRequest);
+    const QString customEndpoint = Settings::generalSettings().caCustomEndpoint();
+    const QString endpoint = !customEndpoint.isEmpty() ? customEndpoint
+                                                       : promptTemplate->endpoint();
+    auto requestId
+        = provider->sendRequest(QUrl(Settings::generalSettings().caUrl()), payload, endpoint);
     QJsonObject request{{"id", requestId}};
 
     m_activeRequests[requestId] = {request, provider};
@@ -480,8 +468,10 @@ void ClientInterface::handleRequestFailed(const QString &requestId, const QStrin
     if (it == m_activeRequests.end())
         return;
 
-    LOG_MESSAGE(QString("Chat request %1 failed: %2").arg(requestId, error));
-    emit errorOccurred(error);
+    QString enriched = it->provider ? it->provider->enrichErrorMessage(error) : error;
+
+    LOG_MESSAGE(QString("Chat request %1 failed: %2").arg(requestId, enriched));
+    emit errorOccurred(enriched);
 
     m_activeRequests.erase(it);
     m_accumulatedResponses.remove(requestId);

@@ -1400,8 +1400,6 @@ void ChatRootView::applyConfiguration(const QString &configName)
             settings.caModel.setValue(config.model);
             settings.caTemplate.setValue(config.templateName);
             settings.caUrl.setValue(config.url);
-            settings.caEndpointMode.setValue(
-                settings.caEndpointMode.indexForDisplay(config.endpointMode));
             settings.caCustomEndpoint.setValue(config.customEndpoint);
 
             settings.writeSettings();

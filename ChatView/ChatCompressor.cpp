@@ -19,7 +19,7 @@
 
 #include "ChatCompressor.hpp"
 
-#include <LLMCore/BaseClient.hpp>
+#include <LLMQore/BaseClient.hpp>
 #include "ChatModel.hpp"
 #include "GeneralSettings.hpp"
 #include "PromptTemplateManager.hpp"
@@ -83,23 +83,16 @@ void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *ch
 
     connectProviderSignals();
 
-    QUrl requestUrl;
-    QJsonObject payload;
-
-    if (m_provider->providerID() == PluginLLMCore::ProviderID::GoogleAI) {
-        requestUrl = QUrl(QString("%1/models/%2:streamGenerateContent?alt=sse")
-                              .arg(Settings::generalSettings().caUrl(),
-                                   Settings::generalSettings().caModel()));
-    } else {
-        requestUrl = QUrl(QString("%1%2").arg(Settings::generalSettings().caUrl(),
-                                              m_provider->chatEndpoint()));
-        payload["model"] = Settings::generalSettings().caModel();
-        payload["stream"] = true;
-    }
+    QJsonObject payload{
+        {"model", Settings::generalSettings().caModel()}, {"stream", true}};
 
     buildRequestPayload(payload, promptTemplate);
 
-    m_currentRequestId = m_provider->sendRequest(requestUrl, payload);
+    const QString customEndpoint = Settings::generalSettings().caCustomEndpoint();
+    const QString endpoint = !customEndpoint.isEmpty() ? customEndpoint
+                                                       : promptTemplate->endpoint();
+    m_currentRequestId = m_provider->sendRequest(
+        QUrl(Settings::generalSettings().caUrl()), payload, endpoint);
     LOG_MESSAGE(QString("Starting compression request: %1").arg(m_currentRequestId));
 }
 
@@ -271,21 +264,21 @@ void ChatCompressor::connectProviderSignals()
 
     m_connections.append(connect(
         c,
-        &::LLMCore::BaseClient::chunkReceived,
+        &::LLMQore::BaseClient::chunkReceived,
         this,
         &ChatCompressor::onPartialResponseReceived,
         Qt::UniqueConnection));
 
     m_connections.append(connect(
         c,
-        &::LLMCore::BaseClient::requestCompleted,
+        &::LLMQore::BaseClient::requestCompleted,
         this,
         &ChatCompressor::onFullResponseReceived,
         Qt::UniqueConnection));
 
     m_connections.append(connect(
         c,
-        &::LLMCore::BaseClient::requestFailed,
+        &::LLMQore::BaseClient::requestFailed,
         this,
         &ChatCompressor::onRequestFailed,
         Qt::UniqueConnection));

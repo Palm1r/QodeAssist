@@ -78,3 +78,5 @@ CMakeLists.txt.user*
 /.cursor
 /.vscode
 .qtc_clangd/compile_commands.json
+CLAUDE.md
+/.claude

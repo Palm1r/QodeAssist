@@ -21,7 +21,7 @@
 
 #include <pluginllmcore/Provider.hpp>
 
-#include <LLMCore/ClaudeClient.hpp>
+#include <LLMQore/ClaudeClient.hpp>
 
 namespace QodeAssist::Providers {
 
@@ -33,8 +33,6 @@ public:
 
     QString name() const override;
     QString url() const override;
-    QString completionEndpoint() const override;
-    QString chatEndpoint() const override;
     void prepareRequest(
         QJsonObject &request,
         PluginLLMCore::PromptTemplate *prompt,
@@ -46,11 +44,11 @@ public:
     PluginLLMCore::ProviderID providerID() const override;
     PluginLLMCore::ProviderCapabilities capabilities() const override;
 
-    ::LLMCore::BaseClient *client() const override;
+    ::LLMQore::BaseClient *client() const override;
     QString apiKey() const override;
 
 private:
-    ::LLMCore::ClaudeClient *m_client;
+    ::LLMQore::ClaudeClient *m_client;
 };
 
 } // namespace QodeAssist::Providers

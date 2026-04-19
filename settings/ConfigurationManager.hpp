@@ -37,7 +37,7 @@ struct AIConfiguration
     QString model;
     QString templateName;
     QString url;
-    QString endpointMode;
+    // Empty = use the template's endpoint; non-empty = override path.
     QString customEndpoint;
     ConfigurationType type;
     int formatVersion = CONFIGURATION_FORMAT_VERSION;

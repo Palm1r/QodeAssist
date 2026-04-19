@@ -19,7 +19,7 @@
 
 #include "MistralAIProvider.hpp"
 
-#include <LLMCore/ToolsManager.hpp>
+#include <LLMQore/ToolsManager.hpp>
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -36,7 +36,7 @@ namespace QodeAssist::Providers {
 
 MistralAIProvider::MistralAIProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
-    , m_client(new ::LLMCore::OpenAIClient(QString(), QString(), QString(), this))
+    , m_client(new ::LLMQore::MistralClient(QString(), QString(), QString(), this))
 {
     Tools::registerQodeAssistTools(m_client->tools());
 }
@@ -54,16 +54,6 @@ QString MistralAIProvider::apiKey() const
 QString MistralAIProvider::url() const
 {
     return "https://api.mistral.ai";
-}
-
-QString MistralAIProvider::completionEndpoint() const
-{
-    return "/v1/fim/completions";
-}
-
-QString MistralAIProvider::chatEndpoint() const
-{
-    return "/v1/chat/completions";
 }
 
 QFuture<QList<QString>> MistralAIProvider::getInstalledModels(const QString &url)
@@ -129,7 +119,7 @@ void MistralAIProvider::prepareRequest(
     }
 }
 
-::LLMCore::BaseClient *MistralAIProvider::client() const
+::LLMQore::BaseClient *MistralAIProvider::client() const
 {
     return m_client;
 }

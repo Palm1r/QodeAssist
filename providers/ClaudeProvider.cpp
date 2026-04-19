@@ -23,7 +23,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 
-#include <LLMCore/ToolsManager.hpp>
+#include <LLMQore/ToolsManager.hpp>
 
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
@@ -37,7 +37,7 @@ namespace QodeAssist::Providers {
 
 ClaudeProvider::ClaudeProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
-    , m_client(new ::LLMCore::ClaudeClient(QString(), QString(), QString(), this))
+    , m_client(new ::LLMQore::ClaudeClient(QString(), QString(), QString(), this))
 {
     Tools::registerQodeAssistTools(m_client->tools());
 }
@@ -55,16 +55,6 @@ QString ClaudeProvider::apiKey() const
 QString ClaudeProvider::url() const
 {
     return "https://api.anthropic.com";
-}
-
-QString ClaudeProvider::completionEndpoint() const
-{
-    return "/v1/messages";
-}
-
-QString ClaudeProvider::chatEndpoint() const
-{
-    return "/v1/messages";
 }
 
 void ClaudeProvider::prepareRequest(
@@ -151,7 +141,7 @@ PluginLLMCore::ProviderCapabilities ClaudeProvider::capabilities() const
            | PluginLLMCore::ProviderCapability::ModelListing;
 }
 
-::LLMCore::BaseClient *ClaudeProvider::client() const
+::LLMQore::BaseClient *ClaudeProvider::client() const
 {
     return m_client;
 }

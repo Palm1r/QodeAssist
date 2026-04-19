@@ -19,7 +19,7 @@
 
 #include "OllamaProvider.hpp"
 
-#include <LLMCore/ToolsManager.hpp>
+#include <LLMQore/ToolsManager.hpp>
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -37,7 +37,7 @@ namespace QodeAssist::Providers {
 
 OllamaProvider::OllamaProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
-    , m_client(new ::LLMCore::OllamaClient(QString(), QString(), QString(), this))
+    , m_client(new ::LLMQore::OllamaClient(QString(), QString(), QString(), this))
 {
     Tools::registerQodeAssistTools(m_client->tools());
 }
@@ -55,16 +55,6 @@ QString OllamaProvider::apiKey() const
 QString OllamaProvider::url() const
 {
     return "http://localhost:11434";
-}
-
-QString OllamaProvider::completionEndpoint() const
-{
-    return "/api/generate";
-}
-
-QString OllamaProvider::chatEndpoint() const
-{
-    return "/api/chat";
 }
 
 void OllamaProvider::prepareRequest(
@@ -156,7 +146,7 @@ PluginLLMCore::ProviderCapabilities OllamaProvider::capabilities() const
            | PluginLLMCore::ProviderCapability::ModelListing;
 }
 
-::LLMCore::BaseClient *OllamaProvider::client() const
+::LLMQore::BaseClient *OllamaProvider::client() const
 {
     return m_client;
 }

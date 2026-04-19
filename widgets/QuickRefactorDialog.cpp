@@ -640,8 +640,6 @@ void QuickRefactorDialog::onConfigurationChanged(int index)
         settings.qrModel.setValue(config.model);
         settings.qrTemplate.setValue(config.templateName);
         settings.qrUrl.setValue(config.url);
-        settings.qrEndpointMode.setValue(
-            settings.qrEndpointMode.indexForDisplay(config.endpointMode));
         settings.qrCustomEndpoint.setValue(config.customEndpoint);
 
         settings.writeSettings();

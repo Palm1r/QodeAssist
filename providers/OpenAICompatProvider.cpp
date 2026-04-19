@@ -18,7 +18,7 @@
  */
 
 #include "OpenAICompatProvider.hpp"
-#include <LLMCore/ToolsManager.hpp>
+#include <LLMQore/ToolsManager.hpp>
 
 #include "tools/ToolsRegistration.hpp"
 #include "logger/Logger.hpp"
@@ -36,7 +36,7 @@ namespace QodeAssist::Providers {
 
 OpenAICompatProvider::OpenAICompatProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
-    , m_client(new ::LLMCore::OpenAIClient(QString(), QString(), QString(), this))
+    , m_client(new ::LLMQore::OpenAIClient(QString(), QString(), QString(), this))
 {
     Tools::registerQodeAssistTools(m_client->tools());
 }
@@ -53,17 +53,7 @@ QString OpenAICompatProvider::apiKey() const
 
 QString OpenAICompatProvider::url() const
 {
-    return "http://localhost:1234";
-}
-
-QString OpenAICompatProvider::completionEndpoint() const
-{
-    return "/v1/chat/completions";
-}
-
-QString OpenAICompatProvider::chatEndpoint() const
-{
-    return "/v1/chat/completions";
+    return "http://localhost:1234/v1";
 }
 
 void OpenAICompatProvider::prepareRequest(
@@ -127,7 +117,7 @@ PluginLLMCore::ProviderCapabilities OpenAICompatProvider::capabilities() const
     return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image;
 }
 
-::LLMCore::BaseClient *OpenAICompatProvider::client() const
+::LLMQore::BaseClient *OpenAICompatProvider::client() const
 {
     return m_client;
 }
