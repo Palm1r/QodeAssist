@@ -53,7 +53,7 @@ QString MistralAIProvider::apiKey() const
 
 QString MistralAIProvider::url() const
 {
-    return "https://api.mistral.ai/v1";
+    return "https://api.mistral.ai";
 }
 
 QFuture<QList<QString>> MistralAIProvider::getInstalledModels(const QString &url)

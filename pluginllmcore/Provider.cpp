@@ -21,6 +21,7 @@
 
 #include <LLMQore/BaseClient.hpp>
 #include <LLMQore/LlamaCppClient.hpp>
+#include <LLMQore/MistralClient.hpp>
 #include <LLMQore/OpenAIClient.hpp>
 #include <LLMQore/OpenAIResponsesClient.hpp>
 #include <LLMQore/ToolsManager.hpp>
@@ -68,6 +69,9 @@ void Provider::cancelRequest(const RequestID &requestId)
 QString Provider::enrichErrorMessage(const QString &error) const
 {
     auto *c = client();
+
+    if (qobject_cast<::LLMQore::MistralClient *>(c))
+        return error;
 
     const bool isOpenAICompatible = qobject_cast<::LLMQore::OpenAIClient *>(c)
                                     || qobject_cast<::LLMQore::OpenAIResponsesClient *>(c)

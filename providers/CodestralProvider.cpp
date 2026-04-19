@@ -39,7 +39,7 @@ QString CodestralProvider::apiKey() const
 
 QString CodestralProvider::url() const
 {
-    return "https://codestral.mistral.ai/v1";
+    return "https://codestral.mistral.ai";
 }
 
 PluginLLMCore::ProviderCapabilities CodestralProvider::capabilities() const
