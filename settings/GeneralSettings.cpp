@@ -124,7 +124,7 @@ GeneralSettings::GeneralSettings()
     ccSelectTemplate.m_buttonText = TrConstants::SELECT;
 
     initStringAspect(ccUrl, Constants::CC_URL, TrConstants::URL, "http://localhost:11434");
-    ccUrl.setHistoryCompleter(Constants::CC_CUSTOM_ENDPOINT_HISTORY);
+    ccUrl.setHistoryCompleter(Constants::CC_URL_HISTORY);
     ccSetUrl.m_buttonText = TrConstants::SELECT;
 
     initStringAspect(ccCustomEndpoint, Constants::CC_CUSTOM_ENDPOINT, TrConstants::CUSTOM_ENDPOINT, "");

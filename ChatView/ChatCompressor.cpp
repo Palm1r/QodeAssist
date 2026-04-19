@@ -88,8 +88,11 @@ void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *ch
 
     buildRequestPayload(payload, promptTemplate);
 
+    const QString customEndpoint = Settings::generalSettings().caCustomEndpoint();
+    const QString endpoint = !customEndpoint.isEmpty() ? customEndpoint
+                                                       : promptTemplate->endpoint();
     m_currentRequestId = m_provider->sendRequest(
-        QUrl(Settings::generalSettings().caUrl()), payload, promptTemplate->endpoint());
+        QUrl(Settings::generalSettings().caUrl()), payload, endpoint);
     LOG_MESSAGE(QString("Starting compression request: %1").arg(m_currentRequestId));
 }
 

@@ -171,8 +171,11 @@ void QuickRefactorHandler::prepareAndSendRequest(
         &QuickRefactorHandler::handleRequestFailed,
         Qt::UniqueConnection);
 
-    auto requestId = provider->sendRequest(
-        QUrl(Settings::generalSettings().qrUrl()), payload, promptTemplate->endpoint());
+    const QString customEndpoint = Settings::generalSettings().qrCustomEndpoint();
+    const QString endpoint = !customEndpoint.isEmpty() ? customEndpoint
+                                                       : promptTemplate->endpoint();
+    auto requestId
+        = provider->sendRequest(QUrl(Settings::generalSettings().qrUrl()), payload, endpoint);
     m_lastRequestId = requestId;
     QJsonObject request{{"id", requestId}};
 

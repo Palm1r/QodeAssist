@@ -77,8 +77,7 @@ QString Provider::enrichErrorMessage(const QString &error) const
 
     const QString baseUrl = c->url();
     const QString path = QUrl(baseUrl).path();
-    const bool hasV1Segment = path == "/v1" || path.startsWith("/v1/") || path.contains("/v1/")
-                              || path.endsWith("/v1");
+    const bool hasV1Segment = path.contains("/v1/") || path.endsWith("/v1");
     if (hasV1Segment)
         return error;
 

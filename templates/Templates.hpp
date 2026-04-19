@@ -30,8 +30,6 @@
 #include "templates/OpenAI.hpp"
 #include "templates/OpenAICompatible.hpp"
 #include "templates/OpenAIResponses.hpp"
-// #include "templates/CustomFimTemplate.hpp"
-// #include "templates/DeepSeekCoderFim.hpp"
 #include "templates/GoogleAI.hpp"
 #include "templates/Llama2.hpp"
 #include "templates/Llama3.hpp"
@@ -58,8 +56,6 @@ inline void registerTemplates()
     templateManager.registerTemplate<Llama2>();
     templateManager.registerTemplate<Llama3>();
     templateManager.registerTemplate<StarCoder2Fim>();
-    // templateManager.registerTemplate<DeepSeekCoderFim>();
-    // templateManager.registerTemplate<CustomTemplate>();
     templateManager.registerTemplate<Qwen25CoderFIM>();
     templateManager.registerTemplate<Qwen3CoderFIM>();
     templateManager.registerTemplate<OpenAICompatible>();

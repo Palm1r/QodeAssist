@@ -65,8 +65,8 @@ const char CC_PRESET1_MODEL_HISTORY[] = "QodeAssist.ccPreset1ModelHistory";
 const char CC_PRESET1_TEMPLATE[] = "QodeAssist.ccPreset1Template";
 const char CC_PRESET1_URL[] = "QodeAssist.ccPreset1Url";
 const char CC_PRESET1_URL_HISTORY[] = "QodeAssist.ccPreset1UrlHistory";
-const char CC_PRESET1_CUSTOM_ENDPOINT[] = "QodeAssist.caPreset1CustomEndpointHistory";
-const char CC_PRESET1_CUSTOM_ENDPOINT_HISTORY[] = "QodeAssist.caPreset1CustomEndpointHistory";
+const char CC_PRESET1_CUSTOM_ENDPOINT[] = "QodeAssist.ccPreset1CustomEndpoint";
+const char CC_PRESET1_CUSTOM_ENDPOINT_HISTORY[] = "QodeAssist.ccPreset1CustomEndpointHistory";
 
 // settings
 const char ENABLE_QODE_ASSIST[] = "QodeAssist.enableQodeAssist";
@@ -89,7 +89,6 @@ const char CC_IGNORE_WHITESPACE_IN_CHAR_COUNT[] = "QodeAssist.ccIgnoreWhitespace
 const char MAX_FILE_THRESHOLD[] = "QodeAssist.maxFileThreshold";
 const char CC_MULTILINE_COMPLETION[] = "QodeAssist.ccMultilineCompletion";
 const char CC_MODEL_OUTPUT_HANDLER[] = "QodeAssist.ccModelOutputHandler";
-const char CUSTOM_JSON_TEMPLATE[] = "QodeAssist.customJsonTemplate";
 const char CA_AUTO_APPLY_FILE_EDITS[] = "QodeAssist.caAutoApplyFileEdits";
 const char CA_TOKENS_THRESHOLD[] = "QodeAssist.caTokensThreshold";
 const char CA_LINK_OPEN_FILES[] = "QodeAssist.caLinkOpenFiles";
@@ -123,7 +122,6 @@ const char QODE_ASSIST_CHAT_ASSISTANT_SETTINGS_PAGE_ID[]
 const char QODE_ASSIST_QUICK_REFACTOR_SETTINGS_PAGE_ID[]
     = "QodeAssist.4QuickRefactorSettingsPageId";
 const char QODE_ASSIST_TOOLS_SETTINGS_PAGE_ID[] = "QodeAssist.5ToolsSettingsPageId";
-const char QODE_ASSIST_CUSTOM_PROMPT_SETTINGS_PAGE_ID[] = "QodeAssist.6CustomPromptSettingsPageId";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_CATEGORY[] = "QodeAssist.Category";
 const char QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY[] = "QodeAssist";
