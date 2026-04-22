@@ -62,7 +62,22 @@ ChatRootView {
         }
     }
 
+    QoABusyOverlay {
+        id: compressingOverlay
+
+        z: 50
+
+        anchors.fill: mainColumn
+        anchors.topMargin: topBar.height
+        anchors.bottomMargin: bottomBar.height
+
+        active: root.isCompressing
+        text: qsTr("Compressing chat…")
+    }
+
     ColumnLayout {
+        id: mainColumn
+
         anchors.fill: parent
         spacing: 0
 
@@ -72,12 +87,9 @@ ChatRootView {
             Layout.preferredWidth: parent.width
             Layout.preferredHeight: childrenRect.height + 10
 
-            isCompressing: root.isCompressing
             saveButton.onClicked: root.showSaveDialog()
             loadButton.onClicked: root.showLoadDialog()
             clearButton.onClicked: root.clearChat()
-            compressButton.onClicked: compressConfirmDialog.open()
-            cancelCompressButton.onClicked: root.cancelCompression()
             tokensBadge {
                 text: qsTr("%1/%2").arg(root.inputTokensCount).arg(root.chatModel.tokensThreshold)
             }
@@ -477,12 +489,16 @@ ChatRootView {
             Layout.preferredWidth: parent.width
             Layout.preferredHeight: 40
 
+            isCompressing: root.isCompressing
             sendButton.onClicked: !root.isRequestInProgress ? root.sendChatMessage()
                                                             : root.cancelRequest()
             sendButton.icon.source: !root.isRequestInProgress ? "qrc:/qt/qml/ChatView/icons/chat-icon.svg"
                                                               : "qrc:/qt/qml/ChatView/icons/chat-pause-icon.svg"
+            sendButton.text: !root.isRequestInProgress ? qsTr("Send") : qsTr("Stop")
             sendButton.ToolTip.text: !root.isRequestInProgress ? qsTr("Send message to LLM %1").arg(Qt.platform.os === "osx" ? "Cmd+Return" : "Ctrl+Return")
                                                                : qsTr("Stop")
+            compressButton.onClicked: compressConfirmDialog.open()
+            cancelCompressButton.onClicked: root.cancelCompression()
             syncOpenFiles {
                 checked: root.isSyncOpenFiles
                 onCheckedChanged: root.setIsSyncOpenFiles(bottomBar.syncOpenFiles.checked)

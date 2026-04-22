@@ -10,6 +10,7 @@ qt_add_qml_module(QodeAssistUIControls
     QML_FILES
     qml/Badge.qml
     qml/QoAButton.qml
+    qml/QoABusyOverlay.qml
     qml/QoATextSlider.qml
     qml/QoAComboBox.qml
     qml/FadeListItemAnimation.qml
