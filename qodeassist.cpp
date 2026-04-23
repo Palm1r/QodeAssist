@@ -136,11 +136,7 @@ public:
         requestAction.addOnTriggered(this, [this] {
             if (auto editor = TextEditor::TextEditorWidget::currentTextEditorWidget()) {
                 if (m_qodeAssistClient && m_qodeAssistClient->reachable()) {
-                    if (m_qodeAssistClient->isHintVisible()) {
-                        m_qodeAssistClient->hideHintAndRequestCompletion(editor);
-                    } else {
-                        m_qodeAssistClient->requestCompletions(editor);
-                    }
+                    m_qodeAssistClient->requestCompletions(editor);
                 } else
                     qWarning() << "The QodeAssist is not ready. Please check your connection and "
                                   "settings.";

@@ -12,7 +12,6 @@
 #include "RefactorSuggestionHoverHandler.hpp"
 #include "widgets/CompletionProgressHandler.hpp"
 #include "widgets/CompletionErrorHandler.hpp"
-#include "widgets/CompletionHintHandler.hpp"
 #include "widgets/EditorChatButtonHandler.hpp"
 #include "widgets/RefactorWidgetHandler.hpp"
 #include <languageclient/client.h>
@@ -34,9 +33,6 @@ public:
     void requestCompletions(TextEditor::TextEditorWidget *editor);
     void requestQuickRefactor(
         TextEditor::TextEditorWidget *editor, const QString &instructions = QString());
-    
-    bool isHintVisible() const;
-    void hideHintAndRequestCompletion(TextEditor::TextEditorWidget *editor);
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -55,8 +51,7 @@ private:
     void displayRefactoringWidget(const RefactorResult &result);
     void applyRefactoringEdit(TextEditor::TextEditorWidget *editor, const Utils::Text::Range &range, const QString &text);
 
-    void handleAutoRequestTrigger(TextEditor::TextEditorWidget *widget, int charsAdded, bool isSpaceOrTab);
-    void handleHintBasedTrigger(TextEditor::TextEditorWidget *widget, int charsAdded, bool isSpaceOrTab, QTextCursor &cursor);
+    void handleAutoRequestTrigger(TextEditor::TextEditorWidget *widget);
 
     QHash<TextEditor::TextEditorWidget *, GetCompletionRequest> m_runningRequests;
     QHash<TextEditor::TextEditorWidget *, QTimer *> m_scheduledRequests;
@@ -65,10 +60,8 @@ private:
 
     QElapsedTimer m_typingTimer;
     int m_recentCharCount;
-    QTimer m_hintHideTimer;
     CompletionProgressHandler m_progressHandler;
     CompletionErrorHandler m_errorHandler;
-    CompletionHintHandler m_hintHandler;
     EditorChatButtonHandler m_chatButtonHandler;
     QuickRefactorHandler *m_refactorHandler{nullptr};
     RefactorSuggestionHoverHandler *m_refactorHoverHandler{nullptr};

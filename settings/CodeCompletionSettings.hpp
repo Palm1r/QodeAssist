@@ -21,6 +21,9 @@ public:
     Utils::BoolAspect multiLineCompletion{this};
     Utils::SelectionAspect modelOutputHandler{this};
     Utils::SelectionAspect completionTriggerMode{this};
+    Utils::SelectionAspect completionMode{this};
+    Utils::BoolAspect smartContextTrigger{this};
+    Utils::BoolAspect respectQtcPopup{this};
 
     Utils::IntegerAspect startSuggestionTimer{this};
     Utils::IntegerAspect autoCompletionCharThreshold{this};
@@ -78,6 +81,7 @@ public:
 private:
     void setupConnections();
     void resetSettingsToDefaults();
+    void migrateCompletionMode();
 };
 
 CodeCompletionSettings &codeCompletionSettings();
