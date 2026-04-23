@@ -42,8 +42,6 @@ public:
     bool applyPart(Part part, TextEditor::TextEditorWidget *widget);
     bool apply() override;
 
-    static int calculateReplaceLength(const QString &suggestion, 
-                                     const QString &rightText,
-                                     const QString &entireLine);
+    static int calculateReplaceLength(const QString &suggestion, const QString &rightText);
 };
 } // namespace QodeAssist
