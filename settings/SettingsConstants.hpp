@@ -100,6 +100,10 @@ const char CA_ALLOWED_TERMINAL_COMMANDS_MACOS[] = "QodeAssist.caAllowedTerminalC
 const char CA_ALLOWED_TERMINAL_COMMANDS_WINDOWS[] = "QodeAssist.caAllowedTerminalCommandsWindows";
 const char CA_TERMINAL_COMMAND_TIMEOUT[] = "QodeAssist.caTerminalCommandTimeout";
 
+// MCP server settings
+const char MCP_ENABLE_SERVER[] = "QodeAssist.mcpEnableServer";
+const char MCP_SERVER_PORT[] = "QodeAssist.mcpServerPort";
+
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
 const char QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID[] = "QodeAssist.1GeneralSettingsPageId";
 const char QODE_ASSIST_CODE_COMPLETION_SETTINGS_PAGE_ID[]
@@ -109,6 +113,7 @@ const char QODE_ASSIST_CHAT_ASSISTANT_SETTINGS_PAGE_ID[]
 const char QODE_ASSIST_QUICK_REFACTOR_SETTINGS_PAGE_ID[]
     = "QodeAssist.4QuickRefactorSettingsPageId";
 const char QODE_ASSIST_TOOLS_SETTINGS_PAGE_ID[] = "QodeAssist.5ToolsSettingsPageId";
+const char QODE_ASSIST_MCP_SETTINGS_PAGE_ID[] = "QodeAssist.6McpSettingsPageId";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_CATEGORY[] = "QodeAssist.Category";
 const char QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY[] = "QodeAssist";

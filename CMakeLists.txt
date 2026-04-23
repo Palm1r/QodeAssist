@@ -155,6 +155,7 @@ add_qtc_plugin(QodeAssist
     tools/ReadFileTool.hpp tools/ReadFileTool.cpp
     tools/FileSearchUtils.hpp tools/FileSearchUtils.cpp
     tools/TodoTool.hpp tools/TodoTool.cpp
+    mcp/McpServerManager.hpp mcp/McpServerManager.cpp
 )
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)

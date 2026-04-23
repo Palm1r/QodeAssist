@@ -9,6 +9,7 @@ add_library(QodeAssistSettings STATIC
     ChatAssistantSettings.hpp ChatAssistantSettings.cpp
     QuickRefactorSettings.hpp QuickRefactorSettings.cpp
     ToolsSettings.hpp ToolsSettings.cpp
+    McpSettings.hpp McpSettings.cpp
     SettingsDialog.hpp SettingsDialog.cpp
     ProjectSettings.hpp ProjectSettings.cpp
     ProjectSettingsPanel.hpp ProjectSettingsPanel.cpp

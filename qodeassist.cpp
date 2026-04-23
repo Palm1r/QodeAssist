@@ -37,6 +37,7 @@
 #include "pluginllmcore/PromptProviderFim.hpp"
 #include "pluginllmcore/ProvidersManager.hpp"
 #include "logger/RequestPerformanceLogger.hpp"
+#include "mcp/McpServerManager.hpp"
 #include "providers/Providers.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/GeneralSettings.hpp"
@@ -162,6 +163,9 @@ public:
 
         Settings::setupProjectPanel();
         ConfigurationManager::instance().init();
+
+        m_mcpServerManager = new Mcp::McpServerManager(this);
+        m_mcpServerManager->init();
 
         if (Settings::generalSettings().enableCheckUpdate()) {
             QTimer::singleShot(3000, this, &QodeAssistPlugin::checkForUpdates);
@@ -298,6 +302,7 @@ private:
     UpdateStatusWidget *m_statusWidget{nullptr};
     QString m_lastRefactorInstructions;
     QScopedPointer<Chat::ChatView> m_chatView;
+    QPointer<Mcp::McpServerManager> m_mcpServerManager;
 };
 
 } // namespace QodeAssist::Internal

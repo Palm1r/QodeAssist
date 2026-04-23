@@ -5,8 +5,9 @@
 
 #include <utils/aspects.h>
 #include <utils/layoutbuilder.h>
-#include <QPushButton>
 #include <QIcon>
+#include <QPushButton>
+#include <QTimer>
 
 class ButtonAspect : public Utils::BaseAspect
 {
@@ -21,17 +22,25 @@ public:
     {
         auto button = new QPushButton(m_buttonText);
         button->setVisible(m_visible);
-        
+        button->setAutoDefault(false);
+        button->setDefault(false);
+        button->setFocusPolicy(Qt::TabFocus);
+
+        QTimer::singleShot(0, button, [button] {
+            button->setAutoDefault(false);
+            button->setDefault(false);
+        });
+
         if (!m_icon.isNull()) {
             button->setIcon(m_icon);
-            button->setText("");  // Clear text if icon is set
+            button->setText("");
         }
-        
+
         if (m_isCompact) {
             button->setMaximumWidth(30);
             button->setToolTip(m_tooltip.isEmpty() ? m_buttonText : m_tooltip);
         }
-        
+
         connect(button, &QPushButton::clicked, this, &ButtonAspect::clicked);
         connect(this, &ButtonAspect::visibleChanged, button, &QPushButton::setVisible);
         parent.addItem(button);
