@@ -27,6 +27,7 @@
 #include "../Version.hpp"
 #include "ConfigurationManager.hpp"
 #include "Logger.hpp"
+#include "ProviderNameMigration.hpp"
 #include "SettingsConstants.hpp"
 #include "SettingsDialog.hpp"
 #include "SettingsTr.hpp"
@@ -95,7 +96,7 @@ GeneralSettings::GeneralSettings()
     qrConfigureApiKey.m_buttonText = Tr::tr("Configure API Key");
     qrConfigureApiKey.m_tooltip = Tr::tr("Open Provider Settings to configure API keys");
 
-    initStringAspect(ccProvider, Constants::CC_PROVIDER, TrConstants::PROVIDER, "Ollama");
+    initStringAspect(ccProvider, Constants::CC_PROVIDER, TrConstants::PROVIDER, "Ollama (Native)");
     ccProvider.setReadOnly(true);
     ccSelectProvider.m_buttonText = TrConstants::SELECT;
 
@@ -143,7 +144,10 @@ GeneralSettings::GeneralSettings()
     preset1Language.addOption("python");
 
     initStringAspect(
-        ccPreset1Provider, Constants::CC_PRESET1_PROVIDER, TrConstants::PROVIDER, "Ollama");
+        ccPreset1Provider,
+        Constants::CC_PRESET1_PROVIDER,
+        TrConstants::PROVIDER,
+        "Ollama (Native)");
     ccPreset1Provider.setReadOnly(true);
     ccPreset1SelectProvider.m_buttonText = TrConstants::SELECT;
 
@@ -170,7 +174,7 @@ GeneralSettings::GeneralSettings()
     ccPreset1SelectTemplate.m_buttonText = TrConstants::SELECT;
 
     // chat assistance
-    initStringAspect(caProvider, Constants::CA_PROVIDER, TrConstants::PROVIDER, "Ollama");
+    initStringAspect(caProvider, Constants::CA_PROVIDER, TrConstants::PROVIDER, "Ollama (Native)");
     caProvider.setReadOnly(true);
     caSelectProvider.m_buttonText = TrConstants::SELECT;
 
@@ -207,7 +211,7 @@ GeneralSettings::GeneralSettings()
     caOpenConfigFolder.m_isCompact = true;
 
     // quick refactor settings
-    initStringAspect(qrProvider, Constants::QR_PROVIDER, TrConstants::PROVIDER, "Ollama");
+    initStringAspect(qrProvider, Constants::QR_PROVIDER, TrConstants::PROVIDER, "Ollama (Native)");
     qrProvider.setReadOnly(true);
     qrSelectProvider.m_buttonText = TrConstants::SELECT;
 
@@ -256,6 +260,17 @@ GeneralSettings::GeneralSettings()
     qrShowTemplateInfo.m_isCompact = true;
 
     readSettings();
+
+    auto migrateProviderAspect = [](Utils::StringAspect &aspect) {
+        const QString migrated = migrateProviderName(aspect.value());
+        if (migrated != aspect.value())
+            aspect.setValue(migrated);
+    };
+    migrateProviderAspect(ccProvider);
+    migrateProviderAspect(ccPreset1Provider);
+    migrateProviderAspect(caProvider);
+    migrateProviderAspect(qrProvider);
+    writeSettings();
 
     Logger::instance().setLoggingEnabled(enableLogging());
 

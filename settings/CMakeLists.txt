@@ -14,6 +14,7 @@ add_library(QodeAssistSettings STATIC
     ProjectSettings.hpp ProjectSettings.cpp
     ProjectSettingsPanel.hpp ProjectSettingsPanel.cpp
     ProviderSettings.hpp ProviderSettings.cpp
+    ProviderNameMigration.hpp
     PluginUpdater.hpp PluginUpdater.cpp
     UpdateDialog.hpp UpdateDialog.cpp
     AgentRole.hpp AgentRole.cpp

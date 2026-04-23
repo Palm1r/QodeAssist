@@ -452,10 +452,8 @@ void ClientInterface::handleRequestFailed(const QString &requestId, const QStrin
     if (it == m_activeRequests.end())
         return;
 
-    QString enriched = it->provider ? it->provider->enrichErrorMessage(error) : error;
-
-    LOG_MESSAGE(QString("Chat request %1 failed: %2").arg(requestId, enriched));
-    emit errorOccurred(enriched);
+    LOG_MESSAGE(QString("Chat request %1 failed: %2").arg(requestId, error));
+    emit errorOccurred(error);
 
     m_activeRequests.erase(it);
     m_accumulatedResponses.remove(requestId);

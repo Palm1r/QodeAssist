@@ -60,8 +60,6 @@ public:
         const QUrl &url, const QJsonObject &payload, const QString &endpoint);
     void cancelRequest(const RequestID &requestId);
     ::LLMQore::ToolsManager *toolsManager() const;
-
-    QString enrichErrorMessage(const QString &error) const;
 };
 
 } // namespace QodeAssist::PluginLLMCore

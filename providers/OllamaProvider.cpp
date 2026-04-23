@@ -28,7 +28,7 @@ OllamaProvider::OllamaProvider(QObject *parent)
 
 QString OllamaProvider::name() const
 {
-    return "Ollama";
+    return "Ollama (Native)";
 }
 
 QString OllamaProvider::apiKey() const

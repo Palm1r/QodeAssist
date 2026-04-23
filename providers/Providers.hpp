@@ -8,8 +8,10 @@
 #include "providers/CodestralProvider.hpp"
 #include "providers/GoogleAIProvider.hpp"
 #include "providers/LMStudioProvider.hpp"
+#include "providers/LMStudioResponsesProvider.hpp"
 #include "providers/LlamaCppProvider.hpp"
 #include "providers/MistralAIProvider.hpp"
+#include "providers/OllamaCompatProvider.hpp"
 #include "providers/OllamaProvider.hpp"
 #include "providers/OpenAICompatProvider.hpp"
 #include "providers/OpenAIProvider.hpp"
@@ -22,11 +24,13 @@ inline void registerProviders()
 {
     auto &providerManager = PluginLLMCore::ProvidersManager::instance();
     providerManager.registerProvider<OllamaProvider>();
+    providerManager.registerProvider<OllamaCompatProvider>();
     providerManager.registerProvider<ClaudeProvider>();
     providerManager.registerProvider<OpenAIProvider>();
     providerManager.registerProvider<OpenAIResponsesProvider>();
     providerManager.registerProvider<OpenAICompatProvider>();
     providerManager.registerProvider<LMStudioProvider>();
+    providerManager.registerProvider<LMStudioResponsesProvider>();
     providerManager.registerProvider<OpenRouterProvider>();
     providerManager.registerProvider<MistralAIProvider>();
     providerManager.registerProvider<GoogleAIProvider>();

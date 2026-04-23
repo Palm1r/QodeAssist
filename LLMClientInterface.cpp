@@ -70,9 +70,8 @@ void LLMClientInterface::handleRequestFailed(const QString &requestId, const QSt
         return;
 
     const RequestContext &ctx = it.value();
-    QString enriched = ctx.provider ? ctx.provider->enrichErrorMessage(error) : error;
 
-    LOG_MESSAGE(QString("Request %1 failed: %2").arg(requestId, enriched));
+    LOG_MESSAGE(QString("Request %1 failed: %2").arg(requestId, error));
 
     // Send LSP error response to client
     QJsonObject response;
@@ -81,7 +80,7 @@ void LLMClientInterface::handleRequestFailed(const QString &requestId, const QSt
 
     QJsonObject errorObject;
     errorObject["code"] = -32603; // Internal error code
-    errorObject["message"] = enriched;
+    errorObject["message"] = error;
     response["error"] = errorObject;
     
     emit messageReceived(LanguageServerProtocol::JsonRpcMessage(response));

@@ -4,10 +4,6 @@
 #include "Provider.hpp"
 
 #include <LLMQore/BaseClient.hpp>
-#include <LLMQore/LlamaCppClient.hpp>
-#include <LLMQore/MistralClient.hpp>
-#include <LLMQore/OpenAIClient.hpp>
-#include <LLMQore/OpenAIResponsesClient.hpp>
 #include <LLMQore/ToolsManager.hpp>
 
 #include <QJsonDocument>
@@ -48,32 +44,6 @@ void Provider::cancelRequest(const RequestID &requestId)
 ::LLMQore::ToolsManager *Provider::toolsManager() const
 {
     return client()->tools();
-}
-
-QString Provider::enrichErrorMessage(const QString &error) const
-{
-    auto *c = client();
-
-    if (qobject_cast<::LLMQore::MistralClient *>(c))
-        return error;
-
-    const bool isOpenAICompatible = qobject_cast<::LLMQore::OpenAIClient *>(c)
-                                    || qobject_cast<::LLMQore::OpenAIResponsesClient *>(c)
-                                    || qobject_cast<::LLMQore::LlamaCppClient *>(c);
-    if (!isOpenAICompatible)
-        return error;
-
-    const QString baseUrl = c->url();
-    const QString path = QUrl(baseUrl).path();
-    const bool hasV1Segment = path.contains("/v1/") || path.endsWith("/v1");
-    if (hasV1Segment)
-        return error;
-
-    return error
-        + tr("\n\nHint: Your base URL (%1) does not contain a '/v1' path segment. "
-             "Most OpenAI-compatible servers require it (e.g., %1/v1). "
-             "Try updating the URL in settings.")
-              .arg(baseUrl);
 }
 
 } // namespace QodeAssist::PluginLLMCore

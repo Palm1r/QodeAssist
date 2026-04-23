@@ -407,16 +407,11 @@ void QuickRefactorHandler::handleFullResponse(const QString &requestId, const QS
 void QuickRefactorHandler::handleRequestFailed(const QString &requestId, const QString &error)
 {
     if (requestId == m_lastRequestId) {
-        auto it = m_activeRequests.find(requestId);
-        QString enriched = (it != m_activeRequests.end() && it->provider)
-                               ? it->provider->enrichErrorMessage(error)
-                               : error;
-
         m_activeRequests.remove(requestId);
         m_isRefactoringInProgress = false;
         RefactorResult result;
         result.success = false;
-        result.errorMessage = enriched;
+        result.errorMessage = error;
         result.editor = m_currentEditor;
         emit refactoringCompleted(result);
     }

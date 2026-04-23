@@ -14,6 +14,7 @@
 #include <coreplugin/icore.h>
 
 #include "Logger.hpp"
+#include "ProviderNameMigration.hpp"
 
 namespace QodeAssist::Settings {
 
@@ -101,7 +102,7 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     AIConfiguration gpt;
     gpt.id = "preset_gpt";
     gpt.name = "gpt-5.4";
-    gpt.provider = "OpenAI Responses";
+    gpt.provider = "OpenAI (Responses API)";
     gpt.model = "gpt-5.4";
     gpt.url = "https://api.openai.com/v1";
     gpt.customEndpoint = "";
@@ -203,7 +204,7 @@ bool ConfigurationManager::loadConfigurations(ConfigurationType type)
         AIConfiguration config;
         config.id = obj["id"].toString();
         config.name = obj["name"].toString();
-        config.provider = obj["provider"].toString();
+        config.provider = migrateProviderName(obj["provider"].toString());
         config.model = obj["model"].toString();
         config.templateName = obj["template"].toString();
         config.url = obj["url"].toString();

@@ -1,17 +1,17 @@
 // Copyright (C) 2024-2026 Petr Mironychev
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "LMStudioProvider.hpp"
+#include "OllamaCompatProvider.hpp"
 
 #include <LLMQore/ToolsManager.hpp>
 
-#include "tools/ToolsRegistration.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
-#include "settings/QuickRefactorSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProviderSettings.hpp"
+#include "settings/QuickRefactorSettings.hpp"
+#include "tools/ToolsRegistration.hpp"
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -19,47 +19,29 @@
 
 namespace QodeAssist::Providers {
 
-LMStudioProvider::LMStudioProvider(QObject *parent)
+OllamaCompatProvider::OllamaCompatProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
     , m_client(new ::LLMQore::OpenAIClient(QString(), QString(), QString(), this))
 {
     Tools::registerQodeAssistTools(m_client->tools());
 }
 
-QString LMStudioProvider::name() const
+QString OllamaCompatProvider::name() const
 {
-    return "LM Studio (Chat Completions)";
+    return "Ollama (OpenAI-compatible)";
 }
 
-QString LMStudioProvider::apiKey() const
+QString OllamaCompatProvider::apiKey() const
 {
-    return {};
+    return Settings::providerSettings().ollamaBasicAuthApiKey();
 }
 
-QString LMStudioProvider::url() const
+QString OllamaCompatProvider::url() const
 {
-    return "http://localhost:1234/v1";
+    return "http://localhost:11434";
 }
 
-QFuture<QList<QString>> LMStudioProvider::getInstalledModels(const QString &url)
-{
-    m_client->setUrl(url);
-    m_client->setApiKey(apiKey());
-    return m_client->listModels();
-}
-
-PluginLLMCore::ProviderID LMStudioProvider::providerID() const
-{
-    return PluginLLMCore::ProviderID::LMStudio;
-}
-
-PluginLLMCore::ProviderCapabilities LMStudioProvider::capabilities() const
-{
-    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image
-           | PluginLLMCore::ProviderCapability::ModelListing;
-}
-
-void LMStudioProvider::prepareRequest(
+void OllamaCompatProvider::prepareRequest(
     QJsonObject &request,
     PluginLLMCore::PromptTemplate *prompt,
     PluginLLMCore::ContextData context,
@@ -99,12 +81,42 @@ void LMStudioProvider::prepareRequest(
         auto toolsDefinitions = m_client->tools()->getToolsDefinitions();
         if (!toolsDefinitions.isEmpty()) {
             request["tools"] = toolsDefinitions;
-            LOG_MESSAGE(QString("Added %1 tools to LMStudio request").arg(toolsDefinitions.size()));
+            LOG_MESSAGE(
+                QString("Added %1 tools to OllamaCompat request").arg(toolsDefinitions.size()));
         }
     }
 }
 
-::LLMQore::BaseClient *LMStudioProvider::client() const
+QFuture<QList<QString>> OllamaCompatProvider::getInstalledModels(const QString &baseUrl)
+{
+    QString url = baseUrl;
+    if (!url.endsWith(QStringLiteral("/v1")))
+        url += QStringLiteral("/v1");
+    m_client->setUrl(url);
+    m_client->setApiKey(apiKey());
+    return m_client->listModels();
+}
+
+PluginLLMCore::RequestID OllamaCompatProvider::sendRequest(
+    const QUrl &url, const QJsonObject &payload, const QString &endpoint)
+{
+    const QString effectiveEndpoint
+        = endpoint.isEmpty() ? QStringLiteral("/v1/chat/completions") : endpoint;
+    return PluginLLMCore::Provider::sendRequest(url, payload, effectiveEndpoint);
+}
+
+PluginLLMCore::ProviderID OllamaCompatProvider::providerID() const
+{
+    return PluginLLMCore::ProviderID::OpenAICompatible;
+}
+
+PluginLLMCore::ProviderCapabilities OllamaCompatProvider::capabilities() const
+{
+    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image
+           | PluginLLMCore::ProviderCapability::ModelListing;
+}
+
+::LLMQore::BaseClient *OllamaCompatProvider::client() const
 {
     return m_client;
 }

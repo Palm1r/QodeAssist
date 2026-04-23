@@ -27,7 +27,7 @@ OpenAIProvider::OpenAIProvider(QObject *parent)
 
 QString OpenAIProvider::name() const
 {
-    return "OpenAI";
+    return "OpenAI (Chat Completions)";
 }
 
 QString OpenAIProvider::apiKey() const

@@ -1,9 +1,9 @@
 // Copyright (C) 2024-2026 Petr Mironychev
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "OpenAIResponsesProvider.hpp"
+#include "LMStudioResponsesProvider.hpp"
+
 #include <LLMQore/ToolsManager.hpp>
-#include "tools/ToolsRegistration.hpp"
 
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
@@ -11,6 +11,7 @@
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProviderSettings.hpp"
 #include "settings/QuickRefactorSettings.hpp"
+#include "tools/ToolsRegistration.hpp"
 
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -18,29 +19,29 @@
 
 namespace QodeAssist::Providers {
 
-OpenAIResponsesProvider::OpenAIResponsesProvider(QObject *parent)
+LMStudioResponsesProvider::LMStudioResponsesProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
     , m_client(new ::LLMQore::OpenAIResponsesClient(QString(), QString(), QString(), this))
 {
     Tools::registerQodeAssistTools(m_client->tools());
 }
 
-QString OpenAIResponsesProvider::name() const
+QString LMStudioResponsesProvider::name() const
 {
-    return "OpenAI (Responses API)";
+    return "LM Studio (Responses API)";
 }
 
-QString OpenAIResponsesProvider::apiKey() const
+QString LMStudioResponsesProvider::apiKey() const
 {
-    return Settings::providerSettings().openAiApiKey();
+    return {};
 }
 
-QString OpenAIResponsesProvider::url() const
+QString LMStudioResponsesProvider::url() const
 {
-    return "https://api.openai.com/v1";
+    return "http://localhost:1234";
 }
 
-void OpenAIResponsesProvider::prepareRequest(
+void LMStudioResponsesProvider::prepareRequest(
     QJsonObject &request,
     PluginLLMCore::PromptTemplate *prompt,
     PluginLLMCore::ContextData context,
@@ -101,7 +102,7 @@ void OpenAIResponsesProvider::prepareRequest(
         const auto toolsDefinitions = m_client->tools()->getToolsDefinitions();
         if (!toolsDefinitions.isEmpty()) {
             request["tools"] = toolsDefinitions;
-            LOG_MESSAGE(QString("Added %1 tools to OpenAI Responses request")
+            LOG_MESSAGE(QString("Added %1 tools to LM Studio Responses request")
                             .arg(toolsDefinitions.size()));
         }
     }
@@ -109,38 +110,37 @@ void OpenAIResponsesProvider::prepareRequest(
     request["stream"] = true;
 }
 
-QFuture<QList<QString>> OpenAIResponsesProvider::getInstalledModels(const QString &baseUrl)
+QFuture<QList<QString>> LMStudioResponsesProvider::getInstalledModels(const QString &baseUrl)
 {
-    m_client->setUrl(baseUrl);
+    QString url = baseUrl;
+    if (!url.endsWith(QStringLiteral("/v1")))
+        url += QStringLiteral("/v1");
+    m_client->setUrl(url);
     m_client->setApiKey(apiKey());
-    return m_client->listModels().then([](const QList<QString> &models) {
-        QList<QString> filtered;
-        static const QStringList modelPrefixes = {"gpt-5", "o1", "o2", "o3", "o4"};
-        for (const QString &modelId : models) {
-            for (const QString &prefix : modelPrefixes) {
-                if (modelId.contains(prefix)) {
-                    filtered.append(modelId);
-                    break;
-                }
-            }
-        }
-        return filtered;
-    });
+    return m_client->listModels();
 }
 
-PluginLLMCore::ProviderID OpenAIResponsesProvider::providerID() const
+PluginLLMCore::RequestID LMStudioResponsesProvider::sendRequest(
+    const QUrl &url, const QJsonObject &payload, const QString &endpoint)
+{
+    const QString effectiveEndpoint
+        = endpoint.isEmpty() ? QStringLiteral("/v1/responses") : endpoint;
+    return PluginLLMCore::Provider::sendRequest(url, payload, effectiveEndpoint);
+}
+
+PluginLLMCore::ProviderID LMStudioResponsesProvider::providerID() const
 {
     return PluginLLMCore::ProviderID::OpenAIResponses;
 }
 
-PluginLLMCore::ProviderCapabilities OpenAIResponsesProvider::capabilities() const
+PluginLLMCore::ProviderCapabilities LMStudioResponsesProvider::capabilities() const
 {
     return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Thinking
            | PluginLLMCore::ProviderCapability::Image
            | PluginLLMCore::ProviderCapability::ModelListing;
 }
 
-::LLMQore::BaseClient *OpenAIResponsesProvider::client() const
+::LLMQore::BaseClient *LMStudioResponsesProvider::client() const
 {
     return m_client;
 }

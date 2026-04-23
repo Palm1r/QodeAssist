@@ -96,10 +96,12 @@ add_qtc_plugin(QodeAssist
     templates/OpenAIResponses.hpp
     providers/Providers.hpp
     providers/OllamaProvider.hpp providers/OllamaProvider.cpp
+    providers/OllamaCompatProvider.hpp providers/OllamaCompatProvider.cpp
     providers/ClaudeProvider.hpp providers/ClaudeProvider.cpp
     providers/OpenAIProvider.hpp providers/OpenAIProvider.cpp
     providers/MistralAIProvider.hpp providers/MistralAIProvider.cpp
     providers/LMStudioProvider.hpp providers/LMStudioProvider.cpp
+    providers/LMStudioResponsesProvider.hpp providers/LMStudioResponsesProvider.cpp
     providers/OpenAICompatProvider.hpp providers/OpenAICompatProvider.cpp
     providers/OpenRouterAIProvider.hpp providers/OpenRouterAIProvider.cpp
     providers/GoogleAIProvider.hpp providers/GoogleAIProvider.cpp
