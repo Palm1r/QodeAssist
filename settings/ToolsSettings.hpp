@@ -18,6 +18,7 @@ public:
 
     Utils::BoolAspect allowAccessOutsideProject{this};
     Utils::BoolAspect autoApplyFileEdits{this};
+    Utils::IntegerAspect maxToolContinuations{this};
 
     Utils::BoolAspect enableListProjectFilesTool{this};
     Utils::BoolAspect enableFindFileTool{this};

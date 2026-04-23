@@ -242,6 +242,9 @@ void ClientInterface::sendMessage(
         useTools,
         useThinking);
 
+    provider->client()->setMaxToolContinuations(
+        Settings::toolsSettings().maxToolContinuations());
+
     connect(
         provider->client(),
         &::LLMQore::BaseClient::chunkReceived,

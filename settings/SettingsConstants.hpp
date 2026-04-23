@@ -87,6 +87,7 @@ const char CA_ENABLE_CHAT_IN_BOTTOM_TOOLBAR[] = "QodeAssist.caEnableChatInBottom
 const char CA_ENABLE_CHAT_IN_NAVIGATION_PANEL[] = "QodeAssist.caEnableChatInNavigationPanel";
 const char CA_ENABLE_CHAT_TOOLS[] = "QodeAssist.caEnableChatTools";
 const char CA_USE_TOOLS[] = "QodeAssist.caUseTools";
+const char TOOLS_MAX_CONTINUATIONS[] = "QodeAssist.toolsMaxContinuations";
 const char CA_ALLOW_ACCESS_OUTSIDE_PROJECT[] = "QodeAssist.caAllowAccessOutsideProject";
 const char CA_ENABLE_LIST_PROJECT_FILES_TOOL[] = "QodeAssist.caEnableListProjectFilesTool";
 const char CA_ENABLE_FIND_FILE_TOOL[] = "QodeAssist.caEnableFindFileTool";

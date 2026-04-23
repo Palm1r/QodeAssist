@@ -40,6 +40,15 @@ ToolsSettings::ToolsSettings()
                "When disabled, each edit is staged for manual approval."));
     autoApplyFileEdits.setDefaultValue(false);
 
+    maxToolContinuations.setSettingsKey(Constants::TOOLS_MAX_CONTINUATIONS);
+    maxToolContinuations.setLabelText(Tr::tr("Max tool continuations:"));
+    maxToolContinuations.setToolTip(
+        Tr::tr("Maximum number of consecutive tool-use rounds in a single request. "
+               "Each round lets the model call tools and receive results before continuing. "
+               "Higher values allow more complex multi-step tasks but increase token usage."));
+    maxToolContinuations.setRange(1, 100);
+    maxToolContinuations.setDefaultValue(30);
+
     enableListProjectFilesTool.setSettingsKey(Constants::CA_ENABLE_LIST_PROJECT_FILES_TOOL);
     enableListProjectFilesTool.setLabelText(Tr::tr("List Project Files"));
     enableListProjectFilesTool.setToolTip(
@@ -174,6 +183,7 @@ ToolsSettings::ToolsSettings()
                 title(Tr::tr("Tool Settings")),
                 Column{
                     allowAccessOutsideProject,
+                    Row{maxToolContinuations, Stretch{1}},
                     Space{4},
                     Group{
                         title(Tr::tr("Edit File")),
@@ -206,6 +216,7 @@ void ToolsSettings::resetSettingsToDefaults()
     if (reply == QMessageBox::Yes) {
         resetAspect(allowAccessOutsideProject);
         resetAspect(autoApplyFileEdits);
+        resetAspect(maxToolContinuations);
         resetAspect(enableListProjectFilesTool);
         resetAspect(enableFindFileTool);
         resetAspect(enableReadFileTool);

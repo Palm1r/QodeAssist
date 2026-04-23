@@ -19,6 +19,7 @@
 #include <settings/ChatAssistantSettings.hpp>
 #include <settings/GeneralSettings.hpp>
 #include <settings/QuickRefactorSettings.hpp>
+#include <settings/ToolsSettings.hpp>
 
 namespace QodeAssist {
 
@@ -138,6 +139,9 @@ void QuickRefactorHandler::prepareAndSendRequest(
         PluginLLMCore::RequestType::QuickRefactoring,
         enableTools,
         enableThinking);
+
+    provider->client()->setMaxToolContinuations(
+        Settings::toolsSettings().maxToolContinuations());
 
     m_isRefactoringInProgress = true;
 
