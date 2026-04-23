@@ -8,6 +8,7 @@
 #include <utils/layoutbuilder.h>
 #include <QApplication>
 #include <QClipboard>
+#include <QDir>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QFontDatabase>
@@ -51,6 +52,30 @@ McpSettings::McpSettings()
     mcpServerPort.setRange(1, 65535);
     mcpServerPort.setDefaultValue(3456);
 
+    enableMcpClients.setSettingsKey(Constants::MCP_ENABLE_CLIENTS);
+    enableMcpClients.setLabelText(Tr::tr("Connect to external MCP servers"));
+    enableMcpClients.setToolTip(
+        Tr::tr("Connect to MCP servers listed in mcp-server.json and expose their tools "
+               "to chat/quick-refactor/code-completion. Toggling this off disconnects all "
+               "currently running MCP client sessions."));
+    enableMcpClients.setDefaultValue(false);
+
+    mcpClientExtraPaths.setSettingsKey(Constants::MCP_CLIENT_EXTRA_PATHS);
+    mcpClientExtraPaths.setLabelText(Tr::tr("Extra PATH for stdio servers"));
+    mcpClientExtraPaths.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    mcpClientExtraPaths.setToolTip(
+        Tr::tr("Directories to prepend to PATH when launching stdio MCP servers. "
+               "Useful when Qt Creator is started from the dock and doesn't see Homebrew, "
+               "nvm, uv, etc. Separate multiple entries with '%1'. "
+               "Per-server 'env' overrides in mcp-server.json still win.")
+            .arg(QDir::listSeparator()));
+#ifdef Q_OS_MACOS
+    mcpClientExtraPaths.setDefaultValue(
+        QStringLiteral("/opt/homebrew/bin:/usr/local/bin"));
+#else
+    mcpClientExtraPaths.setDefaultValue(QString{});
+#endif
+
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
     showConnectionInstructions.m_buttonText = Tr::tr("How to connect...");
 
@@ -70,6 +95,10 @@ McpSettings::McpSettings()
                     enableMcpServer,
                     mcpServerPort,
                     Row{Stretch{1}, showConnectionInstructions}}},
+            Space{8},
+            Group{
+                title(Tr::tr("Clients")),
+                Column{enableMcpClients, mcpClientExtraPaths, mcpClientsList}},
             Stretch{1}};
     });
 }
@@ -87,6 +116,28 @@ void McpSettings::setupConnections()
         &ButtonAspect::clicked,
         this,
         &McpSettings::showConnectionInstructionsDialog);
+
+    auto syncServerSubgroup = [this]() {
+        const bool on = enableMcpServer.volatileValue();
+        mcpServerPort.setEnabled(on);
+    };
+    auto syncClientsSubgroup = [this]() {
+        const bool on = enableMcpClients.volatileValue();
+        mcpClientExtraPaths.setEnabled(on);
+        mcpClientsList.setEnabled(on);
+    };
+    connect(
+        &enableMcpServer,
+        &Utils::BoolAspect::volatileValueChanged,
+        this,
+        syncServerSubgroup);
+    connect(
+        &enableMcpClients,
+        &Utils::BoolAspect::volatileValueChanged,
+        this,
+        syncClientsSubgroup);
+    syncServerSubgroup();
+    syncClientsSubgroup();
 }
 
 void McpSettings::resetSettingsToDefaults()
@@ -101,6 +152,8 @@ void McpSettings::resetSettingsToDefaults()
     if (reply == QMessageBox::Yes) {
         resetAspect(enableMcpServer);
         resetAspect(mcpServerPort);
+        resetAspect(enableMcpClients);
+        resetAspect(mcpClientExtraPaths);
         writeSettings();
     }
 }

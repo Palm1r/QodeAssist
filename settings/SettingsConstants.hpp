@@ -103,6 +103,8 @@ const char CA_TERMINAL_COMMAND_TIMEOUT[] = "QodeAssist.caTerminalCommandTimeout"
 // MCP server settings
 const char MCP_ENABLE_SERVER[] = "QodeAssist.mcpEnableServer";
 const char MCP_SERVER_PORT[] = "QodeAssist.mcpServerPort";
+const char MCP_ENABLE_CLIENTS[] = "QodeAssist.mcpEnableClients";
+const char MCP_CLIENT_EXTRA_PATHS[] = "QodeAssist.mcpClientExtraPaths";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
 const char QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID[] = "QodeAssist.1GeneralSettingsPageId";

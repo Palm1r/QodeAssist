@@ -6,6 +6,7 @@
 #include <utils/aspects.h>
 
 #include "ButtonAspect.hpp"
+#include "McpClientsListAspect.hpp"
 
 namespace QodeAssist::Settings {
 
@@ -20,6 +21,10 @@ public:
     Utils::IntegerAspect mcpServerPort{this};
 
     ButtonAspect showConnectionInstructions{this};
+
+    Utils::BoolAspect enableMcpClients{this};
+    Utils::StringAspect mcpClientExtraPaths{this};
+    McpClientsListAspect mcpClientsList{this};
 
 private:
     void setupConnections();

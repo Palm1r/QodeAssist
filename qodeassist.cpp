@@ -37,6 +37,7 @@
 #include "pluginllmcore/PromptProviderFim.hpp"
 #include "pluginllmcore/ProvidersManager.hpp"
 #include "logger/RequestPerformanceLogger.hpp"
+#include "mcp/McpClientsManager.hpp"
 #include "mcp/McpServerManager.hpp"
 #include "providers/Providers.hpp"
 #include "settings/ChatAssistantSettings.hpp"
@@ -166,6 +167,8 @@ public:
 
         m_mcpServerManager = new Mcp::McpServerManager(this);
         m_mcpServerManager->init();
+
+        Mcp::McpClientsManager::instance().init();
 
         if (Settings::generalSettings().enableCheckUpdate()) {
             QTimer::singleShot(3000, this, &QodeAssistPlugin::checkForUpdates);
