@@ -68,6 +68,7 @@ const char CC_COMPLETION_TRIGGER_MODE[] = "QodeAssist.ccCompletionTriggerMode";
 const char CC_COMPLETION_MODE[] = "QodeAssist.ccCompletionMode";
 const char CC_SMART_CONTEXT_TRIGGER[] = "QodeAssist.ccSmartContextTrigger";
 const char CC_RESPECT_QTC_POPUP[] = "QodeAssist.ccRespectQtcPopup";
+const char CC_CANCEL_ON_INPUT[] = "QodeAssist.ccCancelOnInput";
 const char CC_HINT_CHAR_THRESHOLD[] = "QodeAssist.ccHintCharThreshold";
 const char CC_HINT_HIDE_TIMEOUT[] = "QodeAssist.ccHintHideTimeout";
 const char CC_HINT_TRIGGER_KEY[] = "QodeAssist.ccHintTriggerKey";

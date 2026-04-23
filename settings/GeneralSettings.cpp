@@ -178,7 +178,7 @@ GeneralSettings::GeneralSettings()
     caProvider.setReadOnly(true);
     caSelectProvider.m_buttonText = TrConstants::SELECT;
 
-    initStringAspect(caModel, Constants::CA_MODEL, TrConstants::MODEL, "qwen2.5-coder:7b");
+    initStringAspect(caModel, Constants::CA_MODEL, TrConstants::MODEL, "qwen3.5:9b");
     caModel.setHistoryCompleter(Constants::CA_MODEL_HISTORY);
     caSelectModel.m_buttonText = TrConstants::SELECT;
 
@@ -215,7 +215,7 @@ GeneralSettings::GeneralSettings()
     qrProvider.setReadOnly(true);
     qrSelectProvider.m_buttonText = TrConstants::SELECT;
 
-    initStringAspect(qrModel, Constants::QR_MODEL, TrConstants::MODEL, "qwen2.5-coder:7b");
+    initStringAspect(qrModel, Constants::QR_MODEL, TrConstants::MODEL, "qwen3.5:9b");
     qrModel.setHistoryCompleter(Constants::QR_MODEL_HISTORY);
     qrSelectModel.m_buttonText = TrConstants::SELECT;
 

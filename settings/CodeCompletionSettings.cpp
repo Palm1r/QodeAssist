@@ -87,6 +87,17 @@ CodeCompletionSettings::CodeCompletionSettings()
                "is already visible will not force it closed. The LLM suggestion still appears "
                "inline."));
 
+    cancelOnInput.setSettingsKey(Constants::CC_CANCEL_ON_INPUT);
+    cancelOnInput.setLabelText(Tr::tr("Cancel in-flight request on new input"));
+    cancelOnInput.setDefaultValue(false);
+    cancelOnInput.setToolTip(
+        Tr::tr("When enabled, every new keystroke cancels any completion request already in "
+               "flight and restarts the debounce timer. Useful for slow local models where an "
+               "outdated answer is rarely worth waiting for.\n"
+               "When disabled (default), the in-flight request is kept; when the answer arrives, "
+               "the plugin compares it with characters typed in the meantime and either trims "
+               "the matching prefix or drops the answer."));
+
     startSuggestionTimer.setSettingsKey(Constants::СС_START_SUGGESTION_TIMER);
     startSuggestionTimer.setLabelText(Tr::tr("with delay(ms)"));
     startSuggestionTimer.setToolTip(
@@ -388,6 +399,7 @@ CodeCompletionSettings::CodeCompletionSettings()
             showProgressWidget,
             useOpenFilesContext,
             respectQtcPopup,
+            cancelOnInput,
             abortAssistOnRequest,
             ignoreWhitespaceInCharCount};
 
@@ -489,6 +501,7 @@ void CodeCompletionSettings::resetSettingsToDefaults()
         resetAspect(completionMode);
         resetAspect(smartContextTrigger);
         resetAspect(respectQtcPopup);
+        resetAspect(cancelOnInput);
         resetAspect(hintCharThreshold);
         resetAspect(hintHideTimeout);
         resetAspect(hintTriggerKey);

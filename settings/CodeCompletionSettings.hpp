@@ -24,6 +24,7 @@ public:
     Utils::SelectionAspect completionMode{this};
     Utils::BoolAspect smartContextTrigger{this};
     Utils::BoolAspect respectQtcPopup{this};
+    Utils::BoolAspect cancelOnInput{this};
 
     Utils::IntegerAspect startSuggestionTimer{this};
     Utils::IntegerAspect autoCompletionCharThreshold{this};

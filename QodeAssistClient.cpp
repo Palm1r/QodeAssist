@@ -336,8 +336,12 @@ void QodeAssistClient::requestQuickRefactor(
 
 void QodeAssistClient::scheduleRequest(TextEditor::TextEditorWidget *editor)
 {
-    if (m_runningRequests.contains(editor))
-        return;
+    if (m_runningRequests.contains(editor)) {
+        if (Settings::codeCompletionSettings().cancelOnInput())
+            cancelRunningRequest(editor);
+        else
+            return;
+    }
 
     auto it = m_scheduledRequests.find(editor);
     if (it == m_scheduledRequests.end()) {
