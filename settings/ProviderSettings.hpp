@@ -25,6 +25,7 @@ public:
     Utils::StringAspect codestralApiKey{this};
     Utils::StringAspect googleAiApiKey{this};
     Utils::StringAspect ollamaBasicAuthApiKey{this};
+    Utils::StringAspect llamaCppApiKey{this};
 
 private:
     void setupConnections();

@@ -145,6 +145,8 @@ const char GOOGLE_AI_API_KEY[] = "QodeAssist.googleAiApiKey";
 const char GOOGLE_AI_API_KEY_HISTORY[] = "QodeAssist.googleAiApiKeyHistory";
 const char OLLAMA_BASIC_AUTH_API_KEY[] = "QodeAssist.ollamaBasicAuthApiKey";
 const char OLLAMA_BASIC_AUTH_API_KEY_HISTORY[] = "QodeAssist.ollamaBasicAuthApiKeyHistory";
+const char LLAMA_CPP_API_KEY[] = "QodeAssist.llamaCppApiKey";
+const char LLAMA_CPP_API_KEY_HISTORY[] = "QodeAssist.llamaCppApiKeyHistory";
 
 // context settings
 const char CC_READ_FULL_FILE[] = "QodeAssist.ccReadFullFile";

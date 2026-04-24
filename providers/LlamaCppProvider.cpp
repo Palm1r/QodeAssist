@@ -9,6 +9,7 @@
 #include "settings/CodeCompletionSettings.hpp"
 #include "settings/QuickRefactorSettings.hpp"
 #include "settings/GeneralSettings.hpp"
+#include "settings/ProviderSettings.hpp"
 #include "tools/ToolsRegistration.hpp"
 
 #include <QJsonArray>
@@ -31,7 +32,7 @@ QString LlamaCppProvider::name() const
 
 QString LlamaCppProvider::apiKey() const
 {
-    return {};
+    return Settings::providerSettings().llamaCppApiKey();
 }
 
 QString LlamaCppProvider::url() const

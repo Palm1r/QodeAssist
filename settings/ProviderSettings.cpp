@@ -97,6 +97,15 @@ ProviderSettings::ProviderSettings()
     ollamaBasicAuthApiKey.setDefaultValue("");
     ollamaBasicAuthApiKey.setAutoApply(true);
 
+    // llama.cpp Settings
+    llamaCppApiKey.setSettingsKey(Constants::LLAMA_CPP_API_KEY);
+    llamaCppApiKey.setLabelText(Tr::tr("llama.cpp API Key:"));
+    llamaCppApiKey.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    llamaCppApiKey.setPlaceHolderText(Tr::tr("Enter your API key here"));
+    llamaCppApiKey.setHistoryCompleter(Constants::LLAMA_CPP_API_KEY_HISTORY);
+    llamaCppApiKey.setDefaultValue("");
+    llamaCppApiKey.setAutoApply(true);
+
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
 
     readSettings();
@@ -122,6 +131,8 @@ ProviderSettings::ProviderSettings()
             Group{title(Tr::tr("Google AI Settings")), Column{googleAiApiKey}},
             Space{8},
             Group{title(Tr::tr("Ollama Settings")), Column{ollamaBasicAuthApiKey}},
+            Space{8},
+            Group{title(Tr::tr("llama.cpp Settings")), Column{llamaCppApiKey}},
             Stretch{1}};
     });
 }
@@ -150,6 +161,9 @@ void ProviderSettings::setupConnections()
     connect(&ollamaBasicAuthApiKey, &ButtonAspect::changed, this, [this]() {
         ollamaBasicAuthApiKey.writeSettings();
     });
+    connect(&llamaCppApiKey, &ButtonAspect::changed, this, [this]() {
+        llamaCppApiKey.writeSettings();
+    });
 }
 
 void ProviderSettings::resetSettingsToDefaults()
@@ -169,6 +183,7 @@ void ProviderSettings::resetSettingsToDefaults()
         resetAspect(mistralAiApiKey);
         resetAspect(googleAiApiKey);
         resetAspect(ollamaBasicAuthApiKey);
+        resetAspect(llamaCppApiKey);
         writeSettings();
     }
 }
