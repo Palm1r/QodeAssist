@@ -81,8 +81,6 @@ add_qtc_plugin(QodeAssist
     templates/OpenAI.hpp
     templates/MistralAI.hpp
     templates/StarCoder2Fim.hpp
-    # templates/DeepSeekCoderFim.hpp
-    # templates/CustomFimTemplate.hpp
     templates/Qwen25CoderFIM.hpp
     templates/OpenAICompatible.hpp
     templates/Llama3.hpp
@@ -107,15 +105,6 @@ add_qtc_plugin(QodeAssist
     providers/GoogleAIProvider.hpp providers/GoogleAIProvider.cpp
     providers/LlamaCppProvider.hpp providers/LlamaCppProvider.cpp
     providers/CodestralProvider.hpp providers/CodestralProvider.cpp
-    providers/OpenAIResponses/ModelRequest.hpp
-    providers/OpenAIResponses/ResponseObject.hpp
-    providers/OpenAIResponses/GetResponseRequest.hpp
-    providers/OpenAIResponses/DeleteResponseRequest.hpp
-    providers/OpenAIResponses/CancelResponseRequest.hpp
-    providers/OpenAIResponses/ListInputItemsRequest.hpp
-    providers/OpenAIResponses/InputTokensRequest.hpp
-    providers/OpenAIResponses/ItemTypesReference.hpp
-    providers/OpenAIResponsesRequestBuilder.hpp
     providers/OpenAIResponsesProvider.hpp providers/OpenAIResponsesProvider.cpp
     QodeAssist.qrc
     LSPCompletion.hpp
