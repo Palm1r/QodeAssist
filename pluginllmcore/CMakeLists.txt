@@ -10,10 +10,6 @@ add_library(PluginLLMCore STATIC
     PromptTemplate.hpp
     PromptTemplateManager.hpp PromptTemplateManager.cpp
     ProviderID.hpp
-    HttpClient.hpp HttpClient.cpp
-    DataBuffers.hpp
-    SSEBuffer.hpp SSEBuffer.cpp
-    ContentBlocks.hpp
     RulesLoader.hpp RulesLoader.cpp
     ResponseCleaner.hpp
 )
