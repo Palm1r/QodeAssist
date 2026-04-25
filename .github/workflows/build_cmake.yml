@@ -50,8 +50,8 @@ jobs:
             qt_creator_version: "18.0.2"
           }
         - {
-            qt_version: "6.10.2",
-            qt_creator_version: "19.0.0"
+            qt_version: "6.10.3",
+            qt_creator_version: "19.0.1"
           }
 
     steps:
