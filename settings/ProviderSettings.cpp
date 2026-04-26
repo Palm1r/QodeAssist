@@ -90,7 +90,7 @@ ProviderSettings::ProviderSettings()
 
     // Ollama with BasicAuth Settings
     ollamaBasicAuthApiKey.setSettingsKey(Constants::OLLAMA_BASIC_AUTH_API_KEY);
-    ollamaBasicAuthApiKey.setLabelText(Tr::tr("Ollama BasicAuth API Key:"));
+    ollamaBasicAuthApiKey.setLabelText(Tr::tr("Ollama(Bearer) API Key:"));
     ollamaBasicAuthApiKey.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
     ollamaBasicAuthApiKey.setPlaceHolderText(Tr::tr("Enter your API key here"));
     ollamaBasicAuthApiKey.setHistoryCompleter(Constants::OLLAMA_BASIC_AUTH_API_KEY_HISTORY);

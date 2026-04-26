@@ -68,12 +68,26 @@ void LlamaCppProvider::prepareRequest(
             request["presence_penalty"] = settings.presencePenalty();
     };
 
+    auto applyThinkingMode = [&request]() {
+        QJsonObject chatTemplateKwargs = request["chat_template_kwargs"].toObject();
+        chatTemplateKwargs["enable_thinking"] = true;
+        request["chat_template_kwargs"] = chatTemplateKwargs;
+    };
+
     if (type == PluginLLMCore::RequestType::CodeCompletion) {
         applyModelParams(Settings::codeCompletionSettings());
     } else if (type == PluginLLMCore::RequestType::QuickRefactoring) {
         applyModelParams(Settings::quickRefactorSettings());
+        if (isThinkingEnabled) {
+            applyThinkingMode();
+            LOG_MESSAGE(QString("LlamaCppProvider: Thinking mode enabled for QuickRefactoring"));
+        }
     } else {
         applyModelParams(Settings::chatAssistantSettings());
+        if (isThinkingEnabled) {
+            applyThinkingMode();
+            LOG_MESSAGE(QString("LlamaCppProvider: Thinking mode enabled for Chat"));
+        }
     }
 
     if (isToolsEnabled) {
@@ -85,9 +99,11 @@ void LlamaCppProvider::prepareRequest(
     }
 }
 
-QFuture<QList<QString>> LlamaCppProvider::getInstalledModels(const QString &)
+QFuture<QList<QString>> LlamaCppProvider::getInstalledModels(const QString &baseUrl)
 {
-    return QtFuture::makeReadyFuture(QList<QString>{});
+    m_client->setUrl(baseUrl);
+    m_client->setApiKey(Settings::providerSettings().llamaCppApiKey());
+    return m_client->listModels();
 }
 
 PluginLLMCore::ProviderID LlamaCppProvider::providerID() const
@@ -97,7 +113,9 @@ PluginLLMCore::ProviderID LlamaCppProvider::providerID() const
 
 PluginLLMCore::ProviderCapabilities LlamaCppProvider::capabilities() const
 {
-    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image;
+    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Thinking
+           | PluginLLMCore::ProviderCapability::Image
+           | PluginLLMCore::ProviderCapability::ModelListing;
 }
 
 ::LLMQore::BaseClient *LlamaCppProvider::client() const
