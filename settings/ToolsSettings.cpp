@@ -1,21 +1,5 @@
-/* 
- * Copyright (C) 2024-2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2024-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "ToolsSettings.hpp"
 
@@ -42,66 +26,89 @@ ToolsSettings::ToolsSettings()
 
     setDisplayName(Tr::tr("Tools"));
 
-    allowFileSystemRead.setSettingsKey(Constants::CA_ALLOW_FILE_SYSTEM_READ);
-    allowFileSystemRead.setLabelText(Tr::tr("Allow File System Read Access for tools"));
-    allowFileSystemRead.setToolTip(
-        Tr::tr("Allow tools to read files from disk (project files, open editors)"));
-    allowFileSystemRead.setDefaultValue(true);
-
-    allowFileSystemWrite.setSettingsKey(Constants::CA_ALLOW_FILE_SYSTEM_WRITE);
-    allowFileSystemWrite.setLabelText(Tr::tr("Allow File System Write Access for tools"));
-    allowFileSystemWrite.setToolTip(
-        Tr::tr("Allow tools to write and modify files on disk (WARNING: Use with caution!)"));
-    allowFileSystemWrite.setDefaultValue(false);
-
-    allowNetworkAccess.setSettingsKey(Constants::CA_ALLOW_NETWORK_ACCESS);
-    allowNetworkAccess.setLabelText(Tr::tr("Allow Network Access for tools"));
-    allowNetworkAccess.setToolTip(
-        Tr::tr("Allow tools to make network requests (e.g., execute commands like git, curl, wget). "
-               "Required for ExecuteTerminalCommandTool with network-capable commands."));
-    allowNetworkAccess.setDefaultValue(false);
-
     allowAccessOutsideProject.setSettingsKey(Constants::CA_ALLOW_ACCESS_OUTSIDE_PROJECT);
     allowAccessOutsideProject.setLabelText(Tr::tr("Allow file access outside project"));
     allowAccessOutsideProject.setToolTip(
-        Tr::tr("Allow tools to access (read/write) files outside the project scope (system "
-               "headers, Qt files, external libraries)"));
-    allowAccessOutsideProject.setDefaultValue(true);
+        Tr::tr("Allow tools to read, write, and create files outside the project scope "
+               "(system headers, Qt files, external libraries)."));
+    allowAccessOutsideProject.setDefaultValue(false);
 
     autoApplyFileEdits.setSettingsKey(Constants::CA_AUTO_APPLY_FILE_EDITS);
     autoApplyFileEdits.setLabelText(Tr::tr("Automatically apply file edits"));
     autoApplyFileEdits.setToolTip(
-        Tr::tr("When enabled, file edits suggested by AI will be applied automatically. "
-               "When disabled, you will need to manually approve each edit."));
+        Tr::tr("When enabled, file edits suggested by AI are applied immediately. "
+               "When disabled, each edit is staged for manual approval."));
     autoApplyFileEdits.setDefaultValue(false);
 
+    maxToolContinuations.setSettingsKey(Constants::TOOLS_MAX_CONTINUATIONS);
+    maxToolContinuations.setLabelText(Tr::tr("Max tool continuations:"));
+    maxToolContinuations.setToolTip(
+        Tr::tr("Maximum number of consecutive tool-use rounds in a single request. "
+               "Each round lets the model call tools and receive results before continuing. "
+               "Higher values allow more complex multi-step tasks but increase token usage."));
+    maxToolContinuations.setRange(1, 100);
+    maxToolContinuations.setDefaultValue(30);
+
+    enableListProjectFilesTool.setSettingsKey(Constants::CA_ENABLE_LIST_PROJECT_FILES_TOOL);
+    enableListProjectFilesTool.setLabelText(Tr::tr("List Project Files"));
+    enableListProjectFilesTool.setToolTip(
+        Tr::tr("Lists every source file tracked by the active Qt Creator project(s)."));
+    enableListProjectFilesTool.setDefaultValue(true);
+
+    enableFindFileTool.setSettingsKey(Constants::CA_ENABLE_FIND_FILE_TOOL);
+    enableFindFileTool.setLabelText(Tr::tr("Find File"));
+    enableFindFileTool.setToolTip(
+        Tr::tr("Locates a file in the project by name or partial path. Returns paths only, "
+               "without file content."));
+    enableFindFileTool.setDefaultValue(true);
+
+    enableReadFileTool.setSettingsKey(Constants::CA_ENABLE_READ_FILE_TOOL);
+    enableReadFileTool.setLabelText(Tr::tr("Read File"));
+    enableReadFileTool.setToolTip(
+        Tr::tr("Reads the content of a file by absolute path or path relative to the project root."));
+    enableReadFileTool.setDefaultValue(true);
+
+    enableProjectSearchTool.setSettingsKey(Constants::CA_ENABLE_PROJECT_SEARCH_TOOL);
+    enableProjectSearchTool.setLabelText(Tr::tr("Search in Project"));
+    enableProjectSearchTool.setToolTip(
+        Tr::tr("Searches project files for text occurrences or C++ symbol definitions."));
+    enableProjectSearchTool.setDefaultValue(true);
+
+    enableCreateNewFileTool.setSettingsKey(Constants::CA_ENABLE_CREATE_NEW_FILE_TOOL);
+    enableCreateNewFileTool.setLabelText(Tr::tr("Create New File"));
+    enableCreateNewFileTool.setToolTip(
+        Tr::tr("Creates a new empty file at the given absolute path, making missing directories."));
+    enableCreateNewFileTool.setDefaultValue(true);
+
     enableEditFileTool.setSettingsKey(Constants::CA_ENABLE_EDIT_FILE_TOOL);
-    enableEditFileTool.setLabelText(Tr::tr("Enable Edit File Tool (Experimental)"));
+    enableEditFileTool.setLabelText(Tr::tr("Edit File"));
     enableEditFileTool.setToolTip(
-        Tr::tr("Enable the experimental edit_file tool that allows AI to directly modify files. "
-               "This feature is under testing and may have unexpected behavior."));
-    enableEditFileTool.setDefaultValue(false);
+        Tr::tr("Applies find-and-replace edits to files. See \"Automatically apply file edits\" "
+               "to control whether edits apply immediately or wait for review."));
+    enableEditFileTool.setDefaultValue(true);
 
     enableBuildProjectTool.setSettingsKey(Constants::CA_ENABLE_BUILD_PROJECT_TOOL);
-    enableBuildProjectTool.setLabelText(Tr::tr("Enable Build Project Tool (Experimental)"));
+    enableBuildProjectTool.setLabelText(Tr::tr("Build Project"));
     enableBuildProjectTool.setToolTip(
-        Tr::tr("Enable the experimental build_project tool that allows AI to build the current "
-               "project. This feature is under testing and may have unexpected behavior."));
-    enableBuildProjectTool.setDefaultValue(false);
+        Tr::tr("Triggers a build of the active Qt Creator project and reports the result."));
+    enableBuildProjectTool.setDefaultValue(true);
+
+    enableGetIssuesListTool.setSettingsKey(Constants::CA_ENABLE_GET_ISSUES_LIST_TOOL);
+    enableGetIssuesListTool.setLabelText(Tr::tr("Get Issues List"));
+    enableGetIssuesListTool.setToolTip(
+        Tr::tr("Reads compiler/clang diagnostics from Qt Creator's Issues panel."));
+    enableGetIssuesListTool.setDefaultValue(true);
 
     enableTerminalCommandTool.setSettingsKey(Constants::CA_ENABLE_TERMINAL_COMMAND_TOOL);
-    enableTerminalCommandTool.setLabelText(Tr::tr("Enable Terminal Command Tool (Experimental)"));
+    enableTerminalCommandTool.setLabelText(Tr::tr("Execute Terminal Command"));
     enableTerminalCommandTool.setToolTip(
-        Tr::tr("Enable the experimental execute_terminal_command tool that allows AI to execute "
-               "terminal commands from the allowed list. This feature is under testing and may have "
-               "unexpected behavior."));
-    enableTerminalCommandTool.setDefaultValue(false);
+        Tr::tr("Runs a command from the OS-specific allowed list below, in the project directory."));
+    enableTerminalCommandTool.setDefaultValue(true);
 
     enableTodoTool.setSettingsKey(Constants::CA_ENABLE_TODO_TOOL);
-    enableTodoTool.setLabelText(Tr::tr("Enable Todo Tool"));
+    enableTodoTool.setLabelText(Tr::tr("Todo"));
     enableTodoTool.setToolTip(
-        Tr::tr("Enable the todo_tool that helps AI track and organize multi-step tasks. "
-               "Useful for complex refactoring, debugging, and feature implementation workflows."));
+        Tr::tr("Lets the AI maintain a session-scoped todo list for multi-step workflows."));
     enableTodoTool.setDefaultValue(true);
 
     allowedTerminalCommandsLinux.setSettingsKey(Constants::CA_ALLOWED_TERMINAL_COMMANDS_LINUX);
@@ -128,6 +135,14 @@ ToolsSettings::ToolsSettings()
     allowedTerminalCommandsWindows.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
     allowedTerminalCommandsWindows.setDefaultValue("git, dir, type, findstr, where");
 
+    terminalCommandTimeout.setSettingsKey(Constants::CA_TERMINAL_COMMAND_TIMEOUT);
+    terminalCommandTimeout.setLabelText(Tr::tr("Command Timeout (seconds)"));
+    terminalCommandTimeout.setToolTip(
+        Tr::tr("Maximum time in seconds to wait for a terminal command to complete. "
+               "Increase for long-running commands like builds."));
+    terminalCommandTimeout.setRange(5, 3600);
+    terminalCommandTimeout.setDefaultValue(30);
+
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
 
     readSettings();
@@ -151,23 +166,31 @@ ToolsSettings::ToolsSettings()
             Row{Stretch{1}, resetToDefaults},
             Space{8},
             Group{
-                title(Tr::tr("Tool Settings")),
+                title(Tr::tr("Tools")),
                 Column{
-                    allowFileSystemRead,
-                    allowFileSystemWrite,
-                    allowNetworkAccess,
-                    allowAccessOutsideProject
-                }},
-            Space{8},
-            Group{
-                title(Tr::tr("Experimental Features")),
-                Column{
+                    enableListProjectFilesTool,
+                    enableFindFileTool,
+                    enableReadFileTool,
+                    enableProjectSearchTool,
+                    enableCreateNewFileTool,
                     enableEditFileTool,
                     enableBuildProjectTool,
+                    enableGetIssuesListTool,
                     enableTerminalCommandTool,
-                    enableTodoTool,
-                    currentOsCommands,
-                    autoApplyFileEdits}},
+                    enableTodoTool}},
+            Space{8},
+            Group{
+                title(Tr::tr("Tool Settings")),
+                Column{
+                    allowAccessOutsideProject,
+                    Row{maxToolContinuations, Stretch{1}},
+                    Space{4},
+                    Group{
+                        title(Tr::tr("Edit File")),
+                        Column{autoApplyFileEdits}},
+                    Group{
+                        title(Tr::tr("Execute Terminal Command")),
+                        Column{currentOsCommands, terminalCommandTimeout}}}},
             Stretch{1}};
     });
 }
@@ -191,18 +214,23 @@ void ToolsSettings::resetSettingsToDefaults()
         QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
-        resetAspect(allowFileSystemRead);
-        resetAspect(allowFileSystemWrite);
-        resetAspect(allowNetworkAccess);
         resetAspect(allowAccessOutsideProject);
         resetAspect(autoApplyFileEdits);
+        resetAspect(maxToolContinuations);
+        resetAspect(enableListProjectFilesTool);
+        resetAspect(enableFindFileTool);
+        resetAspect(enableReadFileTool);
+        resetAspect(enableProjectSearchTool);
+        resetAspect(enableCreateNewFileTool);
         resetAspect(enableEditFileTool);
         resetAspect(enableBuildProjectTool);
+        resetAspect(enableGetIssuesListTool);
         resetAspect(enableTerminalCommandTool);
         resetAspect(enableTodoTool);
         resetAspect(allowedTerminalCommandsLinux);
         resetAspect(allowedTerminalCommandsMacOS);
         resetAspect(allowedTerminalCommandsWindows);
+        resetAspect(terminalCommandTimeout);
         writeSettings();
     }
 }

@@ -1,21 +1,5 @@
-/*
- * Copyright (C) 2024-2026 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2024-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "ChatRootView.hpp"
 
@@ -51,14 +35,14 @@
 #include "context/ChangesManager.h"
 #include "context/ContextManager.hpp"
 #include "context/TokenUtils.hpp"
-#include "llmcore/RulesLoader.hpp"
+#include "pluginllmcore/RulesLoader.hpp"
 
 namespace QodeAssist::Chat {
 
 ChatRootView::ChatRootView(QQuickItem *parent)
     : QQuickItem(parent)
     , m_chatModel(new ChatModel(this))
-    , m_promptProvider(LLMCore::PromptTemplateManager::instance())
+    , m_promptProvider(PluginLLMCore::PromptTemplateManager::instance())
     , m_clientInterface(new ClientInterface(m_chatModel, &m_promptProvider, this))
     , m_fileManager(new ChatFileManager(this))
     , m_isRequestInProgress(false)
@@ -750,7 +734,10 @@ void ChatRootView::openRulesFolder()
 
 void ChatRootView::openSettings()
 {
-    Core::ICore::showOptionsDialog(Constants::QODE_ASSIST_CHAT_ASSISTANT_SETTINGS_PAGE_ID);
+    QMetaObject::invokeMethod(
+        this,
+        []() { Settings::showSettings(Constants::QODE_ASSIST_CHAT_ASSISTANT_SETTINGS_PAGE_ID); },
+        Qt::QueuedConnection);
 }
 
 void ChatRootView::openFileInEditor(const QString &filePath)
@@ -926,7 +913,7 @@ QString ChatRootView::getRuleContent(int index)
     if (index < 0 || index >= m_activeRules.size())
         return QString();
 
-    return LLMCore::RulesLoader::loadRuleFileContent(
+    return PluginLLMCore::RulesLoader::loadRuleFileContent(
         m_activeRules[index].toMap()["filePath"].toString());
 }
 
@@ -934,7 +921,7 @@ void ChatRootView::refreshRules()
 {
     m_activeRules.clear();
 
-    auto project = LLMCore::RulesLoader::getActiveProject();
+    auto project = PluginLLMCore::RulesLoader::getActiveProject();
     if (!project) {
         emit activeRulesChanged();
         emit activeRulesCountChanged();
@@ -942,7 +929,7 @@ void ChatRootView::refreshRules()
     }
 
     auto ruleFiles
-        = LLMCore::RulesLoader::getRuleFilesForProject(project, LLMCore::RulesContext::Chat);
+        = PluginLLMCore::RulesLoader::getRuleFilesForProject(project, PluginLLMCore::RulesContext::Chat);
 
     for (const auto &ruleFile : ruleFiles) {
         QVariantMap ruleMap;
@@ -1293,9 +1280,9 @@ QString ChatRootView::lastInfoMessage() const
 bool ChatRootView::isThinkingSupport() const
 {
     auto providerName = Settings::generalSettings().caProvider();
-    auto provider = LLMCore::ProvidersManager::instance().getProviderByName(providerName);
+    auto provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
-    return provider && provider->supportThinking();
+    return provider && provider->capabilities().testFlag(PluginLLMCore::ProviderCapability::Thinking);
 }
 
 QString ChatRootView::generateChatFileName(const QString &shortMessage, const QString &dir) const
@@ -1397,8 +1384,6 @@ void ChatRootView::applyConfiguration(const QString &configName)
             settings.caModel.setValue(config.model);
             settings.caTemplate.setValue(config.templateName);
             settings.caUrl.setValue(config.url);
-            settings.caEndpointMode.setValue(
-                settings.caEndpointMode.indexForDisplay(config.endpointMode));
             settings.caCustomEndpoint.setValue(config.customEndpoint);
 
             settings.writeSettings();
@@ -1515,7 +1500,7 @@ QString ChatRootView::currentAgentRoleSystemPrompt() const
 
 void ChatRootView::openAgentRolesSettings()
 {
-    Core::ICore::showOptionsDialog(Utils::Id("QodeAssist.AgentRoles"));
+    Settings::showSettings(Utils::Id("QodeAssist.AgentRoles"));
 }
 
 void ChatRootView::compressCurrentChat()

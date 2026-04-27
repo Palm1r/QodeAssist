@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2023 The Qt Company Ltd.
- * Copyright (C) 2024-2025 Petr Mironychev
+ * Copyright (C) 2024-2026 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -42,8 +42,6 @@ public:
     bool applyPart(Part part, TextEditor::TextEditorWidget *widget);
     bool apply() override;
 
-    static int calculateReplaceLength(const QString &suggestion, 
-                                     const QString &rightText,
-                                     const QString &entireLine);
+    static int calculateReplaceLength(const QString &suggestion, const QString &rightText);
 };
 } // namespace QodeAssist

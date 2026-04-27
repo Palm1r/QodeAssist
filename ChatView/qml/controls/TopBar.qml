@@ -1,21 +1,5 @@
-/*
- * Copyright (C) 2024-2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2024-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 import QtQuick
 import QtQuick.Layouts
@@ -29,8 +13,6 @@ Rectangle {
     property alias saveButton: saveButtonId
     property alias loadButton: loadButtonId
     property alias clearButton: clearButtonId
-    property alias compressButton: compressButtonId
-    property alias cancelCompressButton: cancelCompressButtonId
     property alias tokensBadge: tokensBadgeId
     property alias recentPath: recentPathId
     property alias openChatHistory: openChatHistoryId
@@ -41,8 +23,6 @@ Rectangle {
     property alias settingsButton: settingsButtonId
     property alias configSelector: configSelectorId
     property alias roleSelector: roleSelector
-
-    property bool isCompressing: false
 
     color: palette.window.hslLightness > 0.5 ?
                Qt.darker(palette.window, 1.1) :
@@ -257,55 +237,6 @@ Rectangle {
             }
 
             QoASeparator {}
-
-            QoAButton {
-                id: compressButtonId
-
-                visible: !root.isCompressing
-
-                icon {
-                    source: "qrc:/qt/qml/ChatView/icons/compress-icon.svg"
-                    height: 15
-                    width: 15
-                }
-                ToolTip.visible: hovered
-                ToolTip.delay: 250
-                ToolTip.text: qsTr("Compress chat (create summarized copy using LLM)")
-            }
-
-            Row {
-                id: compressingRow
-
-                visible: root.isCompressing
-                spacing: 6
-
-                BusyIndicator {
-                    id: compressBusyIndicator
-
-                    anchors.verticalCenter: parent.verticalCenter
-                    running: root.isCompressing
-                    width: 16
-                    height: 16
-                }
-
-                Text {
-                    text: qsTr("Compressing...")
-                    height: parent.height
-                    color: palette.text
-                    font.pixelSize: 12
-                    verticalAlignment: Text.AlignVCenter
-                }
-
-                QoAButton {
-                    id: cancelCompressButtonId
-
-                    text: qsTr("Cancel")
-
-                    ToolTip.visible: hovered
-                    ToolTip.delay: 250
-                    ToolTip.text: qsTr("Cancel compression")
-                }
-            }
 
             QoAButton {
                 id: contextButtonId

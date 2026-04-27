@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2023 The Qt Company Ltd.
- * Copyright (C) 2024-2025 Petr Mironychev
+ * Copyright (C) 2024-2026 Petr Mironychev
  *
  * This file is part of QodeAssist.
  *
@@ -54,6 +54,90 @@ using namespace Core;
 
 namespace QodeAssist {
 
+namespace {
+Utils::Text::Position toTextPos(const Utils::Text::Position &pos)
+{
+    return Utils::Text::Position{pos.line, pos.column};
+}
+
+bool isIdentifierChar(QChar c)
+{
+    return c.isLetterOrNumber() || c == QLatin1Char('_');
+}
+
+bool isInsideIdentifier(const QTextCursor &cursor)
+{
+    const QTextBlock block = cursor.block();
+    const int col = cursor.positionInBlock();
+    const QString text = block.text();
+    if (col <= 0 || col > text.size())
+        return false;
+    if (!isIdentifierChar(text.at(col - 1)))
+        return false;
+    return col < text.size() && isIdentifierChar(text.at(col));
+}
+
+bool isAfterMemberAccess(const QTextCursor &cursor)
+{
+    const QTextBlock block = cursor.block();
+    const int col = cursor.positionInBlock();
+    const QString text = block.text();
+    if (col <= 0)
+        return false;
+
+    int i = col - 1;
+    while (i >= 0 && isIdentifierChar(text.at(i)))
+        --i;
+
+    if (i < 0)
+        return false;
+
+    const QChar c = text.at(i);
+    if (c == QLatin1Char('.'))
+        return true;
+    if (c == QLatin1Char('>') && i >= 1 && text.at(i - 1) == QLatin1Char('-'))
+        return true;
+    if (c == QLatin1Char(':') && i >= 1 && text.at(i - 1) == QLatin1Char(':'))
+        return true;
+    return false;
+}
+
+bool isFreshIndentedLine(const QTextCursor &cursor)
+{
+    const QTextBlock block = cursor.block();
+    const int col = cursor.positionInBlock();
+    if (col == 0)
+        return false;
+    const QString leftText = block.text().left(col);
+    for (const QChar &ch : leftText) {
+        if (!ch.isSpace())
+            return false;
+    }
+    return true;
+}
+
+bool isAfterEagerTrigger(const QTextCursor &cursor)
+{
+    const QTextBlock block = cursor.block();
+    const int col = cursor.positionInBlock();
+    const QString text = block.text();
+    int i = col - 1;
+    while (i >= 0 && text.at(i).isSpace())
+        --i;
+    if (i < 0)
+        return false;
+    const QChar c = text.at(i);
+    return c == QLatin1Char('{') || c == QLatin1Char('(') || c == QLatin1Char(',')
+           || c == QLatin1Char('=') || c == QLatin1Char('[') || c == QLatin1Char(';')
+           || c == QLatin1Char(':') || c == QLatin1Char('>');
+}
+
+bool isManualMode()
+{
+    return Settings::codeCompletionSettings().completionMode.stringValue() == "Manual";
+}
+} // anonymous namespace
+
 QodeAssistClient::QodeAssistClient(LLMClientInterface *clientInterface)
     : LanguageClient::Client(clientInterface)
     , m_llmClient(clientInterface)
@@ -68,10 +152,6 @@ QodeAssistClient::QodeAssistClient(LLMClientInterface *clientInterface)
     setupConnections();
 
     m_typingTimer.start();
-
-    m_hintHideTimer.setSingleShot(true);
-    m_hintHideTimer.setInterval(Settings::codeCompletionSettings().hintHideTimeout());
-    connect(&m_hintHideTimer, &QTimer::timeout, this, [this]() { m_hintHandler.hideHint(); });
 
     m_refactorHoverHandler = new RefactorSuggestionHoverHandler();
     m_refactorWidgetHandler = new RefactorWidgetHandler(this);
@@ -108,6 +188,9 @@ void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
             if (!Settings::codeCompletionSettings().autoCompletion())
                 return;
 
+            if (isManualMode())
+                return;
+
             auto project = ProjectManager::projectForFile(document->filePath());
             if (!isEnabled(project))
                 return;
@@ -131,38 +214,29 @@ void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
             if (charsRemoved > 0 || charsAdded <= 0) {
                 m_recentCharCount = 0;
                 m_typingTimer.restart();
-                // 0 = Hint-based, 1 = Automatic
-                const int triggerMode = Settings::codeCompletionSettings().completionTriggerMode();
-                if (triggerMode != 1) {
-                    m_hintHideTimer.stop();
-                    m_hintHandler.hideHint();
-                }
                 return;
             }
 
             QTextCursor cursor = widget->textCursor();
             cursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, 1);
-            QString lastChar = cursor.selectedText();
+            const QString lastChar = cursor.selectedText();
+            if (lastChar.isEmpty())
+                return;
 
-            if (lastChar.isEmpty() || lastChar[0].isPunct()) {
+            const QChar lastCh = lastChar[0];
+            if (lastCh == QLatin1Char('\n') || lastCh == QChar::ParagraphSeparator
+                || lastCh == QChar::LineSeparator) {
                 m_recentCharCount = 0;
                 m_typingTimer.restart();
-                // 0 = Hint-based, 1 = Automatic
-                const int triggerMode = Settings::codeCompletionSettings().completionTriggerMode();
-                if (triggerMode != 1) {
-                    m_hintHideTimer.stop();
-                    m_hintHandler.hideHint();
-                }
                 return;
             }
 
-            bool isSpaceOrTab = lastChar[0].isSpace();
-            bool ignoreWhitespace
+            const bool isSpaceOrTab = lastCh.isSpace();
+            const bool ignoreWhitespace
                 = Settings::codeCompletionSettings().ignoreWhitespaceInCharCount();
 
-            if (!ignoreWhitespace || !isSpaceOrTab) {
+            if (!ignoreWhitespace || !isSpaceOrTab)
                 m_recentCharCount += charsAdded;
-            }
 
             if (m_typingTimer.elapsed()
                 > Settings::codeCompletionSettings().autoCompletionTypingInterval()) {
@@ -170,13 +244,7 @@ void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
                 m_typingTimer.restart();
             }
 
-            // 0 = Hint-based, 1 = Automatic
-            const int triggerMode = Settings::codeCompletionSettings().completionTriggerMode();
-            if (triggerMode == 1) {
-                handleAutoRequestTrigger(widget, charsAdded, isSpaceOrTab);
-            } else {
-                handleHintBasedTrigger(widget, charsAdded, isSpaceOrTab, cursor);
-            }
+            handleAutoRequestTrigger(widget);
         });
 }
 
@@ -205,11 +273,9 @@ void QodeAssistClient::requestCompletions(TextEditor::TextEditorWidget *editor)
     if (cursor.hasMultipleCursors() || cursor.hasSelection() || editor->suggestionVisible())
         return;
 
-    const int triggerMode = Settings::codeCompletionSettings().completionTriggerMode();
-
-    if (Settings::codeCompletionSettings().abortAssistOnRequest() && triggerMode == 0) {
+    const auto &settings = Settings::codeCompletionSettings();
+    if (settings.abortAssistOnRequest() && !settings.respectQtcPopup())
         editor->abortAssist();
-    }
 
     const FilePath filePath = editor->textDocument()->filePath();
     GetCompletionRequest request{
@@ -270,32 +336,28 @@ void QodeAssistClient::requestQuickRefactor(
 
 void QodeAssistClient::scheduleRequest(TextEditor::TextEditorWidget *editor)
 {
-    cancelRunningRequest(editor);
+    if (m_runningRequests.contains(editor)) {
+        if (Settings::codeCompletionSettings().cancelOnInput())
+            cancelRunningRequest(editor);
+        else
+            return;
+    }
 
     auto it = m_scheduledRequests.find(editor);
     if (it == m_scheduledRequests.end()) {
         auto timer = new QTimer(this);
         timer->setSingleShot(true);
         connect(timer, &QTimer::timeout, this, [this, editor]() {
-            if (editor
-                && editor->textCursor().position()
-                       == m_scheduledRequests[editor]->property("cursorPosition").toInt()
-                && m_recentCharCount
-                       > Settings::codeCompletionSettings().autoCompletionCharThreshold())
-                requestCompletions(editor);
+            if (!editor || m_runningRequests.contains(editor))
+                return;
+            if (editor->textCursor().position()
+                    != m_scheduledRequests[editor]->property("cursorPosition").toInt())
+                return;
+            requestCompletions(editor);
         });
         connect(editor, &TextEditorWidget::destroyed, this, [this, editor]() {
             delete m_scheduledRequests.take(editor);
             cancelRunningRequest(editor);
-        });
-        connect(editor, &TextEditorWidget::cursorPositionChanged, this, [this, editor] {
-            cancelRunningRequest(editor);
-            // 0 = Hint-based, 1 = Automatic
-            const int triggerMode = Settings::codeCompletionSettings().completionTriggerMode();
-            if (triggerMode != 1) {
-                m_hintHideTimer.stop();
-                m_hintHandler.hideHint();
-            }
         });
         it = m_scheduledRequests.insert(editor, timer);
     }
@@ -307,11 +369,9 @@ void QodeAssistClient::handleCompletions(
     const GetCompletionRequest::Response &response, TextEditor::TextEditorWidget *editor)
 {
     m_progressHandler.hideProgress();
-    const int triggerMode = Settings::codeCompletionSettings().completionTriggerMode();
-
-    if (Settings::codeCompletionSettings().abortAssistOnRequest() && triggerMode == 1) {
+    const auto &settings = Settings::codeCompletionSettings();
+    if (settings.abortAssistOnRequest() && !settings.respectQtcPopup())
         editor->abortAssist();
-    }
 
     if (response.error()) {
         log(*response.error());
@@ -325,11 +385,24 @@ void QodeAssistClient::handleCompletions(
         requestPosition = requestParams->position().toPositionInDocument(editor->document());
 
     const MultiTextCursor cursors = editor->multiTextCursor();
-    if (cursors.hasMultipleCursors())
+    if (cursors.hasMultipleCursors() || cursors.hasSelection())
         return;
 
-    if (cursors.hasSelection() || cursors.mainCursor().position() != requestPosition)
+    const int currentPosition = cursors.mainCursor().position();
+    if (requestPosition < 0 || currentPosition < requestPosition)
         return;
+
+    QString typedSinceRequest;
+    if (currentPosition > requestPosition) {
+        QTextCursor diffCursor(editor->document());
+        diffCursor.setPosition(requestPosition);
+        diffCursor.setPosition(currentPosition, QTextCursor::KeepAnchor);
+        typedSinceRequest = diffCursor.selectedText();
+        if (typedSinceRequest.contains(QChar::ParagraphSeparator)
+            || typedSinceRequest.contains(QLatin1Char('\n'))) {
+            return;
+        }
+    }
 
     if (const std::optional<GetCompletionResponse> result = response.result()) {
         auto isValidCompletion = [](const Completion &completion) {
@@ -338,34 +411,58 @@ void QodeAssistClient::handleCompletions(
         QList<Completion> completions
             = Utils::filtered(result->completions().toListOrEmpty(), isValidCompletion);
 
+        QList<Completion> matchedCompletions;
+        matchedCompletions.reserve(completions.size());
         for (Completion &completion : completions) {
             const LanguageServerProtocol::Range range = completion.range();
             if (range.start().line() != range.end().line())
                 continue;
 
-            const QString completionText = completion.text();
+            QString completionText = completion.text();
             const int end = int(completionText.size()) - 1;
             int delta = 0;
             while (delta <= end && completionText[end - delta].isSpace())
                 ++delta;
-
             if (delta > 0)
-                completion.setText(completionText.chopped(delta));
+                completionText.chop(delta);
+
+            if (!typedSinceRequest.isEmpty()) {
+                if (!completionText.startsWith(typedSinceRequest))
+                    continue;
+                completionText = completionText.mid(typedSinceRequest.size());
+                if (completionText.isEmpty())
+                    continue;
+            }
+
+            completion.setText(completionText);
+            matchedCompletions.append(completion);
         }
-        auto suggestions = Utils::transform(completions, [](const Completion &c) {
+
+        if (matchedCompletions.isEmpty()) {
+            LOG_MESSAGE("No valid completions received");
+            return;
+        }
+
+        const Text::Position anchor = typedSinceRequest.isEmpty()
+            ? Text::Position{}
+            : Text::Position::fromPositionInDocument(editor->document(), currentPosition);
+        const bool useAnchor = !typedSinceRequest.isEmpty();
+
+        auto suggestions = Utils::transform(matchedCompletions,
+                                            [useAnchor, &anchor](const Completion &c) {
             auto toTextPos = [](const LanguageServerProtocol::Position pos) {
                 return Text::Position{pos.line() + 1, pos.character()};
             };
+
+            if (useAnchor) {
+                return TextSuggestion::Data{Text::Range{anchor, anchor}, anchor, c.text()};
+            }
 
             Text::Range range{toTextPos(c.range().start()), toTextPos(c.range().end())};
             Text::Position pos{toTextPos(c.position())};
             return TextSuggestion::Data{range, pos, c.text()};
         });
 
-        if (completions.isEmpty()) {
-            LOG_MESSAGE("No valid completions received");
-            return;
-        }
         editor->insertSuggestion(std::make_unique<LLMSuggestion>(suggestions, editor->document()));
     }
 }
@@ -376,12 +473,6 @@ void QodeAssistClient::cancelRunningRequest(TextEditor::TextEditorWidget *editor
     if (it == m_runningRequests.constEnd())
         return;
     m_progressHandler.hideProgress();
-    // 0 = Hint-based, 1 = Automatic
-    const int triggerMode = Settings::codeCompletionSettings().completionTriggerMode();
-    if (triggerMode != 1) {
-        m_hintHideTimer.stop();
-        m_hintHandler.hideHint();
-    }
     cancelRequest(it->id());
     m_runningRequests.erase(it);
 }
@@ -423,17 +514,6 @@ void QodeAssistClient::cleanupConnections()
     m_scheduledRequests.clear();
 }
 
-bool QodeAssistClient::isHintVisible() const
-{
-    return m_hintHandler.isHintVisible();
-}
-
-void QodeAssistClient::hideHintAndRequestCompletion(TextEditor::TextEditorWidget *editor)
-{
-    m_hintHandler.hideHint();
-    requestCompletions(editor);
-}
-
 void QodeAssistClient::handleRefactoringResult(const RefactorResult &result)
 {
     m_progressHandler.hideProgress();
@@ -464,13 +544,6 @@ void QodeAssistClient::handleRefactoringResult(const RefactorResult &result)
         displayRefactoringSuggestion(result);
     }
 }
-
-namespace {
-Utils::Text::Position toTextPos(const Utils::Text::Position &pos)
-{
-    return Utils::Text::Position{pos.line, pos.column};
-}
-} // anonymous namespace
 
 void QodeAssistClient::displayRefactoringSuggestion(const RefactorResult &result)
 {
@@ -604,58 +677,20 @@ void QodeAssistClient::applyRefactoringEdit(TextEditor::TextEditorWidget *editor
     editCursor.endEditBlock();
 }
 
-void QodeAssistClient::handleAutoRequestTrigger(TextEditor::TextEditorWidget *widget,
-                                                 int charsAdded,
-                                                 bool isSpaceOrTab)
+void QodeAssistClient::handleAutoRequestTrigger(TextEditor::TextEditorWidget *widget)
 {
-    Q_UNUSED(isSpaceOrTab);
+    const QTextCursor cursor = widget->textCursor();
+    const auto &settings = Settings::codeCompletionSettings();
+    const bool smart = settings.smartContextTrigger();
 
-    if (m_recentCharCount
-        > Settings::codeCompletionSettings().autoCompletionCharThreshold()) {
+    if (smart && (isInsideIdentifier(cursor) || isAfterMemberAccess(cursor)))
+        return;
+
+    const bool eager = smart && (isFreshIndentedLine(cursor) || isAfterEagerTrigger(cursor));
+    const int charThreshold = settings.autoCompletionCharThreshold();
+
+    if (eager || m_recentCharCount > charThreshold)
         scheduleRequest(widget);
-    }
-}
-
-void QodeAssistClient::handleHintBasedTrigger(TextEditor::TextEditorWidget *widget,
-                                               int charsAdded,
-                                               bool isSpaceOrTab,
-                                               QTextCursor &cursor)
-{
-    Q_UNUSED(charsAdded);
-
-    const int hintThreshold = Settings::codeCompletionSettings().hintCharThreshold();
-    if (m_recentCharCount >= hintThreshold && !isSpaceOrTab) {
-        const QRect cursorRect = widget->cursorRect(cursor);
-        QPoint globalPos = widget->viewport()->mapToGlobal(cursorRect.topLeft());
-        QPoint localPos = widget->mapFromGlobal(globalPos);
-
-        int fontSize = widget->font().pixelSize();
-        if (fontSize <= 0) {
-            fontSize = widget->fontMetrics().height();
-        }
-
-        QTextCursor textCursor = widget->textCursor();
-
-        if (m_recentCharCount <= hintThreshold) {
-            textCursor
-                .movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, m_recentCharCount);
-        } else {
-            textCursor.movePosition(QTextCursor::Left, QTextCursor::KeepAnchor, hintThreshold);
-        }
-
-        int x = localPos.x() + cursorRect.height();
-        int y = localPos.y() + cursorRect.height() / 4;
-
-        QPoint hintPos(x, y);
-
-        if (!m_hintHandler.isHintVisible()) {
-            m_hintHandler.showHint(widget, hintPos, fontSize);
-        } else {
-            m_hintHandler.updateHintPosition(widget, hintPos);
-        }
-
-        m_hintHideTimer.start();
-    }
 }
 
 bool QodeAssistClient::eventFilter(QObject *watched, QEvent *event)
@@ -666,46 +701,6 @@ bool QodeAssistClient::eventFilter(QObject *watched, QEvent *event)
 
     if (event->type() == QEvent::KeyPress) {
         auto *keyEvent = static_cast<QKeyEvent *>(event);
-
-        // Check hint trigger key (0=Space, 1=Ctrl+Space, 2=Alt+Space, 3=Ctrl+Enter, 4=Tab, 5=Enter)
-        if (m_hintHandler.isHintVisible()) {
-            const int triggerKeyIndex = Settings::codeCompletionSettings().hintTriggerKey();
-            bool isMatchingKey = false;
-            const Qt::KeyboardModifiers modifiers = keyEvent->modifiers();
-
-            switch (triggerKeyIndex) {
-            case 0: // Space
-                isMatchingKey = (keyEvent->key() == Qt::Key_Space 
-                                 && (modifiers == Qt::NoModifier || modifiers == Qt::ShiftModifier));
-                break;
-            case 1: // Ctrl+Space
-                isMatchingKey = (keyEvent->key() == Qt::Key_Space 
-                                 && (modifiers & Qt::ControlModifier));
-                break;
-            case 2: // Alt+Space
-                isMatchingKey = (keyEvent->key() == Qt::Key_Space 
-                                 && (modifiers & Qt::AltModifier));
-                break;
-            case 3: // Ctrl+Enter
-                isMatchingKey = ((keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter)
-                                 && (modifiers & Qt::ControlModifier));
-                break;
-            case 4: // Tab
-                isMatchingKey = (keyEvent->key() == Qt::Key_Tab);
-                break;
-            case 5: // Enter
-                isMatchingKey = ((keyEvent->key() == Qt::Key_Return || keyEvent->key() == Qt::Key_Enter)
-                                 && (modifiers == Qt::NoModifier || modifiers == Qt::ShiftModifier));
-                break;
-            }
-
-            if (isMatchingKey) {
-                m_hintHideTimer.stop();
-                m_hintHandler.hideHint();
-                requestCompletions(editor);
-                return true;
-            }
-        }
 
         if (keyEvent->key() == Qt::Key_Escape) {
             if (m_runningRequests.contains(editor)) {
@@ -724,8 +719,6 @@ bool QodeAssistClient::eventFilter(QObject *watched, QEvent *event)
             }
 
             m_progressHandler.hideProgress();
-            m_hintHideTimer.stop();
-            m_hintHandler.hideHint();
         }
     }
 

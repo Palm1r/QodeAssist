@@ -80,11 +80,12 @@ target_link_libraries(QodeAssistChatView
     Qt::Network
     QtCreator::Core
     QtCreator::Utils
-    LLMCore
+    PluginLLMCore
     QodeAssistSettings
     Context
     QodeAssistUIControlsplugin
     QodeAssistLogger
+    LLMQore
 )
 
 target_include_directories(QodeAssistChatView

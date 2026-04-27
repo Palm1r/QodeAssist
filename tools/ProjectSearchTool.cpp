@@ -1,24 +1,9 @@
-/* 
- * Copyright (C) 2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2025-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "ProjectSearchTool.hpp"
-#include "ToolExceptions.hpp"
+
+#include <LLMQore/ToolExceptions.hpp>
 
 #include <cplusplus/Overview.h>
 #include <cplusplus/Scope.h>
@@ -43,86 +28,82 @@ ProjectSearchTool::ProjectSearchTool(QObject *parent)
     , m_ignoreManager(new Context::IgnoreManager(this))
 {}
 
-QString ProjectSearchTool::name() const
+QString ProjectSearchTool::id() const
 {
     return "search_project";
 }
 
-QString ProjectSearchTool::stringName() const
+QString ProjectSearchTool::displayName() const
 {
     return "Searching in project";
 }
 
 QString ProjectSearchTool::description() const
 {
-    return "Search project for text content or C++ symbols. "
-           "Text mode: finds text patterns in files. "
-           "Symbol mode: finds C++ definitions (classes, functions, etc).";
+    return "Search across all open Qt Creator project(s) for text occurrences or C++ symbol "
+           "definitions. 'text' mode scans source files line-by-line for literal text or regex. "
+           "'symbol' mode uses Qt Creator's C++ code model and works only for C++ "
+           "(not QML, Python, or plain text). Respects .qodeassistignore. "
+           "Use `find_file` for locating files by name, not this tool.";
 }
 
-QJsonObject ProjectSearchTool::getDefinition(LLMCore::ToolSchemaFormat format) const
+QJsonObject ProjectSearchTool::parametersSchema() const
 {
     QJsonObject properties;
 
-    properties["query"]
-        = QJsonObject{{"type", "string"}, {"description", "Text or symbol name to search for"}};
+    properties["query"] = QJsonObject{
+        {"type", "string"},
+        {"description", "Text string or symbol name to search for. In text mode with "
+                        "use_regex=true, this is a regular expression."}};
 
     properties["search_type"] = QJsonObject{
         {"type", "string"},
         {"enum", QJsonArray{"text", "symbol"}},
-        {"description", "Search mode: 'text' for content, 'symbol' for C++ definitions"}};
+        {"description", "Search mode: 'text' scans file contents, 'symbol' looks up C++ "
+                        "declarations via the code model."}};
 
     properties["symbol_type"] = QJsonObject{
         {"type", "string"},
         {"enum", QJsonArray{"all", "class", "function", "enum", "variable", "namespace"}},
-        {"description", "Symbol type filter (symbol mode only)"}};
+        {"description", "Filter for symbol mode. Default: 'all'. Ignored in text mode."}};
 
-    properties["case_sensitive"]
-        = QJsonObject{{"type", "boolean"}, {"description", "Case-sensitive search"}};
+    properties["case_sensitive"] = QJsonObject{
+        {"type", "boolean"},
+        {"description", "Case-sensitive matching. Default: false."}};
 
-    properties["use_regex"]
-        = QJsonObject{{"type", "boolean"}, {"description", "Use regex patterns"}};
+    properties["use_regex"] = QJsonObject{
+        {"type", "boolean"},
+        {"description", "Treat the query as a regular expression. Default: false."}};
 
-    properties["whole_words"]
-        = QJsonObject{{"type", "boolean"}, {"description", "Match whole words only (text mode)"}};
+    properties["whole_words"] = QJsonObject{
+        {"type", "boolean"},
+        {"description", "Match whole words only. Text mode only; ignored in symbol mode. "
+                        "Default: false."}};
 
     properties["file_pattern"] = QJsonObject{
-        {"type", "string"}, {"description", "File filter pattern (e.g., '*.cpp', '*.h')"}};
+        {"type", "string"},
+        {"description", "Wildcard to restrict which files are searched in text mode, e.g. "
+                        "'*.cpp' or '*.h'. Default: all files."}};
 
     QJsonObject definition;
     definition["type"] = "object";
     definition["properties"] = properties;
     definition["required"] = QJsonArray{"query", "search_type"};
 
-    switch (format) {
-    case LLMCore::ToolSchemaFormat::OpenAI:
-        return customizeForOpenAI(definition);
-    case LLMCore::ToolSchemaFormat::Claude:
-        return customizeForClaude(definition);
-    case LLMCore::ToolSchemaFormat::Ollama:
-        return customizeForOllama(definition);
-    case LLMCore::ToolSchemaFormat::Google:
-        return customizeForGoogle(definition);
-    }
     return definition;
 }
 
-LLMCore::ToolPermissions ProjectSearchTool::requiredPermissions() const
+QFuture<LLMQore::ToolResult> ProjectSearchTool::executeAsync(const QJsonObject &input)
 {
-    return LLMCore::ToolPermission::FileSystemRead;
-}
-
-QFuture<QString> ProjectSearchTool::executeAsync(const QJsonObject &input)
-{
-    return QtConcurrent::run([this, input]() -> QString {
+    return QtConcurrent::run([this, input]() -> LLMQore::ToolResult {
         QString query = input["query"].toString().trimmed();
         if (query.isEmpty()) {
-            throw ToolInvalidArgument("Query parameter is required");
+            throw LLMQore::ToolInvalidArgument("Query parameter is required");
         }
 
         QString searchTypeStr = input["search_type"].toString();
         if (searchTypeStr != "text" && searchTypeStr != "symbol") {
-            throw ToolInvalidArgument("search_type must be 'text' or 'symbol'");
+            throw LLMQore::ToolInvalidArgument("search_type must be 'text' or 'symbol'");
         }
 
         SearchType searchType = (searchTypeStr == "symbol") ? SearchType::Symbol : SearchType::Text;
@@ -144,10 +125,10 @@ QFuture<QString> ProjectSearchTool::executeAsync(const QJsonObject &input)
         }
 
         if (results.isEmpty()) {
-            return QString("No matches found for '%1'").arg(query);
+            return LLMQore::ToolResult::text(QString("No matches found for '%1'").arg(query));
         }
 
-        return formatResults(results, query);
+        return LLMQore::ToolResult::text(formatResults(results, query));
     });
 }
 

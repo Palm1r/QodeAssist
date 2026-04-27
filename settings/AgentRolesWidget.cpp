@@ -1,21 +1,5 @@
-/* 
- * Copyright (C) 2024-2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2024-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "AgentRolesWidget.hpp"
 
@@ -33,13 +17,6 @@
 #include <QVBoxLayout>
 
 namespace QodeAssist::Settings {
-
-AgentRolesWidget::AgentRolesWidget(QWidget *parent)
-    : QWidget(parent)
-{
-    setupUI();
-    loadRoles();
-}
 
 void AgentRolesWidget::setupUI()
 {
@@ -129,7 +106,7 @@ void AgentRolesWidget::updateButtons()
 
 void AgentRolesWidget::onAddRole()
 {
-    AgentRoleDialog dialog(this);
+    AgentRoleDialog dialog{AgentRoleDialog::Action::Add, this};
     if (dialog.exec() != QDialog::Accepted)
         return;
 
@@ -170,7 +147,7 @@ void AgentRolesWidget::onEditRole()
         return;
     }
 
-    AgentRoleDialog dialog(role, this);
+    AgentRoleDialog dialog{role, AgentRoleDialog::Action::Edit, this};
     if (dialog.exec() != QDialog::Accepted)
         return;
 
@@ -203,7 +180,7 @@ void AgentRolesWidget::onDuplicateRole()
         role.id = baseId + QString::number(counter++);
     }
 
-    AgentRoleDialog dialog(role, false, this);
+    AgentRoleDialog dialog{role, AgentRoleDialog::Action::Duplicate, this};
     if (dialog.exec() != QDialog::Accepted)
         return;
 

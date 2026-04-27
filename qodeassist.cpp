@@ -1,21 +1,5 @@
-/* 
- * Copyright (C) 2024-2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2024-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "QodeAssistConstants.hpp"
 #include "QodeAssisttr.h"
@@ -50,9 +34,11 @@
 #include "chat/ChatOutputPane.h"
 #include "chat/NavigationPanel.hpp"
 #include "context/DocumentReaderQtCreator.hpp"
-#include "llmcore/PromptProviderFim.hpp"
-#include "llmcore/ProvidersManager.hpp"
+#include "pluginllmcore/PromptProviderFim.hpp"
+#include "pluginllmcore/ProvidersManager.hpp"
 #include "logger/RequestPerformanceLogger.hpp"
+#include "mcp/McpClientsManager.hpp"
+#include "mcp/McpServerManager.hpp"
 #include "providers/Providers.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/GeneralSettings.hpp"
@@ -84,7 +70,7 @@ class QodeAssistPlugin final : public ExtensionSystem::IPlugin
 public:
     QodeAssistPlugin()
         : m_updater(new PluginUpdater(this))
-        , m_promptProvider(LLMCore::PromptTemplateManager::instance())
+        , m_promptProvider(PluginLLMCore::PromptTemplateManager::instance())
     {}
 
     ~QodeAssistPlugin() final
@@ -151,11 +137,7 @@ public:
         requestAction.addOnTriggered(this, [this] {
             if (auto editor = TextEditor::TextEditorWidget::currentTextEditorWidget()) {
                 if (m_qodeAssistClient && m_qodeAssistClient->reachable()) {
-                    if (m_qodeAssistClient->isHintVisible()) {
-                        m_qodeAssistClient->hideHintAndRequestCompletion(editor);
-                    } else {
-                        m_qodeAssistClient->requestCompletions(editor);
-                    }
+                    m_qodeAssistClient->requestCompletions(editor);
                 } else
                     qWarning() << "The QodeAssist is not ready. Please check your connection and "
                                   "settings.";
@@ -181,6 +163,11 @@ public:
 
         Settings::setupProjectPanel();
         ConfigurationManager::instance().init();
+
+        m_mcpServerManager = new Mcp::McpServerManager(this);
+        m_mcpServerManager->init();
+
+        Mcp::McpClientsManager::instance().init();
 
         if (Settings::generalSettings().enableCheckUpdate()) {
             QTimer::singleShot(3000, this, &QodeAssistPlugin::checkForUpdates);
@@ -266,7 +253,7 @@ public:
         m_qodeAssistClient = new QodeAssistClient(new LLMClientInterface(
             Settings::generalSettings(),
             Settings::codeCompletionSettings(),
-            LLMCore::ProvidersManager::instance(),
+            PluginLLMCore::ProvidersManager::instance(),
             &m_promptProvider,
             m_documentReader,
             m_performanceLogger));
@@ -308,7 +295,7 @@ private:
     }
 
     QPointer<QodeAssistClient> m_qodeAssistClient;
-    LLMCore::PromptProviderFim m_promptProvider;
+    PluginLLMCore::PromptProviderFim m_promptProvider;
     Context::DocumentReaderQtCreator m_documentReader;
     RequestPerformanceLogger m_performanceLogger;
     QPointer<Chat::ChatOutputPane> m_chatOutputPane;
@@ -317,6 +304,7 @@ private:
     UpdateStatusWidget *m_statusWidget{nullptr};
     QString m_lastRefactorInstructions;
     QScopedPointer<Chat::ChatView> m_chatView;
+    QPointer<Mcp::McpServerManager> m_mcpServerManager;
     QPointer<QQmlEngine> m_engine;
 };
 

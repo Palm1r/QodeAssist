@@ -1,25 +1,9 @@
-/*
- * Copyright (C) 2024-2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2024-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #pragma once
 
-#include <llmcore/BaseTool.hpp>
+#include <LLMQore/BaseTool.hpp>
 
 #include <QHash>
 #include <QMutex>
@@ -34,21 +18,21 @@ struct TodoItem
     bool completed;
 };
 
-class TodoTool : public LLMCore::BaseTool
+class TodoTool : public ::LLMQore::BaseTool
 {
     Q_OBJECT
 
 public:
     explicit TodoTool(QObject *parent = nullptr);
 
-    QString name() const override;
-    QString stringName() const override;
+    QString id() const override;
+    QString displayName() const override;
     QString description() const override;
-    QJsonObject getDefinition(LLMCore::ToolSchemaFormat format) const override;
-    LLMCore::ToolPermissions requiredPermissions() const override;
+    QJsonObject parametersSchema() const override;
 
-    QFuture<QString> executeAsync(const QJsonObject &input = QJsonObject()) override;
+    QFuture<LLMQore::ToolResult> executeAsync(const QJsonObject &input = QJsonObject()) override;
 
+    void setCurrentSessionId(const QString &sessionId);
     void clearSession(const QString &sessionId);
 
 private:
@@ -59,6 +43,7 @@ private:
     QString listRemainingTodosLocked(const QString &sessionId) const;
 
     mutable QMutex m_mutex;
+    QString m_currentSessionId;
     QHash<QString, QHash<int, TodoItem>> m_sessionTodos;
     QHash<QString, int> m_sessionNextId;
 };

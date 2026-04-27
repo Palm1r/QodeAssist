@@ -1,10 +1,12 @@
-# QodeAssist - AI-powered coding assistant plugin for Qt Creator
-[![Build plugin](https://github.com/Palm1r/QodeAssist/actions/workflows/build_cmake.yml/badge.svg?branch=main)](https://github.com/Palm1r/QodeAssist/actions/workflows/build_cmake.yml)
-![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Palm1r/QodeAssist/total?color=41%2C173%2C71)
-![GitHub Tag](https://img.shields.io/github/v/tag/Palm1r/QodeAssist)
-[![](https://dcbadge.limes.pink/api/server/BGMkUsXUgf?style=flat)](https://discord.gg/BGMkUsXUgf)
+# QodeAssist — AI coding assistant for Qt Creator
 
-![qodeassist-icon](https://github.com/user-attachments/assets/dc336712-83cb-440d-8761-8d0a31de898d) QodeAssist is a comprehensive AI-powered coding assistant plugin for Qt Creator. It provides intelligent code completion, interactive chat with multiple interface options, inline quick refactoring, and AI function calling capabilities for C++ and QML development. Supporting both local providers (Ollama, llama.cpp, LM Studio) and cloud services (Claude, OpenAI, Google AI, Mistral AI), QodeAssist enhances your productivity with context-aware AI assistance, project-specific rules, and extensive customization options directly in your Qt development environment.
+[![Build plugin](https://github.com/Palm1r/QodeAssist/actions/workflows/build_cmake.yml/badge.svg?branch=main)](https://github.com/Palm1r/QodeAssist/actions/workflows/build_cmake.yml)
+[![GitHub Tag](https://img.shields.io/github/v/tag/Palm1r/QodeAssist?label=release)](https://github.com/Palm1r/QodeAssist/releases)
+![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Palm1r/QodeAssist/total?color=41%2C173%2C71&label=downloads)
+[![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
+[![Discord](https://dcbadge.limes.pink/api/server/BGMkUsXUgf?style=flat)](https://discord.gg/BGMkUsXUgf)
+
+![qodeassist-icon](https://github.com/user-attachments/assets/dc336712-83cb-440d-8761-8d0a31de898d) **QodeAssist** brings a full AI coding workflow to Qt Creator for C++ and QML — smart code completion, multi-panel chat, inline quick refactoring, and project-aware tool calling. It works with local runtimes (Ollama, llama.cpp, LM Studio) and cloud providers (Claude, OpenAI, Google AI, Mistral), can run as an **MCP server** so other clients reuse its project context, and can also act as an **MCP client** to consume tools from external MCP servers (authenticated MCP servers are not supported yet).
 
 ⚠️ **Important Notice About Paid Providers**
 > When using paid providers like Claude, OpenRouter or OpenAI-compatible services:
@@ -29,13 +31,15 @@
 
 QodeAssist enhances Qt Creator with AI-powered coding assistance:
 
-- **Code Completion**: Intelligent, context-aware code suggestions for C++ and QML
-- **Chat Assistant**: Multiple interface options (popup window, side panel, bottom panel)
-- **Quick Refactoring**: Inline AI-assisted code improvements directly in editor with custom instructions library
-- **File Context**: Attach or link files for better AI understanding
-- **Tool Calling**: AI can read project files, search code, and access diagnostics
-- **Multiple Providers**: Support for Ollama, Claude, OpenAI, Google AI, Mistral AI, llama.cpp, and more
-- **Customizable**: Project-specific rules, custom instructions, and extensive model templates
+- **Code Completion** — intelligent, context-aware suggestions (FIM and chat models) for C++ and QML, with multiline support
+- **Chat Assistant** — side panel, bottom panel, or detached window; history with auto-save, token monitoring, extended thinking
+- **Quick Refactoring** — inline AI-assisted edits directly in the editor with a searchable custom-instructions library
+- **Agent Tools** — read, search, create and edit files; build the project; run terminal commands; access linter/compiler issues; manage TODOs
+- **MCP Server** — expose QodeAssist's project-aware tools to external MCP clients (Claude Code, VS Code, Claude Desktop via bridge)
+- **MCP Client Hub** — connect QodeAssist to external MCP servers and use their tools in Chat and Quick Refactor (authenticated MCP servers are not supported yet)
+- **File Context** — attach, link, or auto-sync open editor files for richer prompts
+- **Many Providers** — Ollama, llama.cpp, LM Studio (Chat + Responses), Claude, OpenAI (Chat + Responses), Google AI, Mistral, Codestral, OpenRouter, any OpenAI-compatible endpoint
+- **Customizable** — per-project rules (`.qodeassist/rules/`), agent roles, reusable refactor templates, full prompt-template control
 
 **Join our [Discord Community](https://discord.gg/BGMkUsXUgf)** to get support and connect with other users!
 
@@ -147,14 +151,19 @@ All settings (provider, model, template, URL) are configured automatically. Just
 
 For advanced users or local models, choose your preferred provider and follow the detailed configuration guide:
 
-- **[Ollama](docs/ollama-configuration.md)** - Local LLM provider
-- **[llama.cpp](docs/llamacpp-configuration.md)** - Local LLM server
-- **[Anthropic Claude](docs/claude-configuration.md)** - Cloud provider (manual setup)
-- **[OpenAI](docs/openai-configuration.md)** - Cloud provider (includes Responses API support)
-- **[Mistral AI](docs/mistral-configuration.md)** - Cloud provider
-- **[Google AI](docs/google-ai-configuration.md)** - Cloud provider
-- **LM Studio** - Local LLM provider
-- **OpenAI-compatible** - Custom providers (OpenRouter, etc.)
+**Local providers:**
+- **[Ollama](docs/ollama-configuration.md)** — native Ollama API
+- **Ollama (OpenAI-compatible)** — Ollama's `/v1` endpoint for tool-calling models
+- **[llama.cpp](docs/llamacpp-configuration.md)** — local `llama-server`
+- **LM Studio** — OpenAI-compatible Chat API
+- **LM Studio (Responses API)** — newer models that require the Responses endpoint
+
+**Cloud providers:**
+- **[Anthropic Claude](docs/claude-configuration.md)** — manual setup guide
+- **[OpenAI](docs/openai-configuration.md)** — Chat Completions and Responses API
+- **[Mistral AI](docs/mistral-configuration.md)** / **Codestral**
+- **[Google AI](docs/google-ai-configuration.md)** — Gemini
+- **OpenAI-compatible** — OpenRouter and any custom endpoint
 
 ### Recommended Models for Best Experience
 
@@ -228,10 +237,37 @@ Configure in: `Tools → Options → QodeAssist → Code Completion → General 
 - **[Learn more](docs/quick-refactoring.md)**
 
 ### Tools & Function Calling
-- Read project files
-- List and search in project
-- Access linter/compiler issues
-- Enabled by default (can be disabled)
+
+Chat and Quick Refactor can call tools to inspect and modify your project. Each tool can be individually enabled/disabled in settings.
+
+| Tool | What it does |
+|------|--------------|
+| `list_project_files` | List files in the active project(s) |
+| `find_file` | Find a file by name or partial path |
+| `read_file` | Read file contents (project or absolute path) |
+| `search_project` | Grep / symbol search across project sources |
+| `create_new_file` | Create a new empty file on disk |
+| `edit_file` | Replace content in a file (old → new) |
+| `build_project` | Build the active project and return compiler output |
+| `get_issues_list` | Read current linter / compiler diagnostics |
+| `execute_terminal_command` | Run a shell command (with confirmation) |
+| `todo_tool` | Track multi-step task progress during a conversation |
+
+### MCP Server
+
+QodeAssist can run an **MCP (Model Context Protocol) server** on `localhost`, exposing the tools above to external clients — so you can use QodeAssist's project awareness from Claude Code CLI, VS Code, Cursor, Claude Desktop, or any other MCP-capable client.
+
+- **Enable** in `Tools → Options → QodeAssist → MCP Server`
+- **Transport**: HTTP + SSE by default; a stdio bridge is provided for clients that only speak stdio (e.g. Claude Desktop)
+- **Ready-to-copy snippets** for Claude Code, VS Code, and the bridge are available via the "Show connection instructions" button in settings
+
+### MCP Client Hub
+
+QodeAssist can also act as an **MCP client**, connecting to external MCP servers and making their tools available to Chat and Quick Refactor alongside the built-in ones.
+
+- **Configure** servers in `Tools → Options → QodeAssist → MCP Client`
+- **Transports**: stdio and HTTP/SSE
+- **Limitation**: authenticated MCP servers (OAuth / token-protected) are **not supported yet** — only servers that accept unauthenticated local connections work for now
 
 ## Context Layers
 
@@ -413,14 +449,16 @@ For additional support, join our [Discord Community](https://discord.gg/BGMkUsXU
 
 ## Development Progress
 
-- [x] Code completion functionality
-- [x] Chat assistant with multiple panels
+- [x] Code completion (FIM and chat models)
+- [x] Chat assistant (side / bottom / detached panels)
+- [x] Quick refactoring with custom-instructions library
 - [x] Diff sharing with models
-- [x] Tools/function calling support
-- [x] Project-specific rules
+- [x] Tools / function calling (file I/O, build, terminal, diagnostics)
+- [x] Project-specific rules (`.qodeassist/rules/`)
+- [x] MCP (Model Context Protocol) — QodeAssist as a server
+- [x] MCP — QodeAssist as a client (consume external MCP tools; authenticated MCP servers not yet supported)
 - [ ] Full project source sharing
 - [ ] Additional provider support
-- [ ] MCP (Model Context Protocol) support
 
 ## Support the development of QodeAssist
 If you find QodeAssist helpful, there are several ways you can support the project:
@@ -438,6 +476,11 @@ If you find QodeAssist helpful, there are several ways you can support the proje
    - USDT (TRC20): `THdZrE7d6epW6ry98GA3MLXRjha1DjKtUx`
 
 Every contribution, no matter how small, is greatly appreciated and helps keep the project alive!
+
+## Related Projects
+
+- **[LLMQore](https://github.com/Palm1r/llmqore)** — the standalone LLM-core library extracted from QodeAssist, reusable in other Qt/C++ projects
+- **[QodeAssistUpdater](https://github.com/Palm1r/QodeAssistUpdater)** — CLI installer/updater for the plugin
 
 ## How to Build
 

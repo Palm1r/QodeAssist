@@ -1,39 +1,23 @@
-/* 
- * Copyright (C) 2024-2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2024-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #pragma once
 
-#include "llmcore/PromptTemplate.hpp"
+#include "pluginllmcore/PromptTemplate.hpp"
 #include <QJsonArray>
 
 namespace QodeAssist::Templates {
 
-class Alpaca : public LLMCore::PromptTemplate
+class Alpaca : public PluginLLMCore::PromptTemplate
 {
 public:
     QString name() const override { return "Alpaca"; }
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
+    PluginLLMCore::TemplateType type() const override { return PluginLLMCore::TemplateType::Chat; }
     QStringList stopWords() const override
     {
         return QStringList() << "### Instruction:" << "### Response:";
     }
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
+    void prepareRequest(QJsonObject &request, const PluginLLMCore::ContextData &context) const override
     {
         QJsonArray messages;
 
@@ -72,14 +56,14 @@ public:
                "}\n\n"
                "Combines all messages into a single formatted prompt.";
     }
-    bool isSupportProvider(LLMCore::ProviderID id) const override
+    bool isSupportProvider(PluginLLMCore::ProviderID id) const override
     {
         switch (id) {
-        case LLMCore::ProviderID::Ollama:
-        case LLMCore::ProviderID::LMStudio:
-        case LLMCore::ProviderID::OpenRouter:
-        case LLMCore::ProviderID::OpenAICompatible:
-        case LLMCore::ProviderID::LlamaCpp:
+        case PluginLLMCore::ProviderID::Ollama:
+        case PluginLLMCore::ProviderID::LMStudio:
+        case PluginLLMCore::ProviderID::OpenRouter:
+        case PluginLLMCore::ProviderID::OpenAICompatible:
+        case PluginLLMCore::ProviderID::LlamaCpp:
             return true;
         default:
             return false;

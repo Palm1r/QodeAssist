@@ -34,7 +34,8 @@ add_definitions(
   -DQODEASSIST_QT_CREATOR_VERSION_PATCH=${QODEASSIST_QT_CREATOR_VERSION_PATCH}
 )
 
-add_subdirectory(llmcore)
+add_subdirectory(sources/external/llmqore)
+add_subdirectory(pluginllmcore)
 add_subdirectory(settings)
 add_subdirectory(logger)
 add_subdirectory(UIControls)
@@ -61,6 +62,8 @@ add_qtc_plugin(QodeAssist
     QtCreator::ExtensionSystem
     QtCreator::Utils
     QtCreator::CPlusPlus
+    LLMQore
+    PluginLLMCore
     QodeAssistChatViewplugin
   SOURCES
     .github/workflows/build_cmake.yml
@@ -78,8 +81,6 @@ add_qtc_plugin(QodeAssist
     templates/OpenAI.hpp
     templates/MistralAI.hpp
     templates/StarCoder2Fim.hpp
-    # templates/DeepSeekCoderFim.hpp
-    # templates/CustomFimTemplate.hpp
     templates/Qwen25CoderFIM.hpp
     templates/OpenAICompatible.hpp
     templates/Llama3.hpp
@@ -93,26 +94,18 @@ add_qtc_plugin(QodeAssist
     templates/OpenAIResponses.hpp
     providers/Providers.hpp
     providers/OllamaProvider.hpp providers/OllamaProvider.cpp
+    providers/OllamaCompatProvider.hpp providers/OllamaCompatProvider.cpp
     providers/ClaudeProvider.hpp providers/ClaudeProvider.cpp
     providers/OpenAIProvider.hpp providers/OpenAIProvider.cpp
     providers/MistralAIProvider.hpp providers/MistralAIProvider.cpp
     providers/LMStudioProvider.hpp providers/LMStudioProvider.cpp
+    providers/LMStudioResponsesProvider.hpp providers/LMStudioResponsesProvider.cpp
     providers/OpenAICompatProvider.hpp providers/OpenAICompatProvider.cpp
     providers/OpenRouterAIProvider.hpp providers/OpenRouterAIProvider.cpp
     providers/GoogleAIProvider.hpp providers/GoogleAIProvider.cpp
     providers/LlamaCppProvider.hpp providers/LlamaCppProvider.cpp
     providers/CodestralProvider.hpp providers/CodestralProvider.cpp
-    providers/OpenAIResponses/ModelRequest.hpp
-    providers/OpenAIResponses/ResponseObject.hpp
-    providers/OpenAIResponses/GetResponseRequest.hpp
-    providers/OpenAIResponses/DeleteResponseRequest.hpp
-    providers/OpenAIResponses/CancelResponseRequest.hpp
-    providers/OpenAIResponses/ListInputItemsRequest.hpp
-    providers/OpenAIResponses/InputTokensRequest.hpp
-    providers/OpenAIResponses/ItemTypesReference.hpp
-    providers/OpenAIResponsesRequestBuilder.hpp
     providers/OpenAIResponsesProvider.hpp providers/OpenAIResponsesProvider.cpp
-    providers/OpenAIResponsesMessage.hpp providers/OpenAIResponsesMessage.cpp
     QodeAssist.qrc
     LSPCompletion.hpp
     LLMSuggestion.hpp LLMSuggestion.cpp
@@ -141,23 +134,22 @@ add_qtc_plugin(QodeAssist
     widgets/DiffStatistics.hpp
 
     QuickRefactorHandler.hpp QuickRefactorHandler.cpp
-    tools/ToolsFactory.hpp tools/ToolsFactory.cpp
-    tools/ToolHandler.hpp tools/ToolHandler.cpp
+    tools/ToolsRegistration.hpp tools/ToolsRegistration.cpp
     tools/ListProjectFilesTool.hpp tools/ListProjectFilesTool.cpp
-    tools/ToolsManager.hpp tools/ToolsManager.cpp
     tools/GetIssuesListTool.hpp tools/GetIssuesListTool.cpp
     tools/CreateNewFileTool.hpp tools/CreateNewFileTool.cpp
     tools/EditFileTool.hpp tools/EditFileTool.cpp
     tools/BuildProjectTool.hpp tools/BuildProjectTool.cpp
     tools/ExecuteTerminalCommandTool.hpp tools/ExecuteTerminalCommandTool.cpp
     tools/ProjectSearchTool.hpp tools/ProjectSearchTool.cpp
-    tools/FindAndReadFileTool.hpp tools/FindAndReadFileTool.cpp
+    tools/FindFileTool.hpp tools/FindFileTool.cpp
+    tools/ReadFileTool.hpp tools/ReadFileTool.cpp
     tools/FileSearchUtils.hpp tools/FileSearchUtils.cpp
     tools/TodoTool.hpp tools/TodoTool.cpp
-    providers/ClaudeMessage.hpp providers/ClaudeMessage.cpp
-    providers/OpenAIMessage.hpp providers/OpenAIMessage.cpp
-    providers/OllamaMessage.hpp providers/OllamaMessage.cpp
-    providers/GoogleMessage.hpp providers/GoogleMessage.cpp
+    mcp/McpServerManager.hpp mcp/McpServerManager.cpp
+    mcp/McpServerConnection.hpp mcp/McpServerConnection.cpp
+    mcp/McpClientsManager.hpp mcp/McpClientsManager.cpp
+    settings/McpClientsListAspect.hpp settings/McpClientsListAspect.cpp
 )
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)

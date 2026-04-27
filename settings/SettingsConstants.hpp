@@ -1,21 +1,5 @@
-/* 
- * Copyright (C) 2024-2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2024-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #pragma once
 
@@ -35,7 +19,6 @@ const char CC_MODEL_HISTORY[] = "QodeAssist.ccModelHistory";
 const char CC_TEMPLATE[] = "QodeAssist.ccTemplate";
 const char CC_URL[] = "QodeAssist.ccUrl";
 const char CC_URL_HISTORY[] = "QodeAssist.ccUrlHistory";
-const char CC_ENDPOINT_MODE[] = "QodeAssist.ccEndpointMode";
 const char CC_CUSTOM_ENDPOINT[] = "QodeAssist.ccCustomEndpoint";
 const char CC_CUSTOM_ENDPOINT_HISTORY[] = "QodeAssist.ccCustomEndpointHistory";
 
@@ -45,7 +28,6 @@ const char CA_MODEL_HISTORY[] = "QodeAssist.caModelHistory";
 const char CA_TEMPLATE[] = "QodeAssist.caTemplate";
 const char CA_URL[] = "QodeAssist.caUrl";
 const char CA_URL_HISTORY[] = "QodeAssist.caUrlHistory";
-const char CA_ENDPOINT_MODE[] = "QodeAssist.caEndpointMode";
 const char CA_CUSTOM_ENDPOINT[] = "QodeAssist.caCustomEndpoint";
 const char CA_CUSTOM_ENDPOINT_HISTORY[] = "QodeAssist.caCustomEndpointHistory";
 
@@ -56,7 +38,6 @@ const char QR_MODEL_HISTORY[] = "QodeAssist.qrModelHistory";
 const char QR_TEMPLATE[] = "QodeAssist.qrTemplate";
 const char QR_URL[] = "QodeAssist.qrUrl";
 const char QR_URL_HISTORY[] = "QodeAssist.qrUrlHistory";
-const char QR_ENDPOINT_MODE[] = "QodeAssist.qrEndpointMode";
 const char QR_CUSTOM_ENDPOINT[] = "QodeAssist.qrCustomEndpoint";
 const char QR_CUSTOM_ENDPOINT_HISTORY[] = "QodeAssist.qrCustomEndpointHistory";
 
@@ -68,9 +49,8 @@ const char CC_PRESET1_MODEL_HISTORY[] = "QodeAssist.ccPreset1ModelHistory";
 const char CC_PRESET1_TEMPLATE[] = "QodeAssist.ccPreset1Template";
 const char CC_PRESET1_URL[] = "QodeAssist.ccPreset1Url";
 const char CC_PRESET1_URL_HISTORY[] = "QodeAssist.ccPreset1UrlHistory";
-const char CC_PRESET1_ENDPOINT_MODE[] = "QodeAssist.caPreset1EndpointMode";
-const char CC_PRESET1_CUSTOM_ENDPOINT[] = "QodeAssist.caPreset1CustomEndpointHistory";
-const char CC_PRESET1_CUSTOM_ENDPOINT_HISTORY[] = "QodeAssist.caPreset1CustomEndpointHistory";
+const char CC_PRESET1_CUSTOM_ENDPOINT[] = "QodeAssist.ccPreset1CustomEndpoint";
+const char CC_PRESET1_CUSTOM_ENDPOINT_HISTORY[] = "QodeAssist.ccPreset1CustomEndpointHistory";
 
 // settings
 const char ENABLE_QODE_ASSIST[] = "QodeAssist.enableQodeAssist";
@@ -85,6 +65,10 @@ const char СС_START_SUGGESTION_TIMER[] = "QodeAssist.startSuggestionTimer";
 const char СС_AUTO_COMPLETION_CHAR_THRESHOLD[] = "QodeAssist.autoCompletionCharThreshold";
 const char СС_AUTO_COMPLETION_TYPING_INTERVAL[] = "QodeAssist.autoCompletionTypingInterval";
 const char CC_COMPLETION_TRIGGER_MODE[] = "QodeAssist.ccCompletionTriggerMode";
+const char CC_COMPLETION_MODE[] = "QodeAssist.ccCompletionMode";
+const char CC_SMART_CONTEXT_TRIGGER[] = "QodeAssist.ccSmartContextTrigger";
+const char CC_RESPECT_QTC_POPUP[] = "QodeAssist.ccRespectQtcPopup";
+const char CC_CANCEL_ON_INPUT[] = "QodeAssist.ccCancelOnInput";
 const char CC_HINT_CHAR_THRESHOLD[] = "QodeAssist.ccHintCharThreshold";
 const char CC_HINT_HIDE_TIMEOUT[] = "QodeAssist.ccHintHideTimeout";
 const char CC_HINT_TRIGGER_KEY[] = "QodeAssist.ccHintTriggerKey";
@@ -93,7 +77,6 @@ const char CC_IGNORE_WHITESPACE_IN_CHAR_COUNT[] = "QodeAssist.ccIgnoreWhitespace
 const char MAX_FILE_THRESHOLD[] = "QodeAssist.maxFileThreshold";
 const char CC_MULTILINE_COMPLETION[] = "QodeAssist.ccMultilineCompletion";
 const char CC_MODEL_OUTPUT_HANDLER[] = "QodeAssist.ccModelOutputHandler";
-const char CUSTOM_JSON_TEMPLATE[] = "QodeAssist.customJsonTemplate";
 const char CA_AUTO_APPLY_FILE_EDITS[] = "QodeAssist.caAutoApplyFileEdits";
 const char CA_TOKENS_THRESHOLD[] = "QodeAssist.caTokensThreshold";
 const char CA_LINK_OPEN_FILES[] = "QodeAssist.caLinkOpenFiles";
@@ -104,18 +87,29 @@ const char CA_ENABLE_CHAT_IN_BOTTOM_TOOLBAR[] = "QodeAssist.caEnableChatInBottom
 const char CA_ENABLE_CHAT_IN_NAVIGATION_PANEL[] = "QodeAssist.caEnableChatInNavigationPanel";
 const char CA_ENABLE_CHAT_TOOLS[] = "QodeAssist.caEnableChatTools";
 const char CA_USE_TOOLS[] = "QodeAssist.caUseTools";
-const char CA_ALLOW_FILE_SYSTEM_READ[] = "QodeAssist.caAllowFileSystemRead";
-const char CA_ALLOW_FILE_SYSTEM_WRITE[] = "QodeAssist.caAllowFileSystemWrite";
-const char CA_ALLOW_NETWORK_ACCESS[] = "QodeAssist.caAllowNetworkAccess";
+const char TOOLS_MAX_CONTINUATIONS[] = "QodeAssist.toolsMaxContinuations";
 const char CA_ALLOW_ACCESS_OUTSIDE_PROJECT[] = "QodeAssist.caAllowAccessOutsideProject";
-const char CA_ENABLE_EDIT_FILE_TOOL[] = "QodeAssist.caEnableEditFileTool";
-const char CA_ENABLE_BUILD_PROJECT_TOOL[] = "QodeAssist.caEnableBuildProjectTool";
-const char CA_ENABLE_TERMINAL_COMMAND_TOOL[] = "QodeAssist.caEnableTerminalCommandTool";
-const char CA_ENABLE_TODO_TOOL[] = "QodeAssist.caEnableTodoTool";
+const char CA_ENABLE_LIST_PROJECT_FILES_TOOL[] = "QodeAssist.caEnableListProjectFilesTool";
+const char CA_ENABLE_FIND_FILE_TOOL[] = "QodeAssist.caEnableFindFileTool";
+const char CA_ENABLE_READ_FILE_TOOL[] = "QodeAssist.caEnableReadFileTool";
+const char CA_ENABLE_PROJECT_SEARCH_TOOL[] = "QodeAssist.caEnableProjectSearchTool";
+const char CA_ENABLE_CREATE_NEW_FILE_TOOL[] = "QodeAssist.caEnableCreateNewFileTool";
+const char CA_ENABLE_GET_ISSUES_LIST_TOOL[] = "QodeAssist.caEnableGetIssuesListTool";
+const char CA_ENABLE_EDIT_FILE_TOOL[] = "QodeAssist.caEnableEditFileToolV2";
+const char CA_ENABLE_BUILD_PROJECT_TOOL[] = "QodeAssist.caEnableBuildProjectToolV2";
+const char CA_ENABLE_TERMINAL_COMMAND_TOOL[] = "QodeAssist.caEnableTerminalCommandToolV2";
+const char CA_ENABLE_TODO_TOOL[] = "QodeAssist.caEnableTodoToolV2";
 const char CA_ALLOWED_TERMINAL_COMMANDS[] = "QodeAssist.caAllowedTerminalCommands";
 const char CA_ALLOWED_TERMINAL_COMMANDS_LINUX[] = "QodeAssist.caAllowedTerminalCommandsLinux";
 const char CA_ALLOWED_TERMINAL_COMMANDS_MACOS[] = "QodeAssist.caAllowedTerminalCommandsMacOS";
 const char CA_ALLOWED_TERMINAL_COMMANDS_WINDOWS[] = "QodeAssist.caAllowedTerminalCommandsWindows";
+const char CA_TERMINAL_COMMAND_TIMEOUT[] = "QodeAssist.caTerminalCommandTimeout";
+
+// MCP server settings
+const char MCP_ENABLE_SERVER[] = "QodeAssist.mcpEnableServer";
+const char MCP_SERVER_PORT[] = "QodeAssist.mcpServerPort";
+const char MCP_ENABLE_CLIENTS[] = "QodeAssist.mcpEnableClients";
+const char MCP_CLIENT_EXTRA_PATHS[] = "QodeAssist.mcpClientExtraPaths";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
 const char QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID[] = "QodeAssist.1GeneralSettingsPageId";
@@ -126,7 +120,7 @@ const char QODE_ASSIST_CHAT_ASSISTANT_SETTINGS_PAGE_ID[]
 const char QODE_ASSIST_QUICK_REFACTOR_SETTINGS_PAGE_ID[]
     = "QodeAssist.4QuickRefactorSettingsPageId";
 const char QODE_ASSIST_TOOLS_SETTINGS_PAGE_ID[] = "QodeAssist.5ToolsSettingsPageId";
-const char QODE_ASSIST_CUSTOM_PROMPT_SETTINGS_PAGE_ID[] = "QodeAssist.6CustomPromptSettingsPageId";
+const char QODE_ASSIST_MCP_SETTINGS_PAGE_ID[] = "QodeAssist.6McpSettingsPageId";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_CATEGORY[] = "QodeAssist.Category";
 const char QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY[] = "QodeAssist";
@@ -151,6 +145,8 @@ const char GOOGLE_AI_API_KEY[] = "QodeAssist.googleAiApiKey";
 const char GOOGLE_AI_API_KEY_HISTORY[] = "QodeAssist.googleAiApiKeyHistory";
 const char OLLAMA_BASIC_AUTH_API_KEY[] = "QodeAssist.ollamaBasicAuthApiKey";
 const char OLLAMA_BASIC_AUTH_API_KEY_HISTORY[] = "QodeAssist.ollamaBasicAuthApiKeyHistory";
+const char LLAMA_CPP_API_KEY[] = "QodeAssist.llamaCppApiKey";
+const char LLAMA_CPP_API_KEY_HISTORY[] = "QodeAssist.llamaCppApiKeyHistory";
 
 // context settings
 const char CC_READ_FULL_FILE[] = "QodeAssist.ccReadFullFile";

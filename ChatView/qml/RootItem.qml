@@ -1,21 +1,5 @@
-/*
- * Copyright (C) 2024-2026 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2024-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 import QtQuick
 import QtQuick.Controls
@@ -78,7 +62,22 @@ ChatRootView {
         }
     }
 
+    QoABusyOverlay {
+        id: compressingOverlay
+
+        z: 50
+
+        anchors.fill: mainColumn
+        anchors.topMargin: topBar.height
+        anchors.bottomMargin: bottomBar.height
+
+        active: root.isCompressing
+        text: qsTr("Compressing chat…")
+    }
+
     ColumnLayout {
+        id: mainColumn
+
         anchors.fill: parent
         spacing: 0
 
@@ -88,12 +87,9 @@ ChatRootView {
             Layout.preferredWidth: parent.width
             Layout.preferredHeight: childrenRect.height + 10
 
-            isCompressing: root.isCompressing
             saveButton.onClicked: root.showSaveDialog()
             loadButton.onClicked: root.showLoadDialog()
             clearButton.onClicked: root.clearChat()
-            compressButton.onClicked: compressConfirmDialog.open()
-            cancelCompressButton.onClicked: root.cancelCompression()
             tokensBadge {
                 text: qsTr("%1/%2").arg(root.inputTokensCount).arg(root.chatModel.tokensThreshold)
             }
@@ -493,12 +489,16 @@ ChatRootView {
             Layout.preferredWidth: parent.width
             Layout.preferredHeight: 40
 
+            isCompressing: root.isCompressing
             sendButton.onClicked: !root.isRequestInProgress ? root.sendChatMessage()
                                                             : root.cancelRequest()
             sendButton.icon.source: !root.isRequestInProgress ? "qrc:/qt/qml/ChatView/icons/chat-icon.svg"
                                                               : "qrc:/qt/qml/ChatView/icons/chat-pause-icon.svg"
+            sendButton.text: !root.isRequestInProgress ? qsTr("Send") : qsTr("Stop")
             sendButton.ToolTip.text: !root.isRequestInProgress ? qsTr("Send message to LLM %1").arg(Qt.platform.os === "osx" ? "Cmd+Return" : "Ctrl+Return")
                                                                : qsTr("Stop")
+            compressButton.onClicked: compressConfirmDialog.open()
+            cancelCompressButton.onClicked: root.cancelCompression()
             syncOpenFiles {
                 checked: root.isSyncOpenFiles
                 onCheckedChanged: root.setIsSyncOpenFiles(bottomBar.syncOpenFiles.checked)
@@ -514,11 +514,8 @@ ChatRootView {
 
         sequences: ["Ctrl+Return", "Ctrl+Enter"]
         context: Qt.WindowShortcut
-        onActivated: {
-            if (messageInput.activeFocus && !Qt.inputMethod.visible && !fileMentionPopup.visible) {
-                root.sendChatMessage()
-            }
-        }
+        enabled: messageInput.activeFocus && !Qt.inputMethod.visible && !fileMentionPopup.visible
+        onActivated: root.sendChatMessage()
     }
 
     function clearChat() {

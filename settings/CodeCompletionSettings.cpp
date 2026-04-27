@@ -1,21 +1,5 @@
-/* 
- * Copyright (C) 2024-2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2024-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "CodeCompletionSettings.hpp"
 
@@ -74,6 +58,45 @@ CodeCompletionSettings::CodeCompletionSettings()
     completionTriggerMode.setToolTip(
         Tr::tr("Hint-based: Shows a hint when typing, press Tab to request completion\n"
                "Automatic: Automatically requests completion after typing threshold"));
+
+    completionMode.setLabelText(Tr::tr("Completion mode:"));
+    completionMode.setSettingsKey(Constants::CC_COMPLETION_MODE);
+    completionMode.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+    completionMode.addOption("Automatic");
+    completionMode.addOption("Manual");
+    completionMode.setDefaultValue("Automatic");
+    completionMode.setToolTip(
+        Tr::tr("Automatic: requests completion while typing (with smart context gates).\n"
+               "Manual: no auto-triggering; invoke via the 'Request QodeAssist Suggestion' "
+               "shortcut (default Ctrl+Alt+Q, reconfigurable in Preferences > Keyboard)."));
+
+    smartContextTrigger.setSettingsKey(Constants::CC_SMART_CONTEXT_TRIGGER);
+    smartContextTrigger.setLabelText(Tr::tr("Smart context-aware triggering"));
+    smartContextTrigger.setDefaultValue(true);
+    smartContextTrigger.setToolTip(
+        Tr::tr("When enabled, auto-completion is suppressed in places where Qt Creator's built-in "
+               "completion is usually stronger (middle of an identifier, right after '.', '->', "
+               "'::') and is triggered more eagerly after structural characters like '(', ',', "
+               "'{', '=' and on fresh indented lines."));
+
+    respectQtcPopup.setSettingsKey(Constants::CC_RESPECT_QTC_POPUP);
+    respectQtcPopup.setLabelText(Tr::tr("Don't dismiss Qt Creator's completion popup"));
+    respectQtcPopup.setDefaultValue(true);
+    respectQtcPopup.setToolTip(
+        Tr::tr("When enabled, an AI completion arriving while Qt Creator's own completion popup "
+               "is already visible will not force it closed. The LLM suggestion still appears "
+               "inline."));
+
+    cancelOnInput.setSettingsKey(Constants::CC_CANCEL_ON_INPUT);
+    cancelOnInput.setLabelText(Tr::tr("Cancel in-flight request on new input"));
+    cancelOnInput.setDefaultValue(false);
+    cancelOnInput.setToolTip(
+        Tr::tr("When enabled, every new keystroke cancels any completion request already in "
+               "flight and restarts the debounce timer. Useful for slow local models where an "
+               "outdated answer is rarely worth waiting for.\n"
+               "When disabled (default), the in-flight request is kept; when the answer arrives, "
+               "the plugin compares it with characters typed in the meantime and either trims "
+               "the matching prefix or drops the answer."));
 
     startSuggestionTimer.setSettingsKey(Constants::СС_START_SUGGESTION_TIMER);
     startSuggestionTimer.setLabelText(Tr::tr("with delay(ms)"));
@@ -324,6 +347,8 @@ CodeCompletionSettings::CodeCompletionSettings()
 
     readSettings();
 
+    migrateCompletionMode();
+
     readFileParts.setValue(!readFullFile.value());
 
     setupConnections();
@@ -370,30 +395,27 @@ CodeCompletionSettings::CodeCompletionSettings()
             autoCompletion,
             multiLineCompletion,
             Row{modelOutputHandler, Stretch{1}},
-            Row{completionTriggerMode, Stretch{1}},
+            Row{completionMode, Stretch{1}},
             showProgressWidget,
             useOpenFilesContext,
+            respectQtcPopup,
+            cancelOnInput,
             abortAssistOnRequest,
             ignoreWhitespaceInCharCount};
 
         auto autoTriggerSettings = Column{
+            smartContextTrigger,
             Row{autoCompletionCharThreshold,
                 autoCompletionTypingInterval,
                 startSuggestionTimer,
                 Stretch{1}}};
-
-        auto hintTriggerSettings = Column{
-            Row{hintCharThreshold, hintHideTimeout, Stretch{1}},
-            Row{hintTriggerKey, Stretch{1}}};
 
         return Column{Row{Stretch{1}, resetToDefaults},
                       Space{8},
                       Group{title(TrConstants::AUTO_COMPLETION_SETTINGS),
                             Column{Group{title(Tr::tr("General Settings")), generalSettings},
                                    Space{8},
-                                   Group{title(Tr::tr("Automatic Trigger Mode")), autoTriggerSettings},
-                                   Space{8},
-                                   Group{title(Tr::tr("Hint-based Trigger Mode")), hintTriggerSettings}}},
+                                   Group{title(Tr::tr("Automatic Trigger Mode")), autoTriggerSettings}}},
                       Space{8},
                       Group{title(Tr::tr("General Parameters")),
                             Column{
@@ -476,6 +498,10 @@ void CodeCompletionSettings::resetSettingsToDefaults()
         resetAspect(useOpenFilesContext);
         resetAspect(modelOutputHandler);
         resetAspect(completionTriggerMode);
+        resetAspect(completionMode);
+        resetAspect(smartContextTrigger);
+        resetAspect(respectQtcPopup);
+        resetAspect(cancelOnInput);
         resetAspect(hintCharThreshold);
         resetAspect(hintHideTimeout);
         resetAspect(hintTriggerKey);
@@ -483,6 +509,21 @@ void CodeCompletionSettings::resetSettingsToDefaults()
         resetAspect(abortAssistOnRequest);
         writeSettings();
     }
+}
+
+void CodeCompletionSettings::migrateCompletionMode()
+{
+    auto *qtcSettings = Core::ICore::settings();
+    if (!qtcSettings || qtcSettings->contains(Constants::CC_COMPLETION_MODE))
+        return;
+
+    const QString oldMode = completionTriggerMode.stringValue();
+    if (oldMode.startsWith("Hint"))
+        completionMode.setStringValue("Manual");
+    else
+        completionMode.setStringValue("Automatic");
+
+    writeSettings();
 }
 
 QString CodeCompletionSettings::processMessageToFIM(const QString &prefix, const QString &suffix) const

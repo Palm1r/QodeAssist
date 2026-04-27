@@ -1,21 +1,5 @@
-/* 
- * Copyright (C) 2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2025-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "GetIssuesListTool.hpp"
 
@@ -121,24 +105,25 @@ GetIssuesListTool::GetIssuesListTool(QObject *parent)
     IssuesTracker::instance();
 }
 
-QString GetIssuesListTool::name() const
+QString GetIssuesListTool::id() const
 {
     return "get_issues_list";
 }
 
-QString GetIssuesListTool::stringName() const
+QString GetIssuesListTool::displayName() const
 {
     return "Getting issues list from Qt Creator";
 }
 
 QString GetIssuesListTool::description() const
 {
-    return "Get compilation errors, warnings, and diagnostics from Qt Creator's Issues panel. "
-           "Returns issue descriptions with file paths and line numbers. "
-           "Optional severity filter: 'error', 'warning', or 'all' (default).";
+    return "Read diagnostics from Qt Creator's Issues panel, including the latest build output and "
+           "live clang-codemodel warnings/errors for open files. Each issue includes file path, "
+           "line number, severity, and message. Run `build_project` first if you need fresh build "
+           "diagnostics.";
 }
 
-QJsonObject GetIssuesListTool::getDefinition(LLMCore::ToolSchemaFormat format) const
+QJsonObject GetIssuesListTool::parametersSchema() const
 {
     QJsonObject definition;
     definition["type"] = "object";
@@ -152,35 +137,19 @@ QJsonObject GetIssuesListTool::getDefinition(LLMCore::ToolSchemaFormat format) c
     definition["properties"] = properties;
     definition["required"] = QJsonArray();
 
-    switch (format) {
-    case LLMCore::ToolSchemaFormat::OpenAI:
-        return customizeForOpenAI(definition);
-    case LLMCore::ToolSchemaFormat::Claude:
-        return customizeForClaude(definition);
-    case LLMCore::ToolSchemaFormat::Ollama:
-        return customizeForOllama(definition);
-    case LLMCore::ToolSchemaFormat::Google:
-        return customizeForGoogle(definition);
-    }
-
     return definition;
 }
 
-LLMCore::ToolPermissions GetIssuesListTool::requiredPermissions() const
+QFuture<LLMQore::ToolResult> GetIssuesListTool::executeAsync(const QJsonObject &input)
 {
-    return LLMCore::ToolPermission::FileSystemRead;
-}
-
-QFuture<QString> GetIssuesListTool::executeAsync(const QJsonObject &input)
-{
-    return QtConcurrent::run([input]() -> QString {
+    return QtConcurrent::run([input]() -> LLMQore::ToolResult {
 
         QString severityFilter = input.value("severity").toString("all");
 
         const auto tasks = IssuesTracker::instance().getTasks();
 
         if (tasks.isEmpty()) {
-            return "No issues found in Qt Creator Issues panel.";
+            return LLMQore::ToolResult::text("No issues found in Qt Creator Issues panel.");
         }
 
         QStringList results;
@@ -251,7 +220,7 @@ QFuture<QString> GetIssuesListTool::executeAsync(const QJsonObject &input)
                               .arg(processedCount);
         results.prepend(summary);
 
-        return results.join("\n\n");
+        return LLMQore::ToolResult::text(results.join("\n\n"));
     });
 }
 

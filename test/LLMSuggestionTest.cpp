@@ -1,21 +1,5 @@
-/*
- * Copyright (C) 2024-2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2024-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "LLMSuggestion.hpp"
 #include "TestUtils.hpp"
@@ -31,127 +15,97 @@ class LLMSuggestionTest : public QObject, public testing::Test
     Q_OBJECT
 };
 
-// Basic tests
-TEST_F(LLMSuggestionTest, testCalculateReplaceLengthEmptyRight)
+// Degenerate / no-op cases
+TEST_F(LLMSuggestionTest, emptyRight)
 {
-    int result = LLMSuggestion::calculateReplaceLength("foo", "", "foo");
-    EXPECT_EQ(result, 0); // No rightText to replace
+    EXPECT_EQ(LLMSuggestion::calculateReplaceLength("foo", ""), 0);
 }
 
-TEST_F(LLMSuggestionTest, testCalculateReplaceLengthNoOverlap)
+TEST_F(LLMSuggestionTest, noOverlap)
 {
-    // No structural or token overlap
-    int result = LLMSuggestion::calculateReplaceLength("foo", "bar", "foobar");
-    EXPECT_EQ(result, 0); // Just insert, don't replace
+    EXPECT_EQ(LLMSuggestion::calculateReplaceLength("foo", "bar"), 0);
 }
 
-// Structural overlap tests
-TEST_F(LLMSuggestionTest, testCalculateReplaceLengthStructuralBraces)
+TEST_F(LLMSuggestionTest, singleCharNoOverlap)
 {
-    // suggestion contains {}, rightText contains {}
-    int result = LLMSuggestion::calculateReplaceLength("= {\"red\"}", "{};", "colors{};");
-    EXPECT_EQ(result, 3); // Replace all rightText
+    EXPECT_EQ(LLMSuggestion::calculateReplaceLength("a", "b"), 0);
 }
 
-TEST_F(LLMSuggestionTest, testCalculateReplaceLengthStructuralSemicolon)
+// LCP: model echoed the existing right side as its own prefix
+TEST_F(LLMSuggestionTest, lcpExtendsRight)
 {
-    // suggestion contains ;, rightText contains ;
-    int result = LLMSuggestion::calculateReplaceLength("x;", ";", "int x;");
-    EXPECT_EQ(result, 1); // Replace the ;
+    // cursor: int |myVariable ; suggestion echoes "myVar" then adds nothing.
+    // LCP=5, remainder "iable" not a closing tail -> replace 5.
+    EXPECT_EQ(LLMSuggestion::calculateReplaceLength("myVar", "myVariable"), 5);
 }
 
-TEST_F(LLMSuggestionTest, testCalculateReplaceLengthStructuralParens)
+TEST_F(LLMSuggestionTest, lcpPartialEngineCall)
 {
-    // suggestion contains (), rightText contains )
-    int result = LLMSuggestion::calculateReplaceLength("arg1, arg2)", ")", "foo(arg1, arg2)");
-    EXPECT_EQ(result, 1); // Replace the )
+    // cursor: |engine.rootContext() ; suggestion: engine.load()
+    // LCP="engine." (7); remainder "rootContext()" is not closing-only -> keep LCP
+    EXPECT_EQ(LLMSuggestion::calculateReplaceLength("engine.load()", "engine.rootContext()"), 7);
 }
 
-TEST_F(LLMSuggestionTest, testCalculateReplaceLengthStructuralBrackets)
+// LCP + closing-only tail: extend to full right
+TEST_F(LLMSuggestionTest, lcpThenClosingTailExtendsFull)
 {
-    // suggestion contains [], rightText contains ]
-    int result = LLMSuggestion::calculateReplaceLength("[0]", "];", "arr[0];");
-    EXPECT_EQ(result, 2); // Replace ];
+    // cursor: QStringList |colors{}; ; suggestion: colors << "red"
+    // LCP=6 ("colors"); remainder "{};" is punctuation -> replace all (9)
+    EXPECT_EQ(LLMSuggestion::calculateReplaceLength("colors << \"red\"", "colors{};"), 9);
 }
 
-// Token overlap tests
-TEST_F(LLMSuggestionTest, testCalculateReplaceLengthCommonToken)
+// LCP=0, right is closing-only, suggestion ends with a matching closer -> replace full right
+TEST_F(LLMSuggestionTest, closingTailReplaceSemicolon)
 {
-    // suggestion contains "colors", entireLine contains "colors"
-    int result = LLMSuggestion::calculateReplaceLength("colors << \"red\"", "colors{};", "QStringList colors{};");
-    EXPECT_EQ(result, 9); // Replace all rightText due to common token
+    EXPECT_EQ(LLMSuggestion::calculateReplaceLength("x;", ";"), 1);
 }
 
-TEST_F(LLMSuggestionTest, testCalculateReplaceLengthMultipleCommonTokens)
+TEST_F(LLMSuggestionTest, closingTailReplaceParen)
 {
-    // Multiple tokens in common
-    int result = LLMSuggestion::calculateReplaceLength("engine.load()", "engine.rootContext()", "QmlEngine engine.rootContext()");
-    EXPECT_EQ(result, 20); // Replace all rightText
+    EXPECT_EQ(LLMSuggestion::calculateReplaceLength("arg1, arg2)", ")"), 1);
 }
 
-// Real-world scenarios
-TEST_F(LLMSuggestionTest, testCursorInBraces)
+TEST_F(LLMSuggestionTest, closingTailReplaceBrackets)
 {
-    // Cursor in braces: QStringList colors{<cursor>};
-    // LLM sends: "\"red\", \"green\"", rightText: "};"
-    // No common tokens ("red" and "green" are strings, not identifiers in entireLine)
-    // No structural overlap (suggestion doesn't contain } or ;)
-    int result = LLMSuggestion::calculateReplaceLength("\"red\", \"green\"", "};", "QStringList colors{};");
-    EXPECT_EQ(result, 0); // No overlap, just insert
+    EXPECT_EQ(LLMSuggestion::calculateReplaceLength("[0]", "];"), 2);
 }
 
-TEST_F(LLMSuggestionTest, testCursorBeforeBraces)
+TEST_F(LLMSuggestionTest, closingTailReplaceBracesAndSemi)
 {
-    // Cursor before braces: QStringList colors<cursor>{};
-    // LLM sends: " = {\"red\"}", rightText: "{};"
-    int result = LLMSuggestion::calculateReplaceLength(" = {\"red\"}", "{};", "QStringList colors{};");
-    EXPECT_EQ(result, 3); // Structural overlap - replace all
+    // cursor: colors|{}; ; suggestion: = {"red"}
+    // LCP=0; right "{};" is closing-only; suggestion ends on "}" which is in right -> replace 3
+    EXPECT_EQ(LLMSuggestion::calculateReplaceLength("= {\"red\"}", "{};"), 3);
 }
 
-TEST_F(LLMSuggestionTest, testCursorAfterType)
+TEST_F(LLMSuggestionTest, closingTailWithLeadingSpace)
 {
-    // Cursor after type: QStringList <cursor>colors{};
-    // LLM sends: "colors << \"red\"", rightText: "colors{};"
-    int result = LLMSuggestion::calculateReplaceLength("colors << \"red\"", "colors{};", "QStringList colors{};");
-    EXPECT_EQ(result, 9); // Common token - replace all
+    EXPECT_EQ(LLMSuggestion::calculateReplaceLength(" = {\"red\"}", "{};"), 3);
 }
 
-TEST_F(LLMSuggestionTest, testCursorInMiddleNoConflict)
+TEST_F(LLMSuggestionTest, closingTailEqualsSemi)
 {
-    // Cursor in middle: int <cursor>myVar = 5;
-    // LLM sends: "myVar", rightText: " = 5;", entireLine: "int myVar = 5;"
-    // "myVar" is a common token -> replace rightText
-    int result = LLMSuggestion::calculateReplaceLength("myVar", " = 5;", "int myVar = 5;");
-    EXPECT_EQ(result, 5); // Common token found, replace all rightText
+    EXPECT_EQ(LLMSuggestion::calculateReplaceLength("= 5;", ";"), 1);
 }
 
-TEST_F(LLMSuggestionTest, testCursorWithEqualsSign)
+// LCP=0, right is closing-only but suggestion does not end on any of its chars -> leave right alone
+TEST_F(LLMSuggestionTest, closingTailNoMatchingClose)
 {
-    // LLM sends code with = and ;
-    int result = LLMSuggestion::calculateReplaceLength("= 5;", ";", "int x;");
-    EXPECT_EQ(result, 1); // Structural overlap on ;
+    // right "};" closes; suggestion ends on '"' (not in close set) -> 0
+    EXPECT_EQ(LLMSuggestion::calculateReplaceLength("\"red\", \"green\"", "};"), 0);
 }
 
-// Edge cases
-TEST_F(LLMSuggestionTest, testNoStructuralButHasToken)
+// Right side has real code (not closing-only) and no LCP -> leave it alone
+TEST_F(LLMSuggestionTest, realCodeRightNoLcp)
 {
-    // Token overlap but no structural
-    int result = LLMSuggestion::calculateReplaceLength("myVar", "myVariable", "int myVariable");
-    EXPECT_EQ(result, 0); // No structural overlap, tokens too different (length > 1 check)
+    // cursor: int |myVar = 5; ; suggestion: myVar
+    // LCP=0, right " = 5;" is not closing-only (has '5') -> 0
+    EXPECT_EQ(LLMSuggestion::calculateReplaceLength("myVar", " = 5;"), 0);
 }
 
-TEST_F(LLMSuggestionTest, testOnlyWhitespace)
+// Trailing whitespace is not treated as a closer, suggestion has no closer -> leave alone
+TEST_F(LLMSuggestionTest, trailingWhitespaceOnlyLeftAlone)
 {
-    // rightText is just whitespace, but "code" is common token
-    int result = LLMSuggestion::calculateReplaceLength("code", "   ", "code   ");
-    EXPECT_EQ(result, 3); // Common token "code", replace rightText
-}
-
-TEST_F(LLMSuggestionTest, testSingleCharTokenIgnored)
-{
-    // Tokens must be > 1 character
-    int result = LLMSuggestion::calculateReplaceLength("a", "b", "ab");
-    EXPECT_EQ(result, 0); // Single char tokens ignored
+    EXPECT_EQ(LLMSuggestion::calculateReplaceLength("code", "   "), 0);
 }
 
 #include "LLMSuggestionTest.moc"

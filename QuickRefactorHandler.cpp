@@ -1,40 +1,25 @@
-/*
- * Copyright (C) 2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2025-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "QuickRefactorHandler.hpp"
 
+#include <LLMQore/BaseClient.hpp>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QUuid>
 
 #include <context/DocumentContextReader.hpp>
-#include <llmcore/ResponseCleaner.hpp>
+#include <pluginllmcore/ResponseCleaner.hpp>
 #include <context/DocumentReaderQtCreator.hpp>
 #include <context/Utils.hpp>
-#include <llmcore/PromptTemplateManager.hpp>
-#include <llmcore/ProvidersManager.hpp>
-#include <llmcore/RequestConfig.hpp>
-#include <llmcore/RulesLoader.hpp>
+#include <pluginllmcore/PromptTemplateManager.hpp>
+#include <pluginllmcore/ProvidersManager.hpp>
+#include <pluginllmcore/RulesLoader.hpp>
 #include <logger/Logger.hpp>
 #include <settings/ChatAssistantSettings.hpp>
 #include <settings/GeneralSettings.hpp>
 #include <settings/QuickRefactorSettings.hpp>
+#include <settings/ToolsSettings.hpp>
 
 namespace QodeAssist {
 
@@ -109,8 +94,8 @@ void QuickRefactorHandler::prepareAndSendRequest(
 {
     auto &settings = Settings::generalSettings();
 
-    auto &providerRegistry = LLMCore::ProvidersManager::instance();
-    auto &promptManager = LLMCore::PromptTemplateManager::instance();
+    auto &providerRegistry = PluginLLMCore::ProvidersManager::instance();
+    auto &promptManager = PluginLLMCore::PromptTemplateManager::instance();
 
     const auto providerName = settings.qrProvider();
     auto provider = providerRegistry.getProviderByName(providerName);
@@ -140,70 +125,57 @@ void QuickRefactorHandler::prepareAndSendRequest(
         return;
     }
 
-    LLMCore::LLMConfig config;
-    config.requestType = LLMCore::RequestType::QuickRefactoring;
-    config.provider = provider;
-    config.promptTemplate = promptTemplate;
-    config.url = QString("%1%2").arg(settings.qrUrl(), provider->chatEndpoint());
-    config.apiKey = provider->apiKey();
+    QJsonObject payload{
+        {"model", Settings::generalSettings().qrModel()}, {"stream", true}};
 
-    if (provider->providerID() == LLMCore::ProviderID::GoogleAI) {
-        QString stream = QString{"streamGenerateContent?alt=sse"};
-        config.url = QUrl(QString("%1/models/%2:%3")
-                              .arg(
-                                  Settings::generalSettings().qrUrl(),
-                                  Settings::generalSettings().qrModel(),
-                                  stream));
-    } else {
-        config.url
-            = QString("%1%2").arg(Settings::generalSettings().qrUrl(), provider->chatEndpoint());
-        config.providerRequest
-            = {{"model", Settings::generalSettings().qrModel()}, {"stream", true}};
-    }
-
-    LLMCore::ContextData context = prepareContext(editor, range, instructions);
+    PluginLLMCore::ContextData context = prepareContext(editor, range, instructions);
 
     bool enableTools = Settings::quickRefactorSettings().useTools();
     bool enableThinking = Settings::quickRefactorSettings().useThinking();
     provider->prepareRequest(
-        config.providerRequest,
+        payload,
         promptTemplate,
         context,
-        LLMCore::RequestType::QuickRefactoring,
+        PluginLLMCore::RequestType::QuickRefactoring,
         enableTools,
         enableThinking);
 
-    QString requestId = QUuid::createUuid().toString();
-    m_lastRequestId = requestId;
-    QJsonObject request{{"id", requestId}};
+    provider->client()->setMaxToolContinuations(
+        Settings::toolsSettings().maxToolContinuations());
 
     m_isRefactoringInProgress = true;
 
-    m_activeRequests[requestId] = {request, provider};
-
     connect(
-        provider,
-        &LLMCore::Provider::fullResponseReceived,
+        provider->client(),
+        &::LLMQore::BaseClient::requestCompleted,
         this,
         &QuickRefactorHandler::handleFullResponse,
         Qt::UniqueConnection);
 
     connect(
-        provider,
-        &LLMCore::Provider::requestFailed,
+        provider->client(),
+        &::LLMQore::BaseClient::requestFailed,
         this,
         &QuickRefactorHandler::handleRequestFailed,
         Qt::UniqueConnection);
 
-    provider->sendRequest(requestId, config.url, config.providerRequest);
+    const QString customEndpoint = Settings::generalSettings().qrCustomEndpoint();
+    const QString endpoint = !customEndpoint.isEmpty() ? customEndpoint
+                                                       : promptTemplate->endpoint();
+    auto requestId
+        = provider->sendRequest(QUrl(Settings::generalSettings().qrUrl()), payload, endpoint);
+    m_lastRequestId = requestId;
+    QJsonObject request{{"id", requestId}};
+
+    m_activeRequests[requestId] = {request, provider};
 }
 
-LLMCore::ContextData QuickRefactorHandler::prepareContext(
+PluginLLMCore::ContextData QuickRefactorHandler::prepareContext(
     TextEditor::TextEditorWidget *editor,
     const Utils::Text::Range &range,
     const QString &instructions)
 {
-    LLMCore::ContextData context;
+    PluginLLMCore::ContextData context;
 
     auto textDocument = editor->textDocument();
     Context::DocumentReaderQtCreator documentReader;
@@ -287,10 +259,10 @@ LLMCore::ContextData QuickRefactorHandler::prepareContext(
 
     QString systemPrompt = Settings::quickRefactorSettings().systemPrompt();
 
-    auto project = LLMCore::RulesLoader::getActiveProject();
+    auto project = PluginLLMCore::RulesLoader::getActiveProject();
     if (project) {
-        QString projectRules = LLMCore::RulesLoader::loadRulesForProject(
-            project, LLMCore::RulesContext::QuickRefactor);
+        QString projectRules = PluginLLMCore::RulesLoader::loadRulesForProject(
+            project, PluginLLMCore::RulesContext::QuickRefactor);
 
         if (!projectRules.isEmpty()) {
             systemPrompt += "\n\n# Project Rules\n\n" + projectRules;
@@ -368,7 +340,7 @@ LLMCore::ContextData QuickRefactorHandler::prepareContext(
 
     context.systemPrompt = systemPrompt;
 
-    QVector<LLMCore::Message> messages;
+    QVector<PluginLLMCore::Message> messages;
     messages.append(
         {"user",
          instructions.isEmpty() ? "Refactor the code to improve its quality and maintainability."
@@ -387,7 +359,7 @@ void QuickRefactorHandler::handleLLMResponse(
 
     if (isComplete) {
         m_isRefactoringInProgress = false;
-        QString cleanedResponse = LLMCore::ResponseCleaner::clean(response);
+        QString cleanedResponse = PluginLLMCore::ResponseCleaner::clean(response);
 
         RefactorResult result;
         result.newText = cleanedResponse;

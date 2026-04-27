@@ -1,21 +1,5 @@
-/*
- * Copyright (C) 2024-2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2024-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 import QtQuick
 import QtQuick.Controls
@@ -31,6 +15,10 @@ Rectangle {
     property alias attachFiles: attachFilesId
     property alias attachImages: attachImagesId
     property alias linkFiles: linkFilesId
+    property alias compressButton: compressButtonId
+    property alias cancelCompressButton: cancelCompressButtonId
+
+    property bool isCompressing: false
 
     color: palette.window.hslLightness > 0.5 ?
                Qt.darker(palette.window, 1.1) :
@@ -48,17 +36,6 @@ Rectangle {
         }
 
         spacing: 10
-
-        QoAButton {
-            id: sendButtonId
-
-            icon {
-                height: 15
-                width: 15
-            }
-            ToolTip.visible: hovered
-            ToolTip.delay: 250
-        }
 
         QoAButton {
             id: attachFilesId
@@ -110,6 +87,67 @@ Rectangle {
 
         Item {
             Layout.fillWidth: true
+        }
+
+        Row {
+            id: compressingRow
+
+            visible: root.isCompressing
+            spacing: 6
+
+            BusyIndicator {
+                id: compressBusyIndicator
+
+                anchors.verticalCenter: parent.verticalCenter
+                running: root.isCompressing
+                width: 16
+                height: 16
+            }
+
+            Text {
+                text: qsTr("Compressing...")
+                anchors.verticalCenter: parent.verticalCenter
+                color: palette.text
+                font.pixelSize: 12
+            }
+
+            QoAButton {
+                id: cancelCompressButtonId
+
+                anchors.verticalCenter: parent.verticalCenter
+                text: qsTr("Cancel")
+
+                ToolTip.visible: hovered
+                ToolTip.delay: 250
+                ToolTip.text: qsTr("Cancel compression")
+            }
+        }
+
+        QoAButton {
+            id: compressButtonId
+
+            visible: !root.isCompressing
+            text: qsTr("Compress")
+
+            icon {
+                source: "qrc:/qt/qml/ChatView/icons/compress-icon.svg"
+                height: 15
+                width: 15
+            }
+            ToolTip.visible: hovered
+            ToolTip.delay: 250
+            ToolTip.text: qsTr("Compress chat (create summarized copy using LLM)")
+        }
+
+        QoAButton {
+            id: sendButtonId
+
+            icon {
+                height: 15
+                width: 15
+            }
+            ToolTip.visible: hovered
+            ToolTip.delay: 250
         }
     }
 }

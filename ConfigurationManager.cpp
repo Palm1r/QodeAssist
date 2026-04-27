@@ -1,21 +1,5 @@
-/*
- * Copyright (C) 2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2025-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "ConfigurationManager.hpp"
 
@@ -41,7 +25,7 @@ void ConfigurationManager::init()
 
 void ConfigurationManager::updateTemplateDescription(const Utils::StringAspect &templateAspect)
 {
-    LLMCore::PromptTemplate *templ = m_templateManger.getFimTemplateByName(templateAspect.value());
+    PluginLLMCore::PromptTemplate *templ = m_templateManger.getFimTemplateByName(templateAspect.value());
 
     if (!templ) {
         return;
@@ -65,7 +49,7 @@ void ConfigurationManager::updateAllTemplateDescriptions()
 
 void ConfigurationManager::checkTemplate(const Utils::StringAspect &templateAspect)
 {
-    LLMCore::PromptTemplate *templ = m_templateManger.getFimTemplateByName(templateAspect.value());
+    PluginLLMCore::PromptTemplate *templ = m_templateManger.getFimTemplateByName(templateAspect.value());
 
     if (templ->name() == templateAspect.value())
         return;
@@ -86,8 +70,8 @@ void ConfigurationManager::checkAllTemplate()
 ConfigurationManager::ConfigurationManager(QObject *parent)
     : QObject(parent)
     , m_generalSettings(Settings::generalSettings())
-    , m_providersManager(LLMCore::ProvidersManager::instance())
-    , m_templateManger(LLMCore::PromptTemplateManager::instance())
+    , m_providersManager(PluginLLMCore::ProvidersManager::instance())
+    , m_templateManger(PluginLLMCore::PromptTemplateManager::instance())
 {}
 
 void ConfigurationManager::setupConnections()
@@ -176,7 +160,7 @@ void ConfigurationManager::selectModel()
                                                : m_generalSettings.caModel);
 
     if (auto provider = m_providersManager.getProviderByName(providerName)) {
-        if (!provider->supportsModelListing()) {
+        if (!provider->capabilities().testFlag(PluginLLMCore::ProviderCapability::ModelListing)) {
             m_generalSettings.showModelsNotSupportedDialog(*targetSettings);
             return;
         }

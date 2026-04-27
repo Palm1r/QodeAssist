@@ -1,21 +1,5 @@
-/* 
- * Copyright (C) 2024-2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2024-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "AgentRoleDialog.hpp"
 
@@ -29,21 +13,24 @@
 
 namespace QodeAssist::Settings {
 
-AgentRoleDialog::AgentRoleDialog(QWidget *parent)
-    : QDialog(parent)
-    , m_editMode(false)
+AgentRoleDialog::AgentRoleDialog(Action action, QWidget *parent)
+    : QDialog{parent}
+    , m_action{action}
 {
-    setWindowTitle(tr("Add Agent Role"));
-    setupUI();
-}
+    auto getTitle = [](Action action) {
+        switch(action)
+        {
+        case Action::Add:
+            return tr("Add Agent Role");
+        case Action::Duplicate:
+            return tr("Duplicate Agent Role");
+        case Action::Edit:
+            return tr("Edit Agent Role");
+        }
+    };
 
-AgentRoleDialog::AgentRoleDialog(const AgentRole &role, bool editMode, QWidget *parent)
-    : QDialog(parent)
-    , m_editMode(editMode)
-{
-    setWindowTitle(editMode ? tr("Edit Agent Role") : tr("Duplicate Agent Role"));
+    setWindowTitle(getTitle(action));
     setupUI();
-    setRole(role);
 }
 
 void AgentRoleDialog::setupUI()
@@ -83,7 +70,7 @@ void AgentRoleDialog::setupUI()
     connect(m_idEdit, &QLineEdit::textChanged, this, &AgentRoleDialog::validateInput);
     connect(m_systemPromptEdit, &QTextEdit::textChanged, this, &AgentRoleDialog::validateInput);
 
-    if (m_editMode) {
+    if (m_action == Action::Edit) {
         m_idEdit->setEnabled(false);
         m_idEdit->setToolTip(tr("ID cannot be changed for existing roles"));
     }

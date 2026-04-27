@@ -1,24 +1,9 @@
-/* 
- * Copyright (C) 2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2025-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "ListProjectFilesTool.hpp"
-#include "ToolExceptions.hpp"
+
+#include <LLMQore/ToolExceptions.hpp>
 
 #include <logger/Logger.hpp>
 #include <projectexplorer/project.h>
@@ -37,57 +22,43 @@ ListProjectFilesTool::ListProjectFilesTool(QObject *parent)
 
 {}
 
-QString ListProjectFilesTool::name() const
+QString ListProjectFilesTool::id() const
 {
     return "list_project_files";
 }
 
-QString ListProjectFilesTool::stringName() const
+QString ListProjectFilesTool::displayName() const
 {
     return {"Reading project files list"};
 }
 
 QString ListProjectFilesTool::description() const
 {
-    return "Get a list of all source files in the current project with absolute and relative paths. "
-           "Useful for understanding project structure. No parameters required.";
+    return "List every source file tracked by the active Qt Creator project(s), filtered by "
+           ".qodeassistignore. Returns absolute and project-relative paths grouped by project. "
+           "Useful for discovering the project layout before running focused searches or reads. "
+           "Takes no parameters.";
 }
 
-QJsonObject ListProjectFilesTool::getDefinition(LLMCore::ToolSchemaFormat format) const
+QJsonObject ListProjectFilesTool::parametersSchema() const
 {
     QJsonObject definition;
     definition["type"] = "object";
     definition["properties"] = QJsonObject();
     definition["required"] = QJsonArray();
 
-    switch (format) {
-    case LLMCore::ToolSchemaFormat::OpenAI:
-        return customizeForOpenAI(definition);
-    case LLMCore::ToolSchemaFormat::Claude:
-        return customizeForClaude(definition);
-    case LLMCore::ToolSchemaFormat::Ollama:
-        return customizeForOllama(definition);
-    case LLMCore::ToolSchemaFormat::Google:
-        return customizeForGoogle(definition);
-    }
-
     return definition;
 }
 
-LLMCore::ToolPermissions ListProjectFilesTool::requiredPermissions() const
-{
-    return LLMCore::ToolPermission::FileSystemRead;
-}
-
-QFuture<QString> ListProjectFilesTool::executeAsync(const QJsonObject &input)
+QFuture<LLMQore::ToolResult> ListProjectFilesTool::executeAsync(const QJsonObject &input)
 {
     Q_UNUSED(input)
 
-    return QtConcurrent::run([this]() -> QString {
+    return QtConcurrent::run([this]() -> LLMQore::ToolResult {
         QList<ProjectExplorer::Project *> projects = ProjectExplorer::ProjectManager::projects();
         if (projects.isEmpty()) {
             QString error = "No projects found";
-            throw ToolRuntimeError(error);
+            throw LLMQore::ToolRuntimeError(error);
         }
 
         QString result;
@@ -139,7 +110,7 @@ QFuture<QString> ListProjectFilesTool::executeAsync(const QJsonObject &input)
             result += "\n";
         }
 
-        return result.trimmed();
+        return LLMQore::ToolResult::text(result.trimmed());
     });
 }
 

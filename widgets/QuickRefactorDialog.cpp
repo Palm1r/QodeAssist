@@ -1,21 +1,5 @@
-/* 
- * Copyright (C) 2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2025-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "QuickRefactorDialog.hpp"
 #include "AddCustomInstructionDialog.hpp"
@@ -589,7 +573,7 @@ void QuickRefactorDialog::onOpenInstructionsFolder()
 
 void QuickRefactorDialog::onOpenSettings()
 {
-    Core::ICore::showOptionsDialog(Constants::QODE_ASSIST_QUICK_REFACTOR_SETTINGS_PAGE_ID);
+    Settings::showSettings(Constants::QODE_ASSIST_QUICK_REFACTOR_SETTINGS_PAGE_ID);
 }
 
 QString QuickRefactorDialog::selectedConfiguration() const
@@ -640,8 +624,6 @@ void QuickRefactorDialog::onConfigurationChanged(int index)
         settings.qrModel.setValue(config.model);
         settings.qrTemplate.setValue(config.templateName);
         settings.qrUrl.setValue(config.url);
-        settings.qrEndpointMode.setValue(
-            settings.qrEndpointMode.indexForDisplay(config.endpointMode));
         settings.qrCustomEndpoint.setValue(config.customEndpoint);
 
         settings.writeSettings();

@@ -1,37 +1,22 @@
-/* 
- * Copyright (C) 2024-2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2024-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #pragma once
 
 #include <QJsonArray>
 
-#include "llmcore/PromptTemplate.hpp"
+#include "pluginllmcore/PromptTemplate.hpp"
 
 namespace QodeAssist::Templates {
 
-class MistralAIFim : public LLMCore::PromptTemplate
+class MistralAIFim : public PluginLLMCore::PromptTemplate
 {
 public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::FIM; }
+    PluginLLMCore::TemplateType type() const override { return PluginLLMCore::TemplateType::FIM; }
     QString name() const override { return "Mistral AI FIM"; }
+    QString endpoint() const override { return QStringLiteral("/v1/fim/completions"); }
     QStringList stopWords() const override { return QStringList(); }
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
+    void prepareRequest(QJsonObject &request, const PluginLLMCore::ContextData &context) const override
     {
         request["prompt"] = context.prefix.value_or("");
         request["suffix"] = context.suffix.value_or("");
@@ -45,10 +30,10 @@ public:
                "}\n\n"
                "Optimized for code completion with MistralAI models.";
     }
-    bool isSupportProvider(LLMCore::ProviderID id) const override
+    bool isSupportProvider(PluginLLMCore::ProviderID id) const override
     {
         switch (id) {
-        case QodeAssist::LLMCore::ProviderID::MistralAI:
+        case QodeAssist::PluginLLMCore::ProviderID::MistralAI:
             return true;
         default:
             return false;
@@ -56,14 +41,14 @@ public:
     }
 };
 
-class MistralAIChat : public LLMCore::PromptTemplate
+class MistralAIChat : public PluginLLMCore::PromptTemplate
 {
 public:
-    LLMCore::TemplateType type() const override { return LLMCore::TemplateType::Chat; }
+    PluginLLMCore::TemplateType type() const override { return PluginLLMCore::TemplateType::Chat; }
     QString name() const override { return "Mistral AI Chat"; }
     QStringList stopWords() const override { return QStringList(); }
 
-    void prepareRequest(QJsonObject &request, const LLMCore::ContextData &context) const override
+    void prepareRequest(QJsonObject &request, const PluginLLMCore::ContextData &context) const override
     {
         QJsonArray messages;
 
@@ -116,10 +101,10 @@ public:
                "}\n\n"
                "Supports system messages, conversation history, and images.";
     }
-    bool isSupportProvider(LLMCore::ProviderID id) const override
+    bool isSupportProvider(PluginLLMCore::ProviderID id) const override
     {
         switch (id) {
-        case QodeAssist::LLMCore::ProviderID::MistralAI:
+        case QodeAssist::PluginLLMCore::ProviderID::MistralAI:
             return true;
         default:
             return false;

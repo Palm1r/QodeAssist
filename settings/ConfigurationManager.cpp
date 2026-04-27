@@ -1,21 +1,5 @@
-/* 
- * Copyright (C) 2024-2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2024-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "ConfigurationManager.hpp"
 
@@ -30,6 +14,7 @@
 #include <coreplugin/icore.h>
 
 #include "Logger.hpp"
+#include "ProviderNameMigration.hpp"
 
 namespace QodeAssist::Settings {
 
@@ -50,11 +35,10 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
 
     AIConfiguration claudeOpus;
     claudeOpus.id = "preset_claude_opus";
-    claudeOpus.name = "Claude Opus 4.5";
+    claudeOpus.name = "Claude Opus 4.6";
     claudeOpus.provider = "Claude";
-    claudeOpus.model = "claude-opus-4-5-20251101";
+    claudeOpus.model = "claude-opus-4-6";
     claudeOpus.url = "https://api.anthropic.com";
-    claudeOpus.endpointMode = "Auto";
     claudeOpus.customEndpoint = "";
     claudeOpus.templateName = "Claude";
     claudeOpus.type = type;
@@ -62,11 +46,10 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
 
     AIConfiguration claudeSonnet;
     claudeSonnet.id = "preset_claude_sonnet";
-    claudeSonnet.name = "Claude Sonnet 4.5";
+    claudeSonnet.name = "Claude Sonnet 4.6";
     claudeSonnet.provider = "Claude";
-    claudeSonnet.model = "claude-sonnet-4-5-20250929";
+    claudeSonnet.model = "claude-sonnet-4-6";
     claudeSonnet.url = "https://api.anthropic.com";
-    claudeSonnet.endpointMode = "Auto";
     claudeSonnet.customEndpoint = "";
     claudeSonnet.templateName = "Claude";
     claudeSonnet.type = type;
@@ -78,7 +61,6 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     claudeHaiku.provider = "Claude";
     claudeHaiku.model = "claude-haiku-4-5-20251001";
     claudeHaiku.url = "https://api.anthropic.com";
-    claudeHaiku.endpointMode = "Auto";
     claudeHaiku.customEndpoint = "";
     claudeHaiku.templateName = "Claude";
     claudeHaiku.type = type;
@@ -88,9 +70,8 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     codestral.id = "preset_codestral";
     codestral.name = "Codestral";
     codestral.provider = "Codestral";
-    codestral.model = "codestral-2501";
+    codestral.model = "codestral-latest";
     codestral.url = "https://codestral.mistral.ai";
-    codestral.endpointMode = "Auto";
     codestral.customEndpoint = "";
     codestral.templateName = type == ConfigurationType::CodeCompletion ? "Mistral AI FIM" : "Mistral AI Chat";
     codestral.type = type;
@@ -100,9 +81,8 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     mistral.id = "preset_mistral";
     mistral.name = "Mistral";
     mistral.provider = "Mistral AI";
-    mistral.model = type == ConfigurationType::CodeCompletion ? "mistral-medium-latest" : "mistral-large-latest";
+    mistral.model = type == ConfigurationType::CodeCompletion ? "codestral-latest" : "mistral-large-latest";
     mistral.url = "https://api.mistral.ai";
-    mistral.endpointMode = "Auto";
     mistral.customEndpoint = "";
     mistral.templateName = type == ConfigurationType::CodeCompletion ? "Mistral AI FIM" : "Mistral AI Chat";
     mistral.type = type;
@@ -114,28 +94,26 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     geminiFlash.provider = "Google AI";
     geminiFlash.model = "gemini-2.5-flash";
     geminiFlash.url = "https://generativelanguage.googleapis.com/v1beta";
-    geminiFlash.endpointMode = "Auto";
     geminiFlash.customEndpoint = "";
     geminiFlash.templateName = "Google AI";
     geminiFlash.type = type;
     geminiFlash.isPredefined = true;
 
-    AIConfiguration gpt52codex;
-    gpt52codex.id = "preset_gpt52codex";
-    gpt52codex.name = "gpt-5.2-codex";
-    gpt52codex.provider = "OpenAI Responses";
-    gpt52codex.model = "gpt-5.2-codex";
-    gpt52codex.url = "https://api.openai.com";
-    gpt52codex.endpointMode = "Auto";
-    gpt52codex.customEndpoint = "";
-    gpt52codex.templateName = "OpenAI Responses";
-    gpt52codex.type = type;
-    gpt52codex.isPredefined = true;
+    AIConfiguration gpt;
+    gpt.id = "preset_gpt";
+    gpt.name = "gpt-5.4";
+    gpt.provider = "OpenAI (Responses API)";
+    gpt.model = "gpt-5.4";
+    gpt.url = "https://api.openai.com/v1";
+    gpt.customEndpoint = "";
+    gpt.templateName = "OpenAI Responses";
+    gpt.type = type;
+    gpt.isPredefined = true;
 
     presets.append(claudeSonnet);
     presets.append(claudeHaiku);
     presets.append(claudeOpus);
-    presets.append(gpt52codex);
+    presets.append(gpt);
     presets.append(codestral);
     presets.append(mistral);
     presets.append(geminiFlash);
@@ -226,14 +204,14 @@ bool ConfigurationManager::loadConfigurations(ConfigurationType type)
         AIConfiguration config;
         config.id = obj["id"].toString();
         config.name = obj["name"].toString();
-        config.provider = obj["provider"].toString();
+        config.provider = migrateProviderName(obj["provider"].toString());
         config.model = obj["model"].toString();
         config.templateName = obj["template"].toString();
         config.url = obj["url"].toString();
-        config.endpointMode = obj["endpointMode"].toString();
         config.customEndpoint = obj["customEndpoint"].toString();
         config.type = type;
         config.formatVersion = obj.value("formatVersion").toInt(1);
+
         config.isPredefined = false;
 
         if (config.id.isEmpty() || config.name.isEmpty()) {
@@ -263,7 +241,6 @@ bool ConfigurationManager::saveConfiguration(const AIConfiguration &config)
     obj["model"] = config.model;
     obj["template"] = config.templateName;
     obj["url"] = config.url;
-    obj["endpointMode"] = config.endpointMode;
     obj["customEndpoint"] = config.customEndpoint;
 
     QString sanitizedName = config.name;

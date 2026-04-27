@@ -1,21 +1,5 @@
-/* 
- * Copyright (C) 2024-2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2024-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #pragma once
 
@@ -25,9 +9,9 @@
 #include <context/ContextManager.hpp>
 #include <context/IDocumentReader.hpp>
 #include <context/ProgrammingLanguage.hpp>
-#include <llmcore/ContextData.hpp>
-#include <llmcore/IPromptProvider.hpp>
-#include <llmcore/IProviderRegistry.hpp>
+#include <pluginllmcore/ContextData.hpp>
+#include <pluginllmcore/IPromptProvider.hpp>
+#include <pluginllmcore/IProviderRegistry.hpp>
 #include <logger/IRequestPerformanceLogger.hpp>
 #include <settings/CodeCompletionSettings.hpp>
 #include <settings/GeneralSettings.hpp>
@@ -45,8 +29,8 @@ public:
     LLMClientInterface(
         const Settings::GeneralSettings &generalSettings,
         const Settings::CodeCompletionSettings &completeSettings,
-        LLMCore::IProviderRegistry &providerRegistry,
-        LLMCore::IPromptProvider *promptProvider,
+        PluginLLMCore::IProviderRegistry &providerRegistry,
+        PluginLLMCore::IPromptProvider *promptProvider,
         Context::IDocumentReader &documentReader,
         IRequestPerformanceLogger &performanceLogger);
     ~LLMClientInterface() override;
@@ -82,17 +66,19 @@ private:
     struct RequestContext
     {
         QJsonObject originalRequest;
-        LLMCore::Provider *provider;
+        PluginLLMCore::Provider *provider;
     };
 
-    LLMCore::ContextData prepareContext(
+    PluginLLMCore::ContextData prepareContext(
         const QJsonObject &request, const Context::DocumentInfo &documentInfo);
-    QString endpoint(LLMCore::Provider *provider, LLMCore::TemplateType type, bool isLanguageSpecify);
+
+    QString resolveEndpoint(
+        PluginLLMCore::PromptTemplate *promptTemplate, bool isLanguageSpecify) const;
 
     const Settings::CodeCompletionSettings &m_completeSettings;
     const Settings::GeneralSettings &m_generalSettings;
-    LLMCore::IPromptProvider *m_promptProvider = nullptr;
-    LLMCore::IProviderRegistry &m_providerRegistry;
+    PluginLLMCore::IPromptProvider *m_promptProvider = nullptr;
+    PluginLLMCore::IProviderRegistry &m_providerRegistry;
     Context::IDocumentReader &m_documentReader;
     IRequestPerformanceLogger &m_performanceLogger;
     QElapsedTimer m_completionTimer;

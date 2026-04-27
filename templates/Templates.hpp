@@ -1,25 +1,9 @@
-/* 
- * Copyright (C) 2024-2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2024-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #pragma once
 
-#include "llmcore/PromptTemplateManager.hpp"
+#include "pluginllmcore/PromptTemplateManager.hpp"
 #include "templates/Alpaca.hpp"
 #include "templates/ChatML.hpp"
 #include "templates/Claude.hpp"
@@ -30,8 +14,6 @@
 #include "templates/OpenAI.hpp"
 #include "templates/OpenAICompatible.hpp"
 #include "templates/OpenAIResponses.hpp"
-// #include "templates/CustomFimTemplate.hpp"
-// #include "templates/DeepSeekCoderFim.hpp"
 #include "templates/GoogleAI.hpp"
 #include "templates/Llama2.hpp"
 #include "templates/Llama3.hpp"
@@ -44,7 +26,7 @@ namespace QodeAssist::Templates {
 
 inline void registerTemplates()
 {
-    auto &templateManager = LLMCore::PromptTemplateManager::instance();
+    auto &templateManager = PluginLLMCore::PromptTemplateManager::instance();
     templateManager.registerTemplate<OllamaChat>();
     templateManager.registerTemplate<OllamaFim>();
     templateManager.registerTemplate<CodeLlamaFim>();
@@ -58,8 +40,6 @@ inline void registerTemplates()
     templateManager.registerTemplate<Llama2>();
     templateManager.registerTemplate<Llama3>();
     templateManager.registerTemplate<StarCoder2Fim>();
-    // templateManager.registerTemplate<DeepSeekCoderFim>();
-    // templateManager.registerTemplate<CustomTemplate>();
     templateManager.registerTemplate<Qwen25CoderFIM>();
     templateManager.registerTemplate<Qwen3CoderFIM>();
     templateManager.registerTemplate<OpenAICompatible>();

@@ -1,24 +1,9 @@
-/*
- * Copyright (C) 2025 Petr Mironychev
- *
- * This file is part of QodeAssist.
- *
- * QodeAssist is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * QodeAssist is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
- */
+// Copyright (C) 2025-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
 
 #include "EditFileTool.hpp"
-#include "ToolExceptions.hpp"
+
+#include <LLMQore/ToolExceptions.hpp>
 
 #include <context/ChangesManager.h>
 #include <context/ProjectUtils.hpp>
@@ -39,12 +24,12 @@ EditFileTool::EditFileTool(QObject *parent)
     : BaseTool(parent)
 {}
 
-QString EditFileTool::name() const
+QString EditFileTool::id() const
 {
     return "edit_file";
 }
 
-QString EditFileTool::stringName() const
+QString EditFileTool::displayName() const
 {
     return {"Editing file"};
 }
@@ -56,7 +41,7 @@ QString EditFileTool::description() const
            "and new_content to replace it with. Changes are applied immediately if auto-apply "
            "is enabled in settings. The user can undo or reapply changes at any time. "
            "\n\nIMPORTANT:"
-           "\n- ALWAYS read the current file content before editing to ensure accuracy."
+           "\n- ALWAYS use read_file to get current file content before editing to ensure accuracy."
            "\n- Path can be absolute (e.g., /path/to/file.cpp) or relative to project root (e.g., src/main.cpp)."
            "\n- For EMPTY files: use empty old_content (empty string or omit parameter)."
            "\n- To append at the END of file: use empty old_content."
@@ -71,7 +56,7 @@ QString EditFileTool::description() const
            "disabled auto-apply. DO NOT retry the same edit - wait for user action.";
 }
 
-QJsonObject EditFileTool::getDefinition(LLMCore::ToolSchemaFormat format) const
+QJsonObject EditFileTool::parametersSchema() const
 {
     QJsonObject properties;
 
@@ -104,39 +89,23 @@ QJsonObject EditFileTool::getDefinition(LLMCore::ToolSchemaFormat format) const
     required.append("new_content");
     definition["required"] = required;
 
-    switch (format) {
-    case LLMCore::ToolSchemaFormat::OpenAI:
-        return customizeForOpenAI(definition);
-    case LLMCore::ToolSchemaFormat::Claude:
-        return customizeForClaude(definition);
-    case LLMCore::ToolSchemaFormat::Ollama:
-        return customizeForOllama(definition);
-    case LLMCore::ToolSchemaFormat::Google:
-        return customizeForGoogle(definition);
-    }
-
     return definition;
 }
 
-LLMCore::ToolPermissions EditFileTool::requiredPermissions() const
+QFuture<LLMQore::ToolResult> EditFileTool::executeAsync(const QJsonObject &input)
 {
-    return LLMCore::ToolPermission::FileSystemWrite;
-}
-
-QFuture<QString> EditFileTool::executeAsync(const QJsonObject &input)
-{
-    return QtConcurrent::run([this, input]() -> QString {
+    return QtConcurrent::run([this, input]() -> LLMQore::ToolResult {
         QString filename = input["filename"].toString().trimmed();
         QString oldContent = input["old_content"].toString();
         QString newContent = input["new_content"].toString();
         QString requestId = input["_request_id"].toString();
 
         if (filename.isEmpty()) {
-            throw ToolInvalidArgument("'filename' parameter is required and cannot be empty");
+            throw LLMQore::ToolInvalidArgument("'filename' parameter is required and cannot be empty");
         }
 
         if (newContent.isEmpty()) {
-            throw ToolInvalidArgument("'new_content' parameter is required and cannot be empty");
+            throw LLMQore::ToolInvalidArgument("'new_content' parameter is required and cannot be empty");
         }
 
 
@@ -148,7 +117,7 @@ QFuture<QString> EditFileTool::executeAsync(const QJsonObject &input)
         } else {
             QString projectRoot = Context::ProjectUtils::getProjectRoot();
             if (projectRoot.isEmpty()) {
-                throw ToolRuntimeError(
+                throw LLMQore::ToolRuntimeError(
                     QString("Cannot resolve relative path '%1': no project is open. "
                             "Please provide an absolute path or open a project.")
                         .arg(filename));
@@ -161,12 +130,12 @@ QFuture<QString> EditFileTool::executeAsync(const QJsonObject &input)
 
         QFile file(filePath);
         if (!file.exists()) {
-            throw ToolRuntimeError(QString("File does not exist: %1").arg(filePath));
+            throw LLMQore::ToolRuntimeError(QString("File does not exist: %1").arg(filePath));
         }
 
         QFileInfo finalFileInfo(filePath);
         if (!finalFileInfo.isWritable()) {
-            throw ToolRuntimeError(
+            throw LLMQore::ToolRuntimeError(
                 QString("File is not writable (read-only or permission denied): %1").arg(filePath));
         }
 
@@ -174,7 +143,7 @@ QFuture<QString> EditFileTool::executeAsync(const QJsonObject &input)
         if (!isInProject) {
             const auto &settings = Settings::toolsSettings();
             if (!settings.allowAccessOutsideProject()) {
-                throw ToolRuntimeError(
+                throw LLMQore::ToolRuntimeError(
                     QString("File path '%1' is not within the current project. "
                             "Enable 'Allow file access outside project' in settings to edit files outside the project.")
                         .arg(filePath));
@@ -236,7 +205,7 @@ QFuture<QString> EditFileTool::executeAsync(const QJsonObject &input)
 
         QString resultStr = "QODEASSIST_FILE_EDIT:"
                             + QString::fromUtf8(QJsonDocument(result).toJson(QJsonDocument::Compact));
-        return resultStr;
+        return LLMQore::ToolResult::text(resultStr);
     });
 }
 
