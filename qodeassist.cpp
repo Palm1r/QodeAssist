@@ -84,7 +84,6 @@ public:
         if (m_navigationPanel) {
             delete m_navigationPanel;
         }
-        delete m_engine;
     }
 
     void loadTranslations()
@@ -152,7 +151,7 @@ public:
             UpdateDialog::checkForUpdatesAndShow(Core::ICore::mainWindow());
         });
 
-        m_engine = new QQmlEngine{};
+        m_engine = new QQmlEngine{this};
 
         if (Settings::chatAssistantSettings().enableChatInBottomToolBar()) {
             m_chatOutputPane = new Chat::ChatOutputPane{m_engine};
