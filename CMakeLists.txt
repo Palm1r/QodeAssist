@@ -17,22 +17,17 @@ find_package(GTest)
 qt_standard_project_setup(I18N_TRANSLATED_LANGUAGES en)
 
 # IDE_VERSION is defined by QtCreator package
-string(REGEX MATCH "([0-9]+)\\.([0-9]+)\\.([0-9]+)" version_match ${IDE_VERSION})
-set(QODEASSIST_QT_CREATOR_VERSION_MAJOR ${CMAKE_MATCH_1})
-set(QODEASSIST_QT_CREATOR_VERSION_MINOR ${CMAKE_MATCH_2})
-set(QODEASSIST_QT_CREATOR_VERSION_PATCH ${CMAKE_MATCH_3})
+string(REGEX MATCH "^([0-9]+)\\.([0-9]+)\\.([0-9]+)" version_match "${IDE_VERSION}")
 
 if(NOT version_match)
     message(FATAL_ERROR "Failed to parse Qt Creator version string: ${IDE_VERSION}")
 endif()
 
-message(STATUS "Qt Creator Version: ${QODEASSIST_QT_CREATOR_VERSION_MAJOR}.${QODEASSIST_QT_CREATOR_VERSION_MINOR}.${QODEASSIST_QT_CREATOR_VERSION_PATCH}")
+set(QODEASSIST_QT_CREATOR_VERSION_MAJOR "${CMAKE_MATCH_1}")
+set(QODEASSIST_QT_CREATOR_VERSION_MINOR "${CMAKE_MATCH_2}")
+set(QODEASSIST_QT_CREATOR_VERSION_PATCH "${CMAKE_MATCH_3}")
 
-add_definitions(
-  -DQODEASSIST_QT_CREATOR_VERSION_MAJOR=${QODEASSIST_QT_CREATOR_VERSION_MAJOR}
-  -DQODEASSIST_QT_CREATOR_VERSION_MINOR=${QODEASSIST_QT_CREATOR_VERSION_MINOR}
-  -DQODEASSIST_QT_CREATOR_VERSION_PATCH=${QODEASSIST_QT_CREATOR_VERSION_PATCH}
-)
+message(STATUS "Qt Creator Version: ${QODEASSIST_QT_CREATOR_VERSION_MAJOR}.${QODEASSIST_QT_CREATOR_VERSION_MINOR}.${QODEASSIST_QT_CREATOR_VERSION_PATCH}")
 
 add_subdirectory(sources/external/llmqore)
 add_subdirectory(pluginllmcore)
@@ -150,6 +145,12 @@ add_qtc_plugin(QodeAssist
     mcp/McpServerConnection.hpp mcp/McpServerConnection.cpp
     mcp/McpClientsManager.hpp mcp/McpClientsManager.cpp
     settings/McpClientsListAspect.hpp settings/McpClientsListAspect.cpp
+)
+
+target_compile_definitions(QodeAssist PRIVATE
+  QODEASSIST_QT_CREATOR_VERSION_MAJOR=${QODEASSIST_QT_CREATOR_VERSION_MAJOR}
+  QODEASSIST_QT_CREATOR_VERSION_MINOR=${QODEASSIST_QT_CREATOR_VERSION_MINOR}
+  QODEASSIST_QT_CREATOR_VERSION_PATCH=${QODEASSIST_QT_CREATOR_VERSION_PATCH}
 )
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)
