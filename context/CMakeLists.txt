@@ -15,6 +15,7 @@ add_library(Context STATIC
 target_link_libraries(Context
     PUBLIC
     Qt::Core
+    Qt::Gui
     QtCreator::Core
     QtCreator::TextEditor
     QtCreator::Utils

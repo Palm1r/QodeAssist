@@ -871,14 +871,33 @@ void ChatRootView::updateInputTokensCount()
         inputTokens += Context::TokenUtils::estimateTokens(settings.systemPrompt());
     }
 
+    const auto splitImageEstimate = [](const QStringList &paths, QStringList &textPaths) {
+        int imageTokens = 0;
+        for (const QString &p : paths) {
+            if (Context::TokenUtils::isImageFilePath(p))
+                imageTokens += Context::TokenUtils::estimateImageAttachmentTokens(p);
+            else
+                textPaths.append(p);
+        }
+        return imageTokens;
+    };
+
     if (!m_attachmentFiles.isEmpty()) {
-        auto attachFiles = m_clientInterface->contextManager()->getContentFiles(m_attachmentFiles);
-        inputTokens += Context::TokenUtils::estimateFilesTokens(attachFiles);
+        QStringList textPaths;
+        inputTokens += splitImageEstimate(m_attachmentFiles, textPaths);
+        if (!textPaths.isEmpty()) {
+            auto attachFiles = m_clientInterface->contextManager()->getContentFiles(textPaths);
+            inputTokens += Context::TokenUtils::estimateFilesTokens(attachFiles);
+        }
     }
 
     if (!m_linkedFiles.isEmpty()) {
-        auto linkFiles = m_clientInterface->contextManager()->getContentFiles(m_linkedFiles);
-        inputTokens += Context::TokenUtils::estimateFilesTokens(linkFiles);
+        QStringList textPaths;
+        inputTokens += splitImageEstimate(m_linkedFiles, textPaths);
+        if (!textPaths.isEmpty()) {
+            auto linkFiles = m_clientInterface->contextManager()->getContentFiles(textPaths);
+            inputTokens += Context::TokenUtils::estimateFilesTokens(linkFiles);
+        }
     }
 
     const auto &history = m_chatModel->getChatHistory();
