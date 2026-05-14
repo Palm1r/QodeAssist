@@ -63,6 +63,21 @@ void LLMClientInterface::handleFullResponse(const QString &requestId, const QStr
     m_performanceLogger.endTimeMeasurement(requestId);
 }
 
+void LLMClientInterface::handleRequestFinalized(
+    const ::LLMQore::RequestID &requestId, const ::LLMQore::CompletionInfo &info)
+{
+    if (!m_activeRequests.contains(requestId) || !info.usage)
+        return;
+
+    const auto &u = *info.usage;
+    LOG_MESSAGE(QString("Completion usage [%1]: prompt=%2 completion=%3 cached=%4 reasoning=%5")
+                    .arg(requestId)
+                    .arg(u.promptTokens)
+                    .arg(u.completionTokens)
+                    .arg(u.cachedPromptTokens)
+                    .arg(u.reasoningTokens));
+}
+
 void LLMClientInterface::handleRequestFailed(const QString &requestId, const QString &error)
 {
     auto it = m_activeRequests.find(requestId);
@@ -324,6 +339,12 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         &::LLMQore::BaseClient::requestCompleted,
         this,
         &LLMClientInterface::handleFullResponse,
+        Qt::UniqueConnection);
+    connect(
+        provider->client(),
+        &::LLMQore::BaseClient::requestFinalized,
+        this,
+        &LLMClientInterface::handleRequestFinalized,
         Qt::UniqueConnection);
     connect(
         provider->client(),

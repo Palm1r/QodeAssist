@@ -11,6 +11,7 @@
 #include "ChatModel.hpp"
 #include "Provider.hpp"
 #include "pluginllmcore/IPromptProvider.hpp"
+#include <LLMQore/BaseClient.hpp>
 #include <context/ContextManager.hpp>
 
 namespace QodeAssist::Chat {
@@ -42,10 +43,13 @@ signals:
     void errorOccurred(const QString &error);
     void messageReceivedCompletely();
     void requestStarted(const QString &requestId);
+    void messageUsageReceived(
+        int promptTokens, int completionTokens, int cachedPromptTokens, int reasoningTokens);
 
 private slots:
     void handlePartialResponse(const QString &requestId, const QString &partialText);
     void handleFullResponse(const QString &requestId, const QString &fullText);
+    void handleRequestFinalized(const ::LLMQore::RequestID &requestId, const ::LLMQore::CompletionInfo &info);
     void handleRequestFailed(const QString &requestId, const QString &error);
     void handleThinkingBlockReceived(
         const QString &requestId, const QString &thinking, const QString &signature);

@@ -259,6 +259,12 @@ void ClientInterface::sendMessage(
         Qt::UniqueConnection);
     connect(
         provider->client(),
+        &::LLMQore::BaseClient::requestFinalized,
+        this,
+        &ClientInterface::handleRequestFinalized,
+        Qt::UniqueConnection);
+    connect(
+        provider->client(),
         &::LLMQore::BaseClient::requestFailed,
         this,
         &ClientInterface::handleRequestFailed,
@@ -447,6 +453,29 @@ void ClientInterface::handleFullResponse(const QString &requestId, const QString
     m_activeRequests.erase(it);
     m_accumulatedResponses.remove(requestId);
     m_awaitingContinuation.remove(requestId);
+}
+
+void ClientInterface::handleRequestFinalized(
+    const ::LLMQore::RequestID &requestId, const ::LLMQore::CompletionInfo &info)
+{
+    if (!m_activeRequests.contains(requestId))
+        return;
+    if (!info.usage)
+        return;
+
+    const auto &u = *info.usage;
+    m_chatModel->setMessageUsage(
+        requestId, u.promptTokens, u.completionTokens, u.cachedPromptTokens, u.reasoningTokens);
+
+    emit messageUsageReceived(
+        u.promptTokens, u.completionTokens, u.cachedPromptTokens, u.reasoningTokens);
+
+    LOG_MESSAGE(QString("Chat usage [%1]: prompt=%2 completion=%3 cached=%4 reasoning=%5")
+                    .arg(requestId)
+                    .arg(u.promptTokens)
+                    .arg(u.completionTokens)
+                    .arg(u.cachedPromptTokens)
+                    .arg(u.reasoningTokens));
 }
 
 void ClientInterface::handleRequestFailed(const QString &requestId, const QString &error)

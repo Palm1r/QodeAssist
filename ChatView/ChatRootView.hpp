@@ -212,6 +212,21 @@ signals:
     void openFilesChanged();
 
 private:
+    void rewireToolsChangedConnection();
+    QMetaObject::Connection m_toolsChangedConn;
+
+    bool deferSendForAutoCompress(
+        const QString &message,
+        const QStringList &attachments,
+        const QStringList &linkedFiles,
+        bool useTools,
+        bool useThinking);
+    void dispatchSend(
+        const QString &message,
+        const QStringList &attachments,
+        const QStringList &linkedFiles,
+        bool useTools,
+        bool useThinking);
     void updateFileEditStatus(const QString &editId, const QString &status);
     QString getChatsHistoryDir() const;
     QString getSuggestedFileName() const;
@@ -228,6 +243,18 @@ private:
     QStringList m_linkedFiles;
     int m_messageTokensCount{0};
     int m_inputTokensCount{0};
+    int m_lastSentEstimate{0};
+    double m_calibrationFactor{1.0};
+
+    struct PendingSend {
+        QString message;
+        QStringList attachments;
+        QStringList linkedFiles;
+        bool useTools = false;
+        bool useThinking = false;
+        bool active = false;
+    };
+    PendingSend m_pendingSend;
     bool m_isSyncOpenFiles;
     QList<Core::IEditor *> m_currentEditors;
     bool m_isRequestInProgress;

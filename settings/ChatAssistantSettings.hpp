@@ -18,12 +18,13 @@ public:
     ButtonAspect resetToDefaults{this};
 
     // Chat settings
-    Utils::IntegerAspect chatTokensThreshold{this};
     Utils::BoolAspect linkOpenFiles{this};
     Utils::BoolAspect autosave{this};
     Utils::BoolAspect enableChatInBottomToolBar{this};
     Utils::BoolAspect enableChatInNavigationPanel{this};
     Utils::BoolAspect enableChatTools{this};
+    Utils::BoolAspect autoCompress{this};
+    Utils::IntegerAspect autoCompressThreshold{this};
 
     // General Parameters Settings
     Utils::DoubleAspect temperature{this};

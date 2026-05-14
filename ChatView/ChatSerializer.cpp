@@ -103,6 +103,17 @@ QJsonObject ChatSerializer::serializeMessage(
         messageObj["images"] = imagesArray;
     }
 
+    if (message.promptTokens > 0 || message.completionTokens > 0) {
+        QJsonObject usageObj;
+        usageObj["promptTokens"] = message.promptTokens;
+        usageObj["completionTokens"] = message.completionTokens;
+        if (message.cachedPromptTokens > 0)
+            usageObj["cachedPromptTokens"] = message.cachedPromptTokens;
+        if (message.reasoningTokens > 0)
+            usageObj["reasoningTokens"] = message.reasoningTokens;
+        messageObj["usage"] = usageObj;
+    }
+
     return messageObj;
 }
 
@@ -137,6 +148,14 @@ ChatModel::Message ChatSerializer::deserializeMessage(
             image.mediaType = imageObj["mediaType"].toString();
             message.images.append(image);
         }
+    }
+
+    if (json.contains("usage")) {
+        const QJsonObject usageObj = json["usage"].toObject();
+        message.promptTokens = usageObj["promptTokens"].toInt();
+        message.completionTokens = usageObj["completionTokens"].toInt();
+        message.cachedPromptTokens = usageObj["cachedPromptTokens"].toInt();
+        message.reasoningTokens = usageObj["reasoningTokens"].toInt();
     }
 
     return message;

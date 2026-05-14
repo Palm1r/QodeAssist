@@ -11,7 +11,6 @@
 #include <QUrl>
 #include <QtQml>
 
-#include "ChatAssistantSettings.hpp"
 #include "Logger.hpp"
 #include "context/ChangesManager.h"
 
@@ -20,14 +19,6 @@ namespace QodeAssist::Chat {
 ChatModel::ChatModel(QObject *parent)
     : QAbstractListModel(parent)
 {
-    auto &settings = Settings::chatAssistantSettings();
-
-    connect(
-        &settings.chatTokensThreshold,
-        &Utils::BaseAspect::changed,
-        this,
-        &ChatModel::tokensThresholdChanged);
-    
     connect(&Context::ChangesManager::instance(),
             &Context::ChangesManager::fileEditApplied,
             this,
@@ -86,6 +77,16 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
     case Roles::IsRedacted: {
         return message.isRedacted;
     }
+    case Roles::PromptTokens:
+        return message.promptTokens;
+    case Roles::CompletionTokens:
+        return message.completionTokens;
+    case Roles::CachedPromptTokens:
+        return message.cachedPromptTokens;
+    case Roles::ReasoningTokens:
+        return message.reasoningTokens;
+    case Roles::TotalTokens:
+        return message.promptTokens + message.completionTokens;
     case Roles::Images: {
         QVariantList imagesList;
         for (const auto &image : message.images) {
@@ -124,6 +125,11 @@ QHash<int, QByteArray> ChatModel::roleNames() const
     roles[Roles::Attachments] = "attachments";
     roles[Roles::IsRedacted] = "isRedacted";
     roles[Roles::Images] = "images";
+    roles[Roles::PromptTokens] = "promptTokens";
+    roles[Roles::CompletionTokens] = "completionTokens";
+    roles[Roles::CachedPromptTokens] = "cachedPromptTokens";
+    roles[Roles::ReasoningTokens] = "reasoningTokens";
+    roles[Roles::TotalTokens] = "totalTokens";
     return roles;
 }
 
@@ -207,6 +213,7 @@ void ChatModel::clear()
     m_messages.clear();
     endResetModel();
     emit modelReseted();
+    emit sessionUsageChanged();
 }
 
 QList<MessagePart> ChatModel::processMessageContent(const QString &content) const
@@ -310,12 +317,6 @@ QJsonArray ChatModel::prepareMessagesForRequest(const QString &systemPrompt) con
     return messages;
 }
 
-int ChatModel::tokensThreshold() const
-{
-    auto &settings = Settings::chatAssistantSettings();
-    return settings.chatTokensThreshold();
-}
-
 QString ChatModel::lastMessageId() const
 {
     return !m_messages.isEmpty() ? m_messages.last().id : "";
@@ -330,6 +331,7 @@ void ChatModel::resetModelTo(int index)
         beginRemoveRows(QModelIndex(), index, m_messages.size() - 1);
         m_messages.remove(index, m_messages.size() - index);
         endRemoveRows();
+        emit sessionUsageChanged();
     }
 }
 
@@ -505,6 +507,54 @@ void ChatModel::updateMessageContent(const QString &messageId, const QString &ne
             break;
         }
     }
+}
+
+void ChatModel::setMessageUsage(
+    const QString &messageId,
+    int promptTokens,
+    int completionTokens,
+    int cachedPromptTokens,
+    int reasoningTokens)
+{
+    for (int i = 0; i < m_messages.size(); ++i) {
+        if (m_messages[i].id != messageId)
+            continue;
+        m_messages[i].promptTokens = promptTokens;
+        m_messages[i].completionTokens = completionTokens;
+        m_messages[i].cachedPromptTokens = cachedPromptTokens;
+        m_messages[i].reasoningTokens = reasoningTokens;
+        emit dataChanged(
+            index(i),
+            index(i),
+            {Roles::PromptTokens,
+             Roles::CompletionTokens,
+             Roles::CachedPromptTokens,
+             Roles::ReasoningTokens,
+             Roles::TotalTokens});
+        emit sessionUsageChanged();
+        return;
+    }
+}
+
+int ChatModel::sessionPromptTokens() const
+{
+    int total = 0;
+    for (const auto &m : m_messages)
+        total += m.promptTokens;
+    return total;
+}
+
+int ChatModel::sessionCompletionTokens() const
+{
+    int total = 0;
+    for (const auto &m : m_messages)
+        total += m.completionTokens;
+    return total;
+}
+
+int ChatModel::sessionTotalTokens() const
+{
+    return sessionPromptTokens() + sessionCompletionTokens();
 }
 
 void ChatModel::setLoadingFromHistory(bool loading)

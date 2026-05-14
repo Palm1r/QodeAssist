@@ -154,6 +154,13 @@ void QuickRefactorHandler::prepareAndSendRequest(
 
     connect(
         provider->client(),
+        &::LLMQore::BaseClient::requestFinalized,
+        this,
+        &QuickRefactorHandler::handleRequestFinalized,
+        Qt::UniqueConnection);
+
+    connect(
+        provider->client(),
         &::LLMQore::BaseClient::requestFailed,
         this,
         &QuickRefactorHandler::handleRequestFailed,
@@ -406,6 +413,22 @@ void QuickRefactorHandler::handleFullResponse(const QString &requestId, const QS
         QJsonObject request{{"id", requestId}};
         handleLLMResponse(fullText, request, true);
     }
+}
+
+void QuickRefactorHandler::handleRequestFinalized(
+    const ::LLMQore::RequestID &requestId, const ::LLMQore::CompletionInfo &info)
+{
+    if (requestId != m_lastRequestId || !info.usage)
+        return;
+
+    const auto &u = *info.usage;
+    LOG_MESSAGE(
+        QString("Quick refactor usage [%1]: prompt=%2 completion=%3 cached=%4 reasoning=%5")
+            .arg(requestId)
+            .arg(u.promptTokens)
+            .arg(u.completionTokens)
+            .arg(u.cachedPromptTokens)
+            .arg(u.reasoningTokens));
 }
 
 void QuickRefactorHandler::handleRequestFailed(const QString &requestId, const QString &error)
