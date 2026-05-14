@@ -91,7 +91,10 @@ ChatRootView {
             loadButton.onClicked: root.showLoadDialog()
             clearButton.onClicked: root.clearChat()
             tokensBadge {
-                text: qsTr("%1/%2").arg(root.inputTokensCount).arg(root.chatModel.tokensThreshold)
+                text: qsTr("next ~%1  ·  session ↑%2 ↓%3")
+                          .arg(root.inputTokensCount)
+                          .arg(root.chatModel.sessionPromptTokens)
+                          .arg(root.chatModel.sessionCompletionTokens)
             }
             recentPath {
                 text: qsTr("Сhat name: %1").arg(root.chatFileName.length > 0 ? root.chatFileName : "Unsaved")
@@ -270,6 +273,10 @@ ChatRootView {
                     codeFontSize: root.codeFontSize
                     textFontSize: root.textFontSize
                     textFormat: root.textFormat
+                    promptTokens: model.promptTokens || 0
+                    completionTokens: model.completionTokens || 0
+                    cachedPromptTokens: model.cachedPromptTokens || 0
+                    reasoningTokens: model.reasoningTokens || 0
 
                     onResetChatToMessage: function(idx) {
                         messageInput.text = model.content

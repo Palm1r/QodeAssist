@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <LLMQore/BaseClient.hpp>
 #include <languageclient/languageclientinterface.h>
 #include <texteditor/texteditor.h>
 
@@ -52,6 +53,8 @@ protected:
 
 private slots:
     void handleFullResponse(const QString &requestId, const QString &fullText);
+    void handleRequestFinalized(
+        const ::LLMQore::RequestID &requestId, const ::LLMQore::CompletionInfo &info);
     void handleRequestFailed(const QString &requestId, const QString &error);
 
 private:

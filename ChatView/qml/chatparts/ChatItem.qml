@@ -34,6 +34,11 @@ Rectangle {
     property bool isUserMessage: false
     property int messageIndex: -1
 
+    property int promptTokens: 0
+    property int completionTokens: 0
+    property int cachedPromptTokens: 0
+    property int reasoningTokens: 0
+
     signal resetChatToMessage(int index)
     signal openFileRequested(string filePath)
 
@@ -133,6 +138,39 @@ Rectangle {
 
                     itemData: modelData
                 }
+            }
+        }
+
+        RowLayout {
+            id: usageBadge
+
+            Layout.fillWidth: true
+            Layout.leftMargin: 10
+            Layout.rightMargin: 10
+            spacing: 8
+            visible: !root.isUserMessage
+                     && (root.promptTokens > 0 || root.completionTokens > 0)
+
+            Item { Layout.fillWidth: true }
+
+            Text {
+                text: root.cachedPromptTokens > 0
+                          ? qsTr("↑ %1 (cached %2)").arg(root.promptTokens).arg(root.cachedPromptTokens)
+                          : qsTr("↑ %1").arg(root.promptTokens)
+                color: palette.placeholderText
+                font.pointSize: Math.max(root.textFontSize - 2, 7)
+            }
+            Text {
+                text: root.reasoningTokens > 0
+                          ? qsTr("↓ %1 (reasoning %2)").arg(root.completionTokens).arg(root.reasoningTokens)
+                          : qsTr("↓ %1").arg(root.completionTokens)
+                color: palette.placeholderText
+                font.pointSize: Math.max(root.textFontSize - 2, 7)
+            }
+            Text {
+                text: qsTr("Σ %1").arg(root.promptTokens + root.completionTokens)
+                color: palette.placeholderText
+                font.pointSize: Math.max(root.textFontSize - 2, 7)
             }
         }
     }

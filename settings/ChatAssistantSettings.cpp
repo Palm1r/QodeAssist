@@ -29,14 +29,6 @@ ChatAssistantSettings::ChatAssistantSettings()
 
     setDisplayName(Tr::tr("Chat Assistant"));
 
-    // Chat Settings
-    chatTokensThreshold.setSettingsKey(Constants::CA_TOKENS_THRESHOLD);
-    chatTokensThreshold.setLabelText(Tr::tr("Chat history token limit:"));
-    chatTokensThreshold.setToolTip(Tr::tr("Maximum number of tokens in chat history. When "
-                                          "exceeded, oldest messages will be removed."));
-    chatTokensThreshold.setRange(1, 99999999);
-    chatTokensThreshold.setDefaultValue(20000);
-
     linkOpenFiles.setSettingsKey(Constants::CA_LINK_OPEN_FILES);
     linkOpenFiles.setLabelText(Tr::tr("Sync open files with assistant by default"));
     linkOpenFiles.setDefaultValue(false);
@@ -57,6 +49,18 @@ ChatAssistantSettings::ChatAssistantSettings()
     enableChatTools.setLabelText(Tr::tr("Enable tools/function calling"));
     enableChatTools.setToolTip(Tr::tr("When enabled, AI can use tools to read files, search project, and build code"));
     enableChatTools.setDefaultValue(false);
+
+    autoCompress.setSettingsKey(Constants::CA_AUTO_COMPRESS);
+    autoCompress.setLabelText(Tr::tr("Auto-compress chat when session tokens exceed:"));
+    autoCompress.setToolTip(Tr::tr(
+        "After each assistant response, if the running session token total exceeds the "
+        "threshold, the chat is summarized and a new compressed chat is started "
+        "automatically. The original chat is preserved on disk."));
+    autoCompress.setDefaultValue(false);
+
+    autoCompressThreshold.setSettingsKey(Constants::CA_AUTO_COMPRESS_THRESHOLD);
+    autoCompressThreshold.setRange(1000, 99999999);
+    autoCompressThreshold.setDefaultValue(40000);
 
     // General Parameters Settings
     temperature.setSettingsKey(Constants::CA_TEMPERATURE);
@@ -292,11 +296,11 @@ ChatAssistantSettings::ChatAssistantSettings()
             Group{
                 title(Tr::tr("Chat Settings")),
                 Column{
-                    Row{chatTokensThreshold, Stretch{1}},
                     linkOpenFiles,
                     autosave,
                     enableChatInBottomToolBar,
-                    enableChatInNavigationPanel}},
+                    enableChatInNavigationPanel,
+                    Row{autoCompress, autoCompressThreshold, Stretch{1}}}},
             Space{8},
             Group{
                 title(Tr::tr("Tools")),
@@ -348,7 +352,8 @@ void ChatAssistantSettings::resetSettingsToDefaults()
         QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
-        resetAspect(chatTokensThreshold);
+        resetAspect(autoCompress);
+        resetAspect(autoCompressThreshold);
         resetAspect(temperature);
         resetAspect(maxTokens);
         resetAspect(useTopP);

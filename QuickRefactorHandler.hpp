@@ -6,6 +6,7 @@
 #include <QJsonObject>
 #include <QObject>
 
+#include <LLMQore/BaseClient.hpp>
 #include <texteditor/texteditor.h>
 #include <utils/textutils.h>
 
@@ -43,6 +44,8 @@ signals:
 
 private slots:
     void handleFullResponse(const QString &requestId, const QString &fullText);
+    void handleRequestFinalized(
+        const ::LLMQore::RequestID &requestId, const ::LLMQore::CompletionInfo &info);
     void handleRequestFailed(const QString &requestId, const QString &error);
 
 private:

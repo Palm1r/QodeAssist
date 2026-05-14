@@ -3,7 +3,12 @@
 
 #include "ChatRootView.hpp"
 
+#include <algorithm>
+
+#include <LLMQore/ToolsManager.hpp>
 #include <QClipboard>
+#include <QJsonArray>
+#include <QJsonDocument>
 #include <QDesktopServices>
 #include <QDir>
 #include <QFile>
@@ -31,7 +36,6 @@
 #include "Logger.hpp"
 #include "ProjectSettings.hpp"
 #include "ProvidersManager.hpp"
-#include "ToolsSettings.hpp"
 #include "context/ChangesManager.h"
 #include "context/ContextManager.hpp"
 #include "context/TokenUtils.hpp"
@@ -107,6 +111,22 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         &Utils::BaseAspect::changed,
         this,
         &ChatRootView::updateInputTokensCount);
+    connect(this, &ChatRootView::useToolsChanged, this, &ChatRootView::updateInputTokensCount);
+    connect(
+        &Settings::chatAssistantSettings().enableChatTools,
+        &Utils::BaseAspect::changed,
+        this,
+        &ChatRootView::updateInputTokensCount);
+
+    rewireToolsChangedConnection();
+    connect(
+        &Settings::generalSettings().caProvider,
+        &Utils::BaseAspect::changed,
+        this,
+        [this]() {
+            rewireToolsChangedConnection();
+            updateInputTokensCount();
+        });
     connect(
         &Settings::chatAssistantSettings().systemPrompt,
         &Utils::BaseAspect::changed,
@@ -170,6 +190,28 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         LOG_MESSAGE(QString("New message request started: %1").arg(requestId));
         updateCurrentMessageEditsStats();
     });
+
+    connect(
+        m_clientInterface,
+        &ClientInterface::messageUsageReceived,
+        this,
+        [this](int promptTokens, int /*completionTokens*/, int /*cached*/, int /*reasoning*/) {
+            if (promptTokens <= 0 || m_lastSentEstimate <= 0)
+                return;
+
+            const double rawFactor
+                = static_cast<double>(promptTokens) / static_cast<double>(m_lastSentEstimate);
+            const double clamped = std::clamp(rawFactor, 0.5, 3.0);
+            m_calibrationFactor = 0.5 * m_calibrationFactor + 0.5 * clamped;
+
+            LOG_MESSAGE(QString("Token calibration: server=%1 estimated=%2 ratio=%3 ema=%4")
+                            .arg(promptTokens)
+                            .arg(m_lastSentEstimate)
+                            .arg(rawFactor, 0, 'f', 3)
+                            .arg(m_calibrationFactor, 0, 'f', 3));
+
+            updateInputTokensCount();
+        });
 
     connect(
         &Context::ChangesManager::instance(),
@@ -247,7 +289,6 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         emit lastErrorMessageChanged();
     });
 
-    // ChatCompressor signals
     connect(m_chatCompressor, &ChatCompressor::compressionStarted, this, [this]() {
         emit isCompressingChanged();
     });
@@ -259,6 +300,12 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         emit compressionCompleted(compressedChatPath);
 
         loadHistory(compressedChatPath);
+
+        if (m_pendingSend.active) {
+            PendingSend p = m_pendingSend;
+            m_pendingSend = {};
+            dispatchSend(p.message, p.attachments, p.linkedFiles, p.useTools, p.useThinking);
+        }
     });
 
     connect(m_chatCompressor, &ChatCompressor::compressionFailed, this, [this](const QString &error) {
@@ -266,6 +313,12 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         m_lastErrorMessage = error;
         emit lastErrorMessageChanged();
         emit compressionFailed(error);
+
+        if (m_pendingSend.active) {
+            PendingSend p = m_pendingSend;
+            m_pendingSend = {};
+            dispatchSend(p.message, p.attachments, p.linkedFiles, p.useTools, p.useThinking);
+        }
     });
 }
 
@@ -276,32 +329,72 @@ ChatModel *ChatRootView::chatModel() const
 
 void ChatRootView::sendMessage(const QString &message)
 {
-    if (m_inputTokensCount > m_chatModel->tokensThreshold()) {
-        QMessageBox::StandardButton reply = QMessageBox::question(
-            Core::ICore::dialogParent(),
-            tr("Token Limit Exceeded"),
-            tr("The chat history has exceeded the token limit.\n"
-               "Would you like to create new chat?"),
-            QMessageBox::Yes | QMessageBox::No);
+    const QStringList attachments = m_attachmentFiles;
+    const QStringList linkedFiles = m_linkedFiles;
+    const bool tools = useTools();
+    const bool thinking = useThinking();
 
-        if (reply == QMessageBox::Yes) {
-            autosave();
-            m_chatModel->clear();
-            setRecentFilePath(QString{});
-            return;
-        }
-    }
+    if (deferSendForAutoCompress(message, attachments, linkedFiles, tools, thinking))
+        return;
+
+    dispatchSend(message, attachments, linkedFiles, tools, thinking);
+}
+
+bool ChatRootView::deferSendForAutoCompress(
+    const QString &message,
+    const QStringList &attachments,
+    const QStringList &linkedFiles,
+    bool useToolsArg,
+    bool useThinkingArg)
+{
+    auto &settings = Settings::chatAssistantSettings();
+    if (!settings.autoCompress())
+        return false;
+
+    const int threshold = settings.autoCompressThreshold();
+    if (m_inputTokensCount < threshold)
+        return false;
 
     if (m_recentFilePath.isEmpty()) {
-        QString filePath = getAutosaveFilePath(message, m_attachmentFiles);
+        QString filePath = getAutosaveFilePath(message, attachments);
+        if (filePath.isEmpty())
+            return false;
+        setRecentFilePath(filePath);
+        LOG_MESSAGE(QString("Set chat file path for new chat (auto-compress): %1").arg(filePath));
+    }
+
+    if (m_chatCompressor->isCompressing() || m_pendingSend.active)
+        return false;
+
+    LOG_MESSAGE(QString("Auto-compress preempt: estimated next=%1 ≥ threshold=%2; deferring send")
+                    .arg(m_inputTokensCount)
+                    .arg(threshold));
+
+    m_pendingSend = {message, attachments, linkedFiles, useToolsArg, useThinkingArg, true};
+    compressCurrentChat();
+    return true;
+}
+
+void ChatRootView::dispatchSend(
+    const QString &message,
+    const QStringList &attachments,
+    const QStringList &linkedFiles,
+    bool useToolsArg,
+    bool useThinkingArg)
+{
+    if (m_recentFilePath.isEmpty()) {
+        QString filePath = getAutosaveFilePath(message, attachments);
         if (!filePath.isEmpty()) {
             setRecentFilePath(filePath);
             LOG_MESSAGE(QString("Set chat file path for new chat: %1").arg(filePath));
         }
     }
 
-    m_clientInterface
-        ->sendMessage(message, m_attachmentFiles, m_linkedFiles, useTools(), useThinking());
+    m_lastSentEstimate = m_calibrationFactor > 0.0
+                             ? static_cast<int>(m_inputTokensCount / m_calibrationFactor)
+                             : m_inputTokensCount;
+
+    m_clientInterface->sendMessage(message, attachments, linkedFiles, useToolsArg, useThinkingArg);
 
     m_fileManager->clearIntermediateStorage();
     clearAttachmentFiles();
@@ -392,7 +485,8 @@ void ChatRootView::loadHistory(const QString &filePath)
         setRecentFilePath(filePath);
     }
 
-    m_fileManager->clearIntermediateStorage();
+    if (!m_pendingSend.active)
+        m_fileManager->clearIntermediateStorage();
     m_attachmentFiles.clear();
     m_linkedFiles.clear();
     emit attachmentFilesChanged();
@@ -747,6 +841,27 @@ void ChatRootView::openFileInEditor(const QString &filePath)
     Core::EditorManager::openEditor(Utils::FilePath::fromString(filePath));
 }
 
+void ChatRootView::rewireToolsChangedConnection()
+{
+    if (m_toolsChangedConn)
+        QObject::disconnect(m_toolsChangedConn);
+    m_toolsChangedConn = {};
+
+    const auto providerName = Settings::generalSettings().caProvider();
+    auto *provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(providerName);
+    if (!provider)
+        return;
+    auto *tm = provider->toolsManager();
+    if (!tm)
+        return;
+
+    m_toolsChangedConn = connect(
+        tm,
+        &::LLMQore::ToolRegistry::toolsChanged,
+        this,
+        &ChatRootView::updateInputTokensCount);
+}
+
 void ChatRootView::updateInputTokensCount()
 {
     int inputTokens = m_messageTokensCount;
@@ -756,14 +871,33 @@ void ChatRootView::updateInputTokensCount()
         inputTokens += Context::TokenUtils::estimateTokens(settings.systemPrompt());
     }
 
+    const auto splitImageEstimate = [](const QStringList &paths, QStringList &textPaths) {
+        int imageTokens = 0;
+        for (const QString &p : paths) {
+            if (Context::TokenUtils::isImageFilePath(p))
+                imageTokens += Context::TokenUtils::estimateImageAttachmentTokens(p);
+            else
+                textPaths.append(p);
+        }
+        return imageTokens;
+    };
+
     if (!m_attachmentFiles.isEmpty()) {
-        auto attachFiles = m_clientInterface->contextManager()->getContentFiles(m_attachmentFiles);
-        inputTokens += Context::TokenUtils::estimateFilesTokens(attachFiles);
+        QStringList textPaths;
+        inputTokens += splitImageEstimate(m_attachmentFiles, textPaths);
+        if (!textPaths.isEmpty()) {
+            auto attachFiles = m_clientInterface->contextManager()->getContentFiles(textPaths);
+            inputTokens += Context::TokenUtils::estimateFilesTokens(attachFiles);
+        }
     }
 
     if (!m_linkedFiles.isEmpty()) {
-        auto linkFiles = m_clientInterface->contextManager()->getContentFiles(m_linkedFiles);
-        inputTokens += Context::TokenUtils::estimateFilesTokens(linkFiles);
+        QStringList textPaths;
+        inputTokens += splitImageEstimate(m_linkedFiles, textPaths);
+        if (!textPaths.isEmpty()) {
+            auto linkFiles = m_clientInterface->contextManager()->getContentFiles(textPaths);
+            inputTokens += Context::TokenUtils::estimateFilesTokens(linkFiles);
+        }
     }
 
     const auto &history = m_chatModel->getChatHistory();
@@ -772,7 +906,22 @@ void ChatRootView::updateInputTokensCount()
         inputTokens += 4; // + role
     }
 
-    m_inputTokensCount = inputTokens;
+    if (useTools()) {
+        const auto providerName = Settings::generalSettings().caProvider();
+        if (auto *provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(
+                providerName)) {
+            if (auto *tm = provider->toolsManager()) {
+                const QJsonArray toolDefs = tm->getToolsDefinitions();
+                if (!toolDefs.isEmpty()) {
+                    const QByteArray serialized
+                        = QJsonDocument(toolDefs).toJson(QJsonDocument::Compact);
+                    inputTokens += static_cast<int>(serialized.size() / 4);
+                }
+            }
+        }
+    }
+
+    m_inputTokensCount = static_cast<int>(inputTokens * m_calibrationFactor);
     emit inputTokensCountChanged();
 }
 

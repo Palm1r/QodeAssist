@@ -15,6 +15,8 @@ public:
     static int estimateTokens(const QString &text);
     static int estimateFileTokens(const Context::ContentFile &file);
     static int estimateFilesTokens(const QList<Context::ContentFile> &files);
+    static bool isImageFilePath(const QString &filePath);
+    static int estimateImageAttachmentTokens(const QString &filePath);
 };
 
 } // namespace QodeAssist::Context
