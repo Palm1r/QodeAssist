@@ -526,15 +526,6 @@ ChatRootView {
         }
     }
 
-    Shortcut {
-        id: sendMessageShortcut
-
-        sequences: ["Ctrl+Return", "Ctrl+Enter"]
-        context: Qt.WindowShortcut
-        enabled: messageInput.activeFocus && !Qt.inputMethod.visible && !fileMentionPopup.visible
-        onActivated: root.sendChatMessage()
-    }
-
     function clearChat() {
         root.clearMessages()
         root.clearAttachmentFiles()
@@ -543,6 +534,10 @@ ChatRootView {
 
     function scrollToBottom() {
         Qt.callLater(chatListView.positionViewAtEnd)
+    }
+
+    function focusInput() {
+        messageInput.forceActiveFocus()
     }
 
     function applyMentionSelection() {
@@ -654,6 +649,6 @@ ChatRootView {
     }
 
     Component.onCompleted: {
-        messageInput.forceActiveFocus()
+        focusInput()
     }
 }

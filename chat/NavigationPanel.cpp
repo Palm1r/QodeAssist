@@ -4,6 +4,7 @@
 #include "NavigationPanel.hpp"
 
 #include "ChatView/ChatWidget.hpp"
+#include "QodeAssistConstants.hpp"
 
 namespace QodeAssist::Chat {
 
@@ -12,7 +13,7 @@ NavigationPanel::NavigationPanel(QQmlEngine* engine)
 {
     setDisplayName(tr("QodeAssist Chat"));
     setPriority(500);
-    setId("QodeAssistChat");
+    setId(Constants::QODE_ASSIST_CHAT_NAV_ID);
     setActivationSequence(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_C));
 }
 

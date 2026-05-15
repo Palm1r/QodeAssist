@@ -6,11 +6,15 @@
 #include <QQmlComponent>
 #include <QQmlContext>
 #include <QQmlEngine>
+#include <QQuickItem>
 #include <QSettings>
 #include <QVariantMap>
 
 #include <coreplugin/actionmanager/actionmanager.h>
+#include <coreplugin/actionmanager/command.h>
 #include <logger/Logger.hpp>
+
+#include "QodeAssistConstants.hpp"
 
 namespace {
 constexpr Qt::WindowFlags baseFlags = Qt::Window | Qt::WindowTitleHint | Qt::WindowSystemMenuHint
@@ -39,18 +43,29 @@ ChatView::ChatView(QQmlEngine* engine)
     setMinimumSize({400, 300});
     setFlags(baseFlags);
 
-    if (auto action = Core::ActionManager::command("QodeAssist.CloseChatView")) {
-        m_closeShortcut = new QShortcut(action->keySequence(), this);
-        connect(m_closeShortcut, &QShortcut::activated, this, &QQuickView::close);
-
-        connect(action, &Core::Command::keySequenceChanged, this, [action, this]() {
-            if (m_closeShortcut) {
-                m_closeShortcut->setKey(action->keySequence());
-            }
-        });
-    }
+    bindCommandShortcut("QodeAssist.CloseChatView", [this] { close(); });
+    bindCommandShortcut(Constants::QODE_ASSIST_CHAT_SEND_MESSAGE, [this] {
+        QMetaObject::invokeMethod(rootObject(), "sendChatMessage");
+    });
+    bindCommandShortcut(Constants::QODE_ASSIST_CHAT_CLEAR_SESSION, [this] {
+        QMetaObject::invokeMethod(rootObject(), "clearChat");
+    });
 
     restoreSettings();
+}
+
+void ChatView::bindCommandShortcut(Utils::Id commandId,
+                                   const std::function<void()> &onActivated)
+{
+    auto command = Core::ActionManager::command(commandId);
+    if (!command)
+        return;
+
+    auto shortcut = new QShortcut(command->keySequence(), this);
+    connect(shortcut, &QShortcut::activated, this, onActivated);
+    connect(command, &Core::Command::keySequenceChanged, shortcut, [command, shortcut]() {
+        shortcut->setKey(command->keySequence());
+    });
 }
 
 void ChatView::closeEvent(QCloseEvent *event)

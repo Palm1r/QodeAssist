@@ -3,6 +3,10 @@
 
 #pragma once
 
+#include <functional>
+
+#include <utils/id.h>
+
 #include <QQuickView>
 #include <QShortcut>
 
@@ -27,9 +31,9 @@ protected:
 private:
     void saveSettings();
     void restoreSettings();
+    void bindCommandShortcut(Utils::Id commandId, const std::function<void()> &onActivated);
 
     bool m_isPin;
-    QShortcut *m_closeShortcut;
 };
 
 } // namespace QodeAssist::Chat

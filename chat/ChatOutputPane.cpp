@@ -38,18 +38,20 @@ void ChatOutputPane::clearContents()
 
 void ChatOutputPane::visibilityChanged(bool visible)
 {
-    if (visible)
+    if (visible) {
         m_chatWidget->scrollToBottom();
+        m_chatWidget->focusInput();
+    }
 }
 
 void ChatOutputPane::setFocus()
 {
-    m_chatWidget->setFocus();
+    m_chatWidget->focusInput();
 }
 
 bool ChatOutputPane::hasFocus() const
 {
-    return m_chatWidget->hasFocus();
+    return m_chatWidget->isChatFocused();
 }
 
 bool ChatOutputPane::canFocus() const

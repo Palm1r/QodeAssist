@@ -14,6 +14,7 @@
 #include <coreplugin/icore.h>
 #include <coreplugin/messagemanager.h>
 #include <coreplugin/modemanager.h>
+#include <coreplugin/navigationwidget.h>
 #include <coreplugin/statusbarmanager.h>
 #include <extensionsystem/iplugin.h>
 #include <languageclient/languageclientmanager.h>
@@ -50,6 +51,7 @@
 #include "widgets/QuickRefactorDialog.hpp"
 #include <ChatView/ChatView.hpp>
 #include <ChatView/ChatFileManager.hpp>
+#include <ChatView/ChatWidget.hpp>
 #include <coreplugin/actionmanager/actioncontainer.h>
 #include <coreplugin/actionmanager/actionmanager.h>
 #include <texteditor/textdocument.h>
@@ -228,6 +230,26 @@ public:
             if (m_chatView && m_chatView->isActive() && m_chatView->isVisible()) {
                 m_chatView->close();
             }
+        });
+
+        ActionBuilder sendMessageAction(this, Constants::QODE_ASSIST_CHAT_SEND_MESSAGE);
+        sendMessageAction.setContext(Core::Context(Constants::QODE_ASSIST_CHAT_CONTEXT));
+        sendMessageAction.setText(Tr::tr("Send QodeAssist Chat Message"));
+        sendMessageAction.setToolTip(Tr::tr("Send the current message to the LLM"));
+        sendMessageAction.setDefaultKeySequence(QKeySequence(Qt::CTRL | Qt::Key_Return));
+        sendMessageAction.addOnTriggered(this, [] {
+            if (auto chatWidget = Chat::ChatWidget::focusedInstance())
+                chatWidget->sendMessage();
+        });
+
+        ActionBuilder clearSessionAction(this, Constants::QODE_ASSIST_CHAT_CLEAR_SESSION);
+        clearSessionAction.setContext(Core::Context(Constants::QODE_ASSIST_CHAT_CONTEXT));
+        clearSessionAction.setText(Tr::tr("Clear QodeAssist Chat Session"));
+        clearSessionAction.setToolTip(Tr::tr("Clear the current chat session"));
+        clearSessionAction.setDefaultKeySequence(QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_L));
+        clearSessionAction.addOnTriggered(this, [] {
+            if (auto chatWidget = Chat::ChatWidget::focusedInstance())
+                chatWidget->clearSession();
         });
 
         Core::ActionContainer *editorContextMenu = Core::ActionManager::actionContainer(

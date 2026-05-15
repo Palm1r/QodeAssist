@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.16)
 
+# list(APPEND CMAKE_PREFIX_PATH "/Users/palm1r/Qt/Qt Creator 20.0.0-beta1.app/Contents/Resources")
+list(APPEND CMAKE_PREFIX_PATH "/Users/palm1r/Qt/Qt Creator 20.0.0-beta1.sdk/lib/cmake/QtCreator")
+# list(APPEND CMAKE_PREFIX_PATH "/Users/palm1r/Qt/Qt Creator 20.0.0-beta1.sdk")
+# list(APPEND CMAKE_PREFIX_PATH "/Users/palm1r/Qt/Qt Creator 20.0.0-beta1.app/Contents/Resources")
+
 project(QodeAssist)
 
 set(CMAKE_AUTOMOC ON)

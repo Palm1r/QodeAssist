@@ -94,5 +94,5 @@ target_link_libraries(QodeAssistChatView
 )
 
 target_include_directories(QodeAssistChatView
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}
 )

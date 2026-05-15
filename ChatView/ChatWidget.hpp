@@ -17,6 +17,14 @@ public:
 
     Q_INVOKABLE void clear();
     Q_INVOKABLE void scrollToBottom();
+    Q_INVOKABLE void focusInput();
+
+    void sendMessage();
+    void clearSession();
+
+    bool isChatFocused() const;
+
+    static ChatWidget *focusedInstance();
 
 signals:
     void clearPressed();
