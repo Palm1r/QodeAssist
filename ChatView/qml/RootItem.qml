@@ -272,6 +272,7 @@ ChatRootView {
                     id: chatItemInstance
 
                     width: parent.width
+                    chatViewport: chatListView
                     msgModel: root.chatModel.processMessageContent(model.content)
                     messageAttachments: model.attachments
                     messageImages: model.images

@@ -30,6 +30,7 @@ Rectangle {
     property int textFontSize: Qt.application.font.pointSize
     property int codeFontSize: Qt.application.font.pointSize
     property int textFormat: 0
+    property Flickable chatViewport: null
 
     property bool isUserMessage: false
     property int messageIndex: -1
@@ -259,6 +260,7 @@ Rectangle {
         language: itemData.language
         codeFontFamily: root.codeFontFamily
         codeFontSize: root.codeFontSize
+        viewport: root.chatViewport
     }
 
     component AttachmentComponent : Rectangle {

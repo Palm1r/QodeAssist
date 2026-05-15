@@ -35,9 +35,9 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
 
     AIConfiguration claudeOpus;
     claudeOpus.id = "preset_claude_opus";
-    claudeOpus.name = "Claude Opus 4.6";
+    claudeOpus.name = "Claude Opus 4.7";
     claudeOpus.provider = "Claude";
-    claudeOpus.model = "claude-opus-4-6";
+    claudeOpus.model = "claude-opus-4-7";
     claudeOpus.url = "https://api.anthropic.com";
     claudeOpus.customEndpoint = "";
     claudeOpus.templateName = "Claude";
@@ -101,9 +101,9 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
 
     AIConfiguration gpt;
     gpt.id = "preset_gpt";
-    gpt.name = "gpt-5.4";
+    gpt.name = "gpt-5.5";
     gpt.provider = "OpenAI (Responses API)";
-    gpt.model = "gpt-5.4";
+    gpt.model = "gpt-5.5";
     gpt.url = "https://api.openai.com/v1";
     gpt.customEndpoint = "";
     gpt.templateName = "OpenAI Responses";

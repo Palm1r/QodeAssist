@@ -13,6 +13,7 @@ Rectangle {
     property string code: ""
     property string language: ""
     property bool expanded: false
+    property Flickable viewport: null
 
     property alias codeFontFamily: codeText.font.family
     property alias codeFontSize: codeText.font.pointSize
@@ -122,7 +123,16 @@ Rectangle {
         anchors.right: parent.right
         anchors.rightMargin: 5
 
-        y: 5
+        y: {
+            if (!root.expanded || !root.viewport)
+                return 5
+            const flick = root.viewport
+            const topInContent = root.mapToItem(flick.contentItem, 0, 0).y
+            const topInView = topInContent - flick.contentY
+            const desired = topInView < 0 ? (-topInView + 5) : 5
+            const maxY = Math.max(5, root.height - copyButton.height - 5)
+            return Math.max(5, Math.min(desired, maxY))
+        }
         text: qsTr("Copy")
 
         onClicked: {
