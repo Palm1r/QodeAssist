@@ -12,6 +12,10 @@ const char QODE_ASSIST_REQUEST_SUGGESTION[] = "QodeAssist.RequestSuggestion";
 
 const char QODE_ASSIST_CHAT_CONTEXT[] = "QodeAssist.ChatContext";
 const char QODE_ASSIST_CHAT_NAV_ID[] = "QodeAssistChat";
+const char QODE_ASSIST_CHAT_EDITOR_ID[] = "QodeAssist.ChatEditor";
+
+const char QODE_ASSIST_SHOW_CHAT_ACTION[] = "QodeAssist.ShowChatView";
+const char QODE_ASSIST_OPEN_CHAT_WINDOW_ACTION[] = "QodeAssist.OpenChatWindow";
 
 const char QODE_ASSIST_CHAT_SEND_MESSAGE[] = "QodeAssist.Chat.SendMessage";
 const char QODE_ASSIST_CHAT_CLEAR_SESSION[] = "QodeAssist.Chat.ClearSession";

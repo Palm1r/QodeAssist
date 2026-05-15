@@ -7,12 +7,17 @@
 
 namespace QodeAssist::Chat {
 
+class SessionFileRegistry;
+
 class ChatWidget : public QQuickWidget
 {
     Q_OBJECT
 
 public:
-    explicit ChatWidget(QQmlEngine* engine, QWidget *parent = nullptr);
+    explicit ChatWidget(
+        QQmlEngine *engine,
+        SessionFileRegistry *sessionFileRegistry,
+        QWidget *parent = nullptr);
     ~ChatWidget() = default;
 
     Q_INVOKABLE void clear();

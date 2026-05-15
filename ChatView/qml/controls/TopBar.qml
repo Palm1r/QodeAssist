@@ -17,6 +17,7 @@ Rectangle {
     property alias recentPath: recentPathId
     property alias openChatHistory: openChatHistoryId
     property alias pinButton: pinButtonId
+    property alias relocateButton: relocateButtonId
     property alias contextButton: contextButtonId
     property alias toolsButton: toolsButtonId
     property alias thinkingMode: thinkingModeId
@@ -59,6 +60,21 @@ Rectangle {
                 ToolTip.delay: 250
                 ToolTip.text: checked ? qsTr("Unpin chat window")
                                       : qsTr("Pin chat window to the top")
+            }
+
+            QoAButton {
+                id: relocateButtonId
+
+                anchors.verticalCenter: parent.verticalCenter
+
+                icon {
+                    source: "qrc:/qt/qml/ChatView/icons/open-in-editor.svg"
+                    color: palette.window.hslLightness > 0.5 ? "#000000" : "#FFFFFF"
+                    height: 15
+                    width: 15
+                }
+                ToolTip.visible: hovered
+                ToolTip.delay: 250
             }
 
             QoAComboBox {

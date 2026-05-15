@@ -8,12 +8,17 @@
 
 namespace QodeAssist::Chat {
 
+class SessionFileRegistry;
+
 class ChatOutputPane : public Core::IOutputPane
 {
     Q_OBJECT
 
 public:
-    explicit ChatOutputPane(QQmlEngine* engine, QObject *parent = nullptr);
+    explicit ChatOutputPane(
+        QQmlEngine *engine,
+        SessionFileRegistry *sessionFileRegistry,
+        QObject *parent = nullptr);
     ~ChatOutputPane() override;
 
     QWidget *outputWidget(QWidget *parent) override;

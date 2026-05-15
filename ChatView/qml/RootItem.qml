@@ -116,6 +116,17 @@ ChatRootView {
                 checked: typeof _chatview !== 'undefined' ? _chatview.isPin : false
                 onCheckedChanged: _chatview.isPin = topBar.pinButton.checked
             }
+            relocateButton {
+                ToolTip.text: (typeof _chatview !== 'undefined')
+                              ? qsTr("Move this chat to an editor split")
+                              : qsTr("Move this chat to a separate window")
+                onClicked: {
+                    if (typeof _chatview !== 'undefined')
+                        root.relocateToSplit()
+                    else
+                        root.relocateToWindow()
+                }
+            }
             toolsButton {
                 checked: root.useTools
                 onCheckedChanged: {

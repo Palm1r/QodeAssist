@@ -11,17 +11,20 @@ class QQmlEngine;
 
 namespace QodeAssist::Chat {
 
+class SessionFileRegistry;
+
 class NavigationPanel : public Core::INavigationWidgetFactory
 {
     Q_OBJECT
 public:
-    explicit NavigationPanel(QQmlEngine* engine);
+    explicit NavigationPanel(QQmlEngine *engine, SessionFileRegistry *sessionFileRegistry);
     ~NavigationPanel();
 
     Core::NavigationView createWidget() override;
 
 private:
     QPointer<QQmlEngine> m_engine;
+    QPointer<SessionFileRegistry> m_sessionFileRegistry;
 };
 
 } // namespace QodeAssist::Chat

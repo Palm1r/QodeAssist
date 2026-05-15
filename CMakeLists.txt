@@ -115,6 +115,9 @@ add_qtc_plugin(QodeAssist
     QodeAssistClient.hpp QodeAssistClient.cpp
     chat/ChatOutputPane.h chat/ChatOutputPane.cpp
     chat/NavigationPanel.hpp chat/NavigationPanel.cpp
+    chat/ChatDocument.hpp chat/ChatDocument.cpp
+    chat/ChatEditor.hpp chat/ChatEditor.cpp
+    chat/ChatEditorFactory.hpp chat/ChatEditorFactory.cpp
     ConfigurationManager.hpp ConfigurationManager.cpp
     CodeHandler.hpp CodeHandler.cpp
     UpdateStatusWidget.hpp UpdateStatusWidget.cpp

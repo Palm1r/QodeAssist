@@ -3,6 +3,7 @@
 
 #include "ChatRootView.hpp"
 
+#include <QAction>
 #include <QClipboard>
 #include <QDesktopServices>
 #include <QDir>
@@ -10,14 +11,20 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QMessageBox>
+#include <QQmlContext>
+#include <QQmlEngine>
 #include <QTextStream>
 
+#include <coreplugin/actionmanager/actionmanager.h>
+#include <coreplugin/actionmanager/command.h>
 #include <coreplugin/editormanager/editormanager.h>
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectexplorer.h>
 #include <projectexplorer/projectmanager.h>
 #include <utils/theme/theme.h>
 #include <utils/utilsicons.h>
+
+#include "QodeAssistConstants.hpp"
 
 #include "AgentRoleController.hpp"
 #include "ChatAssistantSettings.hpp"
@@ -30,10 +37,19 @@
 #include "SettingsConstants.hpp"
 #include "Logger.hpp"
 #include "ProvidersManager.hpp"
+#include "SessionFileRegistry.hpp"
 #include "context/ContextManager.hpp"
 #include "pluginllmcore/RulesLoader.hpp"
 
 namespace QodeAssist::Chat {
+
+namespace {
+bool isChatEditor(Core::IEditor *editor)
+{
+    return editor && editor->document()
+           && editor->document()->id() == Utils::Id(Constants::QODE_ASSIST_CHAT_EDITOR_ID);
+}
+} // namespace
 
 ChatRootView::ChatRootView(QQuickItem *parent)
     : QQuickItem(parent)
@@ -278,6 +294,25 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     });
 }
 
+ChatRootView::~ChatRootView()
+{
+    if (m_sessionFileRegistry && !m_recentFilePath.isEmpty()) {
+        m_sessionFileRegistry->release(m_recentFilePath);
+    }
+}
+
+SessionFileRegistry *ChatRootView::sessionFileRegistry() const
+{
+    if (!m_sessionFileRegistryResolved) {
+        m_sessionFileRegistryResolved = true;
+        if (auto context = qmlContext(this)) {
+            m_sessionFileRegistry = qobject_cast<SessionFileRegistry *>(
+                context->contextProperty("sessionFileRegistry").value<QObject *>());
+        }
+    }
+    return m_sessionFileRegistry;
+}
+
 ChatModel *ChatRootView::chatModel() const
 {
     return m_chatModel;
@@ -341,6 +376,9 @@ void ChatRootView::dispatchSend(
 {
     if (m_recentFilePath.isEmpty()) {
         QString filePath = getAutosaveFilePath(message, attachments);
+        if (auto registry = sessionFileRegistry()) {
+            filePath = registry->uniqueFreePath(filePath);
+        }
         if (!filePath.isEmpty()) {
             setRecentFilePath(filePath);
             LOG_MESSAGE(QString("Set chat file path for new chat: %1").arg(filePath));
@@ -402,6 +440,15 @@ QString ChatRootView::currentTemplate() const
 
 void ChatRootView::saveHistory(const QString &filePath)
 {
+    if (filePath != m_recentFilePath) {
+        if (auto registry = sessionFileRegistry(); registry && registry->isLocked(filePath)) {
+            m_lastErrorMessage
+                = tr("This chat file is already in use by another QodeAssist chat session.");
+            emit lastErrorMessageChanged();
+            return;
+        }
+    }
+
     auto result = m_historyStore->save(filePath);
     if (!result.success) {
         LOG_MESSAGE(QString("Failed to save chat history: %1").arg(result.errorMessage));
@@ -412,6 +459,15 @@ void ChatRootView::saveHistory(const QString &filePath)
 
 void ChatRootView::loadHistory(const QString &filePath)
 {
+    if (filePath != m_recentFilePath) {
+        if (auto registry = sessionFileRegistry(); registry && registry->isLocked(filePath)) {
+            m_lastErrorMessage
+                = tr("This chat is already open in another QodeAssist chat session.");
+            emit lastErrorMessageChanged();
+            return;
+        }
+    }
+
     auto result = m_historyStore->load(filePath);
     if (!result.success) {
         LOG_MESSAGE(QString("Failed to load chat history: %1").arg(result.errorMessage));
@@ -446,11 +502,18 @@ void ChatRootView::autosave()
         return;
     }
 
-    QString filePath = getAutosaveFilePath();
-    if (!filePath.isEmpty()) {
-        m_historyStore->save(filePath);
+    if (m_recentFilePath.isEmpty()) {
+        QString filePath = getAutosaveFilePath();
+        if (auto registry = sessionFileRegistry()) {
+            filePath = registry->uniqueFreePath(filePath);
+        }
+        if (filePath.isEmpty()) {
+            return;
+        }
         setRecentFilePath(filePath);
     }
+
+    m_historyStore->save(m_recentFilePath);
 }
 
 QString ChatRootView::getAutosaveFilePath() const
@@ -671,6 +734,76 @@ void ChatRootView::openFileInEditor(const QString &filePath)
     Core::EditorManager::openEditor(Utils::FilePath::fromString(filePath));
 }
 
+void ChatRootView::triggerOpenChatCommand(Utils::Id commandId)
+{
+    if (auto command = Core::ActionManager::command(commandId)) {
+        if (auto action = command->action())
+            action->trigger();
+    }
+}
+
+void ChatRootView::handOffSession()
+{
+    if (m_chatModel->rowCount() > 0) {
+        if (m_recentFilePath.isEmpty()) {
+            QString filePath = getAutosaveFilePath();
+            if (auto registry = sessionFileRegistry())
+                filePath = registry->uniqueFreePath(filePath);
+            if (!filePath.isEmpty())
+                setRecentFilePath(filePath);
+        }
+        if (!m_recentFilePath.isEmpty())
+            m_historyStore->save(m_recentFilePath);
+    }
+
+    if (auto registry = sessionFileRegistry(); registry && !m_recentFilePath.isEmpty())
+        registry->setPendingChatFile(m_recentFilePath);
+
+    setRecentFilePath(QString{});
+}
+
+void ChatRootView::consumePendingChatFile()
+{
+    if (auto registry = sessionFileRegistry()) {
+        const QString pending = registry->takePendingChatFile();
+        if (!pending.isEmpty())
+            loadHistory(pending);
+    }
+}
+
+void ChatRootView::relocateToSplit()
+{
+    handOffSession();
+    triggerOpenChatCommand(Constants::QODE_ASSIST_SHOW_CHAT_ACTION);
+    clearMessages();
+    clearAttachmentFiles();
+    emit closeHostRequested();
+}
+
+void ChatRootView::relocateToWindow()
+{
+    handOffSession();
+    triggerOpenChatCommand(Constants::QODE_ASSIST_OPEN_CHAT_WINDOW_ACTION);
+    clearMessages();
+    clearAttachmentFiles();
+    emit closeHostRequested();
+
+    // Closing the source split raises the main window; re-raise the chat window once that
+    // queued teardown has run. The registry outlives this view, which the split close deletes.
+    if (auto registry = sessionFileRegistry()) {
+        QMetaObject::invokeMethod(
+            registry,
+            [] {
+                if (auto command = Core::ActionManager::command(
+                        Constants::QODE_ASSIST_OPEN_CHAT_WINDOW_ACTION)) {
+                    if (auto action = command->action())
+                        action->trigger();
+                }
+            },
+            Qt::QueuedConnection);
+    }
+}
+
 void ChatRootView::updateInputTokensCount()
 {
     m_tokenCounter->recompute();
@@ -688,6 +821,10 @@ bool ChatRootView::isSyncOpenFiles() const
 
 void ChatRootView::onEditorAboutToClose(Core::IEditor *editor)
 {
+    if (isChatEditor(editor)) {
+        return;
+    }
+
     if (auto document = editor->document(); document && isSyncOpenFiles()) {
         QString filePath = document->filePath().toFSPathString();
         m_linkedFiles.removeOne(filePath);
@@ -703,6 +840,10 @@ void ChatRootView::onEditorAboutToClose(Core::IEditor *editor)
 
 void ChatRootView::onAppendLinkFileFromEditor(Core::IEditor *editor)
 {
+    if (isChatEditor(editor)) {
+        return;
+    }
+
     if (auto document = editor->document(); document && isSyncOpenFiles()) {
         QString filePath = document->filePath().toFSPathString();
         if (!m_linkedFiles.contains(filePath) && !shouldIgnoreFileForAttach(document->filePath())) {
@@ -714,6 +855,10 @@ void ChatRootView::onAppendLinkFileFromEditor(Core::IEditor *editor)
 
 void ChatRootView::onEditorCreated(Core::IEditor *editor, const Utils::FilePath &filePath)
 {
+    if (isChatEditor(editor)) {
+        return;
+    }
+
     if (editor && editor->document()) {
         m_currentEditors.append(editor);
         emit openFilesChanged();
@@ -732,12 +877,23 @@ QString ChatRootView::chatFilePath() const
 
 void ChatRootView::setRecentFilePath(const QString &filePath)
 {
-    if (m_recentFilePath != filePath) {
-        m_recentFilePath = filePath;
-        m_clientInterface->setChatFilePath(filePath);
-        m_fileManager->setChatFilePath(filePath);
-        emit chatFileNameChanged();
+    if (m_recentFilePath == filePath) {
+        return;
     }
+
+    if (auto registry = sessionFileRegistry()) {
+        if (!m_recentFilePath.isEmpty()) {
+            registry->release(m_recentFilePath);
+        }
+        if (!filePath.isEmpty()) {
+            registry->lock(filePath);
+        }
+    }
+
+    m_recentFilePath = filePath;
+    m_clientInterface->setChatFilePath(filePath);
+    m_fileManager->setChatFilePath(filePath);
+    emit chatFileNameChanged();
 }
 
 bool ChatRootView::shouldIgnoreFileForAttach(const Utils::FilePath &filePath)

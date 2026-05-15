@@ -75,6 +75,7 @@ qt_add_qml_module(QodeAssistChatView
     InputTokenCounter.hpp InputTokenCounter.cpp
     ChatHistoryStore.hpp ChatHistoryStore.cpp
     FileMentionItem.hpp FileMentionItem.cpp
+    SessionFileRegistry.hpp SessionFileRegistry.cpp
 )
 
 target_link_libraries(QodeAssistChatView

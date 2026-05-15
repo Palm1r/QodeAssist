@@ -14,7 +14,9 @@
 #include <coreplugin/actionmanager/command.h>
 #include <logger/Logger.hpp>
 
+#include "ChatRootView.hpp"
 #include "QodeAssistConstants.hpp"
+#include "SessionFileRegistry.hpp"
 
 namespace {
 constexpr Qt::WindowFlags baseFlags = Qt::Window | Qt::WindowTitleHint | Qt::WindowSystemMenuHint
@@ -24,7 +26,7 @@ constexpr Qt::WindowFlags baseFlags = Qt::Window | Qt::WindowTitleHint | Qt::Win
 
 namespace QodeAssist::Chat {
 
-ChatView::ChatView(QQmlEngine* engine)
+ChatView::ChatView(QQmlEngine *engine, SessionFileRegistry *sessionFileRegistry)
     : QQuickView{engine, nullptr}
     , m_isPin(false)
 {
@@ -33,12 +35,23 @@ ChatView::ChatView(QQmlEngine* engine)
     {
         auto context = new QQmlContext{engine, this};
         context->setContextProperty("_chatview", this);
+        context->setContextProperty("sessionFileRegistry", sessionFileRegistry);
 
         auto component = new QQmlComponent{engine, QUrl{"qrc:/qt/qml/ChatView/qml/RootItem.qml"}, this};
         auto rootItem = component->create(context);
 
         setContent(component->url(), component, rootItem);
     }
+
+    if (auto rootView = qobject_cast<ChatRootView *>(rootObject())) {
+        connect(
+            rootView,
+            &ChatRootView::closeHostRequested,
+            this,
+            &QWindow::close,
+            Qt::QueuedConnection);
+    }
+
     setResizeMode(QQuickView::SizeRootObjectToView);
     setMinimumSize({400, 300});
     setFlags(baseFlags);

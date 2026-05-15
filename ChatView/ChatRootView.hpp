@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <QPointer>
 #include <QQuickItem>
 #include <QVariantList>
 
@@ -20,6 +21,7 @@ class ChatConfigurationController;
 class FileEditController;
 class InputTokenCounter;
 class ChatHistoryStore;
+class SessionFileRegistry;
 
 class ChatRootView : public QQuickItem
 {
@@ -62,6 +64,7 @@ class ChatRootView : public QQuickItem
 
 public:
     ChatRootView(QQuickItem *parent = nullptr);
+    ~ChatRootView() override;
 
     ChatModel *chatModel() const;
     QString currentTemplate() const;
@@ -95,6 +98,11 @@ public:
     Q_INVOKABLE void openSettings();
 
     Q_INVOKABLE void openFileInEditor(const QString &filePath);
+
+    Q_INVOKABLE void relocateToSplit();
+    Q_INVOKABLE void relocateToWindow();
+
+    void consumePendingChatFile();
 
     Q_INVOKABLE void updateInputTokensCount();
     int inputTokensCount() const;
@@ -216,7 +224,11 @@ signals:
 
     void openFilesChanged();
 
+    void closeHostRequested();
+
 private:
+    void triggerOpenChatCommand(Utils::Id commandId);
+    void handOffSession();
     bool deferSendForAutoCompress(
         const QString &message,
         const QStringList &attachments,
@@ -230,6 +242,8 @@ private:
         bool useTools,
         bool useThinking);
     bool hasImageAttachments(const QStringList &attachments) const;
+
+    SessionFileRegistry *sessionFileRegistry() const;
 
     ChatModel *m_chatModel;
     PluginLLMCore::PromptProviderChat m_promptProvider;
@@ -263,6 +277,8 @@ private:
     FileEditController *m_fileEditController;
     InputTokenCounter *m_tokenCounter;
     ChatHistoryStore *m_historyStore;
+    mutable QPointer<SessionFileRegistry> m_sessionFileRegistry;
+    mutable bool m_sessionFileRegistryResolved = false;
 };
 
 } // namespace QodeAssist::Chat

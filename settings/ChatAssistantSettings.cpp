@@ -298,8 +298,6 @@ ChatAssistantSettings::ChatAssistantSettings()
                 Column{
                     linkOpenFiles,
                     autosave,
-                    enableChatInBottomToolBar,
-                    enableChatInNavigationPanel,
                     Row{autoCompress, autoCompressThreshold, Stretch{1}}}},
             Space{8},
             Group{

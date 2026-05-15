@@ -12,12 +12,14 @@
 
 namespace QodeAssist::Chat {
 
+class SessionFileRegistry;
+
 class ChatView : public QQuickView
 {
     Q_OBJECT
     Q_PROPERTY(bool isPin READ isPin WRITE setIsPin NOTIFY isPinChanged FINAL)
 public:
-    ChatView(QQmlEngine* engine);
+    ChatView(QQmlEngine *engine, SessionFileRegistry *sessionFileRegistry);
 
     bool isPin() const;
     void setIsPin(bool newIsPin);

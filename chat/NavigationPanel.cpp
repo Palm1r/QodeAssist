@@ -4,12 +4,14 @@
 #include "NavigationPanel.hpp"
 
 #include "ChatView/ChatWidget.hpp"
+#include "ChatView/SessionFileRegistry.hpp"
 #include "QodeAssistConstants.hpp"
 
 namespace QodeAssist::Chat {
 
-NavigationPanel::NavigationPanel(QQmlEngine* engine)
+NavigationPanel::NavigationPanel(QQmlEngine *engine, SessionFileRegistry *sessionFileRegistry)
     : m_engine{engine}
+    , m_sessionFileRegistry{sessionFileRegistry}
 {
     setDisplayName(tr("QodeAssist Chat"));
     setPriority(500);
@@ -21,7 +23,7 @@ NavigationPanel::~NavigationPanel() {}
 
 Core::NavigationView NavigationPanel::createWidget()
 {
-    return {.widget = new ChatWidget{m_engine}};
+    return {.widget = new ChatWidget{m_engine, m_sessionFileRegistry}};
 }
 
 } // namespace QodeAssist::Chat

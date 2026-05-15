@@ -9,6 +9,10 @@
 #include <QPushButton>
 #include <QToolButton>
 
+QT_BEGIN_NAMESPACE
+class QMenu;
+QT_END_NAMESPACE
+
 namespace QodeAssist {
 
 class UpdateStatusWidget : public QFrame
@@ -21,6 +25,7 @@ public:
     void showUpdateAvailable(const QString &version);
     void hideUpdateInfo();
     void setChatButtonAction(QAction *action);
+    void setChatButtonMenu(QMenu *menu);
 
     QPushButton *updateButton() const;
 

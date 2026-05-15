@@ -32,6 +32,8 @@
 #include "QodeAssistClient.hpp"
 #include "UpdateStatusWidget.hpp"
 #include "Version.hpp"
+#include "chat/ChatEditor.hpp"
+#include "chat/ChatEditorFactory.hpp"
 #include "chat/ChatOutputPane.h"
 #include "chat/NavigationPanel.hpp"
 #include "context/DocumentReaderQtCreator.hpp"
@@ -51,7 +53,11 @@
 #include "widgets/QuickRefactorDialog.hpp"
 #include <ChatView/ChatView.hpp>
 #include <ChatView/ChatFileManager.hpp>
+#include <ChatView/ChatRootView.hpp>
 #include <ChatView/ChatWidget.hpp>
+#include <ChatView/SessionFileRegistry.hpp>
+#include <coreplugin/editormanager/editormanager.h>
+#include <QUuid>
 #include <coreplugin/actionmanager/actioncontainer.h>
 #include <coreplugin/actionmanager/actionmanager.h>
 #include <texteditor/textdocument.h>
@@ -86,6 +92,7 @@ public:
         if (m_navigationPanel) {
             delete m_navigationPanel;
         }
+        delete m_chatEditorFactory;
     }
 
     void loadTranslations()
@@ -154,13 +161,15 @@ public:
         });
 
         m_engine = new QQmlEngine{this};
+        m_sessionFileRegistry = new Chat::SessionFileRegistry{this};
 
         if (Settings::chatAssistantSettings().enableChatInBottomToolBar()) {
-            m_chatOutputPane = new Chat::ChatOutputPane{m_engine};
+            m_chatOutputPane = new Chat::ChatOutputPane{m_engine, m_sessionFileRegistry};
         }
         if (Settings::chatAssistantSettings().enableChatInNavigationPanel()) {
-            m_navigationPanel = new Chat::NavigationPanel{m_engine};
+            m_navigationPanel = new Chat::NavigationPanel{m_engine, m_sessionFileRegistry};
         }
+        m_chatEditorFactory = new Chat::ChatEditorFactory{m_engine, m_sessionFileRegistry};
 
         Settings::setupProjectPanel();
         ConfigurationManager::instance().init();
@@ -200,25 +209,22 @@ public:
             }
         });
 
-        ActionBuilder showChatViewAction(this, "QodeAssist.ShowChatView");
+        ActionBuilder showChatViewAction(this, Constants::QODE_ASSIST_SHOW_CHAT_ACTION);
         const QKeySequence showChatViewShortcut = QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_W);
         showChatViewAction.setDefaultKeySequence(showChatViewShortcut);
-        showChatViewAction.setToolTip(Tr::tr("Show QodeAssist Chat"));
+        showChatViewAction.setToolTip(Tr::tr("Open QodeAssist Chat in an editor split"));
         showChatViewAction.setText(Tr::tr("Show QodeAssist Chat"));
         showChatViewAction.setIcon(QCODEASSIST_CHAT_ICON.icon());
-        showChatViewAction.addOnTriggered(this, [this] {
-            if (!m_chatView) {
-                m_chatView.reset(new Chat::ChatView{m_engine});
-            }
-
-            if (!m_chatView->isVisible()) {
-                m_chatView->show();
-            }
-
-            m_chatView->raise();
-            m_chatView->requestActivate();
-        });
+        showChatViewAction.addOnTriggered(this, [this] { openChatInSplit(); });
         m_statusWidget->setChatButtonAction(showChatViewAction.contextAction());
+
+        m_chatButtonMenu = new QMenu(m_statusWidget);
+        connect(
+            m_chatButtonMenu,
+            &QMenu::aboutToShow,
+            this,
+            &QodeAssistPlugin::rebuildChatButtonMenu);
+        m_statusWidget->setChatButtonMenu(m_chatButtonMenu);
 
         ActionBuilder closeChatViewAction(this, "QodeAssist.CloseChatView");
         const QKeySequence closeChatViewShortcut = QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_S);
@@ -231,6 +237,12 @@ public:
                 m_chatView->close();
             }
         });
+
+        ActionBuilder openChatWindowAction(this, Constants::QODE_ASSIST_OPEN_CHAT_WINDOW_ACTION);
+        openChatWindowAction.setText(Tr::tr("Open QodeAssist Chat in Separate Window"));
+        openChatWindowAction.setToolTip(Tr::tr("Open the QodeAssist chat in a separate window"));
+        openChatWindowAction.setIcon(QCODEASSIST_CHAT_ICON.icon());
+        openChatWindowAction.addOnTriggered(this, [this] { openChatInWindow(); });
 
         ActionBuilder sendMessageAction(this, Constants::QODE_ASSIST_CHAT_SEND_MESSAGE);
         sendMessageAction.setContext(Core::Context(Constants::QODE_ASSIST_CHAT_CONTEXT));
@@ -295,6 +307,94 @@ public:
     }
 
 private:
+    void openChatInSplit()
+    {
+        if (auto splitCommand
+            = Core::ActionManager::command(Core::Constants::SPLIT_SIDE_BY_SIDE)) {
+            if (auto splitAction = splitCommand->action())
+                splitAction->trigger();
+        }
+        QString title = Tr::tr("QodeAssist Chat");
+        Core::IEditor *editor = Core::EditorManager::openEditorWithContents(
+            Constants::QODE_ASSIST_CHAT_EDITOR_ID, &title, {}, QUuid::createUuid().toString());
+        if (auto chatEditor = qobject_cast<Chat::ChatEditor *>(editor))
+            chatEditor->consumePendingChatFile();
+    }
+
+    void openChatInWindow()
+    {
+        if (!m_chatView)
+            m_chatView.reset(new Chat::ChatView{m_engine, m_sessionFileRegistry});
+
+        if (!m_chatView->isVisible())
+            m_chatView->show();
+
+        m_chatView->raise();
+        m_chatView->requestActivate();
+
+        if (auto rootView = qobject_cast<Chat::ChatRootView *>(m_chatView->rootObject()))
+            rootView->consumePendingChatFile();
+    }
+
+    void setChatInBottomPaneEnabled(bool enabled)
+    {
+        if (enabled && !m_chatOutputPane)
+            m_chatOutputPane = new Chat::ChatOutputPane{m_engine, m_sessionFileRegistry};
+        else if (!enabled && m_chatOutputPane)
+            delete m_chatOutputPane;
+
+        Settings::chatAssistantSettings().enableChatInBottomToolBar.setValue(enabled);
+        Settings::chatAssistantSettings().writeSettings();
+    }
+
+    void setChatInSidebarEnabled(bool enabled)
+    {
+        if (enabled && !m_navigationPanel)
+            m_navigationPanel = new Chat::NavigationPanel{m_engine, m_sessionFileRegistry};
+        else if (!enabled && m_navigationPanel)
+            delete m_navigationPanel;
+
+        Settings::chatAssistantSettings().enableChatInNavigationPanel.setValue(enabled);
+        Settings::chatAssistantSettings().writeSettings();
+    }
+
+    void rebuildChatButtonMenu()
+    {
+        if (!m_chatButtonMenu)
+            return;
+
+        m_chatButtonMenu->clear();
+
+        QAction *paneAction = m_chatButtonMenu->addAction(Tr::tr("Chat in Bottom Panel"));
+        paneAction->setCheckable(true);
+        paneAction->setChecked(m_chatOutputPane != nullptr);
+        connect(paneAction, &QAction::toggled, this, [this](bool on) {
+            setChatInBottomPaneEnabled(on);
+        });
+
+        QAction *sidebarAction = m_chatButtonMenu->addAction(Tr::tr("Chat in Sidebar"));
+        sidebarAction->setCheckable(true);
+        sidebarAction->setChecked(m_navigationPanel != nullptr);
+        connect(sidebarAction, &QAction::toggled, this, [this](bool on) {
+            setChatInSidebarEnabled(on);
+        });
+
+        m_chatButtonMenu->addSeparator();
+
+        if (m_chatView && m_chatView->isVisible()) {
+            QAction *splitAction = m_chatButtonMenu->addAction(Tr::tr("Open Chat in Split"));
+            connect(splitAction, &QAction::triggered, this, [this] {
+                if (m_chatView)
+                    m_chatView->close();
+                openChatInSplit();
+            });
+        } else {
+            QAction *windowAction
+                = m_chatButtonMenu->addAction(Tr::tr("Open Chat in Separate Window"));
+            connect(windowAction, &QAction::triggered, this, [this] { openChatInWindow(); });
+        }
+    }
+
     void checkForUpdates()
     {
         connect(
@@ -321,6 +421,9 @@ private:
     RequestPerformanceLogger m_performanceLogger;
     QPointer<Chat::ChatOutputPane> m_chatOutputPane;
     QPointer<Chat::NavigationPanel> m_navigationPanel;
+    QPointer<Chat::SessionFileRegistry> m_sessionFileRegistry;
+    Chat::ChatEditorFactory *m_chatEditorFactory{nullptr};
+    QPointer<QMenu> m_chatButtonMenu;
     QPointer<PluginUpdater> m_updater;
     UpdateStatusWidget *m_statusWidget{nullptr};
     QString m_lastRefactorInstructions;

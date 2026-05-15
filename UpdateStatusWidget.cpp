@@ -3,6 +3,8 @@
 
 #include "UpdateStatusWidget.hpp"
 
+#include <QMenu>
+
 namespace QodeAssist {
 
 UpdateStatusWidget::UpdateStatusWidget(QWidget *parent)
@@ -55,6 +57,16 @@ void UpdateStatusWidget::hideUpdateInfo()
 void UpdateStatusWidget::setChatButtonAction(QAction *action)
 {
     m_chatButton->setDefaultAction(action);
+}
+
+void UpdateStatusWidget::setChatButtonMenu(QMenu *menu)
+{
+    m_chatButton->setMenu(menu);
+    m_chatButton->setPopupMode(QToolButton::DelayedPopup);
+    m_chatButton->setContextMenuPolicy(Qt::CustomContextMenu);
+    connect(m_chatButton, &QWidget::customContextMenuRequested, m_chatButton, [this, menu](const QPoint &pos) {
+        menu->exec(m_chatButton->mapToGlobal(pos));
+    });
 }
 
 QPushButton *UpdateStatusWidget::updateButton() const

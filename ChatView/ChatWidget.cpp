@@ -12,15 +12,17 @@
 #include <coreplugin/icore.h>
 
 #include "QodeAssistConstants.hpp"
+#include "SessionFileRegistry.hpp"
 
 namespace QodeAssist::Chat {
 
-ChatWidget::ChatWidget(QQmlEngine* engine, QWidget *parent)
+ChatWidget::ChatWidget(QQmlEngine *engine, SessionFileRegistry *sessionFileRegistry, QWidget *parent)
     : QQuickWidget{engine, parent}
 {
     /// @note setup quick view content
     {
         auto context = new QQmlContext{engine, this};
+        context->setContextProperty("sessionFileRegistry", sessionFileRegistry);
         auto component = new QQmlComponent{engine, QUrl{"qrc:/qt/qml/ChatView/qml/RootItem.qml"}, this};
         auto rootItem = component->create(context);
 
