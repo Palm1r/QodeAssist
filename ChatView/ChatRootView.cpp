@@ -26,7 +26,7 @@
 #include <utils/theme/theme.h>
 #include <utils/utilsicons.h>
 
-#include "AgentRole.hpp"
+#include "AgentRoleController.hpp"
 #include "ChatAssistantSettings.hpp"
 #include "ChatCompressor.hpp"
 #include "ChatSerializer.hpp"
@@ -51,6 +51,7 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     , m_fileManager(new ChatFileManager(this))
     , m_isRequestInProgress(false)
     , m_chatCompressor(new ChatCompressor(this))
+    , m_agentRoleController(new AgentRoleController(this))
 {
     m_isSyncOpenFiles = Settings::chatAssistantSettings().linkOpenFiles();
     connect(
@@ -128,8 +129,18 @@ ChatRootView::ChatRootView(QQuickItem *parent)
             updateInputTokensCount();
         });
     connect(
-        &Settings::chatAssistantSettings().systemPrompt,
-        &Utils::BaseAspect::changed,
+        m_agentRoleController,
+        &AgentRoleController::availableRolesChanged,
+        this,
+        &ChatRootView::availableAgentRolesChanged);
+    connect(
+        m_agentRoleController,
+        &AgentRoleController::currentRoleChanged,
+        this,
+        &ChatRootView::currentAgentRoleChanged);
+    connect(
+        m_agentRoleController,
+        &AgentRoleController::baseSystemPromptChanged,
         this,
         &ChatRootView::baseSystemPromptChanged);
 
@@ -246,7 +257,6 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     updateInputTokensCount();
     refreshRules();
     loadAvailableConfigurations();
-    loadAvailableAgentRoles();
 
     connect(
         ProjectExplorer::ProjectManager::instance(),
@@ -1557,99 +1567,42 @@ QString ChatRootView::currentConfiguration() const
 
 void ChatRootView::loadAvailableAgentRoles()
 {
-    const QList<Settings::AgentRole> roles = Settings::AgentRolesManager::loadAllRoles();
-
-    m_availableAgentRoles.clear();
-    m_availableAgentRoles.append(Settings::AgentRolesManager::getNoRole().name);
-
-    for (const auto &role : roles)
-        m_availableAgentRoles.append(role.name);
-
-    const QString lastRoleId = Settings::chatAssistantSettings().lastUsedRoleId();
-    m_currentAgentRole = Settings::AgentRolesManager::getNoRole().name;
-
-    if (!lastRoleId.isEmpty()) {
-        for (const auto &role : roles) {
-            if (role.id == lastRoleId) {
-                m_currentAgentRole = role.name;
-                break;
-            }
-        }
-    }
-
-    emit availableAgentRolesChanged();
-    emit currentAgentRoleChanged();
+    m_agentRoleController->loadAvailableRoles();
 }
 
 void ChatRootView::applyAgentRole(const QString &roleName)
 {
-    auto &settings = Settings::chatAssistantSettings();
-
-    if (roleName == Settings::AgentRolesManager::getNoRole().name) {
-        settings.lastUsedRoleId.setValue("");
-        settings.writeSettings();
-        m_currentAgentRole = roleName;
-        emit currentAgentRoleChanged();
-        return;
-    }
-
-    const QList<Settings::AgentRole> roles = Settings::AgentRolesManager::loadAllRoles();
-
-    for (const auto &role : roles) {
-        if (role.name == roleName) {
-            settings.lastUsedRoleId.setValue(role.id);
-            settings.writeSettings();
-            m_currentAgentRole = role.name;
-            emit currentAgentRoleChanged();
-            break;
-        }
-    }
+    m_agentRoleController->applyRole(roleName);
 }
 
 QStringList ChatRootView::availableAgentRoles() const
 {
-    return m_availableAgentRoles;
+    return m_agentRoleController->availableRoles();
 }
 
 QString ChatRootView::currentAgentRole() const
 {
-    return m_currentAgentRole;
+    return m_agentRoleController->currentRole();
 }
 
 QString ChatRootView::baseSystemPrompt() const
 {
-    return Settings::chatAssistantSettings().systemPrompt();
+    return m_agentRoleController->baseSystemPrompt();
 }
 
 QString ChatRootView::currentAgentRoleDescription() const
 {
-    const QString lastRoleId = Settings::chatAssistantSettings().lastUsedRoleId();
-    if (lastRoleId.isEmpty())
-        return Settings::AgentRolesManager::getNoRole().description;
-
-    const Settings::AgentRole role = Settings::AgentRolesManager::loadRole(lastRoleId);
-    if (role.id.isEmpty())
-        return Settings::AgentRolesManager::getNoRole().description;
-
-    return role.description;
+    return m_agentRoleController->currentRoleDescription();
 }
 
 QString ChatRootView::currentAgentRoleSystemPrompt() const
 {
-    const QString lastRoleId = Settings::chatAssistantSettings().lastUsedRoleId();
-    if (lastRoleId.isEmpty())
-        return QString();
-
-    const Settings::AgentRole role = Settings::AgentRolesManager::loadRole(lastRoleId);
-    if (role.id.isEmpty())
-        return QString();
-
-    return role.systemPrompt;
+    return m_agentRoleController->currentRoleSystemPrompt();
 }
 
 void ChatRootView::openAgentRolesSettings()
 {
-    Settings::showSettings(Utils::Id("QodeAssist.AgentRoles"));
+    m_agentRoleController->openSettings();
 }
 
 void ChatRootView::compressCurrentChat()

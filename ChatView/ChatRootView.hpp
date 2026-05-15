@@ -15,6 +15,7 @@
 namespace QodeAssist::Chat {
 
 class ChatCompressor;
+class AgentRoleController;
 
 class ChatRootView : public QQuickItem
 {
@@ -271,10 +272,8 @@ private:
     QStringList m_availableConfigurations;
     QString m_currentConfiguration;
 
-    QStringList m_availableAgentRoles;
-    QString m_currentAgentRole;
-
     ChatCompressor *m_chatCompressor;
+    AgentRoleController *m_agentRoleController;
 };
 
 } // namespace QodeAssist::Chat
