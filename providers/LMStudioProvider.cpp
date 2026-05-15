@@ -5,6 +5,7 @@
 
 #include <LLMQore/ToolsManager.hpp>
 
+#include "providers/ProviderUrlUtils.hpp"
 #include "tools/ToolsRegistration.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
@@ -38,12 +39,12 @@ QString LMStudioProvider::apiKey() const
 
 QString LMStudioProvider::url() const
 {
-    return "http://localhost:1234/v1";
+    return "http://localhost:1234";
 }
 
 QFuture<QList<QString>> LMStudioProvider::getInstalledModels(const QString &url)
 {
-    m_client->setUrl(url);
+    m_client->setUrl(ensureOpenAIV1Base(url));
     m_client->setApiKey(apiKey());
     return m_client->listModels();
 }
@@ -102,6 +103,13 @@ void LMStudioProvider::prepareRequest(
             LOG_MESSAGE(QString("Added %1 tools to LMStudio request").arg(toolsDefinitions.size()));
         }
     }
+}
+
+PluginLLMCore::RequestID LMStudioProvider::sendRequest(
+    const QUrl &url, const QJsonObject &payload, const QString &endpoint)
+{
+    return PluginLLMCore::Provider::sendRequest(
+        QUrl(ensureOpenAIV1Base(url.toString())), payload, endpoint);
 }
 
 ::LLMQore::BaseClient *LMStudioProvider::client() const

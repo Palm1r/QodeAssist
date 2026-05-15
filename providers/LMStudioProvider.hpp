@@ -30,6 +30,9 @@ public:
     ::LLMQore::BaseClient *client() const override;
     QString apiKey() const override;
 
+    PluginLLMCore::RequestID sendRequest(
+        const QUrl &url, const QJsonObject &payload, const QString &endpoint) override;
+
 private:
     ::LLMQore::OpenAIClient *m_client;
 };

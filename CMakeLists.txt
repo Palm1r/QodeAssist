@@ -1,10 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
 
-# list(APPEND CMAKE_PREFIX_PATH "/Users/palm1r/Qt/Qt Creator 20.0.0-beta1.app/Contents/Resources")
-list(APPEND CMAKE_PREFIX_PATH "/Users/palm1r/Qt/Qt Creator 20.0.0-beta1.sdk/lib/cmake/QtCreator")
-# list(APPEND CMAKE_PREFIX_PATH "/Users/palm1r/Qt/Qt Creator 20.0.0-beta1.sdk")
-# list(APPEND CMAKE_PREFIX_PATH "/Users/palm1r/Qt/Qt Creator 20.0.0-beta1.app/Contents/Resources")
-
 project(QodeAssist)
 
 set(CMAKE_AUTOMOC ON)
@@ -98,6 +93,7 @@ add_qtc_plugin(QodeAssist
     templates/Qwen3CoderFIM.hpp
     templates/OpenAIResponses.hpp
     providers/Providers.hpp
+    providers/ProviderUrlUtils.hpp
     providers/OllamaProvider.hpp providers/OllamaProvider.cpp
     providers/OllamaCompatProvider.hpp providers/OllamaCompatProvider.cpp
     providers/ClaudeProvider.hpp providers/ClaudeProvider.cpp

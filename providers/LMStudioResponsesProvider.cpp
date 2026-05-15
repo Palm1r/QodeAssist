@@ -6,6 +6,7 @@
 #include <LLMQore/ToolsManager.hpp>
 
 #include "logger/Logger.hpp"
+#include "providers/ProviderUrlUtils.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
 #include "settings/GeneralSettings.hpp"
@@ -112,10 +113,7 @@ void LMStudioResponsesProvider::prepareRequest(
 
 QFuture<QList<QString>> LMStudioResponsesProvider::getInstalledModels(const QString &baseUrl)
 {
-    QString url = baseUrl;
-    if (!url.endsWith(QStringLiteral("/v1")))
-        url += QStringLiteral("/v1");
-    m_client->setUrl(url);
+    m_client->setUrl(ensureOpenAIV1Base(baseUrl));
     m_client->setApiKey(apiKey());
     return m_client->listModels();
 }
@@ -123,9 +121,8 @@ QFuture<QList<QString>> LMStudioResponsesProvider::getInstalledModels(const QStr
 PluginLLMCore::RequestID LMStudioResponsesProvider::sendRequest(
     const QUrl &url, const QJsonObject &payload, const QString &endpoint)
 {
-    const QString effectiveEndpoint
-        = endpoint.isEmpty() ? QStringLiteral("/v1/responses") : endpoint;
-    return PluginLLMCore::Provider::sendRequest(url, payload, effectiveEndpoint);
+    return PluginLLMCore::Provider::sendRequest(
+        QUrl(ensureOpenAIV1Base(url.toString())), payload, endpoint);
 }
 
 PluginLLMCore::ProviderID LMStudioResponsesProvider::providerID() const
