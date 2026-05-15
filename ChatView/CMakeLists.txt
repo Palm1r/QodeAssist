@@ -70,6 +70,10 @@ qt_add_qml_module(QodeAssistChatView
     ChatFileManager.hpp ChatFileManager.cpp
     ChatCompressor.hpp ChatCompressor.cpp
     AgentRoleController.hpp AgentRoleController.cpp
+    ChatConfigurationController.hpp ChatConfigurationController.cpp
+    FileEditController.hpp FileEditController.cpp
+    InputTokenCounter.hpp InputTokenCounter.cpp
+    ChatHistoryStore.hpp ChatHistoryStore.cpp
     FileMentionItem.hpp FileMentionItem.cpp
 )
 

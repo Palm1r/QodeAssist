@@ -3,12 +3,7 @@
 
 #include "ChatRootView.hpp"
 
-#include <algorithm>
-
-#include <LLMQore/ToolsManager.hpp>
 #include <QClipboard>
-#include <QJsonArray>
-#include <QJsonDocument>
 #include <QDesktopServices>
 #include <QDir>
 #include <QFile>
@@ -18,27 +13,24 @@
 #include <QTextStream>
 
 #include <coreplugin/editormanager/editormanager.h>
-#include <coreplugin/icore.h>
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectexplorer.h>
 #include <projectexplorer/projectmanager.h>
-#include <texteditor/texteditor.h>
 #include <utils/theme/theme.h>
 #include <utils/utilsicons.h>
 
 #include "AgentRoleController.hpp"
 #include "ChatAssistantSettings.hpp"
+#include "ChatConfigurationController.hpp"
 #include "ChatCompressor.hpp"
-#include "ChatSerializer.hpp"
-#include "ConfigurationManager.hpp"
+#include "ChatHistoryStore.hpp"
+#include "FileEditController.hpp"
 #include "GeneralSettings.hpp"
+#include "InputTokenCounter.hpp"
 #include "SettingsConstants.hpp"
 #include "Logger.hpp"
-#include "ProjectSettings.hpp"
 #include "ProvidersManager.hpp"
-#include "context/ChangesManager.h"
 #include "context/ContextManager.hpp"
-#include "context/TokenUtils.hpp"
 #include "pluginllmcore/RulesLoader.hpp"
 
 namespace QodeAssist::Chat {
@@ -52,6 +44,11 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     , m_isRequestInProgress(false)
     , m_chatCompressor(new ChatCompressor(this))
     , m_agentRoleController(new AgentRoleController(this))
+    , m_configurationController(new ChatConfigurationController(this))
+    , m_fileEditController(new FileEditController(m_chatModel, this))
+    , m_tokenCounter(
+          new InputTokenCounter(m_chatModel, m_clientInterface->contextManager(), this))
+    , m_historyStore(new ChatHistoryStore(m_chatModel, this))
 {
     m_isSyncOpenFiles = Settings::chatAssistantSettings().linkOpenFiles();
     connect(
@@ -65,19 +62,16 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     connect(
         &settings.caModel, &Utils::BaseAspect::changed, this, &ChatRootView::currentTemplateChanged);
 
-    connect(&settings.caProvider, &Utils::BaseAspect::changed, this, [this]() {
-        auto &settings = Settings::generalSettings();
-        m_currentConfiguration
-            = QString("%1 - %2").arg(settings.caProvider.value(), settings.caModel.value());
-        emit currentConfigurationChanged();
-    });
-
-    connect(&settings.caModel, &Utils::BaseAspect::changed, this, [this]() {
-        auto &settings = Settings::generalSettings();
-        m_currentConfiguration
-            = QString("%1 - %2").arg(settings.caProvider.value(), settings.caModel.value());
-        emit currentConfigurationChanged();
-    });
+    connect(
+        m_configurationController,
+        &ChatConfigurationController::availableConfigurationsChanged,
+        this,
+        &ChatRootView::availableConfigurationsChanged);
+    connect(
+        m_configurationController,
+        &ChatConfigurationController::currentConfigurationChanged,
+        this,
+        &ChatRootView::currentConfigurationChanged);
 
     connect(
         m_clientInterface,
@@ -97,37 +91,21 @@ ChatRootView::ChatRootView(QQuickItem *parent)
 
     connect(m_chatModel, &ChatModel::modelReseted, this, [this]() {
         setRecentFilePath(QString{});
-        m_currentMessageRequestId.clear();
-        updateCurrentMessageEditsStats();
+        m_fileEditController->clearCurrentRequestId();
     });
-    connect(this, &ChatRootView::attachmentFilesChanged, &ChatRootView::updateInputTokensCount);
-    connect(this, &ChatRootView::linkedFilesChanged, &ChatRootView::updateInputTokensCount);
-    connect(
-        &Settings::chatAssistantSettings().useSystemPrompt,
-        &Utils::BaseAspect::changed,
-        this,
-        &ChatRootView::updateInputTokensCount);
-    connect(
-        &Settings::chatAssistantSettings().systemPrompt,
-        &Utils::BaseAspect::changed,
-        this,
-        &ChatRootView::updateInputTokensCount);
+    connect(this, &ChatRootView::attachmentFilesChanged, this, [this]() {
+        m_tokenCounter->setAttachments(m_attachmentFiles);
+    });
+    connect(this, &ChatRootView::linkedFilesChanged, this, [this]() {
+        m_tokenCounter->setLinkedFiles(m_linkedFiles);
+    });
     connect(this, &ChatRootView::useToolsChanged, this, &ChatRootView::updateInputTokensCount);
-    connect(
-        &Settings::chatAssistantSettings().enableChatTools,
-        &Utils::BaseAspect::changed,
-        this,
-        &ChatRootView::updateInputTokensCount);
 
-    rewireToolsChangedConnection();
     connect(
-        &Settings::generalSettings().caProvider,
-        &Utils::BaseAspect::changed,
+        m_tokenCounter,
+        &InputTokenCounter::inputTokensChanged,
         this,
-        [this]() {
-            rewireToolsChangedConnection();
-            updateInputTokensCount();
-        });
+        &ChatRootView::inputTokensCountChanged);
     connect(
         m_agentRoleController,
         &AgentRoleController::availableRolesChanged,
@@ -191,72 +169,40 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         emit lastErrorMessageChanged();
     });
 
-    connect(m_clientInterface, &ClientInterface::requestStarted, this, [this](const QString &requestId) {
-        if (!m_currentMessageRequestId.isEmpty()) {
-            LOG_MESSAGE(
-                QString("Clearing previous message requestId: %1").arg(m_currentMessageRequestId));
-        }
-
-        m_currentMessageRequestId = requestId;
-        LOG_MESSAGE(QString("New message request started: %1").arg(requestId));
-        updateCurrentMessageEditsStats();
-    });
+    connect(
+        m_clientInterface,
+        &ClientInterface::requestStarted,
+        this,
+        [this](const QString &requestId) { m_fileEditController->setCurrentRequestId(requestId); });
 
     connect(
         m_clientInterface,
         &ClientInterface::messageUsageReceived,
         this,
         [this](int promptTokens, int /*completionTokens*/, int /*cached*/, int /*reasoning*/) {
-            if (promptTokens <= 0 || m_lastSentEstimate <= 0)
-                return;
-
-            const double rawFactor
-                = static_cast<double>(promptTokens) / static_cast<double>(m_lastSentEstimate);
-            const double clamped = std::clamp(rawFactor, 0.5, 3.0);
-            m_calibrationFactor = 0.5 * m_calibrationFactor + 0.5 * clamped;
-
-            LOG_MESSAGE(QString("Token calibration: server=%1 estimated=%2 ratio=%3 ema=%4")
-                            .arg(promptTokens)
-                            .arg(m_lastSentEstimate)
-                            .arg(rawFactor, 0, 'f', 3)
-                            .arg(m_calibrationFactor, 0, 'f', 3));
-
-            updateInputTokensCount();
+            m_tokenCounter->recordServerUsage(promptTokens);
         });
 
     connect(
-        &Context::ChangesManager::instance(),
-        &Context::ChangesManager::fileEditAdded,
+        m_fileEditController,
+        &FileEditController::statsChanged,
         this,
-        [this](const QString &) { updateCurrentMessageEditsStats(); });
+        &ChatRootView::currentMessageEditsStatsChanged);
+    connect(m_fileEditController, &FileEditController::infoMessage, this, [this](const QString &m) {
+        m_lastInfoMessage = m;
+        emit lastInfoMessageChanged();
+    });
+    connect(m_fileEditController, &FileEditController::errorOccurred, this, [this](const QString &e) {
+        m_lastErrorMessage = e;
+        emit lastErrorMessageChanged();
+    });
 
     connect(
-        &Context::ChangesManager::instance(),
-        &Context::ChangesManager::fileEditApplied,
-        this,
-        [this](const QString &) { updateCurrentMessageEditsStats(); });
-
+        m_historyStore, &ChatHistoryStore::saveRequested, this, &ChatRootView::saveHistory);
     connect(
-        &Context::ChangesManager::instance(),
-        &Context::ChangesManager::fileEditRejected,
-        this,
-        [this](const QString &) { updateCurrentMessageEditsStats(); });
+        m_historyStore, &ChatHistoryStore::loadRequested, this, &ChatRootView::loadHistory);
 
-    connect(
-        &Context::ChangesManager::instance(),
-        &Context::ChangesManager::fileEditUndone,
-        this,
-        [this](const QString &) { updateCurrentMessageEditsStats(); });
-
-    connect(
-        &Context::ChangesManager::instance(),
-        &Context::ChangesManager::fileEditArchived,
-        this,
-        [this](const QString &) { updateCurrentMessageEditsStats(); });
-
-    updateInputTokensCount();
     refreshRules();
-    loadAvailableConfigurations();
 
     connect(
         ProjectExplorer::ProjectManager::instance(),
@@ -362,7 +308,8 @@ bool ChatRootView::deferSendForAutoCompress(
         return false;
 
     const int threshold = settings.autoCompressThreshold();
-    if (m_inputTokensCount < threshold)
+    const int inputTokens = m_tokenCounter->inputTokens();
+    if (inputTokens < threshold)
         return false;
 
     if (m_recentFilePath.isEmpty()) {
@@ -377,7 +324,7 @@ bool ChatRootView::deferSendForAutoCompress(
         return false;
 
     LOG_MESSAGE(QString("Auto-compress preempt: estimated next=%1 ≥ threshold=%2; deferring send")
-                    .arg(m_inputTokensCount)
+                    .arg(inputTokens)
                     .arg(threshold));
 
     m_pendingSend = {message, attachments, linkedFiles, useToolsArg, useThinkingArg, true};
@@ -400,9 +347,7 @@ void ChatRootView::dispatchSend(
         }
     }
 
-    m_lastSentEstimate = m_calibrationFactor > 0.0
-                             ? static_cast<int>(m_inputTokensCount / m_calibrationFactor)
-                             : m_inputTokensCount;
+    m_tokenCounter->recordSent();
 
     m_clientInterface->sendMessage(message, attachments, linkedFiles, useToolsArg, useThinkingArg);
 
@@ -449,27 +394,6 @@ void ChatRootView::clearMessages()
     clearLinkedFiles();
 }
 
-QString ChatRootView::getChatsHistoryDir() const
-{
-    QString path;
-
-    if (auto project = ProjectExplorer::ProjectManager::startupProject()) {
-        Settings::ProjectSettings projectSettings(project);
-        path = projectSettings.chatHistoryPath().toFSPathString();
-    } else {
-        QDir baseDir(Core::ICore::userResourcePath().toFSPathString());
-        path = baseDir.filePath("qodeassist/chat_history");
-    }
-
-    QDir dir(path);
-    if (!dir.exists() && !dir.mkpath(".")) {
-        LOG_MESSAGE(QString("Failed to create directory: %1").arg(path));
-        return QString();
-    }
-
-    return path;
-}
-
 QString ChatRootView::currentTemplate() const
 {
     auto &settings = Settings::generalSettings();
@@ -478,7 +402,7 @@ QString ChatRootView::currentTemplate() const
 
 void ChatRootView::saveHistory(const QString &filePath)
 {
-    auto result = ChatSerializer::saveToFile(m_chatModel, filePath);
+    auto result = m_historyStore->save(filePath);
     if (!result.success) {
         LOG_MESSAGE(QString("Failed to save chat history: %1").arg(result.errorMessage));
     } else {
@@ -488,7 +412,7 @@ void ChatRootView::saveHistory(const QString &filePath)
 
 void ChatRootView::loadHistory(const QString &filePath)
 {
-    auto result = ChatSerializer::loadFromFile(m_chatModel, filePath);
+    auto result = m_historyStore->load(filePath);
     if (!result.success) {
         LOG_MESSAGE(QString("Failed to load chat history: %1").arg(result.errorMessage));
     } else {
@@ -502,82 +426,18 @@ void ChatRootView::loadHistory(const QString &filePath)
     emit attachmentFilesChanged();
     emit linkedFilesChanged();
 
-    m_currentMessageRequestId.clear();
+    m_fileEditController->clearCurrentRequestId();
     updateInputTokensCount();
-    updateCurrentMessageEditsStats();
 }
 
 void ChatRootView::showSaveDialog()
 {
-    QString initialDir = getChatsHistoryDir();
-
-    QFileDialog *dialog = new QFileDialog(nullptr, tr("Save Chat History"));
-    dialog->setAcceptMode(QFileDialog::AcceptSave);
-    dialog->setFileMode(QFileDialog::AnyFile);
-    dialog->setNameFilter(tr("JSON files (*.json)"));
-    dialog->setDefaultSuffix("json");
-    if (!initialDir.isEmpty()) {
-        dialog->setDirectory(initialDir);
-        dialog->selectFile(getSuggestedFileName() + ".json");
-    }
-
-    connect(dialog, &QFileDialog::finished, this, [this, dialog](int result) {
-        if (result == QFileDialog::Accepted) {
-            QStringList files = dialog->selectedFiles();
-            if (!files.isEmpty()) {
-                saveHistory(files.first());
-            }
-        }
-        dialog->deleteLater();
-    });
-
-    dialog->open();
+    m_historyStore->showSaveDialog();
 }
 
 void ChatRootView::showLoadDialog()
 {
-    QString initialDir = getChatsHistoryDir();
-
-    QFileDialog *dialog = new QFileDialog(nullptr, tr("Load Chat History"));
-    dialog->setAcceptMode(QFileDialog::AcceptOpen);
-    dialog->setFileMode(QFileDialog::ExistingFile);
-    dialog->setNameFilter(tr("JSON files (*.json)"));
-    if (!initialDir.isEmpty()) {
-        dialog->setDirectory(initialDir);
-    }
-
-    connect(dialog, &QFileDialog::finished, this, [this, dialog](int result) {
-        if (result == QFileDialog::Accepted) {
-            QStringList files = dialog->selectedFiles();
-            if (!files.isEmpty()) {
-                loadHistory(files.first());
-            }
-        }
-        dialog->deleteLater();
-    });
-
-    dialog->open();
-}
-
-QString ChatRootView::getSuggestedFileName() const
-{
-    QString shortMessage;
-
-    if (m_chatModel->rowCount() > 0) {
-        QString firstMessage
-            = m_chatModel->data(m_chatModel->index(0), ChatModel::Content).toString();
-        shortMessage = firstMessage.split('\n').first().simplified().left(30);
-
-        if (shortMessage.isEmpty()) {
-            QVariantList images
-                = m_chatModel->data(m_chatModel->index(0), ChatModel::Images).toList();
-            if (!images.isEmpty()) {
-                shortMessage = "image_chat";
-            }
-        }
-    }
-
-    return generateChatFileName(shortMessage, getChatsHistoryDir());
+    m_historyStore->showLoadDialog();
 }
 
 void ChatRootView::autosave()
@@ -588,45 +448,21 @@ void ChatRootView::autosave()
 
     QString filePath = getAutosaveFilePath();
     if (!filePath.isEmpty()) {
-        ChatSerializer::saveToFile(m_chatModel, filePath);
+        m_historyStore->save(filePath);
         setRecentFilePath(filePath);
     }
 }
 
 QString ChatRootView::getAutosaveFilePath() const
 {
-    if (!m_recentFilePath.isEmpty()) {
-        return m_recentFilePath;
-    }
-
-    QString dir = getChatsHistoryDir();
-    if (dir.isEmpty()) {
-        return QString();
-    }
-
-    return QDir(dir).filePath(getSuggestedFileName() + ".json");
+    return m_historyStore->autosaveFilePath(m_recentFilePath);
 }
 
 QString ChatRootView::getAutosaveFilePath(
     const QString &firstMessage, const QStringList &attachments) const
 {
-    if (!m_recentFilePath.isEmpty()) {
-        return m_recentFilePath;
-    }
-
-    QString dir = getChatsHistoryDir();
-    if (dir.isEmpty()) {
-        return QString();
-    }
-
-    QString shortMessage = firstMessage.split('\n').first().simplified().left(30);
-
-    if (shortMessage.isEmpty() && hasImageAttachments(attachments)) {
-        shortMessage = "image_chat";
-    }
-
-    QString fileName = generateChatFileName(shortMessage, dir);
-    return QDir(dir).filePath(fileName + ".json");
+    return m_historyStore
+        ->autosaveFilePath(m_recentFilePath, firstMessage, hasImageAttachments(attachments));
 }
 
 QStringList ChatRootView::attachmentFiles() const
@@ -779,8 +615,7 @@ QStringList ChatRootView::convertUrlsToLocalPaths(const QVariantList &urls) cons
 
 void ChatRootView::calculateMessageTokensCount(const QString &message)
 {
-    m_messageTokensCount = Context::TokenUtils::estimateTokens(message);
-    updateInputTokensCount();
+    m_tokenCounter->setMessage(message);
 }
 
 void ChatRootView::setIsSyncOpenFiles(bool state)
@@ -799,22 +634,7 @@ void ChatRootView::setIsSyncOpenFiles(bool state)
 
 void ChatRootView::openChatHistoryFolder()
 {
-    QString path;
-    if (auto project = ProjectExplorer::ProjectManager::startupProject()) {
-        Settings::ProjectSettings projectSettings(project);
-        path = projectSettings.chatHistoryPath().toFSPathString();
-    } else {
-        QDir baseDir(Core::ICore::userResourcePath().toFSPathString());
-        path = baseDir.filePath("qodeassist/chat_history");
-    }
-
-    QDir dir(path);
-    if (!dir.exists()) {
-        dir.mkpath(".");
-    }
-
-    QUrl url = QUrl::fromLocalFile(dir.absolutePath());
-    QDesktopServices::openUrl(url);
+    m_historyStore->openHistoryFolder();
 }
 
 void ChatRootView::openRulesFolder()
@@ -851,93 +671,14 @@ void ChatRootView::openFileInEditor(const QString &filePath)
     Core::EditorManager::openEditor(Utils::FilePath::fromString(filePath));
 }
 
-void ChatRootView::rewireToolsChangedConnection()
-{
-    if (m_toolsChangedConn)
-        QObject::disconnect(m_toolsChangedConn);
-    m_toolsChangedConn = {};
-
-    const auto providerName = Settings::generalSettings().caProvider();
-    auto *provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(providerName);
-    if (!provider)
-        return;
-    auto *tm = provider->toolsManager();
-    if (!tm)
-        return;
-
-    m_toolsChangedConn = connect(
-        tm,
-        &::LLMQore::ToolRegistry::toolsChanged,
-        this,
-        &ChatRootView::updateInputTokensCount);
-}
-
 void ChatRootView::updateInputTokensCount()
 {
-    int inputTokens = m_messageTokensCount;
-    auto &settings = Settings::chatAssistantSettings();
-
-    if (settings.useSystemPrompt()) {
-        inputTokens += Context::TokenUtils::estimateTokens(settings.systemPrompt());
-    }
-
-    const auto splitImageEstimate = [](const QStringList &paths, QStringList &textPaths) {
-        int imageTokens = 0;
-        for (const QString &p : paths) {
-            if (Context::TokenUtils::isImageFilePath(p))
-                imageTokens += Context::TokenUtils::estimateImageAttachmentTokens(p);
-            else
-                textPaths.append(p);
-        }
-        return imageTokens;
-    };
-
-    if (!m_attachmentFiles.isEmpty()) {
-        QStringList textPaths;
-        inputTokens += splitImageEstimate(m_attachmentFiles, textPaths);
-        if (!textPaths.isEmpty()) {
-            auto attachFiles = m_clientInterface->contextManager()->getContentFiles(textPaths);
-            inputTokens += Context::TokenUtils::estimateFilesTokens(attachFiles);
-        }
-    }
-
-    if (!m_linkedFiles.isEmpty()) {
-        QStringList textPaths;
-        inputTokens += splitImageEstimate(m_linkedFiles, textPaths);
-        if (!textPaths.isEmpty()) {
-            auto linkFiles = m_clientInterface->contextManager()->getContentFiles(textPaths);
-            inputTokens += Context::TokenUtils::estimateFilesTokens(linkFiles);
-        }
-    }
-
-    const auto &history = m_chatModel->getChatHistory();
-    for (const auto &message : history) {
-        inputTokens += Context::TokenUtils::estimateTokens(message.content);
-        inputTokens += 4; // + role
-    }
-
-    if (useTools()) {
-        const auto providerName = Settings::generalSettings().caProvider();
-        if (auto *provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(
-                providerName)) {
-            if (auto *tm = provider->toolsManager()) {
-                const QJsonArray toolDefs = tm->getToolsDefinitions();
-                if (!toolDefs.isEmpty()) {
-                    const QByteArray serialized
-                        = QJsonDocument(toolDefs).toJson(QJsonDocument::Compact);
-                    inputTokens += static_cast<int>(serialized.size() / 4);
-                }
-            }
-        }
-    }
-
-    m_inputTokensCount = static_cast<int>(inputTokens * m_calibrationFactor);
-    emit inputTokensCountChanged();
+    m_tokenCounter->recompute();
 }
 
 int ChatRootView::inputTokensCount() const
 {
-    return m_inputTokensCount;
+    return m_tokenCounter->inputTokens();
 }
 
 bool ChatRootView::isSyncOpenFiles() const
@@ -1126,309 +867,57 @@ void ChatRootView::setUseThinking(bool enabled)
 
 void ChatRootView::applyFileEdit(const QString &editId)
 {
-    LOG_MESSAGE(QString("Applying file edit: %1").arg(editId));
-    if (Context::ChangesManager::instance().applyFileEdit(editId)) {
-        m_lastInfoMessage = QString("File edit applied successfully");
-        emit lastInfoMessageChanged();
-
-        updateFileEditStatus(editId, "applied");
-    } else {
-        auto edit = Context::ChangesManager::instance().getFileEdit(editId);
-        m_lastErrorMessage = edit.statusMessage.isEmpty()
-                                 ? QString("Failed to apply file edit")
-                                 : QString("Failed to apply file edit: %1").arg(edit.statusMessage);
-        emit lastErrorMessageChanged();
-    }
+    m_fileEditController->applyFileEdit(editId);
 }
 
 void ChatRootView::rejectFileEdit(const QString &editId)
 {
-    LOG_MESSAGE(QString("Rejecting file edit: %1").arg(editId));
-    if (Context::ChangesManager::instance().rejectFileEdit(editId)) {
-        m_lastInfoMessage = QString("File edit rejected");
-        emit lastInfoMessageChanged();
-
-        updateFileEditStatus(editId, "rejected");
-    } else {
-        auto edit = Context::ChangesManager::instance().getFileEdit(editId);
-        m_lastErrorMessage = edit.statusMessage.isEmpty()
-                                 ? QString("Failed to reject file edit")
-                                 : QString("Failed to reject file edit: %1").arg(edit.statusMessage);
-        emit lastErrorMessageChanged();
-    }
+    m_fileEditController->rejectFileEdit(editId);
 }
 
 void ChatRootView::undoFileEdit(const QString &editId)
 {
-    LOG_MESSAGE(QString("Undoing file edit: %1").arg(editId));
-    if (Context::ChangesManager::instance().undoFileEdit(editId)) {
-        m_lastInfoMessage = QString("File edit undone successfully");
-        emit lastInfoMessageChanged();
-
-        updateFileEditStatus(editId, "rejected");
-    } else {
-        auto edit = Context::ChangesManager::instance().getFileEdit(editId);
-        m_lastErrorMessage = edit.statusMessage.isEmpty()
-                                 ? QString("Failed to undo file edit")
-                                 : QString("Failed to undo file edit: %1").arg(edit.statusMessage);
-        emit lastErrorMessageChanged();
-    }
+    m_fileEditController->undoFileEdit(editId);
 }
 
 void ChatRootView::openFileEditInEditor(const QString &editId)
 {
-    LOG_MESSAGE(QString("Opening file edit in editor: %1").arg(editId));
-
-    auto edit = Context::ChangesManager::instance().getFileEdit(editId);
-    if (edit.editId.isEmpty()) {
-        m_lastErrorMessage = QString("File edit not found: %1").arg(editId);
-        emit lastErrorMessageChanged();
-        return;
-    }
-
-    Utils::FilePath filePath = Utils::FilePath::fromString(edit.filePath);
-
-    Core::IEditor *editor = Core::EditorManager::openEditor(filePath);
-    if (!editor) {
-        m_lastErrorMessage = QString("Failed to open file in editor: %1").arg(edit.filePath);
-        emit lastErrorMessageChanged();
-        return;
-    }
-
-    auto *textEditor = qobject_cast<TextEditor::BaseTextEditor *>(editor);
-    if (textEditor && textEditor->editorWidget()) {
-        QTextDocument *doc = textEditor->editorWidget()->document();
-        if (doc) {
-            QString currentContent = doc->toPlainText();
-            int position = -1;
-
-            if (edit.status == Context::ChangesManager::Applied && !edit.newContent.isEmpty()) {
-                position = currentContent.indexOf(edit.newContent);
-            } else if (!edit.oldContent.isEmpty()) {
-                position = currentContent.indexOf(edit.oldContent);
-            }
-
-            if (position >= 0) {
-                QTextCursor cursor(doc);
-                cursor.setPosition(position);
-                textEditor->editorWidget()->setTextCursor(cursor);
-                textEditor->editorWidget()->centerCursor();
-            }
-        }
-    }
-
-    LOG_MESSAGE(QString("Opened file in editor: %1").arg(edit.filePath));
-}
-
-void ChatRootView::updateFileEditStatus(const QString &editId, const QString &status)
-{
-    auto messages = m_chatModel->getChatHistory();
-    for (int i = 0; i < messages.size(); ++i) {
-        if (messages[i].role == Chat::ChatModel::FileEdit && messages[i].id == editId) {
-            QString content = messages[i].content;
-
-            const QString marker = "QODEASSIST_FILE_EDIT:";
-            int markerPos = content.indexOf(marker);
-
-            QString jsonStr = content;
-            if (markerPos >= 0) {
-                jsonStr = content.mid(markerPos + marker.length());
-            }
-
-            QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8());
-            if (doc.isObject()) {
-                QJsonObject obj = doc.object();
-                obj["status"] = status;
-
-                auto edit = Context::ChangesManager::instance().getFileEdit(editId);
-                if (!edit.statusMessage.isEmpty()) {
-                    obj["status_message"] = edit.statusMessage;
-                }
-
-                QString updatedContent = marker
-                                         + QString::fromUtf8(
-                                             QJsonDocument(obj).toJson(QJsonDocument::Compact));
-                m_chatModel->updateMessageContent(editId, updatedContent);
-                LOG_MESSAGE(QString("Updated file edit status to: %1").arg(status));
-            }
-            break;
-        }
-    }
-
-    updateCurrentMessageEditsStats();
+    m_fileEditController->openFileEditInEditor(editId);
 }
 
 void ChatRootView::applyAllFileEditsForCurrentMessage()
 {
-    if (m_currentMessageRequestId.isEmpty()) {
-        m_lastErrorMessage = QString("No active message with file edits");
-        emit lastErrorMessageChanged();
-        return;
-    }
-
-    LOG_MESSAGE(QString("Applying all file edits for message: %1").arg(m_currentMessageRequestId));
-
-    QString errorMsg;
-    bool success = Context::ChangesManager::instance()
-                       .reapplyAllEditsForRequest(m_currentMessageRequestId, &errorMsg);
-
-    if (success) {
-        m_lastInfoMessage = QString("All file edits applied successfully");
-        emit lastInfoMessageChanged();
-
-        auto edits = Context::ChangesManager::instance().getEditsForRequest(
-            m_currentMessageRequestId);
-        for (const auto &edit : edits) {
-            if (edit.status == Context::ChangesManager::Applied) {
-                updateFileEditStatus(edit.editId, "applied");
-            }
-        }
-    } else {
-        m_lastErrorMessage = errorMsg.isEmpty()
-                                 ? QString("Failed to apply some file edits")
-                                 : QString("Failed to apply some file edits:\n%1").arg(errorMsg);
-        emit lastErrorMessageChanged();
-
-        auto edits = Context::ChangesManager::instance().getEditsForRequest(
-            m_currentMessageRequestId);
-        for (const auto &edit : edits) {
-            if (edit.status == Context::ChangesManager::Applied) {
-                updateFileEditStatus(edit.editId, "applied");
-            }
-        }
-    }
-
-    updateCurrentMessageEditsStats();
+    m_fileEditController->applyAllForCurrentMessage();
 }
 
 void ChatRootView::undoAllFileEditsForCurrentMessage()
 {
-    if (m_currentMessageRequestId.isEmpty()) {
-        m_lastErrorMessage = QString("No active message with file edits");
-        emit lastErrorMessageChanged();
-        return;
-    }
-
-    LOG_MESSAGE(QString("Undoing all file edits for message: %1").arg(m_currentMessageRequestId));
-
-    QString errorMsg;
-    bool success = Context::ChangesManager::instance()
-                       .undoAllEditsForRequest(m_currentMessageRequestId, &errorMsg);
-
-    if (success) {
-        m_lastInfoMessage = QString("All file edits undone successfully");
-        emit lastInfoMessageChanged();
-
-        auto edits = Context::ChangesManager::instance().getEditsForRequest(
-            m_currentMessageRequestId);
-        for (const auto &edit : edits) {
-            if (edit.status == Context::ChangesManager::Rejected) {
-                updateFileEditStatus(edit.editId, "rejected");
-            }
-        }
-    } else {
-        m_lastErrorMessage = errorMsg.isEmpty()
-                                 ? QString("Failed to undo some file edits")
-                                 : QString("Failed to undo some file edits:\n%1").arg(errorMsg);
-        emit lastErrorMessageChanged();
-
-        auto edits = Context::ChangesManager::instance().getEditsForRequest(
-            m_currentMessageRequestId);
-        for (const auto &edit : edits) {
-            if (edit.status == Context::ChangesManager::Rejected) {
-                updateFileEditStatus(edit.editId, "rejected");
-            }
-        }
-    }
-
-    updateCurrentMessageEditsStats();
+    m_fileEditController->undoAllForCurrentMessage();
 }
 
 void ChatRootView::updateCurrentMessageEditsStats()
 {
-    if (m_currentMessageRequestId.isEmpty()) {
-        if (m_currentMessageTotalEdits != 0 || m_currentMessageAppliedEdits != 0
-            || m_currentMessagePendingEdits != 0 || m_currentMessageRejectedEdits != 0) {
-            m_currentMessageTotalEdits = 0;
-            m_currentMessageAppliedEdits = 0;
-            m_currentMessagePendingEdits = 0;
-            m_currentMessageRejectedEdits = 0;
-            emit currentMessageEditsStatsChanged();
-        }
-        return;
-    }
-
-    auto edits = Context::ChangesManager::instance().getEditsForRequest(m_currentMessageRequestId);
-
-    int total = edits.size();
-    int applied = 0;
-    int pending = 0;
-    int rejected = 0;
-
-    for (const auto &edit : edits) {
-        switch (edit.status) {
-        case Context::ChangesManager::Applied:
-            applied++;
-            break;
-        case Context::ChangesManager::Pending:
-            pending++;
-            break;
-        case Context::ChangesManager::Rejected:
-            rejected++;
-            break;
-        case Context::ChangesManager::Archived:
-            total--;
-            break;
-        }
-    }
-
-    bool changed = false;
-    if (m_currentMessageTotalEdits != total) {
-        m_currentMessageTotalEdits = total;
-        changed = true;
-    }
-    if (m_currentMessageAppliedEdits != applied) {
-        m_currentMessageAppliedEdits = applied;
-        changed = true;
-    }
-    if (m_currentMessagePendingEdits != pending) {
-        m_currentMessagePendingEdits = pending;
-        changed = true;
-    }
-    if (m_currentMessageRejectedEdits != rejected) {
-        m_currentMessageRejectedEdits = rejected;
-        changed = true;
-    }
-
-    if (changed) {
-        LOG_MESSAGE(
-            QString("Updated message edits stats: total=%1, applied=%2, pending=%3, rejected=%4")
-                .arg(total)
-                .arg(applied)
-                .arg(pending)
-                .arg(rejected));
-        emit currentMessageEditsStatsChanged();
-    }
+    m_fileEditController->updateStats();
 }
 
 int ChatRootView::currentMessageTotalEdits() const
 {
-    return m_currentMessageTotalEdits;
+    return m_fileEditController->totalEdits();
 }
 
 int ChatRootView::currentMessageAppliedEdits() const
 {
-    return m_currentMessageAppliedEdits;
+    return m_fileEditController->appliedEdits();
 }
 
 int ChatRootView::currentMessagePendingEdits() const
 {
-    return m_currentMessagePendingEdits;
+    return m_fileEditController->pendingEdits();
 }
 
 int ChatRootView::currentMessageRejectedEdits() const
 {
-    return m_currentMessageRejectedEdits;
+    return m_fileEditController->rejectedEdits();
 }
 
 QString ChatRootView::lastInfoMessage() const
@@ -1442,45 +931,6 @@ bool ChatRootView::isThinkingSupport() const
     auto provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(providerName);
 
     return provider && provider->capabilities().testFlag(PluginLLMCore::ProviderCapability::Thinking);
-}
-
-QString ChatRootView::generateChatFileName(const QString &shortMessage, const QString &dir) const
-{
-    static const QRegularExpression saitizeSymbols = QRegularExpression("[\\/:*?\"<>|\\s]");
-    static const QRegularExpression underSymbols = QRegularExpression("_+");
-
-    QStringList parts;
-    QString sanitizedMessage = shortMessage;
-    sanitizedMessage.replace(saitizeSymbols, "_");
-    sanitizedMessage.replace(underSymbols, "_");
-    sanitizedMessage = sanitizedMessage.trimmed();
-
-    if (!sanitizedMessage.isEmpty()) {
-        if (sanitizedMessage.startsWith('_')) {
-            sanitizedMessage.remove(0, 1);
-        }
-        if (sanitizedMessage.endsWith('_')) {
-            sanitizedMessage.chop(1);
-        }
-
-        QString fullPath = QDir(dir).filePath(sanitizedMessage);
-        QFileInfo fileInfo(fullPath);
-        if (!fileInfo.exists() && QFileInfo(fileInfo.path()).isWritable()) {
-            parts << sanitizedMessage;
-        }
-    }
-
-    parts << QDateTime::currentDateTime().toString("yyyy-MM-dd_HH-mm");
-
-    QString fileName = parts.join("_");
-    QString fullPath = QDir(dir).filePath(fileName);
-    QFileInfo finalCheck(fullPath);
-
-    if (fileName.isEmpty() || finalCheck.exists() || !QFileInfo(finalCheck.path()).isWritable()) {
-        fileName = QString("chat_%1").arg(QDateTime::currentDateTime().toString("yyyy-MM-dd_HH-mm"));
-    }
-
-    return fileName;
 }
 
 bool ChatRootView::hasImageAttachments(const QStringList &attachments) const
@@ -1503,66 +953,22 @@ bool ChatRootView::isImageFile(const QString &filePath) const
 
 void ChatRootView::loadAvailableConfigurations()
 {
-    auto &manager = Settings::ConfigurationManager::instance();
-    manager.loadConfigurations(Settings::ConfigurationType::Chat);
-
-    QVector<Settings::AIConfiguration> configs = manager.configurations(
-        Settings::ConfigurationType::Chat);
-
-    m_availableConfigurations.clear();
-    m_availableConfigurations.append(QObject::tr("Current Settings"));
-
-    for (const Settings::AIConfiguration &config : configs) {
-        m_availableConfigurations.append(config.name);
-    }
-
-    auto &settings = Settings::generalSettings();
-    QString currentProvider = settings.caProvider.value();
-    QString currentModel = settings.caModel.value();
-    m_currentConfiguration = QString("%1 - %2").arg(currentProvider, currentModel);
-
-    emit availableConfigurationsChanged();
-    emit currentConfigurationChanged();
+    m_configurationController->loadAvailableConfigurations();
 }
 
 void ChatRootView::applyConfiguration(const QString &configName)
 {
-    if (configName == QObject::tr("Current Settings")) {
-        return;
-    }
-
-    auto &manager = Settings::ConfigurationManager::instance();
-    QVector<Settings::AIConfiguration> configs = manager.configurations(
-        Settings::ConfigurationType::Chat);
-
-    for (const Settings::AIConfiguration &config : configs) {
-        if (config.name == configName) {
-            auto &settings = Settings::generalSettings();
-
-            settings.caProvider.setValue(config.provider);
-            settings.caModel.setValue(config.model);
-            settings.caTemplate.setValue(config.templateName);
-            settings.caUrl.setValue(config.url);
-            settings.caCustomEndpoint.setValue(config.customEndpoint);
-
-            settings.writeSettings();
-
-            m_currentConfiguration = QString("%1 - %2").arg(config.provider, config.model);
-            emit currentConfigurationChanged();
-
-            break;
-        }
-    }
+    m_configurationController->applyConfiguration(configName);
 }
 
 QStringList ChatRootView::availableConfigurations() const
 {
-    return m_availableConfigurations;
+    return m_configurationController->availableConfigurations();
 }
 
 QString ChatRootView::currentConfiguration() const
 {
-    return m_currentConfiguration;
+    return m_configurationController->currentConfiguration();
 }
 
 void ChatRootView::loadAvailableAgentRoles()

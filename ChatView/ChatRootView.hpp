@@ -16,6 +16,10 @@ namespace QodeAssist::Chat {
 
 class ChatCompressor;
 class AgentRoleController;
+class ChatConfigurationController;
+class FileEditController;
+class InputTokenCounter;
+class ChatHistoryStore;
 
 class ChatRootView : public QQuickItem
 {
@@ -213,9 +217,6 @@ signals:
     void openFilesChanged();
 
 private:
-    void rewireToolsChangedConnection();
-    QMetaObject::Connection m_toolsChangedConn;
-
     bool deferSendForAutoCompress(
         const QString &message,
         const QStringList &attachments,
@@ -228,10 +229,6 @@ private:
         const QStringList &linkedFiles,
         bool useTools,
         bool useThinking);
-    void updateFileEditStatus(const QString &editId, const QString &status);
-    QString getChatsHistoryDir() const;
-    QString getSuggestedFileName() const;
-    QString generateChatFileName(const QString &shortMessage, const QString &dir) const;
     bool hasImageAttachments(const QStringList &attachments) const;
 
     ChatModel *m_chatModel;
@@ -242,10 +239,6 @@ private:
     QString m_recentFilePath;
     QStringList m_attachmentFiles;
     QStringList m_linkedFiles;
-    int m_messageTokensCount{0};
-    int m_inputTokensCount{0};
-    int m_lastSentEstimate{0};
-    double m_calibrationFactor{1.0};
 
     struct PendingSend {
         QString message;
@@ -262,18 +255,14 @@ private:
     QString m_lastErrorMessage;
     QVariantList m_activeRules;
     
-    QString m_currentMessageRequestId;
-    int m_currentMessageTotalEdits{0};
-    int m_currentMessageAppliedEdits{0};
-    int m_currentMessagePendingEdits{0};
-    int m_currentMessageRejectedEdits{0};
     QString m_lastInfoMessage;
-    
-    QStringList m_availableConfigurations;
-    QString m_currentConfiguration;
 
     ChatCompressor *m_chatCompressor;
     AgentRoleController *m_agentRoleController;
+    ChatConfigurationController *m_configurationController;
+    FileEditController *m_fileEditController;
+    InputTokenCounter *m_tokenCounter;
+    ChatHistoryStore *m_historyStore;
 };
 
 } // namespace QodeAssist::Chat

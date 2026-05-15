@@ -1,0 +1,47 @@
+// Copyright (C) 2024-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
+
+#pragma once
+
+#include <QObject>
+#include <QString>
+
+#include "ChatSerializer.hpp"
+
+namespace QodeAssist::Chat {
+
+class ChatModel;
+
+class ChatHistoryStore : public QObject
+{
+    Q_OBJECT
+
+public:
+    explicit ChatHistoryStore(ChatModel *chatModel, QObject *parent = nullptr);
+
+    QString historyDir() const;
+    QString suggestedFileName() const;
+    QString autosaveFilePath(const QString &recentFilePath) const;
+    QString autosaveFilePath(
+        const QString &recentFilePath,
+        const QString &firstMessage,
+        bool hasImageAttachments) const;
+
+    SerializationResult save(const QString &filePath) const;
+    SerializationResult load(const QString &filePath) const;
+
+    void showSaveDialog();
+    void showLoadDialog();
+    void openHistoryFolder() const;
+
+signals:
+    void saveRequested(const QString &filePath);
+    void loadRequested(const QString &filePath);
+
+private:
+    QString generateChatFileName(const QString &shortMessage, const QString &dir) const;
+
+    ChatModel *m_chatModel;
+};
+
+} // namespace QodeAssist::Chat
