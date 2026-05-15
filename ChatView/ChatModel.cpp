@@ -552,6 +552,14 @@ int ChatModel::sessionCompletionTokens() const
     return total;
 }
 
+int ChatModel::sessionCachedPromptTokens() const
+{
+    int total = 0;
+    for (const auto &m : m_messages)
+        total += m.cachedPromptTokens;
+    return total;
+}
+
 int ChatModel::sessionTotalTokens() const
 {
     return sessionPromptTokens() + sessionCompletionTokens();

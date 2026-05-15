@@ -53,6 +53,23 @@ ProviderSettings::ProviderSettings()
     claudeApiKey.setDefaultValue("");
     claudeApiKey.setAutoApply(true);
 
+    claudeEnablePromptCaching.setSettingsKey(Constants::CLAUDE_ENABLE_PROMPT_CACHING);
+    claudeEnablePromptCaching.setLabelText(Tr::tr("Enable prompt caching"));
+    claudeEnablePromptCaching.setToolTip(
+        Tr::tr("Marks the system prompt, tool definitions, and stable chat history with "
+               "cache_control so Anthropic caches the request prefix (5-minute TTL). "
+               "Reduces cost and latency on repeated turns."));
+    claudeEnablePromptCaching.setDefaultValue(false);
+    claudeEnablePromptCaching.setAutoApply(true);
+
+    claudeUseExtendedCacheTTL.setSettingsKey(Constants::CLAUDE_USE_EXTENDED_CACHE_TTL);
+    claudeUseExtendedCacheTTL.setLabelText(Tr::tr("Use 1h cache TTL (beta)"));
+    claudeUseExtendedCacheTTL.setToolTip(
+        Tr::tr("Requests Anthropic's 1-hour cache TTL instead of the default 5 minutes. "
+               "Sends the extended-cache-ttl-2025-04-11 beta header."));
+    claudeUseExtendedCacheTTL.setDefaultValue(false);
+    claudeUseExtendedCacheTTL.setAutoApply(true);
+
     // OpenAI Settings
     openAiApiKey.setSettingsKey(Constants::OPEN_AI_API_KEY);
     openAiApiKey.setLabelText(Tr::tr("OpenAI API Key:"));
@@ -124,7 +141,9 @@ ProviderSettings::ProviderSettings()
             Space{8},
             Group{title(Tr::tr("OpenAI Compatible Settings")), Column{openAiCompatApiKey}},
             Space{8},
-            Group{title(Tr::tr("Claude Settings")), Column{claudeApiKey}},
+            Group{
+                title(Tr::tr("Claude Settings")),
+                Column{claudeApiKey, claudeEnablePromptCaching, claudeUseExtendedCacheTTL}},
             Space{8},
             Group{title(Tr::tr("Mistral AI Settings")), Column{mistralAiApiKey, codestralApiKey}},
             Space{8},
@@ -148,6 +167,12 @@ void ProviderSettings::setupConnections()
         openAiCompatApiKey.writeSettings();
     });
     connect(&claudeApiKey, &ButtonAspect::changed, this, [this]() { claudeApiKey.writeSettings(); });
+    connect(&claudeEnablePromptCaching, &Utils::BoolAspect::changed, this, [this]() {
+        claudeEnablePromptCaching.writeSettings();
+    });
+    connect(&claudeUseExtendedCacheTTL, &Utils::BoolAspect::changed, this, [this]() {
+        claudeUseExtendedCacheTTL.writeSettings();
+    });
     connect(&openAiApiKey, &ButtonAspect::changed, this, [this]() { openAiApiKey.writeSettings(); });
     connect(&mistralAiApiKey, &ButtonAspect::changed, this, [this]() {
         mistralAiApiKey.writeSettings();
@@ -179,6 +204,8 @@ void ProviderSettings::resetSettingsToDefaults()
         resetAspect(openRouterApiKey);
         resetAspect(openAiCompatApiKey);
         resetAspect(claudeApiKey);
+        resetAspect(claudeEnablePromptCaching);
+        resetAspect(claudeUseExtendedCacheTTL);
         resetAspect(openAiApiKey);
         resetAspect(mistralAiApiKey);
         resetAspect(googleAiApiKey);

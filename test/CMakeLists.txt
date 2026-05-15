@@ -3,6 +3,7 @@ add_executable(QodeAssistTest
     ../LLMClientInterface.cpp
     ../LLMSuggestion.cpp
     CodeHandlerTest.cpp
+    ClaudeCacheControlTest.cpp
     DocumentContextReaderTest.cpp
     LLMSuggestionTest.cpp
     # LLMClientInterfaceTests.cpp
@@ -20,6 +21,8 @@ target_link_libraries(QodeAssistTest PRIVATE
     PluginLLMCore
     LLMQore
 )
+
+target_include_directories(QodeAssistTest PRIVATE ${CMAKE_SOURCE_DIR})
 
 target_compile_definitions(QodeAssistTest PRIVATE CMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 

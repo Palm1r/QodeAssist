@@ -20,6 +20,8 @@ public:
     Utils::StringAspect openRouterApiKey{this};
     Utils::StringAspect openAiCompatApiKey{this};
     Utils::StringAspect claudeApiKey{this};
+    Utils::BoolAspect claudeEnablePromptCaching{this};
+    Utils::BoolAspect claudeUseExtendedCacheTTL{this};
     Utils::StringAspect openAiApiKey{this};
     Utils::StringAspect mistralAiApiKey{this};
     Utils::StringAspect codestralApiKey{this};

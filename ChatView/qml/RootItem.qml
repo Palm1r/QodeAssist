@@ -91,10 +91,20 @@ ChatRootView {
             loadButton.onClicked: root.showLoadDialog()
             clearButton.onClicked: root.clearChat()
             tokensBadge {
-                text: qsTr("next ~%1  ·  session ↑%2 ↓%3")
+                readonly property int sessionCached: root.chatModel.sessionCachedPromptTokens
+                text: sessionCached > 0
+                    ? qsTr("next ~%1  ·  session ↑%2 ↓%3 ↻%4")
                           .arg(root.inputTokensCount)
                           .arg(root.chatModel.sessionPromptTokens)
                           .arg(root.chatModel.sessionCompletionTokens)
+                          .arg(sessionCached)
+                    : qsTr("next ~%1  ·  session ↑%2 ↓%3")
+                          .arg(root.inputTokensCount)
+                          .arg(root.chatModel.sessionPromptTokens)
+                          .arg(root.chatModel.sessionCompletionTokens)
+                ToolTip.text: sessionCached > 0
+                    ? qsTr("next request (estimate)  ·  session prompt ↑ / completion ↓ / cached ↻ (provider cache hits)")
+                    : qsTr("next request (estimate)  ·  session prompt ↑ / completion ↓")
             }
             recentPath {
                 text: qsTr("Сhat name: %1").arg(root.chatFileName.length > 0 ? root.chatFileName : "Unsaved")

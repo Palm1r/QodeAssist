@@ -19,6 +19,7 @@ class ChatModel : public QAbstractListModel
     Q_OBJECT
     Q_PROPERTY(int sessionPromptTokens READ sessionPromptTokens NOTIFY sessionUsageChanged FINAL)
     Q_PROPERTY(int sessionCompletionTokens READ sessionCompletionTokens NOTIFY sessionUsageChanged FINAL)
+    Q_PROPERTY(int sessionCachedPromptTokens READ sessionCachedPromptTokens NOTIFY sessionUsageChanged FINAL)
     Q_PROPERTY(int sessionTotalTokens READ sessionTotalTokens NOTIFY sessionUsageChanged FINAL)
     QML_ELEMENT
 
@@ -110,6 +111,7 @@ public:
 
     int sessionPromptTokens() const;
     int sessionCompletionTokens() const;
+    int sessionCachedPromptTokens() const;
     int sessionTotalTokens() const;
     
     void setLoadingFromHistory(bool loading);

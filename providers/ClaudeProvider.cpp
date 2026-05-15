@@ -9,6 +9,7 @@
 
 #include <LLMQore/ToolsManager.hpp>
 
+#include "ClaudeCacheControl.hpp"
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -103,6 +104,14 @@ void ClaudeProvider::prepareRequest(
             request["tools"] = toolsDefinitions;
             LOG_MESSAGE(QString("Added %1 tools to Claude request").arg(toolsDefinitions.size()));
         }
+    }
+
+    const auto &ps = Settings::providerSettings();
+    const bool cachingOn = ps.claudeEnablePromptCaching()
+                           && type != PluginLLMCore::RequestType::CodeCompletion;
+    m_client->setUseExtendedCacheTTL(cachingOn && ps.claudeUseExtendedCacheTTL());
+    if (cachingOn) {
+        ClaudeCacheControl::apply(request, ps.claudeUseExtendedCacheTTL());
     }
 }
 

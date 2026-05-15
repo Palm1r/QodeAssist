@@ -149,6 +149,9 @@ const char OLLAMA_BASIC_AUTH_API_KEY_HISTORY[] = "QodeAssist.ollamaBasicAuthApiK
 const char LLAMA_CPP_API_KEY[] = "QodeAssist.llamaCppApiKey";
 const char LLAMA_CPP_API_KEY_HISTORY[] = "QodeAssist.llamaCppApiKeyHistory";
 
+const char CLAUDE_ENABLE_PROMPT_CACHING[] = "QodeAssist.claudeEnablePromptCaching";
+const char CLAUDE_USE_EXTENDED_CACHE_TTL[] = "QodeAssist.claudeUseExtendedCacheTTL";
+
 // context settings
 const char CC_READ_FULL_FILE[] = "QodeAssist.ccReadFullFile";
 const char CC_READ_STRINGS_BEFORE_CURSOR[] = "QodeAssist.ccReadStringsBeforeCursor";
