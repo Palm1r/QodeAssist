@@ -30,6 +30,7 @@ public:
     Utils::BoolAspect enableGetIssuesListTool{this};
     Utils::BoolAspect enableTerminalCommandTool{this};
     Utils::BoolAspect enableTodoTool{this};
+    Utils::BoolAspect enableReadOriginalHistoryTool{this};
 
     Utils::StringAspect allowedTerminalCommandsLinux{this};
     Utils::StringAspect allowedTerminalCommandsMacOS{this};

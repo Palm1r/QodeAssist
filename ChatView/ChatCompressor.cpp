@@ -228,6 +228,8 @@ bool ChatCompressor::createCompressedChatFile(
     summaryMessage["images"] = QJsonArray();
 
     root["messages"] = QJsonArray{summaryMessage};
+    root["compressedFrom"] = sourcePath;
+    root["compressedAt"] = QDateTime::currentDateTime().toString(Qt::ISODate);
 
     if (QFile::exists(destPath))
         QFile::remove(destPath);

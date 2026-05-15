@@ -100,6 +100,8 @@ const char CA_ENABLE_EDIT_FILE_TOOL[] = "QodeAssist.caEnableEditFileToolV2";
 const char CA_ENABLE_BUILD_PROJECT_TOOL[] = "QodeAssist.caEnableBuildProjectToolV2";
 const char CA_ENABLE_TERMINAL_COMMAND_TOOL[] = "QodeAssist.caEnableTerminalCommandToolV2";
 const char CA_ENABLE_TODO_TOOL[] = "QodeAssist.caEnableTodoToolV2";
+const char CA_ENABLE_READ_ORIGINAL_HISTORY_TOOL[]
+    = "QodeAssist.caEnableReadOriginalHistoryTool";
 const char CA_ALLOWED_TERMINAL_COMMANDS[] = "QodeAssist.caAllowedTerminalCommands";
 const char CA_ALLOWED_TERMINAL_COMMANDS_LINUX[] = "QodeAssist.caAllowedTerminalCommandsLinux";
 const char CA_ALLOWED_TERMINAL_COMMANDS_MACOS[] = "QodeAssist.caAllowedTerminalCommandsMacOS";

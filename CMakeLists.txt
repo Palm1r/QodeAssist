@@ -146,6 +146,7 @@ add_qtc_plugin(QodeAssist
     tools/ReadFileTool.hpp tools/ReadFileTool.cpp
     tools/FileSearchUtils.hpp tools/FileSearchUtils.cpp
     tools/TodoTool.hpp tools/TodoTool.cpp
+    tools/ReadOriginalHistoryTool.hpp tools/ReadOriginalHistoryTool.cpp
     mcp/McpServerManager.hpp mcp/McpServerManager.cpp
     mcp/McpServerConnection.hpp mcp/McpServerConnection.cpp
     mcp/McpClientsManager.hpp mcp/McpClientsManager.cpp

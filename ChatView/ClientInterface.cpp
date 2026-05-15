@@ -28,6 +28,7 @@
 
 #include <LLMQore/ToolsManager.hpp>
 
+#include "tools/ReadOriginalHistoryTool.hpp"
 #include "tools/TodoTool.hpp"
 
 #include "ChatAssistantSettings.hpp"
@@ -304,6 +305,10 @@ void ClientInterface::sendMessage(
         if (auto *todoTool = qobject_cast<QodeAssist::Tools::TodoTool *>(
                 provider->toolsManager()->tool("todo_tool"))) {
             todoTool->setCurrentSessionId(m_chatFilePath);
+        }
+        if (auto *historyTool = qobject_cast<QodeAssist::Tools::ReadOriginalHistoryTool *>(
+                provider->toolsManager()->tool("read_original_history"))) {
+            historyTool->setCurrentSessionId(m_chatFilePath);
         }
     }
 }

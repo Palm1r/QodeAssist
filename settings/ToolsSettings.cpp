@@ -111,6 +111,14 @@ ToolsSettings::ToolsSettings()
         Tr::tr("Lets the AI maintain a session-scoped todo list for multi-step workflows."));
     enableTodoTool.setDefaultValue(true);
 
+    enableReadOriginalHistoryTool.setSettingsKey(Constants::CA_ENABLE_READ_ORIGINAL_HISTORY_TOOL);
+    enableReadOriginalHistoryTool.setLabelText(Tr::tr("Read Original History (Pre-Compression)"));
+    enableReadOriginalHistoryTool.setToolTip(
+        Tr::tr("Lets the AI read the original, full chat history from before the conversation "
+               "was compressed into a summary. Useful when a detail is missing from the "
+               "summary currently in context. Has no effect if the chat was never compressed."));
+    enableReadOriginalHistoryTool.setDefaultValue(true);
+
     allowedTerminalCommandsLinux.setSettingsKey(Constants::CA_ALLOWED_TERMINAL_COMMANDS_LINUX);
     allowedTerminalCommandsLinux.setLabelText(Tr::tr("Allowed Commands (Linux)"));
     allowedTerminalCommandsLinux.setToolTip(
@@ -177,7 +185,8 @@ ToolsSettings::ToolsSettings()
                     enableBuildProjectTool,
                     enableGetIssuesListTool,
                     enableTerminalCommandTool,
-                    enableTodoTool}},
+                    enableTodoTool,
+                    enableReadOriginalHistoryTool}},
             Space{8},
             Group{
                 title(Tr::tr("Tool Settings")),
@@ -227,6 +236,7 @@ void ToolsSettings::resetSettingsToDefaults()
         resetAspect(enableGetIssuesListTool);
         resetAspect(enableTerminalCommandTool);
         resetAspect(enableTodoTool);
+        resetAspect(enableReadOriginalHistoryTool);
         resetAspect(allowedTerminalCommandsLinux);
         resetAspect(allowedTerminalCommandsMacOS);
         resetAspect(allowedTerminalCommandsWindows);

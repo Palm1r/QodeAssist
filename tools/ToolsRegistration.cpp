@@ -17,6 +17,7 @@
 #include "ListProjectFilesTool.hpp"
 #include "ProjectSearchTool.hpp"
 #include "ReadFileTool.hpp"
+#include "ReadOriginalHistoryTool.hpp"
 #include "TodoTool.hpp"
 
 namespace QodeAssist::Tools {
@@ -61,6 +62,8 @@ void registerQodeAssistTools(::LLMQore::ToolsManager *manager)
     wireTool<ExecuteTerminalCommandTool>(
         manager, s.enableTerminalCommandTool, "execute_terminal_command");
     wireTool<TodoTool>(manager, s.enableTodoTool, "todo_tool");
+    wireTool<ReadOriginalHistoryTool>(
+        manager, s.enableReadOriginalHistoryTool, "read_original_history");
 }
 
 } // namespace QodeAssist::Tools
