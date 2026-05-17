@@ -16,6 +16,7 @@ public:
     PluginLLMCore::TemplateType type() const override { return PluginLLMCore::TemplateType::Chat; }
     QString name() const override { return "Google AI"; }
     QStringList stopWords() const override { return QStringList(); }
+    bool supportsToolHistory() const override { return true; }
 
     void prepareRequest(QJsonObject &request, const PluginLLMCore::ContextData &context) const override
     {
@@ -26,7 +27,45 @@ public:
                 {"parts", QJsonObject{{"text", context.systemPrompt.value()}}}};
         }
 
+        int toolResultIdx = -1;
         for (const auto &msg : context.history.value()) {
+            if (!msg.toolCalls.isEmpty()) {
+                toolResultIdx = -1;
+                QJsonArray callParts;
+                if (!msg.content.isEmpty()) {
+                    callParts.append(QJsonObject{{"text", msg.content}});
+                }
+                for (const auto &call : msg.toolCalls) {
+                    callParts.append(QJsonObject{
+                        {"functionCall",
+                         QJsonObject{{"name", call.name}, {"args", call.arguments}}}});
+                }
+                contents.append(QJsonObject{{"role", "model"}, {"parts", callParts}});
+                continue;
+            }
+
+            if (msg.role == "tool") {
+                QJsonObject responsePart{
+                    {"functionResponse",
+                     QJsonObject{
+                         {"name", msg.toolName},
+                         {"response", QJsonObject{{"result", msg.content}}}}}};
+                if (toolResultIdx >= 0) {
+                    QJsonObject fnMsg = contents[toolResultIdx].toObject();
+                    QJsonArray fnParts = fnMsg["parts"].toArray();
+                    fnParts.append(responsePart);
+                    fnMsg["parts"] = fnParts;
+                    contents[toolResultIdx] = fnMsg;
+                } else {
+                    contents.append(
+                        QJsonObject{{"role", "function"}, {"parts", QJsonArray{responsePart}}});
+                    toolResultIdx = contents.size() - 1;
+                }
+                continue;
+            }
+
+            toolResultIdx = -1;
+
             QJsonObject content;
             QJsonArray parts;
 

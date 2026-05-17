@@ -80,6 +80,15 @@ QJsonObject ChatSerializer::serializeMessage(
         messageObj["signature"] = message.signature;
     }
 
+    if (message.role == ChatModel::ChatRole::Tool) {
+        if (!message.toolName.isEmpty())
+            messageObj["toolName"] = message.toolName;
+        if (!message.toolArguments.isEmpty())
+            messageObj["toolArguments"] = message.toolArguments;
+        if (!message.toolResult.isEmpty())
+            messageObj["toolResult"] = message.toolResult;
+    }
+
     if (!message.attachments.isEmpty()) {
         QJsonArray attachmentsArray;
         for (const auto &attachment : message.attachments) {
@@ -126,6 +135,9 @@ ChatModel::Message ChatSerializer::deserializeMessage(
     message.id = json["id"].toString();
     message.isRedacted = json["isRedacted"].toBool(false);
     message.signature = json["signature"].toString();
+    message.toolName = json["toolName"].toString();
+    message.toolArguments = json["toolArguments"].toObject();
+    message.toolResult = json["toolResult"].toString();
 
     if (json.contains("attachments")) {
         QJsonArray attachmentsArray = json["attachments"].toArray();
@@ -199,6 +211,10 @@ bool ChatSerializer::deserializeChat(
             message.images,
             message.isRedacted,
             message.signature);
+        if (message.role == ChatModel::ChatRole::Tool) {
+            model->setToolMessageData(
+                message.id, message.toolName, message.toolArguments, message.toolResult);
+        }
         LOG_MESSAGE(QString("Loaded message with %1 image(s), isRedacted=%2, signature length=%3")
                         .arg(message.images.size())
                         .arg(message.isRedacted)

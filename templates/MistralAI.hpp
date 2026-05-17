@@ -6,6 +6,7 @@
 #include <QJsonArray>
 
 #include "pluginllmcore/PromptTemplate.hpp"
+#include "templates/ToolMessages.hpp"
 
 namespace QodeAssist::Templates {
 
@@ -47,6 +48,7 @@ public:
     PluginLLMCore::TemplateType type() const override { return PluginLLMCore::TemplateType::Chat; }
     QString name() const override { return "Mistral AI Chat"; }
     QStringList stopWords() const override { return QStringList(); }
+    bool supportsToolHistory() const override { return true; }
 
     void prepareRequest(QJsonObject &request, const PluginLLMCore::ContextData &context) const override
     {
@@ -59,6 +61,9 @@ public:
 
         if (context.history) {
             for (const auto &msg : context.history.value()) {
+                if (appendOpenAIToolMessage(messages, msg)) {
+                    continue;
+                }
                 if (msg.images && !msg.images->isEmpty()) {
                     QJsonArray content;
                     

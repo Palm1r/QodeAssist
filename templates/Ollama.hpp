@@ -49,6 +49,7 @@ public:
     PluginLLMCore::TemplateType type() const override { return PluginLLMCore::TemplateType::Chat; }
     QString name() const override { return "Ollama Chat"; }
     QStringList stopWords() const override { return QStringList(); }
+    bool supportsToolHistory() const override { return true; }
 
     void prepareRequest(QJsonObject &request, const PluginLLMCore::ContextData &context) const override
     {
@@ -63,8 +64,28 @@ public:
             for (const auto &msg : context.history.value()) {
                 QJsonObject messageObj;
                 messageObj["role"] = msg.role;
-                messageObj["content"] = msg.content;
-                
+
+                if (!msg.toolCalls.isEmpty()) {
+                    QJsonArray toolCalls;
+                    for (const auto &call : msg.toolCalls) {
+                        toolCalls.append(QJsonObject{
+                            {"type", "function"},
+                            {"function",
+                             QJsonObject{{"name", call.name}, {"arguments", call.arguments}}}});
+                    }
+                    messageObj["tool_calls"] = toolCalls;
+                    if (!msg.content.isEmpty()) {
+                        messageObj["content"] = msg.content;
+                    }
+                } else {
+                    messageObj["content"] = msg.content;
+                    // Ollama correlates a tool result to its originating
+                    // call by tool_name; omitting it breaks multi-tool turns.
+                    if (msg.role == QLatin1String("tool") && !msg.toolName.isEmpty()) {
+                        messageObj["tool_name"] = msg.toolName;
+                    }
+                }
+
                 if (msg.images && !msg.images->isEmpty()) {
                     QJsonArray images;
                     for (const auto &image : msg.images.value()) {
