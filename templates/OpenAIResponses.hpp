@@ -6,6 +6,7 @@
 #include "pluginllmcore/PromptTemplate.hpp"
 
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QJsonObject>
 
 namespace QodeAssist::Templates {
@@ -22,6 +23,8 @@ public:
 
     QStringList stopWords() const override { return {}; }
 
+    bool supportsToolHistory() const override { return true; }
+
     void prepareRequest(
         QJsonObject &request, const PluginLLMCore::ContextData &context) const override
     {
@@ -36,6 +39,30 @@ public:
         QJsonArray input;
         for (const auto &msg : context.history.value()) {
             if (msg.role == "system") {
+                continue;
+            }
+
+            if (!msg.toolCalls.isEmpty()) {
+                if (!msg.content.isEmpty()) {
+                    input.append(QJsonObject{{"role", "assistant"}, {"content", msg.content}});
+                }
+                for (const auto &call : msg.toolCalls) {
+                    input.append(QJsonObject{
+                        {"type", "function_call"},
+                        {"call_id", call.id},
+                        {"name", call.name},
+                        {"arguments",
+                         QString::fromUtf8(
+                             QJsonDocument(call.arguments).toJson(QJsonDocument::Compact))}});
+                }
+                continue;
+            }
+
+            if (msg.role == "tool") {
+                input.append(QJsonObject{
+                    {"type", "function_call_output"},
+                    {"call_id", msg.toolCallId},
+                    {"output", msg.content}});
                 continue;
             }
 

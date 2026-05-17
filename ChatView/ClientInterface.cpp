@@ -62,6 +62,11 @@ void ClientInterface::sendMessage(
     bool useTools,
     bool useThinking)
 {
+    if (message.trimmed().isEmpty() && attachments.isEmpty()) {
+        LOG_MESSAGE("Ignoring empty chat message");
+        return;
+    }
+
     cancelRequest();
     m_accumulatedResponses.clear();
 
@@ -187,9 +192,41 @@ void ClientInterface::sendMessage(
         context.systemPrompt = systemPrompt;
     }
 
+    const bool toolHistory = promptTemplate->supportsToolHistory();
+
     QVector<PluginLLMCore::Message> messages;
+    int toolCallMsgIdx = -1;
     for (const auto &msg : m_chatModel->getChatHistory()) {
-        if (msg.role == ChatModel::ChatRole::Tool || msg.role == ChatModel::ChatRole::FileEdit) {
+        if (msg.role == ChatModel::ChatRole::Tool) {
+            if (!toolHistory || msg.toolName.isEmpty()) {
+                continue;
+            }
+
+            if (toolCallMsgIdx < 0) {
+                PluginLLMCore::Message assistantCall;
+                assistantCall.role = "assistant";
+                messages.append(assistantCall);
+                toolCallMsgIdx = messages.size() - 1;
+            }
+
+            PluginLLMCore::ToolCall call;
+            call.id = msg.id;
+            call.name = msg.toolName;
+            call.arguments = msg.toolArguments;
+            messages[toolCallMsgIdx].toolCalls.append(call);
+
+            PluginLLMCore::Message toolResult;
+            toolResult.role = "tool";
+            toolResult.toolCallId = msg.id;
+            toolResult.toolName = msg.toolName;
+            toolResult.content = msg.toolResult;
+            messages.append(toolResult);
+            continue;
+        }
+
+        toolCallMsgIdx = -1;
+
+        if (msg.role == ChatModel::ChatRole::FileEdit) {
             continue;
         }
 
@@ -296,7 +333,7 @@ void ClientInterface::sendMessage(
         = provider->sendRequest(QUrl(Settings::generalSettings().caUrl()), payload, endpoint);
     QJsonObject request{{"id", requestId}};
 
-    m_activeRequests[requestId] = {request, provider};
+    m_activeRequests[requestId] = {request, provider, !toolHistory};
 
     emit requestStarted(requestId);
     
@@ -519,14 +556,21 @@ void ClientInterface::handleThinkingBlockReceived(
 }
 
 void ClientInterface::handleToolExecutionStarted(
-    const QString &requestId, const QString &toolId, const QString &toolName)
+    const QString &requestId,
+    const QString &toolId,
+    const QString &toolName,
+    const QJsonObject &arguments)
 {
-    if (!m_activeRequests.contains(requestId)) {
+    const auto requestIt = m_activeRequests.constFind(requestId);
+    if (requestIt == m_activeRequests.constEnd()) {
         LOG_MESSAGE(QString("Ignoring tool execution start for non-chat request: %1").arg(requestId));
         return;
     }
 
-    m_chatModel->addToolExecutionStatus(requestId, toolId, toolName);
+    if (requestIt->dropPreToolText) {
+        m_chatModel->dropTrailingAssistantMessage(requestId);
+    }
+    m_chatModel->addToolExecutionStatus(requestId, toolId, toolName, arguments);
     m_awaitingContinuation.insert(requestId);
 }
 

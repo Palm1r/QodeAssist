@@ -25,12 +25,8 @@ public:
     virtual QString description() const = 0;
     virtual bool isSupportProvider(ProviderID id) const = 0;
 
-    // Endpoint path this template expects to be sent to. Empty string
-    // (default) means "let the provider's client use its standard chat
-    // path" (/chat/completions, /api/chat, /v1/messages, ...). Templates
-    // producing non-chat payload shapes (e.g. {prompt, suffix} for
-    // Mistral FIM, {input_prefix, input_suffix} for llama.cpp infill)
-    // must override this to the path their payload is valid for.
     virtual QString endpoint() const { return {}; }
+
+    virtual bool supportsToolHistory() const { return false; }
 };
 } // namespace QodeAssist::PluginLLMCore

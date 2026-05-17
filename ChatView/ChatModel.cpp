@@ -336,7 +336,10 @@ void ChatModel::resetModelTo(int index)
 }
 
 void ChatModel::addToolExecutionStatus(
-    const QString &requestId, const QString &toolId, const QString &toolName)
+    const QString &requestId,
+    const QString &toolId,
+    const QString &toolName,
+    const QJsonObject &toolArguments)
 {
     QString content = toolName;
 
@@ -347,16 +350,52 @@ void ChatModel::addToolExecutionStatus(
         && m_messages.last().role == ChatRole::Tool) {
         Message &lastMessage = m_messages.last();
         lastMessage.content = content;
+        lastMessage.toolName = toolName;
+        lastMessage.toolArguments = toolArguments;
         LOG_MESSAGE(QString("Updated existing tool message at index %1").arg(m_messages.size() - 1));
         emit dataChanged(index(m_messages.size() - 1), index(m_messages.size() - 1));
     } else {
         beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());
         Message newMessage{ChatRole::Tool, content, toolId};
+        newMessage.toolName = toolName;
+        newMessage.toolArguments = toolArguments;
         m_messages.append(newMessage);
         endInsertRows();
         LOG_MESSAGE(QString("Created new tool message at index %1 with toolId=%2")
                         .arg(m_messages.size() - 1)
                         .arg(toolId));
+    }
+}
+
+void ChatModel::dropTrailingAssistantMessage(const QString &requestId)
+{
+    if (m_messages.isEmpty())
+        return;
+
+    const Message &last = m_messages.last();
+    if (last.role != ChatRole::Assistant || last.id != requestId)
+        return;
+
+    const int idx = m_messages.size() - 1;
+    beginRemoveRows(QModelIndex(), idx, idx);
+    m_messages.removeLast();
+    endRemoveRows();
+    LOG_MESSAGE(QString("Dropped leaked pre-tool assistant message at index %1").arg(idx));
+}
+
+void ChatModel::setToolMessageData(
+    const QString &toolId,
+    const QString &toolName,
+    const QJsonObject &toolArguments,
+    const QString &toolResult)
+{
+    for (int i = 0; i < m_messages.size(); ++i) {
+        if (m_messages[i].role == ChatRole::Tool && m_messages[i].id == toolId) {
+            m_messages[i].toolName = toolName;
+            m_messages[i].toolArguments = toolArguments;
+            m_messages[i].toolResult = toolResult;
+            return;
+        }
     }
 }
 
@@ -379,6 +418,8 @@ void ChatModel::updateToolResult(
     for (int i = m_messages.size() - 1; i >= 0; --i) {
         if (m_messages[i].id == toolId && m_messages[i].role == ChatRole::Tool) {
             m_messages[i].content = toolName + "\n" + result;
+            m_messages[i].toolName = toolName;
+            m_messages[i].toolResult = result;
             emit dataChanged(index(i), index(i));
             toolMessageFound = true;
             LOG_MESSAGE(QString("Updated tool result at index %1").arg(i));

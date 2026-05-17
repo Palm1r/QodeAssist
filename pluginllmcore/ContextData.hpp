@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include <QJsonObject>
 #include <QString>
 #include <QVector>
 
@@ -17,6 +18,15 @@ struct ImageAttachment
     bool operator==(const ImageAttachment &) const = default;
 };
 
+struct ToolCall
+{
+    QString id;
+    QString name;
+    QJsonObject arguments;
+
+    bool operator==(const ToolCall &) const = default;
+};
+
 struct Message
 {
     QString role;
@@ -25,6 +35,10 @@ struct Message
     bool isThinking = false;
     bool isRedacted = false;
     std::optional<QVector<ImageAttachment>> images;
+
+    QVector<ToolCall> toolCalls;
+    QString toolCallId;
+    QString toolName;
 
     // clang-format off
     bool operator==(const Message&) const = default;

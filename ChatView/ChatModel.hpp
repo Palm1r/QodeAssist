@@ -8,6 +8,7 @@
 
 #include <QAbstractListModel>
 #include <QJsonArray>
+#include <QJsonObject>
 #include <QtQmlIntegration>
 
 #include "context/ContentFile.hpp"
@@ -59,6 +60,10 @@ public:
         QList<Context::ContentFile> attachments;
         QList<ImageAttachment> images;
 
+        QString toolName;
+        QJsonObject toolArguments;
+        QString toolResult;
+
         int promptTokens = 0;
         int completionTokens = 0;
         int cachedPromptTokens = 0;
@@ -91,7 +96,16 @@ public:
     Q_INVOKABLE void resetModelTo(int index);
 
     void addToolExecutionStatus(
-        const QString &requestId, const QString &toolId, const QString &toolName);
+        const QString &requestId,
+        const QString &toolId,
+        const QString &toolName,
+        const QJsonObject &toolArguments);
+    void dropTrailingAssistantMessage(const QString &requestId);
+    void setToolMessageData(
+        const QString &toolId,
+        const QString &toolName,
+        const QJsonObject &toolArguments,
+        const QString &toolResult);
     void updateToolResult(
         const QString &requestId,
         const QString &toolId,

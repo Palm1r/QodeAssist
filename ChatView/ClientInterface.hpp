@@ -54,7 +54,10 @@ private slots:
     void handleThinkingBlockReceived(
         const QString &requestId, const QString &thinking, const QString &signature);
     void handleToolExecutionStarted(
-        const QString &requestId, const QString &toolId, const QString &toolName);
+        const QString &requestId,
+        const QString &toolId,
+        const QString &toolName,
+        const QJsonObject &arguments);
     void handleToolExecutionCompleted(
         const QString &requestId,
         const QString &toolId,
@@ -75,6 +78,7 @@ private:
     {
         QJsonObject originalRequest;
         PluginLLMCore::Provider *provider;
+        bool dropPreToolText = false;
     };
 
     PluginLLMCore::IPromptProvider *m_promptProvider = nullptr;
