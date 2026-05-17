@@ -189,19 +189,42 @@ QList<PluginLLMCore::Provider *> McpClientsManager::toolsCapableProviders() cons
     return out;
 }
 
+QJsonObject McpClientsManager::builtinServers()
+{
+    static const QByteArray pseudoConfig(
+        "{\n"
+        "  \"mcpServers\": {\n"
+        "    \"qt-docs\": {\n"
+        "      \"type\": \"sse\",\n"
+        "      \"url\": \"https://qt-docs-mcp.qt.io/mcp\",\n"
+        "      \"enable\": false\n"
+        "    }\n"
+        "  }\n"
+        "}\n");
+    const QJsonDocument doc = QJsonDocument::fromJson(pseudoConfig);
+    return doc.object().value(QLatin1String(kServersKey)).toObject();
+}
+
 QJsonObject McpClientsManager::readRoot() const
 {
+    QJsonObject root{{QLatin1String(kServersKey), QJsonObject{}}};
+
     QFile f(configFilePath());
-    if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
-        return QJsonObject{{QLatin1String(kServersKey), QJsonObject{}}};
-    QJsonParseError err;
-    const QJsonDocument doc = QJsonDocument::fromJson(f.readAll(), &err);
-    f.close();
-    if (err.error != QJsonParseError::NoError || !doc.isObject())
-        return QJsonObject{{QLatin1String(kServersKey), QJsonObject{}}};
-    QJsonObject root = doc.object();
-    if (!root.contains(QLatin1String(kServersKey)))
-        root.insert(QLatin1String(kServersKey), QJsonObject{});
+    if (f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QJsonParseError err;
+        const QJsonDocument doc = QJsonDocument::fromJson(f.readAll(), &err);
+        f.close();
+        if (err.error == QJsonParseError::NoError && doc.isObject())
+            root = doc.object();
+    }
+
+    QJsonObject servers = root.value(QLatin1String(kServersKey)).toObject();
+    const QJsonObject builtin = builtinServers();
+    for (auto it = builtin.begin(); it != builtin.end(); ++it) {
+        if (!servers.contains(it.key()))
+            servers.insert(it.key(), it.value());
+    }
+    root.insert(QLatin1String(kServersKey), servers);
     return root;
 }
 

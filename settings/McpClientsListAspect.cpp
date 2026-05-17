@@ -182,6 +182,14 @@ QList<ExamplePreset> buildExamplePresets()
              {"spec", "2024-11-05"}}});
 
     out.append(
+        {McpClientsListAspect::tr("qt-docs (Qt documentation)"),
+         QStringLiteral("qt-docs"),
+         QJsonObject{
+             {"enable", true},
+             {"type", "sse"},
+             {"url", "https://qt-docs-mcp.qt.io/mcp"}}});
+
+    out.append(
         {McpClientsListAspect::tr("remote (SSE / HTTP)"),
          QStringLiteral("remote"),
          QJsonObject{

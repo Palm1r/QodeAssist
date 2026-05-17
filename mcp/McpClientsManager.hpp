@@ -50,6 +50,7 @@ private:
     void updateWatchedPaths();
 
     QList<PluginLLMCore::Provider *> toolsCapableProviders() const;
+    static QJsonObject builtinServers();
     QJsonObject readRoot() const;
     bool writeRoot(const QJsonObject &root);
 
