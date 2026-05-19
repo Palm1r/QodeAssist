@@ -35,6 +35,7 @@ add_definitions(
 )
 
 add_subdirectory(sources/external/llmqore)
+add_subdirectory(sources/skills)
 add_subdirectory(pluginllmcore)
 add_subdirectory(settings)
 add_subdirectory(logger)
@@ -64,6 +65,7 @@ add_qtc_plugin(QodeAssist
     QtCreator::CPlusPlus
     LLMQore
     PluginLLMCore
+    Skills
     QodeAssistChatViewplugin
   SOURCES
     .github/workflows/build_cmake.yml
@@ -151,6 +153,7 @@ add_qtc_plugin(QodeAssist
     tools/FileSearchUtils.hpp tools/FileSearchUtils.cpp
     tools/TodoTool.hpp tools/TodoTool.cpp
     tools/ReadOriginalHistoryTool.hpp tools/ReadOriginalHistoryTool.cpp
+    tools/SkillTool.hpp tools/SkillTool.cpp
     mcp/McpServerManager.hpp mcp/McpServerManager.cpp
     mcp/McpServerConnection.hpp mcp/McpServerConnection.cpp
     mcp/McpClientsManager.hpp mcp/McpClientsManager.cpp

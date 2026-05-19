@@ -13,16 +13,22 @@
 
 #include "QodeAssistConstants.hpp"
 #include "SessionFileRegistry.hpp"
+#include "sources/skills/SkillsManager.hpp"
 
 namespace QodeAssist::Chat {
 
-ChatWidget::ChatWidget(QQmlEngine *engine, SessionFileRegistry *sessionFileRegistry, QWidget *parent)
+ChatWidget::ChatWidget(
+    QQmlEngine *engine,
+    SessionFileRegistry *sessionFileRegistry,
+    Skills::SkillsManager *skillsManager,
+    QWidget *parent)
     : QQuickWidget{engine, parent}
 {
     /// @note setup quick view content
     {
         auto context = new QQmlContext{engine, this};
         context->setContextProperty("sessionFileRegistry", sessionFileRegistry);
+        context->setContextProperty("skillsManager", skillsManager);
         auto component = new QQmlComponent{engine, QUrl{"qrc:/qt/qml/ChatView/qml/RootItem.qml"}, this};
         auto rootItem = component->create(context);
 

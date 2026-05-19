@@ -23,6 +23,7 @@ public:
     Utils::BoolAspect enableQodeAssist{this};
     Utils::BoolAspect useGlobalSettings{this};
     Utils::FilePathAspect chatHistoryPath{this};
+    Utils::StringAspect projectSkillDirs{this};
 };
 
 } // namespace QodeAssist::Settings

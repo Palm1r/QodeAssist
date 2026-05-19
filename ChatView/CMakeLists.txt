@@ -23,6 +23,7 @@ qt_add_qml_module(QodeAssistChatView
     qml/controls/FileMentionPopup.qml
     qml/controls/FileEditsActionBar.qml
     qml/controls/ContextViewer.qml
+    qml/controls/SkillCommandPopup.qml
     qml/controls/Toast.qml
     qml/controls/TopBar.qml
     qml/controls/SplitDropZone.qml
@@ -92,6 +93,7 @@ target_link_libraries(QodeAssistChatView
     QodeAssistUIControlsplugin
     QodeAssistLogger
     LLMQore
+    Skills
 )
 
 target_include_directories(QodeAssistChatView

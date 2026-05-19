@@ -32,6 +32,15 @@ ProjectSettings::ProjectSettings(ProjectExplorer::Project *project)
 
     chatHistoryPath.setDefaultValue(projectChatHistoryPath);
 
+    projectSkillDirs.setSettingsKey(Constants::SK_PROJECT_SKILL_DIRS);
+    projectSkillDirs.setLabelText(Tr::tr("Skill directories:"));
+    projectSkillDirs.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
+    projectSkillDirs.setToolTip(
+        Tr::tr("Project-relative subdirectories scanned for Agent Skills, one per line. "
+               "Resolved against the project root. These take priority over the global "
+               "skill directories when a skill name appears in both."));
+    projectSkillDirs.setDefaultValue(".qodeassist/skills\n.claude/skills");
+
     Utils::Store map = Utils::storeFromVariant(
         project->namedSettings(Constants::QODE_ASSIST_PROJECT_SETTINGS_ID));
     fromMap(map);
@@ -39,6 +48,7 @@ ProjectSettings::ProjectSettings(ProjectExplorer::Project *project)
     enableQodeAssist.addOnChanged(this, [this, project] { save(project); });
     useGlobalSettings.addOnChanged(this, [this, project] { save(project); });
     chatHistoryPath.addOnChanged(this, [this, project] { save(project); });
+    projectSkillDirs.addOnChanged(this, [this, project] { save(project); });
 }
 
 void ProjectSettings::setUseGlobalSettings(bool useGlobal)

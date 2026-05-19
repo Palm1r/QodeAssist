@@ -8,9 +8,12 @@
 namespace QodeAssist::Chat {
 
 ChatOutputPane::ChatOutputPane(
-    QQmlEngine *engine, SessionFileRegistry *sessionFileRegistry, QObject *parent)
+    QQmlEngine *engine,
+    SessionFileRegistry *sessionFileRegistry,
+    Skills::SkillsManager *skillsManager,
+    QObject *parent)
     : Core::IOutputPane(parent)
-    , m_chatWidget{new ChatWidget{engine, sessionFileRegistry}}
+    , m_chatWidget{new ChatWidget{engine, sessionFileRegistry, skillsManager}}
 {
     setId("QodeAssistChat");
     setDisplayName(Tr::tr("QodeAssist Chat"));

@@ -10,6 +10,10 @@
 #include <QQuickView>
 #include <QShortcut>
 
+namespace QodeAssist::Skills {
+class SkillsManager;
+}
+
 namespace QodeAssist::Chat {
 
 class SessionFileRegistry;
@@ -19,7 +23,10 @@ class ChatView : public QQuickView
     Q_OBJECT
     Q_PROPERTY(bool isPin READ isPin WRITE setIsPin NOTIFY isPinChanged FINAL)
 public:
-    ChatView(QQmlEngine *engine, SessionFileRegistry *sessionFileRegistry);
+    ChatView(
+        QQmlEngine *engine,
+        SessionFileRegistry *sessionFileRegistry,
+        Skills::SkillsManager *skillsManager);
 
     bool isPin() const;
     void setIsPin(bool newIsPin);

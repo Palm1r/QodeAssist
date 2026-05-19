@@ -18,6 +18,7 @@
 #include "ProjectSearchTool.hpp"
 #include "ReadFileTool.hpp"
 #include "ReadOriginalHistoryTool.hpp"
+#include "SkillTool.hpp"
 #include "TodoTool.hpp"
 
 namespace QodeAssist::Tools {
@@ -64,6 +65,28 @@ void registerQodeAssistTools(::LLMQore::ToolsManager *manager)
     wireTool<TodoTool>(manager, s.enableTodoTool, "todo_tool");
     wireTool<ReadOriginalHistoryTool>(
         manager, s.enableReadOriginalHistoryTool, "read_original_history");
+}
+
+void registerSkillTool(
+    ::LLMQore::ToolsManager *manager, Skills::SkillsManager *skillsManager)
+{
+    Utils::BoolAspect &aspect = Settings::toolsSettings().enableSkillTool;
+    const QString toolId = QStringLiteral("load_skill");
+
+    auto sync = [manager, toolId, &aspect, skillsManager]() {
+        const bool wanted = aspect.volatileValue();
+        const bool present = manager->tool(toolId) != nullptr;
+        if (wanted && !present) {
+            manager->addTool(new SkillTool(skillsManager, manager));
+        } else if (!wanted && present) {
+            manager->removeTool(toolId);
+        }
+    };
+
+    sync();
+
+    QObject::connect(&aspect, &Utils::BoolAspect::volatileValueChanged, manager, sync);
+    QObject::connect(&aspect, &Utils::BaseAspect::changed, manager, sync);
 }
 
 } // namespace QodeAssist::Tools

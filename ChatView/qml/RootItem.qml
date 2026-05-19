@@ -401,15 +401,31 @@ ChatRootView {
                     root.calculateMessageTokensCount(messageInput.text)
                     var cursorPos = messageInput.cursorPosition
                     var textBefore = messageInput.text.substring(0, cursorPos)
+
                     var atIndex = textBefore.lastIndexOf('@')
                     if (atIndex >= 0) {
                         var query = textBefore.substring(atIndex + 1)
                         if (query.indexOf(' ') === -1 && query.indexOf('\n') === -1) {
                             fileMentionPopup.updateSearch(query)
+                            skillCommandPopup.dismiss()
                             return
                         }
                     }
                     fileMentionPopup.dismiss()
+
+                    const slashIndex = textBefore.lastIndexOf('/')
+                    if (slashIndex >= 0) {
+                        const beforeSlash = slashIndex === 0
+                                            ? ' '
+                                            : textBefore.charAt(slashIndex - 1)
+                        const skillQuery = textBefore.substring(slashIndex + 1)
+                        if ((beforeSlash === ' ' || beforeSlash === '\n')
+                                && /^[a-z0-9-]*$/.test(skillQuery)) {
+                            skillCommandPopup.updateSearch(skillQuery)
+                            return
+                        }
+                    }
+                    skillCommandPopup.dismiss()
                 }
 
                 Keys.onPressed: function(event) {
@@ -425,6 +441,20 @@ ChatRootView {
                             event.accepted = true
                         } else if (event.key === Qt.Key_Escape) {
                             fileMentionPopup.dismiss()
+                            event.accepted = true
+                        }
+                    } else if (skillCommandPopup.visible) {
+                        if (event.key === Qt.Key_Down) {
+                            skillCommandPopup.moveDown()
+                            event.accepted = true
+                        } else if (event.key === Qt.Key_Up) {
+                            skillCommandPopup.moveUp()
+                            event.accepted = true
+                        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                            root.applySkillSelection()
+                            event.accepted = true
+                        } else if (event.key === Qt.Key_Escape) {
+                            skillCommandPopup.dismiss()
                             event.accepted = true
                         }
                     }
@@ -561,6 +591,23 @@ ChatRootView {
         }
     }
 
+    function applySkillSelection() {
+        const name = skillCommandPopup.currentName()
+        if (name === "")
+            return
+        const cursorPos = messageInput.cursorPosition
+        const textBefore = messageInput.text.substring(0, cursorPos)
+        const slashIndex = textBefore.lastIndexOf('/')
+        if (slashIndex < 0)
+            return
+        const before = messageInput.text.substring(0, slashIndex)
+        const after = messageInput.text.substring(cursorPos)
+        const token = '/' + name + ' '
+        messageInput.text = before + token + after
+        messageInput.cursorPosition = before.length + token.length
+        skillCommandPopup.dismiss()
+    }
+
     function sendChatMessage() {
         root.sendMessage(fileMentionPopup.expandMentions(messageInput.text))
         messageInput.text = ""
@@ -658,6 +705,20 @@ ChatRootView {
         onFileAttachRequested: function(filePaths) {
             root.addFilesToAttachList(filePaths)
         }
+    }
+
+    SkillCommandPopup {
+        id: skillCommandPopup
+
+        z: 999
+        width: Math.min(480, root.width - 20)
+
+        x: Math.max(5, Math.min(view.x + 5, root.width - width - 5))
+        y: view.y - height - 4
+
+        skillProvider: root
+
+        onSelectionRequested: root.applySkillSelection()
     }
 
     Component.onCompleted: {

@@ -42,6 +42,8 @@
 #include "logger/RequestPerformanceLogger.hpp"
 #include "mcp/McpClientsManager.hpp"
 #include "mcp/McpServerManager.hpp"
+#include "sources/skills/SkillsManager.hpp"
+#include "tools/ToolsRegistration.hpp"
 #include "providers/Providers.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/GeneralSettings.hpp"
@@ -162,14 +164,28 @@ public:
 
         m_engine = new QQmlEngine{this};
         m_sessionFileRegistry = new Chat::SessionFileRegistry{this};
+        m_skillsManager = new Skills::SkillsManager{this};
+
+        {
+            auto &providers = PluginLLMCore::ProvidersManager::instance();
+            for (const QString &providerName : providers.providersNames()) {
+                if (auto *provider = providers.getProviderByName(providerName)) {
+                    if (auto *toolsManager = provider->toolsManager())
+                        Tools::registerSkillTool(toolsManager, m_skillsManager);
+                }
+            }
+        }
 
         if (Settings::chatAssistantSettings().enableChatInBottomToolBar()) {
-            m_chatOutputPane = new Chat::ChatOutputPane{m_engine, m_sessionFileRegistry};
+            m_chatOutputPane = new Chat::ChatOutputPane{
+                m_engine, m_sessionFileRegistry, m_skillsManager};
         }
         if (Settings::chatAssistantSettings().enableChatInNavigationPanel()) {
-            m_navigationPanel = new Chat::NavigationPanel{m_engine, m_sessionFileRegistry};
+            m_navigationPanel = new Chat::NavigationPanel{
+                m_engine, m_sessionFileRegistry, m_skillsManager};
         }
-        m_chatEditorFactory = new Chat::ChatEditorFactory{m_engine, m_sessionFileRegistry};
+        m_chatEditorFactory = new Chat::ChatEditorFactory{
+            m_engine, m_sessionFileRegistry, m_skillsManager};
 
         Settings::setupProjectPanel();
         ConfigurationManager::instance().init();
@@ -324,7 +340,7 @@ private:
     void openChatInWindow()
     {
         if (!m_chatView)
-            m_chatView.reset(new Chat::ChatView{m_engine, m_sessionFileRegistry});
+            m_chatView.reset(new Chat::ChatView{m_engine, m_sessionFileRegistry, m_skillsManager});
 
         if (!m_chatView->isVisible())
             m_chatView->show();
@@ -339,7 +355,8 @@ private:
     void setChatInBottomPaneEnabled(bool enabled)
     {
         if (enabled && !m_chatOutputPane)
-            m_chatOutputPane = new Chat::ChatOutputPane{m_engine, m_sessionFileRegistry};
+            m_chatOutputPane = new Chat::ChatOutputPane{
+                m_engine, m_sessionFileRegistry, m_skillsManager};
         else if (!enabled && m_chatOutputPane)
             delete m_chatOutputPane;
 
@@ -350,7 +367,8 @@ private:
     void setChatInSidebarEnabled(bool enabled)
     {
         if (enabled && !m_navigationPanel)
-            m_navigationPanel = new Chat::NavigationPanel{m_engine, m_sessionFileRegistry};
+            m_navigationPanel = new Chat::NavigationPanel{
+                m_engine, m_sessionFileRegistry, m_skillsManager};
         else if (!enabled && m_navigationPanel)
             delete m_navigationPanel;
 
@@ -430,6 +448,7 @@ private:
     QScopedPointer<Chat::ChatView> m_chatView;
     QPointer<Mcp::McpServerManager> m_mcpServerManager;
     QPointer<QQmlEngine> m_engine;
+    QPointer<Skills::SkillsManager> m_skillsManager;
 };
 
 } // namespace QodeAssist::Internal

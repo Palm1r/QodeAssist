@@ -13,6 +13,10 @@
 #include "pluginllmcore/PromptProviderChat.hpp"
 #include <coreplugin/editormanager/editormanager.h>
 
+namespace QodeAssist::Skills {
+class SkillsManager;
+}
+
 namespace QodeAssist::Chat {
 
 class ChatCompressor;
@@ -135,6 +139,8 @@ public:
     Q_INVOKABLE QString getRuleContent(int index);
     Q_INVOKABLE void refreshRules();
 
+    Q_INVOKABLE QVariantList searchSkills(const QString &query) const;
+
     bool useTools() const;
     void setUseTools(bool enabled);
     bool useThinking() const;
@@ -244,6 +250,7 @@ private:
     bool hasImageAttachments(const QStringList &attachments) const;
 
     SessionFileRegistry *sessionFileRegistry() const;
+    Skills::SkillsManager *skillsManager() const;
 
     ChatModel *m_chatModel;
     PluginLLMCore::PromptProviderChat m_promptProvider;
@@ -279,6 +286,8 @@ private:
     ChatHistoryStore *m_historyStore;
     mutable QPointer<SessionFileRegistry> m_sessionFileRegistry;
     mutable bool m_sessionFileRegistryResolved = false;
+    mutable QPointer<Skills::SkillsManager> m_skillsManager;
+    mutable bool m_skillsManagerResolved = false;
 };
 
 } // namespace QodeAssist::Chat

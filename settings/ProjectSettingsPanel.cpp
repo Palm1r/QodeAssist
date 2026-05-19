@@ -8,9 +8,15 @@
 #include <projectexplorer/projectsettingswidget.h>
 #include <utils/layoutbuilder.h>
 
+#include <QLabel>
+#include <QListWidget>
+
 #include "ProjectSettings.hpp"
 #include "SettingsConstants.hpp"
 #include "SettingsTr.hpp"
+#include "SkillsSettings.hpp"
+#include "sources/skills/SkillsLoader.hpp"
+#include "sources/skills/SkillsManager.hpp"
 
 using namespace ProjectExplorer;
 
@@ -41,17 +47,59 @@ static ProjectSettingsWidget *createProjectPanel(Project *project)
         &ProjectSettings::setUseGlobalSettings);
 
     widget->setUseGlobalSettings(settings->useGlobalSettings());
-    widget->setEnabled(!settings->useGlobalSettings());
 
-    QObject::connect(
-        widget, &ProjectSettingsWidget::useGlobalSettingsChanged, widget, [widget](bool useGlobal) {
-            widget->setEnabled(!useGlobal);
-        });
-
+    auto generalWidget = new QWidget;
     Column{
         settings->enableQodeAssist,
         Space{8},
         settings->chatHistoryPath,
+    }
+        .attachTo(generalWidget);
+
+    generalWidget->setEnabled(!settings->useGlobalSettings());
+    QObject::connect(
+        widget,
+        &ProjectSettingsWidget::useGlobalSettingsChanged,
+        generalWidget,
+        [generalWidget](bool useGlobal) { generalWidget->setEnabled(!useGlobal); });
+
+    auto skillsList = new QListWidget;
+    skillsList->setSelectionMode(QAbstractItemView::NoSelection);
+    skillsList->setMaximumHeight(160);
+
+    auto refreshSkills = [skillsList, project, settings] {
+        skillsList->clear();
+
+        // Project-only roots: the global page shows global skills separately.
+        const QStringList roots = Skills::SkillsManager::resolveRoots(
+            project->projectDirectory().toFSPathString(),
+            {},
+            SkillsSettings::splitLines(settings->projectSkillDirs()));
+
+        const QVector<Skills::AgentSkill> skills = Skills::SkillsLoader::scan(roots);
+        for (const Skills::AgentSkill &skill : skills) {
+            auto *item = new QListWidgetItem(
+                QStringLiteral("%1  —  %2").arg(skill.name, skill.description), skillsList);
+            item->setToolTip(skill.skillDir);
+        }
+        if (skills.isEmpty())
+            new QListWidgetItem(Tr::tr("No skills discovered."), skillsList);
+    };
+    refreshSkills();
+    QObject::connect(
+        &settings->projectSkillDirs, &Utils::BaseAspect::changed, skillsList, refreshSkills);
+
+    Column{
+        generalWidget,
+        Space{8},
+        Group{
+            title(Tr::tr("Skills")),
+            Column{
+                settings->projectSkillDirs,
+                new QLabel(Tr::tr("Discovered project skills:")),
+                skillsList,
+            },
+        },
     }
         .attachTo(widget);
 

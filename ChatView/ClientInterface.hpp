@@ -14,6 +14,10 @@
 #include <LLMQore/BaseClient.hpp>
 #include <context/ContextManager.hpp>
 
+namespace QodeAssist::Skills {
+class SkillsManager;
+}
+
 namespace QodeAssist::Chat {
 
 class ClientInterface : public QObject
@@ -24,6 +28,8 @@ public:
     explicit ClientInterface(
         ChatModel *chatModel, PluginLLMCore::IPromptProvider *promptProvider, QObject *parent = nullptr);
     ~ClientInterface();
+
+    void setSkillsManager(Skills::SkillsManager *skillsManager);
 
     void sendMessage(
         const QString &message,
@@ -84,6 +90,7 @@ private:
     PluginLLMCore::IPromptProvider *m_promptProvider = nullptr;
     ChatModel *m_chatModel;
     Context::ContextManager *m_contextManager;
+    Skills::SkillsManager *m_skillsManager = nullptr;
     QString m_chatFilePath;
 
     QHash<QString, RequestContext> m_activeRequests;

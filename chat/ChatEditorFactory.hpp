@@ -7,6 +7,10 @@
 
 class QQmlEngine;
 
+namespace QodeAssist::Skills {
+class SkillsManager;
+}
+
 namespace QodeAssist::Chat {
 
 class SessionFileRegistry;
@@ -14,7 +18,10 @@ class SessionFileRegistry;
 class ChatEditorFactory : public Core::IEditorFactory
 {
 public:
-    ChatEditorFactory(QQmlEngine *engine, SessionFileRegistry *sessionFileRegistry);
+    ChatEditorFactory(
+        QQmlEngine *engine,
+        SessionFileRegistry *sessionFileRegistry,
+        Skills::SkillsManager *skillsManager);
 };
 
 } // namespace QodeAssist::Chat

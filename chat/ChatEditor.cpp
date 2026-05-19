@@ -17,11 +17,15 @@
 
 namespace QodeAssist::Chat {
 
-ChatEditor::ChatEditor(QQmlEngine *engine, SessionFileRegistry *sessionFileRegistry)
+ChatEditor::ChatEditor(
+    QQmlEngine *engine,
+    SessionFileRegistry *sessionFileRegistry,
+    Skills::SkillsManager *skillsManager)
     : m_engine(engine)
     , m_sessionFileRegistry(sessionFileRegistry)
+    , m_skillsManager(skillsManager)
     , m_document(new ChatDocument(this))
-    , m_chatWidget(new ChatWidget(engine, sessionFileRegistry))
+    , m_chatWidget(new ChatWidget(engine, sessionFileRegistry, skillsManager))
 {
     setWidget(m_chatWidget);
     setContext(Core::Context(Constants::QODE_ASSIST_CHAT_CONTEXT));
@@ -67,7 +71,7 @@ QWidget *ChatEditor::toolBar()
 
 Core::IEditor *ChatEditor::duplicate()
 {
-    return new ChatEditor(m_engine, m_sessionFileRegistry);
+    return new ChatEditor(m_engine, m_sessionFileRegistry, m_skillsManager);
 }
 
 } // namespace QodeAssist::Chat

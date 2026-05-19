@@ -9,12 +9,16 @@
 
 namespace QodeAssist::Chat {
 
-ChatEditorFactory::ChatEditorFactory(QQmlEngine *engine, SessionFileRegistry *sessionFileRegistry)
+ChatEditorFactory::ChatEditorFactory(
+    QQmlEngine *engine,
+    SessionFileRegistry *sessionFileRegistry,
+    Skills::SkillsManager *skillsManager)
 {
     setId(Constants::QODE_ASSIST_CHAT_EDITOR_ID);
     setDisplayName(Tr::tr("QodeAssist Chat"));
-    setEditorCreator(
-        [engine, sessionFileRegistry] { return new ChatEditor(engine, sessionFileRegistry); });
+    setEditorCreator([engine, sessionFileRegistry, skillsManager] {
+        return new ChatEditor(engine, sessionFileRegistry, skillsManager);
+    });
 }
 
 } // namespace QodeAssist::Chat
