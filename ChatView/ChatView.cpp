@@ -17,6 +17,7 @@
 #include "ChatRootView.hpp"
 #include "QodeAssistConstants.hpp"
 #include "SessionFileRegistry.hpp"
+#include "sources/skills/SkillsManager.hpp"
 
 namespace {
 constexpr Qt::WindowFlags baseFlags = Qt::Window | Qt::WindowTitleHint | Qt::WindowSystemMenuHint
@@ -26,7 +27,10 @@ constexpr Qt::WindowFlags baseFlags = Qt::Window | Qt::WindowTitleHint | Qt::Win
 
 namespace QodeAssist::Chat {
 
-ChatView::ChatView(QQmlEngine *engine, SessionFileRegistry *sessionFileRegistry)
+ChatView::ChatView(
+    QQmlEngine *engine,
+    SessionFileRegistry *sessionFileRegistry,
+    Skills::SkillsManager *skillsManager)
     : QQuickView{engine, nullptr}
     , m_isPin(false)
 {
@@ -36,6 +40,7 @@ ChatView::ChatView(QQmlEngine *engine, SessionFileRegistry *sessionFileRegistry)
         auto context = new QQmlContext{engine, this};
         context->setContextProperty("_chatview", this);
         context->setContextProperty("sessionFileRegistry", sessionFileRegistry);
+        context->setContextProperty("skillsManager", skillsManager);
 
         auto component = new QQmlComponent{engine, QUrl{"qrc:/qt/qml/ChatView/qml/RootItem.qml"}, this};
         auto rootItem = component->create(context);

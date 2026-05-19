@@ -40,6 +40,9 @@
 #include "SessionFileRegistry.hpp"
 #include "context/ContextManager.hpp"
 #include "pluginllmcore/RulesLoader.hpp"
+#include "ProjectSettings.hpp"
+#include "SkillsSettings.hpp"
+#include "sources/skills/SkillsManager.hpp"
 
 namespace QodeAssist::Chat {
 
@@ -313,6 +316,52 @@ SessionFileRegistry *ChatRootView::sessionFileRegistry() const
     return m_sessionFileRegistry;
 }
 
+Skills::SkillsManager *ChatRootView::skillsManager() const
+{
+    if (!m_skillsManagerResolved) {
+        m_skillsManagerResolved = true;
+        if (auto context = qmlContext(this)) {
+            m_skillsManager = qobject_cast<Skills::SkillsManager *>(
+                context->contextProperty("skillsManager").value<QObject *>());
+        }
+    }
+    return m_skillsManager;
+}
+
+QVariantList ChatRootView::searchSkills(const QString &query) const
+{
+    QVariantList results;
+    auto *manager = skillsManager();
+    if (!manager || !Settings::skillsSettings().enableSkills())
+        return results;
+
+    auto *project = PluginLLMCore::RulesLoader::getActiveProject();
+    QStringList projectSkillDirs;
+    if (project) {
+        Settings::ProjectSettings projectSettings(project);
+        projectSkillDirs = Settings::SkillsSettings::splitLines(
+            projectSettings.projectSkillDirs());
+    }
+    manager->configure(
+        project ? project->projectDirectory().toFSPathString() : QString(),
+        Settings::SkillsSettings::splitPaths(Settings::skillsSettings().globalSkillRoots()),
+        projectSkillDirs);
+
+    const QString needle = query.trimmed().toLower();
+    for (const Skills::AgentSkill &skill : manager->skills()) {
+        if (!skill.enabled)
+            continue;
+        if (!needle.isEmpty() && !skill.name.toLower().contains(needle)
+            && !skill.description.toLower().contains(needle)) {
+            continue;
+        }
+        results.append(QVariantMap{
+            {QStringLiteral("name"), skill.name},
+            {QStringLiteral("description"), skill.description}});
+    }
+    return results;
+}
+
 ChatModel *ChatRootView::chatModel() const
 {
     return m_chatModel;
@@ -387,6 +436,7 @@ void ChatRootView::dispatchSend(
 
     m_tokenCounter->recordSent();
 
+    m_clientInterface->setSkillsManager(skillsManager());
     m_clientInterface->sendMessage(message, attachments, linkedFiles, useToolsArg, useThinkingArg);
 
     m_fileManager->clearIntermediateStorage();

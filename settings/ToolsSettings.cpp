@@ -119,6 +119,14 @@ ToolsSettings::ToolsSettings()
                "summary currently in context. Has no effect if the chat was never compressed."));
     enableReadOriginalHistoryTool.setDefaultValue(true);
 
+    enableSkillTool.setSettingsKey(Constants::CA_ENABLE_SKILL_TOOL);
+    enableSkillTool.setLabelText(Tr::tr("Load Skill"));
+    enableSkillTool.setToolTip(
+        Tr::tr("Lets the AI load the full instructions of a skill on demand. The Available "
+               "Skills catalog in the system prompt lists each skill; this tool pulls a "
+               "skill's complete instructions into context when needed."));
+    enableSkillTool.setDefaultValue(true);
+
     allowedTerminalCommandsLinux.setSettingsKey(Constants::CA_ALLOWED_TERMINAL_COMMANDS_LINUX);
     allowedTerminalCommandsLinux.setLabelText(Tr::tr("Allowed Commands (Linux)"));
     allowedTerminalCommandsLinux.setToolTip(
@@ -186,7 +194,8 @@ ToolsSettings::ToolsSettings()
                     enableGetIssuesListTool,
                     enableTerminalCommandTool,
                     enableTodoTool,
-                    enableReadOriginalHistoryTool}},
+                    enableReadOriginalHistoryTool,
+                    enableSkillTool}},
             Space{8},
             Group{
                 title(Tr::tr("Tool Settings")),
@@ -237,6 +246,7 @@ void ToolsSettings::resetSettingsToDefaults()
         resetAspect(enableTerminalCommandTool);
         resetAspect(enableTodoTool);
         resetAspect(enableReadOriginalHistoryTool);
+        resetAspect(enableSkillTool);
         resetAspect(allowedTerminalCommandsLinux);
         resetAspect(allowedTerminalCommandsMacOS);
         resetAspect(allowedTerminalCommandsWindows);

@@ -9,6 +9,10 @@
 
 class QQmlEngine;
 
+namespace QodeAssist::Skills {
+class SkillsManager;
+}
+
 namespace QodeAssist::Chat {
 
 class SessionFileRegistry;
@@ -17,7 +21,10 @@ class NavigationPanel : public Core::INavigationWidgetFactory
 {
     Q_OBJECT
 public:
-    explicit NavigationPanel(QQmlEngine *engine, SessionFileRegistry *sessionFileRegistry);
+    explicit NavigationPanel(
+        QQmlEngine *engine,
+        SessionFileRegistry *sessionFileRegistry,
+        Skills::SkillsManager *skillsManager);
     ~NavigationPanel();
 
     Core::NavigationView createWidget() override;
@@ -25,6 +32,7 @@ public:
 private:
     QPointer<QQmlEngine> m_engine;
     QPointer<SessionFileRegistry> m_sessionFileRegistry;
+    QPointer<Skills::SkillsManager> m_skillsManager;
 };
 
 } // namespace QodeAssist::Chat

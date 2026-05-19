@@ -6,6 +6,10 @@
 #include "ChatView/ChatWidget.hpp"
 #include <coreplugin/ioutputpane.h>
 
+namespace QodeAssist::Skills {
+class SkillsManager;
+}
+
 namespace QodeAssist::Chat {
 
 class SessionFileRegistry;
@@ -18,6 +22,7 @@ public:
     explicit ChatOutputPane(
         QQmlEngine *engine,
         SessionFileRegistry *sessionFileRegistry,
+        Skills::SkillsManager *skillsManager,
         QObject *parent = nullptr);
     ~ChatOutputPane() override;
 

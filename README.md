@@ -35,6 +35,7 @@ QodeAssist enhances Qt Creator with AI-powered coding assistance:
 - **Chat Assistant** — side panel, bottom panel, or detached window; history with auto-save, token monitoring, extended thinking
 - **Quick Refactoring** — inline AI-assisted edits directly in the editor with a searchable custom-instructions library
 - **Agent Tools** — read, search, create and edit files; build the project; run terminal commands; access linter/compiler issues; manage TODOs
+- **Agent Skills** — reusable folders of specialized instructions loaded on demand; discovered from `.qodeassist/skills/` and `.claude/skills/`, invoked automatically, with `/skill`, or always-on
 - **MCP Server** — expose QodeAssist's project-aware tools to external MCP clients (Claude Code, VS Code, Claude Desktop via bridge)
 - **MCP Client Hub** — connect QodeAssist to external MCP servers and use their tools in Chat and Quick Refactor (authenticated MCP servers are not supported yet)
 - **File Context** — attach, link, or auto-sync open editor files for richer prompts
@@ -253,6 +254,41 @@ Chat and Quick Refactor can call tools to inspect and modify your project. Each 
 | `execute_terminal_command` | Run a shell command (with confirmation) |
 | `todo_tool` | Track multi-step task progress during a conversation |
 
+### Skills
+
+**Agent Skills** package specialized instructions and workflows into reusable folders the AI loads on demand. QodeAssist implements the open [Agent Skills](https://agentskills.io) format, so skills authored for Claude Code, Cursor, or other agents work as-is.
+
+A skill is a folder containing a `SKILL.md` file — YAML frontmatter (`name`, `description`) plus Markdown instructions:
+
+```
+my-skill/
+└── SKILL.md
+```
+
+```markdown
+---
+name: my-skill
+description: What the skill does and when to use it.
+---
+
+# My Skill
+
+Step-by-step instructions for the task...
+```
+
+**Where skills are discovered:**
+- **Project skills** — project-relative subdirectories (default `.qodeassist/skills/` and `.claude/skills/`), configured in `Projects → QodeAssist → Skills`. Project skills win over global ones on a name collision.
+- **Global skills** — absolute directories shared across all projects (default includes `~/.claude/skills/`), configured in `Tools → Options → QodeAssist → Skills`.
+
+Both settings pages show the list of currently discovered skills.
+
+**How skills are used in Chat:**
+- **Automatically** — each skill's name and description is added to the system prompt; when a request matches, the model loads the full instructions via the `load_skill` tool (requires a tool-calling model).
+- **Explicitly** — type `/` in the chat input and pick a skill from the popup; its instructions are injected into that one message. Works with any model.
+- **Always-on** — a skill whose frontmatter has `metadata: always-on: "true"` is injected into every chat request automatically.
+
+Enable or disable the whole feature in `Tools → Options → QodeAssist → Skills`.
+
 ### MCP Server
 
 QodeAssist can run an **MCP (Model Context Protocol) server** on `localhost`, exposing the tools above to external clients — so you can use QodeAssist's project awareness from Claude Code CLI, VS Code, Cursor, Claude Desktop, or any other MCP-capable client.
@@ -454,6 +490,7 @@ For additional support, join our [Discord Community](https://discord.gg/BGMkUsXU
 - [x] Quick refactoring with custom-instructions library
 - [x] Diff sharing with models
 - [x] Tools / function calling (file I/O, build, terminal, diagnostics)
+- [x] Agent Skills (project + global directories, `/skill` commands, always-on, `load_skill` tool)
 - [x] Project-specific rules (`.qodeassist/rules/`)
 - [x] MCP (Model Context Protocol) — QodeAssist as a server
 - [x] MCP — QodeAssist as a client (consume external MCP tools; authenticated MCP servers not yet supported)

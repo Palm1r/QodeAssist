@@ -31,6 +31,7 @@ public:
     Utils::BoolAspect enableTerminalCommandTool{this};
     Utils::BoolAspect enableTodoTool{this};
     Utils::BoolAspect enableReadOriginalHistoryTool{this};
+    Utils::BoolAspect enableSkillTool{this};
 
     Utils::StringAspect allowedTerminalCommandsLinux{this};
     Utils::StringAspect allowedTerminalCommandsMacOS{this};

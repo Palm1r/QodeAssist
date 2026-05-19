@@ -7,8 +7,15 @@ namespace LLMQore {
 class ToolsManager;
 }
 
+namespace QodeAssist::Skills {
+class SkillsManager;
+}
+
 namespace QodeAssist::Tools {
 
 void registerQodeAssistTools(::LLMQore::ToolsManager *manager);
+
+void registerSkillTool(
+    ::LLMQore::ToolsManager *manager, Skills::SkillsManager *skillsManager);
 
 } // namespace QodeAssist::Tools

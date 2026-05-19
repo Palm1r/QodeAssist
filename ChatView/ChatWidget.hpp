@@ -5,6 +5,10 @@
 
 #include <QtQuickWidgets/QtQuickWidgets>
 
+namespace QodeAssist::Skills {
+class SkillsManager;
+}
+
 namespace QodeAssist::Chat {
 
 class SessionFileRegistry;
@@ -17,6 +21,7 @@ public:
     explicit ChatWidget(
         QQmlEngine *engine,
         SessionFileRegistry *sessionFileRegistry,
+        Skills::SkillsManager *skillsManager,
         QWidget *parent = nullptr);
     ~ChatWidget() = default;
 

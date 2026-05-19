@@ -9,6 +9,7 @@ add_library(QodeAssistSettings STATIC
     ChatAssistantSettings.hpp ChatAssistantSettings.cpp
     QuickRefactorSettings.hpp QuickRefactorSettings.cpp
     ToolsSettings.hpp ToolsSettings.cpp
+    SkillsSettings.hpp SkillsSettings.cpp
     McpSettings.hpp McpSettings.cpp
     SettingsDialog.hpp SettingsDialog.cpp
     ProjectSettings.hpp ProjectSettings.cpp
@@ -30,5 +31,6 @@ target_link_libraries(QodeAssistSettings
     QtCreator::Core
     QtCreator::Utils
     QodeAssistLogger
+    Skills
 )
 target_include_directories(QodeAssistSettings PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

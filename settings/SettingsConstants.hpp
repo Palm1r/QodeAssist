@@ -102,11 +102,17 @@ const char CA_ENABLE_TERMINAL_COMMAND_TOOL[] = "QodeAssist.caEnableTerminalComma
 const char CA_ENABLE_TODO_TOOL[] = "QodeAssist.caEnableTodoToolV2";
 const char CA_ENABLE_READ_ORIGINAL_HISTORY_TOOL[]
     = "QodeAssist.caEnableReadOriginalHistoryTool";
+const char CA_ENABLE_SKILL_TOOL[] = "QodeAssist.caEnableSkillTool";
 const char CA_ALLOWED_TERMINAL_COMMANDS[] = "QodeAssist.caAllowedTerminalCommands";
 const char CA_ALLOWED_TERMINAL_COMMANDS_LINUX[] = "QodeAssist.caAllowedTerminalCommandsLinux";
 const char CA_ALLOWED_TERMINAL_COMMANDS_MACOS[] = "QodeAssist.caAllowedTerminalCommandsMacOS";
 const char CA_ALLOWED_TERMINAL_COMMANDS_WINDOWS[] = "QodeAssist.caAllowedTerminalCommandsWindows";
 const char CA_TERMINAL_COMMAND_TIMEOUT[] = "QodeAssist.caTerminalCommandTimeout";
+
+// Skills settings
+const char SK_ENABLE_SKILLS[] = "QodeAssist.skEnableSkills";
+const char SK_GLOBAL_SKILL_ROOTS[] = "QodeAssist.skGlobalSkillRoots";
+const char SK_PROJECT_SKILL_DIRS[] = "QodeAssist.skProjectSkillDirs";
 
 // MCP server settings
 const char MCP_ENABLE_SERVER[] = "QodeAssist.mcpEnableServer";
@@ -124,6 +130,7 @@ const char QODE_ASSIST_QUICK_REFACTOR_SETTINGS_PAGE_ID[]
     = "QodeAssist.4QuickRefactorSettingsPageId";
 const char QODE_ASSIST_TOOLS_SETTINGS_PAGE_ID[] = "QodeAssist.5ToolsSettingsPageId";
 const char QODE_ASSIST_MCP_SETTINGS_PAGE_ID[] = "QodeAssist.6McpSettingsPageId";
+const char QODE_ASSIST_SKILLS_SETTINGS_PAGE_ID[] = "QodeAssist.8SkillsSettingsPageId";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_CATEGORY[] = "QodeAssist.Category";
 const char QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY[] = "QodeAssist";

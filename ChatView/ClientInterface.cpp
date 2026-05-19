@@ -14,6 +14,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QMimeDatabase>
+#include <QRegularExpression>
 #include <QUuid>
 
 #include <coreplugin/editormanager/editormanager.h>
@@ -35,20 +36,28 @@
 #include "ChatSerializer.hpp"
 #include "GeneralSettings.hpp"
 #include "Logger.hpp"
+#include "ProjectSettings.hpp"
 #include "ProvidersManager.hpp"
+#include "SkillsSettings.hpp"
 #include "ToolsSettings.hpp"
 #include <RulesLoader.hpp>
 #include <context/ChangesManager.h>
+#include <sources/skills/SkillsManager.hpp>
 
 namespace QodeAssist::Chat {
 
 ClientInterface::ClientInterface(
     ChatModel *chatModel, PluginLLMCore::IPromptProvider *promptProvider, QObject *parent)
     : QObject(parent)
-    , m_chatModel(chatModel)
     , m_promptProvider(promptProvider)
+    , m_chatModel(chatModel)
     , m_contextManager(new Context::ContextManager(this))
 {}
+
+void ClientInterface::setSkillsManager(Skills::SkillsManager *skillsManager)
+{
+    m_skillsManager = skillsManager;
+}
 
 ClientInterface::~ClientInterface()
 {
@@ -184,6 +193,44 @@ void ClientInterface::sendMessage(
             }
         } else {
             systemPrompt += QString("\n# No active project in IDE");
+        }
+
+        if (m_skillsManager && Settings::skillsSettings().enableSkills()) {
+            QStringList projectSkillDirs;
+            if (project) {
+                Settings::ProjectSettings projectSettings(project);
+                projectSkillDirs = Settings::SkillsSettings::splitLines(
+                    projectSettings.projectSkillDirs());
+            }
+            m_skillsManager->configure(
+                project ? project->projectDirectory().toFSPathString() : QString(),
+                Settings::SkillsSettings::splitPaths(
+                    Settings::skillsSettings().globalSkillRoots()),
+                projectSkillDirs);
+
+            const QString alwaysOnSkills = m_skillsManager->alwaysOnBodies();
+            if (!alwaysOnSkills.isEmpty())
+                systemPrompt += QString("\n\n") + alwaysOnSkills;
+
+            const QString skillsCatalog = m_skillsManager->catalogText();
+            if (!skillsCatalog.isEmpty())
+                systemPrompt += QString("\n\n") + skillsCatalog;
+
+            static const QRegularExpression skillCommand(
+                QStringLiteral("(?:^|\\s)/([a-z0-9][a-z0-9-]*)"));
+            QStringList invokedSkillNames;
+            auto skillMatch = skillCommand.globalMatch(message);
+            while (skillMatch.hasNext()) {
+                const QString skillName = skillMatch.next().captured(1);
+                if (invokedSkillNames.contains(skillName))
+                    continue;
+                const auto invokedSkill = m_skillsManager->findByName(skillName);
+                if (invokedSkill && !invokedSkill->body.isEmpty()) {
+                    invokedSkillNames << skillName;
+                    systemPrompt += QString("\n\n# Invoked Skill: %1\n\n%2")
+                                        .arg(invokedSkill->name, invokedSkill->body);
+                }
+            }
         }
 
         if (!linkedFiles.isEmpty()) {
