@@ -44,9 +44,11 @@ qt_add_qml_module(QodeAssistChatView
     icons/window-unlock.svg
     icons/chat-icon.svg
     icons/chat-pause-icon.svg
+    icons/new-chat-icon.svg
     icons/rules-icon.svg
     icons/context-icon.svg
     icons/open-in-editor.svg
+    icons/open-in-window.svg
     icons/apply-changes-button.svg
     icons/undo-changes-button.svg
     icons/reject-changes-button.svg

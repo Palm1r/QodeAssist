@@ -17,8 +17,6 @@ class ChatDocument;
 class ChatWidget;
 class SessionFileRegistry;
 
-// Editor-area host for the chat. Each editor (including a split duplicate) owns its own
-// ChatWidget and therefore its own independent chat session.
 class ChatEditor : public Core::IEditor
 {
     Q_OBJECT

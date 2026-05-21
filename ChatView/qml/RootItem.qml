@@ -87,21 +87,25 @@ ChatRootView {
             Layout.preferredWidth: parent.width
             Layout.preferredHeight: childrenRect.height + 10
 
+            isInEditor: root.isInEditor
             saveButton.onClicked: root.showSaveDialog()
             loadButton.onClicked: root.showLoadDialog()
             clearButton.onClicked: root.clearChat()
+            newChatButton.onClicked: root.requestNewChat()
             tokensBadge {
-                readonly property int sessionCached: root.chatModel.sessionCachedPromptTokens
+                readonly property int sessionPrompt: root.chatModel.sessionPromptTokens || 0
+                readonly property int sessionCompletion: root.chatModel.sessionCompletionTokens || 0
+                readonly property int sessionCached: root.chatModel.sessionCachedPromptTokens || 0
                 text: sessionCached > 0
                     ? qsTr("next ~%1  ·  session ↑%2 ↓%3 ↻%4")
                           .arg(root.inputTokensCount)
-                          .arg(root.chatModel.sessionPromptTokens)
-                          .arg(root.chatModel.sessionCompletionTokens)
+                          .arg(sessionPrompt)
+                          .arg(sessionCompletion)
                           .arg(sessionCached)
                     : qsTr("next ~%1  ·  session ↑%2 ↓%3")
                           .arg(root.inputTokensCount)
-                          .arg(root.chatModel.sessionPromptTokens)
-                          .arg(root.chatModel.sessionCompletionTokens)
+                          .arg(sessionPrompt)
+                          .arg(sessionCompletion)
                 ToolTip.text: sessionCached > 0
                     ? qsTr("next request (estimate)  ·  session prompt ↑ / completion ↓ / cached ↻ (provider cache hits)")
                     : qsTr("next request (estimate)  ·  session prompt ↑ / completion ↓")
@@ -117,8 +121,11 @@ ChatRootView {
                 onCheckedChanged: _chatview.isPin = topBar.pinButton.checked
             }
             relocateButton {
+                icon.source: (typeof _chatview !== 'undefined')
+                             ? "qrc:/qt/qml/ChatView/icons/open-in-editor.svg"
+                             : "qrc:/qt/qml/ChatView/icons/open-in-window.svg"
                 ToolTip.text: (typeof _chatview !== 'undefined')
-                              ? qsTr("Move this chat to an editor split")
+                              ? qsTr("Move this chat to an editor tab")
                               : qsTr("Move this chat to a separate window")
                 onClicked: {
                     if (typeof _chatview !== 'undefined')

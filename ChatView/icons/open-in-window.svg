@@ -1,6 +1,6 @@
 <svg width="44" height="44" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
   <g transform="translate(10 8) skewX(-15)" stroke="black" stroke-width="2" stroke-linejoin="round">
-    <rect x="10" y="0" width="22" height="15" rx="3" ry="3" fill="black"/>
-    <rect x="0" y="12" width="22" height="15" rx="3" ry="3" fill="none"/>
+    <rect x="10" y="0" width="22" height="15" rx="3" ry="3" fill="none"/>
+    <rect x="0" y="12" width="22" height="15" rx="3" ry="3" fill="black"/>
   </g>
 </svg>

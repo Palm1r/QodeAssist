@@ -3,17 +3,13 @@
 
 #include "ChatEditor.hpp"
 
-#include <coreplugin/actionmanager/actionmanager.h>
-#include <coreplugin/actionmanager/command.h>
-#include <coreplugin/coreconstants.h>
 #include <coreplugin/editormanager/editormanager.h>
-
-#include <QAction>
 
 #include "ChatDocument.hpp"
 #include "ChatView/ChatRootView.hpp"
 #include "ChatView/ChatWidget.hpp"
 #include "QodeAssistConstants.hpp"
+#include "QodeAssisttr.h"
 
 namespace QodeAssist::Chat {
 
@@ -25,26 +21,28 @@ ChatEditor::ChatEditor(
     , m_sessionFileRegistry(sessionFileRegistry)
     , m_skillsManager(skillsManager)
     , m_document(new ChatDocument(this))
-    , m_chatWidget(new ChatWidget(engine, sessionFileRegistry, skillsManager))
+    , m_chatWidget(new ChatWidget(engine, sessionFileRegistry, skillsManager, false))
 {
     setWidget(m_chatWidget);
     setContext(Core::Context(Constants::QODE_ASSIST_CHAT_CONTEXT));
-    setDuplicateSupported(true);
+    setDuplicateSupported(false);
 
     if (auto rootView = qobject_cast<ChatRootView *>(m_chatWidget->rootObject())) {
+        rootView->setInEditor(true);
         connect(
             rootView,
             &ChatRootView::closeHostRequested,
             this,
-            [this] {
-                Core::EditorManager::closeEditors({this});
-                if (auto command
-                    = Core::ActionManager::command(Core::Constants::REMOVE_CURRENT_SPLIT)) {
-                    if (auto action = command->action(); action && action->isEnabled())
-                        action->trigger();
-                }
-            },
+            [this] { Core::EditorManager::closeEditors({this}); },
             Qt::QueuedConnection);
+
+        auto syncTitle = [this, rootView] {
+            const QString title = rootView->chatTitle();
+            m_document->setPreferredDisplayName(
+                title.isEmpty() ? Tr::tr("QodeAssist Chat") : QStringLiteral("QodeAssist - ") + title);
+        };
+        connect(rootView, &ChatRootView::chatTitleChanged, this, syncTitle);
+        syncTitle();
     }
 }
 
@@ -71,7 +69,7 @@ QWidget *ChatEditor::toolBar()
 
 Core::IEditor *ChatEditor::duplicate()
 {
-    return new ChatEditor(m_engine, m_sessionFileRegistry, m_skillsManager);
+    return nullptr;
 }
 
 } // namespace QodeAssist::Chat

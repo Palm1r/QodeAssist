@@ -21,6 +21,7 @@ ChatWidget::ChatWidget(
     QQmlEngine *engine,
     SessionFileRegistry *sessionFileRegistry,
     Skills::SkillsManager *skillsManager,
+    bool registerOwnContext,
     QWidget *parent)
     : QQuickWidget{engine, parent}
 {
@@ -37,10 +38,19 @@ ChatWidget::ChatWidget(
     setResizeMode(QQuickWidget::SizeRootObjectToView);
     setFocusPolicy(Qt::StrongFocus);
 
-    auto ideContext = new Core::IContext{this};
-    ideContext->setWidget(this);
-    ideContext->setContext(Core::Context{Constants::QODE_ASSIST_CHAT_CONTEXT});
-    Core::ICore::addContextObject(ideContext);
+    if (registerOwnContext) {
+        auto ideContext = new Core::IContext{this};
+        ideContext->setWidget(this);
+        ideContext->setContext(Core::Context{Constants::QODE_ASSIST_CHAT_CONTEXT});
+        Core::ICore::addContextObject(ideContext);
+    }
+}
+
+void ChatWidget::focusInEvent(QFocusEvent *event)
+{
+    QQuickWidget::focusInEvent(event);
+    if (rootObject())
+        QMetaObject::invokeMethod(rootObject(), "focusInput");
 }
 
 void ChatWidget::clear()

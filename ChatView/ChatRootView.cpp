@@ -112,6 +112,18 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         setRecentFilePath(QString{});
         m_fileEditController->clearCurrentRequestId();
     });
+    auto maybeEmitTitle = [this] {
+        const QString newTitle = computeChatTitle();
+        if (newTitle == m_cachedChatTitle)
+            return;
+        m_cachedChatTitle = newTitle;
+        emit chatTitleChanged();
+    };
+    connect(m_chatModel, &ChatModel::modelReseted, this, maybeEmitTitle);
+    connect(m_chatModel, &QAbstractItemModel::modelReset, this, maybeEmitTitle);
+    connect(m_chatModel, &QAbstractItemModel::rowsInserted, this, maybeEmitTitle);
+    connect(m_chatModel, &QAbstractItemModel::rowsRemoved, this, maybeEmitTitle);
+    connect(m_chatModel, &QAbstractItemModel::dataChanged, this, maybeEmitTitle);
     connect(this, &ChatRootView::attachmentFilesChanged, this, [this]() {
         m_tokenCounter->setAttachments(m_attachmentFiles);
     });
@@ -792,6 +804,51 @@ void ChatRootView::triggerOpenChatCommand(Utils::Id commandId)
     }
 }
 
+bool ChatRootView::isInEditor() const
+{
+    return m_isInEditor;
+}
+
+void ChatRootView::setInEditor(bool value)
+{
+    if (m_isInEditor == value)
+        return;
+    m_isInEditor = value;
+    emit isInEditorChanged();
+}
+
+void ChatRootView::requestNewChat()
+{
+    triggerOpenChatCommand(Constants::QODE_ASSIST_NEW_CHAT_ACTION);
+}
+
+QString ChatRootView::chatTitle() const
+{
+    if (m_cachedChatTitle.isEmpty())
+        m_cachedChatTitle = computeChatTitle();
+    return m_cachedChatTitle;
+}
+
+QString ChatRootView::computeChatTitle() const
+{
+    if (!m_chatModel)
+        return {};
+    const auto history = m_chatModel->getChatHistory();
+    for (const auto &msg : history) {
+        if (msg.role != ChatModel::User)
+            continue;
+        const QString content = msg.content.trimmed();
+        if (content.isEmpty())
+            continue;
+        const QString firstLine = content.section(QChar('\n'), 0, 0).trimmed();
+        constexpr int maxLen = 60;
+        if (firstLine.length() > maxLen)
+            return firstLine.left(maxLen - 1) + QChar(0x2026);
+        return firstLine;
+    }
+    return {};
+}
+
 void ChatRootView::handOffSession()
 {
     if (m_chatModel->rowCount() > 0) {
@@ -824,7 +881,7 @@ void ChatRootView::consumePendingChatFile()
 void ChatRootView::relocateToSplit()
 {
     handOffSession();
-    triggerOpenChatCommand(Constants::QODE_ASSIST_SHOW_CHAT_ACTION);
+    triggerOpenChatCommand(Constants::QODE_ASSIST_NEW_CHAT_ACTION);
     clearMessages();
     clearAttachmentFiles();
     emit closeHostRequested();

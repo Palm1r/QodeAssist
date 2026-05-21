@@ -63,6 +63,8 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(QString currentAgentRoleDescription READ currentAgentRoleDescription NOTIFY currentAgentRoleChanged FINAL)
     Q_PROPERTY(QString currentAgentRoleSystemPrompt READ currentAgentRoleSystemPrompt NOTIFY currentAgentRoleChanged FINAL)
     Q_PROPERTY(bool isCompressing READ isCompressing NOTIFY isCompressingChanged FINAL)
+    Q_PROPERTY(bool isInEditor READ isInEditor NOTIFY isInEditorChanged FINAL)
+    Q_PROPERTY(QString chatTitle READ chatTitle NOTIFY chatTitleChanged FINAL)
 
     QML_ELEMENT
 
@@ -183,6 +185,13 @@ public:
     
     bool isCompressing() const;
 
+    bool isInEditor() const;
+    void setInEditor(bool value);
+
+    QString chatTitle() const;
+
+    Q_INVOKABLE void requestNewChat();
+
 public slots:
     void sendMessage(const QString &message);
     void copyToClipboard(const QString &text);
@@ -228,11 +237,15 @@ signals:
     void compressionCompleted(const QString &compressedChatPath);
     void compressionFailed(const QString &error);
 
+    void isInEditorChanged();
+    void chatTitleChanged();
+
     void openFilesChanged();
 
     void closeHostRequested();
 
 private:
+    QString computeChatTitle() const;
     void triggerOpenChatCommand(Utils::Id commandId);
     void handOffSession();
     bool deferSendForAutoCompress(
@@ -271,6 +284,8 @@ private:
     };
     PendingSend m_pendingSend;
     bool m_isSyncOpenFiles;
+    bool m_isInEditor = false;
+    mutable QString m_cachedChatTitle;
     QList<Core::IEditor *> m_currentEditors;
     bool m_isRequestInProgress;
     QString m_lastErrorMessage;

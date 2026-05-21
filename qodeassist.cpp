@@ -10,6 +10,8 @@
 #include <coreplugin/actionmanager/actionmanager.h>
 #include <coreplugin/actionmanager/command.h>
 #include <coreplugin/coreconstants.h>
+#include <coreplugin/editormanager/documentmodel.h>
+#include <coreplugin/editormanager/editormanager.h>
 #include <coreplugin/icontext.h>
 #include <coreplugin/icore.h>
 #include <coreplugin/messagemanager.h>
@@ -228,10 +230,10 @@ public:
         ActionBuilder showChatViewAction(this, Constants::QODE_ASSIST_SHOW_CHAT_ACTION);
         const QKeySequence showChatViewShortcut = QKeySequence(Qt::CTRL | Qt::ALT | Qt::Key_W);
         showChatViewAction.setDefaultKeySequence(showChatViewShortcut);
-        showChatViewAction.setToolTip(Tr::tr("Open QodeAssist Chat in an editor split"));
+        showChatViewAction.setToolTip(Tr::tr("Open QodeAssist Chat as an editor tab"));
         showChatViewAction.setText(Tr::tr("Show QodeAssist Chat"));
         showChatViewAction.setIcon(QCODEASSIST_CHAT_ICON.icon());
-        showChatViewAction.addOnTriggered(this, [this] { openChatInSplit(); });
+        showChatViewAction.addOnTriggered(this, [this] { openChatInEditor(); });
         m_statusWidget->setChatButtonAction(showChatViewAction.contextAction());
 
         m_chatButtonMenu = new QMenu(m_statusWidget);
@@ -259,6 +261,12 @@ public:
         openChatWindowAction.setToolTip(Tr::tr("Open the QodeAssist chat in a separate window"));
         openChatWindowAction.setIcon(QCODEASSIST_CHAT_ICON.icon());
         openChatWindowAction.addOnTriggered(this, [this] { openChatInWindow(); });
+
+        ActionBuilder newChatAction(this, Constants::QODE_ASSIST_NEW_CHAT_ACTION);
+        newChatAction.setText(Tr::tr("New QodeAssist Chat"));
+        newChatAction.setToolTip(Tr::tr("Open a fresh chat in a new editor tab"));
+        newChatAction.setIcon(QCODEASSIST_CHAT_ICON.icon());
+        newChatAction.addOnTriggered(this, [this] { openNewChatInEditor(); });
 
         ActionBuilder sendMessageAction(this, Constants::QODE_ASSIST_CHAT_SEND_MESSAGE);
         sendMessageAction.setContext(Core::Context(Constants::QODE_ASSIST_CHAT_CONTEXT));
@@ -323,18 +331,47 @@ public:
     }
 
 private:
-    void openChatInSplit()
+    void openChatInEditor()
     {
-        if (auto splitCommand
-            = Core::ActionManager::command(Core::Constants::SPLIT_SIDE_BY_SIDE)) {
-            if (auto splitAction = splitCommand->action())
-                splitAction->trigger();
+        if (auto existing = findExistingChatEditor()) {
+            Core::EditorManager::activateEditor(existing);
+            existing->consumePendingChatFile();
+            return;
         }
+
         QString title = Tr::tr("QodeAssist Chat");
         Core::IEditor *editor = Core::EditorManager::openEditorWithContents(
             Constants::QODE_ASSIST_CHAT_EDITOR_ID, &title, {}, QUuid::createUuid().toString());
         if (auto chatEditor = qobject_cast<Chat::ChatEditor *>(editor))
             chatEditor->consumePendingChatFile();
+    }
+
+    void openNewChatInEditor()
+    {
+        QString title = Tr::tr("QodeAssist Chat");
+        Core::IEditor *editor = Core::EditorManager::openEditorWithContents(
+            Constants::QODE_ASSIST_CHAT_EDITOR_ID, &title, {}, QUuid::createUuid().toString());
+        // For the "New Chat" button pending is empty (no-op). For relocate-to-editor it
+        // carries the handed-off chat file and gets loaded into the freshly opened tab.
+        if (auto chatEditor = qobject_cast<Chat::ChatEditor *>(editor))
+            chatEditor->consumePendingChatFile();
+    }
+
+    Chat::ChatEditor *findExistingChatEditor() const
+    {
+        const auto entries = Core::DocumentModel::entries();
+        for (auto *entry : entries) {
+            if (!entry || !entry->document)
+                continue;
+            if (entry->document->id() != Constants::QODE_ASSIST_CHAT_EDITOR_ID)
+                continue;
+            const auto editors = Core::DocumentModel::editorsForDocument(entry->document);
+            for (auto *editor : editors) {
+                if (auto chatEditor = qobject_cast<Chat::ChatEditor *>(editor))
+                    return chatEditor;
+            }
+        }
+        return nullptr;
     }
 
     void openChatInWindow()
@@ -400,11 +437,11 @@ private:
         m_chatButtonMenu->addSeparator();
 
         if (m_chatView && m_chatView->isVisible()) {
-            QAction *splitAction = m_chatButtonMenu->addAction(Tr::tr("Open Chat in Split"));
-            connect(splitAction, &QAction::triggered, this, [this] {
+            QAction *editorAction = m_chatButtonMenu->addAction(Tr::tr("Open Chat in Editor"));
+            connect(editorAction, &QAction::triggered, this, [this] {
                 if (m_chatView)
                     m_chatView->close();
-                openChatInSplit();
+                openChatInEditor();
             });
         } else {
             QAction *windowAction

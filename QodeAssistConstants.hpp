@@ -16,6 +16,7 @@ const char QODE_ASSIST_CHAT_EDITOR_ID[] = "QodeAssist.ChatEditor";
 
 const char QODE_ASSIST_SHOW_CHAT_ACTION[] = "QodeAssist.ShowChatView";
 const char QODE_ASSIST_OPEN_CHAT_WINDOW_ACTION[] = "QodeAssist.OpenChatWindow";
+const char QODE_ASSIST_NEW_CHAT_ACTION[] = "QodeAssist.NewChat";
 
 const char QODE_ASSIST_CHAT_SEND_MESSAGE[] = "QodeAssist.Chat.SendMessage";
 const char QODE_ASSIST_CHAT_CLEAR_SESSION[] = "QodeAssist.Chat.ClearSession";

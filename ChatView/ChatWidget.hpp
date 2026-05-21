@@ -22,6 +22,7 @@ public:
         QQmlEngine *engine,
         SessionFileRegistry *sessionFileRegistry,
         Skills::SkillsManager *skillsManager,
+        bool registerOwnContext = true,
         QWidget *parent = nullptr);
     ~ChatWidget() = default;
 
@@ -38,6 +39,9 @@ public:
 
 signals:
     void clearPressed();
+
+protected:
+    void focusInEvent(QFocusEvent *event) override;
 };
 
 } // namespace QodeAssist::Chat
