@@ -13,6 +13,7 @@
 #include <QProcess>
 #include <QPromise>
 #include <QRegularExpression>
+#include <QRegularExpression>
 #include <QSharedPointer>
 #include <QTimer>
 
@@ -45,18 +46,26 @@ QJsonObject ExecuteTerminalCommandTool::parametersSchema() const
     QJsonObject definition;
     definition["type"] = "object";
 
-    const QString commandDesc = getCommandDescription();
+    const QStringList allowed = getAllowedCommands();
+    const QString allowedList = allowed.isEmpty() ? "none" : allowed.join(", ");
 
     QJsonObject properties;
     properties["command"] = QJsonObject{
         {"type", "string"},
-        {"description", commandDesc}};
+        {"description",
+         QString("Name of the executable to run, WITHOUT any arguments or flags. "
+                 "Must be exactly one of the allowed commands: %1. "
+                 "Put every flag and argument in the separate `args` field. "
+                 "Correct: command=\"ls\", args=\"-R\". "
+                 "Incorrect: command=\"ls -R\" (the whole line in one field will be rejected).")
+             .arg(allowedList)}};
 
     properties["args"] = QJsonObject{
         {"type", "string"},
         {"description",
-         "Optional arguments for the command. Arguments with spaces should be properly quoted. "
-         "Example: '--file \"path with spaces.txt\" --verbose'"}};
+         "Optional arguments and flags for the command, as a single string. Do NOT repeat the "
+         "command name here. Arguments with spaces should be quoted. "
+         "Example: args=\"--file \\\"path with spaces.txt\\\" --verbose\"."}};
 
     definition["properties"] = properties;
     definition["required"] = QJsonArray{"command"};
@@ -68,12 +77,23 @@ QFuture<LLMQore::ToolResult> ExecuteTerminalCommandTool::executeAsync(const QJso
 {
     using LLMQore::ToolResult;
 
-    const QString command = input.value("command").toString().trimmed();
-    const QString args = input.value("args").toString().trimmed();
+    QString command = input.value("command").toString().trimmed();
+    QString args = input.value("args").toString().trimmed();
 
     if (command.isEmpty()) {
         LOG_MESSAGE("ExecuteTerminalCommandTool: Command is empty");
         return QtFuture::makeReadyFuture(ToolResult::error("Error: Command parameter is required."));
+    }
+
+    // Tolerate models that pack the whole command line into `command`. As long as `args` is
+    // empty we can safely split on the first whitespace — the allowlist check still validates
+    // the actual executable name.
+    if (args.isEmpty()) {
+        const int firstSpace = command.indexOf(QRegularExpression("\\s"));
+        if (firstSpace > 0) {
+            args = command.mid(firstSpace + 1).trimmed();
+            command = command.left(firstSpace);
+        }
     }
 
     if (command.length() > MAX_COMMAND_LENGTH) {

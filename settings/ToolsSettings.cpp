@@ -133,7 +133,9 @@ ToolsSettings::ToolsSettings()
         Tr::tr("Comma-separated list of terminal commands that AI is allowed to execute on Linux. "
                "Example: git, ls, cat, grep, find, cmake"));
     allowedTerminalCommandsLinux.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
-    allowedTerminalCommandsLinux.setDefaultValue("git, ls, cat, grep, find");
+    allowedTerminalCommandsLinux.setDefaultValue(
+        "git, ls, cat, grep, find, pwd, echo, head, tail, wc, which, file, stat, tree, uname, "
+        "date, whoami, hostname");
 
     allowedTerminalCommandsMacOS.setSettingsKey(Constants::CA_ALLOWED_TERMINAL_COMMANDS_MACOS);
     allowedTerminalCommandsMacOS.setLabelText(Tr::tr("Allowed Commands (macOS)"));
@@ -141,7 +143,9 @@ ToolsSettings::ToolsSettings()
         Tr::tr("Comma-separated list of terminal commands that AI is allowed to execute on macOS. "
                "Example: git, ls, cat, grep, find, cmake"));
     allowedTerminalCommandsMacOS.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
-    allowedTerminalCommandsMacOS.setDefaultValue("git, ls, cat, grep, find");
+    allowedTerminalCommandsMacOS.setDefaultValue(
+        "git, ls, cat, grep, find, pwd, echo, head, tail, wc, which, file, stat, tree, uname, "
+        "date, whoami, hostname");
 
     allowedTerminalCommandsWindows.setSettingsKey(Constants::CA_ALLOWED_TERMINAL_COMMANDS_WINDOWS);
     allowedTerminalCommandsWindows.setLabelText(Tr::tr("Allowed Commands (Windows)"));
@@ -149,7 +153,8 @@ ToolsSettings::ToolsSettings()
         Tr::tr("Comma-separated list of terminal commands that AI is allowed to execute on Windows. "
                "Example: git, dir, type, findstr, where, cmake"));
     allowedTerminalCommandsWindows.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
-    allowedTerminalCommandsWindows.setDefaultValue("git, dir, type, findstr, where");
+    allowedTerminalCommandsWindows.setDefaultValue(
+        "git, dir, type, findstr, where, echo, whoami, hostname, ver, tree, fc");
 
     terminalCommandTimeout.setSettingsKey(Constants::CA_TERMINAL_COMMAND_TIMEOUT);
     terminalCommandTimeout.setLabelText(Tr::tr("Command Timeout (seconds)"));

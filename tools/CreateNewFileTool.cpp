@@ -77,10 +77,20 @@ QFuture<LLMQore::ToolResult> CreateNewFileTool::executeAsync(const QJsonObject &
         if (!isInProject) {
             const auto &settings = Settings::toolsSettings();
             if (!settings.allowAccessOutsideProject()) {
+                const QString projectRoot = Context::ProjectUtils::getProjectRoot();
+                const QString hint = projectRoot.isEmpty()
+                    ? QStringLiteral(
+                          "No project is currently open. Open a project in Qt Creator or "
+                          "enable 'Allow file access outside project' in QodeAssist settings.")
+                    : QString(
+                          "Retry with a path under the active project root: '%1'. The build "
+                          "directory is for compiler output only and cannot accept new source "
+                          "files. If you really need to write outside the project, enable "
+                          "'Allow file access outside project' in QodeAssist settings.")
+                          .arg(projectRoot);
                 throw LLMQore::ToolRuntimeError(
-                    QString("Error: File path '%1' is not within the current project. "
-                            "Enable 'Allow file access outside project' in settings to create files outside project scope.")
-                        .arg(absolutePath));
+                    QString("Error: File path '%1' is not within the current project. %2")
+                        .arg(absolutePath, hint));
             }
             LOG_MESSAGE(QString("Creating file outside project scope: %1").arg(absolutePath));
         }

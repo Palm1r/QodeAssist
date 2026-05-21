@@ -143,10 +143,20 @@ QFuture<LLMQore::ToolResult> EditFileTool::executeAsync(const QJsonObject &input
         if (!isInProject) {
             const auto &settings = Settings::toolsSettings();
             if (!settings.allowAccessOutsideProject()) {
+                const QString projectRoot = Context::ProjectUtils::getProjectRoot();
+                const QString hint = projectRoot.isEmpty()
+                    ? QStringLiteral(
+                          "No project is currently open. Open a project in Qt Creator or "
+                          "enable 'Allow file access outside project' in QodeAssist settings.")
+                    : QString(
+                          "Retry with a path under the active project root: '%1'. The build "
+                          "directory is for compiler output only — source files must live under "
+                          "the project root. If you really need to edit outside the project, "
+                          "enable 'Allow file access outside project' in QodeAssist settings.")
+                          .arg(projectRoot);
                 throw LLMQore::ToolRuntimeError(
-                    QString("File path '%1' is not within the current project. "
-                            "Enable 'Allow file access outside project' in settings to edit files outside the project.")
-                        .arg(filePath));
+                    QString("File path '%1' is not within the current project. %2")
+                        .arg(filePath, hint));
             }
             LOG_MESSAGE(QString("Editing file outside project scope: %1").arg(filePath));
         }

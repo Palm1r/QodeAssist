@@ -174,14 +174,21 @@ void ClientInterface::sendMessage(
         auto project = PluginLLMCore::RulesLoader::getActiveProject();
 
         if (project) {
-            systemPrompt += QString("\n# Active project name: %1").arg(project->displayName());
-            systemPrompt += QString("\n# Active Project path: %1")
+            systemPrompt += QString("\n# Active project: %1").arg(project->displayName());
+            systemPrompt += QString(
+                                "\n# Project source root: %1"
+                                "\n#   All new source files, headers, QML and CMake edits MUST be "
+                                "created or modified under this directory. Use absolute paths "
+                                "rooted here, or project-relative paths.")
                                 .arg(project->projectDirectory().toUrlishString());
 
             if (auto target = project->activeTarget()) {
                 if (auto buildConfig = target->activeBuildConfiguration()) {
-                    systemPrompt += QString("\n# Active Build directory: %1")
-                    .arg(buildConfig->buildDirectory().toUrlishString());
+                    systemPrompt
+                        += QString(
+                               "\n# Build output directory (compiler artifacts only — do NOT "
+                               "create or edit source files here): %1")
+                               .arg(buildConfig->buildDirectory().toUrlishString());
                 }
             }
 
