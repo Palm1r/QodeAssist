@@ -1,0 +1,8 @@
+schema_version = 1
+
+name        = "llama.cpp"
+client_api  = "llama.cpp"
+description = "Local llama.cpp server (llama-server)."
+
+url         = "http://localhost:8080"
+api_key_ref = "qodeassist/providers/llama.cpp"

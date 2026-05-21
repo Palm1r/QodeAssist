@@ -1,6 +1,8 @@
 // Copyright (C) 2024-2026 Petr Mironychev
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#include <memory>
+
 #include "QodeAssistConstants.hpp"
 #include "QodeAssisttr.h"
 #include "settings/PluginUpdater.hpp"
@@ -10,6 +12,7 @@
 #include <coreplugin/actionmanager/actionmanager.h>
 #include <coreplugin/actionmanager/command.h>
 #include <coreplugin/coreconstants.h>
+#include <coreplugin/dialogs/ioptionspage.h>
 #include <coreplugin/editormanager/documentmodel.h>
 #include <coreplugin/editormanager/editormanager.h>
 #include <coreplugin/icontext.h>
@@ -50,8 +53,17 @@
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProjectSettingsPanel.hpp"
+#ifdef QODEASSIST_EXPERIMENTAL
+#include "settings/ProvidersSettingsPage.hpp"
+#endif
 #include "settings/QuickRefactorSettings.hpp"
 #include "settings/SettingsConstants.hpp"
+
+#ifdef QODEASSIST_EXPERIMENTAL
+#include "ProviderInstanceFactory.hpp"
+#include "ProviderLauncher.hpp"
+#include "ProviderSecretsStore.hpp"
+#endif
 #include "templates/Templates.hpp"
 #include "widgets/CustomInstructionsManager.hpp"
 #include "widgets/QuickRefactorDialog.hpp"
@@ -191,6 +203,18 @@ public:
 
         Settings::setupProjectPanel();
         ConfigurationManager::instance().init();
+
+#ifdef QODEASSIST_EXPERIMENTAL
+        m_providerInstanceFactory = new Providers::ProviderInstanceFactory(this);
+        m_providerSecretsStore = new Providers::ProviderSecretsStore(this);
+        m_providerLauncher = new Providers::ProviderLauncher(this);
+        m_providersPageNavigator = new Settings::ProvidersPageNavigator(this);
+        m_providersOptionsPage = Settings::createProvidersSettingsPage(
+            m_providerInstanceFactory,
+            m_providerSecretsStore,
+            m_providerLauncher,
+            m_providersPageNavigator);
+#endif
 
         m_mcpServerManager = new Mcp::McpServerManager(this);
         m_mcpServerManager->init();
@@ -482,10 +506,17 @@ private:
     QPointer<PluginUpdater> m_updater;
     UpdateStatusWidget *m_statusWidget{nullptr};
     QString m_lastRefactorInstructions;
-    QScopedPointer<Chat::ChatView> m_chatView;
+    std::unique_ptr<Chat::ChatView> m_chatView;
     QPointer<Mcp::McpServerManager> m_mcpServerManager;
     QPointer<QQmlEngine> m_engine;
     QPointer<Skills::SkillsManager> m_skillsManager;
+#ifdef QODEASSIST_EXPERIMENTAL
+    QPointer<Providers::ProviderInstanceFactory> m_providerInstanceFactory;
+    QPointer<Providers::ProviderSecretsStore> m_providerSecretsStore;
+    QPointer<Providers::ProviderLauncher> m_providerLauncher;
+    QPointer<Settings::ProvidersPageNavigator> m_providersPageNavigator;
+    std::unique_ptr<Core::IOptionsPage> m_providersOptionsPage;
+#endif
 };
 
 } // namespace QodeAssist::Internal

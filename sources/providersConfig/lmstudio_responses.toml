@@ -1,0 +1,8 @@
+schema_version = 1
+
+name        = "LM Studio (Responses API)"
+client_api  = "LM Studio (Responses API)"
+description = "Local LM Studio server over the /v1/responses endpoint."
+
+url         = "http://localhost:1234"
+api_key_ref = "qodeassist/providers/LM Studio (Responses API)"

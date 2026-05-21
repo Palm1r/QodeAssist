@@ -1,0 +1,17 @@
+<RCC>
+    <qresource prefix="/provider-instances">
+        <file>ollama_native.toml</file>
+        <file>ollama_compat.toml</file>
+        <file>claude.toml</file>
+        <file>openai_chat.toml</file>
+        <file>openai_responses.toml</file>
+        <file>openai_compat.toml</file>
+        <file>lmstudio_chat.toml</file>
+        <file>lmstudio_responses.toml</file>
+        <file>openrouter.toml</file>
+        <file>mistral.toml</file>
+        <file>codestral.toml</file>
+        <file>googleai.toml</file>
+        <file>llamacpp.toml</file>
+    </qresource>
+</RCC>
