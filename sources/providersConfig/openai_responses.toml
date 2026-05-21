@@ -1,0 +1,8 @@
+schema_version = 1
+
+name        = "OpenAI (Responses API)"
+client_api  = "OpenAI (Responses API)"
+description = "OpenAI's hosted /v1/responses endpoint."
+
+url         = "https://api.openai.com/v1"
+api_key_ref = "qodeassist/providers/OpenAI (Responses API)"

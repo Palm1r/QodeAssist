@@ -1,0 +1,8 @@
+schema_version = 1
+
+name        = "Mistral AI"
+client_api  = "Mistral AI"
+description = "Mistral's hosted chat / completions API."
+
+url         = "https://api.mistral.ai"
+api_key_ref = "qodeassist/providers/Mistral AI"

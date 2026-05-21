@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.16)
 
 project(QodeAssist)
 
+option(QODEASSIST_EXPERIMENTAL
+       "Enable experimental features" OFF)
+message(STATUS "QodeAssist experimental features: ${QODEASSIST_EXPERIMENTAL}")
+
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
@@ -34,11 +38,13 @@ add_definitions(
   -DQODEASSIST_QT_CREATOR_VERSION_PATCH=${QODEASSIST_QT_CREATOR_VERSION_PATCH}
 )
 
-add_subdirectory(sources/external/llmqore)
+add_subdirectory(sources/external)
+add_subdirectory(sources/tomlSerializer)
 add_subdirectory(sources/skills)
 add_subdirectory(pluginllmcore)
 add_subdirectory(settings)
 add_subdirectory(logger)
+add_subdirectory(sources/providersConfig)
 add_subdirectory(UIControls)
 add_subdirectory(ChatView)
 add_subdirectory(context)
@@ -65,6 +71,7 @@ add_qtc_plugin(QodeAssist
     QtCreator::CPlusPlus
     LLMQore
     PluginLLMCore
+    ProvidersConfig
     Skills
     QodeAssistChatViewplugin
   SOURCES
@@ -159,6 +166,10 @@ add_qtc_plugin(QodeAssist
     mcp/McpClientsManager.hpp mcp/McpClientsManager.cpp
     settings/McpClientsListAspect.hpp settings/McpClientsListAspect.cpp
 )
+
+if(QODEASSIST_EXPERIMENTAL)
+    target_compile_definitions(QodeAssist PRIVATE QODEASSIST_EXPERIMENTAL)
+endif()
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)
 find_program(QtCreatorExecutable

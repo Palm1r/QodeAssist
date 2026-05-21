@@ -16,6 +16,12 @@ add_library(QodeAssistSettings STATIC
     ProjectSettingsPanel.hpp ProjectSettingsPanel.cpp
     ProviderSettings.hpp ProviderSettings.cpp
     ProviderNameMigration.hpp
+    ProvidersSettingsPage.hpp ProvidersSettingsPage.cpp
+    ProvidersSettingsHelpers.hpp
+    SectionBox.hpp SectionBox.cpp
+    ProviderListItem.hpp ProviderListItem.cpp
+    ProviderDetailPane.hpp ProviderDetailPane.cpp
+    NewProviderDialog.hpp NewProviderDialog.cpp
     PluginUpdater.hpp PluginUpdater.cpp
     UpdateDialog.hpp UpdateDialog.cpp
     AgentRole.hpp AgentRole.cpp
@@ -31,6 +37,7 @@ target_link_libraries(QodeAssistSettings
     QtCreator::Core
     QtCreator::Utils
     QodeAssistLogger
+    ProvidersConfig
     Skills
 )
 target_include_directories(QodeAssistSettings PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
