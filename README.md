@@ -55,6 +55,11 @@ QodeAssist enhances Qt Creator with AI-powered coding assistance:
 </details>
 
 <details>
+  <summary>Chat View Mode: (click to expand)</summary>
+  <img src="https://github.com/user-attachments/assets/5914dd78-c8a4-4d35-889a-10ec493d4c4b" width="600" alt="QodeAssistChat2">
+</details>
+
+<details>
   <summary>Multiline Code completion: (click to expand)</summary>
   <img src="https://github.com/user-attachments/assets/c18dfbd2-8c54-4a7b-90d1-66e3bb51adb0" width="600" alt="QodeAssistPreview">
 </details>
