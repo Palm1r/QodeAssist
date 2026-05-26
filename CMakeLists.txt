@@ -38,17 +38,10 @@ add_definitions(
   -DQODEASSIST_QT_CREATOR_VERSION_PATCH=${QODEASSIST_QT_CREATOR_VERSION_PATCH}
 )
 
-add_subdirectory(sources/external)
-add_subdirectory(sources/tomlSerializer)
-add_subdirectory(sources/skills)
+add_subdirectory(sources)
 add_subdirectory(logger)
-add_subdirectory(sources/common)
-add_subdirectory(sources/providers)
-add_subdirectory(sources/templates)
-add_subdirectory(sources/agents)
 add_subdirectory(pluginllmcore)
 add_subdirectory(settings)
-add_subdirectory(sources/providersConfig)
 add_subdirectory(UIControls)
 add_subdirectory(ChatView)
 add_subdirectory(context)
@@ -174,7 +167,6 @@ add_qtc_plugin(QodeAssist
 
 if(QODEASSIST_EXPERIMENTAL)
     target_compile_definitions(QodeAssist PRIVATE QODEASSIST_EXPERIMENTAL)
-    add_subdirectory(sources/settings)
     target_link_libraries(QodeAssist PRIVATE QodeAssistAgentPipelines)
 endif()
 

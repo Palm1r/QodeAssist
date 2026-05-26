@@ -1,0 +1,12 @@
+add_subdirectory(external)
+add_subdirectory(tomlSerializer)
+add_subdirectory(skills)
+add_subdirectory(common)
+add_subdirectory(providers)
+add_subdirectory(templates)
+add_subdirectory(agents)
+add_subdirectory(providersConfig)
+
+if(QODEASSIST_EXPERIMENTAL)
+    add_subdirectory(settings)
+endif()
