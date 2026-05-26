@@ -139,14 +139,9 @@ PluginLLMCore::ProviderCapabilities GoogleAIProvider::capabilities() const
            | PluginLLMCore::ProviderCapability::ModelListing;
 }
 
-PluginLLMCore::RequestID GoogleAIProvider::sendRequest(
+LLMQore::RequestID GoogleAIProvider::sendRequest(
     const QUrl &url, const QJsonObject &payload, const QString &endpoint)
 {
-    // Gemini takes the model from the URL path and streaming from the
-    // action suffix (:streamGenerateContent vs :generateContent), and
-    // rejects unknown top-level body fields. The shared call-site seeds
-    // payload with {model, stream}; consume them here into client state
-    // before they hit the wire.
     QJsonObject cleaned = payload;
     if (cleaned.contains("model")) {
         m_client->setModel(cleaned["model"].toString());

@@ -28,7 +28,6 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
-#include "NewProviderDialog.hpp"
 #include "ProviderDetailPane.hpp"
 #include "ProviderInstance.hpp"
 #include "ProviderInstanceFactory.hpp"
@@ -36,8 +35,8 @@
 #include "ProviderLauncher.hpp"
 #include "ProviderListItem.hpp"
 #include "ProviderSecretsStore.hpp"
-#include "ProvidersSettingsHelpers.hpp"
 #include "SettingsConstants.hpp"
+#include "SettingsTheme.hpp"
 
 namespace QodeAssist::Settings {
 
@@ -80,13 +79,10 @@ public:
         tf.setPixelSize(13);
         m_titleLabel->setFont(tf);
 
-        m_newBtn = new QPushButton(tr("+ New provider…"), this);
-
         auto *headerRow = new QHBoxLayout;
         headerRow->setContentsMargins(0, 0, 0, 0);
         headerRow->setSpacing(8);
         headerRow->addWidget(m_titleLabel, 1);
-        headerRow->addWidget(m_newBtn);
 
         auto *headerSep = new QFrame(this);
         headerSep->setFrameShape(QFrame::HLine);
@@ -181,7 +177,6 @@ public:
         root->addWidget(headerSep);
         root->addWidget(splitter, 1);
 
-        connect(m_newBtn, &QPushButton::clicked, this, &ProvidersPageWidget::onNewClicked);
         m_filterDebounce = new QTimer(this);
         m_filterDebounce->setSingleShot(true);
         m_filterDebounce->setInterval(100);
@@ -248,9 +243,9 @@ private slots:
             header->setPalette(hp);
             header->setContentsMargins(8, 4, 8, 4);
             header->setAutoFillBackground(true);
-            const bool dark = isDarkPalette(palette());
-            const QString bg = dark ? QStringLiteral("#262626") : QStringLiteral("#f0f0f0");
-            header->setStyleSheet(QStringLiteral("QLabel { background:%1; }").arg(bg));
+            header->setStyleSheet(
+                QStringLiteral("QLabel { background:%1; }")
+                    .arg(themeFor(palette()).listHeaderBg));
             m_listLayout->insertWidget(m_listLayout->count() - 1, header);
 
             std::vector<const Providers::ProviderInstance *> sorted;
@@ -314,57 +309,6 @@ private slots:
         for (auto *row : m_rows)
             row->setSelected(row->providerName() == inst->name);
         populateDetail(inst->name);
-    }
-
-    void onNewClicked()
-    {
-        if (!m_factory)
-            return;
-        NewProviderDialog dlg(m_factory->knownClientApis(), this);
-        if (dlg.exec() != QDialog::Accepted)
-            return;
-        Providers::ProviderInstance inst;
-        inst.name = dlg.providerName();
-        inst.clientApi = dlg.providerType();
-        inst.description = dlg.description();
-        inst.url = dlg.url();
-        inst.apiKeyRef = QStringLiteral("qodeassist/providers/%1").arg(inst.name);
-
-        if (inst.name.isEmpty()) {
-            QMessageBox::warning(this, tr("New provider"), tr("Name cannot be empty."));
-            return;
-        }
-        if (m_factory->instanceByName(inst.name)) {
-            QMessageBox::warning(this, tr("New provider"),
-                                 tr("An instance named '%1' already exists.").arg(inst.name));
-            return;
-        }
-        const QString validation = Providers::ProviderInstance::validate(
-            inst, m_factory->knownClientApis());
-        if (!validation.isEmpty()) {
-            QMessageBox::warning(this, tr("New provider"), validation);
-            return;
-        }
-        const QString softWarning = Providers::ProviderInstance::warnings(inst);
-        if (!softWarning.isEmpty()) {
-            if (QMessageBox::warning(this, tr("New provider"),
-                                     softWarning + QStringLiteral("\n\n")
-                                         + tr("Save anyway?"),
-                                     QMessageBox::Yes | QMessageBox::No,
-                                     QMessageBox::No)
-                != QMessageBox::Yes)
-                return;
-        }
-        QString writeErr;
-        if (Providers::ProviderInstanceWriter::writeToUserDir(
-                inst, /*previousPath=*/QString{}, &writeErr).isEmpty()) {
-            QMessageBox::warning(this, tr("New provider"), writeErr);
-            return;
-        }
-        if (m_secrets && !dlg.apiKey().isEmpty())
-            m_secrets->writeKey(inst.apiKeyRef, dlg.apiKey());
-        m_factory->reload();
-        selectInstance(inst.name);
     }
 
     void onDuplicateClicked()
@@ -589,7 +533,6 @@ private:
     QPointer<ProvidersPageNavigator> m_navigator;
 
     QLabel *m_titleLabel = nullptr;
-    QPushButton *m_newBtn = nullptr;
     QLineEdit *m_filterEdit = nullptr;
 
     QScrollArea *m_listScroll = nullptr;

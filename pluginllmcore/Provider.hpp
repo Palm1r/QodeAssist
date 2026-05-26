@@ -11,6 +11,7 @@
 
 #include "ContextData.hpp"
 #include "PromptTemplate.hpp"
+#include "LLMQore/BaseClient.hpp"
 #include "RequestType.hpp"
 
 namespace LLMQore {
@@ -56,9 +57,9 @@ public:
     virtual ::LLMQore::BaseClient *client() const = 0;
     virtual QString apiKey() const = 0;
 
-    virtual RequestID sendRequest(
+    virtual LLMQore::RequestID sendRequest(
         const QUrl &url, const QJsonObject &payload, const QString &endpoint);
-    void cancelRequest(const RequestID &requestId);
+    void cancelRequest(const LLMQore::RequestID &requestId);
     ::LLMQore::ToolsManager *toolsManager() const;
 };
 

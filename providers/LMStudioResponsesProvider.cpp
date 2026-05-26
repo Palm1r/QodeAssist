@@ -118,7 +118,7 @@ QFuture<QList<QString>> LMStudioResponsesProvider::getInstalledModels(const QStr
     return m_client->listModels();
 }
 
-PluginLLMCore::RequestID LMStudioResponsesProvider::sendRequest(
+LLMQore::RequestID LMStudioResponsesProvider::sendRequest(
     const QUrl &url, const QJsonObject &payload, const QString &endpoint)
 {
     return PluginLLMCore::Provider::sendRequest(

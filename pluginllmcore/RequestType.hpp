@@ -9,5 +9,4 @@ namespace QodeAssist::PluginLLMCore {
 
 enum RequestType { CodeCompletion, Chat, Embedding, QuickRefactoring };
 
-using RequestID = QString;
 }

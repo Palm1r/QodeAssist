@@ -54,6 +54,7 @@
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProjectSettingsPanel.hpp"
 #ifdef QODEASSIST_EXPERIMENTAL
+#include "settings/AgentsSettingsPage.hpp"
 #include "settings/ProvidersSettingsPage.hpp"
 #endif
 #include "settings/QuickRefactorSettings.hpp"
@@ -63,6 +64,8 @@
 #include "ProviderInstanceFactory.hpp"
 #include "ProviderLauncher.hpp"
 #include "ProviderSecretsStore.hpp"
+
+#include <AgentFactory.hpp>
 #endif
 #include "templates/Templates.hpp"
 #include "widgets/CustomInstructionsManager.hpp"
@@ -214,6 +217,11 @@ public:
             m_providerSecretsStore,
             m_providerLauncher,
             m_providersPageNavigator);
+
+        m_agentFactory = new AgentFactory(m_providerInstanceFactory, m_providerSecretsStore, this);
+        m_agentsPageNavigator = new Settings::AgentsPageNavigator(this);
+        m_agentsOptionsPage = Settings::createAgentsSettingsPage(
+            m_agentFactory, m_agentsPageNavigator);
 #endif
 
         m_mcpServerManager = new Mcp::McpServerManager(this);
@@ -516,6 +524,9 @@ private:
     QPointer<Providers::ProviderLauncher> m_providerLauncher;
     QPointer<Settings::ProvidersPageNavigator> m_providersPageNavigator;
     std::unique_ptr<Core::IOptionsPage> m_providersOptionsPage;
+    QPointer<AgentFactory> m_agentFactory;
+    QPointer<Settings::AgentsPageNavigator> m_agentsPageNavigator;
+    std::unique_ptr<Core::IOptionsPage> m_agentsOptionsPage;
 #endif
 };
 

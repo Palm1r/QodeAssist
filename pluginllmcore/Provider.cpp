@@ -16,7 +16,7 @@ Provider::Provider(QObject *parent)
     : QObject(parent)
 {}
 
-RequestID Provider::sendRequest(
+LLMQore::RequestID Provider::sendRequest(
     const QUrl &url, const QJsonObject &payload, const QString &endpoint)
 {
     auto *c = client();
@@ -35,7 +35,7 @@ RequestID Provider::sendRequest(
     return requestId;
 }
 
-void Provider::cancelRequest(const RequestID &requestId)
+void Provider::cancelRequest(const LLMQore::RequestID &requestId)
 {
     LOG_MESSAGE(QString("%1: Cancelling request %2").arg(name(), requestId));
     client()->cancelRequest(requestId);

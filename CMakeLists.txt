@@ -41,9 +41,13 @@ add_definitions(
 add_subdirectory(sources/external)
 add_subdirectory(sources/tomlSerializer)
 add_subdirectory(sources/skills)
+add_subdirectory(logger)
+add_subdirectory(sources/common)
+add_subdirectory(sources/providers)
+add_subdirectory(sources/templates)
+add_subdirectory(sources/agents)
 add_subdirectory(pluginllmcore)
 add_subdirectory(settings)
-add_subdirectory(logger)
 add_subdirectory(sources/providersConfig)
 add_subdirectory(UIControls)
 add_subdirectory(ChatView)
@@ -72,6 +76,7 @@ add_qtc_plugin(QodeAssist
     LLMQore
     PluginLLMCore
     ProvidersConfig
+    Agents
     Skills
     QodeAssistChatViewplugin
   SOURCES

@@ -227,6 +227,8 @@ public:
     }
 };
 
+#ifndef QODEASSIST_EXPERIMENTAL
 const ProviderSettingsPage providerSettingsPage;
+#endif
 
 } // namespace QodeAssist::Settings

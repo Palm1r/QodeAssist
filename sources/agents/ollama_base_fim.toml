@@ -1,0 +1,32 @@
+schema_version = 1
+
+name        = "Ollama FIM Base"
+description = "Shared base for Ollama native FIM (/api/generate) profiles."
+
+abstract = true
+
+provider_instance = "Ollama (Native)"
+endpoint          = "/api/generate"
+
+tags = ["ollama", "local", "fim"]
+
+[template]
+message_format = """
+{
+  "prompt": {{ tojson(ctx.prefix) }},
+  "suffix": {{ tojson(ctx.suffix) }}
+  {%- if existsIn(ctx, "system_prompt") %},
+  "system": {{ tojson(ctx.system_prompt) }}
+  {%- endif %}
+}
+"""
+
+[template.sampling]
+stream = true
+
+[template.sampling.options]
+num_predict = 512
+temperature = 0.2
+top_p       = 0.9
+keep_alive  = "5m"
+stop        = ["<EOT>"]

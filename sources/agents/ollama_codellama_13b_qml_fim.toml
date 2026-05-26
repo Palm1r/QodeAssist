@@ -1,0 +1,40 @@
+schema_version = 1
+
+name        = "Qt CodeLlama 13B QML FIM"
+description = "Local Qt-Company-tuned CodeLlama 13B for QML FIM completion."
+
+provider_instance = "Ollama (Native)"
+endpoint          = "/api/generate"
+
+model = "theqtcompany/codellama-13b-qml:latest"
+
+tags = ["fim", "ollama", "local", "codellama", "qml", "qt"]
+
+[match]
+file_patterns = ["*.qml"]
+
+[template]
+message_format = """
+{
+  "prompt": {%- if existsIn(ctx, "suffix") and length(ctx.suffix) > 0 -%}
+    {{ tojson("<SUF>" + ctx.suffix + "<PRE>" + ctx.prefix + "<MID>") }}
+  {%- else -%}
+    {{ tojson("<PRE>" + ctx.prefix + "<MID>") }}
+  {%- endif %}
+  {%- if existsIn(ctx, "system_prompt") %},
+  "system": {{ tojson(ctx.system_prompt) }}
+  {%- endif %}
+}
+"""
+
+[template.sampling]
+stream = true
+
+[template.sampling.options]
+num_predict    = 500
+temperature    = 0
+top_p          = 1
+repeat_penalty = 1.05
+keep_alive  = "5m"
+
+stop = ["<SUF>", "<PRE>", "</PRE>", "</SUF>", "< EOT >", "\\end", "<MID>", "</MID>", "##"]

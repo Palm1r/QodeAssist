@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/agents">
+        <file>ollama_base_chat.toml</file>
+        <file>ollama_base_fim.toml</file>
+        <file>ollama_gemma4_e4b_chat.toml</file>
+        <file>ollama_codellama_7b_code_fim.toml</file>
+        <file>ollama_codellama_13b_qml_fim.toml</file>
+    </qresource>
+</RCC>

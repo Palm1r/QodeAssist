@@ -97,7 +97,7 @@ QFuture<QList<QString>> OllamaCompatProvider::getInstalledModels(const QString &
     return m_client->listModels();
 }
 
-PluginLLMCore::RequestID OllamaCompatProvider::sendRequest(
+LLMQore::RequestID OllamaCompatProvider::sendRequest(
     const QUrl &url, const QJsonObject &payload, const QString &endpoint)
 {
     const QString effectiveEndpoint

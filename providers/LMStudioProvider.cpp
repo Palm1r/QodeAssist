@@ -105,7 +105,7 @@ void LMStudioProvider::prepareRequest(
     }
 }
 
-PluginLLMCore::RequestID LMStudioProvider::sendRequest(
+LLMQore::RequestID LMStudioProvider::sendRequest(
     const QUrl &url, const QJsonObject &payload, const QString &endpoint)
 {
     return PluginLLMCore::Provider::sendRequest(

@@ -10,7 +10,7 @@
 #include <QVBoxLayout>
 
 #include "ProviderInstance.hpp"
-#include "ProvidersSettingsHelpers.hpp"
+#include "SettingsTheme.hpp"
 
 namespace QodeAssist::Settings {
 
@@ -99,12 +99,11 @@ void ProviderListItem::applyTheme()
     if (m_inApplyTheme)
         return;
     QScopedValueRollback<bool> guard(m_inApplyTheme, true);
-    const bool dark = isDarkPalette(palette());
-    const QString sep = dark ? QStringLiteral("#3a3a3a") : QStringLiteral("#dcdcdc");
-    const QString sel = dark ? QStringLiteral("#2c4060") : QStringLiteral("#cfe2ff");
+    const Theme theme = themeFor(palette());
     setStyleSheet(QStringLiteral(
                       "#ProvListItem { background:%1; border-top: 1px solid %2; }")
-                      .arg(m_selected ? sel : QStringLiteral("transparent"), sep));
+                      .arg(m_selected ? theme.rowSelectedBg : QStringLiteral("transparent"),
+                           theme.rowSeparator));
 }
 
 } // namespace QodeAssist::Settings

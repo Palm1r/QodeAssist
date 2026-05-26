@@ -18,8 +18,9 @@
 #include <solutions/terminal/terminalview.h>
 
 #include "ProviderInstanceWriter.hpp"
-#include "ProvidersSettingsHelpers.hpp"
 #include "SectionBox.hpp"
+#include "SettingsTheme.hpp"
+#include "SettingsUiBuilders.hpp"
 
 namespace QodeAssist::Settings {
 
@@ -112,15 +113,12 @@ ProviderDetailPane::ProviderDetailPane(QWidget *parent)
     identityGrid->setContentsMargins(0, 0, 0, 0);
     identityGrid->setHorizontalSpacing(8);
     identityGrid->setVerticalSpacing(4);
-    int identityRow = 0;
-    identityRow = addFormRow(identityGrid, identityRow, tr("Name:"),
-                             singleField(m_nameEdit));
-    identityRow = addFormRow(identityGrid, identityRow, tr("Client API:"),
-                             singleField(m_typeEdit),
-                             tr("The client API this provider speaks. "
-                                "Cannot be changed after creation."));
-    identityRow = addFormRow(identityGrid, identityRow, tr("Description:"),
-                             singleField(m_descriptionEdit));
+    FormBuilder(identityGrid)
+        .row(tr("Name:"), m_nameEdit)
+        .row(tr("Client API:"), m_typeEdit,
+             tr("The client API this provider speaks. "
+                "Cannot be changed after creation."))
+        .row(tr("Description:"), m_descriptionEdit);
     identitySection->bodyLayout()->addLayout(identityGrid);
 
     auto *endpointSection = new SectionBox(tr("Endpoint"), this);
@@ -130,11 +128,9 @@ ProviderDetailPane::ProviderDetailPane(QWidget *parent)
     endpointGrid->setContentsMargins(0, 0, 0, 0);
     endpointGrid->setHorizontalSpacing(8);
     endpointGrid->setVerticalSpacing(4);
-    int endpointRow = 0;
-    endpointRow = addFormRow(endpointGrid, endpointRow, tr("URL:"),
-                             singleField(m_urlEdit),
-                             tr("Base URL. Agents append their endpoint path "
-                                "(e.g. /chat/completions) to this."));
+    FormBuilder(endpointGrid).row(tr("URL:"), m_urlEdit,
+                                  tr("Base URL. Agents append their endpoint path "
+                                     "(e.g. /chat/completions) to this."));
     endpointSection->bodyLayout()->addLayout(endpointGrid);
 
     m_samplePreview = new QLabel(this);
@@ -176,14 +172,7 @@ ProviderDetailPane::ProviderDetailPane(QWidget *parent)
     });
     connect(m_apiKeyClearBtn, &QPushButton::clicked, this,
             [this] { emit apiKeyClearRequested(); });
-    m_keyHint = new QLabel(this);
-    QFont khf = m_keyHint->font();
-    khf.setPixelSize(11);
-    m_keyHint->setFont(khf);
-    m_keyHint->setWordWrap(true);
-    QPalette khp = m_keyHint->palette();
-    khp.setColor(QPalette::WindowText, khp.color(QPalette::Mid));
-    m_keyHint->setPalette(khp);
+    m_keyHint = makeHintLabel(QString{}, this);
 
     auto *keyRow = new QHBoxLayout;
     keyRow->setContentsMargins(0, 0, 0, 0);
@@ -197,9 +186,9 @@ ProviderDetailPane::ProviderDetailPane(QWidget *parent)
     credGrid->setContentsMargins(0, 0, 0, 0);
     credGrid->setHorizontalSpacing(8);
     credGrid->setVerticalSpacing(4);
-    int credRow = 0;
-    credRow = addFormRow(credGrid, credRow, tr("API key:"), keyRow);
-    credGrid->addWidget(m_keyHint, credRow, 1);
+    FormBuilder credForm(credGrid);
+    credForm.row(tr("API key:"), keyRow);
+    credGrid->addWidget(m_keyHint, credForm.currentRow(), 1);
     credSection->bodyLayout()->addLayout(credGrid);
 
     m_launchSection = new SectionBox(tr("Launch"), this);
@@ -483,12 +472,10 @@ Providers::ProviderInstance ProviderDetailPane::collectEdits() const
 
 void ProviderDetailPane::applyPreviewPalette()
 {
-    const bool dark = isDarkPalette(palette());
-    const QString bg = dark ? QStringLiteral("#1f1f1f") : QStringLiteral("#f4f4f4");
-    const QString bd = dark ? QStringLiteral("#3a3a3a") : QStringLiteral("#dcdcdc");
+    const Theme theme = themeFor(palette());
     m_samplePreview->setStyleSheet(QStringLiteral(
                                        "QLabel { background:%1; border:1px solid %2; }")
-                                       .arg(bg, bd));
+                                       .arg(theme.codeBg, theme.rowSeparator));
 }
 
 void ProviderDetailPane::applyTerminalPalette()
