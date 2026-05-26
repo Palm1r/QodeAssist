@@ -56,6 +56,7 @@
 #ifdef QODEASSIST_EXPERIMENTAL
 #include "settings/AgentsSettingsPage.hpp"
 #include "settings/ProvidersSettingsPage.hpp"
+#include "sources/settings/AgentPipelinesPage.hpp"
 #endif
 #include "settings/QuickRefactorSettings.hpp"
 #include "settings/SettingsConstants.hpp"
@@ -222,6 +223,10 @@ public:
         m_agentsPageNavigator = new Settings::AgentsPageNavigator(this);
         m_agentsOptionsPage = Settings::createAgentsSettingsPage(
             m_agentFactory, m_agentsPageNavigator);
+
+        m_agentPipelinesPageNavigator = new Settings::AgentPipelinesPageNavigator(this);
+        m_agentPipelinesOptionsPage = Settings::createAgentPipelinesSettingsPage(
+            m_agentFactory, m_agentPipelinesPageNavigator, m_agentsPageNavigator);
 #endif
 
         m_mcpServerManager = new Mcp::McpServerManager(this);
@@ -527,6 +532,8 @@ private:
     QPointer<AgentFactory> m_agentFactory;
     QPointer<Settings::AgentsPageNavigator> m_agentsPageNavigator;
     std::unique_ptr<Core::IOptionsPage> m_agentsOptionsPage;
+    QPointer<Settings::AgentPipelinesPageNavigator> m_agentPipelinesPageNavigator;
+    std::unique_ptr<Core::IOptionsPage> m_agentPipelinesOptionsPage;
 #endif
 };
 

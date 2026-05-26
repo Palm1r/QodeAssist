@@ -33,6 +33,18 @@ inline const char *CUSTOM_ENDPOINT = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Custo
 inline const char *CODE_COMPLETION = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Code Completion");
 inline const char *CHAT_ASSISTANT = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Chat Assistant");
 inline const char *QUICK_REFACTOR = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Quick Refactor");
+inline const char *CHAT_COMPRESSION = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Chat Compression");
+inline const char *AGENT_PIPELINES = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Agent Pipelines");
+inline const char *SLOT_HINT_CODE_COMPLETION = QT_TRANSLATE_NOOP(
+    "QtC::QodeAssist",
+    "Inline completions while you type. Matchers run on every request.");
+inline const char *SLOT_HINT_CHAT_ASSISTANT = QT_TRANSLATE_NOOP(
+    "QtC::QodeAssist", "Conversational assistant in the QodeAssist panel.");
+inline const char *SLOT_HINT_CHAT_COMPRESSION = QT_TRANSLATE_NOOP(
+    "QtC::QodeAssist",
+    "Used when a chat conversation needs to be summarised to stay within context.");
+inline const char *SLOT_HINT_QUICK_REFACTOR = QT_TRANSLATE_NOOP(
+    "QtC::QodeAssist", "Inline editor-driven refactors via the Quick Refactor action.");
 inline const char *RESET_SETTINGS = QT_TRANSLATE_NOOP("QtC::QodeAssist", "Reset Settings");
 inline const char *CONFIRMATION = QT_TRANSLATE_NOOP(
     "QtC::QodeAssist", "Are you sure you want to reset all settings to default values?");

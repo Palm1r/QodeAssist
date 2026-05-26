@@ -174,6 +174,8 @@ add_qtc_plugin(QodeAssist
 
 if(QODEASSIST_EXPERIMENTAL)
     target_compile_definitions(QodeAssist PRIVATE QODEASSIST_EXPERIMENTAL)
+    add_subdirectory(sources/settings)
+    target_link_libraries(QodeAssist PRIVATE QodeAssistAgentPipelines)
 endif()
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)
