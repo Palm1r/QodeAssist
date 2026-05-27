@@ -201,6 +201,11 @@ ChatRootView {
 
             property bool userScrolledUp: false
 
+            function syncNavigatorCurrent() {
+                const top = indexAt(10, contentY + 4)
+                messageNavigator.updateCurrentFromModelIndex(top)
+            }
+
             Layout.fillWidth: true
             Layout.fillHeight: true
             leftMargin: 3
@@ -209,6 +214,8 @@ ChatRootView {
             spacing: 0
             boundsBehavior: Flickable.StopAtBounds
             cacheBuffer: 2000
+
+            onContentYChanged: Qt.callLater(syncNavigatorCurrent)
 
             onMovingChanged: {
                 if (moving) {
@@ -296,6 +303,7 @@ ChatRootView {
                 if (!userScrolledUp) {
                     root.scrollToBottom()
                 }
+                Qt.callLater(syncNavigatorCurrent)
             }
 
             onContentHeightChanged: {

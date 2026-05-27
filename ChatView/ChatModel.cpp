@@ -335,12 +335,24 @@ void ChatModel::resetModelTo(int index)
     }
 }
 
-QVariantList ChatModel::userMessageIndices() const
+QVariantList ChatModel::userMessagePreviews(int maxLength) const
 {
     QVariantList result;
+    const int limit = maxLength > 4 ? maxLength : 80;
     for (int i = 0; i < m_messages.size(); ++i) {
-        if (m_messages[i].role == ChatRole::User)
-            result.append(i);
+        if (m_messages[i].role != ChatRole::User)
+            continue;
+        QString preview = m_messages[i].content;
+        preview.replace(QLatin1Char('\n'), QLatin1Char(' '));
+        preview.replace(QLatin1Char('\r'), QLatin1Char(' '));
+        preview.replace(QLatin1Char('\t'), QLatin1Char(' '));
+        preview = preview.simplified();
+        if (preview.size() > limit)
+            preview = preview.left(limit - 1).trimmed() + QChar(0x2026);
+        QVariantMap entry;
+        entry[QStringLiteral("messageIndex")] = i;
+        entry[QStringLiteral("preview")] = preview;
+        result.append(entry);
     }
     return result;
 }

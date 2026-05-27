@@ -94,7 +94,7 @@ public:
     QString lastMessageId() const;
 
     Q_INVOKABLE void resetModelTo(int index);
-    Q_INVOKABLE QVariantList userMessageIndices() const;
+    Q_INVOKABLE QVariantList userMessagePreviews(int maxLength = 80) const;
 
     void addToolExecutionStatus(
         const QString &requestId,
