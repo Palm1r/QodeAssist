@@ -335,6 +335,16 @@ void ChatModel::resetModelTo(int index)
     }
 }
 
+QVariantList ChatModel::userMessageIndices() const
+{
+    QVariantList result;
+    for (int i = 0; i < m_messages.size(); ++i) {
+        if (m_messages[i].role == ChatRole::User)
+            result.append(i);
+    }
+    return result;
+}
+
 void ChatModel::addToolExecutionStatus(
     const QString &requestId,
     const QString &toolId,

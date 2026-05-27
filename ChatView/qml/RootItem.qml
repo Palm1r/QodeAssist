@@ -175,6 +175,27 @@ ChatRootView {
             }
         }
 
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            spacing: 2
+
+            MessageNavigator {
+                id: messageNavigator
+
+                Layout.preferredWidth: 16
+                Layout.fillHeight: true
+                Layout.topMargin: 4
+                Layout.bottomMargin: 4
+
+                chatModel: root.chatModel
+
+                onMessageClicked: function(messageIndex) {
+                    chatListView.userScrolledUp = true
+                    chatListView.positionViewAtIndex(messageIndex, ListView.Beginning)
+                }
+            }
+
         ListView {
             id: chatListView
 
@@ -182,7 +203,7 @@ ChatRootView {
 
             Layout.fillWidth: true
             Layout.fillHeight: true
-            leftMargin: 5
+            leftMargin: 3
             model: root.chatModel
             clip: true
             spacing: 0
@@ -369,6 +390,7 @@ ChatRootView {
                     isRedacted: model.isRedacted !== undefined ? model.isRedacted : false
                 }
             }
+        }
         }
 
         ScrollView {
