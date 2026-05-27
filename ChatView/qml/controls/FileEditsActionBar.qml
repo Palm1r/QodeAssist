@@ -117,12 +117,14 @@ Rectangle {
             text: root.hasPendingEdits 
                 ? qsTr("Apply All (%1)").arg(root.pendingEdits + root.rejectedEdits)
                 : qsTr("Reapply All (%1)").arg(root.rejectedEdits)
-            
-            ToolTip.visible: hovered
-            ToolTip.delay: 250
-            ToolTip.text: root.hasPendingEdits
-                ? qsTr("Apply all pending and rejected edits in this message")
-                : qsTr("Reapply all rejected edits in this message")
+
+            QoAToolTip {
+                visible: applyAllButton.hovered
+                delay: 250
+                text: root.hasPendingEdits
+                    ? qsTr("Apply all pending and rejected edits in this message")
+                    : qsTr("Reapply all rejected edits in this message")
+            }
 
             onClicked: root.applyAllClicked()
         }
@@ -133,10 +135,12 @@ Rectangle {
             visible: root.hasAppliedEdits
             enabled: root.hasAppliedEdits
             text: qsTr("Undo All (%1)").arg(root.appliedEdits)
-            
-            ToolTip.visible: hovered
-            ToolTip.delay: 250
-            ToolTip.text: qsTr("Undo all applied edits in this message")
+
+            QoAToolTip {
+                visible: undoAllButton.hovered
+                delay: 250
+                text: qsTr("Undo all applied edits in this message")
+            }
 
             onClicked: root.undoAllClicked()
         }

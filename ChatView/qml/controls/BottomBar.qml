@@ -19,6 +19,7 @@ Rectangle {
     property alias cancelCompressButton: cancelCompressButtonId
 
     property bool isCompressing: false
+    property alias sendButtonTooltip: sendButtonTooltipId
 
     color: palette.window.hslLightness > 0.5 ?
                Qt.darker(palette.window, 1.1) :
@@ -45,9 +46,12 @@ Rectangle {
                 height: 15
                 width: 8
             }
-            ToolTip.visible: hovered
-            ToolTip.delay: 250
-            ToolTip.text: qsTr("Attach file to message")
+
+            QoAToolTip {
+                visible: attachFilesId.hovered
+                delay: 250
+                text: qsTr("Attach file to message")
+            }
         }
 
         QoAButton {
@@ -58,9 +62,12 @@ Rectangle {
                 height: 15
                 width: 15
             }
-            ToolTip.visible: hovered
-            ToolTip.delay: 250
-            ToolTip.text: qsTr("Attach image to message")
+
+            QoAToolTip {
+                visible: attachImagesId.hovered
+                delay: 250
+                text: qsTr("Attach image to message")
+            }
         }
 
         QoAButton {
@@ -71,9 +78,12 @@ Rectangle {
                 height: 15
                 width: 8
             }
-            ToolTip.visible: hovered
-            ToolTip.delay: 250
-            ToolTip.text: qsTr("Link file to context")
+
+            QoAToolTip {
+                visible: linkFilesId.hovered
+                delay: 250
+                text: qsTr("Link file to context")
+            }
         }
 
         CheckBox {
@@ -81,8 +91,10 @@ Rectangle {
 
             text: qsTr("Sync open files")
 
-            ToolTip.visible: syncOpenFilesId.hovered
-            ToolTip.text: qsTr("Automatically synchronize currently opened files with the model context")
+            QoAToolTip {
+                visible: syncOpenFilesId.hovered
+                text: qsTr("Automatically synchronize currently opened files with the model context")
+            }
         }
 
         Item {
@@ -117,9 +129,11 @@ Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
                 text: qsTr("Cancel")
 
-                ToolTip.visible: hovered
-                ToolTip.delay: 250
-                ToolTip.text: qsTr("Cancel compression")
+                QoAToolTip {
+                    visible: cancelCompressButtonId.hovered
+                    delay: 250
+                    text: qsTr("Cancel compression")
+                }
             }
         }
 
@@ -134,9 +148,12 @@ Rectangle {
                 height: 15
                 width: 15
             }
-            ToolTip.visible: hovered
-            ToolTip.delay: 250
-            ToolTip.text: qsTr("Compress chat (create summarized copy using LLM)")
+
+            QoAToolTip {
+                visible: compressButtonId.hovered
+                delay: 250
+                text: qsTr("Compress chat (create summarized copy using LLM)")
+            }
         }
 
         QoAButton {
@@ -146,8 +163,13 @@ Rectangle {
                 height: 15
                 width: 15
             }
-            ToolTip.visible: hovered
-            ToolTip.delay: 250
+
+            QoAToolTip {
+                id: sendButtonTooltipId
+
+                visible: sendButtonId.hovered
+                delay: 250
+            }
         }
     }
 }

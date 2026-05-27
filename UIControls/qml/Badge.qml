@@ -2,12 +2,19 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 import QtQuick
+import QtQuick.Controls
 
 Rectangle {
     id: root
 
     property alias text: badgeText.text
     property alias hovered: mouse.hovered
+
+    QoAToolTip {
+        visible: root.hovered && root.ToolTip.text.length > 0
+        text: root.ToolTip.text
+        delay: root.ToolTip.delay
+    }
 
     implicitWidth: badgeText.implicitWidth + root.radius
     implicitHeight: badgeText.implicitHeight + 6

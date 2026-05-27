@@ -124,9 +124,6 @@ ChatRootView {
                 icon.source: (typeof _chatview !== 'undefined')
                              ? "qrc:/qt/qml/ChatView/icons/open-in-editor.svg"
                              : "qrc:/qt/qml/ChatView/icons/open-in-window.svg"
-                ToolTip.text: (typeof _chatview !== 'undefined')
-                              ? qsTr("Move this chat to an editor tab")
-                              : qsTr("Move this chat to a separate window")
                 onClicked: {
                     if (typeof _chatview !== 'undefined')
                         root.relocateToSplit()
@@ -134,6 +131,9 @@ ChatRootView {
                         root.relocateToWindow()
                 }
             }
+            relocateTooltip.text: (typeof _chatview !== 'undefined')
+                                   ? qsTr("Move this chat to an editor tab")
+                                   : qsTr("Move this chat to a separate window")
             toolsButton {
                 checked: root.useTools
                 onCheckedChanged: {
@@ -156,19 +156,19 @@ ChatRootView {
                         root.applyConfiguration(root.availableConfigurations[index])
                     }
                 }
-                
+
                 popup.onAboutToShow: {
                     root.loadAvailableConfigurations()
                 }
             }
-            
+
             roleSelector {
                 model: root.availableAgentRoles
                 displayText: root.currentAgentRole
                 onActivated: function(index) {
                     root.applyAgentRole(root.availableAgentRoles[index])
                 }
-                
+
                 popup.onAboutToShow: {
                     root.loadAvailableAgentRoles()
                 }
@@ -561,8 +561,8 @@ ChatRootView {
             sendButton.icon.source: !root.isRequestInProgress ? "qrc:/qt/qml/ChatView/icons/chat-icon.svg"
                                                               : "qrc:/qt/qml/ChatView/icons/chat-pause-icon.svg"
             sendButton.text: !root.isRequestInProgress ? qsTr("Send") : qsTr("Stop")
-            sendButton.ToolTip.text: !root.isRequestInProgress ? qsTr("Send message to LLM %1").arg(Qt.platform.os === "osx" ? "Cmd+Return" : "Ctrl+Return")
-                                                               : qsTr("Stop")
+            sendButtonTooltip.text: !root.isRequestInProgress ? qsTr("Send message to LLM %1").arg(Qt.platform.os === "osx" ? "Cmd+Return" : "Ctrl+Return")
+                                                         : qsTr("Stop")
             compressButton.onClicked: compressConfirmDialog.open()
             cancelCompressButton.onClicked: root.cancelCompression()
             syncOpenFiles {

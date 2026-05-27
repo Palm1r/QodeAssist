@@ -259,10 +259,12 @@ Rectangle {
                     }
                     hoverEnabled: true
                     onClicked: root.openInEditor(editData.edit_id)
-                    
-                    ToolTip.visible: hovered
-                    ToolTip.text: qsTr("Open file in editor and navigate to changes")
-                    ToolTip.delay: 500
+
+                    QoAToolTip {
+                        visible: parent.hovered
+                        delay: 500
+                        text: qsTr("Open file in editor and navigate to changes")
+                    }
                 }
 
                 QoAButton {

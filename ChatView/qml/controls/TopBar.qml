@@ -27,6 +27,7 @@ Rectangle {
     property alias settingsButton: settingsButtonId
     property alias configSelector: configSelectorId
     property alias roleSelector: roleSelector
+    property alias relocateTooltip: relocateTooltipId
 
     color: palette.window.hslLightness > 0.5 ?
                Qt.darker(palette.window, 1.1) :
@@ -59,10 +60,13 @@ Rectangle {
                     height: 15
                     width: 15
                 }
-                ToolTip.visible: hovered
-                ToolTip.delay: 250
-                ToolTip.text: checked ? qsTr("Unpin chat window")
-                                      : qsTr("Pin chat window to the top")
+
+                QoAToolTip {
+                    visible: pinButtonId.hovered
+                    delay: 250
+                    text: pinButtonId.checked ? qsTr("Unpin chat window")
+                                              : qsTr("Pin chat window to the top")
+                }
             }
 
             QoAButton {
@@ -76,8 +80,13 @@ Rectangle {
                     height: 15
                     width: 15
                 }
-                ToolTip.visible: hovered
-                ToolTip.delay: 250
+
+                QoAToolTip {
+                    id: relocateTooltipId
+
+                    visible: relocateButtonId.hovered
+                    delay: 250
+                }
             }
 
             QoASeparator {
@@ -92,9 +101,12 @@ Rectangle {
                     height: 15
                     width: 8
                 }
-                ToolTip.visible: hovered
-                ToolTip.delay: 250
-                ToolTip.text: qsTr("Clean chat")
+
+                QoAToolTip {
+                    visible: clearButtonId.hovered
+                    delay: 250
+                    text: qsTr("Clean chat")
+                }
             }
 
             QoASeparator {
@@ -112,9 +124,12 @@ Rectangle {
                     height: 15
                     width: 15
                 }
-                ToolTip.visible: hovered
-                ToolTip.delay: 250
-                ToolTip.text: qsTr("Open new chat in a new tab")
+
+                QoAToolTip {
+                    visible: newChatButtonId.hovered
+                    delay: 250
+                    text: qsTr("Open new chat in a new tab")
+                }
             }
 
             QoAComboBox {
@@ -125,9 +140,11 @@ Rectangle {
                 model: []
                 currentIndex: 0
 
-                ToolTip.visible: hovered
-                ToolTip.delay: 250
-                ToolTip.text: qsTr("Switch saved AI configuration")
+                QoAToolTip {
+                    visible: configSelectorId.hovered
+                    delay: 250
+                    text: qsTr("Switch saved AI configuration")
+                }
             }
 
             QoAComboBox {
@@ -138,9 +155,11 @@ Rectangle {
                 model: []
                 currentIndex: 0
 
-                ToolTip.visible: hovered
-                ToolTip.delay: 250
-                ToolTip.text: qsTr("Switch agent role (different system prompts)")
+                QoAToolTip {
+                    visible: roleSelector.hovered
+                    delay: 250
+                    text: qsTr("Switch agent role (different system prompts)")
+                }
             }
         }
 
@@ -163,15 +182,17 @@ Rectangle {
                     width: 15
                 }
 
-                ToolTip.visible: hovered
-                ToolTip.delay: 250
-                ToolTip.text: {
-                    if (!toolsButtonId.enabled) {
-                        return qsTr("Tools are disabled in General Settings")
+                QoAToolTip {
+                    visible: toolsButtonId.hovered
+                    delay: 250
+                    text: {
+                        if (!toolsButtonId.enabled) {
+                            return qsTr("Tools are disabled in General Settings")
+                        }
+                        return toolsButtonId.checked
+                                ? qsTr("Tools enabled: AI can use tools to read files, search project, and build code")
+                                : qsTr("Tools disabled: Simple conversation without tool access")
                     }
-                    return checked
-                            ? qsTr("Tools enabled: AI can use tools to read files, search project, and build code")
-                            : qsTr("Tools disabled: Simple conversation without tool access")
                 }
             }
 
@@ -191,11 +212,14 @@ Rectangle {
                     width: 15
                 }
 
-                ToolTip.visible: hovered
-                ToolTip.delay: 250
-                ToolTip.text: enabled ? (checked ? qsTr("Thinking Mode enabled (Check model list support it)")
-                                                 : qsTr("Thinking Mode disabled"))
-                                      : qsTr("Thinking Mode is not available for this provider")
+                QoAToolTip {
+                    visible: thinkingModeId.hovered
+                    delay: 250
+                    text: thinkingModeId.enabled
+                        ? (thinkingModeId.checked ? qsTr("Thinking Mode enabled (Check model list support it)")
+                                                  : qsTr("Thinking Mode disabled"))
+                        : qsTr("Thinking Mode is not available for this provider")
+                }
             }
 
             QoAButton {
@@ -210,9 +234,11 @@ Rectangle {
                     width: 15
                 }
 
-                ToolTip.visible: hovered
-                ToolTip.delay: 250
-                ToolTip.text: qsTr("Open Chat Assistant Settings")
+                QoAToolTip {
+                    visible: settingsButtonId.hovered
+                    delay: 250
+                    text: qsTr("Open Chat Assistant Settings")
+                }
             }
 
             QoASeparator {
@@ -238,9 +264,11 @@ Rectangle {
                     anchors.fill: parent
                     hoverEnabled: true
 
-                    ToolTip.visible: containsMouse
-                    ToolTip.delay: 500
-                    ToolTip.text: recentPathId.text
+                    QoAToolTip {
+                        visible: parent.containsMouse && recentPathId.text.length > 0
+                        text: recentPathId.text
+                        delay: 500
+                    }
                 }
             }
         }
@@ -261,9 +289,12 @@ Rectangle {
                     height: 15
                     width: 8
                 }
-                ToolTip.visible: hovered
-                ToolTip.delay: 250
-                ToolTip.text: qsTr("Save chat to *.json file")
+
+                QoAToolTip {
+                    visible: saveButtonId.hovered
+                    delay: 250
+                    text: qsTr("Save chat to *.json file")
+                }
             }
 
             QoAButton {
@@ -274,9 +305,12 @@ Rectangle {
                     height: 15
                     width: 8
                 }
-                ToolTip.visible: hovered
-                ToolTip.delay: 250
-                ToolTip.text: qsTr("Load chat from *.json file")
+
+                QoAToolTip {
+                    visible: loadButtonId.hovered
+                    delay: 250
+                    text: qsTr("Load chat from *.json file")
+                }
             }
 
             QoAButton {
@@ -287,9 +321,12 @@ Rectangle {
                     height: 15
                     width: 15
                 }
-                ToolTip.visible: hovered
-                ToolTip.delay: 250
-                ToolTip.text: qsTr("Show in system")
+
+                QoAToolTip {
+                    visible: openChatHistoryId.hovered
+                    delay: 250
+                    text: qsTr("Show in system")
+                }
             }
 
             QoASeparator {}
@@ -304,9 +341,11 @@ Rectangle {
                     width: 15
                 }
 
-                ToolTip.visible: hovered
-                ToolTip.delay: 250
-                ToolTip.text: qsTr("View chat context (system prompt, role, rules)")
+                QoAToolTip {
+                    visible: contextButtonId.hovered
+                    delay: 250
+                    text: qsTr("View chat context (system prompt, role, rules)")
+                }
             }
 
             Badge {
