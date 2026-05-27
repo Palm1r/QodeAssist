@@ -18,7 +18,9 @@ find_package(QtCreator REQUIRED COMPONENTS Core)
 find_package(Qt6 COMPONENTS Core Gui Quick Widgets Network Svg Test LinguistTools REQUIRED)
 find_package(GTest)
 
-qt_standard_project_setup(I18N_TRANSLATED_LANGUAGES en)
+qt_standard_project_setup(I18N_TRANSLATED_LANGUAGES
+    en cs zh_CN zh_TW da de fr hr ja pl ru sl sv uk
+)
 
 # IDE_VERSION is defined by QtCreator package
 string(REGEX MATCH "([0-9]+)\\.([0-9]+)\\.([0-9]+)" version_match ${IDE_VERSION})
