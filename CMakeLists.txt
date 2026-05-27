@@ -193,5 +193,5 @@ endif()
 qt_add_translations(TARGETS QodeAssist
           TS_FILE_DIR ${CMAKE_CURRENT_LIST_DIR}/resources/translations
           RESOURCE_PREFIX "/translations"
-          LUPDATE_OPTIONS -no-obsolete
+          LUPDATE_OPTIONS -no-obsolete -locations none
 )
