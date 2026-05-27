@@ -58,6 +58,7 @@ qt_add_qml_module(QodeAssistChatView
     icons/tools-icon-off.svg
     icons/settings-icon.svg
     icons/compress-icon.svg
+    icons/open-in-code.svg
 
     SOURCES
     ChatWidget.hpp ChatWidget.cpp

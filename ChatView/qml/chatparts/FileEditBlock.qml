@@ -193,9 +193,24 @@ Rectangle {
                     color: root.statusColor
                 }
 
+                QoAButton {
+                    icon {
+                        source: "qrc:/qt/qml/ChatView/icons/open-in-code.svg"
+                        height: 15
+                        width: 15
+                    }
+                    hoverEnabled: true
+                    onClicked: root.openInEditor(editData.edit_id)
+
+                    QoAToolTip {
+                        visible: parent.hovered
+                        delay: 500
+                        text: qsTr("Open file in editor and navigate to changes")
+                    }
+                }
+
                 Text {
                     id: headerText
-                    Layout.fillWidth: true
                     text: {
                         var modeText = root.oldContent.length > 0 ? qsTr("Replace") : qsTr("Append")
                         if (root.oldContent.length > 0) {
@@ -223,6 +238,19 @@ Rectangle {
                     color: palette.mid
                 }
 
+                Item { Layout.fillWidth: true }
+            }
+
+            RowLayout {
+                id: actionButtons
+
+                anchors {
+                    right: parent.right
+                    rightMargin: 5
+                    verticalCenter: parent.verticalCenter
+                }
+                spacing: 6
+
                 Rectangle {
                     visible: !root.isPending
                     Layout.preferredWidth: badgeText.width + 12
@@ -237,33 +265,6 @@ Rectangle {
                         font.pixelSize: 9
                         font.bold: true
                         color: root.isArchived ? Qt.rgba(0.6, 0.6, 0.6, 1.0) : palette.text
-                    }
-                }
-            }
-
-            Row {
-                id: actionButtons
-
-                anchors {
-                    right: parent.right
-                    rightMargin: 5
-                    verticalCenter: parent.verticalCenter
-                }
-                spacing: 6
-
-                QoAButton {
-                    icon {
-                        source: "qrc:/qt/qml/ChatView/icons/open-in-editor.svg"
-                        height: 15
-                        width: 15
-                    }
-                    hoverEnabled: true
-                    onClicked: root.openInEditor(editData.edit_id)
-
-                    QoAToolTip {
-                        visible: parent.hovered
-                        delay: 500
-                        text: qsTr("Open file in editor and navigate to changes")
                     }
                 }
 
