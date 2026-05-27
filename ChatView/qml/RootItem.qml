@@ -589,6 +589,27 @@ ChatRootView {
         messageInput.forceActiveFocus()
     }
 
+    property Item focusGuard: Window.activeFocusItem
+    onFocusGuardChanged: Qt.callLater(returnFocusToInputIfNeeded)
+
+    function returnFocusToInputIfNeeded() {
+        var item = Window.activeFocusItem
+        if (!item || item === messageInput)
+            return
+        if (item.cursorVisible !== undefined || item.selectByMouse !== undefined)
+            return
+        if (item.popup !== undefined)
+            return
+        var p = item
+        while (p) {
+            if (p === root) {
+                messageInput.forceActiveFocus()
+                return
+            }
+            p = p.parent
+        }
+    }
+
     function applyMentionSelection() {
         var result = fileMentionPopup.applyCurrentSelection(
             messageInput.text, messageInput.cursorPosition, root.useTools)
