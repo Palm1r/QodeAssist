@@ -390,7 +390,7 @@ void QuickRefactorHandler::cancelRequest()
 
     const auto id = m_lastRequestId;
     m_isRefactoringInProgress = false;
-    m_lastRequestId = {};
+    m_lastRequestId.clear();
 
     auto it = m_activeRequests.find(id);
     if (it != m_activeRequests.end()) {
