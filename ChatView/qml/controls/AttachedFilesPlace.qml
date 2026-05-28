@@ -4,12 +4,13 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import Qt.labs.platform as Platform
 import ChatView
 import UIControls
 
 Flow {
     id: root
-    
+
     property alias attachedFilesModel: attachRepeater.model
     property color accentColor: palette.mid
     property string iconPath
@@ -21,10 +22,10 @@ Flow {
     rightPadding: 5
     topPadding: attachRepeater.model.length > 0 ? 2 : 0
     bottomPadding: attachRepeater.model.length > 0 ? 2 : 0
-    
+
     Repeater {
         id: attachRepeater
-        
+
         delegate: FileItem {
             id: fileItem
 
@@ -32,7 +33,7 @@ Flow {
             required property string modelData
 
             filePath: modelData
-            
+
             height: 30
             width: contentRow.width + 10
 
@@ -52,7 +53,7 @@ Flow {
                 acceptedButtons: Qt.LeftButton | Qt.MiddleButton | Qt.RightButton
                 onClicked: (mouse) => {
                     if (mouse.button === Qt.RightButton) {
-                        contextMenu.popup()
+                        contextMenu.open()
                     } else if (mouse.button === Qt.MiddleButton ||
                         (mouse.button === Qt.LeftButton && (mouse.modifiers & Qt.ControlModifier))) {
                         root.removeFileFromListByIndex(fileItem.index)
@@ -70,27 +71,27 @@ Flow {
                 }
             }
 
-            Menu {
+            Platform.Menu {
                 id: contextMenu
 
-                MenuItem {
-                    text: "Open in Qt Creator"
+                Platform.MenuItem {
+                    text: qsTr("Open in Qt Creator")
                     onTriggered: fileItem.openFileInEditor()
                 }
 
-                MenuItem {
-                    text: "Open in External Editor"
+                Platform.MenuItem {
+                    text: qsTr("Open in External Editor")
                     onTriggered: fileItem.openFileInExternalEditor()
                 }
 
-                MenuSeparator {}
+                Platform.MenuSeparator {}
 
-                MenuItem {
-                    text: "Remove"
+                Platform.MenuItem {
+                    text: qsTr("Remove")
                     onTriggered: root.removeFileFromListByIndex(fileItem.index)
                 }
             }
-            
+
             Row {
                 id: contentRow
 
@@ -107,31 +108,31 @@ Flow {
                     sourceSize.width: 8
                     sourceSize.height: 15
                 }
-                
+
                 Text {
                     id: fileNameText
-                    
+
                     anchors.verticalCenter: parent.verticalCenter
                     color: palette.buttonText
-                    
+
                     text: {
                         const parts = modelData.split('/');
                         return parts[parts.length - 1];
                     }
                 }
-                
+
                 MouseArea {
                     id: closeButton
-                    
+
                     anchors.verticalCenter: parent.verticalCenter
                     width: closeIcon.width + 5
                     height: closeButton.width + 5
-                    
+
                     onClicked: root.removeFileFromListByIndex(index)
-                    
+
                     Image {
                         id: closeIcon
-                        
+
                         anchors.centerIn: parent
                         source: palette.window.hslLightness > 0.5 ? "qrc:/qt/qml/ChatView/icons/close-dark.svg"
                                                                   : "qrc:/qt/qml/ChatView/icons/close-light.svg"
