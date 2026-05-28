@@ -101,6 +101,11 @@ You can install and update QodeAssist directly from within Qt Creator by adding 
    - **Latest (QtC 19)**: `https://github.com/Palm1r/extension-registry/archive/refs/heads/qodeassist.tar.gz`
    - **QtC 19**: `https://github.com/Palm1r/extension-registry/archive/refs/heads/qodeassist-qtc19.tar.gz`
    - **QtC 18**: `https://github.com/Palm1r/extension-registry/archive/refs/heads/qodeassist-qtc18.tar.gz`
+<details>
+  <summary>Example of extension registry: (click to expand)</summary>
+  <img width="600" alt="RegistryExample" src="https://github.com/user-attachments/assets/8ab8cf10-72e7-4961-8c5a-21d530378a05">
+</details>
+
 4. Click **Apply** — QodeAssist will appear in the extensions list, where you can **Install** it
 5. Updates can be installed from the same screen when a new version is published
 
