@@ -4,6 +4,7 @@
 #include "ChatWidget.hpp"
 
 #include <QApplication>
+#include <QMouseEvent>
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickItem>
@@ -38,6 +39,8 @@ ChatWidget::ChatWidget(
     setResizeMode(QQuickWidget::SizeRootObjectToView);
     setFocusPolicy(Qt::StrongFocus);
 
+    setAttribute(Qt::WA_NoMousePropagation, true);
+
     if (registerOwnContext) {
         auto ideContext = new Core::IContext{this};
         ideContext->setWidget(this);
@@ -51,6 +54,14 @@ void ChatWidget::focusInEvent(QFocusEvent *event)
     QQuickWidget::focusInEvent(event);
     if (rootObject())
         QMetaObject::invokeMethod(rootObject(), "focusInput");
+}
+
+void ChatWidget::mousePressEvent(QMouseEvent *event)
+{
+    if (!hasFocus())
+        setFocus(Qt::MouseFocusReason);
+
+    QQuickWidget::mousePressEvent(event);
 }
 
 void ChatWidget::clear()

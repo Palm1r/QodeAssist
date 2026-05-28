@@ -42,6 +42,7 @@ signals:
 
 protected:
     void focusInEvent(QFocusEvent *event) override;
+    void mousePressEvent(QMouseEvent *event) override;
 };
 
 } // namespace QodeAssist::Chat
