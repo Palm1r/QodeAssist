@@ -385,25 +385,25 @@ void QuickRefactorHandler::handleLLMResponse(
 
 void QuickRefactorHandler::cancelRequest()
 {
-    if (m_isRefactoringInProgress) {
-        auto id = m_lastRequestId;
+    if (!m_isRefactoringInProgress)
+        return;
 
-        for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
-            if (it.key() == id) {
-                const RequestContext &ctx = it.value();
-                ctx.provider->cancelRequest(id);
-                m_activeRequests.erase(it);
-                break;
-            }
-        }
+    const auto id = m_lastRequestId;
+    m_isRefactoringInProgress = false;
+    m_lastRequestId = {};
 
-        m_isRefactoringInProgress = false;
-
-        RefactorResult result;
-        result.success = false;
-        result.errorMessage = "Refactoring request was cancelled";
-        emit refactoringCompleted(result);
+    auto it = m_activeRequests.find(id);
+    if (it != m_activeRequests.end()) {
+        auto provider = it.value().provider;
+        m_activeRequests.erase(it);
+        if (provider)
+            provider->cancelRequest(id);
     }
+
+    RefactorResult result;
+    result.success = false;
+    result.errorMessage = "Refactoring request was cancelled";
+    emit refactoringCompleted(result);
 }
 
 void QuickRefactorHandler::handleFullResponse(const QString &requestId, const QString &fullText)

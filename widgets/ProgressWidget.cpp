@@ -142,10 +142,12 @@ void ProgressWidget::leaveEvent(QEvent *event)
 void ProgressWidget::mousePressEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton && m_isHovered) {
+        event->accept();
+        auto callback = m_cancelCallback;
         emit cancelRequested();
-        if (m_cancelCallback) {
-            m_cancelCallback();
-        }
+        if (callback)
+            callback();
+        return;
     }
     QWidget::mousePressEvent(event);
 }
