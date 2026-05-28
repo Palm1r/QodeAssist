@@ -91,7 +91,22 @@ QodeAssist enhances Qt Creator with AI-powered coding assistance:
 
 ## Install plugin to QtCreator
 
-### Method 1: Using QodeAssistUpdater (Beta)
+### Method 1: Using the Extension Registry (Recommended)
+
+You can install and update QodeAssist directly from within Qt Creator by adding the QodeAssist registry as an external extension repository.
+
+1. Open the Extensions page (`Qt Creator → Extensions`) and switch to the **Browser** tab
+2. Enable **Use External Repository**
+3. Next to **Repository URLs**, click **Add** and paste the registry archive URL matching your Qt Creator version:
+   - **Latest (QtC 19)**: `https://github.com/Palm1r/extension-registry/archive/refs/heads/qodeassist.tar.gz`
+   - **QtC 19**: `https://github.com/Palm1r/extension-registry/archive/refs/heads/qodeassist-qtc19.tar.gz`
+   - **QtC 18**: `https://github.com/Palm1r/extension-registry/archive/refs/heads/qodeassist-qtc18.tar.gz`
+4. Click **Apply** — QodeAssist will appear in the extensions list, where you can **Install** it
+5. Updates can be installed from the same screen when a new version is published
+
+> **Note:** This is an external repository not maintained by The Qt Company. By adding it you accept responsibility for managing the associated risks, as stated in the Extensions page.
+
+### Method 2: Using QodeAssistUpdater (Beta)
 
 QodeAssistUpdater is a command-line utility that automates plugin installation and updates with automatic Qt Creator version detection and checksum verification.
 
@@ -119,7 +134,7 @@ Download pre-built binary from [QodeAssistUpdater releases](https://github.com/P
 
 For more information, visit the [QodeAssistUpdater repository](https://github.com/Palm1r/QodeAssistUpdater).
 
-### Method 2: Manual Installation
+### Method 3: Manual Installation
 
 1. Install Latest Qt Creator
 2. Download the QodeAssist plugin for your Qt Creator
