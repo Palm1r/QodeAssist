@@ -5,6 +5,7 @@
 
 #include "pluginllmcore/ProvidersManager.hpp"
 #include "providers/ClaudeProvider.hpp"
+#include "providers/DeepSeekProvider.hpp"
 #include "providers/CodestralProvider.hpp"
 #include "providers/GoogleAIProvider.hpp"
 #include "providers/LMStudioProvider.hpp"
@@ -40,6 +41,7 @@ inline void registerProviders()
     providerManager.registerProvider<CodestralProvider>();
     providerManager.registerProvider<QwenProvider>();
     providerManager.registerProvider<QwenResponsesProvider>();
+    providerManager.registerProvider<DeepSeekProvider>();
 }
 
 } // namespace QodeAssist::Providers

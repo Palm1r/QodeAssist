@@ -1,10 +1,9 @@
 // Copyright (C) 2024-2026 Petr Mironychev
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-#include "OllamaCompatProvider.hpp"
+#include "DeepSeekProvider.hpp"
 
 #include <LLMQore/ToolsManager.hpp>
-
 #include "logger/Logger.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/CodeCompletionSettings.hpp"
@@ -19,29 +18,48 @@
 
 namespace QodeAssist::Providers {
 
-OllamaCompatProvider::OllamaCompatProvider(QObject *parent)
+DeepSeekProvider::DeepSeekProvider(QObject *parent)
     : PluginLLMCore::Provider(parent)
     , m_client(new ::LLMQore::OpenAIClient(QString(), QString(), QString(), this))
 {
     Tools::registerQodeAssistTools(m_client->tools());
 }
 
-QString OllamaCompatProvider::name() const
+QString DeepSeekProvider::name() const
 {
-    return "Ollama (OpenAI-compatible)";
+    return "DeepSeek";
 }
 
-QString OllamaCompatProvider::apiKey() const
+QString DeepSeekProvider::apiKey() const
 {
-    return Settings::providerSettings().ollamaBasicAuthApiKey();
+    return Settings::providerSettings().deepSeekApiKey();
 }
 
-QString OllamaCompatProvider::url() const
+QString DeepSeekProvider::url() const
 {
-    return "http://localhost:11434";
+    return "https://api.deepseek.com";
 }
 
-void OllamaCompatProvider::prepareRequest(
+QFuture<QList<QString>> DeepSeekProvider::getInstalledModels(const QString &url)
+{
+    m_client->setUrl(url);
+    m_client->setApiKey(apiKey());
+    return m_client->listModels();
+}
+
+PluginLLMCore::ProviderID DeepSeekProvider::providerID() const
+{
+    return PluginLLMCore::ProviderID::DeepSeek;
+}
+
+PluginLLMCore::ProviderCapabilities DeepSeekProvider::capabilities() const
+{
+    return PluginLLMCore::ProviderCapability::Tools
+           | PluginLLMCore::ProviderCapability::Thinking
+           | PluginLLMCore::ProviderCapability::ModelListing;
+}
+
+void DeepSeekProvider::prepareRequest(
     QJsonObject &request,
     PluginLLMCore::PromptTemplate *prompt,
     PluginLLMCore::ContextData context,
@@ -61,8 +79,6 @@ void OllamaCompatProvider::prepareRequest(
 
         if (settings.useTopP())
             request["top_p"] = settings.topP();
-        if (settings.useTopK())
-            request["top_k"] = settings.topK();
         if (settings.useFrequencyPenalty())
             request["frequency_penalty"] = settings.frequencyPenalty();
         if (settings.usePresencePenalty())
@@ -81,43 +97,12 @@ void OllamaCompatProvider::prepareRequest(
         auto toolsDefinitions = m_client->tools()->getToolsDefinitions();
         if (!toolsDefinitions.isEmpty()) {
             request["tools"] = toolsDefinitions;
-            LOG_MESSAGE(
-                QString("Added %1 tools to OllamaCompat request").arg(toolsDefinitions.size()));
+            LOG_MESSAGE(QString("Added %1 tools to DeepSeek request").arg(toolsDefinitions.size()));
         }
     }
 }
 
-QFuture<QList<QString>> OllamaCompatProvider::getInstalledModels(const QString &baseUrl)
-{
-    QString url = baseUrl;
-    if (!url.endsWith(QStringLiteral("/v1")))
-        url += QStringLiteral("/v1");
-    m_client->setUrl(url);
-    m_client->setApiKey(apiKey());
-    return m_client->listModels();
-}
-
-LLMQore::RequestID OllamaCompatProvider::sendRequest(
-    const QUrl &url, const QJsonObject &payload, const QString &endpoint)
-{
-    const QString effectiveEndpoint
-        = endpoint.isEmpty() ? QStringLiteral("/v1/chat/completions") : endpoint;
-    return PluginLLMCore::Provider::sendRequest(url, payload, effectiveEndpoint);
-}
-
-PluginLLMCore::ProviderID OllamaCompatProvider::providerID() const
-{
-    return PluginLLMCore::ProviderID::OpenAICompatible;
-}
-
-PluginLLMCore::ProviderCapabilities OllamaCompatProvider::capabilities() const
-{
-    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image
-           | PluginLLMCore::ProviderCapability::ModelListing
-           | PluginLLMCore::ProviderCapability::Thinking;
-}
-
-::LLMQore::BaseClient *OllamaCompatProvider::client() const
+::LLMQore::BaseClient *DeepSeekProvider::client() const
 {
     return m_client;
 }

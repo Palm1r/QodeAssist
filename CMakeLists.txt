@@ -118,6 +118,7 @@ add_qtc_plugin(QodeAssist
     providers/OpenAIResponsesProvider.hpp providers/OpenAIResponsesProvider.cpp
     providers/QwenProvider.hpp providers/QwenProvider.cpp
     providers/QwenResponsesProvider.hpp providers/QwenResponsesProvider.cpp
+    providers/DeepSeekProvider.hpp providers/DeepSeekProvider.cpp
     QodeAssist.qrc
     LSPCompletion.hpp
     LLMSuggestion.hpp LLMSuggestion.cpp

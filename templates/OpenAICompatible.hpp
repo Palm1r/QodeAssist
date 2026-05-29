@@ -82,6 +82,7 @@ public:
         case PluginLLMCore::ProviderID::LMStudio:
         case PluginLLMCore::ProviderID::LlamaCpp:
         case PluginLLMCore::ProviderID::Qwen:
+        case PluginLLMCore::ProviderID::DeepSeek:
             return true;
         default:
             return false;

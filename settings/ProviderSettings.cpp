@@ -132,6 +132,15 @@ ProviderSettings::ProviderSettings()
     qwenApiKey.setDefaultValue("");
     qwenApiKey.setAutoApply(true);
 
+    // DeepSeek Settings
+    deepSeekApiKey.setSettingsKey(Constants::DEEPSEEK_API_KEY);
+    deepSeekApiKey.setLabelText(Tr::tr("DeepSeek API Key:"));
+    deepSeekApiKey.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    deepSeekApiKey.setPlaceHolderText(Tr::tr("Enter your API key here"));
+    deepSeekApiKey.setHistoryCompleter(Constants::DEEPSEEK_API_KEY_HISTORY);
+    deepSeekApiKey.setDefaultValue("");
+    deepSeekApiKey.setAutoApply(true);
+
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
 
     readSettings();
@@ -163,6 +172,8 @@ ProviderSettings::ProviderSettings()
             Group{title(Tr::tr("llama.cpp Settings")), Column{llamaCppApiKey}},
             Space{8},
             Group{title(Tr::tr("Qwen (Alibaba) Settings")), Column{qwenApiKey}},
+            Space{8},
+            Group{title(Tr::tr("DeepSeek Settings")), Column{deepSeekApiKey}},
             Stretch{1}};
     });
 }
@@ -201,6 +212,9 @@ void ProviderSettings::setupConnections()
         llamaCppApiKey.writeSettings();
     });
     connect(&qwenApiKey, &ButtonAspect::changed, this, [this]() { qwenApiKey.writeSettings(); });
+    connect(&deepSeekApiKey, &ButtonAspect::changed, this, [this]() {
+        deepSeekApiKey.writeSettings();
+    });
 }
 
 void ProviderSettings::resetSettingsToDefaults()
@@ -224,6 +238,7 @@ void ProviderSettings::resetSettingsToDefaults()
         resetAspect(ollamaBasicAuthApiKey);
         resetAspect(llamaCppApiKey);
         resetAspect(qwenApiKey);
+        resetAspect(deepSeekApiKey);
         writeSettings();
     }
 }

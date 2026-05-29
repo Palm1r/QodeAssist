@@ -57,7 +57,8 @@ PluginLLMCore::ProviderID LMStudioProvider::providerID() const
 PluginLLMCore::ProviderCapabilities LMStudioProvider::capabilities() const
 {
     return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image
-           | PluginLLMCore::ProviderCapability::ModelListing;
+           | PluginLLMCore::ProviderCapability::ModelListing
+           | PluginLLMCore::ProviderCapability::Thinking;
 }
 
 void LMStudioProvider::prepareRequest(

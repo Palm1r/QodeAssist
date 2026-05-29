@@ -121,6 +121,28 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     qwenMax.type = type;
     qwenMax.isPredefined = true;
 
+    AIConfiguration deepSeekFlash;
+    deepSeekFlash.id = "preset_deepseek_flash";
+    deepSeekFlash.name = "DeepSeek V4 Flash";
+    deepSeekFlash.provider = "DeepSeek";
+    deepSeekFlash.model = "deepseek-v4-flash";
+    deepSeekFlash.url = "https://api.deepseek.com";
+    deepSeekFlash.customEndpoint = "";
+    deepSeekFlash.templateName = "OpenAI Compatible";
+    deepSeekFlash.type = type;
+    deepSeekFlash.isPredefined = true;
+
+    AIConfiguration deepSeekPro;
+    deepSeekPro.id = "preset_deepseek_pro";
+    deepSeekPro.name = "DeepSeek V4 Pro";
+    deepSeekPro.provider = "DeepSeek";
+    deepSeekPro.model = "deepseek-v4-pro";
+    deepSeekPro.url = "https://api.deepseek.com";
+    deepSeekPro.customEndpoint = "";
+    deepSeekPro.templateName = "OpenAI Compatible";
+    deepSeekPro.type = type;
+    deepSeekPro.isPredefined = true;
+
     AIConfiguration gpt;
     gpt.id = "preset_gpt";
     gpt.name = "gpt-5.5";
@@ -141,6 +163,8 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     presets.append(geminiFlash);
     presets.append(qwenPlus);
     presets.append(qwenMax);
+    presets.append(deepSeekFlash);
+    presets.append(deepSeekPro);
 
     return presets;
 }

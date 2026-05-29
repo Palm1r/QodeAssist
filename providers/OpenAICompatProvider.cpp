@@ -98,7 +98,8 @@ PluginLLMCore::ProviderID OpenAICompatProvider::providerID() const
 
 PluginLLMCore::ProviderCapabilities OpenAICompatProvider::capabilities() const
 {
-    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image;
+    return PluginLLMCore::ProviderCapability::Tools | PluginLLMCore::ProviderCapability::Image
+           | PluginLLMCore::ProviderCapability::Thinking;
 }
 
 ::LLMQore::BaseClient *OpenAICompatProvider::client() const
