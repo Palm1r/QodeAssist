@@ -3,11 +3,12 @@
 
 #pragma once
 
-#include "providers/OpenAIResponsesProvider.hpp"
+#include <LLMQore/OpenAIResponsesClient.hpp>
+#include <pluginllmcore/Provider.hpp>
 
 namespace QodeAssist::Providers {
 
-class QwenResponsesProvider : public OpenAIResponsesProvider
+class QwenResponsesProvider : public PluginLLMCore::Provider
 {
     Q_OBJECT
 public:
@@ -15,9 +16,22 @@ public:
 
     QString name() const override;
     QString url() const override;
-    QString apiKey() const override;
+    void prepareRequest(
+        QJsonObject &request,
+        PluginLLMCore::PromptTemplate *prompt,
+        PluginLLMCore::ContextData context,
+        PluginLLMCore::RequestType type,
+        bool isToolsEnabled,
+        bool isThinkingEnabled) override;
     QFuture<QList<QString>> getInstalledModels(const QString &url) override;
+    PluginLLMCore::ProviderID providerID() const override;
     PluginLLMCore::ProviderCapabilities capabilities() const override;
+
+    ::LLMQore::BaseClient *client() const override;
+    QString apiKey() const override;
+
+private:
+    ::LLMQore::OpenAIResponsesClient *m_client;
 };
 
 } // namespace QodeAssist::Providers
