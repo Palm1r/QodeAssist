@@ -7,6 +7,7 @@ import QtQuick.Controls.Basic
 Button {
     id: control
 
+    focusPolicy: Qt.NoFocus
     padding: 4
 
     icon.width: 16
