@@ -332,7 +332,23 @@ GeneralSettings::GeneralSettings()
                 Row{qrPresetConfig, qrConfigureApiKey, Stretch{1}},
                 qrGrid}};
 
+        auto *supportLabel = new QLabel(Tr::tr("Support the development of QodeAssist:"));
+
+        auto *supportLinks = new QLabel(
+            "<a href='https://ko-fi.com/qodeassist' style='color: #0066cc;'>Support on Ko-fi ☕</a>"
+            " &nbsp;|&nbsp; "
+            "<a href='https://github.com/Palm1r/"
+            "QodeAssist?tab=readme-ov-file#support-the-development-of-qodeassist' "
+            "style='color: #0066cc;'>Support page on GitHub</a>"
+            " &nbsp;|&nbsp; "
+            "<a href='https://www.paypal.com/paypalme/palm1r' style='color: #0066cc;'>Support via "
+            "PayPal 💳</a>");
+        supportLinks->setOpenExternalLinks(true);
+        supportLinks->setTextFormat(Qt::RichText);
+
         auto rootLayout = Column{
+            Row{supportLabel, supportLinks, Stretch{1}},
+            Space{8},
             Row{enableQodeAssist, Stretch{1}, Row{checkUpdate, resetToDefaults}},
             Row{enableLogging, Stretch{1}},
             Row{enableCheckUpdate, Stretch{1}},

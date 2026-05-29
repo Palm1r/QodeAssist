@@ -6,7 +6,11 @@
 #include <coreplugin/icore.h>
 #include <extensionsystem/pluginmanager.h>
 #include <extensionsystem/pluginspec.h>
+#include <QClipboard>
 #include <QDesktopServices>
+#include <QFrame>
+#include <QGroupBox>
+#include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 
@@ -17,8 +21,7 @@ UpdateDialog::UpdateDialog(QWidget *parent)
     , m_updater(new PluginUpdater(this))
 {
     setWindowTitle(tr("QodeAssist Update"));
-    setMinimumWidth(400);
-    setMinimumHeight(300);
+    setFixedSize(700, 720);
 
     m_layout = new QVBoxLayout(this);
     m_layout->setSpacing(12);
@@ -48,24 +51,94 @@ UpdateDialog::UpdateDialog(QWidget *parent)
     githubSupportLink->setAlignment(Qt::AlignCenter);
     m_layout->addWidget(githubSupportLink);
 
+    auto *paypalLink = new QLabel(
+        "<a href='https://www.paypal.com/paypalme/palm1r' style='color: #0066cc;'>Support via PayPal "
+        "💳</a>",
+        this);
+    paypalLink->setOpenExternalLinks(true);
+    paypalLink->setTextFormat(Qt::RichText);
+    paypalLink->setAlignment(Qt::AlignCenter);
+    m_layout->addWidget(paypalLink);
+
     m_layout->addSpacing(20);
 
-    auto *updaterInfoLabel = new QLabel(
-        tr("QodeAssistUpdater - convenient tool for plugin installation and updates"),
-        this);
-    updaterInfoLabel->setAlignment(Qt::AlignCenter);
-    updaterInfoLabel->setWordWrap(true);
-    m_layout->addWidget(updaterInfoLabel);
+    auto *registryGroup = new QGroupBox(tr("Install via Extension Registry (recommended)"), this);
+    auto *registryLayout = new QVBoxLayout(registryGroup);
+    registryLayout->setSpacing(10);
 
-    m_buttonOpenUpdaterRelease = new QPushButton(tr("Download QodeAssistUpdater"), this);
+    auto *registryInfoLabel = new QLabel(
+        tr("In Qt Creator open Extensions → Browser tab, enable \"Use External Repository\", "
+           "add one of the URLs below and click Apply to install QodeAssist. Updates are then "
+           "installed from the same screen."),
+        registryGroup);
+    registryInfoLabel->setWordWrap(true);
+    registryLayout->addWidget(registryInfoLabel);
+
+    const auto addRegistryRow = [&](const QString &description, const QString &url) {
+        auto *card = new QFrame(registryGroup);
+        card->setFrameShape(QFrame::StyledPanel);
+        auto *cardLayout = new QHBoxLayout(card);
+        cardLayout->setContentsMargins(10, 8, 10, 8);
+        cardLayout->setSpacing(10);
+
+        auto *textLayout = new QVBoxLayout;
+        textLayout->setSpacing(2);
+
+        auto *desc = new QLabel(description, card);
+        desc->setStyleSheet("font-weight: bold;");
+        textLayout->addWidget(desc);
+
+        auto *link = new QLabel(
+            QString("<a href='%1' style='color: #0066cc;'>%1</a>").arg(url), card);
+        link->setOpenExternalLinks(true);
+        link->setTextFormat(Qt::RichText);
+        link->setTextInteractionFlags(Qt::TextBrowserInteraction);
+        link->setWordWrap(true);
+        textLayout->addWidget(link);
+
+        cardLayout->addLayout(textLayout, 1);
+
+        auto *copyButton = new QPushButton(tr("Copy"), card);
+        copyButton->setMaximumWidth(70);
+        connect(copyButton, &QPushButton::clicked, this, [url]() {
+            QGuiApplication::clipboard()->setText(url);
+        });
+        cardLayout->addWidget(copyButton, 0, Qt::AlignVCenter);
+
+        registryLayout->addWidget(card);
+    };
+
+    addRegistryRow(
+        tr("Latest (for the newest Qt Creator, always up to date)"),
+        "https://github.com/Palm1r/extension-registry/archive/refs/heads/qodeassist.tar.gz");
+    addRegistryRow(
+        tr("Only for Qt Creator %1").arg(QODEASSIST_QT_CREATOR_VERSION_MAJOR),
+        QString("https://github.com/Palm1r/extension-registry/archive/refs/heads/"
+                "qodeassist-qtc%1.tar.gz")
+            .arg(QODEASSIST_QT_CREATOR_VERSION_MAJOR));
+
+    m_layout->addWidget(registryGroup);
+
+    auto *updaterGroup = new QGroupBox(tr("Alternative: QodeAssistUpdater"), this);
+    auto *updaterLayout = new QVBoxLayout(updaterGroup);
+    updaterLayout->setSpacing(10);
+
+    auto *updaterInfoLabel = new QLabel(
+        tr("A standalone tool for installing and updating the plugin."), updaterGroup);
+    updaterInfoLabel->setWordWrap(true);
+    updaterLayout->addWidget(updaterInfoLabel);
+
+    m_buttonOpenUpdaterRelease = new QPushButton(tr("Download QodeAssistUpdater"), updaterGroup);
     m_buttonOpenUpdaterRelease->setMaximumWidth(250);
     auto *updaterButtonLayout = new QHBoxLayout;
     updaterButtonLayout->addStretch();
     updaterButtonLayout->addWidget(m_buttonOpenUpdaterRelease);
     updaterButtonLayout->addStretch();
-    m_layout->addLayout(updaterButtonLayout);
+    updaterLayout->addLayout(updaterButtonLayout);
 
-    m_layout->addSpacing(20);
+    m_layout->addWidget(updaterGroup);
+
+    m_layout->addSpacing(10);
 
     m_titleLabel = new QLabel(tr("A new version of QodeAssist is available!"), this);
     m_titleLabel->setStyleSheet("font-weight: bold; font-size: 14px;");
