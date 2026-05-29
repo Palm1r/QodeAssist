@@ -81,6 +81,7 @@ public:
         case PluginLLMCore::ProviderID::OpenRouter:
         case PluginLLMCore::ProviderID::LMStudio:
         case PluginLLMCore::ProviderID::LlamaCpp:
+        case PluginLLMCore::ProviderID::Qwen:
             return true;
         default:
             return false;

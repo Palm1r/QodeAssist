@@ -123,6 +123,15 @@ ProviderSettings::ProviderSettings()
     llamaCppApiKey.setDefaultValue("");
     llamaCppApiKey.setAutoApply(true);
 
+    // Qwen (Alibaba) Settings
+    qwenApiKey.setSettingsKey(Constants::QWEN_API_KEY);
+    qwenApiKey.setLabelText(Tr::tr("Qwen API Key:"));
+    qwenApiKey.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    qwenApiKey.setPlaceHolderText(Tr::tr("Enter your API key here"));
+    qwenApiKey.setHistoryCompleter(Constants::QWEN_API_KEY_HISTORY);
+    qwenApiKey.setDefaultValue("");
+    qwenApiKey.setAutoApply(true);
+
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
 
     readSettings();
@@ -152,6 +161,8 @@ ProviderSettings::ProviderSettings()
             Group{title(Tr::tr("Ollama Settings")), Column{ollamaBasicAuthApiKey}},
             Space{8},
             Group{title(Tr::tr("llama.cpp Settings")), Column{llamaCppApiKey}},
+            Space{8},
+            Group{title(Tr::tr("Qwen (Alibaba) Settings")), Column{qwenApiKey}},
             Stretch{1}};
     });
 }
@@ -189,6 +200,7 @@ void ProviderSettings::setupConnections()
     connect(&llamaCppApiKey, &ButtonAspect::changed, this, [this]() {
         llamaCppApiKey.writeSettings();
     });
+    connect(&qwenApiKey, &ButtonAspect::changed, this, [this]() { qwenApiKey.writeSettings(); });
 }
 
 void ProviderSettings::resetSettingsToDefaults()
@@ -211,6 +223,7 @@ void ProviderSettings::resetSettingsToDefaults()
         resetAspect(googleAiApiKey);
         resetAspect(ollamaBasicAuthApiKey);
         resetAspect(llamaCppApiKey);
+        resetAspect(qwenApiKey);
         writeSettings();
     }
 }

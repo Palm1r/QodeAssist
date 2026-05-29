@@ -99,6 +99,28 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     geminiFlash.type = type;
     geminiFlash.isPredefined = true;
 
+    AIConfiguration qwenPlus;
+    qwenPlus.id = "preset_qwen_plus";
+    qwenPlus.name = "Qwen3.6 Plus";
+    qwenPlus.provider = "Qwen (OpenAI Response)";
+    qwenPlus.model = "qwen3.6-plus";
+    qwenPlus.url = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+    qwenPlus.customEndpoint = "";
+    qwenPlus.templateName = "OpenAI Responses";
+    qwenPlus.type = type;
+    qwenPlus.isPredefined = true;
+
+    AIConfiguration qwenMax;
+    qwenMax.id = "preset_qwen_max";
+    qwenMax.name = "Qwen3.7 Max";
+    qwenMax.provider = "Qwen (OpenAI Response)";
+    qwenMax.model = "qwen3.7-max";
+    qwenMax.url = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1";
+    qwenMax.customEndpoint = "";
+    qwenMax.templateName = "OpenAI Responses";
+    qwenMax.type = type;
+    qwenMax.isPredefined = true;
+
     AIConfiguration gpt;
     gpt.id = "preset_gpt";
     gpt.name = "gpt-5.5";
@@ -117,6 +139,8 @@ QVector<AIConfiguration> ConfigurationManager::getPredefinedConfigurations(
     presets.append(codestral);
     presets.append(mistral);
     presets.append(geminiFlash);
+    presets.append(qwenPlus);
+    presets.append(qwenMax);
 
     return presets;
 }

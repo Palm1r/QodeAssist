@@ -28,6 +28,7 @@ public:
     Utils::StringAspect googleAiApiKey{this};
     Utils::StringAspect ollamaBasicAuthApiKey{this};
     Utils::StringAspect llamaCppApiKey{this};
+    Utils::StringAspect qwenApiKey{this};
 
 private:
     void setupConnections();

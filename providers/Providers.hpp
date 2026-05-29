@@ -17,6 +17,8 @@
 #include "providers/OpenAIProvider.hpp"
 #include "providers/OpenAIResponsesProvider.hpp"
 #include "providers/OpenRouterAIProvider.hpp"
+#include "providers/QwenProvider.hpp"
+#include "providers/QwenResponsesProvider.hpp"
 
 namespace QodeAssist::Providers {
 
@@ -36,6 +38,8 @@ inline void registerProviders()
     providerManager.registerProvider<GoogleAIProvider>();
     providerManager.registerProvider<LlamaCppProvider>();
     providerManager.registerProvider<CodestralProvider>();
+    providerManager.registerProvider<QwenProvider>();
+    providerManager.registerProvider<QwenResponsesProvider>();
 }
 
 } // namespace QodeAssist::Providers

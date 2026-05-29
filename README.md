@@ -6,7 +6,7 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![Discord](https://dcbadge.limes.pink/api/server/BGMkUsXUgf?style=flat)](https://discord.gg/BGMkUsXUgf)
 
-![qodeassist-icon](https://github.com/user-attachments/assets/dc336712-83cb-440d-8761-8d0a31de898d) **QodeAssist** brings a full AI coding workflow to Qt Creator for C++ and QML — smart code completion, multi-panel chat, inline quick refactoring, and project-aware tool calling. It works with local runtimes (Ollama, llama.cpp, LM Studio) and cloud providers (Claude, OpenAI, Google AI, Mistral), can run as an **MCP server** so other clients reuse its project context, and can also act as an **MCP client** to consume tools from external MCP servers (authenticated MCP servers are not supported yet).
+![qodeassist-icon](https://github.com/user-attachments/assets/dc336712-83cb-440d-8761-8d0a31de898d) **QodeAssist** brings a full AI coding workflow to Qt Creator for C++ and QML — smart code completion, multi-panel chat, inline quick refactoring, and project-aware tool calling. It works with local runtimes (Ollama, llama.cpp, LM Studio) and cloud providers (Claude, OpenAI, Google AI, Mistral, Qwen), can run as an **MCP server** so other clients reuse its project context, and can also act as an **MCP client** to consume tools from external MCP servers (authenticated MCP servers are not supported yet).
 
 ⚠️ **Important Notice About Paid Providers**
 > When using paid providers like Claude, OpenRouter or OpenAI-compatible services:
@@ -39,7 +39,7 @@ QodeAssist enhances Qt Creator with AI-powered coding assistance:
 - **MCP Server** — expose QodeAssist's project-aware tools to external MCP clients (Claude Code, VS Code, Claude Desktop via bridge)
 - **MCP Client Hub** — connect QodeAssist to external MCP servers and use their tools in Chat and Quick Refactor (authenticated MCP servers are not supported yet)
 - **File Context** — attach, link, or auto-sync open editor files for richer prompts
-- **Many Providers** — Ollama, llama.cpp, LM Studio (Chat + Responses), Claude, OpenAI (Chat + Responses), Google AI, Mistral, Codestral, OpenRouter, any OpenAI-compatible endpoint
+- **Many Providers** — Ollama, llama.cpp, LM Studio (Chat + Responses), Claude, OpenAI (Chat + Responses), Google AI, Mistral, Codestral, OpenRouter, Qwen (OpenAI + Responses), any OpenAI-compatible endpoint
 - **Customizable** — per-project rules (`.qodeassist/rules/`), agent roles, reusable refactor templates, full prompt-template control
 
 **Join our [Discord Community](https://discord.gg/BGMkUsXUgf)** to get support and connect with other users!
@@ -169,6 +169,7 @@ The Quick Setup feature provides one-click configuration for popular cloud AI mo
    - **OpenAI** (gpt-5.2-codex)
    - **Mistral AI** (Codestral 2501)
    - **Google AI** (Gemini 2.5 Flash)
+   - **Qwen** (Qwen3.6 Plus, Qwen3.7 Max)
 3. **Configure API Key** - Click "Configure API Key" button and enter your API key in Provider Settings
 
 All settings (provider, model, template, URL) are configured automatically. Just add your API key and you're ready to go!
@@ -189,6 +190,7 @@ For advanced users or local models, choose your preferred provider and follow th
 - **[OpenAI](docs/openai-configuration.md)** — Chat Completions and Responses API
 - **[Mistral AI](docs/mistral-configuration.md)** / **Codestral**
 - **[Google AI](docs/google-ai-configuration.md)** — Gemini
+- **Qwen (Alibaba)** — DashScope OpenAI-compatible Chat and Responses endpoints
 - **OpenAI-compatible** — OpenRouter and any custom endpoint
 
 ### Recommended Models for Best Experience

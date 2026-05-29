@@ -163,6 +163,8 @@ const char OLLAMA_BASIC_AUTH_API_KEY[] = "QodeAssist.ollamaBasicAuthApiKey";
 const char OLLAMA_BASIC_AUTH_API_KEY_HISTORY[] = "QodeAssist.ollamaBasicAuthApiKeyHistory";
 const char LLAMA_CPP_API_KEY[] = "QodeAssist.llamaCppApiKey";
 const char LLAMA_CPP_API_KEY_HISTORY[] = "QodeAssist.llamaCppApiKeyHistory";
+const char QWEN_API_KEY[] = "QodeAssist.qwenApiKey";
+const char QWEN_API_KEY_HISTORY[] = "QodeAssist.qwenApiKeyHistory";
 
 const char CLAUDE_ENABLE_PROMPT_CACHING[] = "QodeAssist.claudeEnablePromptCaching";
 const char CLAUDE_USE_EXTENDED_CACHE_TTL[] = "QodeAssist.claudeUseExtendedCacheTTL";
