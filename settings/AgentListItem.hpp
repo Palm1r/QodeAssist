@@ -11,6 +11,10 @@
 
 #include <AgentConfig.hpp>
 
+QT_BEGIN_NAMESPACE
+class QLabel;
+QT_END_NAMESPACE
+
 namespace QodeAssist::Settings {
 
 class TagChip;
@@ -24,6 +28,7 @@ public:
     QString agentName() const { return m_name; }
     void setSelected(bool selected);
     void setActiveTags(const QSet<QString> &active);
+    void setModel(const QString &model);
 
 signals:
     void clicked(const QString &name);
@@ -39,6 +44,7 @@ private:
     QString m_name;
     bool m_selected = false;
     bool m_inApplyTheme = false;
+    QLabel *m_modelLabel = nullptr;
     QList<TagChip *> m_chips;
 };
 

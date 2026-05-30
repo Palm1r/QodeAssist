@@ -9,6 +9,7 @@
 #include <QFrame>
 #include <QLabel>
 #include <QPalette>
+#include <QSet>
 #include <QStringList>
 #include <vector>
 
@@ -24,6 +25,8 @@ class AgentFactory;
 }
 
 namespace QodeAssist::Settings {
+
+class TagFilterStrip;
 
 namespace CardStyle {
 
@@ -87,9 +90,10 @@ class ListRowCard : public QFrame
     Q_OBJECT
 public:
     QString itemName() const { return m_itemName; }
+    QStringList itemTags() const { return m_itemTags; }
     bool matches(const QString &needle) const;
+    bool hasAllTags(const QSet<QString> &activeTags) const;
     void setSelected(bool selected);
-    bool isSelected() const { return m_selected; }
 
 signals:
     void clicked();
@@ -99,6 +103,7 @@ protected:
     explicit ListRowCard(QWidget *parent = nullptr);
 
     void setItemName(const QString &name) { m_itemName = name; }
+    void setItemTags(const QStringList &tags) { m_itemTags = tags; }
     void buildSearchHaystack(const QStringList &parts);
 
     void mousePressEvent(QMouseEvent *event) override;
@@ -111,6 +116,7 @@ private:
     void applyTheme();
 
     QString m_itemName;
+    QStringList m_itemTags;
     QString m_searchHaystack;
     bool m_selected = false;
     bool m_hover = false;
@@ -134,10 +140,10 @@ public:
 
     void addCard(ListRowCard *card);
     void setExpanded(bool expanded);
-    bool isExpanded() const { return m_expanded; }
     const QList<ListRowCard *> &cards() const { return m_cards; }
 
-    int applyFilter(const QString &needle); // returns number of visible cards
+    // returns number of visible cards
+    int applyFilter(const QString &needle, const QSet<QString> &activeTags);
 
 protected:
     bool eventFilter(QObject *watched, QEvent *event) override;
@@ -146,6 +152,7 @@ private:
     QFrame *m_header = nullptr;
     QLabel *m_arrow = nullptr;
     QLabel *m_label = nullptr;
+    QLabel *m_count = nullptr;
     QWidget *m_content = nullptr;
     QVBoxLayout *m_contentLayout = nullptr;
     QList<ListRowCard *> m_cards;
@@ -160,6 +167,7 @@ public:
         const std::vector<AgentConfig> &configs,
         const QString &currentName,
         AgentFactory *agentFactory = nullptr,
+        const QStringList &presetTags = {},
         QWidget *parent = nullptr);
 
     QString selectedName() const { return m_selectedName; }
@@ -167,17 +175,22 @@ public:
 private:
     void rebuild(const QString &currentName);
     void selectCard(ListRowCard *card);
-    void applyFilter(const QString &needle);
+    void applyFilters();
+    void setAllExpanded(bool expanded);
 
     QLineEdit *m_filter = nullptr;
+    TagFilterStrip *m_tagStrip = nullptr;
     QScrollArea *m_scroll = nullptr;
     QPushButton *m_okButton = nullptr;
+    QLabel *m_resultCount = nullptr;
+    QLabel *m_emptyLabel = nullptr;
     ListRowCard *m_currentCard = nullptr;
     QList<ProviderSection *> m_sections;
     QString m_selectedName;
 
     AgentFactory *m_agentFactory = nullptr;
     std::vector<AgentConfig> m_localConfigs; // fallback when no factory
+    QStringList m_presetTags;
 };
 
 } // namespace QodeAssist::Settings

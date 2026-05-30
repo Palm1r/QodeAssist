@@ -88,7 +88,6 @@ const char CC_CUSTOM_LANGUAGES[] = "QodeAssist.ccCustomLanguages";
 
 const char CA_ENABLE_CHAT_IN_BOTTOM_TOOLBAR[] = "QodeAssist.caEnableChatInBottomToolbar";
 const char CA_ENABLE_CHAT_IN_NAVIGATION_PANEL[] = "QodeAssist.caEnableChatInNavigationPanel";
-const char CA_ENABLE_CHAT_TOOLS[] = "QodeAssist.caEnableChatTools";
 const char CA_USE_TOOLS[] = "QodeAssist.caUseTools";
 const char TOOLS_MAX_CONTINUATIONS[] = "QodeAssist.toolsMaxContinuations";
 const char CA_ALLOW_ACCESS_OUTSIDE_PROJECT[] = "QodeAssist.caAllowAccessOutsideProject";
@@ -125,26 +124,23 @@ const char MCP_CLIENT_EXTRA_PATHS[] = "QodeAssist.mcpClientExtraPaths";
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
 const char QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID[] = "QodeAssist.1GeneralSettingsPageId";
 const char QODE_ASSIST_CODE_COMPLETION_SETTINGS_PAGE_ID[]
-    = "QodeAssist.2CodeCompletionSettingsPageId";
+    = "QodeAssist.4CodeCompletionSettingsPageId";
 const char QODE_ASSIST_CHAT_ASSISTANT_SETTINGS_PAGE_ID[]
-    = "QodeAssist.3ChatAssistantSettingsPageId";
+    = "QodeAssist.5ChatAssistantSettingsPageId";
 const char QODE_ASSIST_QUICK_REFACTOR_SETTINGS_PAGE_ID[]
-    = "QodeAssist.4QuickRefactorSettingsPageId";
-const char QODE_ASSIST_TOOLS_SETTINGS_PAGE_ID[] = "QodeAssist.5ToolsSettingsPageId";
-const char QODE_ASSIST_MCP_SETTINGS_PAGE_ID[] = "QodeAssist.6McpSettingsPageId";
-const char QODE_ASSIST_SKILLS_SETTINGS_PAGE_ID[] = "QodeAssist.8SkillsSettingsPageId";
+    = "QodeAssist.6QuickRefactorSettingsPageId";
+const char QODE_ASSIST_TOOLS_SETTINGS_PAGE_ID[] = "QodeAssist.7ToolsSettingsPageId";
+const char QODE_ASSIST_MCP_SETTINGS_PAGE_ID[] = "QodeAssist.8McpSettingsPageId";
+const char QODE_ASSIST_SKILLS_SETTINGS_PAGE_ID[] = "QodeAssist.9SkillsSettingsPageId";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_CATEGORY[] = "QodeAssist.Category";
 const char QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY[] = "QodeAssist";
 
 // Provider Settings Page ID
-const char QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID[] = "QodeAssist.7ProviderSettingsPageId";
+const char QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID[] = "QodeAssist.3ProviderSettingsPageId";
 
 // Agents Settings Page ID
-const char QODE_ASSIST_AGENTS_SETTINGS_PAGE_ID[] = "QodeAssist.8AgentsSettingsPageId";
-
-// Agent Pipelines (experimental) settings
-const char QODE_ASSIST_AGENT_PIPELINES_PAGE_ID[] = "QodeAssist.9AgentPipelinesPageId";
+const char QODE_ASSIST_AGENTS_SETTINGS_PAGE_ID[] = "QodeAssist.2AgentsSettingsPageId";
 
 // Provider API Keys
 const char OPEN_ROUTER_API_KEY[] = "QodeAssist.openRouterApiKey";
@@ -177,51 +173,8 @@ const char CLAUDE_USE_EXTENDED_CACHE_TTL[] = "QodeAssist.claudeUseExtendedCacheT
 const char CC_READ_FULL_FILE[] = "QodeAssist.ccReadFullFile";
 const char CC_READ_STRINGS_BEFORE_CURSOR[] = "QodeAssist.ccReadStringsBeforeCursor";
 const char CC_READ_STRINGS_AFTER_CURSOR[] = "QodeAssist.ccReadStringsAfterCursor";
-const char CC_USE_SYSTEM_PROMPT[] = "QodeAssist.ccUseSystemPrompt";
-const char CC_SYSTEM_PROMPT[] = "QodeAssist.ccSystemPrompt";
-const char CC_SYSTEM_PROMPT_FOR_NON_FIM[] = "QodeAssist.ccSystemPromptForNonFim";
-const char CC_USE_USER_TEMPLATE[] = "QodeAssist.ccUseUserTemplate";
-const char CC_USER_TEMPLATE[] = "QodeAssist.ccUserTemplate";
 const char CC_USE_PROJECT_CHANGES_CACHE[] = "QodeAssist.ccUseProjectChangesCache";
 const char CC_MAX_CHANGES_CACHE_SIZE[] = "QodeAssist.ccMaxChangesCacheSize";
-const char CA_USE_SYSTEM_PROMPT[] = "QodeAssist.useChatSystemPrompt";
-const char CA_SYSTEM_PROMPT[] = "QodeAssist.chatSystemPrompt";
-
-// preset prompt settings
-const char CC_TEMPERATURE[] = "QodeAssist.ccTemperature";
-const char CC_MAX_TOKENS[] = "QodeAssist.ccMaxTokens";
-const char CC_USE_TOP_P[] = "QodeAssist.ccUseTopP";
-const char CC_TOP_P[] = "QodeAssist.ccTopP";
-const char CC_USE_TOP_K[] = "QodeAssist.ccUseTopK";
-const char CC_TOP_K[] = "QodeAssist.ccTopK";
-const char CC_USE_PRESENCE_PENALTY[] = "QodeAssist.ccUsePresencePenalty";
-const char CC_PRESENCE_PENALTY[] = "QodeAssist.ccPresencePenalty";
-const char CC_USE_FREQUENCY_PENALTY[] = "QodeAssist.fimUseFrequencyPenalty";
-const char CC_FREQUENCY_PENALTY[] = "QodeAssist.fimFrequencyPenalty";
-const char CC_OLLAMA_LIVETIME[] = "QodeAssist.fimOllamaLivetime";
-const char CC_OLLAMA_CONTEXT_WINDOW[] = "QodeAssist.ccOllamaContextWindow";
-
-// OpenAI Responses API Settings
-const char CC_OPENAI_RESPONSES_REASONING_EFFORT[] = "QodeAssist.ccOpenAIResponsesReasoningEffort";
-
-const char CA_TEMPERATURE[] = "QodeAssist.chatTemperature";
-const char CA_MAX_TOKENS[] = "QodeAssist.chatMaxTokens";
-const char CA_USE_TOP_P[] = "QodeAssist.chatUseTopP";
-const char CA_TOP_P[] = "QodeAssist.chatTopP";
-const char CA_USE_TOP_K[] = "QodeAssist.chatUseTopK";
-const char CA_TOP_K[] = "QodeAssist.chatTopK";
-const char CA_USE_PRESENCE_PENALTY[] = "QodeAssist.chatUsePresencePenalty";
-const char CA_PRESENCE_PENALTY[] = "QodeAssist.chatPresencePenalty";
-const char CA_USE_FREQUENCY_PENALTY[] = "QodeAssist.chatUseFrequencyPenalty";
-const char CA_FREQUENCY_PENALTY[] = "QodeAssist.chatFrequencyPenalty";
-const char CA_OLLAMA_LIVETIME[] = "QodeAssist.chatOllamaLivetime";
-const char CA_OLLAMA_CONTEXT_WINDOW[] = "QodeAssist.caOllamaContextWindow";
-const char CA_ENABLE_THINKING_MODE[] = "QodeAssist.caEnableThinkingMode";
-const char CA_THINKING_BUDGET_TOKENS[] = "QodeAssist.caThinkingBudgetTokens";
-const char CA_THINKING_MAX_TOKENS[] = "QodeAssist.caThinkingMaxTokens";
-
-// OpenAI Responses API Settings
-const char CA_OPENAI_RESPONSES_REASONING_EFFORT[] = "QodeAssist.caOpenAIResponsesReasoningEffort";
 
 const char CA_TEXT_FONT_FAMILY[] = "QodeAssist.caTextFontFamily";
 const char CA_TEXT_FONT_SIZE[] = "QodeAssist.caTextFontSize";
@@ -230,33 +183,10 @@ const char CA_CODE_FONT_SIZE[] = "QodeAssist.caCodeFontSize";
 const char CA_TEXT_FORMAT[] = "QodeAssist.caTextFormat";
 const char CA_CHAT_RENDERER[] = "QodeAssist.caChatRenderer";
 
-const char CA_LAST_USED_ROLE[] = "QodeAssist.caLastUsedRole";
-
 // quick refactor preset prompt settings
-const char QR_TEMPERATURE[] = "QodeAssist.qrTemperature";
-const char QR_MAX_TOKENS[] = "QodeAssist.qrMaxTokens";
-const char QR_USE_TOP_P[] = "QodeAssist.qrUseTopP";
-const char QR_TOP_P[] = "QodeAssist.qrTopP";
-const char QR_USE_TOP_K[] = "QodeAssist.qrUseTopK";
-const char QR_TOP_K[] = "QodeAssist.qrTopK";
-const char QR_USE_PRESENCE_PENALTY[] = "QodeAssist.qrUsePresencePenalty";
-const char QR_PRESENCE_PENALTY[] = "QodeAssist.qrPresencePenalty";
-const char QR_USE_FREQUENCY_PENALTY[] = "QodeAssist.qrUseFrequencyPenalty";
-const char QR_FREQUENCY_PENALTY[] = "QodeAssist.qrFrequencyPenalty";
-const char QR_OLLAMA_LIVETIME[] = "QodeAssist.qrOllamaLivetime";
-const char QR_OLLAMA_CONTEXT_WINDOW[] = "QodeAssist.qrOllamaContextWindow";
-const char QR_USE_TOOLS[] = "QodeAssist.qrUseTools";
-const char QR_USE_THINKING[] = "QodeAssist.qrUseThinking";
-const char QR_THINKING_BUDGET_TOKENS[] = "QodeAssist.qrThinkingBudgetTokens";
-const char QR_THINKING_MAX_TOKENS[] = "QodeAssist.qrThinkingMaxTokens";
-
-// OpenAI Responses API Settings
-const char QR_OPENAI_RESPONSES_REASONING_EFFORT[] = "QodeAssist.qrOpenAIResponsesReasoningEffort";
-
 const char QR_READ_FULL_FILE[] = "QodeAssist.qrReadFullFile";
 const char QR_READ_STRINGS_BEFORE_CURSOR[] = "QodeAssist.qrReadStringsBeforeCursor";
 const char QR_READ_STRINGS_AFTER_CURSOR[] = "QodeAssist.qrReadStringsAfterCursor";
-const char QR_SYSTEM_PROMPT[] = "QodeAssist.qrSystemPrompt";
 const char QR_USE_OPEN_FILES_IN_QUICK_REFACTOR[] = "QodeAssist.qrUseOpenFilesInQuickRefactor";
 const char QR_DISPLAY_MODE[] = "QodeAssist.qrDisplayMode";
 const char QR_WIDGET_ORIENTATION[] = "QodeAssist.qrWidgetOrientation";

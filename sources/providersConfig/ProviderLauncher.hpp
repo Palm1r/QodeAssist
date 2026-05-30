@@ -48,11 +48,8 @@ public:
     void restart(const QString &instanceName, const LaunchConfig &cfg);
 
     [[nodiscard]] State state(const QString &instanceName) const;
-    [[nodiscard]] bool isReady(const QString &instanceName) const;
     [[nodiscard]] QString lastError(const QString &instanceName) const;
     [[nodiscard]] QByteArray scrollback(const QString &instanceName) const;
-
-    [[nodiscard]] QStringList activeInstances() const;
 
 signals:
     void stateChanged(const QString &instanceName, State newState);

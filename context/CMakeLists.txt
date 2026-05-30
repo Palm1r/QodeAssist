@@ -1,7 +1,10 @@
 add_library(Context STATIC
     DocumentContextReader.hpp DocumentContextReader.cpp
+    EnvBlockFormatter.hpp EnvBlockFormatter.cpp
     ChangesManager.h ChangesManager.cpp
     ContextManager.hpp ContextManager.cpp
+    IProjectScanner.hpp
+    ProjectScannerQtCreator.hpp ProjectScannerQtCreator.cpp
     ContentFile.hpp
     DocumentReaderQtCreator.hpp
     IDocumentReader.hpp
@@ -21,7 +24,7 @@ target_link_libraries(Context
     QtCreator::Utils
     QtCreator::ProjectExplorer
     PRIVATE
-    PluginLLMCore
+    Common
     QodeAssistSettings
 )
 

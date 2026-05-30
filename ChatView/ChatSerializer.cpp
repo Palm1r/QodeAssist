@@ -5,7 +5,8 @@
 #include "ChatSerializer.hpp"
 #include "Logger.hpp"
 
-#include <QBuffer>
+#include <memory>
+
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -13,12 +14,57 @@
 #include <QJsonDocument>
 #include <QUuid>
 
+#include <LLMQore/ContentBlocks.hpp>
+
+#include <ConversationHistory.hpp>
+#include <Message.hpp>
+#include <MessageSerializer.hpp>
+#include <PluginBlocks.hpp>
+
+#include "context/ChangesManager.h"
+
 namespace QodeAssist::Chat {
 
-const QString ChatSerializer::VERSION = "0.2";
+namespace {
 
-SerializationResult ChatSerializer::saveToFile(const ChatModel *model, const QString &filePath)
+const QString kFileEditMarker = QStringLiteral("QODEASSIST_FILE_EDIT:");
+
+// Legacy (<= 0.2) per-row ChatRole values, kept only for importing old chat files.
+enum class LegacyRole { System = 0, User = 1, Assistant = 2, Tool = 3, FileEdit = 4, Thinking = 5 };
+
+void registerEditFromResult(const QString &result)
 {
+    const int pos = result.indexOf(kFileEditMarker);
+    if (pos < 0)
+        return;
+    const QString jsonStr = result.mid(pos + kFileEditMarker.length());
+    const QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8());
+    if (!doc.isObject())
+        return;
+    const QJsonObject obj = doc.object();
+    const QString editId = obj.value("edit_id").toString();
+    const QString filePath = obj.value("file").toString();
+    if (editId.isEmpty() || filePath.isEmpty())
+        return;
+    Context::ChangesManager::instance().addFileEdit(
+        editId,
+        filePath,
+        obj.value("old_content").toString(),
+        obj.value("new_content").toString(),
+        /*autoApply=*/false,
+        /*isFromHistory=*/true);
+}
+
+} // namespace
+
+const QString ChatSerializer::VERSION = "0.3";
+
+SerializationResult ChatSerializer::saveToFile(
+    const ConversationHistory *history, const QString &filePath)
+{
+    if (!history)
+        return {false, "No conversation history"};
+
     if (!ensureDirectoryExists(filePath)) {
         return {false, "Failed to create directory structure"};
     }
@@ -28,9 +74,7 @@ SerializationResult ChatSerializer::saveToFile(const ChatModel *model, const QSt
         return {false, QString("Failed to open file for writing: %1").arg(filePath)};
     }
 
-    QJsonObject root = serializeChat(model, filePath);
-    QJsonDocument doc(root);
-
+    QJsonDocument doc(serializeChat(history));
     if (file.write(doc.toJson(QJsonDocument::Indented)) == -1) {
         return {false, QString("Failed to write to file: %1").arg(file.errorString())};
     }
@@ -38,8 +82,12 @@ SerializationResult ChatSerializer::saveToFile(const ChatModel *model, const QSt
     return {true, QString()};
 }
 
-SerializationResult ChatSerializer::loadFromFile(ChatModel *model, const QString &filePath)
+SerializationResult ChatSerializer::loadFromFile(
+    ConversationHistory *history, const QString &filePath)
 {
+    if (!history)
+        return {false, "No conversation history"};
+
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {
         return {false, QString("Failed to open file for reading: %1").arg(filePath)};
@@ -51,180 +99,140 @@ SerializationResult ChatSerializer::loadFromFile(ChatModel *model, const QString
         return {false, QString("JSON parse error: %1").arg(error.errorString())};
     }
 
-    QJsonObject root = doc.object();
-    QString version = root["version"].toString();
-
+    const QJsonObject root = doc.object();
+    const QString version = root["version"].toString();
     if (!validateVersion(version)) {
         return {false, QString("Unsupported version: %1").arg(version)};
     }
 
-    if (!deserializeChat(model, root, filePath)) {
-        return {false, "Failed to deserialize chat data"};
-    }
-
-    return {true, QString()};
+    if (version == VERSION)
+        return loadCurrent(history, root);
+    return loadLegacy(history, root);
 }
 
-QJsonObject ChatSerializer::serializeMessage(
-    const ChatModel::Message &message, const QString &chatFilePath)
-{
-    QJsonObject messageObj;
-    messageObj["role"] = static_cast<int>(message.role);
-    messageObj["content"] = message.content;
-    messageObj["id"] = message.id;
-
-    if (message.isRedacted) {
-        messageObj["isRedacted"] = true;
-    }
-
-    if (!message.signature.isEmpty()) {
-        messageObj["signature"] = message.signature;
-    }
-
-    if (message.role == ChatModel::ChatRole::Tool) {
-        if (!message.toolName.isEmpty())
-            messageObj["toolName"] = message.toolName;
-        if (!message.toolArguments.isEmpty())
-            messageObj["toolArguments"] = message.toolArguments;
-        if (!message.toolResult.isEmpty())
-            messageObj["toolResult"] = message.toolResult;
-    }
-
-    if (!message.attachments.isEmpty()) {
-        QJsonArray attachmentsArray;
-        for (const auto &attachment : message.attachments) {
-            QJsonObject attachmentObj;
-            attachmentObj["fileName"] = attachment.filename;
-            attachmentObj["storedPath"] = attachment.content;
-            attachmentsArray.append(attachmentObj);
-        }
-        messageObj["attachments"] = attachmentsArray;
-    }
-
-    if (!message.images.isEmpty()) {
-        QJsonArray imagesArray;
-        for (const auto &image : message.images) {
-            QJsonObject imageObj;
-            imageObj["fileName"] = image.fileName;
-            imageObj["storedPath"] = image.storedPath;
-            imageObj["mediaType"] = image.mediaType;
-            imagesArray.append(imageObj);
-        }
-        messageObj["images"] = imagesArray;
-    }
-
-    if (message.promptTokens > 0 || message.completionTokens > 0) {
-        QJsonObject usageObj;
-        usageObj["promptTokens"] = message.promptTokens;
-        usageObj["completionTokens"] = message.completionTokens;
-        if (message.cachedPromptTokens > 0)
-            usageObj["cachedPromptTokens"] = message.cachedPromptTokens;
-        if (message.reasoningTokens > 0)
-            usageObj["reasoningTokens"] = message.reasoningTokens;
-        messageObj["usage"] = usageObj;
-    }
-
-    return messageObj;
-}
-
-ChatModel::Message ChatSerializer::deserializeMessage(
-    const QJsonObject &json, const QString &chatFilePath)
-{
-    ChatModel::Message message;
-    message.role = static_cast<ChatModel::ChatRole>(json["role"].toInt());
-    message.content = json["content"].toString();
-    message.id = json["id"].toString();
-    message.isRedacted = json["isRedacted"].toBool(false);
-    message.signature = json["signature"].toString();
-    message.toolName = json["toolName"].toString();
-    message.toolArguments = json["toolArguments"].toObject();
-    message.toolResult = json["toolResult"].toString();
-
-    if (json.contains("attachments")) {
-        QJsonArray attachmentsArray = json["attachments"].toArray();
-        for (const auto &attachmentValue : attachmentsArray) {
-            QJsonObject attachmentObj = attachmentValue.toObject();
-            Context::ContentFile attachment;
-            attachment.filename = attachmentObj["fileName"].toString();
-            attachment.content = attachmentObj["storedPath"].toString();
-            message.attachments.append(attachment);
-        }
-    }
-
-    if (json.contains("images")) {
-        QJsonArray imagesArray = json["images"].toArray();
-        for (const auto &imageValue : imagesArray) {
-            QJsonObject imageObj = imageValue.toObject();
-            ChatModel::ImageAttachment image;
-            image.fileName = imageObj["fileName"].toString();
-            image.storedPath = imageObj["storedPath"].toString();
-            image.mediaType = imageObj["mediaType"].toString();
-            message.images.append(image);
-        }
-    }
-
-    if (json.contains("usage")) {
-        const QJsonObject usageObj = json["usage"].toObject();
-        message.promptTokens = usageObj["promptTokens"].toInt();
-        message.completionTokens = usageObj["completionTokens"].toInt();
-        message.cachedPromptTokens = usageObj["cachedPromptTokens"].toInt();
-        message.reasoningTokens = usageObj["reasoningTokens"].toInt();
-    }
-
-    return message;
-}
-
-QJsonObject ChatSerializer::serializeChat(const ChatModel *model, const QString &chatFilePath)
+QJsonObject ChatSerializer::serializeChat(const ConversationHistory *history)
 {
     QJsonArray messagesArray;
-    for (const auto &message : model->getChatHistory()) {
-        messagesArray.append(serializeMessage(message, chatFilePath));
-    }
+    for (const auto &message : history->messages())
+        messagesArray.append(MessageSerializer::toJson(message));
 
     QJsonObject root;
     root["version"] = VERSION;
     root["messages"] = messagesArray;
-
     return root;
 }
 
-bool ChatSerializer::deserializeChat(
-    ChatModel *model, const QJsonObject &json, const QString &chatFilePath)
+SerializationResult ChatSerializer::loadCurrent(ConversationHistory *history, const QJsonObject &root)
 {
-    QJsonArray messagesArray = json["messages"].toArray();
-    QVector<ChatModel::Message> messages;
-    messages.reserve(messagesArray.size());
+    history->clear();
 
-    for (const auto &messageValue : messagesArray) {
-        messages.append(deserializeMessage(messageValue.toObject(), chatFilePath));
+    const QJsonArray messagesArray = root["messages"].toArray();
+    for (const auto &value : messagesArray) {
+        bool ok = false;
+        Message message = MessageSerializer::fromJson(value.toObject(), &ok);
+        if (ok)
+            history->append(std::move(message));
     }
 
-    model->clear();
+    registerHistoricalFileEdits(history);
+    return {true, QString()};
+}
 
-    model->setLoadingFromHistory(true);
+SerializationResult ChatSerializer::loadLegacy(ConversationHistory *history, const QJsonObject &root)
+{
+    history->clear();
 
-    for (const auto &message : messages) {
-        model->addMessage(
-            message.content,
-            message.role,
-            message.id,
-            message.attachments,
-            message.images,
-            message.isRedacted,
-            message.signature);
-        if (message.role == ChatModel::ChatRole::Tool) {
-            model->setToolMessageData(
-                message.id, message.toolName, message.toolArguments, message.toolResult);
+    const QJsonArray arr = root["messages"].toArray();
+    int i = 0;
+    while (i < arr.size()) {
+        const QJsonObject mj = arr[i].toObject();
+        const auto role = static_cast<LegacyRole>(mj["role"].toInt());
+
+        if (role == LegacyRole::Tool) {
+            Message assistant(Message::Role::Assistant);
+            Message toolResults(Message::Role::User);
+            while (i < arr.size()
+                   && static_cast<LegacyRole>(arr[i].toObject()["role"].toInt()) == LegacyRole::Tool) {
+                const QJsonObject tj = arr[i].toObject();
+                const QString toolName = tj["toolName"].toString();
+                const QString id = tj["id"].toString();
+                if (!toolName.isEmpty()) {
+                    assistant.appendBlock(std::make_unique<LLMQore::ToolUseContent>(
+                        id, toolName, tj["toolArguments"].toObject()));
+                    toolResults.appendBlock(std::make_unique<LLMQore::ToolResultContent>(
+                        id, tj["toolResult"].toString()));
+                }
+                ++i;
+            }
+            if (!assistant.blocks().empty()) {
+                history->append(std::move(assistant));
+                history->append(std::move(toolResults));
+            }
+            continue;
         }
-        LOG_MESSAGE(QString("Loaded message with %1 image(s), isRedacted=%2, signature length=%3")
-                        .arg(message.images.size())
-                        .arg(message.isRedacted)
-                        .arg(message.signature.length()));
+
+        ++i;
+
+        if (role == LegacyRole::FileEdit)
+            continue; // derived from the tool result in the new model
+
+        if (role == LegacyRole::Thinking) {
+            const QString content = mj["content"].toString();
+            const QString signature = mj["signature"].toString();
+            Message assistant(Message::Role::Assistant);
+            if (mj["isRedacted"].toBool(false)) {
+                assistant.appendBlock(
+                    std::make_unique<LLMQore::RedactedThinkingContent>(signature));
+            } else {
+                const int sigPos = content.indexOf(QStringLiteral("\n[Signature:"));
+                const QString thinking = sigPos >= 0 ? content.left(sigPos) : content;
+                assistant.appendBlock(
+                    std::make_unique<LLMQore::ThinkingContent>(thinking, signature));
+            }
+            history->append(std::move(assistant));
+            continue;
+        }
+
+        if (role == LegacyRole::User) {
+            Message user(Message::Role::User, mj["id"].toString());
+            user.appendBlock(std::make_unique<LLMQore::TextContent>(mj["content"].toString()));
+            for (const auto &a : mj["attachments"].toArray()) {
+                const QJsonObject ao = a.toObject();
+                user.appendBlock(std::make_unique<StoredAttachmentContent>(
+                    ao["fileName"].toString(), ao["storedPath"].toString()));
+            }
+            for (const auto &im : mj["images"].toArray()) {
+                const QJsonObject io = im.toObject();
+                user.appendBlock(std::make_unique<StoredImageContent>(
+                    io["fileName"].toString(),
+                    io["storedPath"].toString(),
+                    io["mediaType"].toString()));
+            }
+            history->append(std::move(user));
+        } else {
+            const QString content = mj["content"].toString();
+            if (content.trimmed().isEmpty())
+                continue;
+            const Message::Role mapped
+                = role == LegacyRole::System ? Message::Role::System : Message::Role::Assistant;
+            Message message(mapped, mj["id"].toString());
+            message.appendBlock(std::make_unique<LLMQore::TextContent>(content));
+            history->append(std::move(message));
+        }
     }
 
-    model->setLoadingFromHistory(false);
+    registerHistoricalFileEdits(history);
+    return {true, QString()};
+}
 
-    return true;
+void ChatSerializer::registerHistoricalFileEdits(const ConversationHistory *history)
+{
+    for (const auto &message : history->messages()) {
+        for (const auto &block : message.blocks()) {
+            if (auto *tr = dynamic_cast<LLMQore::ToolResultContent *>(block.get()))
+                registerEditFromResult(tr->result());
+        }
+    }
 }
 
 bool ChatSerializer::ensureDirectoryExists(const QString &filePath)
@@ -236,18 +244,7 @@ bool ChatSerializer::ensureDirectoryExists(const QString &filePath)
 
 bool ChatSerializer::validateVersion(const QString &version)
 {
-    if (version == VERSION) {
-        return true;
-    }
-
-    if (version == "0.1") {
-        LOG_MESSAGE(
-            "Loading chat from old format 0.1 - images folder structure has changed from _images "
-            "to _content");
-        return true;
-    }
-
-    return false;
+    return version == VERSION || version == "0.2" || version == "0.1";
 }
 
 QString ChatSerializer::getChatContentFolder(const QString &chatFilePath)
@@ -303,10 +300,20 @@ bool ChatSerializer::saveContentToStorage(
     return true;
 }
 
-QString ChatSerializer::loadContentFromStorage(const QString &chatFilePath, const QString &storedPath)
+QString ChatSerializer::loadContentFromStorage(
+    const QString &chatFilePath, const QString &storedPath, StoredContentCache *cache)
 {
-    QString contentFolder = getChatContentFolder(chatFilePath);
-    QString fullPath = QDir(contentFolder).filePath(storedPath);
+    const QString contentFolder = getChatContentFolder(chatFilePath);
+    const QString fullPath = QDir(contentFolder).filePath(storedPath);
+
+    const QFileInfo info(fullPath);
+    if (cache) {
+        const auto it = cache->constFind(fullPath);
+        if (it != cache->constEnd() && it->modified == info.lastModified()
+            && it->size == info.size()) {
+            return it->base64;
+        }
+    }
 
     QFile file(fullPath);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -314,10 +321,12 @@ QString ChatSerializer::loadContentFromStorage(const QString &chatFilePath, cons
         return QString();
     }
 
-    QByteArray contentData = file.readAll();
-    file.close();
+    const QString base64 = QString::fromUtf8(file.readAll().toBase64());
 
-    return contentData.toBase64();
+    if (cache)
+        cache->insert(fullPath, {info.lastModified(), info.size(), base64});
+
+    return base64;
 }
 
 } // namespace QodeAssist::Chat

@@ -1,0 +1,62 @@
+schema_version = 1
+
+name        = "OpenAI Base Chat"
+description = "OpenAI Chat Completions request body (/chat/completions). Abstract — extend it and set model."
+abstract    = true
+
+provider_instance = "OpenAI (Chat Completions)"
+endpoint          = "/chat/completions"
+
+[body]
+stream = true
+messages = """
+[
+{% if existsIn(ctx, "system_prompt") %}
+{ "role": "system", "content": {{ tojson(ctx.system_prompt) }} },
+{% endif %}
+{% for msg in ctx.history %}
+  {% if msg.role == "assistant" %}
+  {% set tcalls = filter_by_type(msg.content_blocks, "tool_use") %}
+  {
+    "role": "assistant",
+    "content": {% if msg.content != "" %}{{ tojson(msg.content) }}{% else %}null{% endif %}
+    {% if length(tcalls) > 0 %}
+    , "tool_calls": [
+      {% for b in tcalls %}
+      {
+        "id": {{ tojson(b.id) }},
+        "type": "function",
+        "function": {
+          "name": {{ tojson(b.name) }},
+          "arguments": {{ tojson(tojson(b.input)) }}
+        }
+      },
+      {% endfor %}
+    ]
+    {% endif %}
+  },
+  {% else if length(filter_by_type(msg.content_blocks, "tool_result")) > 0 %}
+  {% for b in filter_by_type(msg.content_blocks, "tool_result") %}
+  { "role": "tool", "tool_call_id": {{ tojson(b.tool_use_id) }}, "content": {{ tojson(b.content) }} },
+  {% endfor %}
+  {% else %}
+  {% if existsIn(msg, "images") %}
+  { "role": "user", "content": [
+    {% if msg.content != "" %}
+    { "type": "text", "text": {{ tojson(msg.content) }} },
+    {% endif %}
+    {% for img in msg.images %}
+    {% if img.is_url %}
+    { "type": "image_url", "image_url": { "url": {{ tojson(img.data) }} } },
+    {% else %}
+    { "type": "image_url", "image_url": { "url": "data:{{ img.media_type }};base64,{{ img.data }}" } },
+    {% endif %}
+    {% endfor %}
+  ] },
+  {% else %}
+  { "role": "user", "content": {{ tojson(msg.content) }} },
+  {% endif %}
+  {% endif %}
+{% endfor %}
+]
+"""

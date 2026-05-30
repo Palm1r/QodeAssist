@@ -206,7 +206,6 @@ The LLM receives:
 - **Cursor Position**: Marked with `<cursor>` tag
 - **Selection Markers**: `<selection_start>` and `<selection_end>` tags
 - **Your Instructions**: Built-in, custom, or typed
-- **Project Rules**: If configured (see [Project Rules](project-rules.md))
 
 ### Context Configuration
 
@@ -270,7 +269,6 @@ Fully local setup for offline or secure environments.
 
 ## Related Documentation
 
-- [Project Rules](project-rules.md) - Project-specific AI behavior customization
 - [File Context](file-context.md) - Attaching files to chat context
 - [Ignoring Files](ignoring-files.md) - Exclude files from AI context
 - [Provider Configuration](../README.md#configuration) - Setting up LLM providers

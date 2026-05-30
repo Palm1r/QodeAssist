@@ -4,15 +4,16 @@
 
 #include "SessionManager.hpp"
 
+#include <LLMQore/BaseClient.hpp>
+#include <LLMQore/ToolsManager.hpp>
+
 #include "Agent.hpp"
 #include "AgentFactory.hpp"
+#include "ConversationHistory.hpp"
 #include "Session.hpp"
+#include "SystemPromptBuilder.hpp"
 
 namespace QodeAssist {
-
-SessionManager::SessionManager(QObject *parent)
-    : QObject(parent)
-{}
 
 SessionManager::SessionManager(AgentFactory *agentFactory, QObject *parent)
     : QObject(parent)
@@ -20,14 +21,6 @@ SessionManager::SessionManager(AgentFactory *agentFactory, QObject *parent)
 {}
 
 SessionManager::~SessionManager() = default;
-
-Session *SessionManager::createSession()
-{
-    auto *session = new Session(this);
-    m_sessions.append(session);
-    emit sessionCreated(session);
-    return session;
-}
 
 Session *SessionManager::createSession(const QString &agentName, QString *errorOut)
 {
@@ -66,6 +59,64 @@ Session *SessionManager::createSession(
     return session;
 }
 
+Session *SessionManager::acquire(const QString &agentName, QString *errorOut)
+{
+    auto &bucket = m_pool[agentName];
+    while (!bucket.isEmpty()) {
+        QPointer<Session> pooled = bucket.takeLast();
+        if (pooled && pooled->isValid()) {
+            resetSession(pooled);
+            m_sessions.append(pooled);
+            return pooled.data();
+        }
+        if (pooled)
+            pooled->deleteLater();
+    }
+
+    return createSession(agentName, /*externalHistory=*/nullptr, errorOut);
+}
+
+void SessionManager::release(Session *session)
+{
+    if (!session)
+        return;
+
+    const int idx = m_sessions.indexOf(session);
+    if (idx < 0)
+        return;
+    m_sessions.removeAt(idx);
+
+    if (session->isInFlight())
+        session->cancel();
+
+    session->disconnect();
+    resetSession(session);
+
+    const QString agentName
+        = session->agent() ? session->agent()->config().name : QString();
+    QList<QPointer<Session>> &bucket = m_pool[agentName];
+    if (agentName.isEmpty() || bucket.size() >= kMaxPooledPerAgent) {
+        emit sessionRemoved(session);
+        session->deleteLater();
+    } else {
+        bucket.append(session);
+    }
+}
+
+void SessionManager::resetSession(Session *session)
+{
+    if (!session)
+        return;
+    if (auto *history = session->history())
+        history->clear();
+    if (auto *systemPrompt = session->systemPrompt())
+        systemPrompt->clear();
+    if (auto *client = session->client()) {
+        if (auto *tools = client->tools())
+            tools->removeAllTools();
+    }
+}
+
 void SessionManager::removeSession(Session *session)
 {
     if (!session)
@@ -81,26 +132,6 @@ void SessionManager::removeSession(Session *session)
     m_sessions.removeAt(idx);
     emit sessionRemoved(session);
     session->deleteLater();
-}
-
-QList<Session *> SessionManager::sessions() const
-{
-    QList<Session *> out;
-    out.reserve(m_sessions.size());
-    for (const auto &p : m_sessions) {
-        if (p)
-            out.append(p.data());
-    }
-    return out;
-}
-
-void SessionManager::cancelAll()
-{
-    const auto snapshot = m_sessions;
-    for (const auto &p : snapshot) {
-        if (p && p->isInFlight())
-            p->cancel();
-    }
 }
 
 } // namespace QodeAssist

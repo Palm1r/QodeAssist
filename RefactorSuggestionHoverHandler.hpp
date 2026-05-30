@@ -32,7 +32,6 @@ public:
 
     void setSuggestionRange(const Utils::Text::Range &range);
     void clearSuggestionRange();
-    bool hasSuggestion() const { return m_hasSuggestion; }
 
     void setApplyCallback(ApplyCallback callback) { m_applyCallback = std::move(callback); }
     void setDismissCallback(DismissCallback callback) { m_dismissCallback = std::move(callback); }

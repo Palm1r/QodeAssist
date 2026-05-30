@@ -7,13 +7,15 @@
 #include <QObject>
 #include <QStringList>
 
+namespace QodeAssist {
+class ConversationHistory;
+}
+
 namespace QodeAssist::Context {
 class ContextManager;
 }
 
 namespace QodeAssist::Chat {
-
-class ChatModel;
 
 class InputTokenCounter : public QObject
 {
@@ -21,7 +23,9 @@ class InputTokenCounter : public QObject
 
 public:
     InputTokenCounter(
-        ChatModel *chatModel, Context::ContextManager *contextManager, QObject *parent = nullptr);
+        ConversationHistory *history,
+        Context::ContextManager *contextManager,
+        QObject *parent = nullptr);
 
     int inputTokens() const;
 
@@ -37,11 +41,8 @@ signals:
     void inputTokensChanged();
 
 private:
-    void rewireToolsChangedConnection();
-
-    ChatModel *m_chatModel;
+    ConversationHistory *m_history;
     Context::ContextManager *m_contextManager;
-    QMetaObject::Connection m_toolsChangedConn;
 
     QStringList m_attachments;
     QStringList m_linkedFiles;

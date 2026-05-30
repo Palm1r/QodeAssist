@@ -15,9 +15,8 @@
 #include <QSaveFile>
 #include <QTimer>
 
+#include <LLMQore/ToolsManager.hpp>
 #include <logger/Logger.hpp>
-#include <pluginllmcore/Provider.hpp>
-#include <pluginllmcore/ProvidersManager.hpp>
 #include <settings/McpSettings.hpp>
 
 namespace QodeAssist::Mcp {
@@ -176,18 +175,14 @@ QList<McpServerConnection *> McpClientsManager::connections() const
     return m_connections;
 }
 
-QList<PluginLLMCore::Provider *> McpClientsManager::toolsCapableProviders() const
+void McpClientsManager::registerToolsOn(::LLMQore::ToolsManager *tools) const
 {
-    QList<PluginLLMCore::Provider *> out;
-    auto &pm = PluginLLMCore::ProvidersManager::instance();
-    for (const QString &name : pm.providersNames()) {
-        auto *p = pm.getProviderByName(name);
-        if (!p)
-            continue;
-        if (p->capabilities().testFlag(PluginLLMCore::ProviderCapability::Tools))
-            out.append(p);
+    if (!tools)
+        return;
+    for (auto *c : m_connections) {
+        if (c)
+            c->registerToolsOn(tools);
     }
-    return out;
 }
 
 QJsonObject McpClientsManager::builtinServers()
@@ -319,8 +314,6 @@ void McpClientsManager::loadFromDisk()
         newConfigs.append(McpServerConfig::fromJson(it.key(), it.value().toObject()));
     }
 
-    const auto providers = toolsCapableProviders();
-
     const bool masterEnabled = Settings::mcpSettings().enableMcpClients();
 
     QList<McpServerConnection *> keep;
@@ -350,7 +343,6 @@ void McpClientsManager::loadFromDisk()
                 existing->deleteLater();
             }
             c = new McpServerConnection(cfg, this);
-            c->setProviders(providers);
             connect(
                 c,
                 &McpServerConnection::stateChanged,

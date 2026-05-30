@@ -9,6 +9,8 @@
 
 #include <variant>
 
+#include "ErrorInfo.hpp"
+
 namespace QodeAssist {
 
 namespace ResponseEvents {
@@ -45,6 +47,7 @@ struct ToolCallEnd
 struct ToolResult
 {
     QString toolUseId;
+    QString name;
     QString text;
     bool isError = false;
 };
@@ -53,11 +56,14 @@ struct Usage
 {
     int inputTokens = 0;
     int outputTokens = 0;
+    int cachedTokens = 0;
+    int reasoningTokens = 0;
 };
 
 struct Error
 {
     QString message;
+    ErrorCategory category = ErrorCategory::Provider;
 };
 
 struct MessageStop
@@ -115,34 +121,33 @@ public:
         return {Kind::ToolCallStart, ResponseEvents::ToolCallStart{std::move(id), std::move(name)}};
     }
 
-    static ResponseEvent toolCallArgsDelta(QString id, QString jsonFragment)
-    {
-        return {
-            Kind::ToolCallArgsDelta,
-            ResponseEvents::ToolCallArgsDelta{std::move(id), std::move(jsonFragment)}};
-    }
-
     static ResponseEvent toolCallEnd(QString id, QJsonObject finalArgs)
     {
         return {
             Kind::ToolCallEnd, ResponseEvents::ToolCallEnd{std::move(id), std::move(finalArgs)}};
     }
 
-    static ResponseEvent toolResult(QString toolUseId, QString text, bool isError = false)
+    static ResponseEvent toolResult(
+        QString toolUseId, QString name, QString text, bool isError = false)
     {
         return {
             Kind::ToolResult,
-            ResponseEvents::ToolResult{std::move(toolUseId), std::move(text), isError}};
+            ResponseEvents::ToolResult{
+                std::move(toolUseId), std::move(name), std::move(text), isError}};
     }
 
-    static ResponseEvent usage(int inputTokens, int outputTokens)
+    static ResponseEvent usage(
+        int inputTokens, int outputTokens, int cachedTokens = 0, int reasoningTokens = 0)
     {
-        return {Kind::Usage, ResponseEvents::Usage{inputTokens, outputTokens}};
+        return {
+            Kind::Usage,
+            ResponseEvents::Usage{inputTokens, outputTokens, cachedTokens, reasoningTokens}};
     }
 
-    static ResponseEvent error(QString message)
+    static ResponseEvent error(
+        QString message, ErrorCategory category = ErrorCategory::Provider)
     {
-        return {Kind::Error, ResponseEvents::Error{std::move(message)}};
+        return {Kind::Error, ResponseEvents::Error{std::move(message), category}};
     }
 
 private:

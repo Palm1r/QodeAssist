@@ -234,19 +234,6 @@ void IgnoreManager::removeIgnorePatterns(ProjectExplorer::Project *project)
     LOG_MESSAGE(QString("Removed ignore patterns for project: %1").arg(project->displayName()));
 }
 
-void IgnoreManager::reloadAllPatterns()
-{
-    QList<ProjectExplorer::Project *> projects = m_projectIgnorePatterns.keys();
-
-    for (ProjectExplorer::Project *project : projects) {
-        if (project) {
-            reloadIgnorePatterns(project);
-        }
-    }
-
-    m_ignoreCache.clear();
-}
-
 QString IgnoreManager::ignoreFilePath(ProjectExplorer::Project *project) const
 {
     if (!project) {

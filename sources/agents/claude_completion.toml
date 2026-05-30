@@ -1,0 +1,30 @@
+schema_version = 1
+
+extends     = "Claude Base Chat"
+name        = "Claude Code Completion"
+description = "Anthropic Claude — code completion using the master <code_context> message format over the Messages API."
+
+model = "claude-haiku-4-5"
+tags  = ["completion", "claude", "cloud"]
+
+system_prompt = """
+{%- if language == "qml" %}{{ read_file(":/roles/code-completion-qml.md") }}
+{%- else if language == "c-like" %}{{ read_file(":/roles/code-completion-c-like.md") }}
+{%- else %}{{ read_file(":/roles/code-completion.md") }}
+{%- endif %}
+{{ read_file(":/tasks/code-completion.md") }}"""
+
+[body]
+max_tokens = 512
+temperature = 0
+stop_sequences = ["</code_context>"]
+messages = """
+[
+  {
+    "role": "user",
+    "content": [
+      { "type": "text", "text": {{ tojson("Here is the code context with insertion points:\\n<code_context>\\n" + ctx.prefix + "<cursor>" + ctx.suffix + "\\n</code_context>") }} }
+    ]
+  }
+]
+"""

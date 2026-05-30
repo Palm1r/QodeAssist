@@ -5,9 +5,31 @@
 #include "LLMClientInterface.hpp"
 
 #include <LLMQore/BaseClient.hpp>
+#include <QDir>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+
+#include <projectexplorer/project.h>
+#include <projectexplorer/projectmanager.h>
+#include <utils/filepath.h>
+
+#include "sources/common/ContextData.hpp"
+#include <Agent.hpp>
+#include <AgentConfig.hpp>
+#include <AgentFactory.hpp>
+#include <AgentRouter.hpp>
+#include <ConversationHistory.hpp>
+#include <PluginBlocks.hpp>
+#include <Session.hpp>
+#include <SessionManager.hpp>
+#include <SystemPromptBuilder.hpp>
+
+#include <LLMQore/ContentBlocks.hpp>
+
+#include <memory>
+#include <vector>
 
 #include "CodeHandler.hpp"
 #include "context/DocumentContextReader.hpp"
@@ -15,26 +37,25 @@
 #include "logger/Logger.hpp"
 #include "settings/CodeCompletionSettings.hpp"
 #include "settings/GeneralSettings.hpp"
-#include <pluginllmcore/RulesLoader.hpp>
+#include "sources/settings/PipelinesConfig.hpp"
 
 namespace QodeAssist {
 
 LLMClientInterface::LLMClientInterface(
     const Settings::GeneralSettings &generalSettings,
     const Settings::CodeCompletionSettings &completeSettings,
-    PluginLLMCore::IProviderRegistry &providerRegistry,
-    PluginLLMCore::IPromptProvider *promptProvider,
+    AgentFactory &agentFactory,
+    SessionManager &sessionManager,
     Context::IDocumentReader &documentReader,
     IRequestPerformanceLogger &performanceLogger)
     : m_generalSettings(generalSettings)
     , m_completeSettings(completeSettings)
-    , m_providerRegistry(providerRegistry)
-    , m_promptProvider(promptProvider)
+    , m_agentFactory(agentFactory)
+    , m_sessionManager(sessionManager)
     , m_documentReader(documentReader)
     , m_performanceLogger(performanceLogger)
     , m_contextManager(new Context::ContextManager(this))
-{
-}
+{}
 
 LLMClientInterface::~LLMClientInterface()
 {
@@ -51,58 +72,56 @@ void LLMClientInterface::startImpl()
     emit started();
 }
 
-void LLMClientInterface::handleFullResponse(const QString &requestId, const QString &fullText)
+void LLMClientInterface::onCompletionFinished(const QString &requestId)
 {
     auto it = m_activeRequests.find(requestId);
     if (it == m_activeRequests.end())
         return;
 
-    const RequestContext &ctx = it.value();
-    sendCompletionToClient(fullText, ctx.originalRequest, true);
+    QString fullText;
+    if (Session *session = it.value().session) {
+        if (auto *history = session->history(); history && !history->isEmpty())
+            fullText = history->messages().back().text();
+    }
+    const QJsonObject originalRequest = it.value().originalRequest;
 
-    m_activeRequests.erase(it);
-    m_performanceLogger.endTimeMeasurement(requestId);
+    sendCompletionToClient(fullText, originalRequest, true);
+    finishRequest(requestId);
 }
 
-void LLMClientInterface::handleRequestFinalized(
-    const ::LLMQore::RequestID &requestId, const ::LLMQore::CompletionInfo &info)
-{
-    if (!m_activeRequests.contains(requestId) || !info.usage)
-        return;
-
-    const auto &u = *info.usage;
-    LOG_MESSAGE(QString("Completion usage [%1]: prompt=%2 completion=%3 cached=%4 reasoning=%5")
-                    .arg(requestId)
-                    .arg(u.promptTokens)
-                    .arg(u.completionTokens)
-                    .arg(u.cachedPromptTokens)
-                    .arg(u.reasoningTokens));
-}
-
-void LLMClientInterface::handleRequestFailed(const QString &requestId, const QString &error)
+void LLMClientInterface::onCompletionFailed(const QString &requestId, const QString &error)
 {
     auto it = m_activeRequests.find(requestId);
     if (it == m_activeRequests.end())
         return;
-
-    const RequestContext &ctx = it.value();
 
     LOG_MESSAGE(QString("Request %1 failed: %2").arg(requestId, error));
 
-    // Send LSP error response to client
     QJsonObject response;
     response["jsonrpc"] = "2.0";
-    response[LanguageServerProtocol::idKey] = ctx.originalRequest["id"];
+    response[LanguageServerProtocol::idKey] = it.value().originalRequest["id"];
 
     QJsonObject errorObject;
     errorObject["code"] = -32603; // Internal error code
     errorObject["message"] = error;
     response["error"] = errorObject;
-    
+
     emit messageReceived(LanguageServerProtocol::JsonRpcMessage(response));
-    
+    finishRequest(requestId);
+}
+
+void LLMClientInterface::finishRequest(const QString &requestId)
+{
+    auto it = m_activeRequests.find(requestId);
+    if (it == m_activeRequests.end())
+        return;
+
+    Session *session = it.value().session;
     m_activeRequests.erase(it);
     m_performanceLogger.endTimeMeasurement(requestId);
+
+    if (session)
+        m_sessionManager.release(session);
 }
 
 void LLMClientInterface::sendData(const QByteArray &data)
@@ -135,25 +154,14 @@ void LLMClientInterface::sendData(const QByteArray &data)
 
 void LLMClientInterface::handleCancelRequest()
 {
-    QSet<PluginLLMCore::Provider *> providers;
-    for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
-        if (it.value().provider) {
-            providers.insert(it.value().provider);
-        }
-    }
-
-    for (auto *provider : providers) {
-        disconnect(provider->client(), nullptr, this, nullptr);
-    }
-
-    for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
-        const RequestContext &ctx = it.value();
-        if (ctx.provider) {
-            ctx.provider->cancelRequest(it.key());
-        }
-    }
-
+    const auto requests = m_activeRequests;
     m_activeRequests.clear();
+
+    for (auto it = requests.begin(); it != requests.end(); ++it) {
+        m_performanceLogger.endTimeMeasurement(it.key());
+        if (Session *session = it.value().session)
+            m_sessionManager.release(session);
+    }
 
     LOG_MESSAGE("All requests cancelled and state cleared");
 }
@@ -193,34 +201,19 @@ void LLMClientInterface::handleShutdown(const QJsonObject &request)
 
 void LLMClientInterface::handleTextDocumentDidOpen(const QJsonObject &request) {}
 
-void LLMClientInterface::handleInitialized(const QJsonObject &request)
-{
-    QJsonObject response;
-    response["jsonrpc"] = "2.0";
-    response["method"] = "initialized";
-    response["params"] = QJsonObject();
-
-    emit messageReceived(LanguageServerProtocol::JsonRpcMessage(response));
-}
-
-void LLMClientInterface::handleExit(const QJsonObject &request)
-{
-    emit finished();
-}
-
 void LLMClientInterface::sendErrorResponse(const QJsonObject &request, const QString &errorMessage)
 {
     QJsonObject response;
     response["jsonrpc"] = "2.0";
     response[LanguageServerProtocol::idKey] = request["id"];
-    
+
     QJsonObject errorObject;
     errorObject["code"] = -32603; // Internal error code
     errorObject["message"] = errorMessage;
     response["error"] = errorObject;
-    
+
     emit messageReceived(LanguageServerProtocol::JsonRpcMessage(response));
-    
+
     // End performance measurement if it was started
     QString requestId = request["id"].toString();
     m_performanceLogger.endTimeMeasurement(requestId);
@@ -237,133 +230,103 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         return;
     }
 
-    auto updatedContext = prepareContext(request, documentInfo);
-
-    bool isPreset1Active = m_contextManager->isSpecifyCompletion(documentInfo);
-
-    const auto providerName = !isPreset1Active ? m_generalSettings.ccProvider()
-                                               : m_generalSettings.ccPreset1Provider();
-    const auto modelName = !isPreset1Active ? m_generalSettings.ccModel()
-                                            : m_generalSettings.ccPreset1Model();
-    const auto url = !isPreset1Active ? m_generalSettings.ccUrl()
-                                      : m_generalSettings.ccPreset1Url();
-
-    const auto provider = m_providerRegistry.getProviderByName(providerName);
-
-    if (!provider) {
-        QString error = QString("No provider found with name: %1").arg(providerName);
+    const QString agentName = pickCompletionAgent(filePath);
+    if (agentName.isEmpty()) {
+        QString error = QString("No code completion agent matches: %1").arg(filePath);
         LOG_MESSAGE(error);
         sendErrorResponse(request, error);
         return;
     }
 
-    auto templateName = !isPreset1Active ? m_generalSettings.ccTemplate()
-                                         : m_generalSettings.ccPreset1Template();
+    QString sessionError;
+    Session *session = m_sessionManager.acquire(agentName, &sessionError);
+    if (!session) {
+        LOG_MESSAGE(sessionError);
+        sendErrorResponse(request, sessionError);
+        return;
+    }
 
-    auto promptTemplate = m_promptProvider->getTemplateByName(templateName);
+    Templates::ContextRenderer::Bindings bindings;
+    if (auto *project = ProjectExplorer::ProjectManager::projectForFile(
+            Utils::FilePath::fromString(filePath)))
+        bindings.projectDir = project->projectDirectory().toFSPathString();
+    bindings.configDir = AgentFactory::userConfigDir();
+    bindings.language = CodeHandler::detectLanguageFromExtension(QFileInfo(filePath).suffix());
+    session->setContextBindings(bindings);
 
-    if (!promptTemplate) {
-        QString error = QString("No template found with name: %1").arg(templateName);
+    Templates::ContextData context = prepareContext(request, documentInfo);
+
+    QString editorContext;
+    if (context.fileContext.has_value())
+        editorContext.append(context.fileContext.value());
+
+    if (m_completeSettings.useOpenFilesContext())
+        editorContext.append(m_contextManager->openedFilesContext({filePath}));
+
+    if (!editorContext.isEmpty())
+        session->systemPrompt()->setLayer(QStringLiteral("completion.context"), editorContext);
+
+    connect(
+        session,
+        &Session::finished,
+        this,
+        [this, session](const LLMQore::RequestID &, const QString &) {
+            onCompletionFinished(requestIdForSession(session));
+        });
+    connect(
+        session,
+        &Session::failed,
+        this,
+        [this, session](const LLMQore::RequestID &, const QodeAssist::ErrorInfo &error) {
+            onCompletionFailed(requestIdForSession(session), error.message);
+        });
+
+    if (auto *client = session->client())
+        client->setTransferTimeout(static_cast<int>(m_generalSettings.requestTimeout() * 1000));
+
+    std::vector<std::unique_ptr<LLMQore::ContentBlock>> blocks;
+    blocks.push_back(
+        std::make_unique<CompletionContent>(
+            context.prefix.value_or(QString()), context.suffix.value_or(QString())));
+    const LLMQore::RequestID requestId = session->send(std::move(blocks));
+    if (requestId.isEmpty()) {
+        QString error = QString("Failed to start completion request for agent '%1': %2")
+                            .arg(agentName, session->lastError().message);
+        session->deleteLater();
         LOG_MESSAGE(error);
         sendErrorResponse(request, error);
         return;
     }
 
-    QJsonObject payload{{"model", modelName}, {"stream", true}};
-
-    const auto stopWords = QJsonArray::fromStringList(promptTemplate->stopWords());
-    if (!stopWords.isEmpty())
-        payload["stop"] = stopWords;
-
-    QString systemPrompt;
-    if (m_completeSettings.useSystemPrompt())
-        systemPrompt.append(
-            m_completeSettings.useUserMessageTemplateForCC()
-                    && promptTemplate->type() == PluginLLMCore::TemplateType::Chat
-                ? m_completeSettings.systemPromptForNonFimModels()
-                : m_completeSettings.systemPrompt());
-
-    auto project = PluginLLMCore::RulesLoader::getActiveProject();
-    if (project) {
-        QString projectRules
-            = PluginLLMCore::RulesLoader::loadRulesForProject(project, PluginLLMCore::RulesContext::Completions);
-
-        if (!projectRules.isEmpty()) {
-            systemPrompt += "\n\n# Project Rules\n\n" + projectRules;
-            LOG_MESSAGE("Loaded project rules for completion");
-        }
-    }
-
-    if (updatedContext.fileContext.has_value())
-        systemPrompt.append(updatedContext.fileContext.value());
-
-    if (m_completeSettings.useOpenFilesContext()) {
-        if (provider->providerID() == PluginLLMCore::ProviderID::LlamaCpp) {
-            for (const auto openedFilePath : m_contextManager->openedFiles({filePath})) {
-                if (!updatedContext.filesMetadata) {
-                    updatedContext.filesMetadata = QList<PluginLLMCore::FileMetadata>();
-                }
-                updatedContext.filesMetadata->append({openedFilePath.first, openedFilePath.second});
-            }
-        } else {
-            systemPrompt.append(m_contextManager->openedFilesContext({filePath}));
-        }
-    }
-
-    updatedContext.systemPrompt = systemPrompt;
-
-    if (promptTemplate->type() == PluginLLMCore::TemplateType::Chat) {
-        QString userMessage;
-        if (m_completeSettings.useUserMessageTemplateForCC()) {
-            userMessage = m_completeSettings.processMessageToFIM(
-                updatedContext.prefix.value_or(""), updatedContext.suffix.value_or(""));
-        } else {
-            userMessage = updatedContext.prefix.value_or("") + updatedContext.suffix.value_or("");
-        }
-
-        // TODO refactor add message
-        QVector<PluginLLMCore::Message> messages;
-        messages.append({"user", userMessage});
-        updatedContext.history = messages;
-    }
-
-    provider->prepareRequest(
-        payload,
-        promptTemplate,
-        updatedContext,
-        PluginLLMCore::RequestType::CodeCompletion,
-        false,
-        false);
-
-    connect(
-        provider->client(),
-        &::LLMQore::BaseClient::requestCompleted,
-        this,
-        &LLMClientInterface::handleFullResponse,
-        Qt::UniqueConnection);
-    connect(
-        provider->client(),
-        &::LLMQore::BaseClient::requestFinalized,
-        this,
-        &LLMClientInterface::handleRequestFinalized,
-        Qt::UniqueConnection);
-    connect(
-        provider->client(),
-        &::LLMQore::BaseClient::requestFailed,
-        this,
-        &LLMClientInterface::handleRequestFailed,
-        Qt::UniqueConnection);
-
-    provider->client()->setTransferTimeout(
-        static_cast<int>(m_generalSettings.requestTimeout() * 1000));
-
-    auto requestId
-        = provider->sendRequest(QUrl(url), payload, resolveEndpoint(promptTemplate, isPreset1Active));
-    m_activeRequests[requestId] = {request, provider};
+    m_activeRequests[requestId] = {request, session};
     m_performanceLogger.startTimeMeasurement(requestId);
 }
 
-PluginLLMCore::ContextData LLMClientInterface::prepareContext(
+QString LLMClientInterface::pickCompletionAgent(const QString &filePath) const
+{
+    const QStringList roster = Settings::PipelinesConfig::load().rosters.codeCompletion;
+    if (roster.isEmpty())
+        return {};
+
+    AgentRouter::Context ctx;
+    ctx.filePath = filePath;
+    if (auto *project = ProjectExplorer::ProjectManager::projectForFile(
+            Utils::FilePath::fromString(filePath)))
+        ctx.projectName = project->displayName();
+
+    return AgentRouter::pickAgent(roster, ctx, m_agentFactory);
+}
+
+QString LLMClientInterface::requestIdForSession(Session *session) const
+{
+    for (auto it = m_activeRequests.cbegin(); it != m_activeRequests.cend(); ++it) {
+        if (it.value().session == session)
+            return it.key();
+    }
+    return {};
+}
+
+Templates::ContextData LLMClientInterface::prepareContext(
     const QJsonObject &request, const Context::DocumentInfo &documentInfo)
 {
     QJsonObject params = request["params"].toObject();
@@ -377,14 +340,6 @@ PluginLLMCore::ContextData LLMClientInterface::prepareContext(
     return reader.prepareContext(lineNumber, cursorPosition, m_completeSettings);
 }
 
-QString LLMClientInterface::resolveEndpoint(
-    PluginLLMCore::PromptTemplate *promptTemplate, bool isLanguageSpecify) const
-{
-    const QString custom = isLanguageSpecify ? m_generalSettings.ccPreset1CustomEndpoint()
-                                             : m_generalSettings.ccCustomEndpoint();
-    return !custom.isEmpty() ? custom : promptTemplate->endpoint();
-}
-
 Context::ContextManager *LLMClientInterface::contextManager() const
 {
     return m_contextManager;
@@ -393,15 +348,6 @@ Context::ContextManager *LLMClientInterface::contextManager() const
 void LLMClientInterface::sendCompletionToClient(
     const QString &completion, const QJsonObject &request, bool isComplete)
 {
-    auto filePath = Context::extractFilePathFromRequest(request);
-    auto documentInfo = m_documentReader.readDocument(filePath);
-    bool isPreset1Active = m_contextManager->isSpecifyCompletion(documentInfo);
-
-    auto templateName = !isPreset1Active ? m_generalSettings.ccTemplate()
-                                         : m_generalSettings.ccPreset1Template();
-
-    auto promptTemplate = m_promptProvider->getTemplateByName(templateName);
-
     QJsonObject position = request["params"].toObject()["doc"].toObject()["position"].toObject();
 
     QJsonObject response;
@@ -420,14 +366,13 @@ void LLMClientInterface::sendCompletionToClient(
     if (outputHandler == "Raw text") {
         processedCompletion = completion;
     } else if (outputHandler == "Force processing") {
-        processedCompletion = CodeHandler::processText(completion,
-                                                       Context::extractFilePathFromRequest(request));
+        processedCompletion
+            = CodeHandler::processText(completion, Context::extractFilePathFromRequest(request));
     } else { // "Auto"
-        processedCompletion = CodeHandler::hasCodeBlocks(completion)
-                                  ? CodeHandler::processText(completion,
-                                                             Context::extractFilePathFromRequest(
-                                                                 request))
-                                  : completion;
+        processedCompletion
+            = CodeHandler::hasCodeBlocks(completion)
+                  ? CodeHandler::processText(completion, Context::extractFilePathFromRequest(request))
+                  : completion;
     }
 
     if (processedCompletion.endsWith('\n')) {
@@ -439,11 +384,11 @@ void LLMClientInterface::sendCompletionToClient(
     }
 
     completionItem[LanguageServerProtocol::textKey] = processedCompletion;
-    
+
     QJsonObject range;
     range["start"] = position;
     range["end"] = position;
-    
+
     completionItem[LanguageServerProtocol::rangeKey] = range;
     completionItem[LanguageServerProtocol::positionKey] = position;
     completions.append(completionItem);

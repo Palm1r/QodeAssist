@@ -27,8 +27,6 @@ public:
     void reloadIgnorePatterns(ProjectExplorer::Project *project);
     void removeIgnorePatterns(ProjectExplorer::Project *project);
 
-    void reloadAllPatterns();
-
 private slots:
     void cleanupConnections();
 

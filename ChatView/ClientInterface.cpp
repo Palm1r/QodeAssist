@@ -4,73 +4,103 @@
 
 #include "ClientInterface.hpp"
 
-#include <LLMQore/BaseClient.hpp>
+#include <memory>
+#include <vector>
 
+#include <LLMQore/BaseClient.hpp>
+#include <LLMQore/ContentBlocks.hpp>
+#include <LLMQore/ToolLoopRunner.hpp>
+#include <LLMQore/ToolsManager.hpp>
+
+#include <coreplugin/editormanager/editormanager.h>
+#include <coreplugin/editormanager/ieditor.h>
+#include <coreplugin/idocument.h>
 #include <projectexplorer/buildconfiguration.h>
+#include <projectexplorer/project.h>
+#include <projectexplorer/projectmanager.h>
 #include <projectexplorer/target.h>
 #include <texteditor/textdocument.h>
+#include <texteditor/texteditor.h>
+
+#include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QImageReader>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QMimeDatabase>
 #include <QRegularExpression>
 #include <QUuid>
 
-#include <coreplugin/editormanager/editormanager.h>
-#include <coreplugin/editormanager/ieditor.h>
-#include <coreplugin/idocument.h>
-#include <projectexplorer/project.h>
-#include <projectexplorer/projectexplorer.h>
-#include <projectexplorer/projectmanager.h>
-
-#include <texteditor/textdocument.h>
-#include <texteditor/texteditor.h>
-
-#include <LLMQore/ToolsManager.hpp>
+#include <AgentFactory.hpp>
+#include <ConversationHistory.hpp>
+#include <ContextRenderer.hpp>
+#include <Message.hpp>
+#include <PluginBlocks.hpp>
+#include <Session.hpp>
+#include <SessionManager.hpp>
+#include <SystemPromptBuilder.hpp>
 
 #include "tools/ReadOriginalHistoryTool.hpp"
 #include "tools/TodoTool.hpp"
+#include "tools/ToolsRegistration.hpp"
 
-#include "ChatAssistantSettings.hpp"
 #include "ChatSerializer.hpp"
 #include "GeneralSettings.hpp"
 #include "Logger.hpp"
 #include "ProjectSettings.hpp"
-#include "ProvidersManager.hpp"
 #include "SkillsSettings.hpp"
 #include "ToolsSettings.hpp"
-#include <RulesLoader.hpp>
 #include <context/ChangesManager.h>
+#include <context/EnvBlockFormatter.hpp>
 #include <sources/skills/SkillsManager.hpp>
 
 namespace QodeAssist::Chat {
 
-ClientInterface::ClientInterface(
-    ChatModel *chatModel, PluginLLMCore::IPromptProvider *promptProvider, QObject *parent)
+namespace {
+struct StoredImage
+{
+    QString fileName;
+    QString storedPath;
+    QString mediaType;
+};
+} // namespace
+
+ClientInterface::ClientInterface(ChatModel *chatModel, QObject *parent)
     : QObject(parent)
-    , m_promptProvider(promptProvider)
     , m_chatModel(chatModel)
     , m_contextManager(new Context::ContextManager(this))
+    , m_contentCache(std::make_shared<StoredContentCache>())
 {}
-
-void ClientInterface::setSkillsManager(Skills::SkillsManager *skillsManager)
-{
-    m_skillsManager = skillsManager;
-}
 
 ClientInterface::~ClientInterface()
 {
     cancelRequest();
 }
 
+void ClientInterface::setSkillsManager(Skills::SkillsManager *skillsManager)
+{
+    m_skillsManager = skillsManager;
+}
+
+void ClientInterface::setSessionManager(SessionManager *sessionManager)
+{
+    m_sessionManager = sessionManager;
+}
+
+void ClientInterface::setHistory(ConversationHistory *history)
+{
+    m_history = history;
+}
+
+void ClientInterface::setActiveAgent(const QString &agentName)
+{
+    m_activeAgent = agentName;
+}
+
 void ClientInterface::sendMessage(
     const QString &message,
     const QList<QString> &attachments,
-    const QList<QString> &linkedFiles,
-    bool useTools,
-    bool useThinking)
+    const QList<QString> &linkedFiles)
 {
     if (message.trimmed().isEmpty() && attachments.isEmpty()) {
         LOG_MESSAGE("Ignoring empty chat message");
@@ -78,19 +108,16 @@ void ClientInterface::sendMessage(
     }
 
     cancelRequest();
-    m_accumulatedResponses.clear();
 
     Context::ChangesManager::instance().archiveAllNonArchivedEdits();
 
     QList<QString> imageFiles;
     QList<QString> textFiles;
-
     for (const QString &filePath : attachments) {
-        if (isImageFile(filePath)) {
+        if (isImageFile(filePath))
             imageFiles.append(filePath);
-        } else {
+        else
             textFiles.append(filePath);
-        }
     }
 
     QList<Context::ContentFile> storedAttachments;
@@ -112,24 +139,19 @@ void ClientInterface::sendMessage(
                         .arg(textFiles.size()));
     }
 
-    QList<ChatModel::ImageAttachment> imageAttachments;
+    QList<StoredImage> storedImages;
     if (!imageFiles.isEmpty() && !m_chatFilePath.isEmpty()) {
         for (const QString &imagePath : imageFiles) {
             QString base64Data = encodeImageToBase64(imagePath);
-            if (base64Data.isEmpty()) {
+            if (base64Data.isEmpty())
                 continue;
-            }
 
             QString storedPath;
             QFileInfo fileInfo(imagePath);
             if (ChatSerializer::saveContentToStorage(
                     m_chatFilePath, fileInfo.fileName(), base64Data, storedPath)) {
-                ChatModel::ImageAttachment imageAttachment;
-                imageAttachment.fileName = fileInfo.fileName();
-                imageAttachment.storedPath = storedPath;
-                imageAttachment.mediaType = getMediaTypeForImage(imagePath);
-                imageAttachments.append(imageAttachment);
-
+                storedImages.append(
+                    {fileInfo.fileName(), storedPath, getMediaTypeForImage(imagePath)});
                 LOG_MESSAGE(QString("Stored image %1 as %2").arg(fileInfo.fileName(), storedPath));
             }
         }
@@ -138,512 +160,286 @@ void ClientInterface::sendMessage(
                         .arg(imageFiles.size()));
     }
 
-    m_chatModel->addMessage(message, ChatModel::ChatRole::User, "", storedAttachments, imageAttachments);
-
-    auto &chatAssistantSettings = Settings::chatAssistantSettings();
-
-    auto providerName = Settings::generalSettings().caProvider();
-    auto provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(providerName);
-
-    if (!provider) {
-        LOG_MESSAGE(QString("No provider found with name: %1").arg(providerName));
+    if (!m_sessionManager) {
+        const QString error = QStringLiteral("Chat session manager is not available");
+        LOG_MESSAGE(error);
+        emit errorOccurred(error);
+        return;
+    }
+    if (!m_history) {
+        const QString error = QStringLiteral("Chat history is not available");
+        LOG_MESSAGE(error);
+        emit errorOccurred(error);
         return;
     }
 
-    auto templateName = Settings::generalSettings().caTemplate();
-    auto promptTemplate = m_promptProvider->getTemplateByName(templateName);
-
-    if (!promptTemplate) {
-        LOG_MESSAGE(QString("No template found with name: %1").arg(templateName));
+    QString sessionError;
+    Session *session = m_sessionManager->createSession(m_activeAgent, m_history, &sessionError);
+    if (!session) {
+        const QString error = sessionError.isEmpty()
+                                  ? QStringLiteral("No chat agent selected")
+                                  : sessionError;
+        LOG_MESSAGE(error);
+        emit errorOccurred(error);
         return;
     }
 
-    PluginLLMCore::ContextData context;
-
-    const bool isToolsEnabled = useTools;
-
-    if (chatAssistantSettings.useSystemPrompt()) {
-        QString systemPrompt = chatAssistantSettings.systemPrompt();
-
-        const QString lastRoleId = chatAssistantSettings.lastUsedRoleId();
-        if (!lastRoleId.isEmpty()) {
-            const Settings::AgentRole role = Settings::AgentRolesManager::loadRole(lastRoleId);
-            if (!role.id.isEmpty())
-                systemPrompt = systemPrompt + "\n\n" + role.systemPrompt;
-        }
-
-        auto project = PluginLLMCore::RulesLoader::getActiveProject();
-
-        if (project) {
-            systemPrompt += QString("\n# Active project: %1").arg(project->displayName());
-            systemPrompt += QString(
-                                "\n# Project source root: %1"
-                                "\n#   All new source files, headers, QML and CMake edits MUST be "
-                                "created or modified under this directory. Use absolute paths "
-                                "rooted here, or project-relative paths.")
-                                .arg(project->projectDirectory().toUrlishString());
-
-            if (auto target = project->activeTarget()) {
-                if (auto buildConfig = target->activeBuildConfiguration()) {
-                    systemPrompt
-                        += QString(
-                               "\n# Build output directory (compiler artifacts only — do NOT "
-                               "create or edit source files here): %1")
-                               .arg(buildConfig->buildDirectory().toUrlishString());
-                }
-            }
-
-            QString projectRules
-                = PluginLLMCore::RulesLoader::loadRulesForProject(project, PluginLLMCore::RulesContext::Chat);
-
-            if (!projectRules.isEmpty()) {
-                systemPrompt += QString("\n# Project Rules\n\n") + projectRules;
-            }
-        } else {
-            systemPrompt += QString("\n# No active project in IDE");
-        }
-
-        if (m_skillsManager && Settings::skillsSettings().enableSkills()) {
-            QStringList projectSkillDirs;
-            if (project) {
-                Settings::ProjectSettings projectSettings(project);
-                projectSkillDirs = Settings::SkillsSettings::splitLines(
-                    projectSettings.projectSkillDirs());
-            }
-            m_skillsManager->configure(
-                project ? project->projectDirectory().toFSPathString() : QString(),
-                Settings::SkillsSettings::splitPaths(
-                    Settings::skillsSettings().globalSkillRoots()),
-                projectSkillDirs);
-
-            const QString alwaysOnSkills = m_skillsManager->alwaysOnBodies();
-            if (!alwaysOnSkills.isEmpty())
-                systemPrompt += QString("\n\n") + alwaysOnSkills;
-
-            const QString skillsCatalog = m_skillsManager->catalogText();
-            if (!skillsCatalog.isEmpty())
-                systemPrompt += QString("\n\n") + skillsCatalog;
-
-            static const QRegularExpression skillCommand(
-                QStringLiteral("(?:^|\\s)/([a-z0-9][a-z0-9-]*)"));
-            QStringList invokedSkillNames;
-            auto skillMatch = skillCommand.globalMatch(message);
-            while (skillMatch.hasNext()) {
-                const QString skillName = skillMatch.next().captured(1);
-                if (invokedSkillNames.contains(skillName))
-                    continue;
-                const auto invokedSkill = m_skillsManager->findByName(skillName);
-                if (invokedSkill && !invokedSkill->body.isEmpty()) {
-                    invokedSkillNames << skillName;
-                    systemPrompt += QString("\n\n# Invoked Skill: %1\n\n%2")
-                                        .arg(invokedSkill->name, invokedSkill->body);
-                }
-            }
-        }
-
-        if (!linkedFiles.isEmpty()) {
-            systemPrompt = getSystemPromptWithLinkedFiles(systemPrompt, linkedFiles);
-        }
-        context.systemPrompt = systemPrompt;
+    auto *client = session->client();
+    if (!client) {
+        const QString error = QStringLiteral("Chat agent has no live client");
+        LOG_MESSAGE(error);
+        m_sessionManager->removeSession(session);
+        emit errorOccurred(error);
+        return;
     }
 
-    const bool toolHistory = promptTemplate->supportsToolHistory();
+    auto *project = ProjectExplorer::ProjectManager::startupProject();
+    Templates::ContextRenderer::Bindings bindings;
+    bindings.projectDir = project ? project->projectDirectory().toFSPathString() : QString();
+    bindings.configDir = AgentFactory::userConfigDir();
+    session->setContextBindings(bindings);
 
-    QVector<PluginLLMCore::Message> messages;
-    int toolCallMsgIdx = -1;
-    for (const auto &msg : m_chatModel->getChatHistory()) {
-        if (msg.role == ChatModel::ChatRole::Tool) {
-            if (!toolHistory || msg.toolName.isEmpty()) {
-                continue;
-            }
+    const QString chatFilePath = m_chatFilePath;
+    session->setContentLoader([chatFilePath, cache = m_contentCache](const QString &storedPath) {
+        return ChatSerializer::loadContentFromStorage(chatFilePath, storedPath, cache.get());
+    });
 
-            if (toolCallMsgIdx < 0) {
-                PluginLLMCore::Message assistantCall;
-                assistantCall.role = "assistant";
-                messages.append(assistantCall);
-                toolCallMsgIdx = messages.size() - 1;
-            }
-
-            PluginLLMCore::ToolCall call;
-            call.id = msg.id;
-            call.name = msg.toolName;
-            call.arguments = msg.toolArguments;
-            messages[toolCallMsgIdx].toolCalls.append(call);
-
-            PluginLLMCore::Message toolResult;
-            toolResult.role = "tool";
-            toolResult.toolCallId = msg.id;
-            toolResult.toolName = msg.toolName;
-            toolResult.content = msg.toolResult;
-            messages.append(toolResult);
-            continue;
-        }
-
-        toolCallMsgIdx = -1;
-
-        if (msg.role == ChatModel::ChatRole::FileEdit) {
-            continue;
-        }
-
-        PluginLLMCore::Message apiMessage;
-        apiMessage.role = msg.role == ChatModel::ChatRole::User ? "user" : "assistant";
-        apiMessage.content = msg.content;
-
-        if (!msg.attachments.isEmpty() && !m_chatFilePath.isEmpty()) {
-            apiMessage.content += "\n\nAttached files:";
-            for (const auto &attachment : msg.attachments) {
-                QString fileContent = ChatSerializer::loadContentFromStorage(m_chatFilePath, attachment.content);
-                if (!fileContent.isEmpty()) {
-                    QString decodedContent = QString::fromUtf8(QByteArray::fromBase64(fileContent.toUtf8()));
-                    apiMessage.content += QString("\n\nFile: %1\n```\n%2\n```")
-                                              .arg(attachment.filename, decodedContent);
-                }
-            }
-        }
-
-        apiMessage.isThinking = (msg.role == ChatModel::ChatRole::Thinking);
-        apiMessage.isRedacted = msg.isRedacted;
-        apiMessage.signature = msg.signature;
-
-        if (provider->capabilities().testFlag(PluginLLMCore::ProviderCapability::Image)
-            && !m_chatFilePath.isEmpty() && !msg.images.isEmpty()) {
-            auto apiImages = loadImagesFromStorage(msg.images);
-            if (!apiImages.isEmpty()) {
-                apiMessage.images = apiImages;
-            }
-        }
-
-        messages.append(apiMessage);
-    }
-
-    if (!imageFiles.isEmpty()
-        && !provider->capabilities().testFlag(PluginLLMCore::ProviderCapability::Image)) {
-        LOG_MESSAGE(QString("Provider %1 doesn't support images, %2 ignored")
-                        .arg(provider->name(), QString::number(imageFiles.size())));
-    }
-
-    context.history = messages;
-
-    QJsonObject payload{
-        {"model", Settings::generalSettings().caModel()}, {"stream", true}};
-
-    provider->prepareRequest(
-        payload,
-        promptTemplate,
-        context,
-        PluginLLMCore::RequestType::Chat,
-        useTools,
-        useThinking);
-
-    provider->client()->setMaxToolContinuations(
-        Settings::toolsSettings().maxToolContinuations());
-
-    provider->client()->setTransferTimeout(
+    m_sessionManager->toolContributors().contribute(client->tools());
+    client->toolLoop()->setMaxRounds(Settings::toolsSettings().maxToolContinuations());
+    client->setTransferTimeout(
         static_cast<int>(Settings::generalSettings().requestTimeout() * 1000));
 
-    connect(
-        provider->client(),
-        &::LLMQore::BaseClient::chunkReceived,
-        this,
-        &ClientInterface::handlePartialResponse,
-        Qt::UniqueConnection);
-    connect(
-        provider->client(),
-        &::LLMQore::BaseClient::requestCompleted,
-        this,
-        &ClientInterface::handleFullResponse,
-        Qt::UniqueConnection);
-    connect(
-        provider->client(),
-        &::LLMQore::BaseClient::requestFinalized,
-        this,
-        &ClientInterface::handleRequestFinalized,
-        Qt::UniqueConnection);
-    connect(
-        provider->client(),
-        &::LLMQore::BaseClient::requestFailed,
-        this,
-        &ClientInterface::handleRequestFailed,
-        Qt::UniqueConnection);
-    connect(
-        provider->client(),
-        &::LLMQore::BaseClient::toolStarted,
-        this,
-        &ClientInterface::handleToolExecutionStarted,
-        Qt::UniqueConnection);
-    connect(
-        provider->client(),
-        &::LLMQore::BaseClient::toolResultReady,
-        this,
-        &ClientInterface::handleToolExecutionCompleted,
-        Qt::UniqueConnection);
-    connect(
-        provider->client(),
-        &::LLMQore::BaseClient::thinkingBlockReceived,
-        this,
-        &ClientInterface::handleThinkingBlockReceived,
-        Qt::UniqueConnection);
+    const QString chatContext = buildChatContextLayer();
+    if (!chatContext.isEmpty())
+        session->systemPrompt()->setLayer(QStringLiteral("chat.context"), chatContext);
 
-    const QString customEndpoint = Settings::generalSettings().caCustomEndpoint();
-    const QString endpoint = !customEndpoint.isEmpty() ? customEndpoint
-                                                       : promptTemplate->endpoint();
-    auto requestId
-        = provider->sendRequest(QUrl(Settings::generalSettings().caUrl()), payload, endpoint);
-    QJsonObject request{{"id", requestId}};
+    if (linkedFiles.isEmpty()) {
+        session->unpinContext(QStringLiteral("chat.files"));
+    } else {
+        session->pinContext(
+            QStringLiteral("chat.files"),
+            [contextManager = QPointer<Context::ContextManager>(m_contextManager),
+             linkedFiles]() -> QString {
+                if (!contextManager)
+                    return {};
+                const auto contentFiles = contextManager->getContentFiles(linkedFiles);
+                if (contentFiles.isEmpty())
+                    return {};
+                QString out = QStringLiteral(
+                    "Linked files (current content, refreshed every request):\n");
+                for (const auto &file : contentFiles) {
+                    out += QStringLiteral("\nFile: %1\nContent:\n%2\n")
+                               .arg(file.filename, file.content);
+                }
+                return out;
+            });
+    }
 
-    m_activeRequests[requestId] = {request, provider, !toolHistory};
+    std::vector<std::unique_ptr<LLMQore::ContentBlock>> blocks;
+    blocks.push_back(std::make_unique<LLMQore::TextContent>(message));
 
-    emit requestStarted(requestId);
-    
-    if (provider->capabilities().testFlag(PluginLLMCore::ProviderCapability::Tools)
-        && provider->toolsManager()) {
-        if (auto *todoTool = qobject_cast<QodeAssist::Tools::TodoTool *>(
-                provider->toolsManager()->tool("todo_tool"))) {
+    for (const QString &skillName : invokedSkillNames(message)) {
+        const auto skill = m_skillsManager->findByName(skillName);
+        if (skill && !skill->body.isEmpty())
+            blocks.push_back(std::make_unique<SkillInvocationContent>(skill->name, skill->body));
+    }
+
+    for (const auto &attachment : storedAttachments) {
+        blocks.push_back(
+            std::make_unique<StoredAttachmentContent>(attachment.filename, attachment.content));
+    }
+
+    for (const auto &image : storedImages) {
+        blocks.push_back(std::make_unique<StoredImageContent>(
+            image.fileName, image.storedPath, image.mediaType));
+    }
+
+    if (!m_chatFilePath.isEmpty()) {
+        if (auto *todoTool
+            = qobject_cast<QodeAssist::Tools::TodoTool *>(client->tools()->tool("todo_tool"))) {
             todoTool->setCurrentSessionId(m_chatFilePath);
         }
         if (auto *historyTool = qobject_cast<QodeAssist::Tools::ReadOriginalHistoryTool *>(
-                provider->toolsManager()->tool("read_original_history"))) {
+                client->tools()->tool("read_original_history"))) {
             historyTool->setCurrentSessionId(m_chatFilePath);
         }
     }
+
+    connect(session, &Session::event, this, [this, session](const QodeAssist::ResponseEvent &ev) {
+        onSessionEvent(session, ev);
+    });
+    connect(
+        session, &Session::finished, this,
+        [this](const LLMQore::RequestID &id, const QString &) { onSessionFinished(id); });
+    connect(
+        session, &Session::failed, this,
+        [this](const LLMQore::RequestID &id, const QodeAssist::ErrorInfo &error) {
+            onSessionFailed(id, error);
+        });
+
+    const LLMQore::RequestID requestId = session->send(std::move(blocks));
+    if (requestId.isEmpty()) {
+        const QString error = QStringLiteral("Failed to start chat request for agent '%1': %2")
+                                  .arg(m_activeAgent, session->lastError().message);
+        LOG_MESSAGE(error);
+        m_sessionManager->removeSession(session);
+        emit errorOccurred(error);
+        return;
+    }
+
+    m_activeRequests[requestId] = {QJsonObject{{"id", requestId}}, session};
+
+    emit requestStarted(requestId);
+}
+
+QString ClientInterface::requestIdForSession(Session *session) const
+{
+    for (auto it = m_activeRequests.cbegin(); it != m_activeRequests.cend(); ++it) {
+        if (it.value().session == session)
+            return it.key();
+    }
+    return {};
+}
+
+void ClientInterface::onSessionEvent(Session *session, const QodeAssist::ResponseEvent &ev)
+{
+    if (ev.kind() != ResponseEvent::Kind::Usage)
+        return;
+
+    const auto *usage = ev.as<ResponseEvents::Usage>();
+    if (!usage)
+        return;
+
+    const QString requestId = requestIdForSession(session);
+    if (!requestId.isEmpty()) {
+        m_chatModel->setMessageUsage(
+            requestId,
+            usage->inputTokens,
+            usage->outputTokens,
+            usage->cachedTokens,
+            usage->reasoningTokens);
+    }
+
+    emit messageUsageReceived(
+        usage->inputTokens, usage->outputTokens, usage->cachedTokens, usage->reasoningTokens);
+
+    LOG_MESSAGE(QString("Chat usage [%1]: prompt=%2 completion=%3 cached=%4 reasoning=%5")
+                    .arg(requestId)
+                    .arg(usage->inputTokens)
+                    .arg(usage->outputTokens)
+                    .arg(usage->cachedTokens)
+                    .arg(usage->reasoningTokens));
+}
+
+void ClientInterface::onSessionFinished(const QString &requestId)
+{
+    auto it = m_activeRequests.find(requestId);
+    if (it == m_activeRequests.end())
+        return;
+
+    Session *session = it.value().session;
+
+    QString applyError;
+    if (!Context::ChangesManager::instance().applyPendingEditsForRequest(requestId, &applyError)) {
+        LOG_MESSAGE(QString("Some edits for request %1 were not auto-applied: %2")
+                        .arg(requestId, applyError));
+    }
+
+    emit messageReceivedCompletely();
+
+    m_activeRequests.erase(it);
+
+    if (session && m_sessionManager)
+        m_sessionManager->removeSession(session);
+}
+
+void ClientInterface::onSessionFailed(const QString &requestId, const QodeAssist::ErrorInfo &error)
+{
+    auto it = m_activeRequests.find(requestId);
+    if (it == m_activeRequests.end())
+        return;
+
+    Session *session = it.value().session;
+
+    LOG_MESSAGE(QString("Chat request %1 failed: %2").arg(requestId, error.message));
+    emit errorOccurred(error.message);
+
+    m_activeRequests.erase(it);
+
+    if (session && m_sessionManager)
+        m_sessionManager->removeSession(session);
+}
+
+QStringList ClientInterface::invokedSkillNames(const QString &message) const
+{
+    QStringList names;
+    if (!m_skillsManager || !Settings::skillsSettings().enableSkills())
+        return names;
+
+    static const QRegularExpression skillCommand(
+        QStringLiteral("(?:^|\\s)/([a-z0-9][a-z0-9-]*)"));
+    auto skillMatch = skillCommand.globalMatch(message);
+    while (skillMatch.hasNext()) {
+        const QString skillName = skillMatch.next().captured(1);
+        if (!names.contains(skillName))
+            names << skillName;
+    }
+    return names;
+}
+
+QString ClientInterface::buildChatContextLayer() const
+{
+    QString context
+        = Context::EnvBlockFormatter::formatProject(Context::EnvBlockFormatter::currentProject());
+
+    auto *project = ProjectExplorer::ProjectManager::startupProject();
+    if (m_skillsManager && Settings::skillsSettings().enableSkills()) {
+        QStringList projectSkillDirs;
+        if (project) {
+            Settings::ProjectSettings projectSettings(project);
+            projectSkillDirs
+                = Settings::SkillsSettings::splitLines(projectSettings.projectSkillDirs());
+        }
+        m_skillsManager->configure(
+            project ? project->projectDirectory().toFSPathString() : QString(),
+            Settings::SkillsSettings::splitPaths(Settings::skillsSettings().globalSkillRoots()),
+            projectSkillDirs);
+
+        const QString alwaysOnSkills = m_skillsManager->alwaysOnBodies();
+        if (!alwaysOnSkills.isEmpty())
+            context += QString("\n\n") + alwaysOnSkills;
+
+        const QString skillsCatalog = m_skillsManager->catalogText();
+        if (!skillsCatalog.isEmpty())
+            context += QString("\n\n") + skillsCatalog;
+    }
+
+    return context;
 }
 
 void ClientInterface::clearMessages()
 {
-    const auto providerName = Settings::generalSettings().caProvider();
-    auto *provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(providerName);
-
-    if (provider && !m_chatFilePath.isEmpty()
-        && provider->capabilities().testFlag(PluginLLMCore::ProviderCapability::Tools)
-        && provider->toolsManager()) {
-        if (auto *todoTool = qobject_cast<QodeAssist::Tools::TodoTool *>(
-                provider->toolsManager()->tool("todo_tool"))) {
-            todoTool->clearSession(m_chatFilePath);
-        }
-    }
-
-    m_chatModel->clear();
+    if (m_history)
+        m_history->clear();
 }
 
 void ClientInterface::cancelRequest()
 {
-    QSet<PluginLLMCore::Provider *> providers;
-    for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
-        if (it.value().provider) {
-            providers.insert(it.value().provider);
-        }
-    }
-
-    for (auto *provider : providers) {
-        disconnect(provider->client(), nullptr, this, nullptr);
-    }
-
-    for (auto it = m_activeRequests.begin(); it != m_activeRequests.end(); ++it) {
-        const RequestContext &ctx = it.value();
-        if (ctx.provider) {
-            ctx.provider->cancelRequest(it.key());
-        }
-    }
-
+    const auto requests = m_activeRequests;
     m_activeRequests.clear();
-    m_accumulatedResponses.clear();
-    m_awaitingContinuation.clear();
 
-    LOG_MESSAGE("All requests cancelled and state cleared");
-}
-
-void ClientInterface::handleLLMResponse(const QString &response, const QJsonObject &request)
-{
-    const auto message = response.trimmed();
-
-    if (!message.isEmpty()) {
-        QString messageId = request["id"].toString();
-        m_chatModel->addMessage(message, ChatModel::ChatRole::Assistant, messageId);
-    }
-}
-
-QString ClientInterface::getCurrentFileContext() const
-{
-    auto currentEditor = Core::EditorManager::currentEditor();
-    if (!currentEditor) {
-        LOG_MESSAGE("No active editor found");
-        return QString();
+    for (auto it = requests.begin(); it != requests.end(); ++it) {
+        Session *session = it.value().session;
+        if (session && m_sessionManager)
+            m_sessionManager->removeSession(session);
     }
 
-    auto textDocument = qobject_cast<TextEditor::TextDocument *>(currentEditor->document());
-    if (!textDocument) {
-        LOG_MESSAGE("Current document is not a text document");
-        return QString();
-    }
-
-    QString fileInfo = QString("Language: %1\nFile: %2\n\n")
-                           .arg(textDocument->mimeType(), textDocument->filePath().toFSPathString());
-
-    QString content = textDocument->document()->toPlainText();
-
-    LOG_MESSAGE(QString("Got context from file: %1").arg(textDocument->filePath().toFSPathString()));
-
-    return QString("Current file context:\n%1\nFile content:\n%2").arg(fileInfo, content);
-}
-
-QString ClientInterface::getSystemPromptWithLinkedFiles(
-    const QString &basePrompt, const QList<QString> &linkedFiles) const
-{
-    QString updatedPrompt = basePrompt;
-
-    if (!linkedFiles.isEmpty()) {
-        updatedPrompt += "\n\nLinked files for reference:\n";
-
-        auto contentFiles = m_contextManager->getContentFiles(linkedFiles);
-        for (const auto &file : contentFiles) {
-            updatedPrompt += QString("\nFile: %1\nContent:\n%2\n").arg(file.filename, file.content);
-        }
-    }
-
-    return updatedPrompt;
+    LOG_MESSAGE("All chat requests cancelled and state cleared");
 }
 
 Context::ContextManager *ClientInterface::contextManager() const
 {
     return m_contextManager;
-}
-
-void ClientInterface::handlePartialResponse(const QString &requestId, const QString &partialText)
-{
-    auto it = m_activeRequests.find(requestId);
-    if (it == m_activeRequests.end())
-        return;
-
-    if (m_awaitingContinuation.remove(requestId)) {
-        m_accumulatedResponses[requestId].clear();
-        LOG_MESSAGE(
-            QString("Cleared accumulated responses for continuation request %1").arg(requestId));
-    }
-
-    m_accumulatedResponses[requestId] += partialText;
-
-    const RequestContext &ctx = it.value();
-    handleLLMResponse(m_accumulatedResponses[requestId], ctx.originalRequest);
-}
-
-void ClientInterface::handleFullResponse(const QString &requestId, const QString &fullText)
-{
-    auto it = m_activeRequests.find(requestId);
-    if (it == m_activeRequests.end())
-        return;
-
-    const RequestContext &ctx = it.value();
-
-    QString finalText = !fullText.isEmpty() ? fullText : m_accumulatedResponses[requestId];
-
-    QString applyError;
-    bool applySuccess
-        = Context::ChangesManager::instance().applyPendingEditsForRequest(requestId, &applyError);
-
-    if (!applySuccess) {
-        LOG_MESSAGE(QString("Some edits for request %1 were not auto-applied: %2")
-                        .arg(requestId, applyError));
-    }
-
-    LOG_MESSAGE(
-        "Message completed. Final response for message " + ctx.originalRequest["id"].toString()
-        + ": " + finalText);
-    emit messageReceivedCompletely();
-
-    m_activeRequests.erase(it);
-    m_accumulatedResponses.remove(requestId);
-    m_awaitingContinuation.remove(requestId);
-}
-
-void ClientInterface::handleRequestFinalized(
-    const ::LLMQore::RequestID &requestId, const ::LLMQore::CompletionInfo &info)
-{
-    if (!m_activeRequests.contains(requestId))
-        return;
-    if (!info.usage)
-        return;
-
-    const auto &u = *info.usage;
-    m_chatModel->setMessageUsage(
-        requestId, u.promptTokens, u.completionTokens, u.cachedPromptTokens, u.reasoningTokens);
-
-    emit messageUsageReceived(
-        u.promptTokens, u.completionTokens, u.cachedPromptTokens, u.reasoningTokens);
-
-    LOG_MESSAGE(QString("Chat usage [%1]: prompt=%2 completion=%3 cached=%4 reasoning=%5")
-                    .arg(requestId)
-                    .arg(u.promptTokens)
-                    .arg(u.completionTokens)
-                    .arg(u.cachedPromptTokens)
-                    .arg(u.reasoningTokens));
-}
-
-void ClientInterface::handleRequestFailed(const QString &requestId, const QString &error)
-{
-    auto it = m_activeRequests.find(requestId);
-    if (it == m_activeRequests.end())
-        return;
-
-    LOG_MESSAGE(QString("Chat request %1 failed: %2").arg(requestId, error));
-    emit errorOccurred(error);
-
-    m_activeRequests.erase(it);
-    m_accumulatedResponses.remove(requestId);
-    m_awaitingContinuation.remove(requestId);
-}
-
-void ClientInterface::handleThinkingBlockReceived(
-    const QString &requestId, const QString &thinking, const QString &signature)
-{
-    if (!m_activeRequests.contains(requestId)) {
-        LOG_MESSAGE(QString("Ignoring thinking block for non-chat request: %1").arg(requestId));
-        return;
-    }
-
-    if (m_awaitingContinuation.remove(requestId)) {
-        m_accumulatedResponses[requestId].clear();
-        LOG_MESSAGE(
-            QString("Cleared accumulated responses for continuation request %1").arg(requestId));
-    }
-
-    if (thinking.isEmpty()) {
-        m_chatModel->addRedactedThinkingBlock(requestId, signature);
-    } else {
-        m_chatModel->addThinkingBlock(requestId, thinking, signature);
-    }
-}
-
-void ClientInterface::handleToolExecutionStarted(
-    const QString &requestId,
-    const QString &toolId,
-    const QString &toolName,
-    const QJsonObject &arguments)
-{
-    const auto requestIt = m_activeRequests.constFind(requestId);
-    if (requestIt == m_activeRequests.constEnd()) {
-        LOG_MESSAGE(QString("Ignoring tool execution start for non-chat request: %1").arg(requestId));
-        return;
-    }
-
-    if (requestIt->dropPreToolText) {
-        m_chatModel->dropTrailingAssistantMessage(requestId);
-    }
-    m_chatModel->addToolExecutionStatus(requestId, toolId, toolName, arguments);
-    m_awaitingContinuation.insert(requestId);
-}
-
-void ClientInterface::handleToolExecutionCompleted(
-    const QString &requestId,
-    const QString &toolId,
-    const QString &toolName,
-    const QString &toolOutput)
-{
-    if (!m_activeRequests.contains(requestId)) {
-        LOG_MESSAGE(QString("Ignoring tool execution result for non-chat request: %1").arg(requestId));
-        return;
-    }
-
-    m_chatModel->updateToolResult(requestId, toolId, toolName, toolOutput);
 }
 
 bool ClientInterface::isImageFile(const QString &filePath) const
@@ -693,46 +489,10 @@ QString ClientInterface::encodeImageToBase64(const QString &filePath) const
     return imageData.toBase64();
 }
 
-QVector<PluginLLMCore::ImageAttachment> ClientInterface::loadImagesFromStorage(
-    const QList<ChatModel::ImageAttachment> &storedImages) const
-{
-    QVector<PluginLLMCore::ImageAttachment> apiImages;
-
-    for (const auto &storedImage : storedImages) {
-        QString base64Data
-            = ChatSerializer::loadContentFromStorage(m_chatFilePath, storedImage.storedPath);
-        if (base64Data.isEmpty()) {
-            LOG_MESSAGE(QString("Warning: Failed to load image: %1").arg(storedImage.storedPath));
-            continue;
-        }
-
-        PluginLLMCore::ImageAttachment apiImage;
-        apiImage.data = base64Data;
-        apiImage.mediaType = storedImage.mediaType;
-        apiImage.isUrl = false;
-
-        apiImages.append(apiImage);
-    }
-
-    return apiImages;
-}
-
 void ClientInterface::setChatFilePath(const QString &filePath)
 {
-    if (!m_chatFilePath.isEmpty() && m_chatFilePath != filePath) {
-        const auto providerName = Settings::generalSettings().caProvider();
-        auto *provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(providerName);
-
-        if (provider
-            && provider->capabilities().testFlag(PluginLLMCore::ProviderCapability::Tools)
-            && provider->toolsManager()) {
-            if (auto *todoTool = qobject_cast<QodeAssist::Tools::TodoTool *>(
-                    provider->toolsManager()->tool("todo_tool"))) {
-                todoTool->clearSession(m_chatFilePath);
-            }
-        }
-    }
-
+    if (m_chatFilePath != filePath)
+        m_contentCache->clear();
     m_chatFilePath = filePath;
     m_chatModel->setChatFilePath(filePath);
 }

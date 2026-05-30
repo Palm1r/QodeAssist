@@ -1,0 +1,13 @@
+schema_version = 1
+
+extends     = "Claude Base Chat"
+name        = "Claude Quick Refactor"
+description = "Anthropic Claude — deterministic inline refactor. QuickRefactorHandler supplies the refactor system prompt; output is cleaned and inserted into the editor. No thinking; tools off."
+
+model        = "claude-sonnet-4-6"
+enable_tools = false
+tags         = ["refactor", "claude", "cloud"]
+
+[body]
+max_tokens  = 16000
+temperature = 0.2

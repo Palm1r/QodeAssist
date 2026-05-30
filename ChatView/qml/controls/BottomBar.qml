@@ -21,6 +21,8 @@ Rectangle {
 
     property bool isCompressing: false
     property bool isProcessing: false
+    property bool canCompress: true
+    property bool canSend: true
     property alias sendButtonTooltip: sendButtonTooltipId
 
     color: palette.window.hslLightness > 0.5 ?
@@ -139,50 +141,78 @@ Rectangle {
             }
         }
 
-        QoAButton {
-            id: compressButtonId
+        Item {
+            id: compressButtonContainer
 
             visible: !root.isCompressing
-            text: qsTr("Compress")
+            implicitWidth: compressButtonId.implicitWidth
+            implicitHeight: compressButtonId.implicitHeight
 
-            icon {
-                source: "qrc:/qt/qml/ChatView/icons/compress-icon.svg"
-                height: 15
-                width: 15
+            QoAButton {
+                id: compressButtonId
+
+                anchors.fill: parent
+                enabled: root.canCompress
+                text: qsTr("Compress")
+
+                icon {
+                    source: "qrc:/qt/qml/ChatView/icons/compress-icon.svg"
+                    height: 15
+                    width: 15
+                }
+            }
+
+            HoverHandler {
+                id: compressHoverHandler
             }
 
             QoAToolTip {
-                visible: compressButtonId.hovered
+                visible: compressHoverHandler.hovered
                 delay: 250
-                text: qsTr("Compress chat (create summarized copy using LLM)")
+                text: root.canCompress
+                      ? qsTr("Compress chat (create summarized copy using LLM)")
+                      : qsTr("Assign a compression agent in the Pipelines settings")
             }
         }
 
-        QoAButton {
-            id: sendButtonId
+        Item {
+            id: sendButtonContainer
 
-            leftPadding: root.isProcessing ? 22 : 4
+            implicitWidth: sendButtonId.implicitWidth
+            implicitHeight: sendButtonId.implicitHeight
 
-            icon {
-                height: 15
-                width: 15
+            QoAButton {
+                id: sendButtonId
+
+                anchors.fill: parent
+                enabled: root.isProcessing || root.canSend
+                leftPadding: root.isProcessing ? 22 : 4
+
+                icon {
+                    height: 15
+                    width: 15
+                }
+
+                QoABusyIndicator {
+                    id: sendBusyIndicator
+
+                    anchors.left: parent.left
+                    anchors.leftMargin: 5
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 14
+                    height: 14
+                    running: root.isProcessing
+                }
             }
 
-            QoABusyIndicator {
-                id: sendBusyIndicator
-
-                anchors.left: parent.left
-                anchors.leftMargin: 5
-                anchors.verticalCenter: parent.verticalCenter
-                width: 14
-                height: 14
-                running: root.isProcessing
+            HoverHandler {
+                id: sendHoverHandler
             }
 
             QoAToolTip {
                 id: sendButtonTooltipId
 
-                visible: sendButtonId.hovered
+                visible: sendHoverHandler.hovered
                 delay: 250
             }
         }

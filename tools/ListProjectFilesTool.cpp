@@ -115,15 +115,4 @@ QFuture<LLMQore::ToolResult> ListProjectFilesTool::executeAsync(const QJsonObjec
     });
 }
 
-QString ListProjectFilesTool::formatFileList(const QStringList &files) const
-{
-    QString result = QString("Project files (%1 total):\n\n").arg(files.size());
-
-    for (const QString &file : files) {
-        result += QString("- %1\n").arg(file);
-    }
-
-    return result;
-}
-
 } // namespace QodeAssist::Tools

@@ -39,4 +39,12 @@ private:
 
 ProviderSettings &providerSettings();
 
+struct LegacyApiKeyEntry
+{
+    QString label;
+    QString value;
+};
+
+LegacyApiKeyEntry legacyApiKeyForClientApi(const QString &clientApi);
+
 } // namespace QodeAssist::Settings

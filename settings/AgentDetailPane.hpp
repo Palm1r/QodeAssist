@@ -17,6 +17,10 @@ class QPlainTextEdit;
 class QPushButton;
 class QToolButton;
 
+namespace QodeAssist {
+class AgentFactory;
+}
+
 namespace QodeAssist::Providers {
 class ProviderInstanceFactory;
 }
@@ -32,9 +36,9 @@ public:
     explicit AgentDetailPane(QWidget *parent = nullptr);
 
     void setInstanceFactory(Providers::ProviderInstanceFactory *factory);
+    void setAgentFactory(AgentFactory *factory);
     void setAgent(const AgentConfig &cfg);
     void clear();
-    void setLoadDiagnostics(const QStringList &errors, const QStringList &warnings);
 
 signals:
     void openInEditorRequested(const AgentConfig &cfg);
@@ -48,6 +52,10 @@ private:
     QLineEdit *makeReadOnlyLine(bool mono = false);
     void applyCodePalette();
     void populateProviderCombo();
+    void onChangeModel();
+    void onResetModel();
+    void onChangeProvider(int index);
+    void onResetProvider();
 
     bool m_inApplyPalette = false;
     bool m_providerComboPopulated = false;
@@ -71,19 +79,16 @@ private:
     QLineEdit *m_tagsValue = nullptr;
 
     QComboBox *m_providerCombo = nullptr;
+    QPushButton *m_providerResetBtn = nullptr;
     QPointer<Providers::ProviderInstanceFactory> m_instanceFactory;
+    QPointer<AgentFactory> m_agentFactory;
     QLineEdit *m_endpointValue = nullptr;
     QLineEdit *m_modelValue = nullptr;
+    QPushButton *m_modelChangeBtn = nullptr;
+    QPushButton *m_modelResetBtn = nullptr;
     QLabel *m_effectiveUrl = nullptr;
 
     QLineEdit *m_filePatternsValue = nullptr;
-
-    QPlainTextEdit *m_roleText = nullptr;
-    QPlainTextEdit *m_contextText = nullptr;
-    QPlainTextEdit *m_messageFormat = nullptr;
-
-    SectionBox *m_diagnostics = nullptr;
-    QPlainTextEdit *m_diagnosticsView = nullptr;
 
     QToolButton *m_rawToggle = nullptr;
     QPlainTextEdit *m_rawToml = nullptr;

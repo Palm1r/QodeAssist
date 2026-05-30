@@ -4,10 +4,13 @@
 
 #pragma once
 
+#include <QHash>
 #include <QList>
 #include <QObject>
 #include <QPointer>
 #include <QString>
+
+#include "ToolContributorRegistry.hpp"
 
 namespace QodeAssist {
 
@@ -20,13 +23,9 @@ class SessionManager : public QObject
     Q_OBJECT
     Q_DISABLE_COPY_MOVE(SessionManager)
 public:
-    explicit SessionManager(QObject *parent = nullptr);
-
-    SessionManager(AgentFactory *agentFactory, QObject *parent = nullptr);
+    explicit SessionManager(AgentFactory *agentFactory, QObject *parent = nullptr);
 
     ~SessionManager() override;
-
-    Session *createSession();
 
     Session *createSession(const QString &agentName, QString *errorOut = nullptr);
 
@@ -35,19 +34,27 @@ public:
         ConversationHistory *externalHistory,
         QString *errorOut = nullptr);
 
+    Session *acquire(const QString &agentName, QString *errorOut = nullptr);
+    void release(Session *session);
+
     void removeSession(Session *session);
 
-    QList<Session *> sessions() const;
-
-    void cancelAll();
+    ToolContributorRegistry &toolContributors() noexcept { return m_toolContributors; }
+    const ToolContributorRegistry &toolContributors() const noexcept { return m_toolContributors; }
 
 signals:
     void sessionCreated(Session *session);
     void sessionRemoved(Session *session);
 
 private:
+    void resetSession(Session *session);
+
+    static constexpr int kMaxPooledPerAgent = 2;
+
     QPointer<AgentFactory> m_agentFactory;
     QList<QPointer<Session>> m_sessions;
+    QHash<QString, QList<QPointer<Session>>> m_pool;
+    ToolContributorRegistry m_toolContributors;
 };
 
 } // namespace QodeAssist

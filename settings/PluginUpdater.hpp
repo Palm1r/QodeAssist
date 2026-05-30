@@ -28,7 +28,6 @@ public:
 
     void checkForUpdates();
     QString currentVersion() const;
-    bool isUpdateAvailable() const;
 
 signals:
     void updateCheckFinished(const UpdateInfo &info);

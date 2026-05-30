@@ -81,8 +81,7 @@ public:
     bool rejectFileEdit(const QString &editId);
     bool undoFileEdit(const QString &editId);
     FileEdit getFileEdit(const QString &editId) const;
-    QList<FileEdit> getPendingEdits() const;
-    
+
     bool applyPendingEditsForRequest(const QString &requestId, QString *errorMsg = nullptr);
     
     QList<FileEdit> getEditsForRequest(const QString &requestId) const;
@@ -106,13 +105,9 @@ private:
     ChangesManager(const ChangesManager &) = delete;
     ChangesManager &operator=(const ChangesManager &) = delete;
 
-    bool performFileEdit(const QString &filePath, const QString &oldContent, const QString &newContent, QString *errorMsg = nullptr);
-    bool performFileEditWithDiff(const QString &filePath, const DiffInfo &diffInfo, bool reverse, QString *errorMsg = nullptr);
     QString readFileContent(const QString &filePath) const;
     
     DiffInfo createDiffInfo(const QString &originalContent, const QString &modifiedContent, const QString &filePath);
-    bool applyDiffToContent(QString &content, const DiffInfo &diffInfo, bool reverse, QString *errorMsg = nullptr);
-    bool findHunkLocation(const QStringList &fileLines, const DiffHunk &hunk, int &actualStartLine, QString *debugInfo = nullptr) const;
     
     // Helper method for fragment-based apply/undo operations
     bool performFragmentReplacement(

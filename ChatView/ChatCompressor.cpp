@@ -4,12 +4,23 @@
 
 #include "ChatCompressor.hpp"
 
+#include <memory>
+
 #include <LLMQore/BaseClient.hpp>
-#include "ChatModel.hpp"
+#include <LLMQore/ContentBlocks.hpp>
+
+#include <projectexplorer/project.h>
+#include <projectexplorer/projectmanager.h>
+
 #include "GeneralSettings.hpp"
-#include "PromptTemplateManager.hpp"
-#include "ProvidersManager.hpp"
 #include "logger/Logger.hpp"
+
+#include <AgentFactory.hpp>
+#include <ContextRenderer.hpp>
+#include <ConversationHistory.hpp>
+#include <Message.hpp>
+#include <Session.hpp>
+#include <SessionManager.hpp>
 
 #include <QDateTime>
 #include <QFile>
@@ -17,6 +28,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QStringList>
 #include <QUuid>
 
 namespace QodeAssist::Chat {
@@ -25,7 +37,18 @@ ChatCompressor::ChatCompressor(QObject *parent)
     : QObject(parent)
 {}
 
-void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *chatModel)
+void ChatCompressor::setSessionManager(SessionManager *sessionManager)
+{
+    m_sessionManager = sessionManager;
+}
+
+void ChatCompressor::setActiveAgent(const QString &agentName)
+{
+    m_activeAgent = agentName;
+}
+
+void ChatCompressor::startCompression(
+    const QString &chatFilePath, ConversationHistory *sourceHistory)
 {
     if (m_isCompressing) {
         emit compressionFailed(tr("Compression already in progress"));
@@ -37,49 +60,84 @@ void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *ch
         return;
     }
 
-    if (!chatModel || chatModel->rowCount() == 0) {
+    if (!sourceHistory || sourceHistory->isEmpty()) {
         emit compressionFailed(tr("Chat is empty, nothing to compress"));
         return;
     }
 
-    auto providerName = Settings::generalSettings().caProvider();
-    m_provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(providerName);
-
-    if (!m_provider) {
-        emit compressionFailed(tr("No provider available"));
+    if (!m_sessionManager) {
+        emit compressionFailed(tr("Chat session manager is not available"));
         return;
     }
 
-    auto templateName = Settings::generalSettings().caTemplate();
-    auto promptTemplate = PluginLLMCore::PromptTemplateManager::instance().getChatTemplateByName(
-        templateName);
-
-    if (!promptTemplate) {
-        emit compressionFailed(tr("No template available"));
+    QString sessionError;
+    Session *session = m_sessionManager->acquire(m_activeAgent, &sessionError);
+    if (!session) {
+        emit compressionFailed(
+            sessionError.isEmpty() ? tr("No chat agent selected") : sessionError);
         return;
     }
+
+    auto *client = session->client();
+    if (!client) {
+        m_sessionManager->removeSession(session);
+        emit compressionFailed(tr("Chat agent has no live client"));
+        return;
+    }
+
+    auto *project = ProjectExplorer::ProjectManager::startupProject();
+    Templates::ContextRenderer::Bindings bindings;
+    bindings.projectDir = project ? project->projectDirectory().toFSPathString() : QString();
+    bindings.configDir = AgentFactory::userConfigDir();
+    session->setContextBindings(bindings);
 
     m_isCompressing = true;
-    m_chatModel = chatModel;
     m_originalChatPath = chatFilePath;
-    m_accumulatedSummary.clear();
+    m_session = session;
 
     emit compressionStarted();
 
-    connectProviderSignals();
+    QStringList transcriptParts;
+    for (const auto &msg : sourceHistory->messages()) {
+        if (msg.role() != Message::Role::User && msg.role() != Message::Role::Assistant)
+            continue;
+        const QString text = msg.text();
+        if (text.trimmed().isEmpty())
+            continue;
 
-    QJsonObject payload{
-        {"model", Settings::generalSettings().caModel()}, {"stream", true}};
+        const QString role = msg.role() == Message::Role::User ? QStringLiteral("User")
+                                                               : QStringLiteral("Assistant");
+        transcriptParts.append(QStringLiteral("%1: %2").arg(role, text));
+    }
 
-    buildRequestPayload(payload, promptTemplate);
+    if (transcriptParts.isEmpty()) {
+        handleCompressionError(tr("Chat is empty, nothing to compress"));
+        return;
+    }
 
-    const QString customEndpoint = Settings::generalSettings().caCustomEndpoint();
-    const QString endpoint = !customEndpoint.isEmpty() ? customEndpoint
-                                                       : promptTemplate->endpoint();
-    m_provider->client()->setTransferTimeout(
+    const QString transcript = transcriptParts.join(QStringLiteral("\n\n"));
+
+    connect(
+        session, &Session::finished, this,
+        [this](const LLMQore::RequestID &id, const QString &) { onCompressionFinished(id); });
+    connect(
+        session, &Session::failed, this,
+        [this](const LLMQore::RequestID &id, const QodeAssist::ErrorInfo &error) {
+            onCompressionFailed(id, error.message);
+        });
+
+    client->setTransferTimeout(
         static_cast<int>(Settings::generalSettings().requestTimeout() * 1000));
-    m_currentRequestId = m_provider->sendRequest(
-        QUrl(Settings::generalSettings().caUrl()), payload, endpoint);
+
+    std::vector<std::unique_ptr<LLMQore::ContentBlock>> blocks;
+    blocks.push_back(std::make_unique<LLMQore::TextContent>(transcript));
+
+    m_currentRequestId = session->send(std::move(blocks));
+    if (m_currentRequestId.isEmpty()) {
+        handleCompressionError(tr("Failed to start compression request: %1")
+                                   .arg(session->lastError().message));
+        return;
+    }
     LOG_MESSAGE(QString("Starting compression request: %1").arg(m_currentRequestId));
 }
 
@@ -94,44 +152,38 @@ void ChatCompressor::cancelCompression()
         return;
 
     LOG_MESSAGE("Cancelling compression request");
-
-    if (m_provider && !m_currentRequestId.isEmpty())
-        m_provider->cancelRequest(m_currentRequestId);
-
     cleanupState();
     emit compressionFailed(tr("Compression cancelled"));
 }
 
-void ChatCompressor::onPartialResponseReceived(const QString &requestId, const QString &partialText)
+void ChatCompressor::onCompressionFinished(const QString &requestId)
 {
     if (!m_isCompressing || requestId != m_currentRequestId)
         return;
 
-    m_accumulatedSummary += partialText;
-}
+    QString summary;
+    if (m_session) {
+        if (auto *history = m_session->history(); history && !history->isEmpty())
+            summary = history->messages().back().text();
+    }
 
-void ChatCompressor::onFullResponseReceived(const QString &requestId, const QString &fullText)
-{
-    Q_UNUSED(fullText)
+    LOG_MESSAGE(QString("Received summary, length: %1 characters").arg(summary.length()));
 
-    if (!m_isCompressing || requestId != m_currentRequestId)
-        return;
+    const QString compressedPath = createCompressedChatPath(m_originalChatPath);
+    const QString sourcePath = m_originalChatPath;
 
-    LOG_MESSAGE(
-        QString("Received summary, length: %1 characters").arg(m_accumulatedSummary.length()));
+    cleanupState();
 
-    QString compressedPath = createCompressedChatPath(m_originalChatPath);
-    if (!createCompressedChatFile(m_originalChatPath, compressedPath, m_accumulatedSummary)) {
-        handleCompressionError(tr("Failed to save compressed chat"));
+    if (!createCompressedChatFile(sourcePath, compressedPath, summary)) {
+        emit compressionFailed(tr("Failed to save compressed chat"));
         return;
     }
 
     LOG_MESSAGE(QString("Compression completed: %1").arg(compressedPath));
-    cleanupState();
     emit compressionCompleted(compressedPath);
 }
 
-void ChatCompressor::onRequestFailed(const QString &requestId, const QString &error)
+void ChatCompressor::onCompressionFailed(const QString &requestId, const QString &error)
 {
     if (!m_isCompressing || requestId != m_currentRequestId)
         return;
@@ -152,53 +204,6 @@ QString ChatCompressor::createCompressedChatPath(const QString &originalPath) co
     QString hash = QString::number(QDateTime::currentMSecsSinceEpoch() % 100000, 16);
     return QString("%1/%2_%3.%4")
         .arg(fileInfo.absolutePath(), fileInfo.completeBaseName(), hash, fileInfo.suffix());
-}
-
-QString ChatCompressor::buildCompressionPrompt() const
-{
-    return QStringLiteral(
-        "Please create a comprehensive summary of our entire conversation above. "
-        "The summary should:\n"
-        "1. Preserve all important context, decisions, and key information\n"
-        "2. Maintain technical details, code snippets, file references, and specific examples\n"
-        "3. Keep the chronological flow of the discussion\n"
-        "4. Be significantly shorter than the original (aim for 30-40% of original length)\n"
-        "5. Be written in clear, structured format\n"
-        "6. Use markdown formatting for better readability\n\n"
-        "Create the summary now:");
-}
-
-void ChatCompressor::buildRequestPayload(
-    QJsonObject &payload, PluginLLMCore::PromptTemplate *promptTemplate)
-{
-    PluginLLMCore::ContextData context;
-
-    context.systemPrompt = QStringLiteral(
-        "You are a helpful assistant that creates concise summaries of conversations. "
-        "Your summaries preserve key information, technical details, and the flow of discussion.");
-
-    QVector<PluginLLMCore::Message> messages;
-    for (const auto &msg : m_chatModel->getChatHistory()) {
-        if (msg.role == ChatModel::ChatRole::Tool 
-            || msg.role == ChatModel::ChatRole::FileEdit
-            || msg.role == ChatModel::ChatRole::Thinking)
-            continue;
-
-        PluginLLMCore::Message apiMessage;
-        apiMessage.role = (msg.role == ChatModel::ChatRole::User) ? "user" : "assistant";
-        apiMessage.content = msg.content;
-        messages.append(apiMessage);
-    }
-
-    PluginLLMCore::Message compressionRequest;
-    compressionRequest.role = "user";
-    compressionRequest.content = buildCompressionPrompt();
-    messages.append(compressionRequest);
-
-    context.history = messages;
-
-    m_provider->prepareRequest(
-        payload, promptTemplate, context, PluginLLMCore::RequestType::Chat, false, false);
 }
 
 bool ChatCompressor::createCompressedChatFile(
@@ -224,11 +229,11 @@ bool ChatCompressor::createCompressedChatFile(
 
     QJsonObject summaryMessage;
     summaryMessage["role"] = "assistant";
-    summaryMessage["content"] = QString("# Chat Summary\n\n%1").arg(summary);
     summaryMessage["id"] = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    summaryMessage["isRedacted"] = false;
-    summaryMessage["attachments"] = QJsonArray();
-    summaryMessage["images"] = QJsonArray();
+    QJsonObject textBlock;
+    textBlock["type"] = "text";
+    textBlock["text"] = QString("# Chat Summary\n\n%1").arg(summary);
+    summaryMessage["blocks"] = QJsonArray{textBlock};
 
     root["messages"] = QJsonArray{summaryMessage};
     root["compressedFrom"] = sourcePath;
@@ -247,49 +252,17 @@ bool ChatCompressor::createCompressedChatFile(
     return true;
 }
 
-void ChatCompressor::connectProviderSignals()
-{
-    auto *c = m_provider->client();
-
-    m_connections.append(connect(
-        c,
-        &::LLMQore::BaseClient::chunkReceived,
-        this,
-        &ChatCompressor::onPartialResponseReceived,
-        Qt::UniqueConnection));
-
-    m_connections.append(connect(
-        c,
-        &::LLMQore::BaseClient::requestCompleted,
-        this,
-        &ChatCompressor::onFullResponseReceived,
-        Qt::UniqueConnection));
-
-    m_connections.append(connect(
-        c,
-        &::LLMQore::BaseClient::requestFailed,
-        this,
-        &ChatCompressor::onRequestFailed,
-        Qt::UniqueConnection));
-}
-
-void ChatCompressor::disconnectAllSignals()
-{
-    for (const auto &connection : std::as_const(m_connections))
-        disconnect(connection);
-    m_connections.clear();
-}
-
 void ChatCompressor::cleanupState()
 {
-    disconnectAllSignals();
+    Session *session = m_session;
 
     m_isCompressing = false;
     m_currentRequestId.clear();
     m_originalChatPath.clear();
-    m_accumulatedSummary.clear();
-    m_chatModel = nullptr;
-    m_provider = nullptr;
+    m_session = nullptr;
+
+    if (session && m_sessionManager)
+        m_sessionManager->release(session);
 }
 
 } // namespace QodeAssist::Chat

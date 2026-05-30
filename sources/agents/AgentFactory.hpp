@@ -21,7 +21,7 @@ class Agent;
 namespace Providers {
 class ProviderInstanceFactory;
 class ProviderSecretsStore;
-}
+} // namespace Providers
 
 class AgentFactory : public QObject
 {
@@ -37,6 +37,7 @@ public:
     void reload();
 
     [[nodiscard]] static QString userAgentsDir();
+    [[nodiscard]] static QString userConfigDir();
 
     [[nodiscard]] const AgentConfig *configByName(const QString &name) const;
     [[nodiscard]] QStringList configNames() const;
@@ -47,20 +48,30 @@ public:
     Agent *createFromFile(
         const QString &tomlPath, QObject *parent, QString *errorOut = nullptr) const;
 
-    [[nodiscard]] QStringList lastLoadErrors() const { return m_errors; }
-    [[nodiscard]] QStringList lastLoadWarnings() const { return m_warnings; }
-
     void registerConfig(AgentConfig config);
     void clear();
 
+    bool setAgentModelOverride(const QString &name, const QString &model, QString *error = nullptr);
+    [[nodiscard]] QString agentModelOverride(const QString &name) const;
+    void clearAgentModelOverride(const QString &name);
+
+    bool setAgentProviderOverride(
+        const QString &name, const QString &providerInstance, QString *error = nullptr);
+    [[nodiscard]] QString agentProviderOverride(const QString &name) const;
+    void clearAgentProviderOverride(const QString &name);
+
     [[nodiscard]] Providers::ProviderInstanceFactory *instanceFactory() const noexcept;
-    [[nodiscard]] Providers::ProviderSecretsStore *secretsStore() const noexcept;
+
+signals:
+    void agentsChanged();
+    void agentModelChanged(const QString &name);
+    void agentProviderChanged(const QString &name);
 
 private:
     std::vector<AgentConfig> m_configs;
     QHash<QString, qsizetype> m_indexByName;
-    QStringList m_errors;
-    QStringList m_warnings;
+    QHash<QString, QString> m_baseModelByName;
+    QHash<QString, QString> m_baseProviderByName;
     QPointer<Providers::ProviderInstanceFactory> m_instanceFactory;
     QPointer<Providers::ProviderSecretsStore> m_secrets;
 };

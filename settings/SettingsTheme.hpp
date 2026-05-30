@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <QColor>
 #include <QFont>
 #include <QFontDatabase>
 #include <QPalette>
@@ -11,34 +12,32 @@
 
 namespace QodeAssist::Settings {
 
-struct Theme
-{
-    bool dark = false;
-    QString listHeaderBg;
-    QString rowSeparator;
-    QString rowSelectedBg;
-    QString codeBg;
-};
-
 inline bool isDarkPalette(const QPalette &p)
 {
     return p.color(QPalette::Window).lightness() < 128;
 }
 
-inline Theme themeFor(const QPalette &p)
+// Linear blend a→b by t∈[0,1]; used to derive subtle tints from theme roles.
+inline QColor mix(const QColor &a, const QColor &b, double t)
 {
-    const bool dark = isDarkPalette(p);
-    if (dark)
-        return {true,
-                QStringLiteral("#262626"),
-                QStringLiteral("#3a3a3a"),
-                QStringLiteral("#2c4060"),
-                QStringLiteral("#1f1f1f")};
-    return {false,
-            QStringLiteral("#f0f0f0"),
-            QStringLiteral("#dcdcdc"),
-            QStringLiteral("#cfe2ff"),
-            QStringLiteral("#f4f4f4")};
+    const double s = 1.0 - t;
+    return QColor::fromRgbF(
+        a.redF() * s + b.redF() * t,
+        a.greenF() * s + b.greenF() * t,
+        a.blueF() * s + b.blueF() * t,
+        1.0);
+}
+
+// Serialize a theme color for a Qt stylesheet preserving alpha. Some Qt Creator
+// theme roles (e.g. BackgroundColorHover) are semi-transparent; QColor::name()
+// drops the alpha and would render them as solid black.
+inline QString cssColor(const QColor &c)
+{
+    return QStringLiteral("rgba(%1, %2, %3, %4)")
+        .arg(c.red())
+        .arg(c.green())
+        .arg(c.blue())
+        .arg(c.alphaF(), 0, 'f', 3);
 }
 
 inline QFont monospaceFont(int pixelSize = 11)

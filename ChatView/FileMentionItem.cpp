@@ -88,22 +88,6 @@ void FileMentionItem::moveDown()
     }
 }
 
-void FileMentionItem::selectCurrent()
-{
-    if (m_currentIndex < 0 || m_currentIndex >= m_searchResults.size())
-        return;
-
-    const QVariantMap item = m_searchResults[m_currentIndex].toMap();
-    if (item.value("isProject").toBool()) {
-        emit projectSelected(item.value("projectName").toString());
-    } else {
-        emit fileSelected(
-            item.value("absolutePath").toString(),
-            item.value("relativePath").toString(),
-            item.value("projectName").toString());
-    }
-}
-
 void FileMentionItem::dismiss()
 {
     m_searchResults.clear();

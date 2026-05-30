@@ -63,47 +63,6 @@ public:
 
         return contextLines.join('\n');
     }
-
-    static QString extractLineContext(QTextDocument *doc, int position, bool before)
-    {
-        QTextCursor cursor(doc);
-        cursor.setPosition(position);
-
-        if (before) {
-            int posInBlock = cursor.positionInBlock();
-            cursor.movePosition(QTextCursor::StartOfBlock);
-            cursor.movePosition(QTextCursor::Right, QTextCursor::KeepAnchor, posInBlock);
-            return cursor.selectedText();
-        } else {
-            cursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
-            return cursor.selectedText();
-        }
-    }
-
-    static QStringList extractSurroundingLines(QTextDocument *doc, int position, int linesBefore, int linesAfter)
-    {
-        QTextCursor cursor(doc);
-        cursor.setPosition(position);
-        QTextBlock currentBlock = cursor.block();
-
-        QStringList result;
-
-        QTextBlock blockBefore = currentBlock.previous();
-        QStringList beforeLines;
-        for (int i = 0; i < linesBefore && blockBefore.isValid(); ++i) {
-            beforeLines.prepend(blockBefore.text());
-            blockBefore = blockBefore.previous();
-        }
-        result.append(beforeLines);
-
-        QTextBlock blockAfter = currentBlock.next();
-        for (int i = 0; i < linesAfter && blockAfter.isValid(); ++i) {
-            result.append(blockAfter.text());
-            blockAfter = blockAfter.next();
-        }
-
-        return result;
-    }
 };
 
 } // namespace QodeAssist

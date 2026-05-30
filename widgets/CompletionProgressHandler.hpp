@@ -18,7 +18,6 @@ public:
     void showProgress(TextEditor::TextEditorWidget *widget);
     void hideProgress();
     void setCancelCallback(std::function<void()> callback);
-    bool isProgressVisible() const { return !m_progressWidget.isNull(); }
 
 protected:
     void identifyMatch(

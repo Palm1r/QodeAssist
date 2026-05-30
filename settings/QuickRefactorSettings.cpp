@@ -27,122 +27,6 @@ QuickRefactorSettings::QuickRefactorSettings()
 
     setDisplayName(Tr::tr("Quick Refactor"));
 
-    // General Parameters Settings
-    temperature.setSettingsKey(Constants::QR_TEMPERATURE);
-    temperature.setLabelText(Tr::tr("Temperature:"));
-    temperature.setDefaultValue(0.5);
-    temperature.setRange(0.0, 2.0);
-    temperature.setSingleStep(0.1);
-
-    maxTokens.setSettingsKey(Constants::QR_MAX_TOKENS);
-    maxTokens.setLabelText(Tr::tr("Max Tokens:"));
-    maxTokens.setRange(-1, 200000);
-    maxTokens.setDefaultValue(2000);
-
-    // Advanced Parameters
-    useTopP.setSettingsKey(Constants::QR_USE_TOP_P);
-    useTopP.setDefaultValue(false);
-    useTopP.setLabelText(Tr::tr("Top P:"));
-
-    topP.setSettingsKey(Constants::QR_TOP_P);
-    topP.setDefaultValue(0.9);
-    topP.setRange(0.0, 1.0);
-    topP.setSingleStep(0.1);
-
-    useTopK.setSettingsKey(Constants::QR_USE_TOP_K);
-    useTopK.setDefaultValue(false);
-    useTopK.setLabelText(Tr::tr("Top K:"));
-
-    topK.setSettingsKey(Constants::QR_TOP_K);
-    topK.setDefaultValue(50);
-    topK.setRange(1, 1000);
-
-    usePresencePenalty.setSettingsKey(Constants::QR_USE_PRESENCE_PENALTY);
-    usePresencePenalty.setDefaultValue(false);
-    usePresencePenalty.setLabelText(Tr::tr("Presence Penalty:"));
-
-    presencePenalty.setSettingsKey(Constants::QR_PRESENCE_PENALTY);
-    presencePenalty.setDefaultValue(0.0);
-    presencePenalty.setRange(-2.0, 2.0);
-    presencePenalty.setSingleStep(0.1);
-
-    useFrequencyPenalty.setSettingsKey(Constants::QR_USE_FREQUENCY_PENALTY);
-    useFrequencyPenalty.setDefaultValue(false);
-    useFrequencyPenalty.setLabelText(Tr::tr("Frequency Penalty:"));
-
-    frequencyPenalty.setSettingsKey(Constants::QR_FREQUENCY_PENALTY);
-    frequencyPenalty.setDefaultValue(0.0);
-    frequencyPenalty.setRange(-2.0, 2.0);
-    frequencyPenalty.setSingleStep(0.1);
-
-    // Ollama Settings
-    ollamaLivetime.setSettingsKey(Constants::QR_OLLAMA_LIVETIME);
-    ollamaLivetime.setToolTip(
-        Tr::tr(
-            "Time to suspend Ollama after completion request (in minutes), "
-            "Only Ollama,  -1 to disable"));
-    ollamaLivetime.setLabelText("Livetime:");
-    ollamaLivetime.setDefaultValue("5m");
-    ollamaLivetime.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
-
-    contextWindow.setSettingsKey(Constants::QR_OLLAMA_CONTEXT_WINDOW);
-    contextWindow.setLabelText(Tr::tr("Context Window:"));
-    contextWindow.setRange(-1, 10000);
-    contextWindow.setDefaultValue(2048);
-
-    useTools.setSettingsKey(Constants::QR_USE_TOOLS);
-    useTools.setLabelText(Tr::tr("Enable Tools"));
-    useTools.setToolTip(
-        Tr::tr(
-            "Enable AI tools/functions for quick refactoring (allows reading project files, "
-            "searching code, etc.)"));
-    useTools.setDefaultValue(false);
-
-    useThinking.setSettingsKey(Constants::QR_USE_THINKING);
-    useThinking.setLabelText(Tr::tr("Enable Thinking Mode"));
-    useThinking.setToolTip(
-        Tr::tr(
-            "Enable extended thinking mode for complex refactoring tasks (supported by "
-            "compatible models like Claude and Google AI)"));
-    useThinking.setDefaultValue(false);
-
-    thinkingBudgetTokens.setSettingsKey(Constants::QR_THINKING_BUDGET_TOKENS);
-    thinkingBudgetTokens.setLabelText(Tr::tr("Thinking Budget Tokens:"));
-    thinkingBudgetTokens.setToolTip(
-        Tr::tr(
-            "Number of tokens allocated for thinking process. Use -1 for dynamic thinking "
-            "(model decides), 0 to disable, or positive value for custom budget"));
-    thinkingBudgetTokens.setRange(-1, 100000);
-    thinkingBudgetTokens.setDefaultValue(10000);
-
-    thinkingMaxTokens.setSettingsKey(Constants::QR_THINKING_MAX_TOKENS);
-    thinkingMaxTokens.setLabelText(Tr::tr("Thinking Max Output Tokens:"));
-    thinkingMaxTokens.setToolTip(
-        Tr::tr(
-            "Maximum output tokens when thinking mode is enabled (includes thinking + response)"));
-    thinkingMaxTokens.setRange(1000, 200000);
-    thinkingMaxTokens.setDefaultValue(16000);
-
-    // OpenAI Responses API Settings
-    openAIResponsesReasoningEffort.setSettingsKey(Constants::QR_OPENAI_RESPONSES_REASONING_EFFORT);
-    openAIResponsesReasoningEffort.setLabelText(Tr::tr("Reasoning effort:"));
-    openAIResponsesReasoningEffort.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
-    openAIResponsesReasoningEffort.addOption("None");
-    openAIResponsesReasoningEffort.addOption("Minimal");
-    openAIResponsesReasoningEffort.addOption("Low");
-    openAIResponsesReasoningEffort.addOption("Medium");
-    openAIResponsesReasoningEffort.addOption("High");
-    openAIResponsesReasoningEffort.setDefaultValue("Medium");
-    openAIResponsesReasoningEffort.setToolTip(
-        Tr::tr(
-            "Constrains effort on reasoning for OpenAI gpt-5 and o-series models:\n\n"
-            "None: No reasoning (gpt-5.1 only)\n"
-            "Minimal: Minimal reasoning effort (o-series only)\n"
-            "Low: Low reasoning effort\n"
-            "Medium: Balanced reasoning (default for most models)\n"
-            "High: Maximum reasoning effort (gpt-5-pro only supports this)\n\n"
-            "Note: Reducing effort = faster responses + fewer tokens"));
-
     // Context Settings
     readFullFile.setSettingsKey(Constants::QR_READ_FULL_FILE);
     readFullFile.setLabelText(Tr::tr("Read Full File"));
@@ -212,14 +96,6 @@ QuickRefactorSettings::QuickRefactorSettings()
     widgetMaxHeight.setRange(200, 999999);
     widgetMaxHeight.setDefaultValue(9999);
 
-    systemPrompt.setSettingsKey(Constants::QR_SYSTEM_PROMPT);
-    systemPrompt.setLabelText(Tr::tr("System Prompt:"));
-    systemPrompt.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
-    systemPrompt.setDefaultValue(
-        "You are an expert C++, Qt, and QML code completion assistant. Your task is to provide "
-        "precise and contextually appropriate code completions to insert depending on user "
-        "instructions.\n\n");
-
     useOpenFilesInQuickRefactor.setSettingsKey(Constants::QR_USE_OPEN_FILES_IN_QUICK_REFACTOR);
     useOpenFilesInQuickRefactor.setLabelText(
         Tr::tr("Include context from open files in quick refactor"));
@@ -235,29 +111,6 @@ QuickRefactorSettings::QuickRefactorSettings()
 
     setLayouter([this]() {
         using namespace Layouting;
-
-        auto genGrid = Grid{};
-        genGrid.addRow({Row{temperature}});
-        genGrid.addRow({Row{maxTokens}});
-
-        auto advancedGrid = Grid{};
-        advancedGrid.addRow({useTopP, topP});
-        advancedGrid.addRow({useTopK, topK});
-        advancedGrid.addRow({usePresencePenalty, presencePenalty});
-        advancedGrid.addRow({useFrequencyPenalty, frequencyPenalty});
-
-        auto ollamaGrid = Grid{};
-        ollamaGrid.addRow({ollamaLivetime});
-        ollamaGrid.addRow({contextWindow});
-
-        auto toolsGrid = Grid{};
-        toolsGrid.addRow({useTools});
-        toolsGrid.addRow({useThinking});
-        toolsGrid.addRow({thinkingBudgetTokens});
-        toolsGrid.addRow({thinkingMaxTokens});
-
-        auto openAIResponsesGrid = Grid{};
-        openAIResponsesGrid.addRow({openAIResponsesReasoningEffort});
 
         auto contextGrid = Grid{};
         contextGrid.addRow({Row{readFullFile}});
@@ -275,24 +128,9 @@ QuickRefactorSettings::QuickRefactorSettings()
         return Column{
             Row{Stretch{1}, resetToDefaults},
             Space{8},
-            Group{
-                title(Tr::tr("General Parameters")),
-                Row{genGrid, Stretch{1}},
-            },
-            Space{8},
-            Group{title(Tr::tr("Advanced Parameters")), Column{Row{advancedGrid, Stretch{1}}}},
-            Space{8},
-            Group{title(Tr::tr("Tools Settings")), Column{Row{toolsGrid, Stretch{1}}}},
-            Space{8},
-            Group{title(Tr::tr("OpenAI Responses API")), Column{Row{openAIResponsesGrid, Stretch{1}}}},
-            Space{8},
             Group{title(Tr::tr("Context Settings")), Column{Row{contextGrid, Stretch{1}}}},
             Space{8},
             Group{title(Tr::tr("Display Settings")), Column{Row{displayGrid, Stretch{1}}}},
-            Space{8},
-            Group{title(Tr::tr("Prompt Settings")), Column{Row{systemPrompt}}},
-            Space{8},
-            Group{title(Tr::tr("Ollama Settings")), Column{Row{ollamaGrid, Stretch{1}}}},
             Stretch{1}};
     });
 }
@@ -359,23 +197,6 @@ void QuickRefactorSettings::resetSettingsToDefaults()
         QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
-        resetAspect(temperature);
-        resetAspect(maxTokens);
-        resetAspect(useTopP);
-        resetAspect(topP);
-        resetAspect(useTopK);
-        resetAspect(topK);
-        resetAspect(usePresencePenalty);
-        resetAspect(presencePenalty);
-        resetAspect(useFrequencyPenalty);
-        resetAspect(frequencyPenalty);
-        resetAspect(ollamaLivetime);
-        resetAspect(contextWindow);
-        resetAspect(useTools);
-        resetAspect(useThinking);
-        resetAspect(thinkingBudgetTokens);
-        resetAspect(thinkingMaxTokens);
-        resetAspect(openAIResponsesReasoningEffort);
         resetAspect(readFullFile);
         resetAspect(readFileParts);
         resetAspect(readStringsBeforeCursor);
@@ -386,7 +207,6 @@ void QuickRefactorSettings::resetSettingsToDefaults()
         resetAspect(widgetMaxWidth);
         resetAspect(widgetMinHeight);
         resetAspect(widgetMaxHeight);
-        resetAspect(systemPrompt);
         resetAspect(useOpenFilesInQuickRefactor);
         writeSettings();
     }

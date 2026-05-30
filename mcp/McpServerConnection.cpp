@@ -23,7 +23,6 @@
 #include <QStandardPaths>
 
 #include <logger/Logger.hpp>
-#include <pluginllmcore/Provider.hpp>
 #include <settings/McpSettings.hpp>
 
 namespace QodeAssist::Mcp {
@@ -33,13 +32,6 @@ namespace {
 QString transportToString(McpTransportKind k)
 {
     return k == McpTransportKind::Http ? QStringLiteral("http") : QStringLiteral("stdio");
-}
-
-bool providerSupportsTools(PluginLLMCore::Provider *p)
-{
-    if (!p)
-        return false;
-    return p->capabilities().testFlag(PluginLLMCore::ProviderCapability::Tools);
 }
 
 } // namespace
@@ -131,15 +123,6 @@ McpServerConnection::McpServerConnection(McpServerConfig config, QObject *parent
 McpServerConnection::~McpServerConnection()
 {
     disconnectFromServer();
-}
-
-void McpServerConnection::setProviders(const QList<PluginLLMCore::Provider *> &providers)
-{
-    m_providers.clear();
-    for (auto *p : providers) {
-        if (providerSupportsTools(p))
-            m_providers.append(p);
-    }
 }
 
 ::LLMQore::Mcp::McpTransport *McpServerConnection::createTransport()
@@ -293,40 +276,20 @@ void McpServerConnection::fetchAndRegisterTools()
               [this](const QList<::LLMQore::Mcp::ToolInfo> &tools) {
                   if (m_listToolsWatchdog)
                       m_listToolsWatchdog->stop();
-                  if (m_providers.isEmpty()) {
-                      LOG_MESSAGE(QString("MCP client [%1]: no tools-capable providers to "
-                                          "register %2 tools into")
-                                      .arg(m_config.name)
-                                      .arg(tools.size()));
-                      setState(
-                          McpConnectionState::Connected,
-                          QStringLiteral("Connected (%1 tools)").arg(tools.size()));
-                      return;
-                  }
 
+                  m_tools.clear();
                   for (const auto &info : tools) {
                       if (info.name.isEmpty())
                           continue;
-                      m_toolIds.append(info.name);
-                      for (const auto &p : m_providers) {
-                          if (!p)
-                              continue;
-                          auto *tm = p->toolsManager();
-                          if (!tm)
-                              continue;
-                          auto *remote = new ::LLMQore::Mcp::McpRemoteTool(
-                              m_client.data(), info, tm);
-                          tm->addTool(remote);
-                      }
+                      m_tools.append(info);
                   }
 
-                  LOG_MESSAGE(QString("MCP client [%1]: registered %2 tools across %3 providers")
+                  LOG_MESSAGE(QString("MCP client [%1]: discovered %2 tools")
                                   .arg(m_config.name)
-                                  .arg(tools.size())
-                                  .arg(m_providers.size()));
+                                  .arg(m_tools.size()));
                   setState(
                       McpConnectionState::Connected,
-                      QStringLiteral("Connected (%1 tools)").arg(tools.size()));
+                      QStringLiteral("Connected (%1 tools)").arg(m_tools.size()));
               })
         .onFailed(this, [this](const std::exception &e) {
             if (m_listToolsWatchdog)
@@ -337,21 +300,19 @@ void McpServerConnection::fetchAndRegisterTools()
         });
 }
 
+void McpServerConnection::registerToolsOn(::LLMQore::ToolsManager *tools)
+{
+    if (!tools || !m_client || m_state != McpConnectionState::Connected)
+        return;
+    for (const auto &info : m_tools) {
+        auto *remote = new ::LLMQore::Mcp::McpRemoteTool(m_client.data(), info, tools);
+        tools->addTool(remote);
+    }
+}
+
 void McpServerConnection::unregisterTools()
 {
-    if (m_toolIds.isEmpty())
-        return;
-
-    for (const auto &p : m_providers) {
-        if (!p)
-            continue;
-        auto *tm = p->toolsManager();
-        if (!tm)
-            continue;
-        for (const QString &id : m_toolIds)
-            tm->removeTool(id);
-    }
-    m_toolIds.clear();
+    m_tools.clear();
 }
 
 void McpServerConnection::disconnectFromServer()

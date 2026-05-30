@@ -35,25 +35,6 @@ bool ProjectUtils::isFileInProject(const QString &filePath)
     return false;
 }
 
-QString ProjectUtils::findFileInProject(const QString &filename)
-{
-    QList<ProjectExplorer::Project *> projects = ProjectExplorer::ProjectManager::projects();
-
-    for (auto project : projects) {
-        if (!project)
-            continue;
-
-        Utils::FilePaths projectFiles = project->files(ProjectExplorer::Project::SourceFiles);
-        for (const auto &projectFile : std::as_const(projectFiles)) {
-            if (projectFile.fileName() == filename) {
-                return projectFile.toFSPathString();
-            }
-        }
-    }
-
-    return QString();
-}
-
 QString ProjectUtils::getProjectRoot()
 {
     QList<ProjectExplorer::Project *> projects = ProjectExplorer::ProjectManager::projects();

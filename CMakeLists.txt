@@ -2,10 +2,6 @@ cmake_minimum_required(VERSION 3.16)
 
 project(QodeAssist)
 
-option(QODEASSIST_EXPERIMENTAL
-       "Enable experimental features" OFF)
-message(STATUS "QodeAssist experimental features: ${QODEASSIST_EXPERIMENTAL}")
-
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
@@ -42,7 +38,6 @@ add_definitions(
 
 add_subdirectory(sources)
 add_subdirectory(logger)
-add_subdirectory(pluginllmcore)
 add_subdirectory(settings)
 add_subdirectory(UIControls)
 add_subdirectory(ChatView)
@@ -69,7 +64,6 @@ add_qtc_plugin(QodeAssist
     QtCreator::Utils
     QtCreator::CPlusPlus
     LLMQore
-    PluginLLMCore
     ProvidersConfig
     Agents
     Skills
@@ -83,42 +77,6 @@ add_qtc_plugin(QodeAssist
     QodeAssisttr.h
     LLMClientInterface.hpp LLMClientInterface.cpp
     RefactorContextHelper.hpp
-    templates/Templates.hpp
-    templates/CodeLlamaFim.hpp
-    templates/Ollama.hpp
-    templates/Claude.hpp
-    templates/OpenAI.hpp
-    templates/MistralAI.hpp
-    templates/StarCoder2Fim.hpp
-    templates/Qwen25CoderFIM.hpp
-    templates/OpenAICompatible.hpp
-    templates/Llama3.hpp
-    templates/ChatML.hpp
-    templates/Alpaca.hpp
-    templates/Llama2.hpp
-    templates/CodeLlamaQMLFim.hpp
-    templates/GoogleAI.hpp
-    templates/LlamaCppFim.hpp
-    templates/Qwen3CoderFIM.hpp
-    templates/OpenAIResponses.hpp
-    providers/Providers.hpp
-    providers/ProviderUrlUtils.hpp
-    providers/OllamaProvider.hpp providers/OllamaProvider.cpp
-    providers/OllamaCompatProvider.hpp providers/OllamaCompatProvider.cpp
-    providers/ClaudeProvider.hpp providers/ClaudeProvider.cpp
-    providers/OpenAIProvider.hpp providers/OpenAIProvider.cpp
-    providers/MistralAIProvider.hpp providers/MistralAIProvider.cpp
-    providers/LMStudioProvider.hpp providers/LMStudioProvider.cpp
-    providers/LMStudioResponsesProvider.hpp providers/LMStudioResponsesProvider.cpp
-    providers/OpenAICompatProvider.hpp providers/OpenAICompatProvider.cpp
-    providers/OpenRouterAIProvider.hpp providers/OpenRouterAIProvider.cpp
-    providers/GoogleAIProvider.hpp providers/GoogleAIProvider.cpp
-    providers/LlamaCppProvider.hpp providers/LlamaCppProvider.cpp
-    providers/CodestralProvider.hpp providers/CodestralProvider.cpp
-    providers/OpenAIResponsesProvider.hpp providers/OpenAIResponsesProvider.cpp
-    providers/QwenProvider.hpp providers/QwenProvider.cpp
-    providers/QwenResponsesProvider.hpp providers/QwenResponsesProvider.cpp
-    providers/DeepSeekProvider.hpp providers/DeepSeekProvider.cpp
     QodeAssist.qrc
     LSPCompletion.hpp
     LLMSuggestion.hpp LLMSuggestion.cpp
@@ -130,17 +88,12 @@ add_qtc_plugin(QodeAssist
     chat/ChatDocument.hpp chat/ChatDocument.cpp
     chat/ChatEditor.hpp chat/ChatEditor.cpp
     chat/ChatEditorFactory.hpp chat/ChatEditorFactory.cpp
-    ConfigurationManager.hpp ConfigurationManager.cpp
     CodeHandler.hpp CodeHandler.cpp
     UpdateStatusWidget.hpp UpdateStatusWidget.cpp
     widgets/CompletionProgressHandler.hpp widgets/CompletionProgressHandler.cpp
     widgets/CompletionErrorHandler.hpp widgets/CompletionErrorHandler.cpp
-    widgets/CompletionHintWidget.hpp widgets/CompletionHintWidget.cpp
-    widgets/CompletionHintHandler.hpp widgets/CompletionHintHandler.cpp
     widgets/ProgressWidget.hpp widgets/ProgressWidget.cpp
     widgets/ErrorWidget.hpp widgets/ErrorWidget.cpp
-    widgets/EditorChatButton.hpp widgets/EditorChatButton.cpp
-    widgets/EditorChatButtonHandler.hpp widgets/EditorChatButtonHandler.cpp
     widgets/QuickRefactorDialog.hpp widgets/QuickRefactorDialog.cpp
     widgets/CustomInstructionsManager.hpp widgets/CustomInstructionsManager.cpp
     widgets/AddCustomInstructionDialog.hpp widgets/AddCustomInstructionDialog.cpp
@@ -170,10 +123,7 @@ add_qtc_plugin(QodeAssist
     settings/McpClientsListAspect.hpp settings/McpClientsListAspect.cpp
 )
 
-if(QODEASSIST_EXPERIMENTAL)
-    target_compile_definitions(QodeAssist PRIVATE QODEASSIST_EXPERIMENTAL)
-    target_link_libraries(QodeAssist PRIVATE QodeAssistAgentPipelines)
-endif()
+target_link_libraries(QodeAssist PRIVATE QodeAssistAgentPipelines Session)
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)
 find_program(QtCreatorExecutable

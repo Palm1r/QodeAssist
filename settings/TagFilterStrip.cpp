@@ -4,9 +4,10 @@
 
 #include "TagFilterStrip.hpp"
 
-#include "SettingsTheme.hpp"
 #include "SettingsUiBuilders.hpp"
 #include "TagChip.hpp"
+
+#include <utils/theme/theme.h>
 
 #include <QEvent>
 #include <QFont>
@@ -16,6 +17,7 @@
 #include <QLayoutItem>
 #include <QPalette>
 #include <QScopedValueRollback>
+#include <QScrollArea>
 #include <QStringList>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -36,13 +38,16 @@ TagFilterStrip::TagFilterStrip(QWidget *parent)
 
 void TagFilterStrip::setAvailableTags(const QMap<QString, int> &countsByTag)
 {
+    setAvailableTags(countsByTag, m_activeTags);
+}
+
+void TagFilterStrip::setAvailableTags(
+    const QMap<QString, int> &countsByTag, const QSet<QString> &activeTags)
+{
     m_counts = countsByTag;
-    QSet<QString> stillExisting;
-    for (auto it = m_counts.cbegin(); it != m_counts.cend(); ++it)
-        stillExisting.insert(it.key());
     QSet<QString> trimmed;
-    for (const QString &t : m_activeTags)
-        if (stillExisting.contains(t))
+    for (const QString &t : activeTags)
+        if (m_counts.contains(t))
             trimmed.insert(t);
     const bool activeChanged = trimmed != m_activeTags;
     if (activeChanged)
@@ -50,6 +55,12 @@ void TagFilterStrip::setAvailableTags(const QMap<QString, int> &countsByTag)
     rebuild();
     if (activeChanged)
         emit activeTagsChanged(m_activeTags);
+}
+
+void TagFilterStrip::setVisibleCounts(const QMap<QString, int> &countsByTag)
+{
+    for (auto it = m_chipByTag.cbegin(); it != m_chipByTag.cend(); ++it)
+        it.value()->setCount(countsByTag.value(it.key(), 0));
 }
 
 void TagFilterStrip::changeEvent(QEvent *event)
@@ -82,10 +93,11 @@ void TagFilterStrip::applyTheme()
     if (m_inApplyTheme)
         return;
     QScopedValueRollback<bool> guard(m_inApplyTheme, true);
-    const Theme theme = themeFor(palette());
+    const QString bg = Utils::creatorColor(Utils::Theme::BackgroundColorNormal).name();
+    const QString line = Utils::creatorColor(Utils::Theme::SplitterColor).name();
     setStyleSheet(QStringLiteral("QWidget#TagStrip { background:%1;"
                                  " border-bottom:1px solid %2; }")
-                      .arg(theme.listHeaderBg, theme.rowSeparator));
+                      .arg(bg, line));
 }
 
 void TagFilterStrip::rebuild()
@@ -115,7 +127,18 @@ void TagFilterStrip::rebuild()
     headerLine->setSpacing(6);
     auto *title = new QLabel(tr("FILTER BY TAG"), this);
     applyMutedSmallCaps(title);
+    title->setToolTip(tr("Agents must carry every selected tag"));
     headerLine->addWidget(title);
+    auto *andHint = new QLabel(tr("match all"), this);
+    {
+        QFont hf = andHint->font();
+        hf.setPointSizeF(hf.pointSizeF() * 0.85);
+        andHint->setFont(hf);
+        QPalette hp = andHint->palette();
+        hp.setColor(QPalette::WindowText, Utils::creatorColor(Utils::Theme::PanelTextColorMid));
+        andHint->setPalette(hp);
+    }
+    headerLine->addWidget(andHint);
     headerLine->addStretch(1);
     if (!m_activeTags.isEmpty()) {
         auto *clear = new QLabel(QStringLiteral("<a href=\"#\">%1</a>").arg(tr("clear")), this);
@@ -141,13 +164,14 @@ void TagFilterStrip::rebuild()
                   return a.first.localeAwareCompare(b.first) < 0;
               });
 
-    auto *grid = new QGridLayout;
+    auto *gridHost = new QWidget(this);
+    auto *grid = new QGridLayout(gridHost);
     grid->setContentsMargins(0, 0, 0, 0);
-    grid->setHorizontalSpacing(3);
-    grid->setVerticalSpacing(3);
+    grid->setHorizontalSpacing(6);
+    grid->setVerticalSpacing(5);
     int col = 0, gridRow = 0;
     for (const auto &[tag, count] : sorted) {
-        auto *chip = new TagChip(tag, count, this);
+        auto *chip = new TagChip(tag, count, gridHost);
         chip->setActive(m_activeTags.contains(tag));
         connect(chip, &TagChip::clicked, this, &TagFilterStrip::toggleTag);
         grid->addWidget(chip, gridRow, col, Qt::AlignLeft);
@@ -158,7 +182,23 @@ void TagFilterStrip::rebuild()
         }
     }
     grid->setColumnStretch(4, 1);
-    m_layout->addLayout(grid);
+
+    constexpr int kMaxVisibleRows = 4;
+    constexpr int kRowSpacing = 5;
+    const int rowCount = gridRow + (col > 0 ? 1 : 0);
+    if (rowCount > kMaxVisibleRows && !m_chipByTag.isEmpty()) {
+        const int chipHeight = std::max(m_chipByTag.cbegin().value()->sizeHint().height(), 18);
+        auto *scroll = new QScrollArea(this);
+        scroll->setWidgetResizable(true);
+        scroll->setFrameShape(QFrame::NoFrame);
+        scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        scroll->setWidget(gridHost);
+        scroll->setMaximumHeight(
+            kMaxVisibleRows * chipHeight + (kMaxVisibleRows - 1) * kRowSpacing + 4);
+        m_layout->addWidget(scroll);
+    } else {
+        m_layout->addWidget(gridHost);
+    }
 }
 
 } // namespace QodeAssist::Settings

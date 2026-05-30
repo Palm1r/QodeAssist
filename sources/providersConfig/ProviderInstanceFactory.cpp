@@ -90,10 +90,8 @@ void ProviderInstanceFactory::reload()
 void ProviderInstanceFactory::rebuildIndexes()
 {
     m_nameIndex.clear();
-    m_instanceNamesCache.clear();
     m_knownClientApisCache.clear();
     m_nameIndex.reserve(static_cast<qsizetype>(m_instances.size()));
-    m_instanceNamesCache.reserve(static_cast<qsizetype>(m_instances.size()));
 
     std::sort(m_instances.begin(), m_instances.end(),
               [](const ProviderInstance &a, const ProviderInstance &b) {
@@ -104,7 +102,6 @@ void ProviderInstanceFactory::rebuildIndexes()
     for (qsizetype i = 0; i < static_cast<qsizetype>(m_instances.size()); ++i) {
         const ProviderInstance &inst = m_instances[i];
         m_nameIndex.insert(inst.name.toCaseFolded(), i);
-        m_instanceNamesCache.append(inst.name);
         if (!seenApis.contains(inst.clientApi)) {
             seenApis.insert(inst.clientApi);
             m_knownClientApisCache.append(inst.clientApi);
@@ -133,50 +130,12 @@ void ProviderInstanceFactory::rewatchUserDir()
         m_watcher->addPath(fi.absoluteFilePath());
 }
 
-void ProviderInstanceFactory::registerInstance(ProviderInstance instance)
-{
-    Q_ASSERT_X(QThread::currentThread() == thread(),
-               Q_FUNC_INFO, "ProviderInstanceFactory must be used from its owner thread");
-    const QString validation = ProviderInstance::validate(instance, knownClientApis());
-    if (!validation.isEmpty()) {
-        qCWarning(providerInstanceFactoryLog).noquote()
-            << "Refusing to register provider instance:" << validation;
-        return;
-    }
-    const QString name = instance.name;
-    for (auto &existing : m_instances) {
-        if (existing.name == name) {
-            existing = std::move(instance);
-            emit instanceChanged(name);
-            return;
-        }
-    }
-    m_instances.push_back(std::move(instance));
-    rebuildIndexes();
-    emit instanceChanged(name);
-}
-
 const ProviderInstance *ProviderInstanceFactory::instanceByName(const QString &name) const
 {
     const auto it = m_nameIndex.constFind(name.toCaseFolded());
     if (it == m_nameIndex.constEnd())
         return nullptr;
     return &m_instances[it.value()];
-}
-
-QStringList ProviderInstanceFactory::instanceNames() const
-{
-    return m_instanceNamesCache;
-}
-
-QStringList ProviderInstanceFactory::instanceNamesForClientApi(const QString &clientApi) const
-{
-    QStringList out;
-    for (const auto &inst : m_instances) {
-        if (inst.clientApi == clientApi)
-            out.append(inst.name);
-    }
-    return out;
 }
 
 QStringList ProviderInstanceFactory::knownClientApis() const
@@ -190,7 +149,6 @@ void ProviderInstanceFactory::clear()
                Q_FUNC_INFO, "ProviderInstanceFactory must be used from its owner thread");
     m_instances.clear();
     m_nameIndex.clear();
-    m_instanceNamesCache.clear();
     m_knownClientApisCache.clear();
     m_errors.clear();
     m_warnings.clear();

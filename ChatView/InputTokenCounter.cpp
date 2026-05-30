@@ -6,48 +6,21 @@
 
 #include <algorithm>
 
-#include <LLMQore/ToolsManager.hpp>
-#include <QJsonArray>
-#include <QJsonDocument>
-
-#include <utils/aspects.h>
-
-#include "ChatAssistantSettings.hpp"
-#include "ChatModel.hpp"
-#include "GeneralSettings.hpp"
 #include "Logger.hpp"
-#include "ProvidersManager.hpp"
 #include "context/ContextManager.hpp"
 #include "context/TokenUtils.hpp"
+
+#include <ConversationHistory.hpp>
+#include <Message.hpp>
 
 namespace QodeAssist::Chat {
 
 InputTokenCounter::InputTokenCounter(
-    ChatModel *chatModel, Context::ContextManager *contextManager, QObject *parent)
+    ConversationHistory *history, Context::ContextManager *contextManager, QObject *parent)
     : QObject(parent)
-    , m_chatModel(chatModel)
+    , m_history(history)
     , m_contextManager(contextManager)
 {
-    auto &settings = Settings::chatAssistantSettings();
-    connect(
-        &settings.useSystemPrompt,
-        &Utils::BaseAspect::changed,
-        this,
-        &InputTokenCounter::recompute);
-    connect(
-        &settings.systemPrompt, &Utils::BaseAspect::changed, this, &InputTokenCounter::recompute);
-    connect(
-        &settings.enableChatTools,
-        &Utils::BaseAspect::changed,
-        this,
-        &InputTokenCounter::recompute);
-
-    connect(&Settings::generalSettings().caProvider, &Utils::BaseAspect::changed, this, [this]() {
-        rewireToolsChangedConnection();
-        recompute();
-    });
-
-    rewireToolsChangedConnection();
     recompute();
 }
 
@@ -74,32 +47,9 @@ void InputTokenCounter::setLinkedFiles(const QStringList &linkedFiles)
     recompute();
 }
 
-void InputTokenCounter::rewireToolsChangedConnection()
-{
-    if (m_toolsChangedConn)
-        QObject::disconnect(m_toolsChangedConn);
-    m_toolsChangedConn = {};
-
-    const auto providerName = Settings::generalSettings().caProvider();
-    auto *provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(providerName);
-    if (!provider)
-        return;
-    auto *tm = provider->toolsManager();
-    if (!tm)
-        return;
-
-    m_toolsChangedConn = connect(
-        tm, &::LLMQore::ToolRegistry::toolsChanged, this, &InputTokenCounter::recompute);
-}
-
 void InputTokenCounter::recompute()
 {
     int inputTokens = m_messageTokens;
-    auto &settings = Settings::chatAssistantSettings();
-
-    if (settings.useSystemPrompt()) {
-        inputTokens += Context::TokenUtils::estimateTokens(settings.systemPrompt());
-    }
 
     const auto splitImageEstimate = [](const QStringList &paths, QStringList &textPaths) {
         int imageTokens = 0;
@@ -130,24 +80,10 @@ void InputTokenCounter::recompute()
         }
     }
 
-    const auto &history = m_chatModel->getChatHistory();
-    for (const auto &message : history) {
-        inputTokens += Context::TokenUtils::estimateTokens(message.content);
-        inputTokens += 4; // + role
-    }
-
-    if (settings.enableChatTools()) {
-        const auto providerName = Settings::generalSettings().caProvider();
-        if (auto *provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(
-                providerName)) {
-            if (auto *tm = provider->toolsManager()) {
-                const QJsonArray toolDefs = tm->getToolsDefinitions();
-                if (!toolDefs.isEmpty()) {
-                    const QByteArray serialized
-                        = QJsonDocument(toolDefs).toJson(QJsonDocument::Compact);
-                    inputTokens += static_cast<int>(serialized.size() / 4);
-                }
-            }
+    if (m_history) {
+        for (const auto &message : m_history->messages()) {
+            inputTokens += Context::TokenUtils::estimateTokens(message.text());
+            inputTokens += 4; // + role
         }
     }
 

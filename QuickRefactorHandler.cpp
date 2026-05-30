@@ -4,23 +4,42 @@
 
 #include "QuickRefactorHandler.hpp"
 
+#include <memory>
+
 #include <LLMQore/BaseClient.hpp>
+#include <LLMQore/ContentBlocks.hpp>
+#include <LLMQore/ToolLoopRunner.hpp>
+#include <LLMQore/ToolsManager.hpp>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QUuid>
 
+#include <projectexplorer/project.h>
+#include <projectexplorer/projectmanager.h>
+#include <utils/filepath.h>
+
 #include <context/DocumentContextReader.hpp>
-#include <pluginllmcore/ResponseCleaner.hpp>
 #include <context/DocumentReaderQtCreator.hpp>
+#include <context/EnvBlockFormatter.hpp>
 #include <context/Utils.hpp>
-#include <pluginllmcore/PromptTemplateManager.hpp>
-#include <pluginllmcore/ProvidersManager.hpp>
-#include <pluginllmcore/RulesLoader.hpp>
 #include <logger/Logger.hpp>
-#include <settings/ChatAssistantSettings.hpp>
+#include <sources/common/ResponseCleaner.hpp>
 #include <settings/GeneralSettings.hpp>
 #include <settings/QuickRefactorSettings.hpp>
 #include <settings/ToolsSettings.hpp>
+
+#include "sources/common/ContextData.hpp"
+
+#include <AgentConfig.hpp>
+#include <AgentFactory.hpp>
+#include <ContextRenderer.hpp>
+#include <ConversationHistory.hpp>
+#include <Session.hpp>
+#include <SessionManager.hpp>
+#include <SystemPromptBuilder.hpp>
+
+#include "sources/settings/PipelinesConfig.hpp"
+#include "tools/ToolsRegistration.hpp"
 
 namespace QodeAssist {
 
@@ -33,6 +52,16 @@ QuickRefactorHandler::QuickRefactorHandler(QObject *parent)
 }
 
 QuickRefactorHandler::~QuickRefactorHandler() {}
+
+void QuickRefactorHandler::setSessionManager(SessionManager *sessionManager)
+{
+    m_sessionManager = sessionManager;
+}
+
+void QuickRefactorHandler::setAgentFactory(AgentFactory *agentFactory)
+{
+    m_agentFactory = agentFactory;
+}
 
 void QuickRefactorHandler::sendRefactorRequest(
     TextEditor::TextEditorWidget *editor, const QString &instructions)
@@ -88,105 +117,114 @@ void QuickRefactorHandler::sendRefactorRequest(
     prepareAndSendRequest(editor, instructions, range);
 }
 
+QString QuickRefactorHandler::configuredAgent(AgentFactory *agentFactory)
+{
+    const QString configured = Settings::PipelinesConfig::load().rosters.quickRefactor;
+    if (configured.isEmpty() || !agentFactory || !agentFactory->configByName(configured))
+        return {};
+    return configured;
+}
+
+QString QuickRefactorHandler::pickRefactorAgent() const
+{
+    return configuredAgent(m_agentFactory);
+}
+
 void QuickRefactorHandler::prepareAndSendRequest(
     TextEditor::TextEditorWidget *editor,
     const QString &instructions,
     const Utils::Text::Range &range)
 {
-    auto &settings = Settings::generalSettings();
-
-    auto &providerRegistry = PluginLLMCore::ProvidersManager::instance();
-    auto &promptManager = PluginLLMCore::PromptTemplateManager::instance();
-
-    const auto providerName = settings.qrProvider();
-    auto provider = providerRegistry.getProviderByName(providerName);
-
-    if (!provider) {
-        QString error = QString("No provider found with name: %1").arg(providerName);
+    const auto emitError = [this, editor](const QString &error) {
         LOG_MESSAGE(error);
         RefactorResult result;
         result.success = false;
         result.errorMessage = error;
         result.editor = editor;
         emit refactoringCompleted(result);
+    };
+
+    if (!m_sessionManager) {
+        emitError(QStringLiteral("Quick refactor session manager is not available"));
         return;
     }
 
-    const auto templateName = settings.qrTemplate();
-    auto promptTemplate = promptManager.getChatTemplateByName(templateName);
-
-    if (!promptTemplate) {
-        QString error = QString("No template found with name: %1").arg(templateName);
-        LOG_MESSAGE(error);
-        RefactorResult result;
-        result.success = false;
-        result.errorMessage = error;
-        result.editor = editor;
-        emit refactoringCompleted(result);
+    const QString agentName = pickRefactorAgent();
+    if (agentName.isEmpty()) {
+        emitError(QStringLiteral(
+            "No quick refactor agent configured. Set one in QodeAssist > General."));
         return;
     }
 
-    QJsonObject payload{
-        {"model", Settings::generalSettings().qrModel()}, {"stream", true}};
+    QString sessionError;
+    Session *session = m_sessionManager->acquire(agentName, &sessionError);
+    if (!session) {
+        emitError(sessionError.isEmpty() ? QStringLiteral("No quick refactor agent selected")
+                                         : sessionError);
+        return;
+    }
 
-    PluginLLMCore::ContextData context = prepareContext(editor, range, instructions);
+    auto *client = session->client();
+    if (!client) {
+        m_sessionManager->removeSession(session);
+        emitError(QStringLiteral("Quick refactor agent has no live client"));
+        return;
+    }
 
-    bool enableTools = Settings::quickRefactorSettings().useTools();
-    bool enableThinking = Settings::quickRefactorSettings().useThinking();
-    provider->prepareRequest(
-        payload,
-        promptTemplate,
-        context,
-        PluginLLMCore::RequestType::QuickRefactoring,
-        enableTools,
-        enableThinking);
+    auto *project = ProjectExplorer::ProjectManager::startupProject();
+    Templates::ContextRenderer::Bindings bindings;
+    bindings.projectDir = project ? project->projectDirectory().toFSPathString() : QString();
+    bindings.configDir = AgentFactory::userConfigDir();
+    session->setContextBindings(bindings);
 
-    provider->client()->setMaxToolContinuations(
-        Settings::toolsSettings().maxToolContinuations());
+    const AgentConfig *agentConfig
+        = m_agentFactory ? m_agentFactory->configByName(agentName) : nullptr;
+    if (agentConfig && agentConfig->enableTools) {
+        m_sessionManager->toolContributors().contribute(client->tools());
+        client->toolLoop()->setMaxRounds(Settings::toolsSettings().maxToolContinuations());
+    }
 
-    provider->client()->setTransferTimeout(
+    session->systemPrompt()->setLayer(
+        QStringLiteral("refactor"), buildSystemPrompt(editor, range));
+
+    client->setTransferTimeout(
         static_cast<int>(Settings::generalSettings().requestTimeout() * 1000));
 
     m_isRefactoringInProgress = true;
 
     connect(
-        provider->client(),
-        &::LLMQore::BaseClient::requestCompleted,
-        this,
-        &QuickRefactorHandler::handleFullResponse,
-        Qt::UniqueConnection);
-
+        session, &Session::finished, this,
+        [this](const LLMQore::RequestID &id, const QString &) { onRefactorFinished(id); });
     connect(
-        provider->client(),
-        &::LLMQore::BaseClient::requestFinalized,
-        this,
-        &QuickRefactorHandler::handleRequestFinalized,
-        Qt::UniqueConnection);
+        session, &Session::failed, this,
+        [this](const LLMQore::RequestID &id, const QodeAssist::ErrorInfo &error) {
+            onRefactorFailed(id, error);
+        });
 
-    connect(
-        provider->client(),
-        &::LLMQore::BaseClient::requestFailed,
-        this,
-        &QuickRefactorHandler::handleRequestFailed,
-        Qt::UniqueConnection);
+    std::vector<std::unique_ptr<LLMQore::ContentBlock>> blocks;
+    const QString userMessage = instructions.isEmpty()
+        ? QStringLiteral("Refactor the code to improve its quality and maintainability.")
+        : instructions;
+    blocks.push_back(std::make_unique<LLMQore::TextContent>(userMessage));
 
-    const QString customEndpoint = Settings::generalSettings().qrCustomEndpoint();
-    const QString endpoint = !customEndpoint.isEmpty() ? customEndpoint
-                                                       : promptTemplate->endpoint();
-    auto requestId
-        = provider->sendRequest(QUrl(Settings::generalSettings().qrUrl()), payload, endpoint);
+    const LLMQore::RequestID requestId = session->send(std::move(blocks));
+    if (requestId.isEmpty()) {
+        m_isRefactoringInProgress = false;
+        const QString reason = session->lastError().message;
+        m_sessionManager->removeSession(session);
+        emitError(QStringLiteral("Failed to start quick refactor request for agent '%1': %2")
+                      .arg(agentName, reason));
+        return;
+    }
+
     m_lastRequestId = requestId;
-    QJsonObject request{{"id", requestId}};
-
-    m_activeRequests[requestId] = {request, provider};
+    m_activeRequests[requestId] = {QJsonObject{{"id", requestId}}, session};
 }
 
-PluginLLMCore::ContextData QuickRefactorHandler::prepareContext(
-    TextEditor::TextEditorWidget *editor,
-    const Utils::Text::Range &range,
-    const QString &instructions)
+QString QuickRefactorHandler::buildSystemPrompt(
+    TextEditor::TextEditorWidget *editor, const Utils::Text::Range &range)
 {
-    PluginLLMCore::ContextData context;
+    Q_UNUSED(range)
 
     auto textDocument = editor->textDocument();
     Context::DocumentReaderQtCreator documentReader;
@@ -194,7 +232,7 @@ PluginLLMCore::ContextData QuickRefactorHandler::prepareContext(
 
     if (!documentInfo.document) {
         LOG_MESSAGE("Error: Document is not available");
-        return context;
+        return {};
     }
 
     QTextCursor cursor = editor->textCursor();
@@ -268,24 +306,10 @@ PluginLLMCore::ContextData QuickRefactorHandler::prepareContext(
         taggedContent = contextBefore + "<cursor>" + contextAfter;
     }
 
-    QString systemPrompt = Settings::quickRefactorSettings().systemPrompt();
+    QString systemPrompt = Context::EnvBlockFormatter::formatFile(
+        {documentInfo.filePath, documentInfo.mimeType});
 
-    auto project = PluginLLMCore::RulesLoader::getActiveProject();
-    if (project) {
-        QString projectRules = PluginLLMCore::RulesLoader::loadRulesForProject(
-            project, PluginLLMCore::RulesContext::QuickRefactor);
-
-        if (!projectRules.isEmpty()) {
-            systemPrompt += "\n\n# Project Rules\n\n" + projectRules;
-            LOG_MESSAGE("Loaded project rules for quick refactor");
-        }
-    }
-
-    systemPrompt += "\n\nFile information:";
-    systemPrompt += "\nLanguage: " + documentInfo.mimeType;
-    systemPrompt += "\nFile path: " + documentInfo.filePath;
-
-    systemPrompt += "\n\n# Code Context with Position Markers\n" + taggedContent;
+    systemPrompt += "\n# Code Context with Position Markers\n" + taggedContent;
 
     systemPrompt += "\n\n# Output Requirements\n## What to Generate:";
     systemPrompt += cursor.hasSelection()
@@ -294,7 +318,7 @@ PluginLLMCore::ContextData QuickRefactorHandler::prepareContext(
           "\n- Your output will completely replace the selected code"
         : "\n- Generate ONLY the code that should be INSERTED at the <cursor> position"
           "\n- Your output will be inserted at the cursor location";
-    
+
     systemPrompt += "\n\n## Formatting Rules:"
                     "\n- Output ONLY the code itself, without ANY explanations or descriptions"
                     "\n- Do NOT include markdown code blocks (no ```, no language tags)"
@@ -302,9 +326,9 @@ PluginLLMCore::ContextData QuickRefactorHandler::prepareContext(
                     "\n- Do NOT repeat existing code, be precise with context"
                     "\n- Do NOT send in answer <cursor> or </cursor> and other tags"
                     "\n- The output must be ready to insert directly into the editor as-is";
-    
+
     systemPrompt += "\n\n## Indentation and Whitespace:";
-    
+
     if (cursor.hasSelection()) {
         QTextBlock startBlock = documentInfo.document->findBlock(cursor.selectionStart());
         int leadingSpaces = 0;
@@ -336,7 +360,7 @@ PluginLLMCore::ContextData QuickRefactorHandler::prepareContext(
                                .arg(leadingSpaces);
         }
     }
-    
+
     systemPrompt += "\n- Use the same indentation style (spaces or tabs) as the surrounding code"
                     "\n- Maintain consistent indentation for nested blocks"
                     "\n- Do NOT remove or reduce the base indentation level"
@@ -349,42 +373,7 @@ PluginLLMCore::ContextData QuickRefactorHandler::prepareContext(
         systemPrompt += "\n\n" + m_contextManager.openedFilesContext({documentInfo.filePath});
     }
 
-    context.systemPrompt = systemPrompt;
-
-    QVector<PluginLLMCore::Message> messages;
-    messages.append(
-        {"user",
-         instructions.isEmpty() ? "Refactor the code to improve its quality and maintainability."
-                                : instructions});
-    context.history = messages;
-
-    return context;
-}
-
-void QuickRefactorHandler::handleLLMResponse(
-    const QString &response, const QJsonObject &request, bool isComplete)
-{
-    if (request["id"].toString() != m_lastRequestId) {
-        return;
-    }
-
-    if (isComplete) {
-        m_isRefactoringInProgress = false;
-        QString cleanedResponse = PluginLLMCore::ResponseCleaner::clean(response);
-
-        RefactorResult result;
-        result.newText = cleanedResponse;
-        result.insertRange = m_currentRange;
-        result.success = true;
-        result.editor = m_currentEditor;
-
-        LOG_MESSAGE("Refactoring completed successfully. New code to insert: ");
-        LOG_MESSAGE("---------- BEGIN REFACTORED CODE ----------");
-        LOG_MESSAGE(cleanedResponse);
-        LOG_MESSAGE("----------- END REFACTORED CODE -----------");
-
-        emit refactoringCompleted(result);
-    }
+    return systemPrompt;
 }
 
 void QuickRefactorHandler::cancelRequest()
@@ -398,10 +387,10 @@ void QuickRefactorHandler::cancelRequest()
 
     auto it = m_activeRequests.find(id);
     if (it != m_activeRequests.end()) {
-        auto provider = it.value().provider;
+        Session *session = it.value().session;
         m_activeRequests.erase(it);
-        if (provider)
-            provider->cancelRequest(id);
+        if (session && m_sessionManager)
+            m_sessionManager->release(session);
     }
 
     RefactorResult result;
@@ -410,42 +399,66 @@ void QuickRefactorHandler::cancelRequest()
     emit refactoringCompleted(result);
 }
 
-void QuickRefactorHandler::handleFullResponse(const QString &requestId, const QString &fullText)
+void QuickRefactorHandler::onRefactorFinished(const QString &requestId)
 {
-    if (requestId == m_lastRequestId) {
-        m_activeRequests.remove(requestId);
-        QJsonObject request{{"id", requestId}};
-        handleLLMResponse(fullText, request, true);
-    }
-}
-
-void QuickRefactorHandler::handleRequestFinalized(
-    const ::LLMQore::RequestID &requestId, const ::LLMQore::CompletionInfo &info)
-{
-    if (requestId != m_lastRequestId || !info.usage)
+    if (requestId != m_lastRequestId)
         return;
 
-    const auto &u = *info.usage;
-    LOG_MESSAGE(
-        QString("Quick refactor usage [%1]: prompt=%2 completion=%3 cached=%4 reasoning=%5")
-            .arg(requestId)
-            .arg(u.promptTokens)
-            .arg(u.completionTokens)
-            .arg(u.cachedPromptTokens)
-            .arg(u.reasoningTokens));
+    auto it = m_activeRequests.find(requestId);
+    Session *session = (it != m_activeRequests.end()) ? it.value().session.data() : nullptr;
+    if (it != m_activeRequests.end())
+        m_activeRequests.erase(it);
+
+    QString fullText;
+    if (session) {
+        if (auto *history = session->history(); history && !history->isEmpty())
+            fullText = history->messages().back().text();
+    }
+
+    m_isRefactoringInProgress = false;
+    m_lastRequestId.clear();
+
+    const QString cleanedResponse = ResponseCleaner::clean(fullText);
+
+    RefactorResult result;
+    result.newText = cleanedResponse;
+    result.insertRange = m_currentRange;
+    result.success = true;
+    result.editor = m_currentEditor;
+
+    LOG_MESSAGE("Refactoring completed successfully. New code to insert: ");
+    LOG_MESSAGE("---------- BEGIN REFACTORED CODE ----------");
+    LOG_MESSAGE(cleanedResponse);
+    LOG_MESSAGE("----------- END REFACTORED CODE -----------");
+
+    emit refactoringCompleted(result);
+
+    if (session && m_sessionManager)
+        m_sessionManager->release(session);
 }
 
-void QuickRefactorHandler::handleRequestFailed(const QString &requestId, const QString &error)
+void QuickRefactorHandler::onRefactorFailed(
+    const QString &requestId, const QodeAssist::ErrorInfo &error)
 {
-    if (requestId == m_lastRequestId) {
-        m_activeRequests.remove(requestId);
-        m_isRefactoringInProgress = false;
-        RefactorResult result;
-        result.success = false;
-        result.errorMessage = error;
-        result.editor = m_currentEditor;
-        emit refactoringCompleted(result);
-    }
+    if (requestId != m_lastRequestId)
+        return;
+
+    auto it = m_activeRequests.find(requestId);
+    Session *session = (it != m_activeRequests.end()) ? it.value().session.data() : nullptr;
+    if (it != m_activeRequests.end())
+        m_activeRequests.erase(it);
+
+    m_isRefactoringInProgress = false;
+    m_lastRequestId.clear();
+
+    RefactorResult result;
+    result.success = false;
+    result.errorMessage = error.message;
+    result.editor = m_currentEditor;
+    emit refactoringCompleted(result);
+
+    if (session && m_sessionManager)
+        m_sessionManager->release(session);
 }
 
 } // namespace QodeAssist

@@ -8,6 +8,7 @@
 #include <QString>
 
 class QLabel;
+class QEnterEvent;
 
 namespace QodeAssist::Settings {
 
@@ -18,6 +19,7 @@ public:
     explicit TagChip(const QString &tag, int count, QWidget *parent = nullptr);
 
     void setActive(bool on);
+    void setCount(int count);
     QString tag() const { return m_tag; }
 
 signals:
@@ -25,6 +27,8 @@ signals:
 
 protected:
     void mouseReleaseEvent(QMouseEvent *event) override;
+    void enterEvent(QEnterEvent *event) override;
+    void leaveEvent(QEvent *event) override;
     void changeEvent(QEvent *event) override;
 
 private:
@@ -32,6 +36,7 @@ private:
 
     QString m_tag;
     bool m_active = false;
+    bool m_hover = false;
     bool m_inApplyTheme = false;
     QLabel *m_label = nullptr;
     QLabel *m_count = nullptr;

@@ -9,16 +9,18 @@
 
 #include "ChatSerializer.hpp"
 
-namespace QodeAssist::Chat {
+namespace QodeAssist {
+class ConversationHistory;
+}
 
-class ChatModel;
+namespace QodeAssist::Chat {
 
 class ChatHistoryStore : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit ChatHistoryStore(ChatModel *chatModel, QObject *parent = nullptr);
+    explicit ChatHistoryStore(ConversationHistory *history, QObject *parent = nullptr);
 
     QString historyDir() const;
     QString suggestedFileName() const;
@@ -42,7 +44,7 @@ signals:
 private:
     QString generateChatFileName(const QString &shortMessage, const QString &dir) const;
 
-    ChatModel *m_chatModel;
+    ConversationHistory *m_history;
 };
 
 } // namespace QodeAssist::Chat

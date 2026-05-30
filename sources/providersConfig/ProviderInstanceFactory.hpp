@@ -31,8 +31,6 @@ public:
     [[nodiscard]] static QString userInstancesDir();
 
     [[nodiscard]] const ProviderInstance *instanceByName(const QString &name) const;
-    [[nodiscard]] QStringList instanceNames() const;
-    [[nodiscard]] QStringList instanceNamesForClientApi(const QString &clientApi) const;
     [[nodiscard]] QStringList knownClientApis() const;
     [[nodiscard]] const std::vector<ProviderInstance> &instances() const noexcept
     {
@@ -42,7 +40,6 @@ public:
     [[nodiscard]] QStringList lastLoadErrors() const { return m_errors; }
     [[nodiscard]] QStringList lastLoadWarnings() const { return m_warnings; }
 
-    void registerInstance(ProviderInstance instance);
     void clear();
 
 signals:
@@ -55,7 +52,6 @@ private:
 
     std::vector<ProviderInstance> m_instances;
     QHash<QString, qsizetype> m_nameIndex;
-    QStringList m_instanceNamesCache;
     QStringList m_knownClientApisCache;
     QStringList m_errors;
     QStringList m_warnings;

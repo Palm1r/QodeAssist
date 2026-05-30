@@ -3,7 +3,7 @@
 // Additional attribution terms under GPLv3 §7(b) apply — see LICENSE
 
 #include <iostream>
-#include <pluginllmcore/ContextData.hpp>
+#include <sources/common/ContextData.hpp>
 #include <QString>
 
 QT_BEGIN_NAMESPACE
@@ -44,12 +44,11 @@ std::ostream &operator<<(std::ostream &out, const std::optional<T> &value)
     return out;
 }
 
-namespace QodeAssist::PluginLLMCore {
+namespace QodeAssist::Templates {
 
 inline std::ostream &operator<<(std::ostream &out, const Message &value)
 {
-    out << "Message{"
-        << "role=" << value.role << "content=" << value.content << "}";
+    out << "Message{role=" << value.role << ", blocks=" << value.blocks.size() << "}";
     return out;
 }
 
@@ -62,4 +61,4 @@ inline std::ostream &operator<<(std::ostream &out, const ContextData &value)
     return out;
 }
 
-} // namespace QodeAssist::PluginLLMCore
+} // namespace QodeAssist::Templates

@@ -14,7 +14,6 @@
 #include "SettingsConstants.hpp"
 #include "SettingsTr.hpp"
 #include "SettingsUtils.hpp"
-#include "AgentRolesWidget.hpp"
 
 namespace QodeAssist::Settings {
 
@@ -46,11 +45,6 @@ ChatAssistantSettings::ChatAssistantSettings()
     enableChatInNavigationPanel.setLabelText(Tr::tr("Enable chat in navigation panel"));
     enableChatInNavigationPanel.setDefaultValue(false);
 
-    enableChatTools.setSettingsKey(Constants::CA_ENABLE_CHAT_TOOLS);
-    enableChatTools.setLabelText(Tr::tr("Enable tools/function calling"));
-    enableChatTools.setToolTip(Tr::tr("When enabled, AI can use tools to read files, search project, and build code"));
-    enableChatTools.setDefaultValue(false);
-
     autoCompress.setSettingsKey(Constants::CA_AUTO_COMPRESS);
     autoCompress.setLabelText(Tr::tr("Auto-compress chat when session tokens exceed:"));
     autoCompress.setToolTip(Tr::tr(
@@ -62,125 +56,6 @@ ChatAssistantSettings::ChatAssistantSettings()
     autoCompressThreshold.setSettingsKey(Constants::CA_AUTO_COMPRESS_THRESHOLD);
     autoCompressThreshold.setRange(1000, 99999999);
     autoCompressThreshold.setDefaultValue(40000);
-
-    // General Parameters Settings
-    temperature.setSettingsKey(Constants::CA_TEMPERATURE);
-    temperature.setLabelText(Tr::tr("Temperature:"));
-    temperature.setDefaultValue(0.5);
-    temperature.setRange(0.0, 2.0);
-    temperature.setSingleStep(0.1);
-
-    maxTokens.setSettingsKey(Constants::CA_MAX_TOKENS);
-    maxTokens.setLabelText(Tr::tr("Max Tokens:"));
-    maxTokens.setRange(-1, 200000);  // -1 for unlimited, 200k max for extended output
-    maxTokens.setDefaultValue(2000);
-
-    // Advanced Parameters
-    useTopP.setSettingsKey(Constants::CA_USE_TOP_P);
-    useTopP.setDefaultValue(false);
-    useTopP.setLabelText(Tr::tr("Top P:"));
-
-    topP.setSettingsKey(Constants::CA_TOP_P);
-    topP.setDefaultValue(0.9);
-    topP.setRange(0.0, 1.0);
-    topP.setSingleStep(0.1);
-
-    useTopK.setSettingsKey(Constants::CA_USE_TOP_K);
-    useTopK.setDefaultValue(false);
-    useTopK.setLabelText(Tr::tr("Top K:"));
-
-    topK.setSettingsKey(Constants::CA_TOP_K);
-    topK.setDefaultValue(50);
-    topK.setRange(1, 1000);
-
-    usePresencePenalty.setSettingsKey(Constants::CA_USE_PRESENCE_PENALTY);
-    usePresencePenalty.setDefaultValue(false);
-    usePresencePenalty.setLabelText(Tr::tr("Presence Penalty:"));
-
-    presencePenalty.setSettingsKey(Constants::CA_PRESENCE_PENALTY);
-    presencePenalty.setDefaultValue(0.0);
-    presencePenalty.setRange(-2.0, 2.0);
-    presencePenalty.setSingleStep(0.1);
-
-    useFrequencyPenalty.setSettingsKey(Constants::CA_USE_FREQUENCY_PENALTY);
-    useFrequencyPenalty.setDefaultValue(false);
-    useFrequencyPenalty.setLabelText(Tr::tr("Frequency Penalty:"));
-
-    frequencyPenalty.setSettingsKey(Constants::CA_FREQUENCY_PENALTY);
-    frequencyPenalty.setDefaultValue(0.0);
-    frequencyPenalty.setRange(-2.0, 2.0);
-    frequencyPenalty.setSingleStep(0.1);
-
-    // Context Settings
-    useSystemPrompt.setSettingsKey(Constants::CA_USE_SYSTEM_PROMPT);
-    useSystemPrompt.setDefaultValue(true);
-    useSystemPrompt.setLabelText(Tr::tr("Use System Prompt"));
-
-    systemPrompt.setSettingsKey(Constants::CA_SYSTEM_PROMPT);
-    systemPrompt.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
-    systemPrompt.setDefaultValue(
-        "You are an advanced AI assistant specializing in C++, Qt, and QML development. Your role "
-        "is to provide helpful, accurate, and detailed responses to questions about coding, "
-        "debugging, "
-        "and best practices in these technologies.");
-
-    // Ollama Settings
-    ollamaLivetime.setSettingsKey(Constants::CA_OLLAMA_LIVETIME);
-    ollamaLivetime.setToolTip(
-        Tr::tr("Time to suspend Ollama after completion request (in minutes), "
-               "Only Ollama,  -1 to disable"));
-    ollamaLivetime.setLabelText("Livetime:");
-    ollamaLivetime.setDefaultValue("5m");
-    ollamaLivetime.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
-
-    contextWindow.setSettingsKey(Constants::CA_OLLAMA_CONTEXT_WINDOW);
-    contextWindow.setLabelText(Tr::tr("Context Window:"));
-    contextWindow.setRange(-1, 10000);
-    contextWindow.setDefaultValue(2048);
-
-    // Extended Thinking Settings
-    enableThinkingMode.setSettingsKey(Constants::CA_ENABLE_THINKING_MODE);
-    enableThinkingMode.setLabelText(Tr::tr("Enable extended thinking mode."));
-    enableThinkingMode.setToolTip(
-        Tr::tr("Enable extended thinking mode for complex reasoning tasks."
-               "This provides step-by-step reasoning before the final answer."
-               "Temperature is 1.0 accordingly API requirement"));
-    enableThinkingMode.setDefaultValue(false);
-
-    thinkingBudgetTokens.setSettingsKey(Constants::CA_THINKING_BUDGET_TOKENS);
-    thinkingBudgetTokens.setLabelText(Tr::tr("Thinking budget tokens:"));
-    thinkingBudgetTokens.setToolTip(
-        Tr::tr("Maximum number of tokens Claude can use for internal reasoning. "
-               "Larger budgets improve quality but increase latency. Minimum: 1024, Recommended: 10000-16000."));
-    thinkingBudgetTokens.setRange(1024, 100000);
-    thinkingBudgetTokens.setDefaultValue(10000);
-
-    thinkingMaxTokens.setSettingsKey(Constants::CA_THINKING_MAX_TOKENS);
-    thinkingMaxTokens.setLabelText(Tr::tr("Thinking mode max output tokens:"));
-    thinkingMaxTokens.setToolTip(
-        Tr::tr("Maximum number of tokens for the final response when thinking mode is enabled. "
-               "Set to -1 to use the default max tokens setting. Recommended: 4096-16000."));
-    thinkingMaxTokens.setRange(-1, 200000);
-    thinkingMaxTokens.setDefaultValue(16000);
-
-    // OpenAI Responses API Settings
-    openAIResponsesReasoningEffort.setSettingsKey(Constants::CA_OPENAI_RESPONSES_REASONING_EFFORT);
-    openAIResponsesReasoningEffort.setLabelText(Tr::tr("Reasoning effort:"));
-    openAIResponsesReasoningEffort.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
-    openAIResponsesReasoningEffort.addOption("None");
-    openAIResponsesReasoningEffort.addOption("Minimal");
-    openAIResponsesReasoningEffort.addOption("Low");
-    openAIResponsesReasoningEffort.addOption("Medium");
-    openAIResponsesReasoningEffort.addOption("High");
-    openAIResponsesReasoningEffort.setDefaultValue("Medium");
-    openAIResponsesReasoningEffort.setToolTip(
-        Tr::tr("Constrains effort on reasoning for OpenAI gpt-5 and o-series models:\n\n"
-               "None: No reasoning (gpt-5.1 only)\n"
-               "Minimal: Minimal reasoning effort (o-series only)\n"
-               "Low: Low reasoning effort\n"
-               "Medium: Balanced reasoning (default for most models)\n"
-               "High: Maximum reasoning effort (gpt-5-pro only supports this)\n\n"
-               "Note: Reducing effort = faster responses + fewer tokens"));
 
     autosave.setDefaultValue(true);
     autosave.setLabelText(Tr::tr("Enable autosave when message received"));
@@ -252,9 +127,6 @@ ChatAssistantSettings::ChatAssistantSettings()
     chatRenderer.setDefaultValue("rhi");
 #endif
 
-    lastUsedRoleId.setSettingsKey(Constants::CA_LAST_USED_ROLE);
-    lastUsedRoleId.setDefaultValue("");
-
     resetToDefaults.m_buttonText = TrConstants::RESET_TO_DEFAULTS;
 
     readSettings();
@@ -263,27 +135,6 @@ ChatAssistantSettings::ChatAssistantSettings()
 
     setLayouter([this]() {
         using namespace Layouting;
-
-        auto genGrid = Grid{};
-        genGrid.addRow({Row{temperature}});
-        genGrid.addRow({Row{maxTokens}});
-
-        auto advancedGrid = Grid{};
-        advancedGrid.addRow({useTopP, topP});
-        advancedGrid.addRow({useTopK, topK});
-        advancedGrid.addRow({usePresencePenalty, presencePenalty});
-        advancedGrid.addRow({useFrequencyPenalty, frequencyPenalty});
-
-        auto ollamaGrid = Grid{};
-        ollamaGrid.addRow({ollamaLivetime});
-        ollamaGrid.addRow({contextWindow});
-
-        auto thinkingGrid = Grid{};
-        thinkingGrid.addRow({thinkingBudgetTokens});
-        thinkingGrid.addRow({thinkingMaxTokens});
-
-        auto openAIResponsesGrid = Grid{};
-        openAIResponsesGrid.addRow({openAIResponsesReasoningEffort});
 
         auto chatViewSettingsGrid = Grid{};
         chatViewSettingsGrid.addRow({textFontFamily, textFontSize});
@@ -301,32 +152,6 @@ ChatAssistantSettings::ChatAssistantSettings()
                     autosave,
                     Row{autoCompress, autoCompressThreshold, Stretch{1}}}},
             Space{8},
-            Group{
-                title(Tr::tr("Tools")),
-                Column{enableChatTools}},
-            Space{8},
-            Group{
-                  title(Tr::tr("Extended Thinking (Claude)")),
-                  Column{enableThinkingMode, Row{thinkingGrid, Stretch{1}}}},
-            Space{8},
-            Group{
-                title(Tr::tr("OpenAI Responses API")),
-                Column{Row{openAIResponsesGrid, Stretch{1}}}},
-            Space{8},
-            Group{
-                title(Tr::tr("General Parameters")),
-                Row{genGrid, Stretch{1}},
-            },
-            Space{8},
-            Group{title(Tr::tr("Advanced Parameters")), Column{Row{advancedGrid, Stretch{1}}}},
-            Space{8},
-            Group{
-                title(Tr::tr("Context Settings")),
-                Column{
-                    Row{useSystemPrompt, Stretch{1}},
-                    systemPrompt,
-                }},
-            Group{title(Tr::tr("Ollama Settings")), Column{Row{ollamaGrid, Stretch{1}}}},
             Group{title(Tr::tr("Chat Settings")), Row{chatViewSettingsGrid, Stretch{1}}},
             Stretch{1}};
     });
@@ -353,26 +178,7 @@ void ChatAssistantSettings::resetSettingsToDefaults()
     if (reply == QMessageBox::Yes) {
         resetAspect(autoCompress);
         resetAspect(autoCompressThreshold);
-        resetAspect(temperature);
-        resetAspect(maxTokens);
-        resetAspect(useTopP);
-        resetAspect(topP);
-        resetAspect(useTopK);
-        resetAspect(topK);
-        resetAspect(usePresencePenalty);
-        resetAspect(presencePenalty);
-        resetAspect(useFrequencyPenalty);
-        resetAspect(frequencyPenalty);
-        resetAspect(useSystemPrompt);
-        resetAspect(systemPrompt);
-        resetAspect(ollamaLivetime);
-        resetAspect(contextWindow);
-        resetAspect(enableThinkingMode);
-        resetAspect(thinkingBudgetTokens);
-        resetAspect(thinkingMaxTokens);
-        resetAspect(openAIResponsesReasoningEffort);
         resetAspect(linkOpenFiles);
-        resetAspect(enableChatTools);
         resetAspect(textFontFamily);
         resetAspect(codeFontFamily);
         resetAspect(textFontSize);
@@ -396,19 +202,5 @@ public:
 };
 
 const ChatAssistantSettingsPage chatAssistantSettingsPage;
-
-class AgentRolesSettingsPage : public Core::IOptionsPage
-{
-public:
-    AgentRolesSettingsPage()
-    {
-        setId("QodeAssist.AgentRoles");
-        setDisplayName(Tr::tr("Agent Roles"));
-        setCategory(Constants::QODE_ASSIST_GENERAL_OPTIONS_CATEGORY);
-        setWidgetCreator([]() { return new AgentRolesWidget(); });
-    }
-};
-
-const AgentRolesSettingsPage agentRolesSettingsPage;
 
 } // namespace QodeAssist::Settings

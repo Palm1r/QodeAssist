@@ -3,115 +3,159 @@
 // Additional attribution terms under GPLv3 §7(b) apply — see LICENSE
 
 #include "ChatModel.hpp"
-#include <utils/aspects.h>
-#include <QDateTime>
+
 #include <QDir>
 #include <QFileInfo>
 #include <QJsonDocument>
-#include <QJsonObject>
+#include <QRegularExpression>
 #include <QUrl>
-#include <QtQml>
 
-#include "Logger.hpp"
+#include <LLMQore/ContentBlocks.hpp>
+
+#include <ConversationHistory.hpp>
+#include <Message.hpp>
+#include <PluginBlocks.hpp>
+
 #include "context/ChangesManager.h"
 
 namespace QodeAssist::Chat {
 
+namespace {
+
+const QString kFileEditMarker = QStringLiteral("QODEASSIST_FILE_EDIT:");
+
+QString changesStatusToString(Context::ChangesManager::FileEditStatus status)
+{
+    switch (status) {
+    case Context::ChangesManager::Pending: return QStringLiteral("pending");
+    case Context::ChangesManager::Applied: return QStringLiteral("applied");
+    case Context::ChangesManager::Rejected: return QStringLiteral("rejected");
+    case Context::ChangesManager::Archived: return QStringLiteral("archived");
+    }
+    return QStringLiteral("pending");
+}
+
+QString parseEditId(const QString &markerContent)
+{
+    const int pos = markerContent.indexOf(kFileEditMarker);
+    if (pos < 0)
+        return {};
+    const QString jsonStr = markerContent.mid(pos + kFileEditMarker.length());
+    const QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8());
+    if (!doc.isObject())
+        return {};
+    return doc.object().value(QStringLiteral("edit_id")).toString();
+}
+
+QString collectText(const Message &m)
+{
+    QString text;
+    for (const auto &block : m.blocks()) {
+        if (auto *t = dynamic_cast<LLMQore::TextContent *>(block.get())) {
+            if (!text.isEmpty())
+                text += QLatin1Char('\n');
+            text += t->text();
+        }
+    }
+    return text;
+}
+
+bool messageIsToolResultsOnly(const Message &m)
+{
+    bool hasToolResult = false;
+    for (const auto &block : m.blocks()) {
+        if (dynamic_cast<LLMQore::ToolResultContent *>(block.get()))
+            hasToolResult = true;
+        else
+            return false;
+    }
+    return hasToolResult;
+}
+
+} // namespace
+
 ChatModel::ChatModel(QObject *parent)
     : QAbstractListModel(parent)
 {
-    connect(&Context::ChangesManager::instance(),
-            &Context::ChangesManager::fileEditApplied,
-            this,
-            &ChatModel::onFileEditApplied);
-    
-    connect(&Context::ChangesManager::instance(),
-            &Context::ChangesManager::fileEditRejected,
-            this,
-            &ChatModel::onFileEditRejected);
-    
-    connect(&Context::ChangesManager::instance(),
-            &Context::ChangesManager::fileEditArchived,
-            this,
-            &ChatModel::onFileEditArchived);
+    auto &changes = Context::ChangesManager::instance();
+    connect(
+        &changes, &Context::ChangesManager::fileEditApplied,
+        this, &ChatModel::onFileEditStatusChanged);
+    connect(
+        &changes, &Context::ChangesManager::fileEditRejected,
+        this, &ChatModel::onFileEditStatusChanged);
+    connect(
+        &changes, &Context::ChangesManager::fileEditUndone,
+        this, &ChatModel::onFileEditStatusChanged);
+    connect(
+        &changes, &Context::ChangesManager::fileEditArchived,
+        this, &ChatModel::onFileEditStatusChanged);
+}
+
+void ChatModel::setHistory(ConversationHistory *history)
+{
+    if (m_history == history)
+        return;
+
+    if (m_history)
+        m_history->disconnect(this);
+
+    m_history = history;
+
+    if (m_history) {
+        connect(
+            m_history, &ConversationHistory::messageAdded,
+            this, &ChatModel::onHistoryMessageAdded);
+        connect(
+            m_history, &ConversationHistory::messageUpdated,
+            this, &ChatModel::onHistoryMessageUpdated);
+        connect(m_history, &ConversationHistory::cleared, this, &ChatModel::onHistoryCleared);
+        connect(m_history, &ConversationHistory::reset, this, &ChatModel::onHistoryReset);
+    }
+
+    beginResetModel();
+    rebuildAll();
+    endResetModel();
+    emit sessionUsageChanged();
 }
 
 int ChatModel::rowCount(const QModelIndex &parent) const
 {
-    return m_messages.size();
+    if (parent.isValid())
+        return 0;
+    return m_rows.size();
 }
 
 QVariant ChatModel::data(const QModelIndex &index, int role) const
 {
-    if (!index.isValid() || index.row() >= m_messages.size())
+    if (!index.isValid() || index.row() < 0 || index.row() >= m_rows.size())
         return QVariant();
 
-    const Message &message = m_messages[index.row()];
+    const Row &row = m_rows[index.row()];
     switch (static_cast<Roles>(role)) {
     case Roles::RoleType:
-        return QVariant::fromValue(message.role);
-    case Roles::Content: {
-        return message.content;
-    }
-    case Roles::Attachments: {
-        QVariantList attachmentsList;
-        for (const auto &attachment : message.attachments) {
-            QVariantMap attachmentMap;
-            attachmentMap["fileName"] = attachment.filename;
-            attachmentMap["storedPath"] = attachment.content;
-            
-            if (!m_chatFilePath.isEmpty()) {
-                QFileInfo fileInfo(m_chatFilePath);
-                QString baseName = fileInfo.completeBaseName();
-                QString dirPath = fileInfo.absolutePath();
-                QString contentFolder = QDir(dirPath).filePath(baseName + "_content");
-                QString fullPath = QDir(contentFolder).filePath(attachment.content);
-                attachmentMap["filePath"] = fullPath;
-            } else {
-                attachmentMap["filePath"] = QString();
-            }
-            
-            attachmentsList.append(attachmentMap);
-        }
-        return attachmentsList;
-    }
-    case Roles::IsRedacted: {
-        return message.isRedacted;
-    }
+        return QVariant::fromValue(row.kind);
+    case Roles::Content:
+        if (row.kind == ChatRole::FileEdit)
+            return overlayFileEditStatus(row.content, row.editId);
+        return row.content;
+    case Roles::Attachments:
+        return buildAttachmentList(row.attachments);
+    case Roles::Images:
+        return buildImageList(row.images);
+    case Roles::IsRedacted:
+        return row.isRedacted;
     case Roles::PromptTokens:
-        return message.promptTokens;
+        return m_usageByMessageId.value(row.messageId).prompt;
     case Roles::CompletionTokens:
-        return message.completionTokens;
+        return m_usageByMessageId.value(row.messageId).completion;
     case Roles::CachedPromptTokens:
-        return message.cachedPromptTokens;
+        return m_usageByMessageId.value(row.messageId).cached;
     case Roles::ReasoningTokens:
-        return message.reasoningTokens;
-    case Roles::TotalTokens:
-        return message.promptTokens + message.completionTokens;
-    case Roles::Images: {
-        QVariantList imagesList;
-        for (const auto &image : message.images) {
-            QVariantMap imageMap;
-            imageMap["fileName"] = image.fileName;
-            imageMap["storedPath"] = image.storedPath;
-            imageMap["mediaType"] = image.mediaType;
-            
-            if (!m_chatFilePath.isEmpty()) {
-                QFileInfo fileInfo(m_chatFilePath);
-                QString baseName = fileInfo.completeBaseName();
-                QString dirPath = fileInfo.absolutePath();
-                QString contentFolder = QDir(dirPath).filePath(baseName + "_content");
-                QString fullPath = QDir(contentFolder).filePath(image.storedPath);
-                imageMap["imageUrl"] = QUrl::fromLocalFile(fullPath).toString();
-                imageMap["filePath"] = fullPath;
-            } else {
-                imageMap["imageUrl"] = QString();
-                imageMap["filePath"] = QString();
-            }
-            
-            imagesList.append(imageMap);
-        }
-        return imagesList;
+        return m_usageByMessageId.value(row.messageId).reasoning;
+    case Roles::TotalTokens: {
+        const Usage u = m_usageByMessageId.value(row.messageId);
+        return u.prompt + u.completion;
     }
     default:
         return QVariant();
@@ -134,87 +178,311 @@ QHash<int, QByteArray> ChatModel::roleNames() const
     return roles;
 }
 
-void ChatModel::addMessage(
-    const QString &content,
-    ChatRole role,
-    const QString &id,
-    const QList<Context::ContentFile> &attachments,
-    const QList<ImageAttachment> &images,
-    bool isRedacted,
-    const QString &signature)
+QVariantList ChatModel::buildAttachmentList(const QVector<AttachmentRef> &attachments) const
 {
-    if (!m_messages.isEmpty() && !id.isEmpty() && m_messages.last().id == id
-        && m_messages.last().role == role) {
-        Message &lastMessage = m_messages.last();
-        lastMessage.content = content;
-        lastMessage.attachments = attachments;
-        lastMessage.images = images;
-        lastMessage.isRedacted = isRedacted;
-        lastMessage.signature = signature;
-        emit dataChanged(index(m_messages.size() - 1), index(m_messages.size() - 1));
-    } else {
-        beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());
-        Message newMessage{role, content, id};
-        newMessage.attachments = attachments;
-        newMessage.images = images;
-        newMessage.isRedacted = isRedacted;
-        newMessage.signature = signature;
-        m_messages.append(newMessage);
-        endInsertRows();
-        
-        if (m_loadingFromHistory && role == ChatRole::FileEdit) {
-            const QString marker = "QODEASSIST_FILE_EDIT:";
-            if (content.contains(marker)) {
-                int markerPos = content.indexOf(marker);
-                int jsonStart = markerPos + marker.length();
-                
-                if (jsonStart < content.length()) {
-                    QString jsonStr = content.mid(jsonStart);
-                    QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8());
-                    
-                    if (doc.isObject()) {
-                        QJsonObject editData = doc.object();
-                        QString editId = editData.value("edit_id").toString();
-                        QString filePath = editData.value("file").toString();
-                        QString oldContent = editData.value("old_content").toString();
-                        QString newContent = editData.value("new_content").toString();
-                        QString originalStatus = editData.value("status").toString();
-                        
-                        if (!editId.isEmpty() && !filePath.isEmpty()) {
-                            Context::ChangesManager::instance().addFileEdit(
-                                editId, filePath, oldContent, newContent, false, true);
-                            
-                            editData["status"] = "archived";
-                            editData["status_message"] = "Loaded from chat history";
-                            
-                            QString updatedContent = marker 
-                                + QString::fromUtf8(QJsonDocument(editData).toJson(QJsonDocument::Compact));
-                            m_messages.last().content = updatedContent;
-                            
-                            emit dataChanged(index(m_messages.size() - 1), index(m_messages.size() - 1));
-                            
-                            LOG_MESSAGE(QString("Registered historical file edit: %1 (original status: %2, now: archived)")
-                                            .arg(editId, originalStatus));
-                        }
-                    }
+    QVariantList list;
+    for (const auto &attachment : attachments) {
+        QVariantMap map;
+        map["fileName"] = attachment.fileName;
+        map["storedPath"] = attachment.storedPath;
+        if (!m_chatFilePath.isEmpty()) {
+            QFileInfo fileInfo(m_chatFilePath);
+            const QString contentFolder
+                = QDir(fileInfo.absolutePath()).filePath(fileInfo.completeBaseName() + "_content");
+            map["filePath"] = QDir(contentFolder).filePath(attachment.storedPath);
+        } else {
+            map["filePath"] = QString();
+        }
+        list.append(map);
+    }
+    return list;
+}
+
+QVariantList ChatModel::buildImageList(const QVector<ImageRef> &images) const
+{
+    QVariantList list;
+    for (const auto &image : images) {
+        QVariantMap map;
+        map["fileName"] = image.fileName;
+        map["storedPath"] = image.storedPath;
+        map["mediaType"] = image.mediaType;
+        if (!m_chatFilePath.isEmpty()) {
+            QFileInfo fileInfo(m_chatFilePath);
+            const QString contentFolder
+                = QDir(fileInfo.absolutePath()).filePath(fileInfo.completeBaseName() + "_content");
+            const QString fullPath = QDir(contentFolder).filePath(image.storedPath);
+            map["imageUrl"] = QUrl::fromLocalFile(fullPath).toString();
+            map["filePath"] = fullPath;
+        } else {
+            map["imageUrl"] = QString();
+            map["filePath"] = QString();
+        }
+        list.append(map);
+    }
+    return list;
+}
+
+QString ChatModel::overlayFileEditStatus(const QString &content, const QString &editId) const
+{
+    const int pos = content.indexOf(kFileEditMarker);
+    if (pos < 0)
+        return content;
+
+    const QString jsonStr = content.mid(pos + kFileEditMarker.length());
+    const QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8());
+    if (!doc.isObject())
+        return content;
+
+    QJsonObject obj = doc.object();
+    if (!editId.isEmpty()) {
+        const auto edit = Context::ChangesManager::instance().getFileEdit(editId);
+        if (!edit.editId.isEmpty()) {
+            obj["status"] = changesStatusToString(edit.status);
+            if (!edit.statusMessage.isEmpty())
+                obj["status_message"] = edit.statusMessage;
+        }
+    }
+    return kFileEditMarker
+           + QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
+}
+
+QHash<QString, QString> ChatModel::buildToolResultMap() const
+{
+    QHash<QString, QString> results;
+    if (!m_history)
+        return results;
+    for (const auto &m : m_history->messages()) {
+        for (const auto &block : m.blocks()) {
+            if (auto *tr = dynamic_cast<LLMQore::ToolResultContent *>(block.get()))
+                results.insert(tr->toolUseId(), tr->result());
+        }
+    }
+    return results;
+}
+
+void ChatModel::appendRowsForMessage(
+    int messageIndex, const QHash<QString, QString> &toolResults, QVector<Row> &out) const
+{
+    if (!m_history || messageIndex < 0 || messageIndex >= m_history->size())
+        return;
+
+    const Message &m = m_history->messages()[static_cast<size_t>(messageIndex)];
+    const QString id = m.id();
+
+    switch (m.role()) {
+    case Message::Role::System: {
+        const QString text = collectText(m);
+        if (!text.trimmed().isEmpty()) {
+            Row row;
+            row.kind = ChatRole::System;
+            row.messageIndex = messageIndex;
+            row.messageId = id;
+            row.content = text;
+            out.append(std::move(row));
+        }
+        break;
+    }
+    case Message::Role::User: {
+        QString text;
+        QVector<AttachmentRef> attachments;
+        QVector<ImageRef> images;
+        bool hasDisplayable = false;
+        for (const auto &block : m.blocks()) {
+            if (auto *t = dynamic_cast<LLMQore::TextContent *>(block.get())) {
+                if (!text.isEmpty())
+                    text += QLatin1Char('\n');
+                text += t->text();
+                hasDisplayable = true;
+            } else if (auto *sa = dynamic_cast<StoredAttachmentContent *>(block.get())) {
+                attachments.append({sa->fileName(), sa->storedPath()});
+                hasDisplayable = true;
+            } else if (auto *si = dynamic_cast<StoredImageContent *>(block.get())) {
+                images.append({si->fileName(), si->storedPath(), si->mediaType()});
+                hasDisplayable = true;
+            }
+        }
+        if (hasDisplayable) {
+            Row row;
+            row.kind = ChatRole::User;
+            row.messageIndex = messageIndex;
+            row.messageId = id;
+            row.content = text;
+            row.attachments = std::move(attachments);
+            row.images = std::move(images);
+            out.append(std::move(row));
+        }
+        break;
+    }
+    case Message::Role::Assistant: {
+        for (const auto &block : m.blocks()) {
+            if (auto *th = dynamic_cast<LLMQore::ThinkingContent *>(block.get())) {
+                QString content = th->thinking();
+                if (!th->signature().isEmpty())
+                    content += QStringLiteral("\n[Signature: ") + th->signature().left(40)
+                               + QStringLiteral("...]");
+                Row row;
+                row.kind = ChatRole::Thinking;
+                row.messageIndex = messageIndex;
+                row.messageId = id;
+                row.content = content;
+                out.append(std::move(row));
+            } else if (
+                auto *rth = dynamic_cast<LLMQore::RedactedThinkingContent *>(block.get())) {
+                QString content = QStringLiteral("[Thinking content redacted by safety systems]");
+                if (!rth->signature().isEmpty())
+                    content += QStringLiteral("\n[Signature: ") + rth->signature().left(40)
+                               + QStringLiteral("...]");
+                Row row;
+                row.kind = ChatRole::Thinking;
+                row.messageIndex = messageIndex;
+                row.messageId = id;
+                row.content = content;
+                row.isRedacted = true;
+                out.append(std::move(row));
+            } else if (auto *t = dynamic_cast<LLMQore::TextContent *>(block.get())) {
+                if (!t->text().trimmed().isEmpty()) {
+                    Row row;
+                    row.kind = ChatRole::Assistant;
+                    row.messageIndex = messageIndex;
+                    row.messageId = id;
+                    row.content = t->text();
+                    out.append(std::move(row));
+                }
+            } else if (auto *tu = dynamic_cast<LLMQore::ToolUseContent *>(block.get())) {
+                const QString result = toolResults.value(tu->id());
+                Row toolRow;
+                toolRow.kind = ChatRole::Tool;
+                toolRow.messageIndex = messageIndex;
+                toolRow.messageId = id;
+                toolRow.content = tu->name() + QLatin1Char('\n') + result;
+                out.append(std::move(toolRow));
+
+                if (result.contains(kFileEditMarker)) {
+                    Row editRow;
+                    editRow.kind = ChatRole::FileEdit;
+                    editRow.messageIndex = messageIndex;
+                    editRow.messageId = id;
+                    editRow.content = result;
+                    editRow.editId = parseEditId(result);
+                    out.append(std::move(editRow));
                 }
             }
         }
+        break;
+    }
     }
 }
 
-QVector<ChatModel::Message> ChatModel::getChatHistory() const
+void ChatModel::rebuildAll()
 {
-    return m_messages;
+    m_rows.clear();
+    if (!m_history)
+        return;
+    const QHash<QString, QString> toolResults = buildToolResultMap();
+    for (int mi = 0; mi < m_history->size(); ++mi)
+        appendRowsForMessage(mi, toolResults, m_rows);
+}
+
+int ChatModel::firstRowForMessage(int messageIndex) const
+{
+    for (int i = 0; i < m_rows.size(); ++i) {
+        if (m_rows[i].messageIndex >= messageIndex)
+            return i;
+    }
+    return m_rows.size();
+}
+
+int ChatModel::startMessageIndexFor(int messageIndex) const
+{
+    if (!m_history || messageIndex < 0 || messageIndex >= m_history->size())
+        return messageIndex;
+
+    const auto &msgs = m_history->messages();
+    const Message &m = msgs[static_cast<size_t>(messageIndex)];
+    if (m.role() == Message::Role::User && messageIsToolResultsOnly(m)) {
+        for (int j = messageIndex - 1; j >= 0; --j) {
+            if (msgs[static_cast<size_t>(j)].role() == Message::Role::Assistant)
+                return j;
+        }
+    }
+    return messageIndex;
+}
+
+void ChatModel::reprojectTail(int startMessageIndex)
+{
+    if (!m_history)
+        return;
+
+    const int oldStart = firstRowForMessage(startMessageIndex);
+    const QHash<QString, QString> toolResults = buildToolResultMap();
+
+    QVector<Row> newTail;
+    for (int mi = startMessageIndex; mi < m_history->size(); ++mi)
+        appendRowsForMessage(mi, toolResults, newTail);
+
+    const int oldCount = m_rows.size() - oldStart;
+    const int newCount = newTail.size();
+    const int common = qMin(oldCount, newCount);
+
+    for (int i = 0; i < common; ++i)
+        m_rows[oldStart + i] = newTail[i];
+    if (common > 0)
+        emit dataChanged(index(oldStart), index(oldStart + common - 1));
+
+    if (newCount > oldCount) {
+        beginInsertRows(QModelIndex(), oldStart + oldCount, oldStart + newCount - 1);
+        for (int i = oldCount; i < newCount; ++i)
+            m_rows.append(newTail[i]);
+        endInsertRows();
+    } else if (newCount < oldCount) {
+        beginRemoveRows(QModelIndex(), oldStart + newCount, oldStart + oldCount - 1);
+        m_rows.remove(oldStart + newCount, oldCount - newCount);
+        endRemoveRows();
+    }
+}
+
+void ChatModel::onHistoryMessageAdded(int index)
+{
+    reprojectTail(startMessageIndexFor(index));
+}
+
+void ChatModel::onHistoryMessageUpdated(int index)
+{
+    reprojectTail(startMessageIndexFor(index));
+}
+
+void ChatModel::onHistoryCleared()
+{
+    beginResetModel();
+    m_rows.clear();
+    m_usageByMessageId.clear();
+    endResetModel();
+    emit modelReseted();
+    emit sessionUsageChanged();
+}
+
+void ChatModel::onHistoryReset()
+{
+    beginResetModel();
+    rebuildAll();
+    endResetModel();
+    emit sessionUsageChanged();
+}
+
+void ChatModel::onFileEditStatusChanged(const QString &editId)
+{
+    for (int i = 0; i < m_rows.size(); ++i) {
+        if (m_rows[i].kind == ChatRole::FileEdit && m_rows[i].editId == editId)
+            emit dataChanged(index(i), index(i), {Roles::Content});
+    }
 }
 
 void ChatModel::clear()
 {
-    beginResetModel();
-    m_messages.clear();
-    endResetModel();
-    emit modelReseted();
-    emit sessionUsageChanged();
+    if (m_history)
+        m_history->clear();
+    else
+        onHistoryCleared();
 }
 
 QList<MessagePart> ChatModel::processMessageContent(const QString &content) const
@@ -277,73 +545,21 @@ QList<MessagePart> ChatModel::processMessageContent(const QString &content) cons
     return parts;
 }
 
-QJsonArray ChatModel::prepareMessagesForRequest(const QString &systemPrompt) const
-{
-    QJsonArray messages;
-    messages.append(QJsonObject{{"role", "system"}, {"content", systemPrompt}});
-
-    for (const auto &message : m_messages) {
-        QString role;
-        switch (message.role) {
-        case ChatRole::User:
-            role = "user";
-            break;
-        case ChatRole::Assistant:
-            role = "assistant";
-            break;
-        case ChatRole::Tool:
-        case ChatRole::FileEdit:
-            continue;
-        default:
-            continue;
-        }
-
-        QString content
-            = message.attachments.isEmpty()
-                  ? message.content
-                  : message.content + "\n\nAttached files list:"
-                        + std::accumulate(
-                            message.attachments.begin(),
-                            message.attachments.end(),
-                            QString(),
-                            [](QString acc, const Context::ContentFile &attachment) {
-                                return acc
-                                       + QString("\nname: %1\nfile content:\n%2")
-                                             .arg(attachment.filename, attachment.content);
-                            });
-
-        messages.append(QJsonObject{{"role", role}, {"content", content}});
-    }
-
-    return messages;
-}
-
-QString ChatModel::lastMessageId() const
-{
-    return !m_messages.isEmpty() ? m_messages.last().id : "";
-}
-
 void ChatModel::resetModelTo(int index)
 {
-    if (index < 0 || index >= m_messages.size())
+    if (!m_history || index < 0 || index >= m_rows.size())
         return;
-
-    if (index < m_messages.size()) {
-        beginRemoveRows(QModelIndex(), index, m_messages.size() - 1);
-        m_messages.remove(index, m_messages.size() - index);
-        endRemoveRows();
-        emit sessionUsageChanged();
-    }
+    m_history->resetTo(m_rows[index].messageIndex);
 }
 
 QVariantList ChatModel::userMessagePreviews(int maxLength) const
 {
     QVariantList result;
     const int limit = maxLength > 4 ? maxLength : 80;
-    for (int i = 0; i < m_messages.size(); ++i) {
-        if (m_messages[i].role != ChatRole::User)
+    for (int i = 0; i < m_rows.size(); ++i) {
+        if (m_rows[i].kind != ChatRole::User)
             continue;
-        QString preview = m_messages[i].content;
+        QString preview = m_rows[i].content;
         preview.replace(QLatin1Char('\n'), QLatin1Char(' '));
         preview.replace(QLatin1Char('\r'), QLatin1Char(' '));
         preview.replace(QLatin1Char('\t'), QLatin1Char(' '));
@@ -358,221 +574,6 @@ QVariantList ChatModel::userMessagePreviews(int maxLength) const
     return result;
 }
 
-void ChatModel::addToolExecutionStatus(
-    const QString &requestId,
-    const QString &toolId,
-    const QString &toolName,
-    const QJsonObject &toolArguments)
-{
-    QString content = toolName;
-
-    LOG_MESSAGE(QString("Adding tool execution status: requestId=%1, toolId=%2, toolName=%3")
-                    .arg(requestId, toolId, toolName));
-
-    if (!m_messages.isEmpty() && !toolId.isEmpty() && m_messages.last().id == toolId
-        && m_messages.last().role == ChatRole::Tool) {
-        Message &lastMessage = m_messages.last();
-        lastMessage.content = content;
-        lastMessage.toolName = toolName;
-        lastMessage.toolArguments = toolArguments;
-        LOG_MESSAGE(QString("Updated existing tool message at index %1").arg(m_messages.size() - 1));
-        emit dataChanged(index(m_messages.size() - 1), index(m_messages.size() - 1));
-    } else {
-        beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());
-        Message newMessage{ChatRole::Tool, content, toolId};
-        newMessage.toolName = toolName;
-        newMessage.toolArguments = toolArguments;
-        m_messages.append(newMessage);
-        endInsertRows();
-        LOG_MESSAGE(QString("Created new tool message at index %1 with toolId=%2")
-                        .arg(m_messages.size() - 1)
-                        .arg(toolId));
-    }
-}
-
-void ChatModel::dropTrailingAssistantMessage(const QString &requestId)
-{
-    if (m_messages.isEmpty())
-        return;
-
-    const Message &last = m_messages.last();
-    if (last.role != ChatRole::Assistant || last.id != requestId)
-        return;
-
-    const int idx = m_messages.size() - 1;
-    beginRemoveRows(QModelIndex(), idx, idx);
-    m_messages.removeLast();
-    endRemoveRows();
-    LOG_MESSAGE(QString("Dropped leaked pre-tool assistant message at index %1").arg(idx));
-}
-
-void ChatModel::setToolMessageData(
-    const QString &toolId,
-    const QString &toolName,
-    const QJsonObject &toolArguments,
-    const QString &toolResult)
-{
-    for (int i = 0; i < m_messages.size(); ++i) {
-        if (m_messages[i].role == ChatRole::Tool && m_messages[i].id == toolId) {
-            m_messages[i].toolName = toolName;
-            m_messages[i].toolArguments = toolArguments;
-            m_messages[i].toolResult = toolResult;
-            return;
-        }
-    }
-}
-
-void ChatModel::updateToolResult(
-    const QString &requestId, const QString &toolId, const QString &toolName, const QString &result)
-{
-    if (m_messages.isEmpty() || toolId.isEmpty()) {
-        LOG_MESSAGE(QString("Cannot update tool result: messages empty=%1, toolId empty=%2")
-                        .arg(m_messages.isEmpty())
-                        .arg(toolId.isEmpty()));
-        return;
-    }
-
-    LOG_MESSAGE(
-        QString("Updating tool result: requestId=%1, toolId=%2, toolName=%3, result length=%4")
-            .arg(requestId, toolId, toolName)
-            .arg(result.length()));
-
-    bool toolMessageFound = false;
-    for (int i = m_messages.size() - 1; i >= 0; --i) {
-        if (m_messages[i].id == toolId && m_messages[i].role == ChatRole::Tool) {
-            m_messages[i].content = toolName + "\n" + result;
-            m_messages[i].toolName = toolName;
-            m_messages[i].toolResult = result;
-            emit dataChanged(index(i), index(i));
-            toolMessageFound = true;
-            LOG_MESSAGE(QString("Updated tool result at index %1").arg(i));
-            break;
-        }
-    }
-
-    if (!toolMessageFound) {
-        LOG_MESSAGE(QString("WARNING: Tool message with requestId=%1 toolId=%2 not found!")
-                        .arg(requestId, toolId));
-    }
-
-    const QString marker = "QODEASSIST_FILE_EDIT:";
-    if (result.contains(marker)) {
-        LOG_MESSAGE(QString("File edit marker detected in tool result"));
-
-        int markerPos = result.indexOf(marker);
-        int jsonStart = markerPos + marker.length();
-
-        if (jsonStart < result.length()) {
-            QString jsonStr = result.mid(jsonStart);
-
-            QJsonParseError parseError;
-            QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8(), &parseError);
-
-            if (parseError.error != QJsonParseError::NoError) {
-                LOG_MESSAGE(QString("ERROR: Failed to parse file edit JSON at offset %1: %2")
-                                .arg(parseError.offset)
-                                .arg(parseError.errorString()));
-            } else if (!doc.isObject()) {
-                LOG_MESSAGE(
-                    QString("ERROR: Parsed JSON is not an object, is array=%1").arg(doc.isArray()));
-            } else {
-                QJsonObject editData = doc.object();
-                
-                QString editId = editData.value("edit_id").toString();
-                
-                if (editId.isEmpty()) {
-                    editId = QString("edit_%1").arg(QDateTime::currentMSecsSinceEpoch());
-                }
-
-                LOG_MESSAGE(QString("Adding FileEdit message, editId=%1").arg(editId));
-
-                beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());
-                Message fileEditMsg;
-                fileEditMsg.role = ChatRole::FileEdit;
-                fileEditMsg.content = result;
-                fileEditMsg.id = editId;
-                m_messages.append(fileEditMsg);
-                endInsertRows();
-
-                LOG_MESSAGE(QString("Added FileEdit message with editId=%1").arg(editId));
-            }
-        }
-    }
-}
-
-void ChatModel::addThinkingBlock(
-    const QString &requestId, const QString &thinking, const QString &signature)
-{
-    LOG_MESSAGE(QString("Adding thinking block: requestId=%1, thinking length=%2, signature length=%3")
-                    .arg(requestId)
-                    .arg(thinking.length())
-                    .arg(signature.length()));
-
-    QString displayContent = thinking;
-    if (!signature.isEmpty()) {
-        displayContent += "\n[Signature: " + signature.left(40) + "...]";
-    }
-
-    for (int i = 0; i < m_messages.size(); ++i) {
-        if (m_messages[i].role == ChatRole::Thinking && m_messages[i].id == requestId) {
-            m_messages[i].content = displayContent;
-            m_messages[i].signature = signature;
-            emit dataChanged(index(i), index(i));
-            LOG_MESSAGE(QString("Updated existing thinking message at index %1").arg(i));
-            return;
-        }
-    }
-
-    beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());
-    Message thinkingMessage;
-    thinkingMessage.role = ChatRole::Thinking;
-    thinkingMessage.content = displayContent;
-    thinkingMessage.id = requestId;
-    thinkingMessage.isRedacted = false;
-    thinkingMessage.signature = signature;
-    m_messages.append(thinkingMessage);
-    endInsertRows();
-    LOG_MESSAGE(QString("Added thinking message at index %1 with signature length=%2")
-                    .arg(m_messages.size() - 1).arg(signature.length()));
-}
-
-void ChatModel::addRedactedThinkingBlock(const QString &requestId, const QString &signature)
-{
-    LOG_MESSAGE(
-        QString("Adding redacted thinking block: requestId=%1, signature length=%2")
-            .arg(requestId)
-            .arg(signature.length()));
-
-    QString displayContent = "[Thinking content redacted by safety systems]";
-    if (!signature.isEmpty()) {
-        displayContent += "\n[Signature: " + signature.left(40) + "...]";
-    }
-
-    beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());
-    Message thinkingMessage;
-    thinkingMessage.role = ChatRole::Thinking;
-    thinkingMessage.content = displayContent;
-    thinkingMessage.id = requestId;
-    thinkingMessage.isRedacted = true;
-    thinkingMessage.signature = signature;
-    m_messages.append(thinkingMessage);
-    endInsertRows();
-    LOG_MESSAGE(QString("Added redacted thinking message at index %1 with signature length=%2")
-                    .arg(m_messages.size() - 1).arg(signature.length()));
-}
-
-void ChatModel::updateMessageContent(const QString &messageId, const QString &newContent)
-{
-    for (int i = 0; i < m_messages.size(); ++i) {
-        if (m_messages[i].id == messageId) {
-            m_messages[i].content = newContent;
-            emit dataChanged(index(i), index(i));
-            LOG_MESSAGE(QString("Updated message content for id: %1").arg(messageId));
-            break;
-        }
-    }
-}
-
 void ChatModel::setMessageUsage(
     const QString &messageId,
     int promptTokens,
@@ -580,118 +581,55 @@ void ChatModel::setMessageUsage(
     int cachedPromptTokens,
     int reasoningTokens)
 {
-    for (int i = 0; i < m_messages.size(); ++i) {
-        if (m_messages[i].id != messageId)
-            continue;
-        m_messages[i].promptTokens = promptTokens;
-        m_messages[i].completionTokens = completionTokens;
-        m_messages[i].cachedPromptTokens = cachedPromptTokens;
-        m_messages[i].reasoningTokens = reasoningTokens;
-        emit dataChanged(
-            index(i),
-            index(i),
-            {Roles::PromptTokens,
-             Roles::CompletionTokens,
-             Roles::CachedPromptTokens,
-             Roles::ReasoningTokens,
-             Roles::TotalTokens});
-        emit sessionUsageChanged();
+    if (messageId.isEmpty())
         return;
+
+    m_usageByMessageId[messageId]
+        = Usage{promptTokens, completionTokens, cachedPromptTokens, reasoningTokens};
+
+    for (int i = 0; i < m_rows.size(); ++i) {
+        if (m_rows[i].messageId == messageId) {
+            emit dataChanged(
+                index(i),
+                index(i),
+                {Roles::PromptTokens,
+                 Roles::CompletionTokens,
+                 Roles::CachedPromptTokens,
+                 Roles::ReasoningTokens,
+                 Roles::TotalTokens});
+        }
     }
+    emit sessionUsageChanged();
 }
 
 int ChatModel::sessionPromptTokens() const
 {
     int total = 0;
-    for (const auto &m : m_messages)
-        total += m.promptTokens;
+    if (m_history) {
+        for (const auto &m : m_history->messages())
+            total += m_usageByMessageId.value(m.id()).prompt;
+    }
     return total;
 }
 
 int ChatModel::sessionCompletionTokens() const
 {
     int total = 0;
-    for (const auto &m : m_messages)
-        total += m.completionTokens;
+    if (m_history) {
+        for (const auto &m : m_history->messages())
+            total += m_usageByMessageId.value(m.id()).completion;
+    }
     return total;
 }
 
 int ChatModel::sessionCachedPromptTokens() const
 {
     int total = 0;
-    for (const auto &m : m_messages)
-        total += m.cachedPromptTokens;
-    return total;
-}
-
-int ChatModel::sessionTotalTokens() const
-{
-    return sessionPromptTokens() + sessionCompletionTokens();
-}
-
-void ChatModel::setLoadingFromHistory(bool loading)
-{
-    m_loadingFromHistory = loading;
-    LOG_MESSAGE(QString("ChatModel loading from history: %1").arg(loading ? "true" : "false"));
-}
-
-bool ChatModel::isLoadingFromHistory() const
-{
-    return m_loadingFromHistory;
-}
-
-void ChatModel::onFileEditApplied(const QString &editId)
-{
-    updateFileEditStatus(editId, "applied", "Successfully applied");
-}
-
-void ChatModel::onFileEditRejected(const QString &editId)
-{
-    updateFileEditStatus(editId, "rejected", "Rejected by user");
-}
-
-void ChatModel::onFileEditArchived(const QString &editId)
-{
-    updateFileEditStatus(editId, "archived", "Archived (from previous conversation turn)");
-}
-
-void ChatModel::updateFileEditStatus(const QString &editId, const QString &status, const QString &statusMessage)
-{
-    const QString marker = "QODEASSIST_FILE_EDIT:";
-    
-    for (int i = 0; i < m_messages.size(); ++i) {
-        if (m_messages[i].role == ChatRole::FileEdit && m_messages[i].id == editId) {
-            const QString &content = m_messages[i].content;
-            
-            if (content.contains(marker)) {
-                int markerPos = content.indexOf(marker);
-                int jsonStart = markerPos + marker.length();
-                
-                if (jsonStart < content.length()) {
-                    QString jsonStr = content.mid(jsonStart);
-                    QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8());
-                    
-                    if (doc.isObject()) {
-                        QJsonObject editData = doc.object();
-                        
-                        editData["status"] = status;
-                        editData["status_message"] = statusMessage;
-                        
-                        QString updatedContent = marker 
-                            + QString::fromUtf8(QJsonDocument(editData).toJson(QJsonDocument::Compact));
-                        
-                        m_messages[i].content = updatedContent;
-                        
-                        emit dataChanged(index(i), index(i));
-                        
-                        LOG_MESSAGE(QString("Updated FileEdit message status: editId=%1, status=%2")
-                                        .arg(editId, status));
-                        break;
-                    }
-                }
-            }
-        }
+    if (m_history) {
+        for (const auto &m : m_history->messages())
+            total += m_usageByMessageId.value(m.id()).cached;
     }
+    return total;
 }
 
 void ChatModel::setChatFilePath(const QString &filePath)

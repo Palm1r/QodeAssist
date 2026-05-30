@@ -47,16 +47,6 @@ ErrorWidget::~ErrorWidget()
     }
 }
 
-void ErrorWidget::setErrorMessage(const QString &message)
-{
-    m_errorMessage = message;
-    QFont smallFont = font();
-    smallFont.setPointSize(qMax(8, smallFont.pointSize() - 2));
-    setFont(smallFont);
-    setFixedSize(calculateSize());
-    update();
-}
-
 void ErrorWidget::setupColors()
 {
     m_textColor = Utils::creatorTheme()->color(Utils::Theme::TextColorNormal);

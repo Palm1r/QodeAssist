@@ -1,0 +1,16 @@
+schema_version = 1
+
+extends     = "Ollama FIM Base"
+name        = "Ollama FIM"
+description = "Local Ollama FIM code completion (qwen2.5-coder)."
+
+model = "qwen2.5-coder:7b"
+tags  = ["completion", "ollama", "local", "fim"]
+
+[body.options]
+num_predict = 512
+temperature = 0.2
+top_p       = 0.9
+num_ctx     = 8192
+keep_alive  = "5m"
+stop        = ["<EOT>"]

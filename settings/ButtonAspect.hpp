@@ -47,14 +47,6 @@ public:
         parent.addItem(button);
     }
 
-    void updateVisibility(bool visible)
-    {
-        if (m_visible == visible)
-            return;
-        m_visible = visible;
-        emit visibleChanged(visible);
-    }
-
     QString m_buttonText;
     QIcon m_icon;
     QString m_tooltip;

@@ -24,7 +24,6 @@ public:
     QFuture<LLMQore::ToolResult> executeAsync(const QJsonObject &input = QJsonObject()) override;
 
 private:
-    QString formatFileList(const QStringList &files) const;
     Context::IgnoreManager *m_ignoreManager;
 };
 

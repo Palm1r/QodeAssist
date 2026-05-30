@@ -5,8 +5,10 @@ QodeAssist provides two powerful ways to include source code files in your chat 
 ## Attached Files
 
 Attachments are designed for one-time code analysis and specific queries:
-- Files are included only in the current message
-- Content is discarded after the message is processed
+- Files are sent as part of the current message
+- The content is a snapshot taken at send time: it is stored with the chat
+  and stays in the conversation history exactly as sent, even if the file
+  changes on disk later
 - Ideal for:
   - Getting specific feedback on code changes
   - Code review requests
@@ -20,8 +22,11 @@ Attachments are designed for one-time code analysis and specific queries:
 Linked files provide persistent context throughout the conversation:
 
 - Files remain accessible for the entire chat session
-- Content is included in every message exchange
-- Files are automatically refreshed - always using latest content from disk
+- Files are automatically refreshed — every request re-reads them and sends
+  the latest content from disk
+- The snapshot travels next to your latest message and is never duplicated
+  into the conversation history, so linked files do not bloat the chat as it
+  grows
 - Perfect for:
   - Long-term refactoring discussions
   - Complex architectural changes

@@ -25,7 +25,10 @@ public:
     static LoadResult load(const QString &qrcPrefix, const QString &userDir);
 
     static std::optional<AgentConfig> parseFile(
-        const QString &path, QString *error, QStringList *warnings = nullptr);
+        const QString &path,
+        const QString &qrcPrefix,
+        QString *error,
+        QStringList *warnings = nullptr);
 };
 
 } // namespace QodeAssist::Agents

@@ -21,8 +21,6 @@ public:
 
     void hideError();
 
-    bool isErrorVisible() const { return !m_errorWidget.isNull(); }
-
 protected:
     void identifyMatch(
         TextEditor::TextEditorWidget *editorWidget, int pos, ReportPriority report) override;

@@ -1,6 +1,5 @@
 add_library(QodeAssistSettings STATIC
     GeneralSettings.hpp GeneralSettings.cpp
-    ConfigurationManager.hpp ConfigurationManager.cpp
     SettingsUtils.hpp
     SettingsConstants.hpp
     ButtonAspect.hpp
@@ -11,7 +10,6 @@ add_library(QodeAssistSettings STATIC
     ToolsSettings.hpp ToolsSettings.cpp
     SkillsSettings.hpp SkillsSettings.cpp
     McpSettings.hpp McpSettings.cpp
-    SettingsDialog.hpp SettingsDialog.cpp
     ProjectSettings.hpp ProjectSettings.cpp
     ProjectSettingsPanel.hpp ProjectSettingsPanel.cpp
     ProviderSettings.hpp ProviderSettings.cpp
@@ -25,11 +23,9 @@ add_library(QodeAssistSettings STATIC
     ProviderDetailPane.hpp ProviderDetailPane.cpp
     PluginUpdater.hpp PluginUpdater.cpp
     UpdateDialog.hpp UpdateDialog.cpp
-    AgentRole.hpp AgentRole.cpp
-    AgentRoleDialog.hpp AgentRoleDialog.cpp
-    AgentRolesWidget.hpp AgentRolesWidget.cpp
     AgentsSettingsPage.hpp AgentsSettingsPage.cpp
     AgentDetailPane.hpp AgentDetailPane.cpp
+    AgentModelDialog.hpp AgentModelDialog.cpp
     AgentListItem.hpp AgentListItem.cpp
     AgentListPane.hpp AgentListPane.cpp
     AgentDuplicator.hpp AgentDuplicator.cpp
@@ -47,5 +43,9 @@ target_link_libraries(QodeAssistSettings
     ProvidersConfig
     Agents
     Skills
+    QodeAssistAgentPipelines
 )
-target_include_directories(QodeAssistSettings PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(QodeAssistSettings
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+    PRIVATE ${CMAKE_SOURCE_DIR}/sources/settings
+)

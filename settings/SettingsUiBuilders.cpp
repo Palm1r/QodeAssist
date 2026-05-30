@@ -6,6 +6,8 @@
 
 #include "SettingsTheme.hpp"
 
+#include <utils/theme/theme.h>
+
 #include <QFont>
 #include <QGridLayout>
 #include <QHBoxLayout>
@@ -22,7 +24,7 @@ void applyMutedSmallCaps(QLabel *label)
     f.setLetterSpacing(QFont::AbsoluteSpacing, 0.4);
     label->setFont(f);
     QPalette p = label->palette();
-    p.setColor(QPalette::WindowText, p.color(QPalette::Mid));
+    p.setColor(QPalette::WindowText, Utils::creatorColor(Utils::Theme::PanelTextColorMid));
     label->setPalette(p);
 }
 
@@ -32,11 +34,11 @@ QLabel *makeSectionHeader(const QString &title, QWidget *parent)
     applyMutedSmallCaps(header);
     header->setContentsMargins(8, 4, 8, 4);
     header->setAutoFillBackground(true);
-    const Theme theme = themeFor(parent ? parent->palette() : QPalette());
     header->setStyleSheet(
         QStringLiteral("QLabel { background:%1; border-top:1px solid %2;"
                        " border-bottom:1px solid %2; }")
-            .arg(theme.listHeaderBg, theme.rowSeparator));
+            .arg(cssColor(Utils::creatorColor(Utils::Theme::BackgroundColorNormal)),
+                 cssColor(Utils::creatorColor(Utils::Theme::SplitterColor))));
     return header;
 }
 
@@ -48,7 +50,7 @@ QLabel *makeHintLabel(const QString &text, QWidget *parent)
     h->setFont(hf);
     h->setWordWrap(true);
     QPalette p = h->palette();
-    p.setColor(QPalette::WindowText, p.color(QPalette::Mid));
+    p.setColor(QPalette::WindowText, Utils::creatorColor(Utils::Theme::PanelTextColorMid));
     h->setPalette(p);
     return h;
 }

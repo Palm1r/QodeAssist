@@ -5,6 +5,9 @@
 #include "AgentRouter.hpp"
 
 #include <QFileInfo>
+#include <QHash>
+#include <QMutex>
+#include <QMutexLocker>
 #include <QRegularExpression>
 
 #include "AgentFactory.hpp"
@@ -13,16 +16,29 @@ namespace QodeAssist::AgentRouter {
 
 namespace {
 
+QRegularExpression compiledGlob(const QString &pattern)
+{
+    static QHash<QString, QRegularExpression> cache;
+    static QMutex mutex;
+    QMutexLocker lock(&mutex);
+    const auto it = cache.constFind(pattern);
+    if (it != cache.constEnd())
+        return *it;
+    const QRegularExpression re(
+        QRegularExpression::anchoredPattern(
+            QRegularExpression::wildcardToRegularExpression(
+                pattern, QRegularExpression::NonPathWildcardConversion)),
+        QRegularExpression::CaseInsensitiveOption);
+    cache.insert(pattern, re);
+    return re;
+}
+
 bool matchesAnyGlob(const QStringList &patterns, const QString &subject)
 {
     if (subject.isEmpty())
         return false;
     for (const QString &pat : patterns) {
-        const QRegularExpression re(
-            QRegularExpression::anchoredPattern(
-                QRegularExpression::wildcardToRegularExpression(
-                    pat, QRegularExpression::NonPathWildcardConversion)),
-            QRegularExpression::CaseInsensitiveOption);
+        const QRegularExpression re = compiledGlob(pat);
         if (re.isValid() && re.match(subject).hasMatch())
             return true;
     }

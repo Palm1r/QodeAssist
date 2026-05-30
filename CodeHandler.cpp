@@ -209,24 +209,4 @@ QString CodeHandler::detectLanguageFromExtension(const QString &extension)
     return extensionToLanguage.value(extension.toLower(), "");
 }
 
-const QRegularExpression &CodeHandler::getFullCodeBlockRegex()
-{
-    static const QRegularExpression
-        regex(R"(```[\w\s]*\n([\s\S]*?)```)", QRegularExpression::MultilineOption);
-    return regex;
-}
-
-const QRegularExpression &CodeHandler::getPartialStartBlockRegex()
-{
-    static const QRegularExpression
-        regex(R"(```[\w\s]*\n([\s\S]*?)$)", QRegularExpression::MultilineOption);
-    return regex;
-}
-
-const QRegularExpression &CodeHandler::getPartialEndBlockRegex()
-{
-    static const QRegularExpression regex(R"(^([\s\S]*?)```)", QRegularExpression::MultilineOption);
-    return regex;
-}
-
 } // namespace QodeAssist

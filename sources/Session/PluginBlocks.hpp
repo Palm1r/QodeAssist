@@ -31,6 +31,24 @@ private:
     QString m_mediaType;
 };
 
+class CompletionContent : public LLMQore::ContentBlock
+{
+public:
+    CompletionContent(QString prefix, QString suffix)
+        : m_prefix(std::move(prefix))
+        , m_suffix(std::move(suffix))
+    {}
+
+    QString type() const override { return QStringLiteral("completion"); }
+
+    QString prefix() const { return m_prefix; }
+    QString suffix() const { return m_suffix; }
+
+private:
+    QString m_prefix;
+    QString m_suffix;
+};
+
 class StoredAttachmentContent : public LLMQore::ContentBlock
 {
 public:
@@ -47,6 +65,24 @@ public:
 private:
     QString m_fileName;
     QString m_storedPath;
+};
+
+class SkillInvocationContent : public LLMQore::ContentBlock
+{
+public:
+    SkillInvocationContent(QString skillName, QString body)
+        : m_skillName(std::move(skillName))
+        , m_body(std::move(body))
+    {}
+
+    QString type() const override { return QStringLiteral("skill_invocation"); }
+
+    QString skillName() const { return m_skillName; }
+    QString body() const { return m_body; }
+
+private:
+    QString m_skillName;
+    QString m_body;
 };
 
 class FileEditContent : public LLMQore::ContentBlock
@@ -79,7 +115,6 @@ public:
     QString statusMessage() const { return m_statusMessage; }
 
     void setStatus(Status status) { m_status = status; }
-    void setStatusMessage(QString msg) { m_statusMessage = std::move(msg); }
 
     static QString statusToString(Status s)
     {

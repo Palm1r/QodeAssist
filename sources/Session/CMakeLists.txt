@@ -3,12 +3,15 @@ add_library(Session STATIC
     MessageSerializer.hpp MessageSerializer.cpp
     PluginBlocks.hpp
     LLMRequest.hpp
+    ErrorInfo.hpp
     ResponseEvent.hpp
+    ContextAssembler.hpp ContextAssembler.cpp
     ConversationHistory.hpp ConversationHistory.cpp
     ResponseRouter.hpp ResponseRouter.cpp
     Session.hpp Session.cpp
     SessionManager.hpp SessionManager.cpp
     SystemPromptBuilder.hpp SystemPromptBuilder.cpp
+    ToolContributorRegistry.hpp
 )
 
 target_link_libraries(Session

@@ -21,6 +21,46 @@ ProviderSettings &providerSettings()
     return settings;
 }
 
+LegacyApiKeyEntry legacyApiKeyForClientApi(const QString &clientApi)
+{
+    ProviderSettings &s = providerSettings();
+    QString label;
+    QString value;
+
+    if (clientApi == "Claude") {
+        label = QStringLiteral("Claude");
+        value = s.claudeApiKey();
+    } else if (clientApi == "OpenRouter") {
+        label = QStringLiteral("OpenRouter");
+        value = s.openRouterApiKey();
+    } else if (clientApi == "OpenAI Compatible") {
+        label = QStringLiteral("OpenAI Compatible");
+        value = s.openAiCompatApiKey();
+    } else if (clientApi == "OpenAI (Chat Completions)" || clientApi == "OpenAI (Responses API)") {
+        label = QStringLiteral("OpenAI");
+        value = s.openAiApiKey();
+    } else if (clientApi == "Mistral AI") {
+        label = QStringLiteral("Mistral AI");
+        value = s.mistralAiApiKey();
+    } else if (clientApi == "Codestral") {
+        label = QStringLiteral("Codestral");
+        value = s.codestralApiKey();
+    } else if (clientApi == "Google AI") {
+        label = QStringLiteral("Google AI");
+        value = s.googleAiApiKey();
+    } else if (clientApi == "Ollama (Native)" || clientApi == "Ollama (OpenAI-compatible)") {
+        label = QStringLiteral("Ollama (Bearer)");
+        value = s.ollamaBasicAuthApiKey();
+    } else if (clientApi == "llama.cpp") {
+        label = QStringLiteral("llama.cpp");
+        value = s.llamaCppApiKey();
+    }
+
+    if (value.isEmpty())
+        return {};
+    return {label, value};
+}
+
 ProviderSettings::ProviderSettings()
 {
     setAutoApply(false);
@@ -255,9 +295,5 @@ public:
         setSettingsProvider([] { return &providerSettings(); });
     }
 };
-
-#ifndef QODEASSIST_EXPERIMENTAL
-const ProviderSettingsPage providerSettingsPage;
-#endif
 
 } // namespace QodeAssist::Settings

@@ -6,17 +6,21 @@
 
 #include <QJsonObject>
 #include <QObject>
+#include <QPointer>
 
 #include <LLMQore/BaseClient.hpp>
 #include <texteditor/texteditor.h>
 #include <utils/textutils.h>
 
+#include <ErrorInfo.hpp>
 #include <context/ContextManager.hpp>
 #include <context/IDocumentReader.hpp>
-#include <pluginllmcore/ContextData.hpp>
-#include <pluginllmcore/Provider.hpp>
 
 namespace QodeAssist {
+
+class SessionManager;
+class Session;
+class AgentFactory;
 
 struct RefactorResult
 {
@@ -35,19 +39,18 @@ public:
     explicit QuickRefactorHandler(QObject *parent = nullptr);
     ~QuickRefactorHandler() override;
 
+    void setSessionManager(SessionManager *sessionManager);
+    void setAgentFactory(AgentFactory *agentFactory);
+
     void sendRefactorRequest(TextEditor::TextEditorWidget *editor, const QString &instructions);
 
     void cancelRequest();
     bool isProcessing() const { return m_isRefactoringInProgress; }
 
+    static QString configuredAgent(AgentFactory *agentFactory);
+
 signals:
     void refactoringCompleted(const QodeAssist::RefactorResult &result);
-
-private slots:
-    void handleFullResponse(const QString &requestId, const QString &fullText);
-    void handleRequestFinalized(
-        const ::LLMQore::RequestID &requestId, const ::LLMQore::CompletionInfo &info);
-    void handleRequestFailed(const QString &requestId, const QString &error);
 
 private:
     void prepareAndSendRequest(
@@ -55,18 +58,20 @@ private:
         const QString &instructions,
         const Utils::Text::Range &range);
 
-    void handleLLMResponse(const QString &response, const QJsonObject &request, bool isComplete);
-    PluginLLMCore::ContextData prepareContext(
-        TextEditor::TextEditorWidget *editor,
-        const Utils::Text::Range &range,
-        const QString &instructions);
+    void onRefactorFinished(const QString &requestId);
+    void onRefactorFailed(const QString &requestId, const QodeAssist::ErrorInfo &error);
+    QString buildSystemPrompt(
+        TextEditor::TextEditorWidget *editor, const Utils::Text::Range &range);
+    QString pickRefactorAgent() const;
 
     struct RequestContext
     {
         QJsonObject originalRequest;
-        PluginLLMCore::Provider *provider;
+        QPointer<Session> session;
     };
 
+    QPointer<SessionManager> m_sessionManager;
+    QPointer<AgentFactory> m_agentFactory;
     QHash<QString, RequestContext> m_activeRequests;
     TextEditor::TextEditorWidget *m_currentEditor;
     Utils::Text::Range m_currentRange;

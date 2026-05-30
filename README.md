@@ -41,7 +41,7 @@ QodeAssist enhances Qt Creator with AI-powered coding assistance:
 - **File Context** — attach, link, or auto-sync open editor files for richer prompts
 - **Many Providers** — Ollama, llama.cpp, LM Studio (Chat + Responses), Claude, OpenAI (Chat + Responses), Google AI, Mistral, Codestral, OpenRouter, Qwen (OpenAI + Responses), DeepSeek, any OpenAI-compatible endpoint
 - **Reasoning / Thinking** — streamed chain-of-thought is shown for reasoning models across Claude, Google, OpenAI Responses, and any OpenAI-compatible endpoint that returns `reasoning_content` (DeepSeek, Qwen QwQ/Qwen3-Thinking, LM Studio, OpenRouter, …)
-- **Customizable** — per-project rules (`.qodeassist/rules/`), agent roles, reusable refactor templates, full prompt-template control
+- **Customizable** — per-agent personas (agent TOML `system_prompt`), reusable refactor templates, full prompt-template control
 
 **Join our [Discord Community](https://discord.gg/BGMkUsXUgf)** to get support and connect with other users!
 
@@ -217,9 +217,8 @@ For optimal coding assistance, we recommend using these top-tier models:
 
 ### Additional Configuration
 
-- **[Agent Roles](docs/agent-roles.md)** - Create AI personas with specialized system prompts
+- **[Creating and Extending Agents](docs/creating-agents.md)** - Add custom agents (including personas via `system_prompt`) with TOML profiles
 - **[Chat Summarization](docs/chat-summarization.md)** - Compress conversations to save context tokens
-- **[Project Rules](docs/project-rules.md)** - Customize AI behavior for your project
 - **[Ignoring Files](docs/ignoring-files.md)** - Exclude files from context using `.qodeassistignore`
 
 ## Features
@@ -255,7 +254,7 @@ Configure in: `Tools → Options → QodeAssist → Code Completion → General 
 - Multiple chat panels: side panel, bottom panel, and popup window
 - Chat history with auto-save and restore
 - Token usage monitoring
-- **[Agent Roles](docs/agent-roles.md)** - Switch between AI personas (Developer, Reviewer, custom roles)
+- AI personas via agent `system_prompt` — switch personas by switching agents (see [Creating Agents](docs/creating-agents.md))
 - **[Chat Summarization](docs/chat-summarization.md)** - Compress long conversations into AI-generated summaries
 - **[File Context](docs/file-context.md)** - Attach or link files for better context
 - Automatic syncing with open editor files (optional)
@@ -349,18 +348,16 @@ QodeAssist uses a flexible prompt composition system that adapts to different co
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  Examples: Codestral, Qwen2.5-Coder, DeepSeek-Coder                        │
 │                                                                              │
-│  1. System Prompt (from Code Completion Settings - FIM variant)            │
-│  2. Project Rules:                                                          │
-│     └─ .qodeassist/rules/completion/*.md                                   │
-│  3. Open Files Context (optional, if enabled):                             │
-│     └─ Currently open editor files                                         │
-│  4. Code Context:                                                           │
+│  1. Editor Context:                                                         │
+│     ├─ File information (language, path)                                   │
+│     ├─ Recent project changes (optional, if enabled)                       │
+│     └─ Open editor files (optional, if enabled)                            │
+│  2. Code Context:                                                           │
 │     ├─ Code before cursor (prefix)                                         │
 │     └─ Code after cursor (suffix)                                          │
 │                                                                              │
-│  Final Prompt: FIM_Template(Prefix: SystemPrompt + Rules + OpenFiles +     │
-│                                     CodeBefore,                             │
-│                             Suffix: CodeAfter)                              │
+│  Final Request: the agent's TOML [body] template renders prefix/suffix     │
+│                 into the provider's native FIM fields                       │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -375,21 +372,19 @@ QodeAssist uses a flexible prompt composition system that adapts to different co
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  Examples: DeepSeek-Coder-Instruct, Qwen2.5-Coder-Instruct                 │
 │                                                                              │
-│  1. System Prompt (from Code Completion Settings - Non-FIM variant)        │
-│     └─ Includes response formatting instructions                           │
-│  2. Project Rules:                                                          │
-│     └─ .qodeassist/rules/completion/*.md                                   │
-│  3. Open Files Context (optional, if enabled):                             │
-│     └─ Currently open editor files                                         │
-│  4. Code Context:                                                           │
+│  1. Completion Instructions (from the agent's TOML profile)                │
+│     └─ Includes response formatting rules                                  │
+│  2. Editor Context:                                                         │
 │     ├─ File information (language, path)                                   │
+│     ├─ Recent project changes (optional, if enabled)                       │
+│     └─ Open editor files (optional, if enabled)                            │
+│  3. Code Context:                                                           │
 │     ├─ Code before cursor                                                  │
 │     ├─ <cursor> marker                                                     │
 │     └─ Code after cursor                                                   │
-│  5. User Message: "Complete the code at cursor position"                   │
 │                                                                              │
-│  Final Prompt: [System: SystemPrompt + Rules]                              │
-│                [User: OpenFiles + Context + CompletionRequest]              │
+│  Final Prompt: [System: Instructions + EditorContext]                      │
+│                [User: Code around cursor as a completion request]           │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -402,27 +397,22 @@ QodeAssist uses a flexible prompt composition system that adapts to different co
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                            CHAT ASSISTANT                                   │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  1. System Prompt (from Chat Assistant Settings)                           │
-│  2. Agent Role (optional, from role selector):                             │
-│     └─ Role-specific system prompt (Developer, Reviewer, custom)           │
-│  3. Project Rules:                                                          │
-│     ├─ .qodeassist/rules/common/*.md                                       │
-│     └─ .qodeassist/rules/chat/*.md                                         │
-│  4. File Context (optional):                                               │
-│     ├─ Attached files (manual)                                             │
-│     ├─ Linked files (persistent)                                           │
-│     └─ Open editor files (if auto-sync enabled)                            │
-│  5. Tool Definitions (if enabled):                                         │
-│     ├─ ReadProjectFileByName                                               │
-│     ├─ ListProjectFiles                                                    │
-│     ├─ SearchInProject                                                     │
-│     └─ GetIssuesList                                                       │
-│  6. Conversation History                                                    │
-│  7. User Message                                                            │
+│  1. Agent System Prompt (persona, from the agent's TOML profile)           │
+│  2. Project Info + Skills (catalog and always-on skills)                   │
+│  3. Tool Definitions (if the agent enables tools)                          │
+│  4. Conversation History:                                                   │
+│     ├─ Previous messages and tool calls/results                            │
+│     ├─ Attachments stay with the message they were sent with               │
+│     └─ /skill instructions persist for the whole conversation              │
+│  5. Linked Files + Open Editor Files (if auto-sync enabled):               │
+│     └─ FRESH snapshot of current file content, re-read on every            │
+│        request and placed next to your latest message — never              │
+│        duplicated into the history                                          │
+│  6. User Message (+ this turn's attachments and images)                    │
 │                                                                              │
-│  Final Prompt: [System: SystemPrompt + AgentRole + Rules + Tools]          │
+│  Final Prompt: [System: Persona + ProjectInfo + Skills]                    │
 │                [History: Previous messages]                                 │
-│                [User: FileContext + UserMessage]                            │
+│                [User: CurrentFilesSnapshot + UserMessage + Attachments]     │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -435,28 +425,26 @@ QodeAssist uses a flexible prompt composition system that adapts to different co
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                         QUICK REFACTORING                                   │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│  1. System Prompt (from Quick Refactor Settings)                           │
-│  2. Project Rules:                                                          │
-│     ├─ .qodeassist/rules/common/*.md                                       │
-│     └─ .qodeassist/rules/quickrefactor/*.md                                │
-│  3. Code Context:                                                           │
+│  1. Agent System Prompt (persona, from the agent's TOML profile)           │
+│  2. Code Context (generated):                                               │
 │     ├─ File information (language, path)                                   │
 │     ├─ Code before selection (configurable amount)                         │
 │     ├─ <selection_start> marker                                            │
 │     ├─ Selected code (or current line)                                     │
 │     ├─ <selection_end> marker                                              │
 │     ├─ <cursor> marker (position within selection)                         │
-│     └─ Code after selection (configurable amount)                          │
-│  4. Refactor Instruction:                                                   │
+│     ├─ Code after selection (configurable amount)                          │
+│     └─ Output formatting and indentation rules                             │
+│  3. Refactor Instruction (the user message):                               │
 │     ├─ Built-in (e.g., "Improve Code", "Alternative Solution")             │
 │     ├─ Custom Instruction (from library)                                   │
 │     │  └─ ~/.config/QtProject/qtcreator/qodeassist/                        │
 │     │      quick_refactor/instructions/*.json                              │
 │     └─ Additional Details (optional user input)                            │
-│  5. Tool Definitions (if enabled)                                          │
+│  4. Tool Definitions (if the agent enables tools)                          │
 │                                                                              │
-│  Final Prompt: [System: SystemPrompt + Rules]                              │
-│                [User: Context + Markers + Instruction + Details]            │
+│  Final Prompt: [System: Persona + CodeContext + Rules]                     │
+│                [User: Instruction + Details]                                │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -464,17 +452,15 @@ QodeAssist uses a flexible prompt composition system that adapts to different co
 
 ### Key Points
 
-- **Project Rules** are automatically loaded from `.qodeassist/rules/` directory structure
-- **System Prompts** are configured independently for each feature in Settings
-- **Agent Roles** add role-specific prompts on top of the base system prompt (Chat only)
-- **FIM vs Non-FIM models** for code completion use different System Prompts:
-  - FIM models: Direct completion prompt
-  - Non-FIM models: Prompt includes response formatting instructions
-- **Quick Refactor** has its own provider/model configuration, independent from Chat
+- **System Prompts** live in the agent's TOML profile (`system_prompt`); switch personas by switching agents
+- **Linked and open-synced files are always current**: their content is not stored in the conversation — every request re-reads the files and sends a fresh snapshot next to your latest message. Editing a linked file between messages never leaves a stale copy in the context, and changing it does not invalidate the provider's prompt cache for the whole conversation
+- **One-time attachments are different**: they are saved with the message they were sent with and stay in the history as sent
+- **FIM vs Non-FIM** for code completion is the agent's choice: a FIM agent renders prefix/suffix into native FIM fields, an instruct agent sends a chat-shaped request — pick the agent that matches your model
+- **Quick Refactor** has its own agent roster, independent from Chat
 - **Custom Instructions** provide reusable templates that can be augmented with specific details
-- **Tool Calling** is available for Chat and Quick Refactor when enabled
+- **Tool Calling** is available for Chat and Quick Refactor when the agent enables it; tool rounds per request are limited (configurable in `Settings → Tools`)
 
-See [Project Rules Documentation](docs/project-rules.md), [Agent Roles Guide](docs/agent-roles.md), and [Quick Refactoring Guide](docs/quick-refactoring.md) for more details.
+See the [Quick Refactoring Guide](docs/quick-refactoring.md) for more details.
 
 ## QtCreator Version Compatibility
 
@@ -522,7 +508,6 @@ For additional support, join our [Discord Community](https://discord.gg/BGMkUsXU
 - [x] Diff sharing with models
 - [x] Tools / function calling (file I/O, build, terminal, diagnostics)
 - [x] Agent Skills (project + global directories, `/skill` commands, always-on, `load_skill` tool)
-- [x] Project-specific rules (`.qodeassist/rules/`)
 - [x] MCP (Model Context Protocol) — QodeAssist as a server
 - [x] MCP — QodeAssist as a client (consume external MCP tools; authenticated MCP servers not yet supported)
 - [ ] Full project source sharing
@@ -533,7 +518,7 @@ If you find QodeAssist helpful, there are several ways you can support the proje
 
 1. **Report Issues**: If you encounter any bugs or have suggestions for improvements, please [open an issue](https://github.com/Palm1r/qodeassist/issues) on our GitHub repository.
 
-2. **Contribute**: Feel free to submit pull requests with bug fixes or new features.
+2. **Contribute**: Feel free to submit pull requests with bug fixes or new features. The easiest contribution is an agent preset for a provider or model you use — it's a single TOML file, no C++ required; see [Contributing your agent](docs/creating-agents.md#contributing-your-agent-to-qodeassist).
 
 3. **Spread the Word**: Star our GitHub repository and share QodeAssist with your fellow developers.
 
@@ -581,6 +566,10 @@ cmake --build .
 
 ## For Contributors
 
+### Adding an agent preset
+
+New provider/model presets are plain TOML — extend a provider base, register the file in `agents.qrc`, and the test suite validates it automatically. Step-by-step guide: [docs/creating-agents.md](docs/creating-agents.md#contributing-your-agent-to-qodeassist).
+
 ### Code Style
 
 - **QML**: Follow [QML Coding Guide](https://github.com/Furkanzmc/QML-Coding-Guide) by @Furkanzmc
@@ -589,7 +578,7 @@ cmake --build .
 
 ### Development Guidelines
 
-For detailed development guidelines, architecture patterns, and best practices, see the [project workspace rules](.cursor/rules.mdc).
+For detailed development guidelines and architecture patterns, see [docs/architecture.md](docs/architecture.md) and [docs/target-architecture.md](docs/target-architecture.md).
 
 ## License
 

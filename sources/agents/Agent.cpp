@@ -34,9 +34,8 @@ QString AgentConfig::validate(const AgentConfig &config)
         return QStringLiteral("Agent config '%1' has no model").arg(config.name);
     if (config.endpoint.isEmpty())
         return QStringLiteral("Agent config '%1' has no endpoint").arg(config.name);
-    if (config.messageFormat.isEmpty()) {
-        return QStringLiteral("Agent config '%1' has no [template].message_format")
-            .arg(config.name);
+    if (config.body.isEmpty()) {
+        return QStringLiteral("Agent config '%1' has no [body]").arg(config.name);
     }
     return {};
 }
@@ -56,6 +55,9 @@ Agent::Agent(AgentConfig config, Providers::Provider *providerOwned, QObject *pa
         return;
     }
     m_provider->setParent(this);
+    m_provider->setPromptCaching(
+        m_config.cachePrompt, m_config.cacheTtl == QLatin1StringView{"1h"},
+        m_config.cacheBreakpoints);
 
     QString tmplErr;
     m_promptTemplate = JsonPromptTemplate::fromConfig(m_config, &tmplErr);

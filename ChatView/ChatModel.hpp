@@ -8,11 +8,16 @@
 #include "MessagePart.hpp"
 
 #include <QAbstractListModel>
+#include <QHash>
 #include <QJsonArray>
 #include <QJsonObject>
+#include <QPointer>
+#include <QVector>
 #include <QtQmlIntegration>
 
-#include "context/ContentFile.hpp"
+namespace QodeAssist {
+class ConversationHistory;
+}
 
 namespace QodeAssist::Chat {
 
@@ -22,7 +27,6 @@ class ChatModel : public QAbstractListModel
     Q_PROPERTY(int sessionPromptTokens READ sessionPromptTokens NOTIFY sessionUsageChanged FINAL)
     Q_PROPERTY(int sessionCompletionTokens READ sessionCompletionTokens NOTIFY sessionUsageChanged FINAL)
     Q_PROPERTY(int sessionCachedPromptTokens READ sessionCachedPromptTokens NOTIFY sessionUsageChanged FINAL)
-    Q_PROPERTY(int sessionTotalTokens READ sessionTotalTokens NOTIFY sessionUsageChanged FINAL)
     QML_ELEMENT
 
 public:
@@ -43,80 +47,18 @@ public:
     };
     Q_ENUM(Roles)
 
-    struct ImageAttachment
-    {
-        QString fileName;      // Original filename
-        QString storedPath;    // Path to stored image file (relative to chat folder)
-        QString mediaType;     // MIME type
-    };
-
-    struct Message
-    {
-        ChatRole role;
-        QString content;
-        QString id;
-        bool isRedacted = false;
-        QString signature = QString();
-
-        QList<Context::ContentFile> attachments;
-        QList<ImageAttachment> images;
-
-        QString toolName;
-        QJsonObject toolArguments;
-        QString toolResult;
-
-        int promptTokens = 0;
-        int completionTokens = 0;
-        int cachedPromptTokens = 0;
-        int reasoningTokens = 0;
-    };
-
     explicit ChatModel(QObject *parent = nullptr);
+
+    void setHistory(ConversationHistory *history);
 
     int rowCount(const QModelIndex &parent = QModelIndex()) const override;
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    Q_INVOKABLE void addMessage(
-        const QString &content,
-        ChatRole role,
-        const QString &id,
-        const QList<Context::ContentFile> &attachments = {},
-        const QList<ImageAttachment> &images = {},
-        bool isRedacted = false,
-        const QString &signature = QString());
     Q_INVOKABLE void clear();
     Q_INVOKABLE QList<MessagePart> processMessageContent(const QString &content) const;
-
-    QVector<Message> getChatHistory() const;
-    QJsonArray prepareMessagesForRequest(const QString &systemPrompt) const;
-
-    QString currentModel() const;
-    QString lastMessageId() const;
-
     Q_INVOKABLE void resetModelTo(int index);
     Q_INVOKABLE QVariantList userMessagePreviews(int maxLength = 80) const;
-
-    void addToolExecutionStatus(
-        const QString &requestId,
-        const QString &toolId,
-        const QString &toolName,
-        const QJsonObject &toolArguments);
-    void dropTrailingAssistantMessage(const QString &requestId);
-    void setToolMessageData(
-        const QString &toolId,
-        const QString &toolName,
-        const QJsonObject &toolArguments,
-        const QString &toolResult);
-    void updateToolResult(
-        const QString &requestId,
-        const QString &toolId,
-        const QString &toolName,
-        const QString &result);
-    void addThinkingBlock(
-        const QString &requestId, const QString &thinking, const QString &signature);
-    void addRedactedThinkingBlock(const QString &requestId, const QString &signature);
-    void updateMessageContent(const QString &messageId, const QString &newContent);
 
     void setMessageUsage(
         const QString &messageId,
@@ -128,11 +70,7 @@ public:
     int sessionPromptTokens() const;
     int sessionCompletionTokens() const;
     int sessionCachedPromptTokens() const;
-    int sessionTotalTokens() const;
-    
-    void setLoadingFromHistory(bool loading);
-    bool isLoadingFromHistory() const;
-    
+
     void setChatFilePath(const QString &filePath);
     QString chatFilePath() const;
 
@@ -141,18 +79,60 @@ signals:
     void sessionUsageChanged();
 
 private slots:
-    void onFileEditApplied(const QString &editId);
-    void onFileEditRejected(const QString &editId);
-    void onFileEditArchived(const QString &editId);
+    void onHistoryMessageAdded(int index);
+    void onHistoryMessageUpdated(int index);
+    void onHistoryCleared();
+    void onHistoryReset();
+    void onFileEditStatusChanged(const QString &editId);
 
 private:
-    void updateFileEditStatus(const QString &editId, const QString &status, const QString &statusMessage);
-    
-    QVector<Message> m_messages;
-    bool m_loadingFromHistory = false;
+    struct AttachmentRef
+    {
+        QString fileName;
+        QString storedPath;
+    };
+    struct ImageRef
+    {
+        QString fileName;
+        QString storedPath;
+        QString mediaType;
+    };
+    struct Row
+    {
+        ChatRole kind = ChatRole::Assistant;
+        int messageIndex = -1;
+        QString messageId;
+        QString content;
+        bool isRedacted = false;
+        QString editId;
+        QVector<AttachmentRef> attachments;
+        QVector<ImageRef> images;
+    };
+    struct Usage
+    {
+        int prompt = 0;
+        int completion = 0;
+        int cached = 0;
+        int reasoning = 0;
+    };
+
+    void rebuildAll();
+    void reprojectTail(int startMessageIndex);
+    int startMessageIndexFor(int messageIndex) const;
+    int firstRowForMessage(int messageIndex) const;
+    QHash<QString, QString> buildToolResultMap() const;
+    void appendRowsForMessage(
+        int messageIndex, const QHash<QString, QString> &toolResults, QVector<Row> &out) const;
+    QString overlayFileEditStatus(const QString &content, const QString &editId) const;
+    QVariantList buildAttachmentList(const QVector<AttachmentRef> &attachments) const;
+    QVariantList buildImageList(const QVector<ImageRef> &images) const;
+
+    QPointer<ConversationHistory> m_history;
+    QVector<Row> m_rows;
+    QHash<QString, Usage> m_usageByMessageId;
     QString m_chatFilePath;
 };
 
 } // namespace QodeAssist::Chat
-Q_DECLARE_METATYPE(QodeAssist::Chat::ChatModel::Message)
+
 Q_DECLARE_METATYPE(QodeAssist::Chat::MessagePart)

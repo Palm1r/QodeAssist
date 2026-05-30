@@ -11,10 +11,10 @@ namespace QodeAssist::Templates::ContextRenderer {
 struct Bindings
 {
     QString projectDir;
-    QString homeDir;
+    QString configDir;
+    QString language;
 };
 
-QString render(const QString &templateSource, const Bindings &bindings,
-               QString *error = nullptr);
+QString render(const QString &templateSource, const Bindings &bindings, QString *error = nullptr);
 
 } // namespace QodeAssist::Templates::ContextRenderer

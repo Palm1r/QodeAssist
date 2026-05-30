@@ -34,8 +34,8 @@
 #include <QTranslator>
 
 #include <QInputDialog>
-#include "ConfigurationManager.hpp"
 #include "QodeAssistClient.hpp"
+#include "QuickRefactorHandler.hpp"
 #include "UpdateStatusWidget.hpp"
 #include "Version.hpp"
 #include "chat/ChatEditor.hpp"
@@ -43,33 +43,26 @@
 #include "chat/ChatOutputPane.h"
 #include "chat/NavigationPanel.hpp"
 #include "context/DocumentReaderQtCreator.hpp"
-#include "pluginllmcore/PromptProviderFim.hpp"
-#include "pluginllmcore/ProvidersManager.hpp"
 #include "logger/RequestPerformanceLogger.hpp"
 #include "mcp/McpClientsManager.hpp"
 #include "mcp/McpServerManager.hpp"
 #include "sources/skills/SkillsManager.hpp"
 #include "tools/ToolsRegistration.hpp"
-#include "providers/Providers.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProjectSettingsPanel.hpp"
-#ifdef QODEASSIST_EXPERIMENTAL
 #include "settings/AgentsSettingsPage.hpp"
 #include "settings/ProvidersSettingsPage.hpp"
-#include "sources/settings/AgentPipelinesPage.hpp"
-#endif
 #include "settings/QuickRefactorSettings.hpp"
 #include "settings/SettingsConstants.hpp"
 
-#ifdef QODEASSIST_EXPERIMENTAL
 #include "ProviderInstanceFactory.hpp"
 #include "ProviderLauncher.hpp"
 #include "ProviderSecretsStore.hpp"
 
 #include <AgentFactory.hpp>
-#endif
-#include "templates/Templates.hpp"
+#include <GenericProvider.hpp>
+#include <SessionManager.hpp>
 #include "widgets/CustomInstructionsManager.hpp"
 #include "widgets/QuickRefactorDialog.hpp"
 #include <ChatView/ChatView.hpp>
@@ -78,6 +71,7 @@
 #include <ChatView/ChatWidget.hpp>
 #include <ChatView/SessionFileRegistry.hpp>
 #include <coreplugin/editormanager/editormanager.h>
+#include <QQmlContext>
 #include <QUuid>
 #include <coreplugin/actionmanager/actioncontainer.h>
 #include <coreplugin/actionmanager/actionmanager.h>
@@ -99,7 +93,6 @@ class QodeAssistPlugin final : public ExtensionSystem::IPlugin
 public:
     QodeAssistPlugin()
         : m_updater(new PluginUpdater(this))
-        , m_promptProvider(PluginLLMCore::PromptTemplateManager::instance())
     {}
 
     ~QodeAssistPlugin() final
@@ -146,9 +139,6 @@ public:
 
         loadTranslations();
 
-        Providers::registerProviders();
-        Templates::registerTemplates();
-        
         CustomInstructionsManager::instance().loadInstructions();
 
         Utils::Icon QCODEASSIST_ICON(
@@ -185,15 +175,36 @@ public:
         m_sessionFileRegistry = new Chat::SessionFileRegistry{this};
         m_skillsManager = new Skills::SkillsManager{this};
 
+        Settings::setupProjectPanel();
+
+        Providers::registerBuiltinProviders();
+        m_providerInstanceFactory = new Providers::ProviderInstanceFactory(this);
+        m_providerSecretsStore = new Providers::ProviderSecretsStore(this);
+        m_providerLauncher = new Providers::ProviderLauncher(this);
+        m_providersPageNavigator = new Settings::ProvidersPageNavigator(this);
+        m_providersOptionsPage = Settings::createProvidersSettingsPage(
+            m_providerInstanceFactory,
+            m_providerSecretsStore,
+            m_providerLauncher,
+            m_providersPageNavigator);
+
+        m_agentFactory = new AgentFactory(m_providerInstanceFactory, m_providerSecretsStore, this);
+        m_sessionManager = new SessionManager(m_agentFactory, this);
         {
-            auto &providers = PluginLLMCore::ProvidersManager::instance();
-            for (const QString &providerName : providers.providersNames()) {
-                if (auto *provider = providers.getProviderByName(providerName)) {
-                    if (auto *toolsManager = provider->toolsManager())
-                        Tools::registerSkillTool(toolsManager, m_skillsManager);
-                }
-            }
+            auto &contributors = m_sessionManager->toolContributors();
+            contributors.add([](::LLMQore::ToolsManager *tools) {
+                Tools::registerQodeAssistTools(tools);
+            });
+            contributors.add([skills = m_skillsManager](::LLMQore::ToolsManager *tools) {
+                if (skills)
+                    Tools::registerSkillTool(tools, skills);
+            });
+            contributors.add([](::LLMQore::ToolsManager *tools) {
+                Mcp::McpClientsManager::instance().registerToolsOn(tools);
+            });
         }
+        m_engine->rootContext()->setContextProperty("agentFactory", m_agentFactory);
+        m_engine->rootContext()->setContextProperty("sessionManager", m_sessionManager);
 
         if (Settings::chatAssistantSettings().enableChatInBottomToolBar()) {
             m_chatOutputPane = new Chat::ChatOutputPane{
@@ -206,29 +217,12 @@ public:
         m_chatEditorFactory = new Chat::ChatEditorFactory{
             m_engine, m_sessionFileRegistry, m_skillsManager};
 
-        Settings::setupProjectPanel();
-        ConfigurationManager::instance().init();
-
-#ifdef QODEASSIST_EXPERIMENTAL
-        m_providerInstanceFactory = new Providers::ProviderInstanceFactory(this);
-        m_providerSecretsStore = new Providers::ProviderSecretsStore(this);
-        m_providerLauncher = new Providers::ProviderLauncher(this);
-        m_providersPageNavigator = new Settings::ProvidersPageNavigator(this);
-        m_providersOptionsPage = Settings::createProvidersSettingsPage(
-            m_providerInstanceFactory,
-            m_providerSecretsStore,
-            m_providerLauncher,
-            m_providersPageNavigator);
-
-        m_agentFactory = new AgentFactory(m_providerInstanceFactory, m_providerSecretsStore, this);
         m_agentsPageNavigator = new Settings::AgentsPageNavigator(this);
         m_agentsOptionsPage = Settings::createAgentsSettingsPage(
             m_agentFactory, m_agentsPageNavigator);
 
-        m_agentPipelinesPageNavigator = new Settings::AgentPipelinesPageNavigator(this);
-        m_agentPipelinesOptionsPage = Settings::createAgentPipelinesSettingsPage(
-            m_agentFactory, m_agentPipelinesPageNavigator, m_agentsPageNavigator);
-#endif
+        Settings::generalSettings().setAgentPipelinesContext(
+            m_agentFactory, m_agentsPageNavigator);
 
         m_mcpServerManager = new Mcp::McpServerManager(this);
         m_mcpServerManager->init();
@@ -248,8 +242,10 @@ public:
         quickRefactorAction.addOnTriggered(this, [this] {
             if (auto editor = TextEditor::TextEditorWidget::currentTextEditorWidget()) {
                 if (m_qodeAssistClient && m_qodeAssistClient->reachable()) {
-                    QuickRefactorDialog
-                        dialog(Core::ICore::dialogParent(), m_lastRefactorInstructions);
+                    const bool refactorReady
+                        = !QuickRefactorHandler::configuredAgent(m_agentFactory).isEmpty();
+                    QuickRefactorDialog dialog(
+                        Core::ICore::dialogParent(), m_lastRefactorInstructions, refactorReady);
 
                     if (dialog.exec() == QDialog::Accepted) {
                         QString instructions = dialog.instructions();
@@ -348,10 +344,12 @@ public:
         m_qodeAssistClient = new QodeAssistClient(new LLMClientInterface(
             Settings::generalSettings(),
             Settings::codeCompletionSettings(),
-            PluginLLMCore::ProvidersManager::instance(),
-            &m_promptProvider,
+            *m_agentFactory,
+            *m_sessionManager,
             m_documentReader,
             m_performanceLogger));
+        m_qodeAssistClient->setSessionManager(m_sessionManager);
+        m_qodeAssistClient->setAgentFactory(m_agentFactory);
     }
 
     bool delayedInitialize() final
@@ -509,7 +507,6 @@ private:
     }
 
     QPointer<QodeAssistClient> m_qodeAssistClient;
-    PluginLLMCore::PromptProviderFim m_promptProvider;
     Context::DocumentReaderQtCreator m_documentReader;
     RequestPerformanceLogger m_performanceLogger;
     QPointer<Chat::ChatOutputPane> m_chatOutputPane;
@@ -524,18 +521,15 @@ private:
     QPointer<Mcp::McpServerManager> m_mcpServerManager;
     QPointer<QQmlEngine> m_engine;
     QPointer<Skills::SkillsManager> m_skillsManager;
-#ifdef QODEASSIST_EXPERIMENTAL
     QPointer<Providers::ProviderInstanceFactory> m_providerInstanceFactory;
     QPointer<Providers::ProviderSecretsStore> m_providerSecretsStore;
     QPointer<Providers::ProviderLauncher> m_providerLauncher;
     QPointer<Settings::ProvidersPageNavigator> m_providersPageNavigator;
     std::unique_ptr<Core::IOptionsPage> m_providersOptionsPage;
     QPointer<AgentFactory> m_agentFactory;
+    QPointer<SessionManager> m_sessionManager;
     QPointer<Settings::AgentsPageNavigator> m_agentsPageNavigator;
     std::unique_ptr<Core::IOptionsPage> m_agentsOptionsPage;
-    QPointer<Settings::AgentPipelinesPageNavigator> m_agentPipelinesPageNavigator;
-    std::unique_ptr<Core::IOptionsPage> m_agentPipelinesOptionsPage;
-#endif
 };
 
 } // namespace QodeAssist::Internal

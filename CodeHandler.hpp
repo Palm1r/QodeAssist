@@ -32,10 +32,6 @@ public:
 
 private:
     static QString getCommentPrefix(const QString &language);
-
-    static const QRegularExpression &getFullCodeBlockRegex();
-    static const QRegularExpression &getPartialStartBlockRegex();
-    static const QRegularExpression &getPartialEndBlockRegex();
 };
 
 } // namespace QodeAssist

@@ -1,0 +1,20 @@
+schema_version = 1
+
+extends     = "Claude Base Chat"
+name        = "Claude Opus xHigh Chat"
+description = "Anthropic Claude Opus 4.8 — coding chat with adaptive thinking at xhigh effort, tuned for agentic and coding work."
+
+model             = "claude-opus-4-8"
+enable_tools      = true
+enable_thinking   = true
+cache_prompt      = true
+cache_breakpoints = ["system", "tools", "history"]
+tags              = ["chat", "claude", "cloud"]
+
+system_prompt = """{{ read_file(":/roles/qt-cpp-developer.md") }}"""
+
+[body]
+max_tokens    = 64000
+temperature   = 1
+thinking      = { type = "adaptive", display = "summarized" }
+output_config = { effort = "xhigh" }

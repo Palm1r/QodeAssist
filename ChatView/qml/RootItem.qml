@@ -118,7 +118,6 @@ ChatRootView {
                 text: qsTr("Сhat name: %1").arg(root.chatFileName.length > 0 ? root.chatFileName : "Unsaved")
             }
             openChatHistory.onClicked: root.openChatHistoryFolder()
-            contextButton.onClicked: contextViewer.open()
             pinButton {
                 visible: typeof _chatview !== 'undefined'
                 checked: typeof _chatview !== 'undefined' ? _chatview.isPin : false
@@ -138,43 +137,18 @@ ChatRootView {
             relocateTooltip.text: (typeof _chatview !== 'undefined')
                                    ? qsTr("Move this chat to an editor tab")
                                    : qsTr("Move this chat to a separate window")
-            toolsButton {
-                checked: root.useTools
-                onCheckedChanged: {
-                    root.useTools = toolsButton.checked
-                }
-            }
-            thinkingMode {
-                checked: root.useThinking
-                enabled: root.isThinkingSupport
-                onCheckedChanged: {
-                    root.useThinking = thinkingMode.checked
-                }
-            }
             settingsButton.onClicked: root.openSettings()
-            configSelector {
-                model: root.availableConfigurations
-                displayText: root.currentConfiguration
+            agentSelector {
+                model: root.availableChatAgents
+                displayText: root.currentChatAgent
                 onActivated: function(index) {
-                    if (index > 0) {
-                        root.applyConfiguration(root.availableConfigurations[index])
-                    }
+                    root.currentChatAgent = root.availableChatAgents[index]
                 }
+
+                Component.onCompleted: root.loadAvailableChatAgents()
 
                 popup.onAboutToShow: {
-                    root.loadAvailableConfigurations()
-                }
-            }
-
-            roleSelector {
-                model: root.availableAgentRoles
-                displayText: root.currentAgentRole
-                onActivated: function(index) {
-                    root.applyAgentRole(root.availableAgentRoles[index])
-                }
-
-                popup.onAboutToShow: {
-                    root.loadAvailableAgentRoles()
+                    root.loadAvailableChatAgents()
                 }
             }
         }
@@ -593,6 +567,8 @@ ChatRootView {
 
             isCompressing: root.isCompressing
             isProcessing: root.isRequestInProgress
+            canCompress: root.canCompress
+            canSend: root.currentChatAgent !== ""
             sendButton.onClicked: !root.isRequestInProgress ? root.sendChatMessage()
                                                             : root.cancelRequest()
             sendButton.icon.source: root.isRequestInProgress
@@ -604,9 +580,11 @@ ChatRootView {
                                     ? root.errorColor : "transparent"
             sendButtonTooltip.text: root.isRequestInProgress
                                     ? qsTr("Stop")
-                                    : (root.hasActiveError
-                                       ? root.lastErrorMessage
-                                       : qsTr("Send message to LLM %1").arg(root.sendShortcutText))
+                                    : (root.currentChatAgent === ""
+                                       ? qsTr("Assign a chat agent in the Pipelines settings")
+                                       : (root.hasActiveError
+                                          ? root.lastErrorMessage
+                                          : qsTr("Send message to LLM %1").arg(root.sendShortcutText)))
             compressButton.onClicked: compressConfirmDialog.open()
             cancelCompressButton.onClicked: root.cancelCompression()
             syncOpenFiles {
@@ -829,30 +807,6 @@ ChatRootView {
         color: Qt.rgba(0.2, 0.8, 0.2, 0.9)
         border.color: Qt.darker(infoToast.color, 1.3)
         toastTextColor: "#FFFFFF"
-    }
-
-    ContextViewer {
-        id: contextViewer
-
-        width: Math.min(parent.width * 0.85, 800)
-        height: Math.min(parent.height * 0.85, 700)
-        x: (parent.width - width) / 2
-        y: (parent.height - height) / 2
-
-        baseSystemPrompt: root.baseSystemPrompt
-        currentAgentRole: root.currentAgentRole
-        currentAgentRoleDescription: root.currentAgentRoleDescription
-        currentAgentRoleSystemPrompt: root.currentAgentRoleSystemPrompt
-        activeRules: root.activeRules
-        activeRulesCount: root.activeRulesCount
-
-        onOpenSettings: root.openSettings()
-        onOpenAgentRolesSettings: root.openAgentRolesSettings()
-        onOpenRulesFolder: root.openRulesFolder()
-        onRefreshRules: root.refreshRules()
-        onRuleSelected: function(index) {
-            contextViewer.selectedRuleContent = root.getRuleContent(index)
-        }
     }
 
     Connections {

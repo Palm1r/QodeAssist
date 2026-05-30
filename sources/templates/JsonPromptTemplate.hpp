@@ -7,6 +7,7 @@
 #include <memory>
 #include <mutex>
 #include <optional>
+#include <vector>
 
 #include <QJsonObject>
 #include <QString>
@@ -40,37 +41,36 @@ public:
     // Standalone-template filters are gone — each template is built for
     // exactly one agent, so it always matches its owner's provider/model.
     bool isSupportProvider(Providers::ProviderID) const override { return true; }
-    bool isSupportModel(const QString &) const override { return true; }
-    PromptShape shape() const override { return PromptShape::Chat; }
 
     void prepareRequest(QJsonObject &request, const ContextData &context) const override;
 
     [[nodiscard]] bool buildFullRequest(
-        QJsonObject &request,
-        const ContextData &context,
-        bool thinkingEnabled = false) const override;
-
-    const QJsonObject &sampling() const { return m_sampling; }
+        QJsonObject &request, const ContextData &context) const override;
 
 private:
     JsonPromptTemplate() = default;
 
     std::optional<QJsonObject> renderBody(const ContextData &context) const;
-    void applySampling(QJsonObject &request, bool thinkingEnabled) const;
 
     QString m_name;
     QString m_description;
+
+    // The literal request body, as a deep-mergeable object. String values
+    // that contain jinja are rendered and spliced as JSON at request time;
+    // literal strings and scalars pass through unchanged.
+    QJsonObject m_body;
+
+    // Roots searched (in order) by the `{% include %}` resolver. The first
+    // is the bundled qrc partials prefix; an optional second is the user
+    // agent's own directory, so user profiles can ship their own partials.
+    std::vector<QString> m_partialRoots;
 
     // m_env is populated once in fromConfig() and never mutated again.
     // It is `mutable` only because inja::Environment::render() is not a
     // const member; m_renderMutex serialises those render() calls since
     // inja's render path is not internally re-entrant on one Environment.
     mutable inja::Environment m_env;
-    inja::Template m_template;
     mutable std::mutex m_renderMutex;
-
-    QJsonObject m_sampling;
-    QJsonObject m_thinking;
 };
 
 } // namespace QodeAssist::Templates

@@ -35,7 +35,6 @@ namespace QodeAssist {
 class Completion : public LanguageServerProtocol::JsonObject
 {
     static constexpr LanguageServerProtocol::Key displayTextKey{"displayText"};
-    static constexpr LanguageServerProtocol::Key uuidKey{"uuid"};
 
 public:
     using JsonObject::JsonObject;
@@ -55,7 +54,6 @@ public:
     }
     QString text() const { return typedValue<QString>(LanguageServerProtocol::textKey); }
     void setText(const QString &text) { insert(LanguageServerProtocol::textKey, text); }
-    QString uuid() const { return typedValue<QString>(uuidKey); }
 
     bool isValid() const override
     {

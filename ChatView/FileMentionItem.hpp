@@ -29,7 +29,6 @@ public:
     Q_INVOKABLE void refreshSearch();
     Q_INVOKABLE void moveUp();
     Q_INVOKABLE void moveDown();
-    Q_INVOKABLE void selectCurrent();
     Q_INVOKABLE void dismiss();
 
     Q_INVOKABLE QVariantMap handleFileSelection(

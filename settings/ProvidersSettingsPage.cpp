@@ -12,6 +12,7 @@
 #include <coreplugin/icore.h>
 
 #include <utils/filepath.h>
+#include <utils/theme/theme.h>
 
 #include <QDialog>
 #include <QFile>
@@ -37,7 +38,7 @@
 #include "ProviderListItem.hpp"
 #include "ProviderSecretsStore.hpp"
 #include "SettingsConstants.hpp"
-#include "SettingsTheme.hpp"
+#include "SettingsUiBuilders.hpp"
 
 namespace QodeAssist::Settings {
 
@@ -234,19 +235,7 @@ private slots:
 
 
         auto addSection = [&](const QString &title, bool userSection) {
-            auto *header = new QLabel(title.toUpper(), m_listContent);
-            QFont hf = header->font();
-            hf.setPixelSize(10);
-            hf.setLetterSpacing(QFont::AbsoluteSpacing, 0.5);
-            header->setFont(hf);
-            QPalette hp = header->palette();
-            hp.setColor(QPalette::WindowText, hp.color(QPalette::Mid));
-            header->setPalette(hp);
-            header->setContentsMargins(8, 4, 8, 4);
-            header->setAutoFillBackground(true);
-            header->setStyleSheet(
-                QStringLiteral("QLabel { background:%1; }")
-                    .arg(themeFor(palette()).listHeaderBg));
+            auto *header = makeSectionHeader(title, m_listContent);
             m_listLayout->insertWidget(m_listLayout->count() - 1, header);
 
             std::vector<const Providers::ProviderInstance *> sorted;
@@ -281,7 +270,7 @@ private slots:
                     m_listContent);
                 empty->setContentsMargins(10, 6, 10, 6);
                 QPalette ep = empty->palette();
-                ep.setColor(QPalette::WindowText, ep.color(QPalette::Mid));
+                ep.setColor(QPalette::WindowText, Utils::creatorColor(Utils::Theme::PanelTextColorMid));
                 empty->setPalette(ep);
                 m_listLayout->insertWidget(m_listLayout->count() - 1, empty);
             }

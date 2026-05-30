@@ -1,32 +1,14 @@
 schema_version = 1
 
 name        = "Ollama FIM Base"
-description = "Shared base for Ollama native FIM (/api/generate) profiles."
-
-abstract = true
+description = "Ollama native /api/generate FIM request body. Abstract — extend it and set model."
+abstract    = true
 
 provider_instance = "Ollama (Native)"
 endpoint          = "/api/generate"
 
-tags = ["ollama", "local", "fim"]
-
-[template]
-message_format = """
-{
-  "prompt": {{ tojson(ctx.prefix) }},
-  "suffix": {{ tojson(ctx.suffix) }}
-  {%- if existsIn(ctx, "system_prompt") %},
-  "system": {{ tojson(ctx.system_prompt) }}
-  {%- endif %}
-}
-"""
-
-[template.sampling]
+[body]
 stream = true
-
-[template.sampling.options]
-num_predict = 512
-temperature = 0.2
-top_p       = 0.9
-keep_alive  = "5m"
-stop        = ["<EOT>"]
+system = """{% if existsIn(ctx, "system_prompt") %}{{ tojson(ctx.system_prompt) }}{% endif %}"""
+prompt = """{{ tojson(ctx.prefix) }}"""
+suffix = """{% if existsIn(ctx, "suffix") %}{{ tojson(ctx.suffix) }}{% endif %}"""

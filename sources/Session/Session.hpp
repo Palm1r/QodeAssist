@@ -14,12 +14,13 @@
 #include <QPointer>
 #include <QString>
 
-#include <functional>
 #include <memory>
-#include <optional>
+#include <utility>
 #include <vector>
 
+#include "ContextAssembler.hpp"
 #include "ConversationHistory.hpp"
+#include "ErrorInfo.hpp"
 #include "ResponseEvent.hpp"
 
 namespace QodeAssist {
@@ -33,8 +34,6 @@ class Session : public QObject
     Q_OBJECT
     Q_DISABLE_COPY_MOVE(Session)
 public:
-    explicit Session(QObject *parent = nullptr);
-
     Session(
         Agent *agent,
         ConversationHistory *externalHistory = nullptr,
@@ -47,26 +46,25 @@ public:
     bool isValid() const noexcept;
     QString invalidReason() const;
     bool isInFlight() const noexcept;
+    const ErrorInfo &lastError() const noexcept;
 
-    using ContentLoader = std::function<QString(const QString &storedPath)>;
+    using ContentLoader = ContextAssembler::ContentLoader;
     void setContentLoader(ContentLoader loader);
+
+    using PinnedProvider = std::function<QString()>;
+    void pinContext(const QString &id, PinnedProvider provider);
+    void unpinContext(const QString &id);
 
     Agent *agent() noexcept { return m_agent; }
     ConversationHistory *history() const noexcept { return m_history; }
     SystemPromptBuilder *systemPrompt() const noexcept { return m_systemPrompt; }
 
+    LLMQore::BaseClient *client() const noexcept;
+
     void setContextBindings(Templates::ContextRenderer::Bindings bindings);
 
-    QString renderAgentContext() const;
+    LLMQore::RequestID send(std::vector<std::unique_ptr<LLMQore::ContentBlock>> userBlocks);
 
-    LLMQore::RequestID send(
-        std::vector<std::unique_ptr<LLMQore::ContentBlock>> userBlocks,
-        std::optional<bool> toolsOverride = std::nullopt);
-
-    LLMQore::RequestID sendText(const QString &text);
-
-    LLMQore::RequestID sendCompletion(Templates::ContextData ctx);
-    
     void cancel();
 
 signals:
@@ -74,14 +72,19 @@ signals:
 
     void started(const LLMQore::RequestID &id);
     void finished(const LLMQore::RequestID &id, const QString &stopReason);
-    void failed(const LLMQore::RequestID &id, const QString &error);
+    void failed(const LLMQore::RequestID &id, const QodeAssist::ErrorInfo &error);
+    void cancelled(const LLMQore::RequestID &id);
 
 private slots:
     void onRouterEvent(const QodeAssist::ResponseEvent &ev);
 
 private:
-    LLMQore::RequestID dispatch(std::optional<bool> toolsOverride = std::nullopt);
-    Templates::ContextData toLegacyContext() const;
+    LLMQore::RequestID dispatch();
+    LLMQore::RequestID dispatchContext(const Templates::ContextData &ctx, bool tools);
+    void teardownInFlight();
+    Templates::ContextData assembleContext() const;
+    QVector<ContextAssembler::PinnedBlock> materializePinned() const;
+    QJsonObject buildPayload(const Templates::ContextData &ctx, bool tools, QString *errOut) const;
 
     Agent *m_agent = nullptr;                              // child if non-null
     QPointer<ConversationHistory> m_history;               // child if internal, external otherwise
@@ -90,17 +93,11 @@ private:
 
     LLMQore::RequestID m_inFlight;
     QString m_invalidReason;
+    ErrorInfo m_lastError;
 
     Templates::ContextRenderer::Bindings m_contextBindings;
-
-public:
-    static Templates::ContextData buildLegacyContext(
-        const std::vector<Message> &history,
-        const QString &systemPrompt,
-        const ContentLoader &loader = ContentLoader{});
-
-private:
     ContentLoader m_contentLoader;
+    std::vector<std::pair<QString, PinnedProvider>> m_pinnedProviders;
 };
 
 } // namespace QodeAssist

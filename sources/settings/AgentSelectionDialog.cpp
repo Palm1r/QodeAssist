@@ -4,9 +4,10 @@
 
 #include "AgentSelectionDialog.hpp"
 
-#include "AgentSlotWidget.hpp"
 #include "PipelinesConfig.hpp"
+#include "Pill.hpp"
 #include "SettingsTr.hpp"
+#include "TagFilterStrip.hpp"
 
 #include <coreplugin/icore.h>
 
@@ -23,6 +24,7 @@
 #include <QPushButton>
 #include <QScopedValueRollback>
 #include <QScrollArea>
+#include <QSet>
 #include <QTimer>
 #include <QVBoxLayout>
 #include <algorithm>
@@ -54,6 +56,14 @@ void ListRowCard::setSelected(bool selected)
         return;
     m_selected = selected;
     applyTheme();
+}
+
+bool ListRowCard::hasAllTags(const QSet<QString> &activeTags) const
+{
+    for (const QString &tag : activeTags)
+        if (!m_itemTags.contains(tag))
+            return false;
+    return true;
 }
 
 void ListRowCard::buildSearchHaystack(const QStringList &parts)
@@ -124,8 +134,9 @@ AgentRowCard::AgentRowCard(const AgentConfig &cfg, QWidget *parent)
     : ListRowCard(parent)
 {
     setItemName(cfg.name);
+    setItemTags(cfg.tags);
     QStringList haystack{cfg.name, cfg.providerInstance, cfg.model,
-                         cfg.description, cfg.role,
+                         cfg.description, cfg.systemPrompt,
                          cfg.endpoint};
     haystack += cfg.tags;
     buildSearchHaystack(haystack);
@@ -147,10 +158,7 @@ AgentRowCard::AgentRowCard(const AgentConfig &cfg, QWidget *parent)
 
     Pill *sourcePill = nullptr;
     if (cfg.isUserSource()) {
-        sourcePill = new Pill(
-            Pill::User,
-            cfg.overridesBundled ? Tr::tr("Override") : Tr::tr("User"),
-            this);
+        sourcePill = new Pill(Pill::User, Tr::tr("User"), this);
     }
 
     auto *description = new QLabel(this);
@@ -234,8 +242,8 @@ AgentRowCard::AgentRowCard(const AgentConfig &cfg, QWidget *parent)
         tooltip += cfg.description + QStringLiteral("\n\n");
     if (!cfg.providerInstance.isEmpty())
         tooltip += Tr::tr("Provider instance: %1\n").arg(cfg.providerInstance);
-    if (!cfg.role.isEmpty())
-        tooltip += Tr::tr("Role: %1\n").arg(cfg.role);
+    if (!cfg.systemPrompt.isEmpty())
+        tooltip += Tr::tr("System prompt: %1\n").arg(cfg.systemPrompt);
     if (!cfg.endpoint.isEmpty())
         tooltip += Tr::tr("Endpoint: %1\n").arg(cfg.endpoint);
     setToolTip(tooltip.trimmed());
@@ -257,6 +265,9 @@ ProviderSection::ProviderSection(const QString &name, QWidget *parent)
     ap.setColor(QPalette::WindowText, ap.color(QPalette::Mid));
     m_arrow->setPalette(ap);
 
+    m_count = new QLabel;
+    CardStyle::applySectionFont(m_count);
+
     m_header = new QFrame;
     m_header->setObjectName(QStringLiteral("ProviderHeader"));
     m_header->setCursor(Qt::PointingHandCursor);
@@ -267,6 +278,7 @@ ProviderSection::ProviderSection(const QString &name, QWidget *parent)
     headerLayout->addWidget(m_arrow);
     headerLayout->addWidget(m_label);
     headerLayout->addStretch(1);
+    headerLayout->addWidget(m_count);
     m_header->installEventFilter(this);
 
     m_content = new QWidget;
@@ -290,15 +302,17 @@ void ProviderSection::addCard(ListRowCard *card)
     m_cards.append(card);
 }
 
-int ProviderSection::applyFilter(const QString &needle)
+int ProviderSection::applyFilter(const QString &needle, const QSet<QString> &activeTags)
 {
     int visible = 0;
     for (auto *card : m_cards) {
-        const bool show = card->matches(needle);
+        const bool show = card->matches(needle) && card->hasAllTags(activeTags);
         card->setVisible(show);
         if (show)
             ++visible;
     }
+    if (m_count)
+        m_count->setText(QString::number(visible));
     return visible;
 }
 
@@ -329,12 +343,16 @@ AgentSelectionDialog::AgentSelectionDialog(
     const std::vector<AgentConfig> &configs,
     const QString &currentName,
     AgentFactory *agentFactory,
+    const QStringList &presetTags,
     QWidget *parent)
     : QDialog(parent)
     , m_agentFactory(agentFactory)
+    , m_presetTags(presetTags)
 {
-    setWindowTitle(Tr::tr("Change Agent"));
+    const bool isChange = !currentName.isEmpty();
+    setWindowTitle(isChange ? Tr::tr("Change Agent") : Tr::tr("Add Agent"));
     resize(720, 600);
+    setMinimumSize(560, 420);
     setSizeGripEnabled(true);
 
     if (!m_agentFactory)
@@ -350,6 +368,31 @@ AgentSelectionDialog::AgentSelectionDialog(
     topRow->setSpacing(6);
     topRow->addWidget(m_filter, 1);
 
+    m_tagStrip = new TagFilterStrip(this);
+
+    const bool dark = CardStyle::isDark(palette());
+    const auto tone = CardStyle::toneFor(dark);
+
+    m_resultCount = new QLabel(this);
+    {
+        QPalette rp = m_resultCount->palette();
+        rp.setColor(QPalette::WindowText, QColor(tone.textMute));
+        m_resultCount->setPalette(rp);
+    }
+
+    auto *expandAll = new QLabel(
+        QStringLiteral("<a href=\"#\">%1</a>").arg(Tr::tr("Expand all")), this);
+    auto *collapseAll = new QLabel(
+        QStringLiteral("<a href=\"#\">%1</a>").arg(Tr::tr("Collapse all")), this);
+
+    auto *controlsRow = new QHBoxLayout;
+    controlsRow->setContentsMargins(2, 0, 2, 0);
+    controlsRow->setSpacing(8);
+    controlsRow->addWidget(m_resultCount);
+    controlsRow->addStretch(1);
+    controlsRow->addWidget(expandAll);
+    controlsRow->addWidget(collapseAll);
+
     m_scroll = new QScrollArea(this);
     m_scroll->setWidgetResizable(true);
     m_scroll->setFrameShape(QFrame::StyledPanel);
@@ -358,20 +401,54 @@ AgentSelectionDialog::AgentSelectionDialog(
     auto *buttons
         = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     m_okButton = buttons->button(QDialogButtonBox::Ok);
-    m_okButton->setText(Tr::tr("Change"));
+    m_okButton->setText(isChange ? Tr::tr("Change") : Tr::tr("Add"));
     m_okButton->setEnabled(false);
 
     auto *layout = new QVBoxLayout(this);
     layout->addLayout(topRow);
+    layout->addWidget(m_tagStrip);
+    layout->addLayout(controlsRow);
     layout->addWidget(m_scroll);
     layout->addWidget(buttons);
+
+    QMap<QString, int> tagCounts;
+    for (const auto &cfg : (m_agentFactory ? m_agentFactory->configs() : m_localConfigs)) {
+        if (cfg.hidden)
+            continue;
+        for (const QString &tag : cfg.tags)
+            tagCounts[tag] += 1;
+    }
+
+    QSet<QString> preset;
+    for (const QString &tag : m_presetTags)
+        if (tagCounts.contains(tag))
+            preset.insert(tag);
+    m_tagStrip->setAvailableTags(tagCounts, preset);
+
+    connect(m_tagStrip, &TagFilterStrip::activeTagsChanged, this,
+            [this](const QSet<QString> &) { applyFilters(); });
+    connect(expandAll, &QLabel::linkActivated, this, [this](const QString &) {
+        setAllExpanded(true);
+    });
+    connect(collapseAll, &QLabel::linkActivated, this, [this](const QString &) {
+        setAllExpanded(false);
+    });
 
     rebuild(currentName);
 
     connect(m_filter, &QLineEdit::textChanged, this,
-            [this](const QString &text) { applyFilter(text); });
+            [this](const QString &) { applyFilters(); });
     connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
+
+    m_filter->setFocus();
+}
+
+void AgentSelectionDialog::setAllExpanded(bool expanded)
+{
+    for (auto *section : m_sections)
+        if (!section->isHidden())
+            section->setExpanded(expanded);
 }
 
 void AgentSelectionDialog::selectCard(ListRowCard *card)
@@ -441,6 +518,20 @@ void AgentSelectionDialog::rebuild(const QString &currentName)
         contentLayout->addWidget(section);
         m_sections.append(section);
     }
+
+    m_emptyLabel = new QLabel(tr("No agents match the current filter."), content);
+    m_emptyLabel->setAlignment(Qt::AlignCenter);
+    m_emptyLabel->setContentsMargins(10, 24, 10, 24);
+    {
+        QFont ef = m_emptyLabel->font();
+        ef.setItalic(true);
+        m_emptyLabel->setFont(ef);
+        QPalette ep = m_emptyLabel->palette();
+        ep.setColor(QPalette::WindowText, ep.color(QPalette::Mid));
+        m_emptyLabel->setPalette(ep);
+    }
+    m_emptyLabel->setVisible(false);
+    contentLayout->addWidget(m_emptyLabel);
     contentLayout->addStretch(1);
 
     m_scroll->setWidget(content);
@@ -455,17 +546,36 @@ void AgentSelectionDialog::rebuild(const QString &currentName)
         });
     }
 
-    applyFilter(m_filter ? m_filter->text() : QString());
+    applyFilters();
 }
 
-void AgentSelectionDialog::applyFilter(const QString &needle)
+void AgentSelectionDialog::applyFilters()
 {
-    const QString trimmed = needle.trimmed();
+    const QString needle = m_filter ? m_filter->text().trimmed() : QString();
+    const QSet<QString> activeTags = m_tagStrip ? m_tagStrip->activeTags() : QSet<QString>();
+    const bool filtering = !needle.isEmpty() || !activeTags.isEmpty();
+    int total = 0;
     for (auto *section : m_sections) {
-        const int visible = section->applyFilter(trimmed);
+        const int visible = section->applyFilter(needle, activeTags);
         section->setVisible(visible > 0);
-        if (!trimmed.isEmpty())
+        if (filtering)
             section->setExpanded(visible > 0);
+        total += visible;
+    }
+    if (m_emptyLabel)
+        m_emptyLabel->setVisible(total == 0);
+    if (m_resultCount)
+        m_resultCount->setText(total == 0 ? tr("No matches")
+                                          : tr("%n agent(s)", nullptr, total));
+
+    if (m_tagStrip) {
+        QMap<QString, int> liveCounts;
+        for (auto *section : m_sections)
+            for (auto *card : section->cards())
+                if (card->matches(needle) && card->hasAllTags(activeTags))
+                    for (const QString &tag : card->itemTags())
+                        liveCounts[tag] += 1;
+        m_tagStrip->setVisibleCounts(liveCounts);
     }
 }
 

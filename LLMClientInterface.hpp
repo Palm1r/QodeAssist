@@ -8,12 +8,11 @@
 #include <languageclient/languageclientinterface.h>
 #include <texteditor/texteditor.h>
 
+#include <QPointer>
+
 #include <context/ContextManager.hpp>
 #include <context/IDocumentReader.hpp>
 #include <context/ProgrammingLanguage.hpp>
-#include <pluginllmcore/ContextData.hpp>
-#include <pluginllmcore/IPromptProvider.hpp>
-#include <pluginllmcore/IProviderRegistry.hpp>
 #include <logger/IRequestPerformanceLogger.hpp>
 #include <settings/CodeCompletionSettings.hpp>
 #include <settings/GeneralSettings.hpp>
@@ -23,6 +22,14 @@ class QNetworkAccessManager;
 
 namespace QodeAssist {
 
+class AgentFactory;
+class Session;
+class SessionManager;
+
+namespace Templates {
+struct ContextData;
+}
+
 class LLMClientInterface : public LanguageClient::BaseClientInterface
 {
     Q_OBJECT
@@ -31,8 +38,8 @@ public:
     LLMClientInterface(
         const Settings::GeneralSettings &generalSettings,
         const Settings::CodeCompletionSettings &completeSettings,
-        PluginLLMCore::IProviderRegistry &providerRegistry,
-        PluginLLMCore::IPromptProvider *promptProvider,
+        AgentFactory &agentFactory,
+        SessionManager &sessionManager,
         Context::IDocumentReader &documentReader,
         IRequestPerformanceLogger &performanceLogger);
     ~LLMClientInterface() override;
@@ -52,37 +59,33 @@ public:
 protected:
     void startImpl() override;
 
-private slots:
-    void handleFullResponse(const QString &requestId, const QString &fullText);
-    void handleRequestFinalized(
-        const ::LLMQore::RequestID &requestId, const ::LLMQore::CompletionInfo &info);
-    void handleRequestFailed(const QString &requestId, const QString &error);
-
 private:
     void handleInitialize(const QJsonObject &request);
     void handleShutdown(const QJsonObject &request);
     void handleTextDocumentDidOpen(const QJsonObject &request);
-    void handleInitialized(const QJsonObject &request);
-    void handleExit(const QJsonObject &request);
     void handleCancelRequest();
     void sendErrorResponse(const QJsonObject &request, const QString &errorMessage);
+
+    void onCompletionFinished(const QString &requestId);
+    void onCompletionFailed(const QString &requestId, const QString &error);
+    void finishRequest(const QString &requestId);
+    QString requestIdForSession(Session *session) const;
 
     struct RequestContext
     {
         QJsonObject originalRequest;
-        PluginLLMCore::Provider *provider;
+        QPointer<Session> session;
     };
 
-    PluginLLMCore::ContextData prepareContext(
+    Templates::ContextData prepareContext(
         const QJsonObject &request, const Context::DocumentInfo &documentInfo);
 
-    QString resolveEndpoint(
-        PluginLLMCore::PromptTemplate *promptTemplate, bool isLanguageSpecify) const;
+    QString pickCompletionAgent(const QString &filePath) const;
 
     const Settings::CodeCompletionSettings &m_completeSettings;
     const Settings::GeneralSettings &m_generalSettings;
-    PluginLLMCore::IPromptProvider *m_promptProvider = nullptr;
-    PluginLLMCore::IProviderRegistry &m_providerRegistry;
+    AgentFactory &m_agentFactory;
+    SessionManager &m_sessionManager;
     Context::IDocumentReader &m_documentReader;
     IRequestPerformanceLogger &m_performanceLogger;
     QElapsedTimer m_completionTimer;

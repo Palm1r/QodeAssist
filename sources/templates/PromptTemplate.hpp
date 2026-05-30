@@ -15,11 +15,6 @@ namespace QodeAssist::Templates {
 
 using Providers::ProviderID;
 
-enum class PromptShape {
-    Chat,
-    Fim,
-};
-
 class PromptTemplate
 {
 public:
@@ -35,14 +30,9 @@ public:
     virtual void prepareRequest(QJsonObject &request, const ContextData &context) const = 0;
     virtual QString description() const = 0;
     virtual bool isSupportProvider(ProviderID id) const = 0;
-    virtual PromptShape shape() const { return PromptShape::Chat; }
-
-    virtual bool isSupportModel(const QString & /*modelName*/) const { return true; }
 
     [[nodiscard]] virtual bool buildFullRequest(
-        QJsonObject &request,
-        const ContextData &context,
-        bool /*thinkingEnabled*/ = false) const
+        QJsonObject &request, const ContextData &context) const
     {
         prepareRequest(request, context);
         return true;

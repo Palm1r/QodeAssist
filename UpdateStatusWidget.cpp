@@ -49,12 +49,6 @@ void UpdateStatusWidget::showUpdateAvailable(const QString &version)
     m_updateButton->setToolTip(tr("Check update information"));
 }
 
-void UpdateStatusWidget::hideUpdateInfo()
-{
-    m_versionLabel->setVisible(false);
-    m_updateButton->setVisible(false);
-}
-
 void UpdateStatusWidget::setChatButtonAction(QAction *action)
 {
     m_chatButton->setDefaultAction(action);

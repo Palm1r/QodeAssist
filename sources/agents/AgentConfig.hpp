@@ -19,7 +19,7 @@ struct AgentConfig
     QString providerInstance;
     QString model;
     QString endpoint;
-    QString role;
+    QString systemPrompt;
     QStringList tags;
 
     struct Match
@@ -39,17 +39,16 @@ struct AgentConfig
 
     bool enableThinking = false;
     bool enableTools = false;
+    bool cachePrompt = false;
+    QString cacheTtl;
+    QStringList cacheBreakpoints;
 
-    QString messageFormat;
-    QJsonObject sampling;
-    QJsonObject thinking;
-    QString context;
+    QJsonObject body;
     QString extendsName;
     bool abstract = false;
     bool hidden = false;
 
     QString sourcePath;
-    bool overridesBundled = false;
     bool isUserSource() const { return !sourcePath.startsWith(QLatin1StringView{":/"}); }
 
     static QString validate(const AgentConfig &config);

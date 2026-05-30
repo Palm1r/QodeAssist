@@ -7,9 +7,7 @@
 #include "CustomInstructionsManager.hpp"
 #include "QodeAssisttr.h"
 
-#include "settings/ConfigurationManager.hpp"
 #include "settings/GeneralSettings.hpp"
-#include "settings/QuickRefactorSettings.hpp"
 #include "settings/SettingsConstants.hpp"
 
 #include <QApplication>
@@ -42,46 +40,11 @@
 
 namespace QodeAssist {
 
-static QIcon createThemedIcon(const QString &svgPath, const QColor &color)
-{
-    QSvgRenderer renderer(svgPath);
-    if (!renderer.isValid()) {
-        return QIcon();
-    }
-
-    QSize iconSize(16, 16);
-    QPixmap pixmap(iconSize);
-    pixmap.fill(Qt::transparent);
-
-    QPainter painter(&pixmap);
-    renderer.render(&painter);
-    painter.end();
-
-    QImage image = pixmap.toImage().convertToFormat(QImage::Format_ARGB32);
-
-    uchar *bits = image.bits();
-    const int bytesPerPixel = 4;
-    const int totalBytes = image.width() * image.height() * bytesPerPixel;
-
-    const int newR = color.red();
-    const int newG = color.green();
-    const int newB = color.blue();
-
-    for (int i = 0; i < totalBytes; i += bytesPerPixel) {
-        int alpha = bits[i + 3];
-        if (alpha > 0) {
-            bits[i] = newB;
-            bits[i + 1] = newG;
-            bits[i + 2] = newR;
-        }
-    }
-
-    return QIcon(QPixmap::fromImage(image));
-}
-
-QuickRefactorDialog::QuickRefactorDialog(QWidget *parent, const QString &lastInstructions)
+QuickRefactorDialog::QuickRefactorDialog(
+    QWidget *parent, const QString &lastInstructions, bool refactorAgentAvailable)
     : QDialog(parent)
     , m_lastInstructions(lastInstructions)
+    , m_refactorAgentAvailable(refactorAgentAvailable)
 {
     setWindowTitle(Tr::tr("Quick Refactor"));
     setupUi();
@@ -112,48 +75,6 @@ void QuickRefactorDialog::setupUi()
     actionsLayout->addWidget(m_improveButton);
     actionsLayout->addWidget(m_alternativeButton);
     actionsLayout->addStretch();
-
-    m_configComboBox = new QComboBox(this);
-    m_configComboBox->setMinimumWidth(200);
-    m_configComboBox->setToolTip(Tr::tr("Switch AI configuration"));
-    actionsLayout->addWidget(m_configComboBox);
-
-    Utils::Theme *theme = Utils::creatorTheme();
-    QColor iconColor = theme ? theme->color(Utils::Theme::TextColorNormal) : QColor(Qt::white);
-
-    m_toolsIconOn = createThemedIcon(":/qt/qml/ChatView/icons/tools-icon-on.svg", iconColor);
-    m_toolsIconOff = createThemedIcon(":/qt/qml/ChatView/icons/tools-icon-off.svg", iconColor);
-
-    m_toolsButton = new QToolButton(this);
-    m_toolsButton->setCheckable(true);
-    m_toolsButton->setChecked(Settings::quickRefactorSettings().useTools());
-    m_toolsButton->setIcon(m_toolsButton->isChecked() ? m_toolsIconOn : m_toolsIconOff);
-    m_toolsButton->setToolTip(Tr::tr("Enable/Disable AI Tools"));
-    m_toolsButton->setIconSize(QSize(16, 16));
-    actionsLayout->addWidget(m_toolsButton);
-
-    connect(m_toolsButton, &QToolButton::toggled, this, [this](bool checked) {
-        m_toolsButton->setIcon(checked ? m_toolsIconOn : m_toolsIconOff);
-        Settings::quickRefactorSettings().useTools.setValue(checked);
-        Settings::quickRefactorSettings().writeSettings();
-    });
-
-    m_thinkingIconOn = createThemedIcon(":/qt/qml/ChatView/icons/thinking-icon-on.svg", iconColor);
-    m_thinkingIconOff = createThemedIcon(":/qt/qml/ChatView/icons/thinking-icon-off.svg", iconColor);
-
-    m_thinkingButton = new QToolButton(this);
-    m_thinkingButton->setCheckable(true);
-    m_thinkingButton->setChecked(Settings::quickRefactorSettings().useThinking());
-    m_thinkingButton->setIcon(m_thinkingButton->isChecked() ? m_thinkingIconOn : m_thinkingIconOff);
-    m_thinkingButton->setToolTip(Tr::tr("Enable/Disable Thinking Mode"));
-    m_thinkingButton->setIconSize(QSize(16, 16));
-    actionsLayout->addWidget(m_thinkingButton);
-
-    connect(m_thinkingButton, &QToolButton::toggled, this, [this](bool checked) {
-        m_thinkingButton->setIcon(checked ? m_thinkingIconOn : m_thinkingIconOff);
-        Settings::quickRefactorSettings().useThinking.setValue(checked);
-        Settings::quickRefactorSettings().writeSettings();
-    });
 
     m_settingsButton = new QToolButton(this);
     m_settingsButton->setIcon(Utils::Icons::SETTINGS_TOOLBAR.icon());
@@ -244,23 +165,36 @@ void QuickRefactorDialog::setupUi()
         &QuickRefactorDialog::onOpenInstructionsFolder);
 
     loadCustomCommands();
-    loadAvailableConfigurations();
-
-    connect(
-        m_configComboBox,
-        QOverload<int>::of(&QComboBox::currentIndexChanged),
-        this,
-        &QuickRefactorDialog::onConfigurationChanged);
 
     QDialogButtonBox *buttonBox
         = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     connect(buttonBox, &QDialogButtonBox::accepted, this, &QuickRefactorDialog::validateAndAccept);
     connect(buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
-    mainLayout->addWidget(buttonBox);
 
     QPushButton *okButton = buttonBox->button(QDialogButtonBox::Ok);
     QPushButton *cancelButton = buttonBox->button(QDialogButtonBox::Cancel);
-    
+
+    if (!m_refactorAgentAvailable) {
+        if (okButton) {
+            okButton->setEnabled(false);
+            okButton->setToolTip(Tr::tr("Assign a Quick Refactor agent in the Pipelines settings"));
+        }
+
+        QLabel *agentHint = new QLabel(
+            Tr::tr("No Quick Refactor agent is set. "
+                   "<a href=\"pipelines\">Assign one in the Pipelines settings</a>."),
+            this);
+        agentHint->setWordWrap(true);
+        agentHint->setTextInteractionFlags(
+            Qt::LinksAccessibleByMouse | Qt::LinksAccessibleByKeyboard);
+        connect(agentHint, &QLabel::linkActivated, this, [] {
+            Settings::showSettings(Constants::QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID);
+        });
+        mainLayout->addWidget(agentHint);
+    }
+
+    mainLayout->addWidget(buttonBox);
+
     if (okButton) {
         okButton->installEventFilter(this);
     }
@@ -308,16 +242,6 @@ QString QuickRefactorDialog::instructions() const
     return m_instructionEdit->toPlainText().trimmed();
 }
 
-void QuickRefactorDialog::setInstructions(const QString &instructions)
-{
-    m_instructionEdit->setPlainText(instructions);
-}
-
-QuickRefactorDialog::Action QuickRefactorDialog::selectedAction() const
-{
-    return m_selectedAction;
-}
-
 void QuickRefactorDialog::keyPressEvent(QKeyEvent *event)
 {
     QDialog::keyPressEvent(event);
@@ -355,7 +279,6 @@ void QuickRefactorDialog::useLastInstructions()
     if (!m_lastInstructions.isEmpty()) {
         m_commandsComboBox->setCurrentIndex(0);
         m_instructionEdit->setPlainText(m_lastInstructions);
-        m_selectedAction = Action::RepeatLast;
     }
     accept();
 }
@@ -367,7 +290,6 @@ void QuickRefactorDialog::useImproveCodeTemplate()
         Tr::tr(
             "Improve the selected code by enhancing readability, efficiency, and maintainability. "
             "Follow best practices for C++/Qt and fix any potential issues."));
-    m_selectedAction = Action::ImproveCode;
     accept();
 }
 
@@ -379,7 +301,6 @@ void QuickRefactorDialog::useAlternativeSolutionTemplate()
             "Suggest an alternative implementation approach for the selected code. "
             "Provide a different solution that might be cleaner, more efficient, "
             "or uses different Qt/C++ patterns or idioms."));
-    m_selectedAction = Action::AlternativeSolution;
     accept();
 }
 
@@ -575,60 +496,6 @@ void QuickRefactorDialog::onOpenInstructionsFolder()
 void QuickRefactorDialog::onOpenSettings()
 {
     Settings::showSettings(Constants::QODE_ASSIST_QUICK_REFACTOR_SETTINGS_PAGE_ID);
-}
-
-QString QuickRefactorDialog::selectedConfiguration() const
-{
-    return m_selectedConfiguration;
-}
-
-void QuickRefactorDialog::loadAvailableConfigurations()
-{
-    auto &manager = Settings::ConfigurationManager::instance();
-    manager.loadConfigurations(Settings::ConfigurationType::QuickRefactor);
-
-    QVector<Settings::AIConfiguration> configs = manager.configurations(
-        Settings::ConfigurationType::QuickRefactor);
-
-    m_configComboBox->clear();
-    m_configComboBox->addItem(Tr::tr("Current"), QString());
-
-    for (const Settings::AIConfiguration &config : configs) {
-        m_configComboBox->addItem(config.name, config.id);
-    }
-
-    auto &settings = Settings::generalSettings();
-    QString currentProvider = settings.qrProvider.value();
-    QString currentModel = settings.qrModel.value();
-    QString currentConfigText = QString("%1/%2").arg(currentProvider, currentModel);
-    m_configComboBox->setItemText(0, Tr::tr("Current (%1)").arg(currentConfigText));
-}
-
-void QuickRefactorDialog::onConfigurationChanged(int index)
-{
-    if (index == 0) {
-        m_selectedConfiguration.clear();
-        return;
-    }
-
-    QString configId = m_configComboBox->itemData(index).toString();
-    m_selectedConfiguration = m_configComboBox->itemText(index);
-
-    auto &manager = Settings::ConfigurationManager::instance();
-    Settings::AIConfiguration config
-        = manager.getConfigurationById(configId, Settings::ConfigurationType::QuickRefactor);
-
-    if (!config.id.isEmpty()) {
-        auto &settings = Settings::generalSettings();
-
-        settings.qrProvider.setValue(config.provider);
-        settings.qrModel.setValue(config.model);
-        settings.qrTemplate.setValue(config.templateName);
-        settings.qrUrl.setValue(config.url);
-        settings.qrCustomEndpoint.setValue(config.customEndpoint);
-
-        settings.writeSettings();
-    }
 }
 
 void QuickRefactorDialog::validateAndAccept()

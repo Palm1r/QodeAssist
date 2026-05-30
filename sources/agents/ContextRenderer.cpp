@@ -4,13 +4,13 @@
 
 #include "ContextRenderer.hpp"
 
-#include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QStringList>
 
 #include <filesystem>
+#include <stdexcept>
 
 #include <inja/inja.hpp>
 
@@ -23,50 +23,32 @@ QString substituteVars(const QString &src, const Bindings &b)
     QString out = src;
     if (!b.projectDir.isEmpty())
         out.replace(QStringLiteral("${PROJECT_DIR}"), b.projectDir);
-    if (!b.homeDir.isEmpty())
-        out.replace(QStringLiteral("${HOME}"), b.homeDir);
+    if (!b.configDir.isEmpty())
+        out.replace(QStringLiteral("${CONFIG_DIR}"), b.configDir);
     return out;
 }
 
 bool isPathAllowed(const QString &requestedPath, const Bindings &b)
 {
+    if (requestedPath.startsWith(QLatin1String(":/")))
+        return true;
+
     const QString target = QDir::cleanPath(requestedPath);
 
     auto isUnder = [&target](const QString &root) {
-        if (root.isEmpty()) return false;
+        if (root.isEmpty())
+            return false;
         const QString cleanRoot = QDir::cleanPath(root);
-        if (target == cleanRoot) return true;
+        if (target == cleanRoot)
+            return true;
         return target.startsWith(cleanRoot + QLatin1Char('/'));
     };
 
-    if (isUnder(b.projectDir)) return true;
-    if (!b.homeDir.isEmpty() && isUnder(b.homeDir + QStringLiteral("/qodeassist")))
+    if (isUnder(b.projectDir))
+        return true;
+    if (isUnder(b.configDir))
         return true;
     return false;
-}
-
-void registerReadFile(inja::Environment &env, const Bindings &b)
-{
-    const Bindings capturedBindings = b;
-    env.add_callback("read_file", 1, [capturedBindings](inja::Arguments &args) -> nlohmann::json {
-        const std::string raw = args.at(0)->get<std::string>();
-        QString path = QString::fromStdString(raw);
-        
-        if (!capturedBindings.projectDir.isEmpty())
-            path.replace(QStringLiteral("${PROJECT_DIR}"), capturedBindings.projectDir);
-        if (!capturedBindings.homeDir.isEmpty())
-            path.replace(QStringLiteral("${HOME}"), capturedBindings.homeDir);
-
-        if (!isPathAllowed(path, capturedBindings)) {
-            qWarning("[QodeAssist] context.read_file: path not in allowed roots: %s",
-                     qUtf8Printable(path));
-            return std::string{};
-        }
-        QFile f(path);
-        if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
-            return std::string{};
-        return f.readAll().toStdString();
-    });
 }
 
 QString expandAndResolvePath(const QString &raw, const Bindings &b)
@@ -74,19 +56,49 @@ QString expandAndResolvePath(const QString &raw, const Bindings &b)
     QString p = raw;
     if (!b.projectDir.isEmpty())
         p.replace(QStringLiteral("${PROJECT_DIR}"), b.projectDir);
-    if (!b.homeDir.isEmpty())
-        p.replace(QStringLiteral("${HOME}"), b.homeDir);
+    if (!b.configDir.isEmpty())
+        p.replace(QStringLiteral("${CONFIG_DIR}"), b.configDir);
     return p;
+}
+
+[[noreturn]] void throwOutsideRoots(const char *fn, const QString &path)
+{
+    throw std::runtime_error(
+        QStringLiteral("%1: path is outside the allowed read roots "
+                       "(the project directory, ~/qodeassist, or bundled :/ resources): %2")
+            .arg(QString::fromLatin1(fn), path)
+            .toStdString());
+}
+
+void registerReadFile(inja::Environment &env, const Bindings &b)
+{
+    const Bindings caps = b;
+    env.add_callback("read_file", 1, [caps](inja::Arguments &args) -> nlohmann::json {
+        const QString path
+            = expandAndResolvePath(QString::fromStdString(args.at(0)->get<std::string>()), caps);
+
+        if (!isPathAllowed(path, caps))
+            throwOutsideRoots("read_file", path);
+
+        QFile f(path);
+        if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            throw std::runtime_error(
+                QStringLiteral("read_file: cannot open file (missing or unreadable): %1")
+                    .arg(path)
+                    .toStdString());
+        }
+        return f.readAll().toStdString();
+    });
 }
 
 void registerFileExists(inja::Environment &env, const Bindings &b)
 {
     const Bindings caps = b;
     env.add_callback("file_exists", 1, [caps](inja::Arguments &args) -> nlohmann::json {
-        const QString p = expandAndResolvePath(
-            QString::fromStdString(args.at(0)->get<std::string>()), caps);
+        const QString p
+            = expandAndResolvePath(QString::fromStdString(args.at(0)->get<std::string>()), caps);
         if (!isPathAllowed(p, caps))
-            return false;
+            throwOutsideRoots("file_exists", p);
         return QFileInfo::exists(p);
     });
 }
@@ -94,21 +106,18 @@ void registerFileExists(inja::Environment &env, const Bindings &b)
 void registerReadDir(inja::Environment &env, const Bindings &b)
 {
     const Bindings caps = b;
- 
+
     env.add_callback("read_dir", 1, [caps](inja::Arguments &args) -> nlohmann::json {
-        const QString p = expandAndResolvePath(
-            QString::fromStdString(args.at(0)->get<std::string>()), caps);
-        if (!isPathAllowed(p, caps)) {
-            qWarning("[QodeAssist] context.read_dir: path not in allowed roots: %s",
-                     qUtf8Printable(p));
-            return nlohmann::json::array();
-        }
+        const QString p
+            = expandAndResolvePath(QString::fromStdString(args.at(0)->get<std::string>()), caps);
+        if (!isPathAllowed(p, caps))
+            throwOutsideRoots("read_dir", p);
         QDir dir(p);
         if (!dir.exists())
             return nlohmann::json::array();
         nlohmann::json out = nlohmann::json::array();
-        const QStringList entries = dir.entryList(
-            QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+        const QStringList entries
+            = dir.entryList(QDir::Files | QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
         for (const QString &name : entries)
             out.push_back(name.toStdString());
         return out;
@@ -137,9 +146,7 @@ void registerStringHelpers(inja::Environment &env)
             .toStdString();
     });
     env.add_callback("dirname", 1, [](inja::Arguments &args) -> nlohmann::json {
-        return QFileInfo(QString::fromStdString(args.at(0)->get<std::string>()))
-            .path()
-            .toStdString();
+        return QFileInfo(QString::fromStdString(args.at(0)->get<std::string>())).path().toStdString();
     });
     env.add_callback("ext", 1, [](inja::Arguments &args) -> nlohmann::json {
         return QFileInfo(QString::fromStdString(args.at(0)->get<std::string>()))
@@ -157,12 +164,10 @@ void registerStringHelpers(inja::Environment &env)
 
 void registerSandbox(inja::Environment &env)
 {
-    
     env.set_search_included_templates_in_files(false);
     env.set_include_callback(
         [](const std::filesystem::path &, const std::string &name) -> inja::Template {
-            throw inja::FileError(
-                "include is disabled in QodeAssist context: '" + name + "'");
+            throw inja::FileError("include is disabled in QodeAssist context: '" + name + "'");
         });
 
     env.set_line_statement("@@@inja@@@");
@@ -196,7 +201,9 @@ QString render(const QString &templateSource, const Bindings &bindings, QString 
     }
 
     try {
-        const std::string rendered = env.render(tpl, nlohmann::json::object());
+        nlohmann::json data = nlohmann::json::object();
+        data["language"] = bindings.language.toStdString();
+        const std::string rendered = env.render(tpl, data);
         return QString::fromStdString(rendered);
     } catch (const std::exception &e) {
         if (error) {

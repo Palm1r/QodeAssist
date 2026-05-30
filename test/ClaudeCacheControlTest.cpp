@@ -7,7 +7,7 @@
 #include <QJsonArray>
 #include <QJsonObject>
 
-#include "providers/ClaudeCacheControl.hpp"
+#include <sources/providers/ClaudeCacheControl.hpp>
 
 using namespace QodeAssist::Providers::ClaudeCacheControl;
 
@@ -19,6 +19,11 @@ QJsonObject expectedEphemeral(bool extendedTtl)
     if (extendedTtl)
         obj["ttl"] = "1h";
     return obj;
+}
+
+void applyAll(QJsonObject &request, bool extendedTtl)
+{
+    apply(request, extendedTtl, QStringList());
 }
 
 } // namespace
@@ -42,7 +47,7 @@ TEST(ClaudeCacheControlTest, SystemAsStringWrappedIntoArray)
     QJsonObject request;
     request["system"] = "you are a helpful agent";
 
-    apply(request, false);
+    applyAll(request, false);
 
     ASSERT_TRUE(request.value("system").isArray());
     const QJsonArray sys = request.value("system").toArray();
@@ -59,7 +64,7 @@ TEST(ClaudeCacheControlTest, EmptySystemStringIsNotWrapped)
     QJsonObject request;
     request["system"] = "";
 
-    apply(request, false);
+    applyAll(request, false);
 
     EXPECT_TRUE(request.value("system").isString());
 }
@@ -71,7 +76,7 @@ TEST(ClaudeCacheControlTest, SystemAsArrayMarksLastBlock)
         QJsonObject{{"type", "text"}, {"text", "a"}},
         QJsonObject{{"type", "text"}, {"text", "b"}}};
 
-    apply(request, false);
+    applyAll(request, false);
 
     const QJsonArray sys = request.value("system").toArray();
     ASSERT_EQ(sys.size(), 2);
@@ -87,7 +92,7 @@ TEST(ClaudeCacheControlTest, ToolsLastEntryGetsCacheControl)
         QJsonObject{{"name", "edit_file"}},
         QJsonObject{{"name", "search"}}};
 
-    apply(request, true);
+    applyAll(request, true);
 
     const QJsonArray tools = request.value("tools").toArray();
     ASSERT_EQ(tools.size(), 3);
@@ -102,7 +107,7 @@ TEST(ClaudeCacheControlTest, SingleMessageHistorySkipped)
     request["messages"]
         = QJsonArray{QJsonObject{{"role", "user"}, {"content", "first message"}}};
 
-    apply(request, false);
+    applyAll(request, false);
 
     const QJsonArray msgs = request.value("messages").toArray();
     ASSERT_EQ(msgs.size(), 1);
@@ -117,7 +122,7 @@ TEST(ClaudeCacheControlTest, HistoryBreakpointOnSecondToLastMessage)
         QJsonObject{{"role", "assistant"}, {"content", "a1"}},
         QJsonObject{{"role", "user"}, {"content", "u2-current"}}};
 
-    apply(request, false);
+    applyAll(request, false);
 
     const QJsonArray msgs = request.value("messages").toArray();
     ASSERT_EQ(msgs.size(), 3);
@@ -146,7 +151,7 @@ TEST(ClaudeCacheControlTest, HistoryArrayContentMarksLastBlock)
                  QJsonObject{{"type", "image"}}}}},
         QJsonObject{{"role", "assistant"}, {"content", "ok"}}};
 
-    apply(request, false);
+    applyAll(request, false);
 
     const QJsonArray msgs = request.value("messages").toArray();
     const QJsonArray content = msgs[0].toObject().value("content").toArray();
@@ -161,7 +166,7 @@ TEST(ClaudeCacheControlTest, NoSystemNoToolsNoMessagesIsNoop)
     request["model"] = "claude-sonnet-4-5";
     request["max_tokens"] = 1024;
 
-    apply(request, false);
+    applyAll(request, false);
 
     EXPECT_EQ(request.value("model").toString(), "claude-sonnet-4-5");
     EXPECT_EQ(request.value("max_tokens").toInt(), 1024);
@@ -175,8 +180,54 @@ TEST(ClaudeCacheControlTest, EmptyToolsArrayIsNoop)
     QJsonObject request;
     request["tools"] = QJsonArray{};
 
-    apply(request, false);
+    applyAll(request, false);
 
     EXPECT_TRUE(request.value("tools").isArray());
     EXPECT_TRUE(request.value("tools").toArray().isEmpty());
+}
+
+TEST(ClaudeCacheControlTest, SelectiveBreakpointMarksOnlySystem)
+{
+    QJsonObject request;
+    request["system"] = "sys";
+    request["tools"] = QJsonArray{QJsonObject{{"name", "read_file"}}};
+
+    apply(request, false, QStringList{QStringLiteral("system")});
+
+    EXPECT_TRUE(request.value("system").isArray());
+    const QJsonArray tools = request.value("tools").toArray();
+    ASSERT_EQ(tools.size(), 1);
+    EXPECT_FALSE(tools[0].toObject().contains("cache_control"));
+}
+
+TEST(ClaudeCacheControlTest, SelectiveBreakpointMarksOnlyTools)
+{
+    QJsonObject request;
+    request["system"] = "sys";
+    request["tools"] = QJsonArray{QJsonObject{{"name", "read_file"}}};
+
+    apply(request, false, QStringList{QStringLiteral("tools")});
+
+    EXPECT_TRUE(request.value("system").isString());
+    const QJsonArray tools = request.value("tools").toArray();
+    ASSERT_EQ(tools.size(), 1);
+    EXPECT_EQ(tools[0].toObject().value("cache_control").toObject(), expectedEphemeral(false));
+}
+
+TEST(ClaudeCacheControlTest, EmptyBreakpointListMarksEveryDimension)
+{
+    QJsonObject request;
+    request["system"] = "sys";
+    request["tools"] = QJsonArray{QJsonObject{{"name", "read_file"}}};
+    request["messages"] = QJsonArray{
+        QJsonObject{{"role", "user"}, {"content", "u1"}},
+        QJsonObject{{"role", "assistant"}, {"content", "a1"}}};
+
+    apply(request, false, QStringList());
+
+    EXPECT_TRUE(request.value("system").isArray());
+    EXPECT_TRUE(
+        request.value("tools").toArray().last().toObject().contains("cache_control"));
+    const QJsonArray msgs = request.value("messages").toArray();
+    EXPECT_TRUE(msgs[0].toObject().value("content").isArray());
 }

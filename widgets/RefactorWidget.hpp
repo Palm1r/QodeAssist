@@ -58,9 +58,7 @@ public:
     void setApplyText(const QString &text) { m_applyText = text; }
     void setRange(const Utils::Text::Range &range);
     void setEditorWidth(int width);
-    
-    QString getRefactoredText() const;
-    
+
     void setApplyCallback(std::function<void(const QString &)> callback);
     void setDeclineCallback(std::function<void()> callback);
 

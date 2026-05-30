@@ -23,6 +23,9 @@ public:
     explicit TagFilterStrip(QWidget *parent = nullptr);
 
     void setAvailableTags(const QMap<QString, int> &countsByTag);
+    void setAvailableTags(
+        const QMap<QString, int> &countsByTag, const QSet<QString> &activeTags);
+    void setVisibleCounts(const QMap<QString, int> &countsByTag);
     const QSet<QString> &activeTags() const { return m_activeTags; }
 
 signals:

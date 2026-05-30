@@ -1,8 +1,7 @@
-add_library(QodeAssistAgentPipelines OBJECT
-    AgentPipelinesPage.hpp AgentPipelinesPage.cpp
+add_library(QodeAssistAgentPipelines STATIC
     PipelinesConfig.hpp PipelinesConfig.cpp
+    Pill.hpp Pill.cpp
     AgentRosterWidget.hpp AgentRosterWidget.cpp
-    AgentSlotWidget.hpp AgentSlotWidget.cpp
     AgentSelectionDialog.hpp AgentSelectionDialog.cpp
 )
 
@@ -29,6 +28,7 @@ target_link_libraries(QodeAssistAgentPipelines PRIVATE
     QodeAssistLogger
     TomlSerializer
     tomlplusplus::tomlplusplus
+    QodeAssistSettings
 )
 
 target_compile_definitions(QodeAssistAgentPipelines PRIVATE

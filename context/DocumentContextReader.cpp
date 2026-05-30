@@ -4,13 +4,12 @@
 
 #include "DocumentContextReader.hpp"
 
-#include <languageserverprotocol/lsptypes.h>
-#include <QFileInfo>
 #include <QTextBlock>
 
 #include "CodeCompletionSettings.hpp"
 
 #include "ChangesManager.h"
+#include "EnvBlockFormatter.hpp"
 
 const QRegularExpression &getYearRegex()
 {
@@ -106,15 +105,6 @@ QString DocumentContextReader::readWholeFileAfter(int lineNumber, int cursorPosi
         cursorPosition = -1;
     }
     return getContextBetween(lineNumber, cursorPosition, endLine, -1);
-}
-
-QString DocumentContextReader::getLanguageAndFileInfo() const
-{
-    QString language = LanguageServerProtocol::TextDocumentItem::mimeTypeToLanguageId(m_mimeType);
-    QString fileExtension = QFileInfo(m_filePath).suffix();
-
-    return QString("Language: %1 (MIME: %2) filepath: %3(%4)\n\n")
-        .arg(language, m_mimeType, m_filePath, fileExtension);
 }
 
 CopyrightInfo DocumentContextReader::findCopyright()
@@ -249,12 +239,7 @@ QString DocumentContextReader::getContextBetween(
     return context;
 }
 
-CopyrightInfo DocumentContextReader::copyrightInfo() const
-{
-    return m_copyrightInfo;
-}
-
-PluginLLMCore::ContextData DocumentContextReader::prepareContext(
+Templates::ContextData DocumentContextReader::prepareContext(
     int lineNumber, int cursorPosition, const Settings::CodeCompletionSettings &settings) const
 {
     QString contextBefore;
@@ -272,7 +257,9 @@ PluginLLMCore::ContextData DocumentContextReader::prepareContext(
     }
 
     QString fileContext;
-    fileContext.append("\n ").append(getLanguageAndFileInfo());
+    fileContext.append("\n")
+        .append(EnvBlockFormatter::formatFile({m_filePath, m_mimeType}))
+        .append("\n");
 
     if (settings.useProjectChangesCache())
         fileContext.append("Recent Project Changes Context:\n ")

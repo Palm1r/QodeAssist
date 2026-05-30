@@ -10,13 +10,10 @@
 #include <QJsonObject>
 #include <QUrl>
 
-#include <algorithm>
-
 #include "Agent.hpp"
 #include "AgentConfig.hpp"
 #include "ContextData.hpp"
 #include "Message.hpp"
-#include "PluginBlocks.hpp"
 #include "PromptTemplate.hpp"
 #include "Provider.hpp"
 #include "ResponseRouter.hpp"
@@ -26,25 +23,9 @@ namespace QodeAssist {
 
 namespace {
 
-QString roleToLegacyString(Message::Role role)
-{
-    switch (role) {
-    case Message::Role::System: return QStringLiteral("system");
-    case Message::Role::User: return QStringLiteral("user");
-    case Message::Role::Assistant: return QStringLiteral("assistant");
-    }
-    return QStringLiteral("user");
-}
+[[maybe_unused]] const int kErrorInfoMetaTypeId = qRegisterMetaType<QodeAssist::ErrorInfo>();
 
 } // namespace
-
-Session::Session(QObject *parent)
-    : QObject(parent)
-    , m_history(new ConversationHistory(this))
-    , m_systemPrompt(new SystemPromptBuilder(this))
-{
-    m_invalidReason = QStringLiteral("Session: no agent attached");
-}
 
 Session::Session(Agent *agent, QObject *parent)
     : Session(agent, /*externalHistory=*/nullptr, parent)
@@ -81,14 +62,12 @@ Session::Session(Agent *agent, ConversationHistory *externalHistory, QObject *pa
 
     m_router = new ResponseRouter(client, m_history, this);
     connect(m_router, &ResponseRouter::event, this, &Session::onRouterEvent);
-
-    m_systemPrompt->setLayer(QStringLiteral("agent.role"), m_agent->config().role);
 }
 
 Session::~Session()
 {
     if (isInFlight())
-        cancel();
+        teardownInFlight();
 }
 
 bool Session::isValid() const noexcept
@@ -106,6 +85,17 @@ bool Session::isInFlight() const noexcept
     return !m_inFlight.isEmpty();
 }
 
+const ErrorInfo &Session::lastError() const noexcept
+{
+    return m_lastError;
+}
+
+LLMQore::BaseClient *Session::client() const noexcept
+{
+    auto *provider = m_agent ? m_agent->provider() : nullptr;
+    return provider ? provider->client() : nullptr;
+}
+
 void Session::setContentLoader(ContentLoader loader)
 {
     m_contentLoader = std::move(loader);
@@ -116,36 +106,36 @@ void Session::setContextBindings(Templates::ContextRenderer::Bindings bindings)
     m_contextBindings = std::move(bindings);
 }
 
-QString Session::renderAgentContext() const
+void Session::pinContext(const QString &id, PinnedProvider provider)
 {
-    if (!m_agent)
-        return {};
-    const auto &cfg = m_agent->config();
-    if (cfg.context.isEmpty())
-        return {};
-    QString err;
-    QString rendered = Templates::ContextRenderer::render(cfg.context, m_contextBindings, &err);
-    if (!err.isEmpty())
-        qWarning("[QodeAssist] agent.context render failed: %s", qUtf8Printable(err));
-    return rendered;
+    if (!provider) {
+        unpinContext(id);
+        return;
+    }
+    for (auto &entry : m_pinnedProviders) {
+        if (entry.first == id) {
+            entry.second = std::move(provider);
+            return;
+        }
+    }
+    m_pinnedProviders.emplace_back(id, std::move(provider));
 }
 
-LLMQore::RequestID Session::sendText(const QString &text)
+void Session::unpinContext(const QString &id)
 {
-    std::vector<std::unique_ptr<LLMQore::ContentBlock>> blocks;
-    if (!text.isEmpty())
-        blocks.push_back(std::make_unique<LLMQore::TextContent>(text));
-    return send(std::move(blocks));
+    std::erase_if(m_pinnedProviders, [&id](const auto &entry) { return entry.first == id; });
 }
 
-LLMQore::RequestID Session::send(
-    std::vector<std::unique_ptr<LLMQore::ContentBlock>> userBlocks,
-    std::optional<bool> toolsOverride)
+LLMQore::RequestID Session::send(std::vector<std::unique_ptr<LLMQore::ContentBlock>> userBlocks)
 {
-    if (!isValid() || userBlocks.empty())
+    if (!isValid()) {
+        m_lastError = makeError(ErrorCategory::Config, invalidReason());
         return {};
-    if (!m_history)
+    }
+    if (userBlocks.empty() || !m_history) {
+        m_lastError = makeError(ErrorCategory::Validation, QStringLiteral("Session: nothing to send"));
         return {};
+    }
 
     if (isInFlight())
         cancel();
@@ -155,10 +145,32 @@ LLMQore::RequestID Session::send(
         msg.appendBlock(std::move(b));
     m_history->append(std::move(msg));
 
-    return dispatch(toolsOverride);
+    return dispatch();
+}
+
+QVector<ContextAssembler::PinnedBlock> Session::materializePinned() const
+{
+    QVector<ContextAssembler::PinnedBlock> pinned;
+    pinned.reserve(static_cast<qsizetype>(m_pinnedProviders.size()));
+    for (const auto &entry : m_pinnedProviders) {
+        const QString text = entry.second();
+        if (!text.isEmpty())
+            pinned.append({entry.first, text});
+    }
+    return pinned;
 }
 
 void Session::cancel()
+{
+    if (m_inFlight.isEmpty())
+        return;
+
+    const auto id = m_inFlight;
+    teardownInFlight();
+    emit cancelled(id);
+}
+
+void Session::teardownInFlight()
 {
     if (m_inFlight.isEmpty())
         return;
@@ -169,30 +181,59 @@ void Session::cancel()
         m_router->endRequest();
     if (m_agent && m_agent->provider())
         m_agent->provider()->cancelRequest(id);
-    emit failed(id, QStringLiteral("Cancelled by user"));
 }
 
-LLMQore::RequestID Session::sendCompletion(Templates::ContextData ctx)
+LLMQore::RequestID Session::dispatch()
 {
-    if (!isValid())
-        return {};
-    if (isInFlight())
-        cancel();
-
-    if (m_history)
-        m_history->clear();
-
-    auto *provider = m_agent->provider();
-    auto *tmpl = m_agent->promptTemplate();
     const auto &cfg = m_agent->config();
 
-    QJsonObject payload{{QStringLiteral("model"), cfg.model}};
-    if (!provider->prepareRequest(payload, tmpl, ctx, /*tools=*/false, /*thinking=*/false))
-        return {};
+    if (cfg.systemPrompt.isEmpty()) {
+        m_systemPrompt->clearLayer(QStringLiteral("agent.system"));
+    } else {
+        QString renderErr;
+        const QString renderedContext = Templates::ContextRenderer::render(
+            cfg.systemPrompt, m_contextBindings, &renderErr);
+        if (!renderErr.isEmpty()) {
+            m_lastError = makeError(
+                ErrorCategory::Validation,
+                QStringLiteral("Agent '%1' system_prompt render failed: %2")
+                    .arg(cfg.name, renderErr));
+            qWarning("[QodeAssist] %s", qUtf8Printable(m_lastError.message));
+            return {};
+        }
+        if (renderedContext.isEmpty())
+            m_systemPrompt->clearLayer(QStringLiteral("agent.system"));
+        else
+            m_systemPrompt->setLayer(
+                QStringLiteral("agent.system"), renderedContext, SystemPromptBuilder::kAgentPriority);
+    }
 
-    const auto id = provider->sendRequest(QUrl(provider->url()), payload, cfg.endpoint);
-    if (id.isEmpty())
+    return dispatchContext(assembleContext(), cfg.enableTools);
+}
+
+LLMQore::RequestID Session::dispatchContext(const Templates::ContextData &ctx, bool tools)
+{
+    m_lastError = {};
+
+    auto *provider = m_agent->provider();
+    const auto &cfg = m_agent->config();
+
+    QString prepareErr;
+    const QJsonObject payload = buildPayload(ctx, tools, &prepareErr);
+    if (payload.isEmpty()) {
+        m_lastError = makeError(ErrorCategory::Validation, prepareErr, prepareErr);
         return {};
+    }
+
+    QString endpoint = cfg.endpoint;
+    endpoint.replace(QStringLiteral("${MODEL}"), cfg.model);
+    const auto id = provider->sendRequest(QUrl(provider->url()), payload, endpoint);
+    if (id.isEmpty()) {
+        m_lastError = makeError(
+            ErrorCategory::Provider,
+            QStringLiteral("Provider '%1' failed to start the request").arg(provider->name()));
+        return {};
+    }
 
     m_inFlight = id;
     if (m_router)
@@ -201,165 +242,29 @@ LLMQore::RequestID Session::sendCompletion(Templates::ContextData ctx)
     return id;
 }
 
-LLMQore::RequestID Session::dispatch(std::optional<bool> toolsOverride)
+QJsonObject Session::buildPayload(
+    const Templates::ContextData &ctx, bool tools, QString *errOut) const
 {
     auto *provider = m_agent->provider();
     auto *tmpl = m_agent->promptTemplate();
     const auto &cfg = m_agent->config();
 
-    const QString renderedContext = renderAgentContext();
-    if (renderedContext.isEmpty())
-        m_systemPrompt->clearLayer(QStringLiteral("agent.context"));
-    else
-        m_systemPrompt->setLayer(QStringLiteral("agent.context"), renderedContext);
-
-    Templates::ContextData ctx = toLegacyContext();
     QJsonObject payload{{QStringLiteral("model"), cfg.model}};
-
-    const bool tools = toolsOverride.value_or(cfg.enableTools);
-    if (!provider->prepareRequest(payload, tmpl, ctx, tools, cfg.enableThinking))
+    QString prepareErr;
+    if (!provider->prepareRequest(payload, tmpl, ctx, tools, &prepareErr)) {
+        if (errOut)
+            *errOut = prepareErr;
         return {};
-
-    const auto id = provider->sendRequest(QUrl(provider->url()), payload, cfg.endpoint);
-    if (id.isEmpty())
-        return {};
-
-    m_inFlight = id;
-    if (m_router)
-        m_router->beginRequest(id);
-    emit started(id);
-    return id;
+    }
+    return payload;
 }
 
-Templates::ContextData Session::toLegacyContext() const
+Templates::ContextData Session::assembleContext() const
 {
     if (!m_history)
         return {};
-    return buildLegacyContext(m_history->messages(), m_systemPrompt->compose(), m_contentLoader);
-}
-
-Templates::ContextData Session::buildLegacyContext(
-    const std::vector<Message> &history,
-    const QString &systemPrompt,
-    const ContentLoader &loader)
-{
-    using Templates::ContentBlockEntry;
-    using Templates::ContextData;
-    using LegacyMessage = Templates::Message;
-
-    ContextData ctx;
-    if (!systemPrompt.isEmpty())
-        ctx.systemPrompt = systemPrompt;
-
-    QSet<QString> resolvedToolUseIds;
-    QSet<QString> declaredToolUseIds;
-    for (const auto &m : history) {
-        for (const auto &blockPtr : m.blocks()) {
-            if (auto *tr = dynamic_cast<LLMQore::ToolResultContent *>(blockPtr.get()))
-                resolvedToolUseIds.insert(tr->toolUseId());
-            if (auto *tu = dynamic_cast<LLMQore::ToolUseContent *>(blockPtr.get()))
-                declaredToolUseIds.insert(tu->id());
-        }
-    }
-
-    QVector<LegacyMessage> hist;
-
-    for (const auto &m : history) {
-        QVector<ContentBlockEntry> blockEntries;
-
-        for (const auto &blockPtr : m.blocks()) {
-            auto *block = blockPtr.get();
-            if (!block)
-                continue;
-
-            if (auto *t = dynamic_cast<LLMQore::TextContent *>(block)) {
-                ContentBlockEntry e;
-                e.kind = ContentBlockEntry::Kind::Text;
-                e.text = t->text();
-                blockEntries.append(std::move(e));
-            } else if (auto *img = dynamic_cast<LLMQore::ImageContent *>(block)) {
-                ContentBlockEntry e;
-                e.kind = ContentBlockEntry::Kind::Image;
-                e.imageData = img->data();
-                e.mediaType = img->mediaType();
-                e.isImageUrl
-                    = (img->sourceType() == LLMQore::ImageContent::ImageSourceType::Url);
-                blockEntries.append(std::move(e));
-            } else if (auto *si = dynamic_cast<StoredImageContent *>(block)) {
-                if (!loader)
-                    continue;
-                const QString base64 = loader(si->storedPath());
-                if (base64.isEmpty())
-                    continue;
-                ContentBlockEntry e;
-                e.kind = ContentBlockEntry::Kind::Image;
-                e.imageData = base64;
-                e.mediaType = si->mediaType();
-                e.isImageUrl = false;
-                blockEntries.append(std::move(e));
-            } else if (auto *sa = dynamic_cast<StoredAttachmentContent *>(block)) {
-                if (!loader)
-                    continue;
-                const QString text = loader(sa->storedPath());
-                if (text.isEmpty())
-                    continue;
-                ContentBlockEntry e;
-                e.kind = ContentBlockEntry::Kind::Text;
-                e.text = QStringLiteral("File: %1\n```\n%2\n```")
-                             .arg(sa->fileName(), text);
-                blockEntries.append(std::move(e));
-            } else if (auto *th = dynamic_cast<LLMQore::ThinkingContent *>(block)) {
-                ContentBlockEntry e;
-                e.kind = ContentBlockEntry::Kind::Thinking;
-                e.thinking = th->thinking();
-                e.signature = th->signature();
-                blockEntries.append(std::move(e));
-            } else if (auto *rth = dynamic_cast<LLMQore::RedactedThinkingContent *>(block)) {
-                ContentBlockEntry e;
-                e.kind = ContentBlockEntry::Kind::RedactedThinking;
-                e.signature = rth->signature();
-                blockEntries.append(std::move(e));
-            } else if (auto *tu = dynamic_cast<LLMQore::ToolUseContent *>(block)) {
-                if (!resolvedToolUseIds.contains(tu->id()))
-                    continue;
-                ContentBlockEntry e;
-                e.kind = ContentBlockEntry::Kind::ToolUse;
-                e.toolUseId = tu->id();
-                e.toolName = tu->name();
-                e.toolInput = tu->input();
-                blockEntries.append(std::move(e));
-            } else if (auto *tr = dynamic_cast<LLMQore::ToolResultContent *>(block)) {
-                if (!declaredToolUseIds.contains(tr->toolUseId()))
-                    continue;
-                ContentBlockEntry e;
-                e.kind = ContentBlockEntry::Kind::ToolResult;
-                e.toolUseId = tr->toolUseId();
-                e.result = tr->result();
-                blockEntries.append(std::move(e));
-            }
-        }
-
-        if (blockEntries.isEmpty())
-            continue;
-
-        const bool hasNonThinking = std::any_of(
-            blockEntries.begin(), blockEntries.end(), [](const ContentBlockEntry &e) {
-                return e.kind != ContentBlockEntry::Kind::Thinking
-                       && e.kind != ContentBlockEntry::Kind::RedactedThinking;
-            });
-        if (!hasNonThinking)
-            continue;
-
-        LegacyMessage lm;
-        lm.role = roleToLegacyString(m.role());
-        lm.blocks = std::move(blockEntries);
-        hist.append(std::move(lm));
-    }
-
-    if (!hist.isEmpty())
-        ctx.history = std::move(hist);
-
-    return ctx;
+    return ContextAssembler::assemble(
+        m_history->messages(), m_systemPrompt->compose(), m_contentLoader, materializePinned());
 }
 
 void Session::onRouterEvent(const ResponseEvent &ev)
@@ -378,9 +283,11 @@ void Session::onRouterEvent(const ResponseEvent &ev)
     } else if (ev.kind() == ResponseEvent::Kind::Error) {
         const auto *err = ev.as<ResponseEvents::Error>();
         const QString msg = err ? err->message : QStringLiteral("unknown error");
+        const ErrorCategory category = err ? err->category : ErrorCategory::Provider;
+        m_lastError = makeError(category, msg, msg);
         const auto id = m_inFlight;
         m_inFlight.clear();
-        emit failed(id, msg);
+        emit failed(id, m_lastError);
     }
 }
 

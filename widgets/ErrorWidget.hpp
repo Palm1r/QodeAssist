@@ -19,10 +19,6 @@ public:
     explicit ErrorWidget(const QString &errorMessage, QWidget *parent = nullptr, int autoHideMs = 5000);
     ~ErrorWidget();
 
-    void setErrorMessage(const QString &message);
-
-    QString errorMessage() const { return m_errorMessage; }
-
 signals:
     void dismissed();
 

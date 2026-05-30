@@ -13,6 +13,8 @@ Button {
     focusPolicy: Qt.NoFocus
     padding: 4
 
+    opacity: control.enabled ? 1.0 : 0.4
+
     icon.width: 16
     icon.height: 16
 

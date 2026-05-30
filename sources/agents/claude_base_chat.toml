@@ -1,0 +1,46 @@
+schema_version = 1
+
+name        = "Claude Base Chat"
+description = "Anthropic Messages API request body (/v1/messages). Abstract — extend it and set model."
+abstract    = true
+
+provider_instance = "Claude"
+endpoint          = "/v1/messages"
+
+[body]
+stream = true
+system = """{% if existsIn(ctx, "system_prompt") %}{{ tojson(ctx.system_prompt) }}{% endif %}"""
+messages = """
+[
+{% for msg in ctx.history %}
+{
+  "role": {{ tojson(msg.role) }},
+  "content": [
+    {% for b in msg.content_blocks %}
+      {% if b.type == "text" %}
+      { "type": "text", "text": {{ tojson(b.text) }} },
+      {% else if b.type == "thinking" %}
+      { "type": "thinking", "thinking": {{ tojson(b.thinking) }}, "signature": {{ tojson(b.signature) }} },
+      {% else if b.type == "redacted_thinking" %}
+      { "type": "redacted_thinking", "data": {{ tojson(b.data) }} },
+      {% else if b.type == "tool_use" %}
+      { "type": "tool_use", "id": {{ tojson(b.id) }}, "name": {{ tojson(b.name) }}, "input": {{ tojson(b.input) }} },
+      {% else if b.type == "tool_result" %}
+      { "type": "tool_result", "tool_use_id": {{ tojson(b.tool_use_id) }}, "content": {{ tojson(b.content) }} },
+      {% else if b.type == "image" %}
+      {
+        "type": "image",
+        "source":
+        {% if b.is_url %}
+        { "type": "url", "url": {{ tojson(b.data) }} }
+        {% else %}
+        { "type": "base64", "media_type": {{ tojson(b.media_type) }}, "data": {{ tojson(b.data) }} }
+        {% endif %}
+      },
+      {% endif %}
+    {% endfor %}
+  ]
+},
+{% endfor %}
+]
+"""

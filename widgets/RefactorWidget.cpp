@@ -382,11 +382,6 @@ void RefactorWidget::dimContextLines(const QString &contextBefore, const QString
     }
 }
 
-QString RefactorWidget::getRefactoredText() const
-{
-    return m_applyText;
-}
-
 void RefactorWidget::setRange(const Utils::Text::Range &range)
 {
     m_range = range;

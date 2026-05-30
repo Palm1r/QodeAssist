@@ -1,0 +1,32 @@
+schema_version = 1
+
+extends     = "Ollama Base Chat"
+name        = "Ollama FIM-on-chat"
+description = "Local Ollama code completion over /api/chat using the <code_context> message format — FIM-on-chat."
+
+model = "qwen2.5-coder:7b"
+tags  = ["completion", "ollama", "local", "fim"]
+
+system_prompt = """
+{%- if language == "qml" %}{{ read_file(":/roles/code-completion-qml.md") }}
+{%- else if language == "c-like" %}{{ read_file(":/roles/code-completion-c-like.md") }}
+{%- else %}{{ read_file(":/roles/code-completion.md") }}
+{%- endif %}
+{{ read_file(":/tasks/code-completion.md") }}"""
+
+[body]
+messages = """
+[
+{% if existsIn(ctx, "system_prompt") %}
+{ "role": "system", "content": {{ tojson(ctx.system_prompt) }} },
+{% endif %}
+{ "role": "user", "content": {{ tojson("Here is the code context with insertion points:\\n<code_context>\\n" + ctx.prefix + "<cursor>" + ctx.suffix + "\\n</code_context>") }} }
+]
+"""
+
+[body.options]
+num_predict = 512
+temperature = 0
+num_ctx     = 8192
+keep_alive  = "5m"
+stop        = ["</code_context>"]

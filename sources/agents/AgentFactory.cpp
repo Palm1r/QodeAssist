@@ -4,26 +4,91 @@
 
 #include "AgentFactory.hpp"
 
+#include <QDir>
 #include <QLoggingCategory>
+#include <QStringList>
 #include <QThread>
 
 #include <coreplugin/icore.h>
+#include <utils/qtcsettings.h>
 
 #include "Agent.hpp"
 #include "AgentLoader.hpp"
+#include "Logger.hpp"
 #include "Provider.hpp"
 #include "ProviderFactory.hpp"
-#include "Logger.hpp"
-#include "ProviderSecretsStore.hpp"
 #include "ProviderInstance.hpp"
 #include "ProviderInstanceFactory.hpp"
+#include "ProviderSecretsStore.hpp"
 
-static inline void initAgentsResource() { Q_INIT_RESOURCE(agents); }
+static inline void initAgentsResource()
+{
+    Q_INIT_RESOURCE(agents);
+}
 
 namespace {
 Q_LOGGING_CATEGORY(agentFactoryLog, "qodeassist.agentfactory")
 
-QString agentQrcPrefix() { return QStringLiteral(":/agents"); }
+QString agentQrcPrefix()
+{
+    return QStringLiteral(":/agents");
+}
+
+constexpr auto kModelOverrideGroup = "QodeAssist/AgentModelOverrides";
+
+Utils::Key modelOverrideKey(const QString &name)
+{
+    return Utils::Key(
+        QStringLiteral("%1/%2").arg(QLatin1StringView(kModelOverrideGroup), name).toUtf8());
+}
+
+QString readModelOverride(const QString &name)
+{
+    auto *s = Core::ICore::settings();
+    if (!s)
+        return {};
+    return s->value(modelOverrideKey(name)).toString();
+}
+
+void writeModelOverride(const QString &name, const QString &model)
+{
+    auto *s = Core::ICore::settings();
+    if (!s)
+        return;
+    if (model.isEmpty())
+        s->remove(modelOverrideKey(name));
+    else
+        s->setValue(modelOverrideKey(name), model);
+    s->sync();
+}
+
+constexpr auto kProviderOverrideGroup = "QodeAssist/AgentProviderOverrides";
+
+Utils::Key providerOverrideKey(const QString &name)
+{
+    return Utils::Key(
+        QStringLiteral("%1/%2").arg(QLatin1StringView(kProviderOverrideGroup), name).toUtf8());
+}
+
+QString readProviderOverride(const QString &name)
+{
+    auto *s = Core::ICore::settings();
+    if (!s)
+        return {};
+    return s->value(providerOverrideKey(name)).toString();
+}
+
+void writeProviderOverride(const QString &name, const QString &providerInstance)
+{
+    auto *s = Core::ICore::settings();
+    if (!s)
+        return;
+    if (providerInstance.isEmpty())
+        s->remove(providerOverrideKey(name));
+    else
+        s->setValue(providerOverrideKey(name), providerInstance);
+    s->sync();
+}
 } // namespace
 
 namespace QodeAssist {
@@ -44,8 +109,12 @@ AgentFactory::~AgentFactory() = default;
 
 QString AgentFactory::userAgentsDir()
 {
-    return Core::ICore::userResourcePath(QStringLiteral("qodeassist/config/agents"))
-        .toFSPathString();
+    return Core::ICore::userResourcePath(QStringLiteral("qodeassist/config/agents")).toFSPathString();
+}
+
+QString AgentFactory::userConfigDir()
+{
+    return Core::ICore::userResourcePath(QStringLiteral("qodeassist")).toFSPathString();
 }
 
 void AgentFactory::reload()
@@ -53,6 +122,7 @@ void AgentFactory::reload()
     Q_ASSERT(thread() == QThread::currentThread());
     clear();
 
+    QDir().mkpath(userAgentsDir());
     auto result = Agents::AgentLoader::load(agentQrcPrefix(), userAgentsDir());
     for (const QString &err : result.errors)
         LOG_MESSAGE(QString("[Agents] error: %1").arg(err));
@@ -66,8 +136,18 @@ void AgentFactory::reload()
         LOG_MESSAGE(QString("[Agents] Loaded: %1").arg(cfg.name));
         registerConfig(std::move(cfg));
     }
-    m_errors = std::move(result.errors);
-    m_warnings = std::move(result.warnings);
+    for (auto &cfg : m_configs) {
+        m_baseModelByName.insert(cfg.name, cfg.model);
+        const QString overrideModel = readModelOverride(cfg.name);
+        if (!overrideModel.isEmpty())
+            cfg.model = overrideModel;
+
+        m_baseProviderByName.insert(cfg.name, cfg.providerInstance);
+        const QString overrideProvider = readProviderOverride(cfg.name);
+        if (!overrideProvider.isEmpty())
+            cfg.providerInstance = overrideProvider;
+    }
+    emit agentsChanged();
 }
 
 void AgentFactory::registerConfig(AgentConfig config)
@@ -101,7 +181,8 @@ QStringList AgentFactory::configNames() const
     QStringList out;
     out.reserve(static_cast<qsizetype>(m_configs.size()));
     for (const auto &c : m_configs) {
-        if (c.hidden) continue;
+        if (c.hidden)
+            continue;
         out.append(c.name);
     }
     return out;
@@ -124,18 +205,16 @@ Providers::Provider *buildProviderForAgent(
         }
         return nullptr;
     }
-    const Providers::ProviderInstance *inst
-        = instanceFactory->instanceByName(cfg.providerInstance);
+    const Providers::ProviderInstance *inst = instanceFactory->instanceByName(cfg.providerInstance);
     if (!inst) {
         if (errorOut) {
-            *errorOut = QStringLiteral(
-                            "Agent '%1' references unknown provider instance '%2'")
+            *errorOut = QStringLiteral("Agent '%1' references unknown provider instance '%2'")
                             .arg(cfg.name, cfg.providerInstance);
         }
         return nullptr;
     }
-    const QString validation = Providers::ProviderInstance::validate(
-        *inst, Providers::ProviderFactory::knownNames());
+    const QString validation
+        = Providers::ProviderInstance::validate(*inst, Providers::ProviderFactory::knownNames());
     if (!validation.isEmpty()) {
         if (errorOut)
             *errorOut = validation;
@@ -165,8 +244,8 @@ Agent *AgentFactory::create(const QString &name, QObject *parent, QString *error
             *errorOut = QStringLiteral("Agent '%1' is not registered").arg(name);
         return nullptr;
     }
-    Providers::Provider *provider = buildProviderForAgent(
-        *cfg, m_instanceFactory.data(), m_secrets.data(), errorOut);
+    Providers::Provider *provider
+        = buildProviderForAgent(*cfg, m_instanceFactory.data(), m_secrets.data(), errorOut);
     if (!provider)
         return nullptr;
     auto agent = std::make_unique<Agent>(*cfg, provider, /*parent=*/nullptr);
@@ -179,23 +258,24 @@ Agent *AgentFactory::create(const QString &name, QObject *parent, QString *error
     return agent.release();
 }
 
-Agent *AgentFactory::createFromFile(
-    const QString &tomlPath, QObject *parent, QString *errorOut) const
+Agent *AgentFactory::createFromFile(const QString &tomlPath, QObject *parent, QString *errorOut) const
 {
     QString parseErr;
     QStringList warnings;
-    auto cfgOpt = Agents::AgentLoader::parseFile(tomlPath, &parseErr, &warnings);
+    auto cfgOpt = Agents::AgentLoader::parseFile(tomlPath, agentQrcPrefix(), &parseErr, &warnings);
     if (!cfgOpt) {
-        if (errorOut) *errorOut = parseErr;
+        if (errorOut)
+            *errorOut = parseErr;
         return nullptr;
     }
-    Providers::Provider *provider = buildProviderForAgent(
-        *cfgOpt, m_instanceFactory.data(), m_secrets.data(), errorOut);
+    Providers::Provider *provider
+        = buildProviderForAgent(*cfgOpt, m_instanceFactory.data(), m_secrets.data(), errorOut);
     if (!provider)
         return nullptr;
     auto agent = std::make_unique<Agent>(std::move(*cfgOpt), provider, /*parent=*/nullptr);
     if (!agent->isValid()) {
-        if (errorOut) *errorOut = agent->invalidReason();
+        if (errorOut)
+            *errorOut = agent->invalidReason();
         return nullptr;
     }
     agent->setParent(parent);
@@ -207,8 +287,8 @@ void AgentFactory::clear()
     Q_ASSERT(thread() == QThread::currentThread());
     m_configs.clear();
     m_indexByName.clear();
-    m_errors.clear();
-    m_warnings.clear();
+    m_baseModelByName.clear();
+    m_baseProviderByName.clear();
 }
 
 Providers::ProviderInstanceFactory *AgentFactory::instanceFactory() const noexcept
@@ -216,9 +296,69 @@ Providers::ProviderInstanceFactory *AgentFactory::instanceFactory() const noexce
     return m_instanceFactory.data();
 }
 
-Providers::ProviderSecretsStore *AgentFactory::secretsStore() const noexcept
+bool AgentFactory::setAgentModelOverride(const QString &name, const QString &model, QString *error)
 {
-    return m_secrets.data();
+    Q_ASSERT(thread() == QThread::currentThread());
+
+    const auto it = m_indexByName.constFind(name);
+    if (it == m_indexByName.constEnd()) {
+        if (error)
+            *error = QStringLiteral("Agent '%1' is not registered").arg(name);
+        return false;
+    }
+    AgentConfig &cfg = m_configs[it.value()];
+    const QString effective = model.isEmpty() ? m_baseModelByName.value(name, cfg.model) : model;
+    if (cfg.model == effective && readModelOverride(name) == model)
+        return true;
+
+    writeModelOverride(name, model);
+    cfg.model = effective;
+    emit agentModelChanged(name);
+    return true;
+}
+
+QString AgentFactory::agentModelOverride(const QString &name) const
+{
+    return readModelOverride(name);
+}
+
+void AgentFactory::clearAgentModelOverride(const QString &name)
+{
+    writeModelOverride(name, QString());
+}
+
+bool AgentFactory::setAgentProviderOverride(
+    const QString &name, const QString &providerInstance, QString *error)
+{
+    Q_ASSERT(thread() == QThread::currentThread());
+
+    const auto it = m_indexByName.constFind(name);
+    if (it == m_indexByName.constEnd()) {
+        if (error)
+            *error = QStringLiteral("Agent '%1' is not registered").arg(name);
+        return false;
+    }
+    AgentConfig &cfg = m_configs[it.value()];
+    const QString effective = providerInstance.isEmpty()
+                                  ? m_baseProviderByName.value(name, cfg.providerInstance)
+                                  : providerInstance;
+    if (cfg.providerInstance == effective && readProviderOverride(name) == providerInstance)
+        return true;
+
+    writeProviderOverride(name, providerInstance);
+    cfg.providerInstance = effective;
+    emit agentProviderChanged(name);
+    return true;
+}
+
+QString AgentFactory::agentProviderOverride(const QString &name) const
+{
+    return readProviderOverride(name);
+}
+
+void AgentFactory::clearAgentProviderOverride(const QString &name)
+{
+    writeProviderOverride(name, QString());
 }
 
 } // namespace QodeAssist

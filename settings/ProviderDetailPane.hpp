@@ -84,6 +84,8 @@ private:
     QLabel *m_keyHint = nullptr;
     QPushButton *m_apiKeySaveBtn = nullptr;
     QPushButton *m_apiKeyClearBtn = nullptr;
+    QPushButton *m_legacyKeyBtn = nullptr;
+    QString m_legacyKeyValue;
 
     SectionBox *m_launchSection = nullptr;
     QLabel *m_launchEmptyHint = nullptr;

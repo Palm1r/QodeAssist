@@ -79,7 +79,7 @@ void ResponseRouter::ensureAssistantOpen()
     if (m_assistantOpen && !m_inToolResults)
         return;
     if (m_history)
-        m_history->append(Message(Message::Role::Assistant));
+        m_history->append(Message(Message::Role::Assistant, m_activeId));
     emit event(ResponseEvent::messageStart());
     m_assistantOpen = true;
     m_inToolResults = false;
@@ -107,15 +107,19 @@ void ResponseRouter::onThinking(
 }
 
 void ResponseRouter::onToolStarted(
-    const LLMQore::RequestID &id, const QString &toolId, const QString &toolName)
+    const LLMQore::RequestID &id,
+    const QString &toolId,
+    const QString &toolName,
+    const QJsonObject &arguments)
 {
     if (id != m_activeId)
         return;
     ensureAssistantOpen();
     if (m_history)
         m_history->appendBlockToLast(
-            std::make_unique<LLMQore::ToolUseContent>(toolId, toolName));
+            std::make_unique<LLMQore::ToolUseContent>(toolId, toolName, arguments));
     emit event(ResponseEvent::toolCallStart(toolId, toolName));
+    emit event(ResponseEvent::toolCallEnd(toolId, arguments));
 }
 
 void ResponseRouter::onToolResultReady(
@@ -124,7 +128,6 @@ void ResponseRouter::onToolResultReady(
     const QString &toolName,
     const QString &result)
 {
-    Q_UNUSED(toolName);
     if (id != m_activeId)
         return;
 
@@ -141,7 +144,7 @@ void ResponseRouter::onToolResultReady(
 
     m_assistantOpen = false;
     m_inToolResults = true;
-    emit event(ResponseEvent::toolResult(toolId, result, /*isError=*/false));
+    emit event(ResponseEvent::toolResult(toolId, toolName, result, /*isError=*/false));
 }
 
 void ResponseRouter::onFinalized(
@@ -149,6 +152,13 @@ void ResponseRouter::onFinalized(
 {
     if (id != m_activeId)
         return;
+    if (info.usage) {
+        emit event(ResponseEvent::usage(
+            info.usage->promptTokens,
+            info.usage->completionTokens,
+            info.usage->cachedPromptTokens,
+            info.usage->reasoningTokens));
+    }
     emit event(ResponseEvent::messageStop(info.stopReason));
     endRequest();
 }
@@ -157,7 +167,7 @@ void ResponseRouter::onFailed(const LLMQore::RequestID &id, const QString &err)
 {
     if (id != m_activeId)
         return;
-    emit event(ResponseEvent::error(err));
+    emit event(ResponseEvent::error(err, categorizeProviderError(err)));
     endRequest();
 }
 

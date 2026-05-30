@@ -4,10 +4,10 @@
 
 #pragma once
 
-#include <QFlags>
 #include <QFuture>
 #include <QObject>
 #include <QString>
+#include <QStringList>
 #include <utils/environment.h>
 
 #include "ContextData.hpp"
@@ -31,15 +31,6 @@ using Templates::ContextData;
 using Templates::PromptTemplate;
 using LLMQore::RequestID;
 
-enum class ProviderCapability {
-    Tools        = 0x1,
-    Thinking     = 0x2,
-    Image        = 0x4,
-    ModelListing = 0x8,
-};
-Q_DECLARE_FLAGS(ProviderCapabilities, ProviderCapability)
-Q_DECLARE_OPERATORS_FOR_FLAGS(ProviderCapabilities)
-
 class Provider : public QObject
 {
     Q_OBJECT
@@ -61,10 +52,9 @@ public:
         PromptTemplate *prompt,
         const ContextData &context,
         bool isToolsEnabled,
-        bool isThinkingEnabled);
+        QString *errorOut = nullptr);
     virtual QFuture<QList<QString>> getInstalledModels(const QString &url) = 0;
     virtual ProviderID providerID() const = 0;
-    virtual ProviderCapabilities capabilities() const { return {}; }
 
     virtual ::LLMQore::BaseClient *client() const = 0;
 
@@ -73,9 +63,15 @@ public:
     void cancelRequest(const RequestID &requestId);
     ::LLMQore::ToolsManager *toolsManager() const;
 
+    void setPromptCaching(
+        bool enabled, bool extendedTtl, const QStringList &breakpoints = {});
+
 private:
     QString m_url;
     QString m_apiKey;
+    bool m_promptCachingEnabled = false;
+    bool m_promptCachingExtendedTtl = false;
+    QStringList m_promptCacheBreakpoints;
 };
 
 } // namespace QodeAssist::Providers

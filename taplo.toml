@@ -1,0 +1,8 @@
+include = ["sources/agents/**/*.toml", "sources/providersConfig/**/*.toml"]
+
+[formatting]
+align_entries = true
+align_comments = true
+allowed_blank_lines = 1
+array_auto_collapse = false
+array_auto_expand = true

@@ -26,6 +26,7 @@ constexpr auto kKindToolResult = "tool_result";
 constexpr auto kKindStoredImage = "stored_image";
 constexpr auto kKindStoredAttachment = "stored_attachment";
 constexpr auto kKindFileEdit = "file_edit";
+constexpr auto kKindSkillInvocation = "skill_invocation";
 
 QString roleToString(Message::Role role)
 {
@@ -92,6 +93,10 @@ QJsonObject blockToJson(const LLMQore::ContentBlock &block)
         obj["type"] = kKindStoredAttachment;
         obj["fileName"] = sa->fileName();
         obj["storedPath"] = sa->storedPath();
+    } else if (auto *sk = dynamic_cast<const SkillInvocationContent *>(&block)) {
+        obj["type"] = kKindSkillInvocation;
+        obj["skillName"] = sk->skillName();
+        obj["body"] = sk->body();
     } else if (auto *fe = dynamic_cast<const FileEditContent *>(&block)) {
         obj["type"] = kKindFileEdit;
         obj["editId"] = fe->editId();
@@ -146,6 +151,10 @@ std::unique_ptr<LLMQore::ContentBlock> blockFromJson(const QJsonObject &obj)
     if (type == kKindStoredAttachment) {
         return std::make_unique<StoredAttachmentContent>(
             obj.value("fileName").toString(), obj.value("storedPath").toString());
+    }
+    if (type == kKindSkillInvocation) {
+        return std::make_unique<SkillInvocationContent>(
+            obj.value("skillName").toString(), obj.value("body").toString());
     }
     if (type == kKindFileEdit) {
         return std::make_unique<FileEditContent>(

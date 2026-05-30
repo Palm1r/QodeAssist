@@ -71,11 +71,6 @@ QString PluginUpdater::currentVersion() const
     return QString();
 }
 
-bool PluginUpdater::isUpdateAvailable() const
-{
-    return m_lastUpdateInfo.isUpdateAvailable;
-}
-
 QString PluginUpdater::getUpdateUrl() const
 {
     return "https://api.github.com/repos/Palm1r/qodeassist/releases/latest";

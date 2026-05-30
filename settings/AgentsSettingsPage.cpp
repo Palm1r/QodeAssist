@@ -7,17 +7,20 @@
 #include "AgentDetailPane.hpp"
 #include "AgentDuplicator.hpp"
 #include "AgentListPane.hpp"
-#include "SettingsTheme.hpp"
 #include "SettingsConstants.hpp"
+#include "SettingsTheme.hpp"
 
 #include <coreplugin/dialogs/ioptionspage.h>
 #include <coreplugin/editormanager/editormanager.h>
 
 #include <utils/filepath.h>
+#include <utils/theme/theme.h>
 
+#include <QDateTime>
 #include <QDesktopServices>
 #include <QDir>
 #include <QFile>
+#include <QFileSystemWatcher>
 #include <QFont>
 #include <QFontMetrics>
 #include <QFrame>
@@ -79,7 +82,7 @@ public:
         m_userPathLabel = new QLabel(this);
         m_userPathLabel->setFont(monospaceFont(11));
         QPalette mutedPal = m_userPathLabel->palette();
-        mutedPal.setColor(QPalette::WindowText, mutedPal.color(QPalette::Mid));
+        mutedPal.setColor(QPalette::WindowText, Utils::creatorColor(Utils::Theme::PanelTextColorMid));
         m_userPathLabel->setPalette(mutedPal);
         m_userPathLabel->setMaximumWidth(260);
 
@@ -100,6 +103,7 @@ public:
 
         m_detail = new AgentDetailPane(this);
         m_detail->setInstanceFactory(m_agentFactory->instanceFactory());
+        m_detail->setAgentFactory(m_agentFactory);
         m_detailScroll = new QScrollArea(this);
         m_detailScroll->setWidgetResizable(true);
         m_detailScroll->setFrameShape(QFrame::StyledPanel);
@@ -126,25 +130,48 @@ public:
             QDesktopServices::openUrl(QUrl::fromLocalFile(dir));
         });
 
-        connect(m_listPane, &AgentListPane::currentAgentChanged, this,
-                [this](const QString &name) {
-                    if (const AgentConfig *cfg = m_agentFactory->configByName(name))
-                        m_detail->setAgent(*cfg);
-                    else
-                        m_detail->clear();
-                });
+        connect(m_listPane, &AgentListPane::currentAgentChanged, this, [this](const QString &name) {
+            if (const AgentConfig *cfg = m_agentFactory->configByName(name))
+                m_detail->setAgent(*cfg);
+            else
+                m_detail->clear();
+        });
 
-        connect(m_detail, &AgentDetailPane::openInEditorRequested,
-                this, &AgentsWidget::openAgentInEditor);
-        connect(m_detail, &AgentDetailPane::customizeRequested,
-                this, &AgentsWidget::customizeAgent);
-        connect(m_detail, &AgentDetailPane::deleteRequested,
-                this, &AgentsWidget::deleteAgent);
+        connect(
+            m_detail,
+            &AgentDetailPane::openInEditorRequested,
+            this,
+            &AgentsWidget::openAgentInEditor);
+        connect(m_detail, &AgentDetailPane::customizeRequested, this, &AgentsWidget::customizeAgent);
+        connect(m_detail, &AgentDetailPane::deleteRequested, this, &AgentsWidget::deleteAgent);
 
         if (m_navigator) {
-            connect(m_navigator, &AgentsPageNavigator::selectAgentRequested,
-                    m_listPane, &AgentListPane::selectByName);
+            connect(
+                m_navigator,
+                &AgentsPageNavigator::selectAgentRequested,
+                m_listPane,
+                &AgentListPane::selectByName);
         }
+
+        m_reloadDebounce = new QTimer(this);
+        m_reloadDebounce->setSingleShot(true);
+        m_reloadDebounce->setInterval(300);
+        connect(m_reloadDebounce, &QTimer::timeout, this, [this] {
+            constexpr qint64 kSelfWriteIgnoreMs = 1500;
+            if (QDateTime::currentMSecsSinceEpoch() - m_lastSelfWriteMs < kSelfWriteIgnoreMs) {
+                armWatcher();
+                return;
+            }
+            reloadFromDisk();
+        });
+
+        m_watcher = new QFileSystemWatcher(this);
+        connect(m_watcher, &QFileSystemWatcher::directoryChanged, this, [this](const QString &) {
+            m_reloadDebounce->start();
+        });
+        connect(m_watcher, &QFileSystemWatcher::fileChanged, this, [this](const QString &) {
+            m_reloadDebounce->start();
+        });
 
         reloadFromDisk();
 
@@ -165,10 +192,23 @@ private:
     void reloadFromDisk()
     {
         m_agentFactory->reload();
-        m_detail->setLoadDiagnostics(
-            m_agentFactory->lastLoadErrors(), m_agentFactory->lastLoadWarnings());
         updateUserPathLabel();
         m_listPane->refresh();
+        armWatcher();
+    }
+
+    void armWatcher()
+    {
+        if (!m_watcher)
+            return;
+        const QStringList watched = m_watcher->files() + m_watcher->directories();
+        if (!watched.isEmpty())
+            m_watcher->removePaths(watched);
+        const QString dir = QodeAssist::AgentFactory::userAgentsDir();
+        m_watcher->addPath(dir);
+        const QDir userDir(dir);
+        for (const QString &f : userDir.entryList({QStringLiteral("*.toml")}, QDir::Files))
+            m_watcher->addPath(userDir.filePath(f));
     }
 
     void updateUserPathLabel()
@@ -187,7 +227,8 @@ private:
 
         if (!isUser) {
             QMessageBox::information(
-                this, tr("Open agent"),
+                this,
+                tr("Open agent"),
                 tr("'%1' is bundled with the plugin and read-only.\n"
                    "Use Duplicate to create an editable user copy.")
                     .arg(name));
@@ -195,19 +236,17 @@ private:
         }
         if (sourcePath.isEmpty() || sourcePath.startsWith(QLatin1String(":/"))) {
             QMessageBox::warning(
-                this, tr("Open agent"),
-                tr("Agent '%1' has no editable source file.").arg(name));
+                this, tr("Open agent"), tr("Agent '%1' has no editable source file.").arg(name));
             return;
         }
         if (!Core::EditorManager::openEditor(Utils::FilePath::fromString(sourcePath))) {
-            QMessageBox::warning(
-                this, tr("Open agent"),
-                tr("Could not open %1.").arg(sourcePath));
+            QMessageBox::warning(this, tr("Open agent"), tr("Could not open %1.").arg(sourcePath));
         }
     }
 
     void customizeAgent(const AgentConfig &parent)
     {
+        m_lastSelfWriteMs = QDateTime::currentMSecsSinceEpoch();
         const AgentDuplicateResult res = duplicateAgentInUserDir(parent, *m_agentFactory);
         if (!res.ok) {
             QMessageBox::warning(this, tr("Duplicate"), res.error);
@@ -226,18 +265,23 @@ private:
         const QString sourcePath = agent.sourcePath;
 
         if (QMessageBox::question(
-                this, tr("Delete Agent"),
-                tr("Delete agent '%1'?\n\nThis will remove the file:\n%2")
-                    .arg(name, sourcePath),
-                QMessageBox::Yes | QMessageBox::No, QMessageBox::No)
+                this,
+                tr("Delete Agent"),
+                tr("Delete agent '%1'?\n\nThis will remove the file:\n%2").arg(name, sourcePath),
+                QMessageBox::Yes | QMessageBox::No,
+                QMessageBox::No)
             != QMessageBox::Yes)
             return;
+        m_lastSelfWriteMs = QDateTime::currentMSecsSinceEpoch();
         if (!QFile::remove(sourcePath)) {
             QMessageBox::warning(
-                this, tr("Delete Agent"),
+                this,
+                tr("Delete Agent"),
                 tr("Could not delete the agent file:\n%1").arg(sourcePath));
             return;
         }
+        m_agentFactory->clearAgentModelOverride(name);
+        m_agentFactory->clearAgentProviderOverride(name);
         reloadFromDisk();
     }
 
@@ -252,6 +296,9 @@ private:
     AgentListPane *m_listPane = nullptr;
     QScrollArea *m_detailScroll = nullptr;
     AgentDetailPane *m_detail = nullptr;
+    QFileSystemWatcher *m_watcher = nullptr;
+    QTimer *m_reloadDebounce = nullptr;
+    qint64 m_lastSelfWriteMs = 0;
 };
 
 class AgentsSettingsPage : public Core::IOptionsPage
@@ -262,9 +309,8 @@ public:
         setId(Constants::QODE_ASSIST_AGENTS_SETTINGS_PAGE_ID);
         setDisplayName(QObject::tr("Agents"));
         setCategory(Constants::QODE_ASSIST_GENERAL_OPTIONS_CATEGORY);
-        setWidgetCreator([agentFactory, navigator]() {
-            return new AgentsWidget(agentFactory, navigator);
-        });
+        setWidgetCreator(
+            [agentFactory, navigator]() { return new AgentsWidget(agentFactory, navigator); });
     }
 };
 

@@ -6,6 +6,7 @@
 #pragma once
 
 #include <QObject>
+#include <QPointer>
 
 #include "LLMClientInterface.hpp"
 #include "LSPCompletion.hpp"
@@ -13,13 +14,13 @@
 #include "RefactorSuggestionHoverHandler.hpp"
 #include "widgets/CompletionProgressHandler.hpp"
 #include "widgets/CompletionErrorHandler.hpp"
-#include "widgets/EditorChatButtonHandler.hpp"
 #include "widgets/RefactorWidgetHandler.hpp"
 #include <languageclient/client.h>
-#include <pluginllmcore/IPromptProvider.hpp>
-#include <pluginllmcore/IProviderRegistry.hpp>
 
 namespace QodeAssist {
+
+class SessionManager;
+class AgentFactory;
 
 class QodeAssistClient : public LanguageClient::Client
 {
@@ -27,6 +28,9 @@ class QodeAssistClient : public LanguageClient::Client
 public:
     explicit QodeAssistClient(LLMClientInterface *clientInterface);
     ~QodeAssistClient() override;
+
+    void setSessionManager(SessionManager *sessionManager);
+    void setAgentFactory(AgentFactory *agentFactory);
 
     void openDocument(TextEditor::TextDocument *document) override;
     bool canOpenProject(ProjectExplorer::Project *project) override;
@@ -63,11 +67,12 @@ private:
     int m_recentCharCount;
     CompletionProgressHandler m_progressHandler;
     CompletionErrorHandler m_errorHandler;
-    EditorChatButtonHandler m_chatButtonHandler;
     QuickRefactorHandler *m_refactorHandler{nullptr};
     RefactorSuggestionHoverHandler *m_refactorHoverHandler{nullptr};
     RefactorWidgetHandler *m_refactorWidgetHandler{nullptr};
     LLMClientInterface *m_llmClient;
+    SessionManager *m_sessionManager{nullptr};
+    AgentFactory *m_agentFactory{nullptr};
 };
 
 } // namespace QodeAssist

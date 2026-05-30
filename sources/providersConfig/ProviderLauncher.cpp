@@ -237,11 +237,6 @@ ProviderLauncher::State ProviderLauncher::state(const QString &instanceName) con
     return slot ? slot->state : Idle;
 }
 
-bool ProviderLauncher::isReady(const QString &instanceName) const
-{
-    return state(instanceName) == Ready;
-}
-
 QString ProviderLauncher::lastError(const QString &instanceName) const
 {
     const Slot *slot = m_slots.value(instanceName, nullptr);
@@ -252,20 +247,6 @@ QByteArray ProviderLauncher::scrollback(const QString &instanceName) const
 {
     const Slot *slot = m_slots.value(instanceName, nullptr);
     return slot ? slot->scrollback : QByteArray{};
-}
-
-QStringList ProviderLauncher::activeInstances() const
-{
-    QStringList out;
-    for (auto it = m_slots.constBegin(); it != m_slots.constEnd(); ++it) {
-        if (it.value()->state != Idle)
-            out.append(it.key());
-    }
-    std::sort(out.begin(), out.end(),
-              [](const QString &a, const QString &b) {
-                  return a.compare(b, Qt::CaseInsensitive) < 0;
-              });
-    return out;
 }
 
 void ProviderLauncher::launchProcess(Slot *slot)

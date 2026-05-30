@@ -15,10 +15,15 @@ namespace QodeAssist::Settings {
 
 struct PipelineRosters
 {
+    // Code completion is auto-routed: the router walks this ordered list at
+    // request time and uses the first agent whose match rules fit the file.
     QStringList codeCompletion;
+    // Chat is user-driven: this is an unordered allow-list of the agents
+    // offered in the chat picker. The user picks; no routing happens.
     QStringList chatAssistant;
-    QStringList chatCompression;
-    QStringList quickRefactor;
+    // Compression and quick refactor each use a single fixed agent.
+    QString chatCompression;
+    QString quickRefactor;
 
     [[nodiscard]] static PipelineRosters defaults();
 };

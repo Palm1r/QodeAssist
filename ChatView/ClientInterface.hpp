@@ -5,15 +5,24 @@
 #pragma once
 
 #include <QObject>
-#include <QSet>
+#include <QPointer>
 #include <QString>
-#include <QVector>
+#include <QStringList>
+
+#include <memory>
 
 #include "ChatModel.hpp"
-#include "Provider.hpp"
-#include "pluginllmcore/IPromptProvider.hpp"
+#include "ChatSerializer.hpp"
+#include <ErrorInfo.hpp>
 #include <LLMQore/BaseClient.hpp>
+#include <ResponseEvent.hpp>
 #include <context/ContextManager.hpp>
+
+namespace QodeAssist {
+class SessionManager;
+class Session;
+class ConversationHistory;
+}
 
 namespace QodeAssist::Skills {
 class SkillsManager;
@@ -26,23 +35,23 @@ class ClientInterface : public QObject
     Q_OBJECT
 
 public:
-    explicit ClientInterface(
-        ChatModel *chatModel, PluginLLMCore::IPromptProvider *promptProvider, QObject *parent = nullptr);
+    explicit ClientInterface(ChatModel *chatModel, QObject *parent = nullptr);
     ~ClientInterface();
 
     void setSkillsManager(Skills::SkillsManager *skillsManager);
+    void setSessionManager(SessionManager *sessionManager);
+    void setHistory(ConversationHistory *history);
+    void setActiveAgent(const QString &agentName);
 
     void sendMessage(
         const QString &message,
         const QList<QString> &attachments = {},
-        const QList<QString> &linkedFiles = {},
-        bool useTools = false,
-        bool useThinking = false);
+        const QList<QString> &linkedFiles = {});
     void clearMessages();
     void cancelRequest();
 
     Context::ContextManager *contextManager() const;
-    
+
     void setChatFilePath(const QString &filePath);
     QString chatFilePath() const;
 
@@ -53,50 +62,34 @@ signals:
     void messageUsageReceived(
         int promptTokens, int completionTokens, int cachedPromptTokens, int reasoningTokens);
 
-private slots:
-    void handlePartialResponse(const QString &requestId, const QString &partialText);
-    void handleFullResponse(const QString &requestId, const QString &fullText);
-    void handleRequestFinalized(const ::LLMQore::RequestID &requestId, const ::LLMQore::CompletionInfo &info);
-    void handleRequestFailed(const QString &requestId, const QString &error);
-    void handleThinkingBlockReceived(
-        const QString &requestId, const QString &thinking, const QString &signature);
-    void handleToolExecutionStarted(
-        const QString &requestId,
-        const QString &toolId,
-        const QString &toolName,
-        const QJsonObject &arguments);
-    void handleToolExecutionCompleted(
-        const QString &requestId,
-        const QString &toolId,
-        const QString &toolName,
-        const QString &toolOutput);
-
 private:
-    void handleLLMResponse(const QString &response, const QJsonObject &request);
-    QString getCurrentFileContext() const;
-    QString getSystemPromptWithLinkedFiles(
-        const QString &basePrompt, const QList<QString> &linkedFiles) const;
+    void onSessionEvent(Session *session, const QodeAssist::ResponseEvent &ev);
+    void onSessionFinished(const QString &requestId);
+    void onSessionFailed(const QString &requestId, const QodeAssist::ErrorInfo &error);
+
+    QStringList invokedSkillNames(const QString &message) const;
+    QString buildChatContextLayer() const;
+    QString requestIdForSession(Session *session) const;
     bool isImageFile(const QString &filePath) const;
     QString getMediaTypeForImage(const QString &filePath) const;
     QString encodeImageToBase64(const QString &filePath) const;
-    QVector<PluginLLMCore::ImageAttachment> loadImagesFromStorage(const QList<ChatModel::ImageAttachment> &storedImages) const;
 
     struct RequestContext
     {
         QJsonObject originalRequest;
-        PluginLLMCore::Provider *provider;
-        bool dropPreToolText = false;
+        QPointer<Session> session;
     };
 
-    PluginLLMCore::IPromptProvider *m_promptProvider = nullptr;
     ChatModel *m_chatModel;
     Context::ContextManager *m_contextManager;
+    QPointer<ConversationHistory> m_history;
     Skills::SkillsManager *m_skillsManager = nullptr;
+    QPointer<SessionManager> m_sessionManager;
+    QString m_activeAgent;
     QString m_chatFilePath;
+    std::shared_ptr<StoredContentCache> m_contentCache;
 
     QHash<QString, RequestContext> m_activeRequests;
-    QHash<QString, QString> m_accumulatedResponses;
-    QSet<QString> m_awaitingContinuation;
 };
 
 } // namespace QodeAssist::Chat

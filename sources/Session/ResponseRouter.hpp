@@ -6,6 +6,7 @@
 
 #include <LLMQore/BaseClient.hpp>
 
+#include <QJsonObject>
 #include <QObject>
 #include <QPointer>
 #include <QString>
@@ -31,7 +32,6 @@ public:
     void endRequest();
 
     bool isActive() const noexcept { return !m_activeId.isEmpty(); }
-    LLMQore::RequestID activeRequestId() const noexcept { return m_activeId; }
 
 signals:
     void event(const QodeAssist::ResponseEvent &ev);
@@ -41,7 +41,10 @@ private slots:
     void onThinking(
         const LLMQore::RequestID &id, const QString &thinking, const QString &signature);
     void onToolStarted(
-        const LLMQore::RequestID &id, const QString &toolId, const QString &toolName);
+        const LLMQore::RequestID &id,
+        const QString &toolId,
+        const QString &toolName,
+        const QJsonObject &arguments);
     void onToolResultReady(
         const LLMQore::RequestID &id,
         const QString &toolId,

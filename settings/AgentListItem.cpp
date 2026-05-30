@@ -7,6 +7,8 @@
 #include "SettingsTheme.hpp"
 #include "TagChip.hpp"
 
+#include <utils/theme/theme.h>
+
 #include <QEvent>
 #include <QFont>
 #include <QHBoxLayout>
@@ -32,7 +34,7 @@ AgentListItem::AgentListItem(const AgentConfig &cfg, QWidget *parent)
     df.setPixelSize(10);
     dot->setFont(df);
     QPalette dp = dot->palette();
-    dp.setColor(QPalette::WindowText, dp.color(QPalette::Mid));
+    dp.setColor(QPalette::WindowText, Utils::creatorColor(Utils::Theme::PanelTextColorMid));
     dot->setPalette(dp);
 
     auto *nameLbl = new QLabel(cfg.name, this);
@@ -52,15 +54,14 @@ AgentListItem::AgentListItem(const AgentConfig &cfg, QWidget *parent)
     col->setSpacing(2);
     col->addLayout(headerRow);
 
-    if (!cfg.model.isEmpty()) {
-        auto *model = new QLabel(cfg.model, this);
-        model->setFont(monospaceFont(11));
-        model->setContentsMargins(16, 0, 0, 0);
-        QPalette mp = model->palette();
-        mp.setColor(QPalette::WindowText, mp.color(QPalette::Mid));
-        model->setPalette(mp);
-        col->addWidget(model);
-    }
+    m_modelLabel = new QLabel(cfg.model, this);
+    m_modelLabel->setFont(monospaceFont(11));
+    m_modelLabel->setContentsMargins(16, 0, 0, 0);
+    QPalette mp = m_modelLabel->palette();
+    mp.setColor(QPalette::WindowText, Utils::creatorColor(Utils::Theme::PanelTextColorMid));
+    m_modelLabel->setPalette(mp);
+    m_modelLabel->setVisible(!cfg.model.isEmpty());
+    col->addWidget(m_modelLabel);
 
     if (!cfg.tags.isEmpty()) {
         auto *tagsHolder = new QWidget(this);
@@ -78,7 +79,7 @@ AgentListItem::AgentListItem(const AgentConfig &cfg, QWidget *parent)
     }
 
     auto *outer = new QVBoxLayout(this);
-    outer->setContentsMargins(8, 6, 8, 6);
+    outer->setContentsMargins(5, 6, 8, 6);
     outer->setSpacing(0);
     outer->addLayout(col);
 
@@ -97,6 +98,14 @@ void AgentListItem::setActiveTags(const QSet<QString> &active)
 {
     for (auto *chip : m_chips)
         chip->setActive(active.contains(chip->tag()));
+}
+
+void AgentListItem::setModel(const QString &model)
+{
+    if (!m_modelLabel)
+        return;
+    m_modelLabel->setText(model);
+    m_modelLabel->setVisible(!model.isEmpty());
 }
 
 void AgentListItem::mouseReleaseEvent(QMouseEvent *event)
@@ -118,11 +127,13 @@ void AgentListItem::applyTheme()
     if (m_inApplyTheme)
         return;
     QScopedValueRollback<bool> guard(m_inApplyTheme, true);
-    const Theme theme = themeFor(palette());
+    const QString accent = m_selected
+        ? cssColor(Utils::creatorColor(Utils::Theme::TextColorLink))
+        : QStringLiteral("transparent");
     setStyleSheet(QStringLiteral(
-                      "#AgentListItem { background:%1; border-top:1px solid %2; }")
-                      .arg(m_selected ? theme.rowSelectedBg : QStringLiteral("transparent"),
-                           theme.rowSeparator));
+                      "#AgentListItem { background:transparent;"
+                      " border-top:1px solid %1; border-left:3px solid %2; }")
+                      .arg(cssColor(Utils::creatorColor(Utils::Theme::SplitterColor)), accent));
 }
 
 } // namespace QodeAssist::Settings

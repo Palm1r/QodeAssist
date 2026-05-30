@@ -4,6 +4,8 @@
 
 #include "ProviderListItem.hpp"
 
+#include <utils/theme/theme.h>
+
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMouseEvent>
@@ -44,12 +46,12 @@ ProviderListItem::ProviderListItem(
     m_urlLabel = new QLabel(inst.url, this);
     m_urlLabel->setFont(monospaceFont(10));
     QPalette up = m_urlLabel->palette();
-    up.setColor(QPalette::WindowText, up.color(QPalette::Mid));
+    up.setColor(QPalette::WindowText, Utils::creatorColor(Utils::Theme::PanelTextColorMid));
     m_urlLabel->setPalette(up);
     m_urlLabel->setContentsMargins(17, 0, 0, 0);
 
     auto *outer = new QVBoxLayout(this);
-    outer->setContentsMargins(8, 6, 8, 6);
+    outer->setContentsMargins(5, 6, 8, 6);
     outer->setSpacing(2);
     outer->addLayout(headerRow);
     outer->addWidget(m_urlLabel);
@@ -88,11 +90,14 @@ void ProviderListItem::changeEvent(QEvent *event)
 QString ProviderListItem::statusColor(Status s)
 {
     switch (s) {
-    case Status::Ok:      return QStringLiteral("#3a8a4f");
-    case Status::Fail:    return QStringLiteral("#c94a4a");
-    case Status::Unknown: return QStringLiteral("#888888");
+    case Status::Ok:
+        return cssColor(Utils::creatorColor(Utils::Theme::IconsRunColor));
+    case Status::Fail:
+        return cssColor(Utils::creatorColor(Utils::Theme::TextColorError));
+    case Status::Unknown:
+        return cssColor(Utils::creatorColor(Utils::Theme::PanelTextColorMid));
     }
-    return QStringLiteral("#888888");
+    return cssColor(Utils::creatorColor(Utils::Theme::PanelTextColorMid));
 }
 
 void ProviderListItem::applyTheme()
@@ -100,11 +105,13 @@ void ProviderListItem::applyTheme()
     if (m_inApplyTheme)
         return;
     QScopedValueRollback<bool> guard(m_inApplyTheme, true);
-    const Theme theme = themeFor(palette());
+    const QString accent = m_selected
+        ? cssColor(Utils::creatorColor(Utils::Theme::TextColorLink))
+        : QStringLiteral("transparent");
     setStyleSheet(QStringLiteral(
-                      "#ProvListItem { background:%1; border-top: 1px solid %2; }")
-                      .arg(m_selected ? theme.rowSelectedBg : QStringLiteral("transparent"),
-                           theme.rowSeparator));
+                      "#ProvListItem { background:transparent;"
+                      " border-top:1px solid %1; border-left:3px solid %2; }")
+                      .arg(cssColor(Utils::creatorColor(Utils::Theme::SplitterColor)), accent));
 }
 
 } // namespace QodeAssist::Settings

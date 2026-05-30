@@ -1,0 +1,37 @@
+schema_version = 1
+
+name        = "Google Base Chat"
+description = "Google Gemini generateContent request body. Abstract — extend it and set model."
+abstract    = true
+
+provider_instance = "Google AI"
+endpoint          = "/models/${MODEL}:streamGenerateContent?alt=sse"
+
+[body]
+system_instruction = """{% if existsIn(ctx, "system_prompt") %}{ "parts": [ { "text": {{ tojson(ctx.system_prompt) }} } ] }{% endif %}"""
+contents = """
+[
+{% for msg in ctx.history %}
+{
+  "role": {% if msg.role == "assistant" %}"model"{% else %}"user"{% endif %},
+  "parts": [ {% for b in msg.content_blocks %}{% if b.type == "text" %}
+{ "text": {{ tojson(b.text) }} },
+{% else if b.type == "thinking" %}
+{ "text": {{ tojson(b.thinking) }}, "thought": true, "thoughtSignature": {{ tojson(b.signature) }} },
+{% else if b.type == "tool_use" %}
+{ "functionCall": { "name": {{ tojson(b.name) }}, "args": {{ tojson(b.input) }} } },
+{% else if b.type == "tool_result" %}
+{ "functionResponse": { "name": {{ tojson(b.name) }}, "response": { "result": {{ tojson(b.content) }} } } },
+{% else if b.type == "image" %}
+  {% if b.is_url %}
+  { "file_data": { "mime_type": {{ tojson(b.media_type) }}, "file_uri": {{ tojson(b.data) }} } },
+  {% else %}
+  { "inline_data": { "mime_type": {{ tojson(b.media_type) }}, "data": {{ tojson(b.data) }} } },
+  {% endif %}
+{% else %}
+{ "text": "" },
+{% endif %}{% endfor %} ]
+},
+{% endfor %}
+]
+"""

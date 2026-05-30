@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <QColor>
 #include <QPointer>
 #include <QString>
 #include <QStringList>
@@ -32,12 +31,23 @@ class AgentRosterWidget : public QWidget
 public:
     explicit AgentRosterWidget(QWidget *parent = nullptr);
 
-    void setSlot(const QString &title, const QString &hint, const QColor &accent);
+    void setSlot(
+        const QString &title,
+        const QString &hint,
+        const QStringList &presetTags = {});
     void setRoster(const QStringList &names, AgentFactory *factory);
 
-    [[nodiscard]] QStringList roster() const { return m_names; }
+    // When false, the list is an unordered set: no move arrows, no position
+    // numbers, no "first matching" routing hint. Used by pipelines where the
+    // user — not a router — chooses the agent (e.g. the chat picker).
+    void setOrderable(bool orderable);
 
-    void setRoutingContext(const AgentRouter::Context &ctx);
+    // When true, the card holds at most one agent: "Add" becomes "Change",
+    // selecting replaces the current entry, and the routing footer is hidden.
+    // Implies a non-orderable list. Used by single-agent pipelines.
+    void setSingle(bool single);
+
+    [[nodiscard]] QStringList roster() const { return m_names; }
 
 signals:
     void rosterChanged(const QStringList &names);
@@ -46,6 +56,7 @@ signals:
 private:
     void rebuildRows();
     void recomputeActive();
+    void applyMode();
 
     void onAddClicked();
     void onRowMoveUp(int index);
@@ -54,11 +65,15 @@ private:
     void onRowEdit(int index);
 
     QStringList m_names;
+    QStringList m_presetTags;
     QPointer<AgentFactory> m_factory;
+    QMetaObject::Connection m_factoryConn;
+    QMetaObject::Connection m_modelConn;
     AgentRouter::Context m_routingCtx;
     int m_activeIndex = -1;
+    bool m_orderable = true;
+    bool m_single = false;
 
-    QLabel *m_accentDot = nullptr;
     QLabel *m_titleLabel = nullptr;
     QLabel *m_hintLabel = nullptr;
     QFrame *m_rowsFrame = nullptr;

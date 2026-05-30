@@ -9,7 +9,7 @@
 namespace QodeAssist {
 class AgentFactory;
 struct AgentConfig;
-}
+} // namespace QodeAssist
 
 namespace QodeAssist::Settings {
 
@@ -21,7 +21,6 @@ struct AgentDuplicateResult
     QString error;
 };
 
-AgentDuplicateResult duplicateAgentInUserDir(
-    const AgentConfig &parent, const AgentFactory &factory);
+AgentDuplicateResult duplicateAgentInUserDir(const AgentConfig &parent, const AgentFactory &factory);
 
 } // namespace QodeAssist::Settings

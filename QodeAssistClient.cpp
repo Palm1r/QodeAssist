@@ -159,6 +159,16 @@ QodeAssistClient::QodeAssistClient(LLMClientInterface *clientInterface)
     m_refactorWidgetHandler = new RefactorWidgetHandler(this);
 }
 
+void QodeAssistClient::setSessionManager(SessionManager *sessionManager)
+{
+    m_sessionManager = sessionManager;
+}
+
+void QodeAssistClient::setAgentFactory(AgentFactory *agentFactory)
+{
+    m_agentFactory = agentFactory;
+}
+
 QodeAssistClient::~QodeAssistClient()
 {
     cleanupConnections();
@@ -263,9 +273,8 @@ void QodeAssistClient::requestCompletions(TextEditor::TextEditorWidget *editor)
         return;
 
 
-    if (m_llmClient->contextManager()
-            ->ignoreManager()
-            ->shouldIgnore(editor->textDocument()->filePath().toUrlishString(), project)) {
+    if (m_llmClient->contextManager()->shouldIgnore(
+            editor->textDocument()->filePath().toUrlishString())) {
         LOG_MESSAGE(QString("Ignoring file due to .qodeassistignore: %1")
                         .arg(editor->textDocument()->filePath().toUrlishString()));
         return;
@@ -309,9 +318,8 @@ void QodeAssistClient::requestQuickRefactor(
     if (!isEnabled(project))
         return;
 
-    if (m_llmClient->contextManager()
-            ->ignoreManager()
-            ->shouldIgnore(editor->textDocument()->filePath().toUrlishString(), project)) {
+    if (m_llmClient->contextManager()->shouldIgnore(
+            editor->textDocument()->filePath().toUrlishString())) {
         LOG_MESSAGE(QString("Ignoring file due to .qodeassistignore: %1")
                         .arg(editor->textDocument()->filePath().toUrlishString()));
         return;
@@ -319,6 +327,8 @@ void QodeAssistClient::requestQuickRefactor(
 
     if (!m_refactorHandler) {
         m_refactorHandler = new QuickRefactorHandler(this);
+        m_refactorHandler->setSessionManager(m_sessionManager);
+        m_refactorHandler->setAgentFactory(m_agentFactory);
         connect(
             m_refactorHandler,
             &QuickRefactorHandler::refactoringCompleted,

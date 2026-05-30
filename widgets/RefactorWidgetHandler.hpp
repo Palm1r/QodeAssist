@@ -37,8 +37,6 @@ public:
         const QString &contextAfter);
     
     void hideRefactorWidget();
-    
-    bool isWidgetVisible() const { return !m_refactorWidget.isNull(); }
 
     void setApplyCallback(std::function<void(const QString &)> callback);
     void setDeclineCallback(std::function<void()> callback);

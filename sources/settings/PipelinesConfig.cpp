@@ -38,6 +38,30 @@ QString trimAndCap(const QString &raw)
     return s;
 }
 
+QString toSingleString(const toml::node *node, const QString &slotKey, bool *schemaOk)
+{
+    if (!node)
+        return {};
+    if (const auto *s = node->as_string())
+        return trimAndCap(QString::fromStdString(s->get()));
+    // Backward compatibility: older pipelines.toml stored these slots as an
+    // ordered array. Collapse to the first usable name.
+    if (const auto *arr = node->as_array()) {
+        for (size_t i = 0; i < arr->size(); ++i) {
+            if (const auto *s = (*arr)[i].as_string()) {
+                const QString name = trimAndCap(QString::fromStdString(s->get()));
+                if (!name.isEmpty())
+                    return name;
+            }
+        }
+        return {};
+    }
+    LOG_MESSAGE(QStringLiteral("[Pipelines] schema error: '%1' must be a string").arg(slotKey));
+    if (schemaOk)
+        *schemaOk = false;
+    return {};
+}
+
 QStringList toStringList(const toml::node *node, const QString &slotKey, bool *schemaOk)
 {
     QStringList out;
@@ -94,12 +118,7 @@ void fillMissingFromDefaults(PipelineRosters &r, const toml::table &section)
 
 PipelineRosters PipelineRosters::defaults()
 {
-    PipelineRosters r;
-    r.codeCompletion = {QStringLiteral("Ollama Qwen2.5-Coder Completion")};
-    r.chatAssistant = {QStringLiteral("Ollama Chat")};
-    r.chatCompression = {QStringLiteral("Ollama Compression")};
-    r.quickRefactor = {QStringLiteral("Ollama Quick Refactor")};
-    return r;
+    return PipelineRosters{};
 }
 
 QString PipelinesConfig::filePath()
@@ -171,9 +190,9 @@ PipelinesLoadResult PipelinesConfig::load()
     result.rosters.chatAssistant
         = toStringList((*section)[kChatAssistant].node(), kChatAssistant, &schemaOk);
     result.rosters.chatCompression
-        = toStringList((*section)[kChatCompression].node(), kChatCompression, &schemaOk);
+        = toSingleString((*section)[kChatCompression].node(), kChatCompression, &schemaOk);
     result.rosters.quickRefactor
-        = toStringList((*section)[kQuickRefactor].node(), kQuickRefactor, &schemaOk);
+        = toSingleString((*section)[kQuickRefactor].node(), kQuickRefactor, &schemaOk);
 
     fillMissingFromDefaults(result.rosters, *section);
 
@@ -198,17 +217,22 @@ bool PipelinesConfig::save(const PipelineRosters &rosters, QString *errorOut)
     }
 
     TomlSerializer::TomlWriter w;
+    w.writeComment(QStringLiteral("QodeAssist pipelines — which agent each feature uses."));
     w.writeComment(QStringLiteral(
-        "QodeAssist pipelines — slot → ordered list of agent names."));
+        "code_completion: ordered list; the router walks it top-down and uses"));
     w.writeComment(QStringLiteral(
-        "The router walks each list top-down at request time and uses"));
-    w.writeComment(QStringLiteral("the first matching agent."));
+        "  the first agent whose match rules fit the current file/project."));
+    w.writeComment(QStringLiteral(
+        "chat_assistant: agents offered in the chat picker (order irrelevant —"));
+    w.writeComment(QStringLiteral("  you choose one in the UI)."));
+    w.writeComment(QStringLiteral(
+        "chat_compression / quick_refactor: a single agent name."));
     w.writeBlankLine();
     w.writeTableHeader(QString::fromUtf8(kSection));
     w.writeStringArray(QString::fromUtf8(kCodeCompletion), rosters.codeCompletion);
     w.writeStringArray(QString::fromUtf8(kChatAssistant), rosters.chatAssistant);
-    w.writeStringArray(QString::fromUtf8(kChatCompression), rosters.chatCompression);
-    w.writeStringArray(QString::fromUtf8(kQuickRefactor), rosters.quickRefactor);
+    w.writeString(QString::fromUtf8(kChatCompression), rosters.chatCompression);
+    w.writeString(QString::fromUtf8(kQuickRefactor), rosters.quickRefactor);
 
     QSaveFile out(path);
     if (!out.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
@@ -259,10 +283,19 @@ bool PipelinesConfig::validate(const QodeAssist::AgentFactory &factory, QString 
         }
     };
 
+    auto fixOne = [&](QString &current) {
+        const QString name = trimAndCap(current);
+        const QString next = (!name.isEmpty() && factory.configByName(name)) ? name : QString();
+        if (next != current) {
+            current = next;
+            changed = true;
+        }
+    };
+
     fix(r.codeCompletion);
     fix(r.chatAssistant);
-    fix(r.chatCompression);
-    fix(r.quickRefactor);
+    fixOne(r.chatCompression);
+    fixOne(r.quickRefactor);
 
     if (!changed && lr.status == PipelinesLoadStatus::Ok)
         return true;

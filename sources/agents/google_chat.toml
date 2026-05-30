@@ -1,0 +1,17 @@
+schema_version = 1
+
+extends     = "Google Base Chat"
+name        = "Google Chat"
+description = "Google Gemini 2.5 Flash — coding chat with thinking."
+
+model           = "gemini-2.5-flash"
+enable_tools    = true
+enable_thinking = true
+tags            = ["chat", "gemini", "google", "cloud"]
+
+system_prompt = """{{ read_file(":/roles/qt-cpp-developer.md") }}"""
+
+[body.generationConfig]
+maxOutputTokens = 16000
+temperature     = 1
+thinkingConfig  = { includeThoughts = true, thinkingBudget = 8192 }

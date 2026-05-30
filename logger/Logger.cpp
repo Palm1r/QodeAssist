@@ -22,11 +22,6 @@ void Logger::setLoggingEnabled(bool enable)
     m_loggingEnabled = enable;
 }
 
-bool Logger::isLoggingEnabled() const
-{
-    return m_loggingEnabled;
-}
-
 void Logger::log(const QString &message, bool silent)
 {
     if (!m_loggingEnabled)
@@ -37,23 +32,6 @@ void Logger::log(const QString &message, bool silent)
         Core::MessageManager::writeSilently(prefixedMessage);
     } else {
         Core::MessageManager::writeFlashing(prefixedMessage);
-    }
-}
-
-void Logger::logMessages(const QStringList &messages, bool silent)
-{
-    if (!m_loggingEnabled)
-        return;
-
-    QStringList prefixedMessages;
-    for (const QString &message : messages) {
-        prefixedMessages << (QLatin1String("[QodeAssist] ") + message);
-    }
-
-    if (silent) {
-        Core::MessageManager::writeSilently(prefixedMessages);
-    } else {
-        Core::MessageManager::writeFlashing(prefixedMessages);
     }
 }
 } // namespace QodeAssist

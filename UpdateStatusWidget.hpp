@@ -24,7 +24,6 @@ public:
 
     void setDefaultAction(QAction *action);
     void showUpdateAvailable(const QString &version);
-    void hideUpdateInfo();
     void setChatButtonAction(QAction *action);
     void setChatButtonMenu(QMenu *menu);
 

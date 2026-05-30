@@ -1,0 +1,16 @@
+schema_version = 1
+
+extends     = "OpenAI Responses Base"
+name        = "OpenAI Responses Chat"
+description = "OpenAI o4-mini — reasoning coding chat via the Responses API."
+
+model           = "o4-mini"
+enable_tools    = true
+enable_thinking = true
+tags            = ["chat", "openai", "responses", "cloud"]
+
+system_prompt = """{{ read_file(":/roles/qt-cpp-developer.md") }}"""
+
+[body]
+max_output_tokens = 25000
+reasoning         = { effort = "medium", summary = "auto" }

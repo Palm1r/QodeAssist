@@ -9,6 +9,8 @@
 #include "SettingsUiBuilders.hpp"
 #include "TagFilterStrip.hpp"
 
+#include <utils/theme/theme.h>
+
 #include <Agent.hpp>
 #include <AgentFactory.hpp>
 
@@ -69,6 +71,18 @@ AgentListPane::AgentListPane(AgentFactory *factory, QWidget *parent)
             [this](const QSet<QString> &) { rebuildList(); },
             Qt::QueuedConnection);
 
+    if (m_factory) {
+        connect(m_factory, &AgentFactory::agentModelChanged, this,
+                [this](const QString &name) {
+                    const AgentConfig *cfg = m_factory->configByName(name);
+                    if (!cfg)
+                        return;
+                    for (auto *item : m_rows)
+                        if (item->agentName() == name)
+                            item->setModel(cfg->model);
+                });
+    }
+
     applyFilterHolderTheme();
 }
 
@@ -109,11 +123,11 @@ void AgentListPane::applyFilterHolderTheme()
 {
     if (!m_filterHolder)
         return;
-    const Theme theme = themeFor(palette());
     m_filterHolder->setStyleSheet(
         QStringLiteral("QWidget#FilterHolder { background:%1;"
                        " border-bottom:1px solid %2; }")
-            .arg(theme.listHeaderBg, theme.rowSeparator));
+            .arg(cssColor(Utils::creatorColor(Utils::Theme::BackgroundColorNormal)),
+                 cssColor(Utils::creatorColor(Utils::Theme::SplitterColor))));
 }
 
 std::vector<const AgentConfig *> AgentListPane::visibleAgents() const
@@ -196,7 +210,7 @@ void AgentListPane::rebuildList()
         empty->setAlignment(Qt::AlignCenter);
         empty->setContentsMargins(10, 16, 10, 16);
         QPalette ep = empty->palette();
-        ep.setColor(QPalette::WindowText, ep.color(QPalette::Mid));
+        ep.setColor(QPalette::WindowText, Utils::creatorColor(Utils::Theme::PanelTextColorMid));
         empty->setPalette(ep);
         contentLayout->addWidget(empty);
     }

@@ -1,9 +1,32 @@
 <RCC>
     <qresource prefix="/agents">
+        <file>claude_base_chat.toml</file>
+        <file>claude_chat.toml</file>
+        <file>claude_opus_chat.toml</file>
+        <file>claude_opus_max.toml</file>
+        <file>claude_completion.toml</file>
+        <file>claude_compression.toml</file>
+        <file>claude_quick_refactor.toml</file>
+        <file>openai_base_chat.toml</file>
+        <file>openai_chat_completions.toml</file>
+        <file>openai_responses_base.toml</file>
+        <file>openai_responses_chat.toml</file>
+        <file>google_base_chat.toml</file>
+        <file>google_chat.toml</file>
         <file>ollama_base_chat.toml</file>
+        <file>ollama_chat.toml</file>
+        <file>ollama_chat_completion.toml</file>
         <file>ollama_base_fim.toml</file>
-        <file>ollama_gemma4_e4b_chat.toml</file>
-        <file>ollama_codellama_7b_code_fim.toml</file>
-        <file>ollama_codellama_13b_qml_fim.toml</file>
+        <file>ollama_fim.toml</file>
+    </qresource>
+    <qresource prefix="/roles">
+        <file alias="qt-cpp-developer.md">roles/qt-cpp-developer.md</file>
+        <file alias="code-completion.md">roles/code-completion.md</file>
+        <file alias="code-completion-c-like.md">roles/code-completion-c-like.md</file>
+        <file alias="code-completion-qml.md">roles/code-completion-qml.md</file>
+    </qresource>
+    <qresource prefix="/tasks">
+        <file alias="chat-compressor.md">tasks/chat-compressor.md</file>
+        <file alias="code-completion.md">tasks/code-completion.md</file>
     </qresource>
 </RCC>

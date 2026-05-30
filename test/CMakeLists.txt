@@ -1,11 +1,23 @@
 add_executable(QodeAssistTest
     ../CodeHandler.cpp
-    ../LLMClientInterface.cpp
     ../LLMSuggestion.cpp
     CodeHandlerTest.cpp
-    ClaudeCacheControlTest.cpp
     DocumentContextReaderTest.cpp
+    EnvBlockFormatterTest.cpp
     LLMSuggestionTest.cpp
+    JsonPromptTemplateTest.cpp
+    ContextAssemblerTest.cpp
+    ResponseRouterTest.cpp
+    BundledAgentsTest.cpp
+    AgentLoaderTest.cpp
+    AgentConfigTest.cpp
+    AgentRouterTest.cpp
+    ClaudeCacheControlTest.cpp
+    ContextRendererTest.cpp
+    ErrorInfoTest.cpp
+    MessageSerializerTest.cpp
+    ResponseCleanerTest.cpp
+    SystemPromptBuilderTest.cpp
     # LLMClientInterfaceTests.cpp
     unittest_main.cpp
 )
@@ -18,8 +30,11 @@ target_link_libraries(QodeAssistTest PRIVATE
     GTest::Main
     QtCreator::LanguageClient
     Context
-    PluginLLMCore
+    Common
     LLMQore
+    Templates
+    Agents
+    Session
 )
 
 target_include_directories(QodeAssistTest PRIVATE ${CMAKE_SOURCE_DIR})

@@ -6,6 +6,9 @@
 
 #include "SettingsTheme.hpp"
 
+#include <utils/theme/theme.h>
+
+#include <QEnterEvent>
 #include <QEvent>
 #include <QFont>
 #include <QHBoxLayout>
@@ -21,14 +24,15 @@ TagChip::TagChip(const QString &tag, int count, QWidget *parent)
     , m_tag(tag)
 {
     setObjectName(QStringLiteral("TagChip"));
+    setAttribute(Qt::WA_StyledBackground, true);
     setCursor(Qt::PointingHandCursor);
 
     m_label = new QLabel(tag, this);
     m_label->setFont(monospaceFont(11));
 
     auto *row = new QHBoxLayout(this);
-    row->setContentsMargins(5, 0, 5, 0);
-    row->setSpacing(4);
+    row->setContentsMargins(10, 3, 10, 3);
+    row->setSpacing(6);
     row->addWidget(m_label);
 
     if (count >= 0) {
@@ -49,6 +53,13 @@ void TagChip::setActive(bool on)
     applyTheme();
 }
 
+void TagChip::setCount(int count)
+{
+    if (!m_count)
+        return;
+    m_count->setText(count >= 0 ? QString::number(count) : QString());
+}
+
 void TagChip::mouseReleaseEvent(QMouseEvent *event)
 {
     if (event->button() == Qt::LeftButton)
@@ -56,9 +67,29 @@ void TagChip::mouseReleaseEvent(QMouseEvent *event)
     QFrame::mouseReleaseEvent(event);
 }
 
+void TagChip::enterEvent(QEnterEvent *event)
+{
+    QFrame::enterEvent(event);
+    if (m_hover)
+        return;
+    m_hover = true;
+    applyTheme();
+}
+
+void TagChip::leaveEvent(QEvent *event)
+{
+    QFrame::leaveEvent(event);
+    if (!m_hover)
+        return;
+    m_hover = false;
+    applyTheme();
+}
+
 void TagChip::changeEvent(QEvent *event)
 {
     QFrame::changeEvent(event);
+    if (m_inApplyTheme)
+        return;
     if (event->type() == QEvent::PaletteChange || event->type() == QEvent::StyleChange)
         applyTheme();
 }
@@ -68,20 +99,47 @@ void TagChip::applyTheme()
     if (m_inApplyTheme)
         return;
     QScopedValueRollback<bool> guard(m_inApplyTheme, true);
-    const Theme theme = themeFor(palette());
-    const QString text = palette().color(QPalette::WindowText).name();
-    const QString mute = palette().color(QPalette::Mid).name();
-    const QString border = m_active ? text : theme.rowSeparator;
-    const QString bg = m_active ? theme.rowSelectedBg : QStringLiteral("transparent");
+
+    const QColor text = Utils::creatorColor(Utils::Theme::TextColorNormal);
+    const QColor muted = Utils::creatorColor(Utils::Theme::PanelTextColorMid);
+    const QColor line = Utils::creatorColor(Utils::Theme::SplitterColor);
+
+    QString bg;
+    QColor border;
+    QColor labelColor;
+    QColor countColor;
+    if (m_active) {
+        bg = cssColor(Utils::creatorColor(Utils::Theme::BackgroundColorSelected));
+        border = Utils::creatorColor(Utils::Theme::TextColorLink);
+        labelColor = text;
+        countColor = text;
+    } else if (m_hover) {
+        bg = cssColor(Utils::creatorColor(Utils::Theme::BackgroundColorHover));
+        border = line;
+        labelColor = text;
+        countColor = muted;
+    } else {
+        bg = QStringLiteral("transparent");
+        border = line;
+        labelColor = text;
+        countColor = muted;
+    }
+
     setStyleSheet(QStringLiteral(
-                      "#TagChip { background:%1; border:1px solid %2; }")
-                      .arg(bg, border));
+                      "#TagChip { background:%1; border:1px solid %2; border-radius:10px; }")
+                      .arg(bg, cssColor(border)));
+
+    QFont lf = m_label->font();
+    lf.setBold(m_active);
+    m_label->setFont(lf);
+
     QPalette lp = m_label->palette();
-    lp.setColor(QPalette::WindowText, m_active ? QColor(text) : QColor(mute));
+    lp.setColor(QPalette::WindowText, labelColor);
     m_label->setPalette(lp);
+
     if (m_count) {
         QPalette cp = m_count->palette();
-        cp.setColor(QPalette::WindowText, QColor(mute));
+        cp.setColor(QPalette::WindowText, countColor);
         m_count->setPalette(cp);
     }
 }
