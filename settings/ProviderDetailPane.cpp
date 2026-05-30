@@ -19,6 +19,7 @@
 #include <solutions/terminal/terminalview.h>
 
 #include "ProviderInstanceWriter.hpp"
+#include "ProviderSettings.hpp"
 #include "SectionBox.hpp"
 #include "SettingsTheme.hpp"
 #include "SettingsUiBuilders.hpp"
@@ -157,6 +158,14 @@ ProviderDetailPane::ProviderDetailPane(QWidget *parent)
     m_apiKeySaveBtn->setEnabled(false);
     m_apiKeyClearBtn = new QPushButton(tr("Clear"), this);
     m_apiKeyClearBtn->setToolTip(tr("Erase the stored API key for this provider"));
+    m_legacyKeyBtn = new QPushButton(tr("Insert legacy key"), this);
+    m_legacyKeyBtn->setVisible(false);
+    connect(m_legacyKeyBtn, &QPushButton::clicked, this, [this] {
+        if (m_legacyKeyValue.isEmpty())
+            return;
+        m_apiKeyEdit->setText(m_legacyKeyValue);
+        m_revealKeyBtn->setChecked(true);
+    });
     connect(m_apiKeyEdit, &QLineEdit::textChanged, this, [this](const QString &t) {
         m_apiKeySaveBtn->setEnabled(!t.isEmpty());
     });
@@ -189,7 +198,8 @@ ProviderDetailPane::ProviderDetailPane(QWidget *parent)
     credGrid->setVerticalSpacing(4);
     FormBuilder credForm(credGrid);
     credForm.row(tr("API key:"), keyRow);
-    credGrid->addWidget(m_keyHint, credForm.currentRow(), 1);
+    credGrid->addWidget(m_legacyKeyBtn, credForm.currentRow(), 1, Qt::AlignLeft);
+    credGrid->addWidget(m_keyHint, credForm.currentRow() + 1, 1);
     credSection->bodyLayout()->addLayout(credGrid);
 
     m_launchSection = new SectionBox(tr("Launch"), this);
@@ -318,6 +328,18 @@ void ProviderDetailPane::populate(const Providers::ProviderInstance &inst, bool 
         m_keyHint->setText(tr("No key stored yet. Type a key and press Save key."));
     }
 
+    const LegacyApiKeyEntry legacy
+        = needsKey ? legacyApiKeyForClientApi(inst.clientApi) : LegacyApiKeyEntry{};
+    m_legacyKeyValue = legacy.value;
+    if (!legacy.value.isEmpty()) {
+        m_legacyKeyBtn->setToolTip(
+            tr("Insert the API key saved in the old %1 settings into the field.")
+                .arg(legacy.label));
+        m_legacyKeyBtn->setVisible(true);
+    } else {
+        m_legacyKeyBtn->setVisible(false);
+    }
+
     m_samplePreview->setText(
         QStringLiteral("# sample request line\nPOST %1/<agent endpoint>").arg(inst.url));
     applyPreviewPalette();
@@ -348,6 +370,8 @@ void ProviderDetailPane::clear()
     m_apiKeySaveBtn->setEnabled(false);
     m_apiKeyClearBtn->setEnabled(false);
     m_revealKeyBtn->setEnabled(false);
+    m_legacyKeyValue.clear();
+    m_legacyKeyBtn->setVisible(false);
     m_samplePreview->clear();
     m_rawToml->clear();
     m_editBtn->setVisible(false);

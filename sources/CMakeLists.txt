@@ -6,7 +6,4 @@ add_subdirectory(providers)
 add_subdirectory(templates)
 add_subdirectory(agents)
 add_subdirectory(providersConfig)
-
-if(QODEASSIST_EXPERIMENTAL)
-    add_subdirectory(settings)
-endif()
+add_subdirectory(settings)
