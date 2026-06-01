@@ -66,9 +66,28 @@ void ClaudeProvider::prepareRequest(
     };
 
     auto applyThinkingMode = [&request](const auto &settings) {
+        const QString model = request.value("model").toString().toLower();
+        const bool useAdaptiveThinking = model.contains("opus-4-8") || model.contains("opus-4-7")
+                                         || model.contains("opus-4-6") || model.contains("sonnet-4-6");
+
         QJsonObject thinkingObj;
-        thinkingObj["type"] = "enabled";
-        thinkingObj["budget_tokens"] = settings.thinkingBudgetTokens();
+        if (useAdaptiveThinking) {
+            thinkingObj["type"] = "adaptive";
+
+            const int budget = settings.thinkingBudgetTokens();
+            QString effort = "high";
+            if (budget < 8000)
+                effort = "low";
+            else if (budget < 24000)
+                effort = "medium";
+
+            QJsonObject outputConfig;
+            outputConfig["effort"] = effort;
+            request["output_config"] = outputConfig;
+        } else {
+            thinkingObj["type"] = "enabled";
+            thinkingObj["budget_tokens"] = settings.thinkingBudgetTokens();
+        }
         request["thinking"] = thinkingObj;
         request["max_tokens"] = settings.thinkingMaxTokens();
         request["temperature"] = 1.0;
