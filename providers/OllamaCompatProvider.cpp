@@ -70,9 +70,7 @@ void OllamaCompatProvider::prepareRequest(
             request["presence_penalty"] = settings.presencePenalty();
     };
 
-    if (type == PluginLLMCore::RequestType::CodeCompletion) {
-        applyModelParams(Settings::codeCompletionSettings());
-    } else if (type == PluginLLMCore::RequestType::QuickRefactoring) {
+    if (type == PluginLLMCore::RequestType::QuickRefactoring) {
         applyModelParams(Settings::quickRefactorSettings());
     } else {
         applyModelParams(Settings::chatAssistantSettings());

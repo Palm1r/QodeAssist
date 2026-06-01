@@ -159,6 +159,16 @@ QodeAssistClient::QodeAssistClient(LLMClientInterface *clientInterface)
     m_refactorWidgetHandler = new RefactorWidgetHandler(this);
 }
 
+void QodeAssistClient::setSessionManager(SessionManager *sessionManager)
+{
+    m_sessionManager = sessionManager;
+}
+
+void QodeAssistClient::setAgentFactory(AgentFactory *agentFactory)
+{
+    m_agentFactory = agentFactory;
+}
+
 QodeAssistClient::~QodeAssistClient()
 {
     cleanupConnections();
@@ -319,6 +329,8 @@ void QodeAssistClient::requestQuickRefactor(
 
     if (!m_refactorHandler) {
         m_refactorHandler = new QuickRefactorHandler(this);
+        m_refactorHandler->setSessionManager(m_sessionManager);
+        m_refactorHandler->setAgentFactory(m_agentFactory);
         connect(
             m_refactorHandler,
             &QuickRefactorHandler::refactoringCompleted,

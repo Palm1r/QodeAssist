@@ -7,7 +7,6 @@
 #include "CustomInstructionsManager.hpp"
 #include "QodeAssisttr.h"
 
-#include "settings/ConfigurationManager.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/QuickRefactorSettings.hpp"
 #include "settings/SettingsConstants.hpp"
@@ -112,11 +111,6 @@ void QuickRefactorDialog::setupUi()
     actionsLayout->addWidget(m_improveButton);
     actionsLayout->addWidget(m_alternativeButton);
     actionsLayout->addStretch();
-
-    m_configComboBox = new QComboBox(this);
-    m_configComboBox->setMinimumWidth(200);
-    m_configComboBox->setToolTip(Tr::tr("Switch AI configuration"));
-    actionsLayout->addWidget(m_configComboBox);
 
     Utils::Theme *theme = Utils::creatorTheme();
     QColor iconColor = theme ? theme->color(Utils::Theme::TextColorNormal) : QColor(Qt::white);
@@ -244,13 +238,6 @@ void QuickRefactorDialog::setupUi()
         &QuickRefactorDialog::onOpenInstructionsFolder);
 
     loadCustomCommands();
-    loadAvailableConfigurations();
-
-    connect(
-        m_configComboBox,
-        QOverload<int>::of(&QComboBox::currentIndexChanged),
-        this,
-        &QuickRefactorDialog::onConfigurationChanged);
 
     QDialogButtonBox *buttonBox
         = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
@@ -575,60 +562,6 @@ void QuickRefactorDialog::onOpenInstructionsFolder()
 void QuickRefactorDialog::onOpenSettings()
 {
     Settings::showSettings(Constants::QODE_ASSIST_QUICK_REFACTOR_SETTINGS_PAGE_ID);
-}
-
-QString QuickRefactorDialog::selectedConfiguration() const
-{
-    return m_selectedConfiguration;
-}
-
-void QuickRefactorDialog::loadAvailableConfigurations()
-{
-    auto &manager = Settings::ConfigurationManager::instance();
-    manager.loadConfigurations(Settings::ConfigurationType::QuickRefactor);
-
-    QVector<Settings::AIConfiguration> configs = manager.configurations(
-        Settings::ConfigurationType::QuickRefactor);
-
-    m_configComboBox->clear();
-    m_configComboBox->addItem(Tr::tr("Current"), QString());
-
-    for (const Settings::AIConfiguration &config : configs) {
-        m_configComboBox->addItem(config.name, config.id);
-    }
-
-    auto &settings = Settings::generalSettings();
-    QString currentProvider = settings.qrProvider.value();
-    QString currentModel = settings.qrModel.value();
-    QString currentConfigText = QString("%1/%2").arg(currentProvider, currentModel);
-    m_configComboBox->setItemText(0, Tr::tr("Current (%1)").arg(currentConfigText));
-}
-
-void QuickRefactorDialog::onConfigurationChanged(int index)
-{
-    if (index == 0) {
-        m_selectedConfiguration.clear();
-        return;
-    }
-
-    QString configId = m_configComboBox->itemData(index).toString();
-    m_selectedConfiguration = m_configComboBox->itemText(index);
-
-    auto &manager = Settings::ConfigurationManager::instance();
-    Settings::AIConfiguration config
-        = manager.getConfigurationById(configId, Settings::ConfigurationType::QuickRefactor);
-
-    if (!config.id.isEmpty()) {
-        auto &settings = Settings::generalSettings();
-
-        settings.qrProvider.setValue(config.provider);
-        settings.qrModel.setValue(config.model);
-        settings.qrTemplate.setValue(config.templateName);
-        settings.qrUrl.setValue(config.url);
-        settings.qrCustomEndpoint.setValue(config.customEndpoint);
-
-        settings.writeSettings();
-    }
 }
 
 void QuickRefactorDialog::validateAndAccept()

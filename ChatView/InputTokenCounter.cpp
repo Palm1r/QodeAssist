@@ -6,17 +6,11 @@
 
 #include <algorithm>
 
-#include <LLMQore/ToolsManager.hpp>
-#include <QJsonArray>
-#include <QJsonDocument>
-
 #include <utils/aspects.h>
 
 #include "ChatAssistantSettings.hpp"
 #include "ChatModel.hpp"
-#include "GeneralSettings.hpp"
 #include "Logger.hpp"
-#include "ProvidersManager.hpp"
 #include "context/ContextManager.hpp"
 #include "context/TokenUtils.hpp"
 
@@ -42,12 +36,6 @@ InputTokenCounter::InputTokenCounter(
         this,
         &InputTokenCounter::recompute);
 
-    connect(&Settings::generalSettings().caProvider, &Utils::BaseAspect::changed, this, [this]() {
-        rewireToolsChangedConnection();
-        recompute();
-    });
-
-    rewireToolsChangedConnection();
     recompute();
 }
 
@@ -72,24 +60,6 @@ void InputTokenCounter::setLinkedFiles(const QStringList &linkedFiles)
 {
     m_linkedFiles = linkedFiles;
     recompute();
-}
-
-void InputTokenCounter::rewireToolsChangedConnection()
-{
-    if (m_toolsChangedConn)
-        QObject::disconnect(m_toolsChangedConn);
-    m_toolsChangedConn = {};
-
-    const auto providerName = Settings::generalSettings().caProvider();
-    auto *provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(providerName);
-    if (!provider)
-        return;
-    auto *tm = provider->toolsManager();
-    if (!tm)
-        return;
-
-    m_toolsChangedConn = connect(
-        tm, &::LLMQore::ToolRegistry::toolsChanged, this, &InputTokenCounter::recompute);
 }
 
 void InputTokenCounter::recompute()
@@ -134,21 +104,6 @@ void InputTokenCounter::recompute()
     for (const auto &message : history) {
         inputTokens += Context::TokenUtils::estimateTokens(message.content);
         inputTokens += 4; // + role
-    }
-
-    if (settings.enableChatTools()) {
-        const auto providerName = Settings::generalSettings().caProvider();
-        if (auto *provider = PluginLLMCore::ProvidersManager::instance().getProviderByName(
-                providerName)) {
-            if (auto *tm = provider->toolsManager()) {
-                const QJsonArray toolDefs = tm->getToolsDefinitions();
-                if (!toolDefs.isEmpty()) {
-                    const QByteArray serialized
-                        = QJsonDocument(toolDefs).toJson(QJsonDocument::Compact);
-                    inputTokens += static_cast<int>(serialized.size() / 4);
-                }
-            }
-        }
     }
 
     m_inputTokens = static_cast<int>(inputTokens * m_calibrationFactor);

@@ -75,9 +75,7 @@ void LlamaCppProvider::prepareRequest(
         request["chat_template_kwargs"] = chatTemplateKwargs;
     };
 
-    if (type == PluginLLMCore::RequestType::CodeCompletion) {
-        applyModelParams(Settings::codeCompletionSettings());
-    } else if (type == PluginLLMCore::RequestType::QuickRefactoring) {
+    if (type == PluginLLMCore::RequestType::QuickRefactoring) {
         applyModelParams(Settings::quickRefactorSettings());
         if (isThinkingEnabled) {
             applyThinkingMode();

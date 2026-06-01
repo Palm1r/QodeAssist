@@ -152,29 +152,17 @@ ChatRootView {
                 }
             }
             settingsButton.onClicked: root.openSettings()
-            configSelector {
-                model: root.availableConfigurations
-                displayText: root.currentConfiguration
+            agentSelector {
+                model: root.availableChatAgents
+                displayText: root.currentChatAgent
                 onActivated: function(index) {
-                    if (index > 0) {
-                        root.applyConfiguration(root.availableConfigurations[index])
-                    }
+                    root.currentChatAgent = root.availableChatAgents[index]
                 }
+
+                Component.onCompleted: root.loadAvailableChatAgents()
 
                 popup.onAboutToShow: {
-                    root.loadAvailableConfigurations()
-                }
-            }
-
-            roleSelector {
-                model: root.availableAgentRoles
-                displayText: root.currentAgentRole
-                onActivated: function(index) {
-                    root.applyAgentRole(root.availableAgentRoles[index])
-                }
-
-                popup.onAboutToShow: {
-                    root.loadAvailableAgentRoles()
+                    root.loadAvailableChatAgents()
                 }
             }
         }
@@ -839,20 +827,7 @@ ChatRootView {
         x: (parent.width - width) / 2
         y: (parent.height - height) / 2
 
-        baseSystemPrompt: root.baseSystemPrompt
-        currentAgentRole: root.currentAgentRole
-        currentAgentRoleDescription: root.currentAgentRoleDescription
-        currentAgentRoleSystemPrompt: root.currentAgentRoleSystemPrompt
-        activeRules: root.activeRules
-        activeRulesCount: root.activeRulesCount
-
         onOpenSettings: root.openSettings()
-        onOpenAgentRolesSettings: root.openAgentRolesSettings()
-        onOpenRulesFolder: root.openRulesFolder()
-        onRefreshRules: root.refreshRules()
-        onRuleSelected: function(index) {
-            contextViewer.selectedRuleContent = root.getRuleContent(index)
-        }
     }
 
     Connections {

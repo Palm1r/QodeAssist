@@ -7,46 +7,31 @@
 #include <coreplugin/dialogs/ioptionspage.h>
 #include <coreplugin/icore.h>
 #include <utils/layoutbuilder.h>
-#include <utils/utilsicons.h>
-#include <QComboBox>
-#include <QDesktopServices>
-#include <QDir>
-#include <QInputDialog>
+#include <QColor>
+#include <QFont>
+#include <QFrame>
+#include <QHBoxLayout>
 #include <QLabel>
 #include <QMessageBox>
+#include <QPointer>
 #include <QPushButton>
-#include <QTextEdit>
+#include <QScrollArea>
 #include <QTimer>
-#include <QUrl>
-#include <QUuid>
-#include <QtWidgets/qboxlayout.h>
-#include <QtWidgets/qcompleter.h>
-#include <QtWidgets/qgroupbox.h>
-#include <QtWidgets/qradiobutton.h>
-#include <QtWidgets/qstackedwidget.h>
+#include <QVBoxLayout>
 
 #include "../Version.hpp"
-#include "ConfigurationManager.hpp"
+#include "AgentRosterWidget.hpp"
+#include "AgentsSettingsPage.hpp"
 #include "Logger.hpp"
-#include "ProviderNameMigration.hpp"
+#include "PipelinesConfig.hpp"
 #include "SettingsConstants.hpp"
-#include "SettingsDialog.hpp"
 #include "SettingsTr.hpp"
 #include "SettingsUtils.hpp"
 #include "UpdateDialog.hpp"
 
-namespace QodeAssist::Settings {
+#include <AgentFactory.hpp>
 
-void addDialogButtons(QBoxLayout *layout, QAbstractButton *okButton, QAbstractButton *cancelButton)
-{
-#if defined(Q_OS_MACOS)
-    layout->addWidget(cancelButton);
-    layout->addWidget(okButton);
-#else
-    layout->addWidget(okButton);
-    layout->addWidget(cancelButton);
-#endif
-}
+namespace QodeAssist::Settings {
 
 GeneralSettings &generalSettings()
 {
@@ -86,263 +71,15 @@ GeneralSettings::GeneralSettings()
 
     resetToDefaults.m_buttonText = TrConstants::RESET_TO_DEFAULTS;
     checkUpdate.m_buttonText = TrConstants::CHECK_UPDATE;
-    
-    ccPresetConfig.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
-    ccPresetConfig.setLabelText(Tr::tr("Quick Setup"));
-    loadPresetConfigurations(ccPresetConfig, ConfigurationType::CodeCompletion);
-    
-    ccConfigureApiKey.m_buttonText = Tr::tr("Configure API Key");
-    ccConfigureApiKey.m_tooltip = Tr::tr("Open Provider Settings to configure API keys");
-    
-    caPresetConfig.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
-    caPresetConfig.setLabelText(Tr::tr("Quick Setup"));
-    loadPresetConfigurations(caPresetConfig, ConfigurationType::Chat);
-    
-    caConfigureApiKey.m_buttonText = Tr::tr("Configure API Key");
-    caConfigureApiKey.m_tooltip = Tr::tr("Open Provider Settings to configure API keys");
-    
-    qrPresetConfig.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
-    qrPresetConfig.setLabelText(Tr::tr("Quick Setup"));
-    loadPresetConfigurations(qrPresetConfig, ConfigurationType::QuickRefactor);
-    
-    qrConfigureApiKey.m_buttonText = Tr::tr("Configure API Key");
-    qrConfigureApiKey.m_tooltip = Tr::tr("Open Provider Settings to configure API keys");
-
-    initStringAspect(ccProvider, Constants::CC_PROVIDER, TrConstants::PROVIDER, "Ollama (Native)");
-    ccProvider.setReadOnly(true);
-    ccSelectProvider.m_buttonText = TrConstants::SELECT;
-
-    initStringAspect(ccModel, Constants::CC_MODEL, TrConstants::MODEL, "qwen2.5-coder:7b");
-    ccModel.setHistoryCompleter(Constants::CC_MODEL_HISTORY);
-    ccSelectModel.m_buttonText = TrConstants::SELECT;
-
-    initStringAspect(ccTemplate, Constants::CC_TEMPLATE, TrConstants::TEMPLATE, "Ollama FIM");
-    ccTemplate.setReadOnly(true);
-    ccSelectTemplate.m_buttonText = TrConstants::SELECT;
-
-    initStringAspect(ccUrl, Constants::CC_URL, TrConstants::URL, "http://localhost:11434");
-    ccUrl.setHistoryCompleter(Constants::CC_URL_HISTORY);
-    ccSetUrl.m_buttonText = TrConstants::SELECT;
-
-    initStringAspect(ccCustomEndpoint, Constants::CC_CUSTOM_ENDPOINT, TrConstants::CUSTOM_ENDPOINT, "");
-    ccCustomEndpoint.setHistoryCompleter(Constants::CC_CUSTOM_ENDPOINT_HISTORY);
-
-    ccStatus.setDisplayStyle(Utils::StringAspect::LabelDisplay);
-    ccStatus.setLabelText(TrConstants::STATUS);
-    ccStatus.setDefaultValue("");
-    ccTest.m_buttonText = TrConstants::TEST;
-
-    ccTemplateDescription.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
-    ccTemplateDescription.setReadOnly(true);
-    ccTemplateDescription.setDefaultValue("");
-
-    ccSaveConfig.m_buttonText = TrConstants::SAVE_CONFIG;
-    ccLoadConfig.m_buttonText = TrConstants::LOAD_CONFIG;
-    ccLoadConfig.m_tooltip = Tr::tr("Load configuration (includes predefined cloud models)");
-    ccOpenConfigFolder.m_buttonText = TrConstants::OPEN_CONFIG_FOLDER;
-    ccOpenConfigFolder.m_icon = Utils::Icons::OPENFILE.icon();
-    ccOpenConfigFolder.m_isCompact = true;
-
-    // preset1
-    specifyPreset1.setSettingsKey(Constants::CC_SPECIFY_PRESET1);
-    specifyPreset1.setLabelText(TrConstants::ADD_NEW_PRESET);
-    specifyPreset1.setDefaultValue(false);
-
-    preset1Language.setSettingsKey(Constants::CC_PRESET1_LANGUAGE);
-    preset1Language.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
-    // see ProgrammingLanguageUtils
-    preset1Language.addOption("qml");
-    preset1Language.addOption("c/c++");
-    preset1Language.addOption("python");
-
-    initStringAspect(
-        ccPreset1Provider,
-        Constants::CC_PRESET1_PROVIDER,
-        TrConstants::PROVIDER,
-        "Ollama (Native)");
-    ccPreset1Provider.setReadOnly(true);
-    ccPreset1SelectProvider.m_buttonText = TrConstants::SELECT;
-
-    initStringAspect(
-        ccPreset1Url, Constants::CC_PRESET1_URL, TrConstants::URL, "http://localhost:11434");
-    ccPreset1Url.setHistoryCompleter(Constants::CC_PRESET1_URL_HISTORY);
-    ccPreset1SetUrl.m_buttonText = TrConstants::SELECT;
-
-    initStringAspect(
-        ccPreset1CustomEndpoint,
-        Constants::CC_PRESET1_CUSTOM_ENDPOINT,
-        TrConstants::CUSTOM_ENDPOINT,
-        "");
-    ccPreset1CustomEndpoint.setHistoryCompleter(Constants::CC_PRESET1_CUSTOM_ENDPOINT_HISTORY);
-
-    initStringAspect(
-        ccPreset1Model, Constants::CC_PRESET1_MODEL, TrConstants::MODEL, "qwen2.5-coder:7b");
-    ccPreset1Model.setHistoryCompleter(Constants::CC_PRESET1_MODEL_HISTORY);
-    ccPreset1SelectModel.m_buttonText = TrConstants::SELECT;
-
-    initStringAspect(
-        ccPreset1Template, Constants::CC_PRESET1_TEMPLATE, TrConstants::TEMPLATE, "Ollama FIM");
-    ccPreset1Template.setReadOnly(true);
-    ccPreset1SelectTemplate.m_buttonText = TrConstants::SELECT;
-
-    // chat assistance
-    initStringAspect(caProvider, Constants::CA_PROVIDER, TrConstants::PROVIDER, "Ollama (Native)");
-    caProvider.setReadOnly(true);
-    caSelectProvider.m_buttonText = TrConstants::SELECT;
-
-    initStringAspect(caModel, Constants::CA_MODEL, TrConstants::MODEL, "qwen3.5:9b");
-    caModel.setHistoryCompleter(Constants::CA_MODEL_HISTORY);
-    caSelectModel.m_buttonText = TrConstants::SELECT;
-
-    initStringAspect(caTemplate, Constants::CA_TEMPLATE, TrConstants::TEMPLATE, "Ollama Chat");
-    caTemplate.setReadOnly(true);
-
-    caSelectTemplate.m_buttonText = TrConstants::SELECT;
-
-    initStringAspect(caUrl, Constants::CA_URL, TrConstants::URL, "http://localhost:11434");
-    caUrl.setHistoryCompleter(Constants::CA_URL_HISTORY);
-    caSetUrl.m_buttonText = TrConstants::SELECT;
-
-    initStringAspect(caCustomEndpoint, Constants::CA_CUSTOM_ENDPOINT, TrConstants::CUSTOM_ENDPOINT, "");
-    caCustomEndpoint.setHistoryCompleter(Constants::CA_CUSTOM_ENDPOINT_HISTORY);
-
-    caStatus.setDisplayStyle(Utils::StringAspect::LabelDisplay);
-    caStatus.setLabelText(TrConstants::STATUS);
-    caStatus.setDefaultValue("");
-    caTest.m_buttonText = TrConstants::TEST;
-
-    caTemplateDescription.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
-    caTemplateDescription.setReadOnly(true);
-    caTemplateDescription.setDefaultValue("");
-
-    caSaveConfig.m_buttonText = TrConstants::SAVE_CONFIG;
-    caLoadConfig.m_buttonText = TrConstants::LOAD_CONFIG;
-    caLoadConfig.m_tooltip = Tr::tr("Load configuration (includes predefined cloud models)");
-    caOpenConfigFolder.m_buttonText = TrConstants::OPEN_CONFIG_FOLDER;
-    caOpenConfigFolder.m_icon = Utils::Icons::OPENFILE.icon();
-    caOpenConfigFolder.m_isCompact = true;
-
-    // quick refactor settings
-    initStringAspect(qrProvider, Constants::QR_PROVIDER, TrConstants::PROVIDER, "Ollama (Native)");
-    qrProvider.setReadOnly(true);
-    qrSelectProvider.m_buttonText = TrConstants::SELECT;
-
-    initStringAspect(qrModel, Constants::QR_MODEL, TrConstants::MODEL, "qwen3.5:9b");
-    qrModel.setHistoryCompleter(Constants::QR_MODEL_HISTORY);
-    qrSelectModel.m_buttonText = TrConstants::SELECT;
-
-    initStringAspect(qrTemplate, Constants::QR_TEMPLATE, TrConstants::TEMPLATE, "Ollama Chat");
-    qrTemplate.setReadOnly(true);
-
-    qrSelectTemplate.m_buttonText = TrConstants::SELECT;
-
-    initStringAspect(qrUrl, Constants::QR_URL, TrConstants::URL, "http://localhost:11434");
-    qrUrl.setHistoryCompleter(Constants::QR_URL_HISTORY);
-    qrSetUrl.m_buttonText = TrConstants::SELECT;
-
-    initStringAspect(qrCustomEndpoint, Constants::QR_CUSTOM_ENDPOINT, TrConstants::CUSTOM_ENDPOINT, "");
-    qrCustomEndpoint.setHistoryCompleter(Constants::QR_CUSTOM_ENDPOINT_HISTORY);
-
-    qrStatus.setDisplayStyle(Utils::StringAspect::LabelDisplay);
-    qrStatus.setLabelText(TrConstants::STATUS);
-    qrStatus.setDefaultValue("");
-    qrTest.m_buttonText = TrConstants::TEST;
-
-    qrTemplateDescription.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
-    qrTemplateDescription.setReadOnly(true);
-    qrTemplateDescription.setDefaultValue("");
-
-    qrSaveConfig.m_buttonText = TrConstants::SAVE_CONFIG;
-    qrLoadConfig.m_buttonText = TrConstants::LOAD_CONFIG;
-    qrLoadConfig.m_tooltip = Tr::tr("Load configuration (includes predefined cloud models)");
-    qrOpenConfigFolder.m_buttonText = TrConstants::OPEN_CONFIG_FOLDER;
-    qrOpenConfigFolder.m_icon = Utils::Icons::OPENFILE.icon();
-    qrOpenConfigFolder.m_isCompact = true;
-
-    ccShowTemplateInfo.m_icon = Utils::Icons::INFO.icon();
-    ccShowTemplateInfo.m_tooltip = Tr::tr("Show template information");
-    ccShowTemplateInfo.m_isCompact = true;
-
-    caShowTemplateInfo.m_icon = Utils::Icons::INFO.icon();
-    caShowTemplateInfo.m_tooltip = Tr::tr("Show template information");
-    caShowTemplateInfo.m_isCompact = true;
-
-    qrShowTemplateInfo.m_icon = Utils::Icons::INFO.icon();
-    qrShowTemplateInfo.m_tooltip = Tr::tr("Show template information");
-    qrShowTemplateInfo.m_isCompact = true;
 
     readSettings();
-
-    auto migrateProviderAspect = [](Utils::StringAspect &aspect) {
-        const QString migrated = migrateProviderName(aspect.value());
-        if (migrated != aspect.value())
-            aspect.setValue(migrated);
-    };
-    migrateProviderAspect(ccProvider);
-    migrateProviderAspect(ccPreset1Provider);
-    migrateProviderAspect(caProvider);
-    migrateProviderAspect(qrProvider);
-    writeSettings();
 
     Logger::instance().setLoggingEnabled(enableLogging());
 
     setupConnections();
 
-    updatePreset1Visiblity(specifyPreset1.value());
-
     setLayouter([this]() {
         using namespace Layouting;
-
-        auto ccGrid = Grid{};
-        ccGrid.addRow({ccProvider, ccSelectProvider});
-        ccGrid.addRow({ccUrl, ccSetUrl});
-        ccGrid.addRow({ccCustomEndpoint});
-        ccGrid.addRow({ccModel, ccSelectModel});
-        ccGrid.addRow({ccTemplate, ccSelectTemplate, ccShowTemplateInfo});
-
-        auto ccPreset1Grid = Grid{};
-        ccPreset1Grid.addRow({ccPreset1Provider, ccPreset1SelectProvider});
-        ccPreset1Grid.addRow({ccPreset1Url, ccPreset1SetUrl});
-        ccPreset1Grid.addRow({ccPreset1CustomEndpoint});
-        ccPreset1Grid.addRow({ccPreset1Model, ccPreset1SelectModel});
-        ccPreset1Grid.addRow({ccPreset1Template, ccPreset1SelectTemplate});
-
-        auto caGrid = Grid{};
-        caGrid.addRow({caProvider, caSelectProvider});
-        caGrid.addRow({caUrl, caSetUrl});
-        caGrid.addRow({caCustomEndpoint});
-        caGrid.addRow({caModel, caSelectModel});
-        caGrid.addRow({caTemplate, caSelectTemplate, caShowTemplateInfo});
-
-        auto qrGrid = Grid{};
-        qrGrid.addRow({qrProvider, qrSelectProvider});
-        qrGrid.addRow({qrUrl, qrSetUrl});
-        qrGrid.addRow({qrCustomEndpoint});
-        qrGrid.addRow({qrModel, qrSelectModel});
-        qrGrid.addRow({qrTemplate, qrSelectTemplate, qrShowTemplateInfo});
-
-        auto ccGroup = Group{
-            title(TrConstants::CODE_COMPLETION),
-            Column{
-                Row{ccSaveConfig, ccLoadConfig, ccOpenConfigFolder, Stretch{1}},
-                Row{ccPresetConfig, ccConfigureApiKey, Stretch{1}},
-                ccGrid,
-                Row{specifyPreset1, preset1Language, Stretch{1}},
-                ccPreset1Grid}};
-
-        auto caGroup = Group{
-            title(TrConstants::CHAT_ASSISTANT),
-            Column{
-                Row{caSaveConfig, caLoadConfig, caOpenConfigFolder, Stretch{1}},
-                Row{caPresetConfig, caConfigureApiKey, Stretch{1}},
-                caGrid}};
-
-        auto qrGroup = Group{
-            title(TrConstants::QUICK_REFACTOR),
-            Column{
-                Row{qrSaveConfig, qrLoadConfig, qrOpenConfigFolder, Stretch{1}},
-                Row{qrPresetConfig, qrConfigureApiKey, Stretch{1}},
-                qrGrid}};
 
         auto networkGroup = Group{
             title(Tr::tr("Network")),
@@ -362,231 +99,16 @@ GeneralSettings::GeneralSettings()
         supportLinks->setOpenExternalLinks(true);
         supportLinks->setTextFormat(Qt::RichText);
 
-        auto rootLayout = Column{
-            Row{supportLabel, supportLinks, Stretch{1}, checkUpdate, resetToDefaults},
+        return Column{
+            Row{supportLabel, supportLinks, Stretch{1}},
             Space{8},
             Row{enableQodeAssist, Stretch{1}},
             Row{enableLogging, Stretch{1}},
             Row{enableCheckUpdate, Stretch{1}},
             Space{8},
             networkGroup,
-            Space{8},
-            ccGroup,
-            Space{8},
-            caGroup,
-            Space{8},
-            qrGroup,
             Stretch{1}};
-
-        return rootLayout;
     });
-}
-
-void GeneralSettings::showSelectionDialog(
-    const QStringList &data, Utils::StringAspect &aspect, const QString &title, const QString &text)
-{
-    if (data.isEmpty())
-        return;
-
-    bool ok;
-    QInputDialog dialog(Core::ICore::dialogParent());
-    dialog.setWindowTitle(title);
-    dialog.setLabelText(text);
-    dialog.setComboBoxItems(data);
-    dialog.setComboBoxEditable(false);
-    dialog.setFixedSize(400, 150);
-
-    if (dialog.exec() == QDialog::Accepted) {
-        QString result = dialog.textValue();
-        if (!result.isEmpty()) {
-            aspect.setValue(result);
-            writeSettings();
-        }
-    }
-}
-
-void GeneralSettings::showModelsNotFoundDialog(Utils::StringAspect &aspect)
-{
-    SettingsDialog dialog(TrConstants::CONNECTION_ERROR);
-    dialog.addLabel(TrConstants::NO_MODELS_FOUND);
-    dialog.addLabel(TrConstants::CHECK_CONNECTION);
-    dialog.addSpacing();
-
-    ButtonAspect *providerButton = nullptr;
-    ButtonAspect *urlButton = nullptr;
-
-    if (&aspect == &ccModel) {
-        providerButton = &ccSelectProvider;
-        urlButton = &ccSetUrl;
-    } else if (&aspect == &caModel) {
-        providerButton = &caSelectProvider;
-        urlButton = &caSetUrl;
-    } else if (&aspect == &qrModel) {
-        providerButton = &qrSelectProvider;
-        urlButton = &qrSetUrl;
-    }
-
-    if (providerButton && urlButton) {
-        auto selectProviderBtn = new QPushButton(TrConstants::SELECT_PROVIDER);
-        auto selectUrlBtn = new QPushButton(TrConstants::SELECT_URL);
-        auto enterManuallyBtn = new QPushButton(TrConstants::ENTER_MODEL_MANUALLY);
-        auto configureApiKeyBtn = new QPushButton(TrConstants::CONFIGURE_API_KEY);
-
-        connect(selectProviderBtn, &QPushButton::clicked, &dialog, [this, providerButton, &dialog]() {
-            dialog.close();
-            emit providerButton->clicked();
-        });
-
-        connect(selectUrlBtn, &QPushButton::clicked, &dialog, [this, urlButton, &dialog]() {
-            dialog.close();
-            emit urlButton->clicked();
-        });
-
-        connect(enterManuallyBtn, &QPushButton::clicked, &dialog, [this, &aspect, &dialog]() {
-            dialog.close();
-            showModelsNotSupportedDialog(aspect);
-        });
-
-        connect(configureApiKeyBtn, &QPushButton::clicked, &dialog, [&dialog]() {
-            dialog.close();
-            Settings::showSettings(Constants::QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID);
-        });
-
-        dialog.buttonLayout()->addWidget(selectProviderBtn);
-        dialog.buttonLayout()->addWidget(selectUrlBtn);
-        dialog.buttonLayout()->addWidget(enterManuallyBtn);
-        dialog.buttonLayout()->addWidget(configureApiKeyBtn);
-    }
-
-    auto closeBtn = new QPushButton(TrConstants::CLOSE);
-    connect(closeBtn, &QPushButton::clicked, &dialog, &QDialog::close);
-    dialog.buttonLayout()->addWidget(closeBtn);
-
-    dialog.exec();
-}
-
-void GeneralSettings::showModelsNotSupportedDialog(Utils::StringAspect &aspect)
-{
-    SettingsDialog dialog(TrConstants::MODEL_SELECTION);
-    dialog.addLabel(TrConstants::MODEL_LISTING_NOT_SUPPORTED_INFO);
-    dialog.addSpacing();
-
-    QString key = QString("CompleterHistory/")
-                      .append(
-                          (&aspect == &ccModel)   ? Constants::CC_MODEL_HISTORY
-                          : (&aspect == &caModel) ? Constants::CA_MODEL_HISTORY
-                                                  : Constants::QR_MODEL_HISTORY);
-#if QODEASSIST_QT_CREATOR_VERSION >= QT_VERSION_CHECK(18, 0, 0)
-    QStringList historyList
-        = Utils::QtcSettings().value(Utils::Key(key.toLocal8Bit())).toStringList();
-#else
-    QStringList historyList = qtcSettings()->value(Utils::Key(key.toLocal8Bit())).toStringList();
-#endif
-
-    auto modelList = dialog.addComboBox(historyList, aspect.value());
-    dialog.addSpacing();
-
-    auto okButton = new QPushButton(TrConstants::OK);
-    connect(okButton, &QPushButton::clicked, &dialog, [this, &aspect, modelList, &dialog]() {
-        QString value = modelList->currentText().trimmed();
-        if (!value.isEmpty()) {
-            aspect.setValue(value);
-            writeSettings();
-            dialog.accept();
-        }
-    });
-
-    auto cancelButton = new QPushButton(TrConstants::CANCEL);
-    connect(cancelButton, &QPushButton::clicked, &dialog, &QDialog::reject);
-
-    addDialogButtons(dialog.buttonLayout(), okButton, cancelButton);
-
-    modelList->setFocus();
-    dialog.exec();
-}
-
-void GeneralSettings::showUrlSelectionDialog(
-    Utils::StringAspect &aspect, const QStringList &predefinedUrls)
-{
-    SettingsDialog dialog(TrConstants::URL_SELECTION);
-    dialog.addLabel(TrConstants::URL_SELECTION_INFO);
-    dialog.addSpacing();
-
-    QStringList allUrls = predefinedUrls;
-    QString key = QString("CompleterHistory/")
-                      .append(
-                          (&aspect == &ccUrl)          ? Constants::CC_URL_HISTORY
-                          : (&aspect == &ccPreset1Url) ? Constants::CC_PRESET1_URL_HISTORY
-                          : (&aspect == &caUrl)        ? Constants::CA_URL_HISTORY
-                                                       : Constants::QR_URL_HISTORY);
-#if QODEASSIST_QT_CREATOR_VERSION >= QT_VERSION_CHECK(18, 0, 0)
-    QStringList historyList
-        = Utils::QtcSettings().value(Utils::Key(key.toLocal8Bit())).toStringList();
-#else
-    QStringList historyList = qtcSettings()->value(Utils::Key(key.toLocal8Bit())).toStringList();
-#endif
-    allUrls.append(historyList);
-    allUrls.removeDuplicates();
-
-    auto urlList = dialog.addComboBox(allUrls, aspect.value());
-    dialog.addSpacing();
-
-    auto okButton = new QPushButton(TrConstants::OK);
-    connect(okButton, &QPushButton::clicked, &dialog, [this, &aspect, urlList, &dialog]() {
-        QString value = urlList->currentText().trimmed();
-        if (!value.isEmpty()) {
-            aspect.setValue(value);
-            writeSettings();
-            dialog.accept();
-        }
-    });
-
-    auto cancelButton = new QPushButton(TrConstants::CANCEL);
-    connect(cancelButton, &QPushButton::clicked, &dialog, &QDialog::reject);
-
-    addDialogButtons(dialog.buttonLayout(), okButton, cancelButton);
-
-    urlList->setFocus();
-    dialog.exec();
-}
-
-void GeneralSettings::showTemplateInfoDialog(
-    const Utils::StringAspect &descriptionAspect, const QString &templateName)
-{
-    SettingsDialog dialog(Tr::tr("Template Information"));
-    dialog.addLabel(QString("<b>%1:</b> %2").arg(Tr::tr("Template"), templateName));
-    dialog.addSpacing();
-
-    auto *descriptionLabel = new QLabel(Tr::tr("Description:"));
-    dialog.layout()->addWidget(descriptionLabel);
-
-    auto *textEdit = new QTextEdit();
-    textEdit->setReadOnly(true);
-    textEdit->setMinimumHeight(200);
-    textEdit->setMinimumWidth(500);
-    textEdit->setText(descriptionAspect.value());
-    dialog.layout()->addWidget(textEdit);
-
-    dialog.addSpacing();
-
-    auto *closeButton = new QPushButton(TrConstants::CLOSE);
-    connect(closeButton, &QPushButton::clicked, &dialog, &QDialog::accept);
-    dialog.buttonLayout()->addWidget(closeButton);
-
-    dialog.exec();
-}
-
-void GeneralSettings::updatePreset1Visiblity(bool state)
-{
-    ccPreset1Provider.setVisible(specifyPreset1.volatileValue());
-    ccPreset1SelectProvider.updateVisibility(specifyPreset1.volatileValue());
-    ccPreset1Url.setVisible(specifyPreset1.volatileValue());
-    ccPreset1SetUrl.updateVisibility(specifyPreset1.volatileValue());
-    ccPreset1Model.setVisible(specifyPreset1.volatileValue());
-    ccPreset1SelectModel.updateVisibility(specifyPreset1.volatileValue());
-    ccPreset1Template.setVisible(specifyPreset1.volatileValue());
-    ccPreset1SelectTemplate.updateVisibility(specifyPreset1.volatileValue());
-    ccPreset1CustomEndpoint.setVisible(specifyPreset1.volatileValue());
 }
 
 void GeneralSettings::setupConnections()
@@ -598,96 +120,11 @@ void GeneralSettings::setupConnections()
     connect(&checkUpdate, &ButtonAspect::clicked, this, [this]() {
         QodeAssist::UpdateDialog::checkForUpdatesAndShow(Core::ICore::dialogParent());
     });
-    
-    connect(&ccPresetConfig, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
-        applyPresetConfiguration(ccPresetConfig.volatileValue(), ConfigurationType::CodeCompletion);
-        ccPresetConfig.setValue(0);
-    });
-    
-    connect(&ccConfigureApiKey, &ButtonAspect::clicked, this, []() {
-        Settings::showSettings(Constants::QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID);
-    });
-    
-    connect(&caPresetConfig, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
-        applyPresetConfiguration(caPresetConfig.volatileValue(), ConfigurationType::Chat);
-        caPresetConfig.setValue(0);
-    });
-    
-    connect(&caConfigureApiKey, &ButtonAspect::clicked, this, []() {
-        Settings::showSettings(Constants::QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID);
-    });
-    
-    connect(&qrPresetConfig, &Utils::SelectionAspect::volatileValueChanged, this, [this]() {
-        applyPresetConfiguration(qrPresetConfig.volatileValue(), ConfigurationType::QuickRefactor);
-        qrPresetConfig.setValue(0);
-    });
-    
-    connect(&qrConfigureApiKey, &ButtonAspect::clicked, this, []() {
-        Settings::showSettings(Constants::QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID);
-    });
-
-    connect(&specifyPreset1, &Utils::BoolAspect::volatileValueChanged, this, [this]() {
-        updatePreset1Visiblity(specifyPreset1.volatileValue());
-    });
-    connect(&ccShowTemplateInfo, &ButtonAspect::clicked, this, [this]() {
-        showTemplateInfoDialog(ccTemplateDescription, ccTemplate.value());
-    });
-
-    connect(&caShowTemplateInfo, &ButtonAspect::clicked, this, [this]() {
-        showTemplateInfoDialog(caTemplateDescription, caTemplate.value());
-    });
-
-    connect(&qrShowTemplateInfo, &ButtonAspect::clicked, this, [this]() {
-        showTemplateInfoDialog(qrTemplateDescription, qrTemplate.value());
-    });
-
-    connect(&ccSaveConfig, &ButtonAspect::clicked, this, [this]() { onSaveConfiguration("cc"); });
-    connect(&ccLoadConfig, &ButtonAspect::clicked, this, [this]() { onLoadConfiguration("cc"); });
-
-    connect(&caSaveConfig, &ButtonAspect::clicked, this, [this]() { onSaveConfiguration("ca"); });
-    connect(&caLoadConfig, &ButtonAspect::clicked, this, [this]() { onLoadConfiguration("ca"); });
-
-    connect(&qrSaveConfig, &ButtonAspect::clicked, this, [this]() { onSaveConfiguration("qr"); });
-    connect(&qrLoadConfig, &ButtonAspect::clicked, this, [this]() { onLoadConfiguration("qr"); });
-
-    connect(&ccOpenConfigFolder, &ButtonAspect::clicked, this, [this]() {
-        auto &manager = ConfigurationManager::instance();
-        QString path = manager.getConfigurationDirectory(ConfigurationType::CodeCompletion);
-        QDir dir(path);
-        if (!dir.exists()) {
-            dir.mkpath(".");
-        }
-        QUrl url = QUrl::fromLocalFile(dir.absolutePath());
-        QDesktopServices::openUrl(url);
-    });
-
-    connect(&caOpenConfigFolder, &ButtonAspect::clicked, this, [this]() {
-        auto &manager = ConfigurationManager::instance();
-        QString path = manager.getConfigurationDirectory(ConfigurationType::Chat);
-        QDir dir(path);
-        if (!dir.exists()) {
-            dir.mkpath(".");
-        }
-        QUrl url = QUrl::fromLocalFile(dir.absolutePath());
-        QDesktopServices::openUrl(url);
-    });
-
-    connect(&qrOpenConfigFolder, &ButtonAspect::clicked, this, [this]() {
-        auto &manager = ConfigurationManager::instance();
-        QString path = manager.getConfigurationDirectory(ConfigurationType::QuickRefactor);
-        QDir dir(path);
-        if (!dir.exists()) {
-            dir.mkpath(".");
-        }
-        QUrl url = QUrl::fromLocalFile(dir.absolutePath());
-        QDesktopServices::openUrl(url);
-    });
 }
 
 void GeneralSettings::resetPageToDefaults()
 {
-    QMessageBox::StandardButton reply;
-    reply = QMessageBox::question(
+    const QMessageBox::StandardButton reply = QMessageBox::question(
         Core::ICore::dialogParent(),
         TrConstants::RESET_SETTINGS,
         TrConstants::CONFIRMATION,
@@ -697,302 +134,9 @@ void GeneralSettings::resetPageToDefaults()
         resetAspect(enableQodeAssist);
         resetAspect(enableLogging);
         resetAspect(requestTimeout);
-        resetAspect(ccProvider);
-        resetAspect(ccModel);
-        resetAspect(ccTemplate);
-        resetAspect(ccUrl);
-        resetAspect(caProvider);
-        resetAspect(caModel);
-        resetAspect(caTemplate);
-        resetAspect(caUrl);
         resetAspect(enableCheckUpdate);
-        resetAspect(specifyPreset1);
-        resetAspect(preset1Language);
-        resetAspect(ccPreset1Provider);
-        resetAspect(ccPreset1Model);
-        resetAspect(ccPreset1Template);
-        resetAspect(ccPreset1Url);
-        resetAspect(ccCustomEndpoint);
-        resetAspect(ccPreset1CustomEndpoint);
-        resetAspect(caCustomEndpoint);
-        resetAspect(qrProvider);
-        resetAspect(qrModel);
-        resetAspect(qrTemplate);
-        resetAspect(qrUrl);
-        resetAspect(qrCustomEndpoint);
         writeSettings();
     }
-}
-
-void GeneralSettings::onSaveConfiguration(const QString &prefix)
-{
-    bool ok;
-    QString configName = QInputDialog::getText(
-        Core::ICore::dialogParent(),
-        TrConstants::SAVE_CONFIGURATION,
-        TrConstants::CONFIGURATION_NAME,
-        QLineEdit::Normal,
-        QString(),
-        &ok);
-
-    if (!ok || configName.trimmed().isEmpty()) {
-        return;
-    }
-
-    AIConfiguration config;
-    config.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    config.name = configName.trimmed();
-
-    if (prefix == "cc") {
-        config.provider = ccProvider.value();
-        config.model = ccModel.value();
-        config.templateName = ccTemplate.value();
-        config.url = ccUrl.value();
-        config.customEndpoint = ccCustomEndpoint.value();
-        config.type = ConfigurationType::CodeCompletion;
-    } else if (prefix == "ca") {
-        config.provider = caProvider.value();
-        config.model = caModel.value();
-        config.templateName = caTemplate.value();
-        config.url = caUrl.value();
-        config.customEndpoint = caCustomEndpoint.value();
-        config.type = ConfigurationType::Chat;
-    } else if (prefix == "qr") {
-        config.provider = qrProvider.value();
-        config.model = qrModel.value();
-        config.templateName = qrTemplate.value();
-        config.url = qrUrl.value();
-        config.customEndpoint = qrCustomEndpoint.value();
-        config.type = ConfigurationType::QuickRefactor;
-    }
-
-    auto &manager = ConfigurationManager::instance();
-    if (manager.saveConfiguration(config)) {
-        QMessageBox::information(
-            Core::ICore::dialogParent(),
-            TrConstants::SAVE_CONFIGURATION,
-            TrConstants::CONFIGURATION_SAVED);
-    } else {
-        QMessageBox::warning(
-            Core::ICore::dialogParent(),
-            TrConstants::SAVE_CONFIGURATION,
-            Tr::tr("Failed to save configuration. Check logs for details."));
-    }
-}
-
-void GeneralSettings::onLoadConfiguration(const QString &prefix)
-{
-    ConfigurationType type;
-    if (prefix == "cc") {
-        type = ConfigurationType::CodeCompletion;
-    } else if (prefix == "ca") {
-        type = ConfigurationType::Chat;
-    } else if (prefix == "qr") {
-        type = ConfigurationType::QuickRefactor;
-    } else {
-        return;
-    }
-
-    auto &manager = ConfigurationManager::instance();
-    manager.loadConfigurations(type);
-
-    QVector<AIConfiguration> configs = manager.configurations(type);
-    if (configs.isEmpty()) {
-        QMessageBox::information(
-            Core::ICore::dialogParent(),
-            TrConstants::LOAD_CONFIGURATION,
-            TrConstants::NO_CONFIGURATIONS_FOUND);
-        return;
-    }
-
-    SettingsDialog dialog(TrConstants::LOAD_CONFIGURATION);
-    dialog.addLabel(TrConstants::SELECT_CONFIGURATION);
-    
-    int predefinedCount = 0;
-    for (const AIConfiguration &config : configs) {
-        if (config.isPredefined) {
-            predefinedCount++;
-        }
-    }
-    
-    if (predefinedCount > 0) {
-        auto *hintLabel = dialog.addLabel(
-            Tr::tr("[Preset] configurations are predefined cloud models ready to use."));
-        QFont hintFont = hintLabel->font();
-        hintFont.setItalic(true);
-        hintFont.setPointSize(hintFont.pointSize() - 1);
-        hintLabel->setFont(hintFont);
-        hintLabel->setStyleSheet("color: gray;");
-    }
-    
-    dialog.addSpacing();
-
-    QStringList configNames;
-    for (const AIConfiguration &config : configs) {
-        QString displayName = config.name;
-        if (config.isPredefined) {
-            displayName = QString("[Preset] %1").arg(config.name);
-        }
-        configNames.append(displayName);
-    }
-
-    auto configList = dialog.addComboBox(configNames, QString());
-    dialog.addSpacing();
-
-    auto *deleteButton = new QPushButton(TrConstants::DELETE_CONFIGURATION);
-    auto *okButton = new QPushButton(TrConstants::OK);
-    auto *cancelButton = new QPushButton(TrConstants::CANCEL);
-
-    auto updateDeleteButtonState = [&]() {
-        int currentIndex = configList->currentIndex();
-        if (currentIndex >= 0 && currentIndex < configs.size()) {
-            deleteButton->setEnabled(!configs[currentIndex].isPredefined);
-        }
-    };
-
-    connect(configList,
-            QOverload<int>::of(&QComboBox::currentIndexChanged),
-            updateDeleteButtonState);
-
-    updateDeleteButtonState();
-
-    connect(deleteButton, &QPushButton::clicked, &dialog, [&]() {
-        int currentIndex = configList->currentIndex();
-        if (currentIndex >= 0 && currentIndex < configs.size()) {
-            const AIConfiguration &configToDelete = configs[currentIndex];
-            if (configToDelete.isPredefined) {
-                QMessageBox::information(
-                    &dialog,
-                    TrConstants::DELETE_CONFIGURATION,
-                    Tr::tr("Predefined configurations cannot be deleted."));
-                return;
-            }
-
-            QMessageBox::StandardButton reply = QMessageBox::question(
-                &dialog,
-                TrConstants::DELETE_CONFIGURATION,
-                TrConstants::CONFIRM_DELETE_CONFIG,
-                QMessageBox::Yes | QMessageBox::No);
-
-            if (reply == QMessageBox::Yes) {
-                if (manager.deleteConfiguration(configToDelete.id, type)) {
-                    dialog.accept();
-                    onLoadConfiguration(prefix);
-                } else {
-                    QMessageBox::warning(
-                        &dialog,
-                        TrConstants::DELETE_CONFIGURATION,
-                        Tr::tr("Failed to delete configuration."));
-                }
-            }
-        }
-    });
-
-    connect(okButton, &QPushButton::clicked, &dialog, [&]() {
-        int currentIndex = configList->currentIndex();
-        if (currentIndex >= 0 && currentIndex < configs.size()) {
-            const AIConfiguration &config = configs[currentIndex];
-
-            if (prefix == "cc") {
-                ccProvider.setValue(config.provider);
-                ccModel.setValue(config.model);
-                ccTemplate.setValue(config.templateName);
-                ccUrl.setValue(config.url);
-                ccCustomEndpoint.setValue(config.customEndpoint);
-            } else if (prefix == "ca") {
-                caProvider.setValue(config.provider);
-                caModel.setValue(config.model);
-                caTemplate.setValue(config.templateName);
-                caUrl.setValue(config.url);
-                caCustomEndpoint.setValue(config.customEndpoint);
-            } else if (prefix == "qr") {
-                qrProvider.setValue(config.provider);
-                qrModel.setValue(config.model);
-                qrTemplate.setValue(config.templateName);
-                qrUrl.setValue(config.url);
-                qrCustomEndpoint.setValue(config.customEndpoint);
-            }
-
-            writeSettings();
-            QMessageBox::information(
-                Core::ICore::dialogParent(),
-                TrConstants::LOAD_CONFIGURATION,
-                TrConstants::CONFIGURATION_LOADED);
-            dialog.accept();
-        }
-    });
-
-    connect(cancelButton, &QPushButton::clicked, &dialog, &QDialog::reject);
-
-    dialog.buttonLayout()->addWidget(deleteButton);
-    addDialogButtons(dialog.buttonLayout(), okButton, cancelButton);
-
-    configList->setFocus();
-    dialog.exec();
-}
-
-void GeneralSettings::loadPresetConfigurations(Utils::SelectionAspect &aspect,
-                                                ConfigurationType type)
-{
-    QVector<AIConfiguration> presets = ConfigurationManager::getPredefinedConfigurations(type);
-    
-    if (type == ConfigurationType::CodeCompletion) {
-        m_ccPresets = presets;
-    } else if (type == ConfigurationType::Chat) {
-        m_caPresets = presets;
-    } else if (type == ConfigurationType::QuickRefactor) {
-        m_qrPresets = presets;
-    }
-    
-    aspect.addOption(Tr::tr("-- Select Preset --"));
-    for (const AIConfiguration &config : presets) {
-        aspect.addOption(config.name);
-    }
-    aspect.setDefaultValue(0);
-}
-
-void GeneralSettings::applyPresetConfiguration(int index, ConfigurationType type)
-{
-    if (index <= 0) {
-        return;
-    }
-    
-    QVector<AIConfiguration> *presets = nullptr;
-    if (type == ConfigurationType::CodeCompletion) {
-        presets = &m_ccPresets;
-    } else if (type == ConfigurationType::Chat) {
-        presets = &m_caPresets;
-    } else if (type == ConfigurationType::QuickRefactor) {
-        presets = &m_qrPresets;
-    }
-    
-    if (!presets || index - 1 >= presets->size()) {
-        return;
-    }
-    
-    const AIConfiguration &config = presets->at(index - 1);
-    
-    if (type == ConfigurationType::CodeCompletion) {
-        ccProvider.setValue(config.provider);
-        ccModel.setValue(config.model);
-        ccTemplate.setValue(config.templateName);
-        ccUrl.setValue(config.url);
-        ccCustomEndpoint.setValue(config.customEndpoint);
-    } else if (type == ConfigurationType::Chat) {
-        caProvider.setValue(config.provider);
-        caModel.setValue(config.model);
-        caTemplate.setValue(config.templateName);
-        caUrl.setValue(config.url);
-        caCustomEndpoint.setValue(config.customEndpoint);
-    } else if (type == ConfigurationType::QuickRefactor) {
-        qrProvider.setValue(config.provider);
-        qrModel.setValue(config.model);
-        qrTemplate.setValue(config.templateName);
-        qrUrl.setValue(config.url);
-        qrCustomEndpoint.setValue(config.customEndpoint);
-    }
-    
-    writeSettings();
 }
 
 class GeneralSettingsPage : public Core::IOptionsPage
@@ -1012,6 +156,7 @@ public:
 };
 
 const GeneralSettingsPage generalSettingsPage;
+
 /*!
     \sa {Core::ICore::showOptionsDialog()}, {Core::ICore::showSettings()}
     \note This function was added to fix Qt Creator API broken changes in v19.0.0-beta2 version
@@ -1024,6 +169,7 @@ void showSettings(const Utils::Id page)
     Core::ICore::showOptionsDialog(page);
 #endif
 }
+
 /*!
     \sa {Core::ICore::showOptionsDialog()}, {Core::ICore::showSettings()}
     \note This function was added to fix Qt Creator API broken changes in v19.0.0-beta2 version
@@ -1037,4 +183,244 @@ void showSettings(const Utils::Id page, Utils::Id item)
 #endif
 }
 
+AgentPipelinesPageNavigator::AgentPipelinesPageNavigator(QObject *parent)
+    : QObject(parent)
+{}
+
+namespace {
+
+constexpr int kSaveDebounceMs = 300;
+
+struct SlotMeta
+{
+    const char *title;
+    const char *hint;
+};
+
+const SlotMeta kSlotMeta[] = {
+    {TrConstants::CODE_COMPLETION,  TrConstants::SLOT_HINT_CODE_COMPLETION},
+    {TrConstants::CHAT_ASSISTANT,   TrConstants::SLOT_HINT_CHAT_ASSISTANT},
+    {TrConstants::CHAT_COMPRESSION, TrConstants::SLOT_HINT_CHAT_COMPRESSION},
+    {TrConstants::QUICK_REFACTOR,   TrConstants::SLOT_HINT_QUICK_REFACTOR},
+};
+
+class AgentPipelinesPageWidget : public Core::IOptionsPageWidget
+{
+    Q_OBJECT
+    Q_DISABLE_COPY_MOVE(AgentPipelinesPageWidget)
+public:
+    AgentPipelinesPageWidget(
+        const QPointer<AgentFactory> &agentFactory,
+        const QPointer<AgentPipelinesPageNavigator> &navigator,
+        const QPointer<AgentsPageNavigator> &agentsNavigator)
+        : m_agentFactory(agentFactory)
+        , m_navigator(navigator)
+        , m_agentsNavigator(agentsNavigator)
+    {
+        m_titleLabel = new QLabel(Tr::tr(TrConstants::AGENT_PIPELINES), this);
+        QFont tf = m_titleLabel->font();
+        tf.setBold(true);
+        tf.setPixelSize(13);
+        m_titleLabel->setFont(tf);
+
+        m_resetBtn = new QPushButton(Tr::tr(TrConstants::RESET_TO_DEFAULTS), this);
+
+        auto *headerRow = new QHBoxLayout;
+        headerRow->setContentsMargins(0, 0, 0, 0);
+        headerRow->setSpacing(8);
+        headerRow->addWidget(m_titleLabel);
+        headerRow->addStretch(1);
+        headerRow->addWidget(m_resetBtn);
+
+        auto *headerSep = new QFrame(this);
+        headerSep->setFrameShape(QFrame::HLine);
+        headerSep->setFrameShadow(QFrame::Sunken);
+
+        m_rosters[0] = new AgentRosterWidget(this);
+        m_rosters[1] = new AgentRosterWidget(this);
+        m_rosters[2] = new AgentRosterWidget(this);
+        m_rosters[3] = new AgentRosterWidget(this);
+
+        for (int i = 0; i < kRosterCount; ++i)
+            m_rosters[i]->setSlot(Tr::tr(kSlotMeta[i].title), Tr::tr(kSlotMeta[i].hint), {});
+
+        auto *content = new QWidget(this);
+        auto *contentLay = new QVBoxLayout(content);
+        contentLay->setContentsMargins(0, 0, 0, 0);
+        contentLay->setSpacing(12);
+        for (int i = 0; i < kRosterCount; ++i)
+            contentLay->addWidget(m_rosters[i]);
+        contentLay->addStretch(1);
+
+        auto *scroll = new QScrollArea(this);
+        scroll->setWidgetResizable(true);
+        scroll->setFrameShape(QFrame::NoFrame);
+        scroll->setWidget(content);
+
+        auto *root = new QVBoxLayout(this);
+        root->setContentsMargins(8, 8, 8, 8);
+        root->setSpacing(6);
+        root->addLayout(headerRow);
+        root->addWidget(headerSep);
+        root->addWidget(scroll, 1);
+
+        m_saveDebounce = new QTimer(this);
+        m_saveDebounce->setSingleShot(true);
+        m_saveDebounce->setInterval(kSaveDebounceMs);
+        connect(m_saveDebounce, &QTimer::timeout, this, [this]() { persistRosters(); });
+
+        loadFromSettings();
+
+        connect(m_resetBtn, &QPushButton::clicked, this, &AgentPipelinesPageWidget::onReset);
+
+        for (int i = 0; i < kRosterCount; ++i) {
+            connect(m_rosters[i], &AgentRosterWidget::editAgentRequested, this,
+                    &AgentPipelinesPageWidget::onEditAgent);
+            connect(m_rosters[i], &AgentRosterWidget::rosterChanged, this,
+                    [this](const QStringList &) { m_saveDebounce->start(); });
+        }
+    }
+
+    ~AgentPipelinesPageWidget() override
+    {
+        if (m_saveDebounce && m_saveDebounce->isActive()) {
+            m_saveDebounce->stop();
+            persistRosters();
+        }
+    }
+
+    void apply() final
+    {
+        if (m_saveDebounce && m_saveDebounce->isActive())
+            m_saveDebounce->stop();
+        persistRosters();
+    }
+
+private:
+    static constexpr int kRosterCount = 4;
+
+    void persistRosters()
+    {
+        PipelineRosters rosters;
+        rosters.codeCompletion = m_rosters[0]->roster();
+        rosters.chatAssistant = m_rosters[1]->roster();
+        rosters.chatCompression = m_rosters[2]->roster();
+        rosters.quickRefactor = m_rosters[3]->roster();
+        QString err;
+        if (!PipelinesConfig::save(rosters, &err)) {
+            LOG_MESSAGE(QStringLiteral("[Pipelines] save failed (%1): %2")
+                            .arg(PipelinesConfig::filePath(), err));
+            if (!m_saveErrorShown) {
+                m_saveErrorShown = true;
+                QMessageBox::warning(
+                    Core::ICore::dialogParent(),
+                    Tr::tr(TrConstants::AGENT_PIPELINES),
+                    tr("Failed to save pipelines.toml:\n%1\n\n"
+                       "Further save failures will only be logged.")
+                        .arg(err));
+            }
+        } else {
+            m_saveErrorShown = false;
+        }
+    }
+
+    void onReset()
+    {
+        const auto reply = QMessageBox::question(
+            Core::ICore::dialogParent(),
+            Tr::tr(TrConstants::RESET_SETTINGS),
+            Tr::tr(TrConstants::CONFIRMATION),
+            QMessageBox::Yes | QMessageBox::No);
+
+        if (reply != QMessageBox::Yes)
+            return;
+
+        QString err;
+        if (!PipelinesConfig::save(PipelineRosters::defaults(), &err))
+            LOG_MESSAGE(QStringLiteral("[Pipelines] failed to reset rosters: %1").arg(err));
+
+        m_saveErrorShown = false;
+        loadFromSettings();
+    }
+
+    void onEditAgent(const QString &name)
+    {
+        if (m_agentsNavigator)
+            m_agentsNavigator->requestSelectAgent(name);
+        if (m_navigator)
+            emit m_navigator->editAgentRequested(name);
+
+#if QODEASSIST_QT_CREATOR_VERSION >= QT_VERSION_CHECK(18, 0, 83)
+        Core::ICore::showSettings(Constants::QODE_ASSIST_AGENTS_SETTINGS_PAGE_ID);
+#else
+        Core::ICore::showOptionsDialog(Constants::QODE_ASSIST_AGENTS_SETTINGS_PAGE_ID);
+#endif
+    }
+
+    void loadFromSettings()
+    {
+        const PipelinesLoadResult lr = PipelinesConfig::load();
+        if (lr.status == PipelinesLoadStatus::ParseError
+            || lr.status == PipelinesLoadStatus::SchemaError) {
+            QMessageBox::warning(
+                Core::ICore::dialogParent(),
+                Tr::tr(TrConstants::AGENT_PIPELINES),
+                tr("pipelines.toml has issues — using defaults for affected entries:\n%1\n\n"
+                   "Click OK to continue. Changes you make here will overwrite the file.")
+                    .arg(lr.message));
+        }
+
+        AgentFactory *factory = m_agentFactory.data();
+        m_rosters[0]->setRoster(lr.rosters.codeCompletion, factory);
+        m_rosters[1]->setRoster(lr.rosters.chatAssistant, factory);
+        m_rosters[2]->setRoster(lr.rosters.chatCompression, factory);
+        m_rosters[3]->setRoster(lr.rosters.quickRefactor, factory);
+    }
+
+    QPointer<AgentFactory> m_agentFactory;
+    QPointer<AgentPipelinesPageNavigator> m_navigator;
+    QPointer<AgentsPageNavigator> m_agentsNavigator;
+
+    QLabel *m_titleLabel = nullptr;
+    QPushButton *m_resetBtn = nullptr;
+
+    AgentRosterWidget *m_rosters[kRosterCount] = {};
+
+    QTimer *m_saveDebounce = nullptr;
+    bool m_saveErrorShown = false;
+};
+
+class AgentPipelinesOptionsPage final : public Core::IOptionsPage
+{
+public:
+    AgentPipelinesOptionsPage(
+        AgentFactory *agentFactory,
+        AgentPipelinesPageNavigator *navigator,
+        AgentsPageNavigator *agentsNavigator)
+    {
+        setId(Constants::QODE_ASSIST_AGENT_PIPELINES_PAGE_ID);
+        setDisplayName(Tr::tr(TrConstants::AGENT_PIPELINES));
+        setCategory(Constants::QODE_ASSIST_GENERAL_OPTIONS_CATEGORY);
+        const QPointer<AgentFactory> factoryPtr(agentFactory);
+        const QPointer<AgentPipelinesPageNavigator> navPtr(navigator);
+        const QPointer<AgentsPageNavigator> agentsNavPtr(agentsNavigator);
+        setWidgetCreator([factoryPtr, navPtr, agentsNavPtr] {
+            return new AgentPipelinesPageWidget(factoryPtr, navPtr, agentsNavPtr);
+        });
+    }
+};
+
+} // namespace
+
+std::unique_ptr<Core::IOptionsPage> createAgentPipelinesSettingsPage(
+    AgentFactory *agentFactory,
+    AgentPipelinesPageNavigator *navigator,
+    AgentsPageNavigator *agentsNavigator)
+{
+    return std::make_unique<AgentPipelinesOptionsPage>(
+        agentFactory, navigator, agentsNavigator);
+}
+
 } // namespace QodeAssist::Settings
+
+#include "GeneralSettings.moc"

@@ -6,6 +6,7 @@
 #pragma once
 
 #include <QObject>
+#include <QPointer>
 
 #include "LLMClientInterface.hpp"
 #include "LSPCompletion.hpp"
@@ -21,12 +22,18 @@
 
 namespace QodeAssist {
 
+class SessionManager;
+class AgentFactory;
+
 class QodeAssistClient : public LanguageClient::Client
 {
     Q_OBJECT
 public:
     explicit QodeAssistClient(LLMClientInterface *clientInterface);
     ~QodeAssistClient() override;
+
+    void setSessionManager(SessionManager *sessionManager);
+    void setAgentFactory(AgentFactory *agentFactory);
 
     void openDocument(TextEditor::TextDocument *document) override;
     bool canOpenProject(ProjectExplorer::Project *project) override;
@@ -68,6 +75,8 @@ private:
     RefactorSuggestionHoverHandler *m_refactorHoverHandler{nullptr};
     RefactorWidgetHandler *m_refactorWidgetHandler{nullptr};
     LLMClientInterface *m_llmClient;
+    SessionManager *m_sessionManager{nullptr};
+    AgentFactory *m_agentFactory{nullptr};
 };
 
 } // namespace QodeAssist

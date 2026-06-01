@@ -6,6 +6,7 @@
 
 #include <QJsonObject>
 #include <QObject>
+#include <QPointer>
 
 #include <LLMQore/BaseClient.hpp>
 #include <texteditor/texteditor.h>
@@ -13,10 +14,12 @@
 
 #include <context/ContextManager.hpp>
 #include <context/IDocumentReader.hpp>
-#include <pluginllmcore/ContextData.hpp>
-#include <pluginllmcore/Provider.hpp>
 
 namespace QodeAssist {
+
+class SessionManager;
+class Session;
+class AgentFactory;
 
 struct RefactorResult
 {
@@ -34,6 +37,9 @@ class QuickRefactorHandler : public QObject
 public:
     explicit QuickRefactorHandler(QObject *parent = nullptr);
     ~QuickRefactorHandler() override;
+
+    void setSessionManager(SessionManager *sessionManager);
+    void setAgentFactory(AgentFactory *agentFactory);
 
     void sendRefactorRequest(TextEditor::TextEditorWidget *editor, const QString &instructions);
 
@@ -56,17 +62,18 @@ private:
         const Utils::Text::Range &range);
 
     void handleLLMResponse(const QString &response, const QJsonObject &request, bool isComplete);
-    PluginLLMCore::ContextData prepareContext(
-        TextEditor::TextEditorWidget *editor,
-        const Utils::Text::Range &range,
-        const QString &instructions);
+    QString buildSystemPrompt(
+        TextEditor::TextEditorWidget *editor, const Utils::Text::Range &range);
+    QString pickRefactorAgent(const QString &filePath) const;
 
     struct RequestContext
     {
         QJsonObject originalRequest;
-        PluginLLMCore::Provider *provider;
+        QPointer<Session> session;
     };
 
+    QPointer<SessionManager> m_sessionManager;
+    QPointer<AgentFactory> m_agentFactory;
     QHash<QString, RequestContext> m_activeRequests;
     TextEditor::TextEditorWidget *m_currentEditor;
     Utils::Text::Range m_currentRange;

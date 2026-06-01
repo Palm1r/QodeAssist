@@ -165,54 +165,6 @@ CodeCompletionSettings::CodeCompletionSettings()
                "for triggering completions. This helps trigger completions based on actual code "
                "characters only."));
 
-    // General Parameters Settings
-    temperature.setSettingsKey(Constants::CC_TEMPERATURE);
-    temperature.setLabelText(Tr::tr("Temperature:"));
-    temperature.setDefaultValue(0.2);
-    temperature.setRange(0.0, 2.0);
-    temperature.setSingleStep(0.1);
-
-    maxTokens.setSettingsKey(Constants::CC_MAX_TOKENS);
-    maxTokens.setLabelText(Tr::tr("Max Tokens:"));
-    maxTokens.setRange(-1, 900000);
-    maxTokens.setDefaultValue(500);
-
-    // Advanced Parameters
-    useTopP.setSettingsKey(Constants::CC_USE_TOP_P);
-    useTopP.setDefaultValue(false);
-    useTopP.setLabelText(Tr::tr("Top P:"));
-
-    topP.setSettingsKey(Constants::CC_TOP_P);
-    topP.setDefaultValue(0.9);
-    topP.setRange(0.0, 1.0);
-    topP.setSingleStep(0.1);
-
-    useTopK.setSettingsKey(Constants::CC_USE_TOP_K);
-    useTopK.setDefaultValue(false);
-    useTopK.setLabelText(Tr::tr("Top K:"));
-
-    topK.setSettingsKey(Constants::CC_TOP_K);
-    topK.setDefaultValue(50);
-    topK.setRange(1, 1000);
-
-    usePresencePenalty.setSettingsKey(Constants::CC_USE_PRESENCE_PENALTY);
-    usePresencePenalty.setDefaultValue(false);
-    usePresencePenalty.setLabelText(Tr::tr("Presence Penalty:"));
-
-    presencePenalty.setSettingsKey(Constants::CC_PRESENCE_PENALTY);
-    presencePenalty.setDefaultValue(0.0);
-    presencePenalty.setRange(-2.0, 2.0);
-    presencePenalty.setSingleStep(0.1);
-
-    useFrequencyPenalty.setSettingsKey(Constants::CC_USE_FREQUENCY_PENALTY);
-    useFrequencyPenalty.setDefaultValue(false);
-    useFrequencyPenalty.setLabelText(Tr::tr("Frequency Penalty:"));
-
-    frequencyPenalty.setSettingsKey(Constants::CC_FREQUENCY_PENALTY);
-    frequencyPenalty.setDefaultValue(0.0);
-    frequencyPenalty.setRange(-2.0, 2.0);
-    frequencyPenalty.setSingleStep(0.1);
-
     // Context Settings
     readFullFile.setSettingsKey(Constants::CC_READ_FULL_FILE);
     readFullFile.setLabelText(Tr::tr("Read Full File"));
@@ -239,43 +191,6 @@ CodeCompletionSettings::CodeCompletionSettings()
     systemPrompt.setDefaultValue(
         "You are an expert C++, Qt, and QML code completion assistant. Your task is to provide "
         "precise and contextually appropriate code completions.\n\n");
-
-    useUserMessageTemplateForCC.setSettingsKey(Constants::CC_USE_USER_TEMPLATE);
-    useUserMessageTemplateForCC.setDefaultValue(true);
-    useUserMessageTemplateForCC.setLabelText(
-        Tr::tr("Use special system prompt and user message for non FIM models"));
-
-    systemPromptForNonFimModels.setSettingsKey(Constants::CC_SYSTEM_PROMPT_FOR_NON_FIM);
-    systemPromptForNonFimModels.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
-    systemPromptForNonFimModels.setLabelText(Tr::tr("System prompt for non FIM models:"));
-    systemPromptForNonFimModels.setDefaultValue(
-        "You are an expert C++, Qt, and QML code completion assistant. Your task is to provide "
-        "precise and contextually appropriate code completions.\n\n"
-        "Core Requirements:\n"
-        "1. Continue code exactly from the cursor position, ensuring it properly connects with any "
-        "existing code after the cursor\n"
-        "2. Never repeat existing code before or after the cursor\n"
-        "Specific Guidelines:\n"
-        "- For function calls: Complete parameters with appropriate types and names\n"
-        "- For class members: Respect access modifiers and class conventions\n"
-        "- Respect existing indentation and formatting\n"
-        "- Consider scope and visibility of referenced symbols\n"
-        "- Ensure seamless integration with code both before and after the cursor\n\n"
-        "Context Format:\n"
-        "<code_context>\n"
-        "{{code before cursor}}<cursor>{{code after cursor}}\n"
-        "</code_context>\n\n"
-        "Response Format:\n"
-        "- No explanations or comments\n"
-        "- Only include new characters needed to create valid code\n"
-        "- Should be codeblock with language\n");
-
-    userMessageTemplateForCC.setSettingsKey(Constants::CC_USER_TEMPLATE);
-    userMessageTemplateForCC.setDisplayStyle(Utils::StringAspect::TextEditDisplay);
-    userMessageTemplateForCC.setLabelText(Tr::tr("User message for non FIM models:"));
-    userMessageTemplateForCC.setDefaultValue(
-        "Here is the code context with insertion points:\n"
-        "<code_context>\n${prefix}<cursor>${suffix}\n</code_context>\n\n");
 
     customLanguages.setSettingsKey(Constants::CC_CUSTOM_LANGUAGES);
     customLanguages.setLabelText(
@@ -311,39 +226,6 @@ CodeCompletionSettings::CodeCompletionSettings()
     maxChangesCacheSize.setRange(2, 1000);
     maxChangesCacheSize.setDefaultValue(10);
 
-    // Ollama Settings
-    ollamaLivetime.setSettingsKey(Constants::CC_OLLAMA_LIVETIME);
-    ollamaLivetime.setToolTip(
-        Tr::tr("Time to suspend Ollama after completion request (in minutes), "
-               "Only Ollama,  -1 to disable"));
-    ollamaLivetime.setLabelText("Livetime:");
-    ollamaLivetime.setDefaultValue("5m");
-    ollamaLivetime.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
-
-    contextWindow.setSettingsKey(Constants::CC_OLLAMA_CONTEXT_WINDOW);
-    contextWindow.setLabelText(Tr::tr("Context Window:"));
-    contextWindow.setRange(-1, 10000);
-    contextWindow.setDefaultValue(2048);
-
-    // OpenAI Responses API Settings
-    openAIResponsesReasoningEffort.setSettingsKey(Constants::CC_OPENAI_RESPONSES_REASONING_EFFORT);
-    openAIResponsesReasoningEffort.setLabelText(Tr::tr("Reasoning effort:"));
-    openAIResponsesReasoningEffort.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
-    openAIResponsesReasoningEffort.addOption("None");
-    openAIResponsesReasoningEffort.addOption("Minimal");
-    openAIResponsesReasoningEffort.addOption("Low");
-    openAIResponsesReasoningEffort.addOption("Medium");
-    openAIResponsesReasoningEffort.addOption("High");
-    openAIResponsesReasoningEffort.setDefaultValue("Medium");
-    openAIResponsesReasoningEffort.setToolTip(
-        Tr::tr("Constrains effort on reasoning for OpenAI gpt-5 and o-series models:\n\n"
-               "None: No reasoning (gpt-5.1 only)\n"
-               "Minimal: Minimal reasoning effort (o-series only)\n"
-               "Low: Low reasoning effort\n"
-               "Medium: Balanced reasoning (default for most models)\n"
-               "High: Maximum reasoning effort (gpt-5-pro only supports this)\n\n"
-               "Note: Reducing effort = faster responses + fewer tokens"));
-
     resetToDefaults.m_buttonText = Tr::tr("Reset Page to Defaults");
 
     readSettings();
@@ -357,23 +239,6 @@ CodeCompletionSettings::CodeCompletionSettings()
     setLayouter([this]() {
         using namespace Layouting;
 
-        auto genGrid = Grid{};
-        genGrid.addRow({Row{temperature}});
-        genGrid.addRow({Row{maxTokens}});
-
-        auto advancedGrid = Grid{};
-        advancedGrid.addRow({useTopP, topP});
-        advancedGrid.addRow({useTopK, topK});
-        advancedGrid.addRow({usePresencePenalty, presencePenalty});
-        advancedGrid.addRow({useFrequencyPenalty, frequencyPenalty});
-
-        auto ollamaGrid = Grid{};
-        ollamaGrid.addRow({ollamaLivetime});
-        ollamaGrid.addRow({contextWindow});
-
-        auto openAIResponsesGrid = Grid{};
-        openAIResponsesGrid.addRow({openAIResponsesReasoningEffort});
-
         auto contextGrid = Grid{};
         contextGrid.addRow({Row{readFullFile}});
         contextGrid.addRow({Row{readFileParts, readStringsBeforeCursor, readStringsAfterCursor}});
@@ -382,14 +247,7 @@ CodeCompletionSettings::CodeCompletionSettings()
             Row{contextGrid, Stretch{1}},
             Row{useSystemPrompt, Stretch{1}},
             Group{title(Tr::tr("Prompts for FIM models")), Column{systemPrompt}},
-            Group{
-                title(Tr::tr("Prompts for Non FIM models")),
-                Column{
-                    Row{useUserMessageTemplateForCC, Stretch{1}},
-                    systemPromptForNonFimModels,
-                    userMessageTemplateForCC,
-                    customLanguages,
-                }},
+            customLanguages,
             Row{useProjectChangesCache, maxChangesCacheSize, Stretch{1}}};
 
         auto generalSettings = Column{
@@ -418,19 +276,7 @@ CodeCompletionSettings::CodeCompletionSettings()
                                    Space{8},
                                    Group{title(Tr::tr("Automatic Trigger Mode")), autoTriggerSettings}}},
                       Space{8},
-                      Group{title(Tr::tr("General Parameters")),
-                            Column{
-                                Row{genGrid, Stretch{1}},
-                            }},
-                      Space{8},
-                      Group{title(Tr::tr("Advanced Parameters")),
-                            Column{Row{advancedGrid, Stretch{1}}}},
-                      Space{8},
                       Group{title(Tr::tr("Context Settings")), contextItem},
-                      Space{8},
-                      Group{title(Tr::tr("OpenAI Responses API")), Column{Row{openAIResponsesGrid, Stretch{1}}}},
-                      Space{8},
-                      Group{title(Tr::tr("Ollama Settings")), Column{Row{ollamaGrid, Stretch{1}}}},
                       Stretch{1}};
     });
 }
@@ -470,16 +316,6 @@ void CodeCompletionSettings::resetSettingsToDefaults()
     if (reply == QMessageBox::Yes) {
         resetAspect(autoCompletion);
         resetAspect(multiLineCompletion);
-        resetAspect(temperature);
-        resetAspect(maxTokens);
-        resetAspect(useTopP);
-        resetAspect(topP);
-        resetAspect(useTopK);
-        resetAspect(topK);
-        resetAspect(usePresencePenalty);
-        resetAspect(presencePenalty);
-        resetAspect(useFrequencyPenalty);
-        resetAspect(frequencyPenalty);
         resetAspect(readFullFile);
         resetAspect(readFileParts);
         resetAspect(readStringsBeforeCursor);
@@ -488,12 +324,6 @@ void CodeCompletionSettings::resetSettingsToDefaults()
         resetAspect(systemPrompt);
         resetAspect(useProjectChangesCache);
         resetAspect(maxChangesCacheSize);
-        resetAspect(ollamaLivetime);
-        resetAspect(contextWindow);
-        resetAspect(openAIResponsesReasoningEffort);
-        resetAspect(useUserMessageTemplateForCC);
-        resetAspect(userMessageTemplateForCC);
-        resetAspect(systemPromptForNonFimModels);
         resetAspect(customLanguages);
         resetAspect(showProgressWidget);
         resetAspect(useOpenFilesContext);
@@ -525,14 +355,6 @@ void CodeCompletionSettings::migrateCompletionMode()
         completionMode.setStringValue("Automatic");
 
     writeSettings();
-}
-
-QString CodeCompletionSettings::processMessageToFIM(const QString &prefix, const QString &suffix) const
-{
-    QString result = userMessageTemplateForCC();
-    result.replace("${prefix}", prefix);
-    result.replace("${suffix}", suffix);
-    return result;
 }
 
 class CodeCompletionSettingsPage : public Core::IOptionsPage

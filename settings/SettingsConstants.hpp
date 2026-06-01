@@ -179,30 +179,10 @@ const char CC_READ_STRINGS_BEFORE_CURSOR[] = "QodeAssist.ccReadStringsBeforeCurs
 const char CC_READ_STRINGS_AFTER_CURSOR[] = "QodeAssist.ccReadStringsAfterCursor";
 const char CC_USE_SYSTEM_PROMPT[] = "QodeAssist.ccUseSystemPrompt";
 const char CC_SYSTEM_PROMPT[] = "QodeAssist.ccSystemPrompt";
-const char CC_SYSTEM_PROMPT_FOR_NON_FIM[] = "QodeAssist.ccSystemPromptForNonFim";
-const char CC_USE_USER_TEMPLATE[] = "QodeAssist.ccUseUserTemplate";
-const char CC_USER_TEMPLATE[] = "QodeAssist.ccUserTemplate";
 const char CC_USE_PROJECT_CHANGES_CACHE[] = "QodeAssist.ccUseProjectChangesCache";
 const char CC_MAX_CHANGES_CACHE_SIZE[] = "QodeAssist.ccMaxChangesCacheSize";
 const char CA_USE_SYSTEM_PROMPT[] = "QodeAssist.useChatSystemPrompt";
 const char CA_SYSTEM_PROMPT[] = "QodeAssist.chatSystemPrompt";
-
-// preset prompt settings
-const char CC_TEMPERATURE[] = "QodeAssist.ccTemperature";
-const char CC_MAX_TOKENS[] = "QodeAssist.ccMaxTokens";
-const char CC_USE_TOP_P[] = "QodeAssist.ccUseTopP";
-const char CC_TOP_P[] = "QodeAssist.ccTopP";
-const char CC_USE_TOP_K[] = "QodeAssist.ccUseTopK";
-const char CC_TOP_K[] = "QodeAssist.ccTopK";
-const char CC_USE_PRESENCE_PENALTY[] = "QodeAssist.ccUsePresencePenalty";
-const char CC_PRESENCE_PENALTY[] = "QodeAssist.ccPresencePenalty";
-const char CC_USE_FREQUENCY_PENALTY[] = "QodeAssist.fimUseFrequencyPenalty";
-const char CC_FREQUENCY_PENALTY[] = "QodeAssist.fimFrequencyPenalty";
-const char CC_OLLAMA_LIVETIME[] = "QodeAssist.fimOllamaLivetime";
-const char CC_OLLAMA_CONTEXT_WINDOW[] = "QodeAssist.ccOllamaContextWindow";
-
-// OpenAI Responses API Settings
-const char CC_OPENAI_RESPONSES_REASONING_EFFORT[] = "QodeAssist.ccOpenAIResponsesReasoningEffort";
 
 const char CA_TEMPERATURE[] = "QodeAssist.chatTemperature";
 const char CA_MAX_TOKENS[] = "QodeAssist.chatMaxTokens";

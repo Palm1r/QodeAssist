@@ -82,9 +82,7 @@ void LMStudioResponsesProvider::prepareRequest(
         request["include"] = include;
     };
 
-    if (type == PluginLLMCore::RequestType::CodeCompletion) {
-        applyModelParams(Settings::codeCompletionSettings());
-    } else if (type == PluginLLMCore::RequestType::QuickRefactoring) {
+    if (type == PluginLLMCore::RequestType::QuickRefactoring) {
         const auto &qrSettings = Settings::quickRefactorSettings();
         applyModelParams(qrSettings);
 

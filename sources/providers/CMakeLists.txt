@@ -2,6 +2,7 @@ add_library(Providers STATIC
     ProviderID.hpp
     Provider.hpp Provider.cpp
     ProviderFactory.hpp ProviderFactory.cpp
+    GenericProvider.hpp GenericProvider.cpp
 )
 
 target_link_libraries(Providers

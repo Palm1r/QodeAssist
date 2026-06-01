@@ -41,23 +41,6 @@ public:
     Utils::BoolAspect abortAssistOnRequest{this};
     Utils::BoolAspect useOpenFilesContext{this};
 
-    // General Parameters Settings
-    Utils::DoubleAspect temperature{this};
-    Utils::IntegerAspect maxTokens{this};
-
-    // Advanced Parameters
-    Utils::BoolAspect useTopP{this};
-    Utils::DoubleAspect topP{this};
-
-    Utils::BoolAspect useTopK{this};
-    Utils::IntegerAspect topK{this};
-
-    Utils::BoolAspect usePresencePenalty{this};
-    Utils::DoubleAspect presencePenalty{this};
-
-    Utils::BoolAspect useFrequencyPenalty{this};
-    Utils::DoubleAspect frequencyPenalty{this};
-
     // Context Settings
     Utils::BoolAspect readFullFile{this};
     Utils::BoolAspect readFileParts{this};
@@ -65,20 +48,8 @@ public:
     Utils::IntegerAspect readStringsAfterCursor{this};
     Utils::BoolAspect useSystemPrompt{this};
     Utils::StringAspect systemPrompt{this};
-    Utils::BoolAspect useUserMessageTemplateForCC{this};
-    Utils::StringAspect systemPromptForNonFimModels{this};
-    Utils::StringAspect userMessageTemplateForCC{this};
     Utils::BoolAspect useProjectChangesCache{this};
     Utils::IntegerAspect maxChangesCacheSize{this};
-
-    // Ollama Settings
-    Utils::StringAspect ollamaLivetime{this};
-    Utils::IntegerAspect contextWindow{this};
-
-    // OpenAI Responses API Settings
-    Utils::SelectionAspect openAIResponsesReasoningEffort{this};
-
-    QString processMessageToFIM(const QString &prefix, const QString &suffix) const;
 
 private:
     void setupConnections();

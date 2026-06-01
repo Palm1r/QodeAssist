@@ -1,6 +1,5 @@
 add_library(QodeAssistSettings STATIC
     GeneralSettings.hpp GeneralSettings.cpp
-    ConfigurationManager.hpp ConfigurationManager.cpp
     SettingsUtils.hpp
     SettingsConstants.hpp
     ButtonAspect.hpp
@@ -47,5 +46,9 @@ target_link_libraries(QodeAssistSettings
     ProvidersConfig
     Agents
     Skills
+    QodeAssistAgentPipelines
 )
-target_include_directories(QodeAssistSettings PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(QodeAssistSettings
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+    PRIVATE ${CMAKE_SOURCE_DIR}/sources/settings
+)

@@ -55,6 +55,9 @@ public:
     ConversationHistory *history() const noexcept { return m_history; }
     SystemPromptBuilder *systemPrompt() const noexcept { return m_systemPrompt; }
 
+    LLMQore::BaseClient *client() const noexcept;
+    bool supportsImages() const noexcept;
+
     void setContextBindings(Templates::ContextRenderer::Bindings bindings);
 
     QString renderAgentContext() const;

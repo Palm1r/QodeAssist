@@ -75,8 +75,7 @@ qt_add_qml_module(QodeAssistChatView
     FileItem.hpp FileItem.cpp
     ChatFileManager.hpp ChatFileManager.cpp
     ChatCompressor.hpp ChatCompressor.cpp
-    AgentRoleController.hpp AgentRoleController.cpp
-    ChatConfigurationController.hpp ChatConfigurationController.cpp
+    ChatAgentController.hpp ChatAgentController.cpp
     FileEditController.hpp FileEditController.cpp
     InputTokenCounter.hpp InputTokenCounter.cpp
     ChatHistoryStore.hpp ChatHistoryStore.cpp
@@ -92,13 +91,14 @@ target_link_libraries(QodeAssistChatView
     Qt::Network
     QtCreator::Core
     QtCreator::Utils
-    PluginLLMCore
     QodeAssistSettings
     Context
     QodeAssistUIControlsplugin
     QodeAssistLogger
     LLMQore
     Skills
+    Agents
+    Session
 )
 
 target_include_directories(QodeAssistChatView

@@ -106,6 +106,19 @@ bool Session::isInFlight() const noexcept
     return !m_inFlight.isEmpty();
 }
 
+LLMQore::BaseClient *Session::client() const noexcept
+{
+    auto *provider = m_agent ? m_agent->provider() : nullptr;
+    return provider ? provider->client() : nullptr;
+}
+
+bool Session::supportsImages() const noexcept
+{
+    auto *provider = m_agent ? m_agent->provider() : nullptr;
+    return provider
+           && provider->capabilities().testFlag(Providers::ProviderCapability::Image);
+}
+
 void Session::setContentLoader(ContentLoader loader)
 {
     m_contentLoader = std::move(loader);
@@ -185,6 +198,13 @@ LLMQore::RequestID Session::sendCompletion(Templates::ContextData ctx)
     auto *provider = m_agent->provider();
     auto *tmpl = m_agent->promptTemplate();
     const auto &cfg = m_agent->config();
+
+    const QString rolePrompt = m_systemPrompt ? m_systemPrompt->compose() : QString();
+    if (!rolePrompt.isEmpty()) {
+        ctx.systemPrompt = (ctx.systemPrompt && !ctx.systemPrompt->isEmpty())
+                               ? rolePrompt + QStringLiteral("\n\n") + *ctx.systemPrompt
+                               : rolePrompt;
+    }
 
     QJsonObject payload{{QStringLiteral("model"), cfg.model}};
     if (!provider->prepareRequest(payload, tmpl, ctx, /*tools=*/false, /*thinking=*/false))

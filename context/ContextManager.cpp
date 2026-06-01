@@ -100,13 +100,9 @@ ProgrammingLanguage ContextManager::getDocumentLanguage(const DocumentInfo &docu
 
 bool ContextManager::isSpecifyCompletion(const DocumentInfo &documentInfo) const
 {
-    const auto &generalSettings = Settings::generalSettings();
-
-    Context::ProgrammingLanguage documentLanguage = getDocumentLanguage(documentInfo);
-    Context::ProgrammingLanguage preset1Language = Context::ProgrammingLanguageUtils::fromString(
-        generalSettings.preset1Language.displayForIndex(generalSettings.preset1Language()));
-
-    return generalSettings.specifyPreset1() && documentLanguage == preset1Language;
+    Q_UNUSED(documentInfo)
+    // Language-specific completion presets were replaced by agent match rules.
+    return false;
 }
 
 QList<QPair<QString, QString>> ContextManager::openedFiles(const QStringList excludeFiles) const

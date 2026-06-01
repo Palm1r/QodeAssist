@@ -82,9 +82,7 @@ void OllamaProvider::prepareRequest(
         request["options"] = options;
     };
 
-    if (type == PluginLLMCore::RequestType::CodeCompletion) {
-        applySettings(Settings::codeCompletionSettings());
-    } else if (type == PluginLLMCore::RequestType::QuickRefactoring) {
+    if (type == PluginLLMCore::RequestType::QuickRefactoring) {
         const auto &qrSettings = Settings::quickRefactorSettings();
         applySettings(qrSettings);
 

@@ -33,8 +33,6 @@ public:
 
     Action selectedAction() const;
 
-    QString selectedConfiguration() const;
-
     bool eventFilter(QObject *watched, QEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
 
@@ -50,8 +48,6 @@ private slots:
     void onOpenInstructionsFolder();
     void onOpenSettings();
     void loadCustomCommands();
-    void loadAvailableConfigurations();
-    void onConfigurationChanged(int index);
     void validateAndAccept();
 
 private:
@@ -71,12 +67,10 @@ private:
     QToolButton *m_toolsButton;
     QToolButton *m_thinkingButton;
     QComboBox *m_commandsComboBox;
-    QComboBox *m_configComboBox;
 
     Action m_selectedAction = Action::Custom;
     QString m_lastInstructions;
-    QString m_selectedConfiguration;
-    
+
     QIcon m_toolsIconOn;
     QIcon m_toolsIconOff;
     QIcon m_thinkingIconOn;

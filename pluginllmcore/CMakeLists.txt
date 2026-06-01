@@ -10,7 +10,6 @@ add_library(PluginLLMCore STATIC
     PromptTemplate.hpp
     PromptTemplateManager.hpp PromptTemplateManager.cpp
     ProviderID.hpp
-    RulesLoader.hpp RulesLoader.cpp
     ResponseCleaner.hpp
 )
 

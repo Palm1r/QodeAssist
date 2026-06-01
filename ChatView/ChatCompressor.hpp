@@ -4,15 +4,15 @@
 
 #pragma once
 
-#include <QJsonObject>
 #include <QList>
 #include <QObject>
+#include <QPointer>
 #include <QString>
 
-namespace QodeAssist::PluginLLMCore {
-class Provider;
-class PromptTemplate;
-} // namespace QodeAssist::PluginLLMCore
+namespace QodeAssist {
+class SessionManager;
+class Session;
+}
 
 namespace QodeAssist::Chat {
 
@@ -24,6 +24,9 @@ class ChatCompressor : public QObject
 
 public:
     explicit ChatCompressor(QObject *parent = nullptr);
+
+    void setSessionManager(SessionManager *sessionManager);
+    void setActiveAgent(const QString &agentName);
 
     void startCompression(const QString &chatFilePath, ChatModel *chatModel);
 
@@ -45,17 +48,17 @@ private:
     QString buildCompressionPrompt() const;
     bool createCompressedChatFile(
         const QString &sourcePath, const QString &destPath, const QString &summary);
-    void connectProviderSignals();
     void disconnectAllSignals();
     void cleanupState();
     void handleCompressionError(const QString &error);
-    void buildRequestPayload(QJsonObject &payload, PluginLLMCore::PromptTemplate *promptTemplate);
 
     bool m_isCompressing = false;
     QString m_currentRequestId;
     QString m_originalChatPath;
     QString m_accumulatedSummary;
-    PluginLLMCore::Provider *m_provider = nullptr;
+    QPointer<SessionManager> m_sessionManager;
+    QString m_activeAgent;
+    QPointer<Session> m_session;
     ChatModel *m_chatModel = nullptr;
 
     QList<QMetaObject::Connection> m_connections;

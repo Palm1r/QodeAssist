@@ -1,6 +1,5 @@
 add_executable(QodeAssistTest
     ../CodeHandler.cpp
-    ../LLMClientInterface.cpp
     ../LLMSuggestion.cpp
     CodeHandlerTest.cpp
     ClaudeCacheControlTest.cpp

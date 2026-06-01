@@ -26,8 +26,7 @@ Rectangle {
     property alias toolsButton: toolsButtonId
     property alias thinkingMode: thinkingModeId
     property alias settingsButton: settingsButtonId
-    property alias configSelector: configSelectorId
-    property alias roleSelector: roleSelector
+    property alias agentSelector: agentSelectorId
     property alias relocateTooltip: relocateTooltipId
 
     color: palette.window.hslLightness > 0.5 ?
@@ -134,7 +133,7 @@ Rectangle {
             }
 
             QoAComboBox {
-                id: configSelectorId
+                id: agentSelectorId
 
                 implicitHeight: 25
 
@@ -142,24 +141,9 @@ Rectangle {
                 currentIndex: 0
 
                 QoAToolTip {
-                    visible: configSelectorId.hovered
+                    visible: agentSelectorId.hovered
                     delay: 250
-                    text: qsTr("Switch saved AI configuration")
-                }
-            }
-
-            QoAComboBox {
-                id: roleSelector
-
-                implicitHeight: 25
-
-                model: []
-                currentIndex: 0
-
-                QoAToolTip {
-                    visible: roleSelector.hovered
-                    delay: 250
-                    text: qsTr("Switch agent role (different system prompts)")
+                    text: qsTr("Select chat agent (provider, model and role come from the agent)")
                 }
             }
         }

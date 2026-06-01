@@ -37,11 +37,8 @@ signals:
     void inputTokensChanged();
 
 private:
-    void rewireToolsChangedConnection();
-
     ChatModel *m_chatModel;
     Context::ContextManager *m_contextManager;
-    QMetaObject::Connection m_toolsChangedConn;
 
     QStringList m_attachments;
     QStringList m_linkedFiles;

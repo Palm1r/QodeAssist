@@ -126,7 +126,6 @@ add_qtc_plugin(QodeAssist
     chat/ChatDocument.hpp chat/ChatDocument.cpp
     chat/ChatEditor.hpp chat/ChatEditor.cpp
     chat/ChatEditorFactory.hpp chat/ChatEditorFactory.cpp
-    ConfigurationManager.hpp ConfigurationManager.cpp
     CodeHandler.hpp CodeHandler.cpp
     UpdateStatusWidget.hpp UpdateStatusWidget.cpp
     widgets/CompletionProgressHandler.hpp widgets/CompletionProgressHandler.cpp
@@ -166,7 +165,7 @@ add_qtc_plugin(QodeAssist
     settings/McpClientsListAspect.hpp settings/McpClientsListAspect.cpp
 )
 
-target_link_libraries(QodeAssist PRIVATE QodeAssistAgentPipelines)
+target_link_libraries(QodeAssist PRIVATE QodeAssistAgentPipelines Session)
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)
 find_program(QtCreatorExecutable

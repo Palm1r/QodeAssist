@@ -1,5 +1,4 @@
-add_library(QodeAssistAgentPipelines OBJECT
-    AgentPipelinesPage.hpp AgentPipelinesPage.cpp
+add_library(QodeAssistAgentPipelines STATIC
     PipelinesConfig.hpp PipelinesConfig.cpp
     AgentRosterWidget.hpp AgentRosterWidget.cpp
     AgentSlotWidget.hpp AgentSlotWidget.cpp

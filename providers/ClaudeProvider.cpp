@@ -94,10 +94,7 @@ void ClaudeProvider::prepareRequest(
         request["temperature"] = 1.0;
     };
 
-    if (type == PluginLLMCore::RequestType::CodeCompletion) {
-        applyModelParams(Settings::codeCompletionSettings());
-        request["temperature"] = Settings::codeCompletionSettings().temperature();
-    } else if (type == PluginLLMCore::RequestType::QuickRefactoring) {
+    if (type == PluginLLMCore::RequestType::QuickRefactoring) {
         const auto &qrSettings = Settings::quickRefactorSettings();
         applyModelParams(qrSettings);
 
