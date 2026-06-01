@@ -167,6 +167,16 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         &ChatAgentController::currentAgentChanged,
         this,
         &ChatRootView::isThinkingSupportChanged);
+    connect(
+        m_agentController,
+        &ChatAgentController::currentAgentChanged,
+        this,
+        &ChatRootView::useToolsChanged);
+    connect(
+        m_agentController,
+        &ChatAgentController::currentAgentChanged,
+        this,
+        &ChatRootView::useThinkingChanged);
 
     auto editors = Core::EditorManager::instance();
 
@@ -292,7 +302,7 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         if (m_pendingSend.active) {
             PendingSend p = m_pendingSend;
             m_pendingSend = {};
-            dispatchSend(p.message, p.attachments, p.linkedFiles, p.useTools, p.useThinking);
+            dispatchSend(p.message, p.attachments, p.linkedFiles);
         }
     });
 
@@ -305,7 +315,7 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         if (m_pendingSend.active) {
             PendingSend p = m_pendingSend;
             m_pendingSend = {};
-            dispatchSend(p.message, p.attachments, p.linkedFiles, p.useTools, p.useThinking);
+            dispatchSend(p.message, p.attachments, p.linkedFiles);
         }
     });
 }
@@ -426,21 +436,17 @@ void ChatRootView::sendMessage(const QString &message)
 {
     const QStringList attachments = m_attachmentFiles;
     const QStringList linkedFiles = m_linkedFiles;
-    const bool tools = useTools();
-    const bool thinking = useThinking();
 
-    if (deferSendForAutoCompress(message, attachments, linkedFiles, tools, thinking))
+    if (deferSendForAutoCompress(message, attachments, linkedFiles))
         return;
 
-    dispatchSend(message, attachments, linkedFiles, tools, thinking);
+    dispatchSend(message, attachments, linkedFiles);
 }
 
 bool ChatRootView::deferSendForAutoCompress(
     const QString &message,
     const QStringList &attachments,
-    const QStringList &linkedFiles,
-    bool useToolsArg,
-    bool useThinkingArg)
+    const QStringList &linkedFiles)
 {
     auto &settings = Settings::chatAssistantSettings();
     if (!settings.autoCompress())
@@ -466,7 +472,7 @@ bool ChatRootView::deferSendForAutoCompress(
                     .arg(inputTokens)
                     .arg(threshold));
 
-    m_pendingSend = {message, attachments, linkedFiles, useToolsArg, useThinkingArg, true};
+    m_pendingSend = {message, attachments, linkedFiles, true};
     compressCurrentChat();
     return true;
 }
@@ -474,9 +480,7 @@ bool ChatRootView::deferSendForAutoCompress(
 void ChatRootView::dispatchSend(
     const QString &message,
     const QStringList &attachments,
-    const QStringList &linkedFiles,
-    bool useToolsArg,
-    bool useThinkingArg)
+    const QStringList &linkedFiles)
 {
     if (m_recentFilePath.isEmpty()) {
         QString filePath = getAutosaveFilePath(message, attachments);
@@ -497,7 +501,7 @@ void ChatRootView::dispatchSend(
     m_clientInterface->setSkillsManager(skillsManager());
     m_clientInterface->setSessionManager(sessionManager());
     m_clientInterface->setActiveAgent(currentChatAgent());
-    m_clientInterface->sendMessage(message, attachments, linkedFiles, useToolsArg, useThinkingArg);
+    m_clientInterface->sendMessage(message, attachments, linkedFiles);
 
     m_fileManager->clearIntermediateStorage();
     clearAttachmentFiles();
@@ -1112,24 +1116,12 @@ QString ChatRootView::lastErrorMessage() const
 
 bool ChatRootView::useTools() const
 {
-    return Settings::chatAssistantSettings().enableChatTools();
-}
-
-void ChatRootView::setUseTools(bool enabled)
-{
-    Settings::chatAssistantSettings().enableChatTools.setValue(enabled);
-    Settings::chatAssistantSettings().writeSettings();
+    return m_agentController->currentSupportsTools();
 }
 
 bool ChatRootView::useThinking() const
 {
-    return Settings::chatAssistantSettings().enableThinkingMode();
-}
-
-void ChatRootView::setUseThinking(bool enabled)
-{
-    Settings::chatAssistantSettings().enableThinkingMode.setValue(enabled);
-    Settings::chatAssistantSettings().writeSettings();
+    return m_agentController->currentSupportsThinking();
 }
 
 void ChatRootView::applyFileEdit(const QString &editId)

@@ -48,8 +48,8 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(bool isRequestInProgress READ isRequestInProgress NOTIFY isRequestInProgressChanged FINAL)
     Q_PROPERTY(QString lastErrorMessage READ lastErrorMessage NOTIFY lastErrorMessageChanged FINAL)
     Q_PROPERTY(QString lastInfoMessage READ lastInfoMessage NOTIFY lastInfoMessageChanged FINAL)
-    Q_PROPERTY(bool useTools READ useTools WRITE setUseTools NOTIFY useToolsChanged FINAL)
-    Q_PROPERTY(bool useThinking READ useThinking WRITE setUseThinking NOTIFY useThinkingChanged FINAL)
+    Q_PROPERTY(bool useTools READ useTools NOTIFY useToolsChanged FINAL)
+    Q_PROPERTY(bool useThinking READ useThinking NOTIFY useThinkingChanged FINAL)
     Q_PROPERTY(QString sendShortcutText READ sendShortcutText NOTIFY sendShortcutTextChanged FINAL)
     
     Q_PROPERTY(int currentMessageTotalEdits READ currentMessageTotalEdits NOTIFY currentMessageEditsStatsChanged FINAL)
@@ -136,9 +136,7 @@ public:
     Q_INVOKABLE QVariantList searchSkills(const QString &query) const;
 
     bool useTools() const;
-    void setUseTools(bool enabled);
     bool useThinking() const;
-    void setUseThinking(bool enabled);
 
     Q_INVOKABLE void applyFileEdit(const QString &editId);
     Q_INVOKABLE void rejectFileEdit(const QString &editId);
@@ -229,15 +227,11 @@ private:
     bool deferSendForAutoCompress(
         const QString &message,
         const QStringList &attachments,
-        const QStringList &linkedFiles,
-        bool useTools,
-        bool useThinking);
+        const QStringList &linkedFiles);
     void dispatchSend(
         const QString &message,
         const QStringList &attachments,
-        const QStringList &linkedFiles,
-        bool useTools,
-        bool useThinking);
+        const QStringList &linkedFiles);
     bool hasImageAttachments(const QStringList &attachments) const;
 
     SessionFileRegistry *sessionFileRegistry() const;
@@ -256,8 +250,6 @@ private:
         QString message;
         QStringList attachments;
         QStringList linkedFiles;
-        bool useTools = false;
-        bool useThinking = false;
         bool active = false;
     };
     PendingSend m_pendingSend;

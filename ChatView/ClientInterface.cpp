@@ -78,12 +78,8 @@ void ClientInterface::setActiveAgent(const QString &agentName)
 void ClientInterface::sendMessage(
     const QString &message,
     const QList<QString> &attachments,
-    const QList<QString> &linkedFiles,
-    bool useTools,
-    bool useThinking)
+    const QList<QString> &linkedFiles)
 {
-    Q_UNUSED(useThinking)
-
     if (message.trimmed().isEmpty() && attachments.isEmpty()) {
         LOG_MESSAGE("Ignoring empty chat message");
         return;
@@ -256,7 +252,7 @@ void ClientInterface::sendMessage(
         }
     }
 
-    const LLMQore::RequestID requestId = session->send(std::move(blocks), useTools);
+    const LLMQore::RequestID requestId = session->send(std::move(blocks));
     if (requestId.isEmpty()) {
         const QString error = QStringLiteral("Failed to start chat request for agent: %1")
                                   .arg(m_activeAgent);

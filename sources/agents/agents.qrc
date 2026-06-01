@@ -5,5 +5,7 @@
         <file>ollama_gemma4_e4b_chat.toml</file>
         <file>ollama_codellama_7b_code_fim.toml</file>
         <file>ollama_codellama_13b_qml_fim.toml</file>
+        <file>claude_sonnet_chat.toml</file>
+        <file>google_gemini_chat.toml</file>
     </qresource>
 </RCC>

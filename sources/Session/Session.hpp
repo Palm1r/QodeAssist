@@ -64,7 +64,8 @@ public:
 
     LLMQore::RequestID send(
         std::vector<std::unique_ptr<LLMQore::ContentBlock>> userBlocks,
-        std::optional<bool> toolsOverride = std::nullopt);
+        std::optional<bool> toolsOverride = std::nullopt,
+        std::optional<bool> thinkingOverride = std::nullopt);
 
     LLMQore::RequestID sendText(const QString &text);
 
@@ -83,7 +84,9 @@ private slots:
     void onRouterEvent(const QodeAssist::ResponseEvent &ev);
 
 private:
-    LLMQore::RequestID dispatch(std::optional<bool> toolsOverride = std::nullopt);
+    LLMQore::RequestID dispatch(
+        std::optional<bool> toolsOverride = std::nullopt,
+        std::optional<bool> thinkingOverride = std::nullopt);
     Templates::ContextData toLegacyContext() const;
 
     Agent *m_agent = nullptr;                              // child if non-null

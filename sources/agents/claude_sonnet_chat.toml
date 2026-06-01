@@ -1,0 +1,77 @@
+schema_version = 1
+
+name        = "Claude Sonnet Chat"
+description = "Anthropic Claude (Messages API) — coding chat assistant via the hosted Claude provider."
+
+provider_instance = "Claude"
+endpoint          = "/v1/messages"
+
+model = "claude-sonnet-4-6"
+
+role = """
+You are a helpful coding assistant integrated into Qt Creator.
+Answer concisely. When the user shares code, prefer concrete diffs or
+minimal patches over rewriting whole files. Use markdown code blocks
+with language tags so the IDE can render them.
+"""
+
+enable_thinking = true
+enable_tools    = true
+
+tags = ["chat", "claude", "anthropic", "cloud"]
+
+context = """
+{%- set readme = read_file("${PROJECT_DIR}/README.md") -%}
+{%- if length(readme) > 0 %}
+## Project README.md
+{{ readme }}
+{%- endif %}
+"""
+
+[template]
+message_format = """
+{
+  {%- if existsIn(ctx, "system_prompt") %}
+  "system": {{ tojson(ctx.system_prompt) }},
+  {%- endif %}
+  "messages": [
+    {%- for msg in ctx.history %}
+    {
+      "role": {{ tojson(msg.role) }},
+      "content": [
+        {%- for b in msg.content_blocks %}
+        {%- if b.type == "image" %}
+        {
+          "type": "image",
+          "source": {
+            {%- if b.is_url %}
+            "type": "url",
+            "url": {{ tojson(b.data) }}
+            {%- else %}
+            "type": "base64",
+            "media_type": {{ tojson(b.media_type) }},
+            "data": {{ tojson(b.data) }}
+            {%- endif %}
+          }
+        }{% if not loop.is_last %},{% endif %}
+        {%- else %}
+        {{ tojson(b) }}{% if not loop.is_last %},{% endif %}
+        {%- endif %}
+        {%- endfor %}
+      ]
+    }{% if not loop.is_last %},{% endif %}
+    {%- endfor %}
+  ]
+}
+"""
+
+[template.sampling]
+max_tokens  = 8192
+temperature = 1
+
+[template.thinking.overrides]
+temperature = 1
+
+[template.thinking.request_block.thinking]
+type          = "enabled"
+budget_tokens = 4096

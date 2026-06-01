@@ -5,6 +5,8 @@
 
 #include <utility>
 
+#include <QJsonObject>
+
 #include <LLMQore/BaseClient.hpp>
 #include <LLMQore/ClaudeClient.hpp>
 #include <LLMQore/GoogleAIClient.hpp>
@@ -56,6 +58,20 @@ QFuture<QList<QString>> GenericProvider::getInstalledModels(const QString &url)
     m_client->setUrl(url);
     m_client->setApiKey(apiKey());
     return m_client->listModels();
+}
+
+RequestID GenericProvider::sendRequest(
+    const QUrl &url, const QJsonObject &payload, const QString &endpoint)
+{
+    // Gemini carries the model in the URL and rejects unknown body fields, so
+    // the model/stream keys injected by the generic pipeline must be dropped.
+    if (m_id == ProviderID::GoogleAI) {
+        QJsonObject cleaned = payload;
+        cleaned.remove("model");
+        cleaned.remove("stream");
+        return Provider::sendRequest(url, cleaned, endpoint);
+    }
+    return Provider::sendRequest(url, payload, endpoint);
 }
 
 namespace {

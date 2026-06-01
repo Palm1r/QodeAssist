@@ -138,19 +138,6 @@ ChatRootView {
             relocateTooltip.text: (typeof _chatview !== 'undefined')
                                    ? qsTr("Move this chat to an editor tab")
                                    : qsTr("Move this chat to a separate window")
-            toolsButton {
-                checked: root.useTools
-                onCheckedChanged: {
-                    root.useTools = toolsButton.checked
-                }
-            }
-            thinkingMode {
-                checked: root.useThinking
-                enabled: root.isThinkingSupport
-                onCheckedChanged: {
-                    root.useThinking = thinkingMode.checked
-                }
-            }
             settingsButton.onClicked: root.openSettings()
             agentSelector {
                 model: root.availableChatAgents

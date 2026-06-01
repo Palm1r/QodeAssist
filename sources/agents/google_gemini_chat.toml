@@ -1,0 +1,79 @@
+schema_version = 1
+
+name        = "Gemini Chat"
+description = "Google Gemini (generateContent API) — coding chat assistant via the hosted Google AI provider."
+
+provider_instance = "Google AI"
+endpoint          = "/models/gemini-2.5-flash:streamGenerateContent?alt=sse"
+
+model = "gemini-2.5-flash"
+
+role = """
+You are a helpful coding assistant integrated into Qt Creator.
+Answer concisely. When the user shares code, prefer concrete diffs or
+minimal patches over rewriting whole files. Use markdown code blocks
+with language tags so the IDE can render them.
+"""
+
+enable_thinking = true
+enable_tools    = true
+
+tags = ["chat", "gemini", "google", "cloud"]
+
+context = """
+{%- set readme = read_file("${PROJECT_DIR}/README.md") -%}
+{%- if length(readme) > 0 %}
+## Project README.md
+{{ readme }}
+{%- endif %}
+"""
+
+[template]
+message_format = """
+{
+  {%- if existsIn(ctx, "system_prompt") %}
+  "system_instruction": { "parts": [{ "text": {{ tojson(ctx.system_prompt) }} }] },
+  {%- endif %}
+  "contents": [
+    {%- for msg in ctx.history %}
+    {
+      "role": {% if msg.role == "assistant" %}"model"{% else %}"user"{% endif %},
+      "parts": [
+        {%- for b in msg.content_blocks %}
+        {%- if b.type == "text" %}
+        { "text": {{ tojson(b.text) }} }
+        {%- else if b.type == "thinking" %}
+        { "text": {{ tojson(b.thinking) }}, "thought": true, "thoughtSignature": {{ tojson(b.signature) }} }
+        {%- else if b.type == "tool_use" %}
+        { "functionCall": { "name": {{ tojson(b.name) }}, "args": {{ tojson(b.input) }} } }
+        {%- else if b.type == "tool_result" %}
+        { "functionResponse": { "name": {{ tojson(b.name) }}, "response": { "result": {{ tojson(b.content) }} } } }
+        {%- else if b.type == "image" %}
+        {%- if b.is_url %}
+        { "file_data": { "mime_type": {{ tojson(b.media_type) }}, "file_uri": {{ tojson(b.data) }} } }
+        {%- else %}
+        { "inline_data": { "mime_type": {{ tojson(b.media_type) }}, "data": {{ tojson(b.data) }} } }
+        {%- endif %}
+        {%- else %}
+        { "text": "" }
+        {%- endif %}
+        {% if not loop.is_last %},{% endif %}
+        {%- endfor %}
+      ]
+    }{% if not loop.is_last %},{% endif %}
+    {%- endfor %}
+  ]
+}
+"""
+
+[template.sampling.generationConfig]
+maxOutputTokens = 8192
+temperature     = 1
+
+[template.thinking.request_block.generationConfig]
+temperature     = 1
+maxOutputTokens = 16000
+
+[template.thinking.request_block.generationConfig.thinkingConfig]
+includeThoughts = true
+thinkingBudget  = 8192

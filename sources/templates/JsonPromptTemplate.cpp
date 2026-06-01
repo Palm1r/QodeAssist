@@ -5,6 +5,7 @@
 #include "JsonPromptTemplate.hpp"
 
 #include <QDebug>
+#include <QHash>
 #include <QJsonArray>
 #include <QJsonDocument>
 
@@ -40,6 +41,16 @@ nlohmann::json buildContextJson(const ContextData &context)
             files.push_back(std::move(fj));
         }
         ctx["files_metadata"] = std::move(files);
+    }
+
+    // tool_result blocks only carry the tool_use_id; resolve the originating
+    // tool name so templates (e.g. Google's functionResponse.name) can emit it.
+    QHash<QString, QString> toolNameById;
+    if (context.history) {
+        for (const auto &msg : context.history.value())
+            for (const auto &b : msg.blocks)
+                if (b.kind == ContentBlockEntry::Kind::ToolUse)
+                    toolNameById.insert(b.toolUseId, b.toolName);
     }
 
     nlohmann::json history = nlohmann::json::array();
@@ -93,6 +104,7 @@ nlohmann::json buildContextJson(const ContextData &context)
                     bj["type"] = "tool_result";
                     bj["tool_use_id"] = b.toolUseId.toStdString();
                     bj["content"] = b.result.toStdString();
+                    bj["name"] = toolNameById.value(b.toolUseId).toStdString();
                     break;
                 case ContentBlockEntry::Kind::Image:
                     bj["type"] = "image";

@@ -153,7 +153,8 @@ LLMQore::RequestID Session::sendText(const QString &text)
 
 LLMQore::RequestID Session::send(
     std::vector<std::unique_ptr<LLMQore::ContentBlock>> userBlocks,
-    std::optional<bool> toolsOverride)
+    std::optional<bool> toolsOverride,
+    std::optional<bool> thinkingOverride)
 {
     if (!isValid() || userBlocks.empty())
         return {};
@@ -168,7 +169,7 @@ LLMQore::RequestID Session::send(
         msg.appendBlock(std::move(b));
     m_history->append(std::move(msg));
 
-    return dispatch(toolsOverride);
+    return dispatch(toolsOverride, thinkingOverride);
 }
 
 void Session::cancel()
@@ -221,7 +222,8 @@ LLMQore::RequestID Session::sendCompletion(Templates::ContextData ctx)
     return id;
 }
 
-LLMQore::RequestID Session::dispatch(std::optional<bool> toolsOverride)
+LLMQore::RequestID Session::dispatch(
+    std::optional<bool> toolsOverride, std::optional<bool> thinkingOverride)
 {
     auto *provider = m_agent->provider();
     auto *tmpl = m_agent->promptTemplate();
@@ -237,7 +239,8 @@ LLMQore::RequestID Session::dispatch(std::optional<bool> toolsOverride)
     QJsonObject payload{{QStringLiteral("model"), cfg.model}};
 
     const bool tools = toolsOverride.value_or(cfg.enableTools);
-    if (!provider->prepareRequest(payload, tmpl, ctx, tools, cfg.enableThinking))
+    const bool thinking = thinkingOverride.value_or(cfg.enableThinking);
+    if (!provider->prepareRequest(payload, tmpl, ctx, tools, thinking))
         return {};
 
     const auto id = provider->sendRequest(QUrl(provider->url()), payload, cfg.endpoint);
@@ -285,6 +288,9 @@ Templates::ContextData Session::buildLegacyContext(
     QVector<LegacyMessage> hist;
 
     for (const auto &m : history) {
+        if (m.role() == Message::Role::System)
+            continue;
+
         QVector<ContentBlockEntry> blockEntries;
 
         for (const auto &blockPtr : m.blocks()) {
@@ -329,12 +335,17 @@ Templates::ContextData Session::buildLegacyContext(
                              .arg(sa->fileName(), text);
                 blockEntries.append(std::move(e));
             } else if (auto *th = dynamic_cast<LLMQore::ThinkingContent *>(block)) {
+                // Claude rejects thinking blocks replayed without a signature.
+                if (th->signature().isEmpty())
+                    continue;
                 ContentBlockEntry e;
                 e.kind = ContentBlockEntry::Kind::Thinking;
                 e.thinking = th->thinking();
                 e.signature = th->signature();
                 blockEntries.append(std::move(e));
             } else if (auto *rth = dynamic_cast<LLMQore::RedactedThinkingContent *>(block)) {
+                if (rth->signature().isEmpty())
+                    continue;
                 ContentBlockEntry e;
                 e.kind = ContentBlockEntry::Kind::RedactedThinking;
                 e.signature = rth->signature();

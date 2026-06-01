@@ -36,6 +36,9 @@ public:
     ProviderCapabilities capabilities() const override;
     ::LLMQore::BaseClient *client() const override;
 
+    RequestID sendRequest(
+        const QUrl &url, const QJsonObject &payload, const QString &endpoint) override;
+
 private:
     QString m_name;
     ProviderID m_id;
