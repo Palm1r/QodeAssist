@@ -1,0 +1,19 @@
+schema_version = 1
+
+name        = "Anthropic Base Chat"
+description = "Anthropic Messages API request body (/v1/messages). Abstract — extend it and set model."
+abstract    = true
+extends     = "Chat Base"
+
+provider_instance = "Claude"
+endpoint          = "/v1/messages"
+enable_tools      = true
+tags = ["chat", "claude", "anthropic", "cloud"]
+
+[body]
+max_tokens  = 8192
+temperature = 1
+system   = """{% if existsIn(ctx, "system_prompt") %}{{ tojson(ctx.system_prompt) }}{% endif %}"""
+messages = """
+[ {% include "partials/anthropic_messages.jinja" %} ]
+"""

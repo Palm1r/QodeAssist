@@ -1,0 +1,19 @@
+{% set tcalls = filter_by_type(msg.content_blocks, "tool_use") %}
+{
+  "role": "assistant",
+  "content": {{ tojson(msg.content) }}
+  {% if length(tcalls) > 0 %}
+  , "tool_calls": [
+    {% for b in tcalls %}
+    {
+      "id": {{ tojson(b.id) }},
+      "type": "function",
+      "function": {
+        "name": {{ tojson(b.name) }},
+        "arguments": {{ tojson(tojson(b.input)) }}
+      }
+    },
+    {% endfor %}
+  ]
+  {% endif %}
+},

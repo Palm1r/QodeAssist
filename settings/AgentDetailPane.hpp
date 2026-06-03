@@ -17,6 +17,10 @@ class QPlainTextEdit;
 class QPushButton;
 class QToolButton;
 
+namespace QodeAssist {
+class AgentFactory;
+}
+
 namespace QodeAssist::Providers {
 class ProviderInstanceFactory;
 }
@@ -32,6 +36,7 @@ public:
     explicit AgentDetailPane(QWidget *parent = nullptr);
 
     void setInstanceFactory(Providers::ProviderInstanceFactory *factory);
+    void setAgentFactory(AgentFactory *factory);
     void setAgent(const AgentConfig &cfg);
     void clear();
     void setLoadDiagnostics(const QStringList &errors, const QStringList &warnings);
@@ -72,6 +77,7 @@ private:
 
     QComboBox *m_providerCombo = nullptr;
     QPointer<Providers::ProviderInstanceFactory> m_instanceFactory;
+    QPointer<AgentFactory> m_agentFactory;
     QLineEdit *m_endpointValue = nullptr;
     QLineEdit *m_modelValue = nullptr;
     QLabel *m_effectiveUrl = nullptr;
@@ -79,7 +85,6 @@ private:
     QLineEdit *m_filePatternsValue = nullptr;
 
     QPlainTextEdit *m_roleText = nullptr;
-    QPlainTextEdit *m_contextText = nullptr;
     QPlainTextEdit *m_messageFormat = nullptr;
 
     SectionBox *m_diagnostics = nullptr;

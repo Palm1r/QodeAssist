@@ -1,0 +1,12 @@
+{% for msg in ctx.history %}
+{
+  "role": {{ tojson(msg.role) }},
+  "content": [
+    {% for b in msg.content_blocks %}
+      {% if b.type == "image" %}{% include "partials/anthropic_image.jinja" %}
+      {% else %}{{ tojson(b) }},
+      {% endif %}
+    {% endfor %}
+  ]
+},
+{% endfor %}

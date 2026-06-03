@@ -1,44 +1,21 @@
 schema_version = 1
 
 name        = "Ollama Base Chat"
-description = "Shared base for Ollama /api/chat profiles."
-
-abstract = true
+description = "Ollama native /api/chat request body. Abstract — extend it and set model/options."
+abstract    = true
+extends     = "Chat Base"
 
 provider_instance = "Ollama (Native)"
 endpoint          = "/api/chat"
-
 tags = ["ollama", "local"]
 
-[template]
-message_format = """
-{
-  "messages": [
-    {%- if existsIn(ctx, "system_prompt") %}
-    {
-      "role": "system",
-      "content": {{ tojson(ctx.system_prompt) }}
-    }{% if length(ctx.history) > 0 %},{% endif %}
-    {%- endif %}
-    {%- for msg in ctx.history %}
-    {
-      "role": {{ tojson(msg.role) }},
-      "content": {{ tojson(msg.content) }}{% if existsIn(msg, "images") %},
-      "images": [
-        {%- for img in msg.images %}
-        {{ tojson(img.data) }}{% if not loop.is_last %},{% endif %}
-        {%- endfor %}
-      ]{% endif %}
-    }{% if not loop.is_last %},{% endif %}
-    {%- endfor %}
-  ]
-}
+[body]
+stream   = true
+messages = """
+[ {% include "partials/ollama_messages.jinja" %} ]
 """
 
-[template.sampling]
-stream = true
-
-[template.sampling.options]
+[body.options]
 num_predict = 2048
 temperature = 0.7
 keep_alive  = "5m"

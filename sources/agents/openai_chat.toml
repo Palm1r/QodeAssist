@@ -1,0 +1,7 @@
+schema_version = 1
+
+extends     = "OpenAI Base Chat"
+name        = "OpenAI Chat"
+description = "OpenAI Chat Completions — coding chat assistant (GPT-4o)."
+
+model = "gpt-4o"

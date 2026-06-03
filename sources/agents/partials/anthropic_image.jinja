@@ -1,0 +1,9 @@
+{
+  "type": "image",
+  "source":
+  {% if b.is_url %}
+  { "type": "url", "url": {{ tojson(b.data) }} }
+  {% else %}
+  { "type": "base64", "media_type": {{ tojson(b.media_type) }}, "data": {{ tojson(b.data) }} }
+  {% endif %}
+},

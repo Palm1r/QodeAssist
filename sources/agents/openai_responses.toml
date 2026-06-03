@@ -1,0 +1,7 @@
+schema_version = 1
+
+extends     = "OpenAI Responses Base"
+name        = "OpenAI Responses"
+description = "OpenAI Responses API (/responses) — coding chat assistant."
+
+model = "gpt-4o"

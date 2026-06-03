@@ -1,0 +1,15 @@
+schema_version = 1
+
+extends     = "Anthropic Base Chat"
+name        = "Claude Sonnet 4.6 Chat"
+description = "Anthropic Claude Sonnet 4.6 — fast, capable coding chat with adaptive thinking."
+
+model = "claude-sonnet-4-6"
+
+enable_thinking = true
+tags = ["chat", "claude", "anthropic", "cloud", "sonnet"]
+
+[body]
+max_tokens    = 16000
+thinking      = { type = "adaptive", display = "summarized" }
+output_config = { effort = "high" }

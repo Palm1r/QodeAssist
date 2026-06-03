@@ -4,6 +4,11 @@
 
 #include "AgentFactory.hpp"
 
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QLoggingCategory>
 #include <QThread>
 
@@ -37,6 +42,7 @@ AgentFactory::AgentFactory(
     , m_secrets(secrets)
 {
     ::initAgentsResource();
+    loadModelOverrides();
     reload();
 }
 
@@ -169,7 +175,11 @@ Agent *AgentFactory::create(const QString &name, QObject *parent, QString *error
         *cfg, m_instanceFactory.data(), m_secrets.data(), errorOut);
     if (!provider)
         return nullptr;
-    auto agent = std::make_unique<Agent>(*cfg, provider, /*parent=*/nullptr);
+    AgentConfig resolved = *cfg;
+    const QString modelOv = m_modelOverrides.value(resolved.name);
+    if (!modelOv.isEmpty())
+        resolved.model = modelOv;
+    auto agent = std::make_unique<Agent>(resolved, provider, /*parent=*/nullptr);
     if (!agent->isValid()) {
         if (errorOut)
             *errorOut = agent->invalidReason();
@@ -193,6 +203,9 @@ Agent *AgentFactory::createFromFile(
         *cfgOpt, m_instanceFactory.data(), m_secrets.data(), errorOut);
     if (!provider)
         return nullptr;
+    const QString modelOv = m_modelOverrides.value(cfgOpt->name);
+    if (!modelOv.isEmpty())
+        cfgOpt->model = modelOv;
     auto agent = std::make_unique<Agent>(std::move(*cfgOpt), provider, /*parent=*/nullptr);
     if (!agent->isValid()) {
         if (errorOut) *errorOut = agent->invalidReason();
@@ -219,6 +232,57 @@ Providers::ProviderInstanceFactory *AgentFactory::instanceFactory() const noexce
 Providers::ProviderSecretsStore *AgentFactory::secretsStore() const noexcept
 {
     return m_secrets.data();
+}
+
+QString AgentFactory::modelOverride(const QString &agentName) const
+{
+    return m_modelOverrides.value(agentName);
+}
+
+void AgentFactory::setModelOverride(const QString &agentName, const QString &model)
+{
+    if (model.isEmpty())
+        m_modelOverrides.remove(agentName);
+    else
+        m_modelOverrides.insert(agentName, model);
+    saveModelOverrides();
+}
+
+namespace {
+QString modelOverridesPath()
+{
+    return Core::ICore::userResourcePath(QStringLiteral("qodeassist/config/agent_models.json"))
+        .toFSPathString();
+}
+} // namespace
+
+void AgentFactory::loadModelOverrides()
+{
+    m_modelOverrides.clear();
+    QFile f(modelOverridesPath());
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text))
+        return;
+    const QJsonObject obj = QJsonDocument::fromJson(f.readAll()).object();
+    for (auto it = obj.constBegin(); it != obj.constEnd(); ++it) {
+        const QString model = it.value().toString();
+        if (!model.isEmpty())
+            m_modelOverrides.insert(it.key(), model);
+    }
+}
+
+void AgentFactory::saveModelOverrides() const
+{
+    const QString path = modelOverridesPath();
+    QDir().mkpath(QFileInfo(path).absolutePath());
+    QJsonObject obj;
+    for (auto it = m_modelOverrides.constBegin(); it != m_modelOverrides.constEnd(); ++it)
+        obj.insert(it.key(), it.value());
+    QFile f(path);
+    if (!f.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        LOG_MESSAGE(QStringLiteral("[Agents] cannot write model overrides: %1").arg(path));
+        return;
+    }
+    f.write(QJsonDocument(obj).toJson(QJsonDocument::Indented));
 }
 
 } // namespace QodeAssist

@@ -1,0 +1,16 @@
+{% if existsIn(ctx, "system_prompt") %}
+{ "role": "system", "content": {{ tojson(ctx.system_prompt) }} },
+{% endif %}
+{% for msg in ctx.history %}
+{
+  "role": {{ tojson(msg.role) }},
+  "content": {{ tojson(msg.content) }}
+  {% if existsIn(msg, "images") %}
+  , "images": [
+    {% for img in msg.images %}
+    {{ tojson(img.data) }},
+    {% endfor %}
+  ]
+  {% endif %}
+},
+{% endfor %}

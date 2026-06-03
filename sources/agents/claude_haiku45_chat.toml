@@ -1,0 +1,14 @@
+schema_version = 1
+
+extends     = "Anthropic Base Chat"
+name        = "Claude Haiku 4.5 Chat"
+description = "Anthropic Claude Haiku 4.5 — fastest model with near-frontier intelligence; extended thinking (manual budget)."
+
+model = "claude-haiku-4-5-20251001"
+
+enable_thinking = true
+tags = ["chat", "claude", "anthropic", "cloud", "haiku", "fast"]
+
+[body]
+max_tokens = 16000
+thinking   = { type = "enabled", budget_tokens = 4096 }

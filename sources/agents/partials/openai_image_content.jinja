@@ -1,0 +1,11 @@
+[
+  { "type": "text", "text": {{ tojson(msg.content) }} }
+  {% for img in msg.images %}
+  ,
+  {% if img.is_url %}
+  { "type": "image_url", "image_url": { "url": {{ tojson(img.data) }} } }
+  {% else %}
+  { "type": "image_url", "image_url": { "url": "data:{{ img.media_type }};base64,{{ img.data }}" } }
+  {% endif %}
+  {% endfor %}
+]

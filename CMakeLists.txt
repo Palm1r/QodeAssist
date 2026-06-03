@@ -47,6 +47,11 @@ if(GTest_FOUND)
   add_subdirectory(test)
 endif()
 
+option(QODEASSIST_BUILD_BENCH "Build the standalone agent bench CLI" ON)
+if(QODEASSIST_BUILD_BENCH)
+  add_subdirectory(bench)
+endif()
+
 add_qtc_plugin(QodeAssist
   PLUGIN_DEPENDS
     QtCreator::Core

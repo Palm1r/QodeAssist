@@ -1,11 +1,46 @@
 <RCC>
     <qresource prefix="/agents">
+        <file>partials/openai_messages.jinja</file>
+        <file>partials/openai_assistant.jinja</file>
+        <file>partials/openai_tool_results.jinja</file>
+        <file>partials/openai_user.jinja</file>
+        <file>partials/openai_image_content.jinja</file>
+        <file>partials/openai_responses_input.jinja</file>
+        <file>partials/anthropic_messages.jinja</file>
+        <file>partials/anthropic_image.jinja</file>
+        <file>partials/google_contents.jinja</file>
+        <file>partials/google_part.jinja</file>
+        <file>partials/ollama_messages.jinja</file>
+
+        <file>chat_base.toml</file>
+        <file>openai_base_chat.toml</file>
+        <file>openai_responses_base.toml</file>
+        <file>anthropic_base_chat.toml</file>
+        <file>google_base_chat.toml</file>
         <file>ollama_base_chat.toml</file>
         <file>ollama_base_fim.toml</file>
+
+        <file>openai_chat.toml</file>
+        <file>openai_compatible_chat.toml</file>
+        <file>openai_responses.toml</file>
+        <file>mistral_chat.toml</file>
+        <file>mistral_medium_chat.toml</file>
+        <file>mistral_reasoning_chat.toml</file>
+        <file>codestral_chat.toml</file>
+        <file>codestral_fim.toml</file>
+        <file>llamacpp_chat.toml</file>
+        <file>lmstudio_chat.toml</file>
+        <file>lmstudio_responses.toml</file>
+        <file>openrouter_chat.toml</file>
+        <file>ollama_openai_chat.toml</file>
         <file>ollama_gemma4_e4b_chat.toml</file>
         <file>ollama_codellama_7b_code_fim.toml</file>
         <file>ollama_codellama_13b_qml_fim.toml</file>
+
         <file>claude_sonnet_chat.toml</file>
+        <file>claude_sonnet46_chat.toml</file>
+        <file>claude_haiku45_chat.toml</file>
+        <file>claude_opus_max.toml</file>
         <file>google_gemini_chat.toml</file>
     </qresource>
 </RCC>

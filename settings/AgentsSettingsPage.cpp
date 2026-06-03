@@ -100,6 +100,7 @@ public:
 
         m_detail = new AgentDetailPane(this);
         m_detail->setInstanceFactory(m_agentFactory->instanceFactory());
+        m_detail->setAgentFactory(m_agentFactory);
         m_detailScroll = new QScrollArea(this);
         m_detailScroll->setWidgetResizable(true);
         m_detailScroll->setFrameShape(QFrame::StyledPanel);

@@ -1,0 +1,20 @@
+schema_version = 1
+
+name        = "Google Base Chat"
+description = "Google Gemini generateContent request body. Abstract — extend it and set model/endpoint."
+abstract    = true
+extends     = "Chat Base"
+
+provider_instance = "Google AI"
+enable_tools      = true
+tags = ["chat", "gemini", "google", "cloud"]
+
+[body]
+system_instruction = """{% if existsIn(ctx, "system_prompt") %}{ "parts": [ { "text": {{ tojson(ctx.system_prompt) }} } ] }{% endif %}"""
+contents = """
+[ {% include "partials/google_contents.jinja" %} ]
+"""
+
+[body.generationConfig]
+maxOutputTokens = 8192
+temperature     = 1

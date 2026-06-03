@@ -1,0 +1,19 @@
+schema_version = 1
+
+name        = "Codestral FIM"
+description = "Mistral Codestral fill-in-the-middle code completion (/v1/fim/completions)."
+
+provider_instance = "Mistral AI"
+endpoint          = "/v1/fim/completions"
+model             = "codestral-latest"
+
+enable_thinking = false
+enable_tools    = false
+tags = ["fim", "codestral", "mistral", "cloud", "completion"]
+
+[body]
+max_tokens  = 256
+temperature = 0.2
+stream      = true
+prompt      = """{{ tojson(ctx.prefix) }}"""
+suffix      = """{% if existsIn(ctx, "suffix") %}{{ tojson(ctx.suffix) }}{% endif %}"""

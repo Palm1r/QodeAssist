@@ -5,6 +5,9 @@
 #include "JsonPromptTemplate.hpp"
 
 #include <QDebug>
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
 #include <QHash>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -138,19 +141,77 @@ nlohmann::json buildContextJson(const ContextData &context)
     return data;
 }
 
+// JSON-aware removal of trailing commas (a `,` immediately followed, after
+// optional whitespace, by `}` or `]`). Body partials emit an unconditional
+// comma after every array element / object member; this pass deletes the
+// dangling one before the closing bracket so the result parses as strict
+// JSON. String literals are skipped, so commas inside string values (e.g. a
+// tool result containing "],") are never touched.
+std::string stripTrailingCommas(const std::string &in)
+{
+    std::string out;
+    out.reserve(in.size());
+    bool inString = false;
+    bool escaped = false;
+    for (std::size_t i = 0; i < in.size(); ++i) {
+        const char c = in[i];
+        if (inString) {
+            out.push_back(c);
+            if (escaped)
+                escaped = false;
+            else if (c == '\\')
+                escaped = true;
+            else if (c == '"')
+                inString = false;
+            continue;
+        }
+        if (c == '"') {
+            inString = true;
+            out.push_back(c);
+            continue;
+        }
+        if (c == ',') {
+            std::size_t j = i + 1;
+            while (j < in.size()
+                   && (in[j] == ' ' || in[j] == '\t' || in[j] == '\n' || in[j] == '\r'))
+                ++j;
+            if (j < in.size() && (in[j] == '}' || in[j] == ']'))
+                continue; // drop this comma
+        }
+        out.push_back(c);
+    }
+    return out;
+}
+
+// Install a sandboxed `{% include %}` resolver. Includes resolve only against
+// the given roots (bundled qrc partials, then the user agent's own dir); names
+// containing ".." or starting with "/" are rejected. The included partial is
+// parsed in the same environment, so its own includes/callbacks resolve too.
+void setIncludeResolver(inja::Environment &env, std::vector<QString> roots)
+{
+    inja::Environment *envPtr = &env;
+    env.set_include_callback(
+        [envPtr, roots = std::move(roots)](
+            const std::filesystem::path &, const std::string &name) -> inja::Template {
+            const QString rel = QString::fromStdString(name);
+            if (rel.contains(QStringLiteral("..")) || rel.startsWith(QLatin1Char('/'))) {
+                throw inja::FileError("include rejected (path traversal): '" + name + "'");
+            }
+            for (const QString &root : roots) {
+                QFile f(root + QLatin1Char('/') + rel);
+                if (f.open(QIODevice::ReadOnly | QIODevice::Text))
+                    return envPtr->parse(QString::fromUtf8(f.readAll()).toStdString());
+            }
+            throw inja::FileError("include not found in partials roots: '" + name + "'");
+        });
+}
+
 void registerStandardCallbacks(inja::Environment &env)
 {
-    // Sandbox: disable filesystem reads from `{% include %}` and reject
-    // any include callback. User-authored templates run with full
-    // process privileges, so they must not slurp arbitrary files via
-    // include directives. File reads happen only through
-    // ContextManager-provided callbacks (e.g. read_file()).
+    // `{% include %}` resolution is wired per-instance in fromConfig() via a
+    // whitelisted callback; disable inja's own filesystem search so the only
+    // path is our sandboxed resolver.
     env.set_search_included_templates_in_files(false);
-    env.set_include_callback(
-        [](const std::filesystem::path &, const std::string &name) -> inja::Template {
-            throw inja::FileError(
-                "include is disabled in QodeAssist templates: '" + name + "'");
-        });
 
     // Disable inja's `##` line-statement shorthand — collides with
     // Markdown headings inside template bodies. Same rationale as in
@@ -159,6 +220,23 @@ void registerStandardCallbacks(inja::Environment &env)
 
     env.add_callback("tojson", 1, [](inja::Arguments &args) -> nlohmann::json {
         return args.at(0)->dump();
+    });
+
+    // Returns the subset of a content_blocks array whose "type" equals the
+    // second argument. Lets templates build provider-specific structures (e.g.
+    // OpenAI message-level tool_calls / tool result messages) from a filtered
+    // list with clean loop.is_first/is_last comma handling.
+    env.add_callback("filter_by_type", 2, [](inja::Arguments &args) -> nlohmann::json {
+        const nlohmann::json &blocks = *args.at(0);
+        const std::string type = args.at(1)->get<std::string>();
+        nlohmann::json result = nlohmann::json::array();
+        if (blocks.is_array()) {
+            for (const auto &b : blocks) {
+                if (b.is_object() && b.value("type", std::string{}) == type)
+                    result.push_back(b);
+            }
+        }
+        return result;
     });
 
     env.add_callback("strip_signature_suffix", 1, [](inja::Arguments &args) -> nlohmann::json {
@@ -215,6 +293,66 @@ void registerStandardCallbacks(inja::Environment &env)
         });
 }
 
+// A representative context for the load-time dry run: it populates every key a
+// body/partial might touch (system_prompt, prefix, suffix, and a history that
+// includes text, tool_use, tool_result and image blocks) so validation
+// exercises all branches without tripping on missing variables.
+ContextData makeValidationContext()
+{
+    ContextData ctx;
+    ctx.systemPrompt = QStringLiteral("validation");
+    ctx.prefix = QStringLiteral("prefix");
+    ctx.suffix = QStringLiteral("suffix");
+
+    QVector<Message> history;
+    history.append(Message::text(QStringLiteral("user"), QStringLiteral("hello")));
+
+    Message asst;
+    asst.role = QStringLiteral("assistant");
+    {
+        ContentBlockEntry t;
+        t.kind = ContentBlockEntry::Kind::Text;
+        t.text = QStringLiteral("hi");
+        asst.blocks.append(t);
+        ContentBlockEntry tu;
+        tu.kind = ContentBlockEntry::Kind::ToolUse;
+        tu.toolUseId = QStringLiteral("call_1");
+        tu.toolName = QStringLiteral("read_file");
+        tu.toolInput = QJsonObject{{QStringLiteral("path"), QStringLiteral("x")}};
+        asst.blocks.append(tu);
+    }
+    history.append(asst);
+
+    Message toolMsg;
+    toolMsg.role = QStringLiteral("user");
+    {
+        ContentBlockEntry tr;
+        tr.kind = ContentBlockEntry::Kind::ToolResult;
+        tr.toolUseId = QStringLiteral("call_1");
+        tr.result = QStringLiteral("ok");
+        toolMsg.blocks.append(tr);
+    }
+    history.append(toolMsg);
+
+    Message imgMsg;
+    imgMsg.role = QStringLiteral("user");
+    {
+        ContentBlockEntry te;
+        te.kind = ContentBlockEntry::Kind::Text;
+        te.text = QStringLiteral("look");
+        imgMsg.blocks.append(te);
+        ContentBlockEntry im;
+        im.kind = ContentBlockEntry::Kind::Image;
+        im.imageData = QStringLiteral("AAAA");
+        im.mediaType = QStringLiteral("image/png");
+        imgMsg.blocks.append(im);
+    }
+    history.append(imgMsg);
+
+    ctx.history = history;
+    return ctx;
+}
+
 } // namespace
 
 std::unique_ptr<JsonPromptTemplate> JsonPromptTemplate::fromConfig(
@@ -224,96 +362,153 @@ std::unique_ptr<JsonPromptTemplate> JsonPromptTemplate::fromConfig(
         if (error) *error = msg;
     };
 
-    if (cfg.messageFormat.isEmpty()) {
-        setError(QStringLiteral("Agent '%1' has empty message_format").arg(cfg.name));
+    if (cfg.body.isEmpty()) {
+        setError(QStringLiteral("Agent '%1' has empty [body]").arg(cfg.name));
         return nullptr;
     }
 
     auto tpl = std::unique_ptr<JsonPromptTemplate>(new JsonPromptTemplate);
     tpl->m_name = cfg.name;
     tpl->m_description = cfg.description;
-    tpl->m_sampling = cfg.sampling;
-    tpl->m_thinking = cfg.thinking;
+    tpl->m_body = cfg.body;
+
+    tpl->m_partialRoots.push_back(QStringLiteral(":/agents"));
+    if (cfg.isUserSource()) {
+        const QString dir = QFileInfo(cfg.sourcePath).absolutePath();
+        if (!dir.isEmpty())
+            tpl->m_partialRoots.push_back(dir);
+    }
 
     registerStandardCallbacks(tpl->m_env);
-    try {
-        tpl->m_template = tpl->m_env.parse(cfg.messageFormat.toStdString());
-    } catch (const std::exception &e) {
-        setError(QStringLiteral("Failed to parse jinja for '%1': %2")
-                     .arg(cfg.name, QString::fromUtf8(e.what())));
+    setIncludeResolver(tpl->m_env, tpl->m_partialRoots);
+
+    // Dry-run against a representative context: catches jinja syntax errors,
+    // unknown callbacks and missing partials at load time instead of on first send.
+    if (!tpl->renderBody(makeValidationContext())) {
+        setError(QStringLiteral("Agent '%1' [body] failed to render to valid JSON "
+                                "(see log)").arg(cfg.name));
         return nullptr;
     }
     return tpl;
 }
 
-std::optional<QJsonObject> JsonPromptTemplate::renderBody(const ContextData &context) const
+namespace {
+
+// Render one body value. A string containing jinja is rendered and its output
+// spliced in as raw JSON; a plain string and any scalar pass through unchanged;
+// objects/arrays recurse. A jinja string that renders to nothing sets `omit`
+// so the caller drops the key. Returns false on render / JSON-parse failure.
+// The caller must hold the render lock (inja's env is not re-entrant).
+bool renderValue(
+    inja::Environment &env,
+    const QString &tplName,
+    const QJsonValue &in,
+    const nlohmann::json &data,
+    QJsonValue &out,
+    bool &omit)
 {
-    const nlohmann::json data = buildContextJson(context);
+    omit = false;
+
+    if (in.isObject()) {
+        QJsonObject obj;
+        const QJsonObject src = in.toObject();
+        for (auto it = src.constBegin(); it != src.constEnd(); ++it) {
+            QJsonValue v;
+            bool om = false;
+            if (!renderValue(env, tplName, it.value(), data, v, om))
+                return false;
+            if (!om)
+                obj.insert(it.key(), v);
+        }
+        out = obj;
+        return true;
+    }
+
+    if (in.isArray()) {
+        QJsonArray arr;
+        const QJsonArray src = in.toArray();
+        for (const QJsonValue &elem : src) {
+            QJsonValue v;
+            bool om = false;
+            if (!renderValue(env, tplName, elem, data, v, om))
+                return false;
+            if (!om)
+                arr.append(v);
+        }
+        out = arr;
+        return true;
+    }
+
+    if (!in.isString()) {
+        out = in;
+        return true;
+    }
+
+    const QString s = in.toString();
+    if (!s.contains(QStringLiteral("{{")) && !s.contains(QStringLiteral("{%"))) {
+        out = in;
+        return true;
+    }
 
     std::string rendered;
     try {
-        std::lock_guard<std::mutex> lock(m_renderMutex);
-        rendered = m_env.render(m_template, data);
+        rendered = env.render(s.toStdString(), data);
     } catch (const std::exception &e) {
-        qWarning("[QodeAssist] Template '%s' render failed: %s",
-                 qUtf8Printable(m_name),
-                 e.what());
-        return std::nullopt;
+        qWarning("[QodeAssist] Template '%s' field render failed: %s",
+                 qUtf8Printable(tplName), e.what());
+        return false;
     }
 
-    QJsonParseError err;
-    const QJsonDocument doc
-        = QJsonDocument::fromJson(QByteArray::fromStdString(rendered), &err);
-    constexpr std::size_t kMaxRenderedLogChars = 500;
-    const std::string truncated = rendered.size() > kMaxRenderedLogChars
-        ? rendered.substr(0, kMaxRenderedLogChars) + "... [truncated]"
-        : rendered;
-    if (err.error != QJsonParseError::NoError) {
-        qWarning("[QodeAssist] Template '%s' produced invalid JSON at offset %d: %s\n"
-                 "--- raw output (truncated) ---\n%s",
-                 qUtf8Printable(m_name),
-                 err.offset,
-                 qUtf8Printable(err.errorString()),
-                 truncated.c_str());
-        return std::nullopt;
+    rendered = stripTrailingCommas(rendered);
+    if (QString::fromStdString(rendered).trimmed().isEmpty()) {
+        omit = true;
+        return true;
     }
-    if (!doc.isObject()) {
-        qWarning("[QodeAssist] Template '%s' rendered a non-object JSON value (truncated):\n%s",
-                 qUtf8Printable(m_name),
-                 truncated.c_str());
-        return std::nullopt;
+
+    // Wrap so ANY JSON value (array/object/string/number) parses via QJsonDocument.
+    const std::string wrapped = "{\"v\":" + rendered + "}";
+    QJsonParseError perr;
+    const QJsonDocument doc = QJsonDocument::fromJson(QByteArray::fromStdString(wrapped), &perr);
+    if (perr.error != QJsonParseError::NoError || !doc.isObject()) {
+        const QString snippet = QString::fromStdString(rendered).left(500);
+        qWarning("[QodeAssist] Template '%s' field produced invalid JSON: %s\n"
+                 "--- rendered (truncated) ---\n%s",
+                 qUtf8Printable(tplName),
+                 qUtf8Printable(perr.errorString()),
+                 qUtf8Printable(snippet));
+        return false;
     }
-    return doc.object();
+    out = doc.object().value(QStringLiteral("v"));
+    return true;
 }
-
-namespace {
 
 bool mergeRenderedBody(QJsonObject &request, const std::optional<QJsonObject> &body)
 {
     if (!body)
         return false;
-    for (auto it = body->constBegin(); it != body->constEnd(); ++it) {
+    for (auto it = body->constBegin(); it != body->constEnd(); ++it)
         request.insert(it.key(), it.value());
-    }
     return true;
 }
 
-void deepMergeInto(QJsonObject &base, const QJsonObject &overlay)
-{
-    for (auto it = overlay.constBegin(); it != overlay.constEnd(); ++it) {
-        const QJsonValue baseVal = base.value(it.key());
-        const QJsonValue overlayVal = it.value();
-        if (baseVal.isObject() && overlayVal.isObject()) {
-            QJsonObject merged = baseVal.toObject();
-            deepMergeInto(merged, overlayVal.toObject());
-            base[it.key()] = merged;
-        } else {
-            base[it.key()] = overlayVal;
-        }
-    }
-}
-
 } // namespace
+
+std::optional<QJsonObject> JsonPromptTemplate::renderBody(const ContextData &context) const
+{
+    const nlohmann::json data = buildContextJson(context);
+
+    std::lock_guard<std::mutex> lock(m_renderMutex);
+    QJsonObject request;
+    for (auto it = m_body.constBegin(); it != m_body.constEnd(); ++it) {
+        QJsonValue v;
+        bool omit = false;
+        if (!renderValue(m_env, m_name, it.value(), data, v, omit))
+            return std::nullopt;
+        if (!omit)
+            request.insert(it.key(), v);
+    }
+    return request;
+}
 
 void JsonPromptTemplate::prepareRequest(QJsonObject &request, const ContextData &context) const
 {
@@ -323,27 +518,9 @@ void JsonPromptTemplate::prepareRequest(QJsonObject &request, const ContextData 
 bool JsonPromptTemplate::buildFullRequest(
     QJsonObject &request,
     const ContextData &context,
-    bool thinkingEnabled) const
+    bool /*thinkingEnabled*/) const
 {
-    if (!mergeRenderedBody(request, renderBody(context)))
-        return false;
-    applySampling(request, thinkingEnabled);
-    return true;
-}
-
-void JsonPromptTemplate::applySampling(QJsonObject &request, bool thinkingEnabled) const
-{
-    // Merge order: sampling provides defaults → body wins for its own
-    // keys → thinking overrides win on top.
-    QJsonObject merged = m_sampling;
-    deepMergeInto(merged, request);
-
-    if (thinkingEnabled && !m_thinking.isEmpty()) {
-        deepMergeInto(merged, m_thinking.value("overrides").toObject());
-        deepMergeInto(merged, m_thinking.value("request_block").toObject());
-    }
-
-    request = std::move(merged);
+    return mergeRenderedBody(request, renderBody(context));
 }
 
 } // namespace QodeAssist::Templates

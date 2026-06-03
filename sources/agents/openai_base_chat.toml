@@ -1,0 +1,18 @@
+schema_version = 1
+
+name        = "OpenAI Base Chat"
+description = "OpenAI Chat Completions request body. Abstract — extend it and set provider/endpoint/model."
+abstract    = true
+extends     = "Chat Base"
+
+provider_instance = "OpenAI (Chat Completions)"
+endpoint          = "/chat/completions"
+enable_tools      = true
+tags = ["chat", "openai", "cloud"]
+
+[body]
+max_tokens  = 8192
+temperature = 0.7
+messages    = """
+[ {% include "partials/openai_messages.jinja" %} ]
+"""

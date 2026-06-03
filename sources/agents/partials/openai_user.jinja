@@ -1,0 +1,5 @@
+{% if existsIn(msg, "images") %}
+{ "role": "user", "content": {% include "partials/openai_image_content.jinja" %} },
+{% else %}
+{ "role": "user", "content": {{ tojson(msg.content) }} },
+{% endif %}

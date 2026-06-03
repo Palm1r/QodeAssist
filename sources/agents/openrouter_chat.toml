@@ -1,0 +1,11 @@
+schema_version = 1
+
+extends     = "OpenAI Base Chat"
+name        = "OpenRouter Chat"
+description = "OpenRouter (OpenAI-compatible Chat Completions) — coding chat assistant."
+
+provider_instance = "OpenRouter"
+endpoint          = "/chat/completions"
+model             = "openai/gpt-4o"
+
+tags = ["chat", "openrouter", "cloud"]

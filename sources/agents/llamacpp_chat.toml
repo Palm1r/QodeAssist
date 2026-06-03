@@ -1,0 +1,11 @@
+schema_version = 1
+
+extends     = "OpenAI Base Chat"
+name        = "llama.cpp Chat"
+description = "llama.cpp server (OpenAI-compatible Chat Completions) — local coding chat assistant."
+
+provider_instance = "llama.cpp"
+endpoint          = "/v1/chat/completions"
+model             = "llama"
+
+tags = ["chat", "llamacpp", "local"]

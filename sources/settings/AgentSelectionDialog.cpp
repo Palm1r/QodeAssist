@@ -125,7 +125,7 @@ AgentRowCard::AgentRowCard(const AgentConfig &cfg, QWidget *parent)
 {
     setItemName(cfg.name);
     QStringList haystack{cfg.name, cfg.providerInstance, cfg.model,
-                         cfg.description, cfg.role,
+                         cfg.description, cfg.systemPrompt,
                          cfg.endpoint};
     haystack += cfg.tags;
     buildSearchHaystack(haystack);
@@ -234,8 +234,8 @@ AgentRowCard::AgentRowCard(const AgentConfig &cfg, QWidget *parent)
         tooltip += cfg.description + QStringLiteral("\n\n");
     if (!cfg.providerInstance.isEmpty())
         tooltip += Tr::tr("Provider instance: %1\n").arg(cfg.providerInstance);
-    if (!cfg.role.isEmpty())
-        tooltip += Tr::tr("Role: %1\n").arg(cfg.role);
+    if (!cfg.systemPrompt.isEmpty())
+        tooltip += Tr::tr("System prompt: %1\n").arg(cfg.systemPrompt);
     if (!cfg.endpoint.isEmpty())
         tooltip += Tr::tr("Endpoint: %1\n").arg(cfg.endpoint);
     setToolTip(tooltip.trimmed());

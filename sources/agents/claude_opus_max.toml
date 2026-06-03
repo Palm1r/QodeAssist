@@ -1,0 +1,15 @@
+schema_version = 1
+
+extends     = "Anthropic Base Chat"
+name        = "Claude Opus 4.8 Max"
+description = "Anthropic Claude Opus 4.8 at maximum capability — adaptive thinking at max effort, 128k max output."
+
+model = "claude-opus-4-8"
+
+enable_thinking = true
+tags = ["chat", "claude", "anthropic", "cloud", "opus", "max"]
+
+[body]
+max_tokens    = 128000
+thinking      = { type = "adaptive", display = "summarized" }
+output_config = { effort = "max" }

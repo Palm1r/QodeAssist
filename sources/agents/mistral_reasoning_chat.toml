@@ -1,0 +1,12 @@
+schema_version = 1
+
+extends     = "OpenAI Base Chat"
+name        = "Mistral Reasoning Chat"
+description = "Mistral Magistral Medium — native chain-of-thought reasoning model."
+
+provider_instance = "Mistral AI"
+endpoint          = "/v1/chat/completions"
+model             = "magistral-medium-latest"
+
+enable_thinking = true
+tags = ["chat", "mistral", "reasoning", "cloud"]

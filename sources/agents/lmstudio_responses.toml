@@ -1,0 +1,11 @@
+schema_version = 1
+
+extends     = "OpenAI Responses Base"
+name        = "LM Studio Responses"
+description = "LM Studio (Responses API) — local coding chat assistant."
+
+provider_instance = "LM Studio (Responses API)"
+endpoint          = "/v1/responses"
+model             = "local-model"
+
+tags = ["chat", "lmstudio", "responses", "local"]

@@ -1,0 +1,9 @@
+{% if existsIn(ctx, "system_prompt") %}
+{ "role": "system", "content": {{ tojson(ctx.system_prompt) }} },
+{% endif %}
+{% for msg in ctx.history %}
+  {% if msg.role == "assistant" %}{% include "partials/openai_assistant.jinja" %}
+  {% else if length(filter_by_type(msg.content_blocks, "tool_result")) > 0 %}{% include "partials/openai_tool_results.jinja" %}
+  {% else %}{% include "partials/openai_user.jinja" %}
+  {% endif %}
+{% endfor %}

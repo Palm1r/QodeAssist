@@ -1,34 +1,16 @@
 schema_version = 1
 
-name    = "Ollama gemma4:e4b Chat"
-extends = "Ollama Base Chat"
-
+extends     = "Ollama Base Chat"
+name        = "Ollama gemma4:e4b Chat"
 description = "Local Gemma 4 E4B on Ollama /api/chat — coding chat assistant."
 
 model = "gemma4:e4b"
 
-role = """
-You are a helpful coding assistant integrated into Qt Creator.
-Answer concisely. When the user shares code, prefer concrete diffs or
-minimal patches over rewriting whole files. Use markdown code blocks
-with language tags so the IDE can render them.
-"""
-
 enable_thinking = true
 enable_tools    = true
-
 tags = ["chat", "ollama", "local", "gemma"]
 
-context = """
-{%- set readme      = read_file("${PROJECT_DIR}/README.md")        -%}
-
-{%- if length(readme) > 0 %}
-## Project README.md
-{{ readme }}
-{%- endif %}
-"""
-
-[template.sampling.options]
+[body.options]
 num_predict = 4096
 temperature = 1
 top_k       = 64

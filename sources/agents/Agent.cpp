@@ -34,9 +34,8 @@ QString AgentConfig::validate(const AgentConfig &config)
         return QStringLiteral("Agent config '%1' has no model").arg(config.name);
     if (config.endpoint.isEmpty())
         return QStringLiteral("Agent config '%1' has no endpoint").arg(config.name);
-    if (config.messageFormat.isEmpty()) {
-        return QStringLiteral("Agent config '%1' has no [template].message_format")
-            .arg(config.name);
+    if (config.body.isEmpty()) {
+        return QStringLiteral("Agent config '%1' has no [body]").arg(config.name);
     }
     return {};
 }

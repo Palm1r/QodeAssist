@@ -120,8 +120,7 @@ AgentConfig configFromMerged(const QJsonObject &obj)
     cfg.providerInstance = obj.value("provider_instance").toString();
     cfg.model       = obj.value("model").toString();
     cfg.endpoint    = obj.value("endpoint").toString();
-    cfg.role        = obj.value("role").toString();
-    cfg.context     = obj.value("context").toString();
+    cfg.systemPrompt = obj.value("system_prompt").toString();
     cfg.enableThinking = obj.value("enable_thinking").toBool(false);
     cfg.enableTools    = obj.value("enable_tools").toBool(false);
     cfg.tags        = stringArray(obj.value("tags"));
@@ -135,10 +134,7 @@ AgentConfig configFromMerged(const QJsonObject &obj)
     cfg.abstract    = obj.value("abstract").toBool(false);
     cfg.hidden      = obj.value("hidden").toBool(false);
 
-    const QJsonObject tpl = obj.value("template").toObject();
-    cfg.messageFormat = tpl.value("message_format").toString();
-    cfg.sampling      = tpl.value("sampling").toObject();
-    cfg.thinking      = tpl.value("thinking").toObject();
+    cfg.body = obj.value("body").toObject();
     return cfg;
 }
 

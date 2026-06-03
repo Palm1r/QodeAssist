@@ -1,0 +1,19 @@
+schema_version = 1
+
+name        = "OpenAI Responses Base"
+description = "OpenAI Responses API request body (/responses). Abstract — extend it and set provider/endpoint/model."
+abstract    = true
+extends     = "Chat Base"
+
+provider_instance = "OpenAI (Responses API)"
+endpoint          = "/responses"
+enable_tools      = true
+tags = ["chat", "openai", "responses", "cloud"]
+
+[body]
+max_output_tokens = 8192
+temperature       = 0.7
+instructions = """{% if existsIn(ctx, "system_prompt") %}{{ tojson(ctx.system_prompt) }}{% endif %}"""
+input = """
+[ {% include "partials/openai_responses_input.jinja" %} ]
+"""

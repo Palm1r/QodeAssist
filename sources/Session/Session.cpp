@@ -81,8 +81,6 @@ Session::Session(Agent *agent, ConversationHistory *externalHistory, QObject *pa
 
     m_router = new ResponseRouter(client, m_history, this);
     connect(m_router, &ResponseRouter::event, this, &Session::onRouterEvent);
-
-    m_systemPrompt->setLayer(QStringLiteral("agent.role"), m_agent->config().role);
 }
 
 Session::~Session()
@@ -134,12 +132,13 @@ QString Session::renderAgentContext() const
     if (!m_agent)
         return {};
     const auto &cfg = m_agent->config();
-    if (cfg.context.isEmpty())
+    if (cfg.systemPrompt.isEmpty())
         return {};
     QString err;
-    QString rendered = Templates::ContextRenderer::render(cfg.context, m_contextBindings, &err);
+    QString rendered
+        = Templates::ContextRenderer::render(cfg.systemPrompt, m_contextBindings, &err);
     if (!err.isEmpty())
-        qWarning("[QodeAssist] agent.context render failed: %s", qUtf8Printable(err));
+        qWarning("[QodeAssist] agent.system render failed: %s", qUtf8Printable(err));
     return rendered;
 }
 
@@ -231,9 +230,9 @@ LLMQore::RequestID Session::dispatch(
 
     const QString renderedContext = renderAgentContext();
     if (renderedContext.isEmpty())
-        m_systemPrompt->clearLayer(QStringLiteral("agent.context"));
+        m_systemPrompt->clearLayer(QStringLiteral("agent.system"));
     else
-        m_systemPrompt->setLayer(QStringLiteral("agent.context"), renderedContext);
+        m_systemPrompt->setLayer(QStringLiteral("agent.system"), renderedContext);
 
     Templates::ContextData ctx = toLegacyContext();
     QJsonObject payload{{QStringLiteral("model"), cfg.model}};

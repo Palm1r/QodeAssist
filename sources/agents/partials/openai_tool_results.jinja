@@ -1,0 +1,3 @@
+{% for b in filter_by_type(msg.content_blocks, "tool_result") %}
+{ "role": "tool", "tool_call_id": {{ tojson(b.tool_use_id) }}, "content": {{ tojson(b.content) }} },
+{% endfor %}

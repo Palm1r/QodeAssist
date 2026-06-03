@@ -8,6 +8,7 @@
 #include "SettingsTheme.hpp"
 #include "SettingsUiBuilders.hpp"
 
+#include <AgentFactory.hpp>
 #include <ProviderInstance.hpp>
 #include <ProviderInstanceFactory.hpp>
 
@@ -18,6 +19,7 @@
 #include <QFont>
 #include <QFrame>
 #include <QGridLayout>
+#include <QJsonDocument>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -157,32 +159,30 @@ AgentDetailPane::AgentDetailPane(QWidget *parent)
                   "group the agent list."));
     identity->bodyLayout()->addLayout(idGrid);
 
-    auto *roleSection = new SectionBox(tr("System role"), this);
+    auto *roleSection = new SectionBox(tr("System prompt"), this);
     auto *roleHint = makeHintLabel(
-        tr("Prepended to every request as the system message."));
+        tr("Jinja2 template (via ContextRenderer) rendered into the system "
+           "prompt. Supports read_file/file_exists with ${PROJECT_DIR}/${HOME}."));
     m_roleText = new QPlainTextEdit(this);
     m_roleText->setReadOnly(true);
+    m_roleText->setFont(monospaceFont(11));
     m_roleText->setMinimumHeight(120);
     roleSection->bodyLayout()->addWidget(roleHint);
     roleSection->bodyLayout()->addWidget(m_roleText);
-
-    auto *contextSection = new SectionBox(tr("Context"), this);
-    auto *contextHint = makeHintLabel(
-        tr("Jinja2 template rendered with ContextManager bindings into the "
-           "agent.context system-prompt layer. Empty = no context block."));
-    m_contextText = new QPlainTextEdit(this);
-    m_contextText->setReadOnly(true);
-    m_contextText->setFont(monospaceFont(11));
-    m_contextText->setMinimumHeight(120);
-    contextSection->bodyLayout()->addWidget(contextHint);
-    contextSection->bodyLayout()->addWidget(m_contextText);
 
     auto *connection = new SectionBox(tr("Connection"), this);
     m_providerCombo = new QComboBox(this);
     m_providerCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
     m_providerCombo->setEnabled(false);
     m_endpointValue = makeReadOnlyLine(true);
-    m_modelValue = makeReadOnlyLine(true);
+    m_modelValue = new QLineEdit(this);
+    m_modelValue->setFont(monospaceFont(11));
+    m_modelValue->setClearButtonEnabled(true);
+    connect(m_modelValue, &QLineEdit::editingFinished, this, [this]() {
+        if (!m_agentFactory || !m_current)
+            return;
+        m_agentFactory->setModelOverride(m_current->name, m_modelValue->text().trimmed());
+    });
 
     auto *connGrid = new QGridLayout;
     connGrid->setContentsMargins(0, 0, 0, 0);
@@ -195,7 +195,9 @@ AgentDetailPane::AgentDetailPane(QWidget *parent)
         .row(tr("Endpoint:"), m_endpointValue,
              tr("Appended to the provider's URL. Blank uses the "
                 "provider default."))
-        .row(tr("Model:"), m_modelValue);
+        .row(tr("Model:"), m_modelValue,
+             tr("Model sent to the provider. Overrides the agent's built-in "
+                "default for this QodeAssist install; empty = use the default."));
     connection->bodyLayout()->addLayout(connGrid);
 
     m_effectiveUrl = new QLabel(this);
@@ -231,7 +233,7 @@ AgentDetailPane::AgentDetailPane(QWidget *parent)
     m_messageFormat->setMinimumHeight(140);
 
     templ->bodyLayout()->addWidget(templHint);
-    auto *mfLabel = new QLabel(tr("message_format:"), this);
+    auto *mfLabel = new QLabel(tr("body:"), this);
     templ->bodyLayout()->addWidget(mfLabel);
     templ->bodyLayout()->addWidget(m_messageFormat);
 
@@ -269,7 +271,6 @@ AgentDetailPane::AgentDetailPane(QWidget *parent)
     root->addWidget(match);
     root->addWidget(templ);
     root->addWidget(roleSection);
-    root->addWidget(contextSection);
     root->addWidget(m_diagnostics);
     root->addWidget(m_rawToggle, 0, Qt::AlignLeft);
     root->addWidget(m_rawToml);
@@ -284,6 +285,11 @@ void AgentDetailPane::setInstanceFactory(Providers::ProviderInstanceFactory *fac
     m_instanceFactory = factory;
     m_providerComboPopulated = false;
     populateProviderCombo();
+}
+
+void AgentDetailPane::setAgentFactory(AgentFactory *factory)
+{
+    m_agentFactory = factory;
 }
 
 void AgentDetailPane::populateProviderCombo()
@@ -351,7 +357,13 @@ void AgentDetailPane::setAgent(const AgentConfig &cfg)
 
     m_endpointValue->setText(cfg.endpoint);
     m_endpointValue->setPlaceholderText(tr("(provider default)"));
-    m_modelValue->setText(cfg.model);
+    {
+        const QString override
+            = m_agentFactory ? m_agentFactory->modelOverride(cfg.name) : QString();
+        m_modelValue->setText(override);
+        m_modelValue->setPlaceholderText(
+            cfg.model.isEmpty() ? tr("(set a model)") : cfg.model);
+    }
 
     const QString eff = resolvedUrl + cfg.endpoint;
     m_effectiveUrl->setText(
@@ -361,16 +373,15 @@ void AgentDetailPane::setAgent(const AgentConfig &cfg)
                   .arg(tr("effective request line"), eff));
 
     m_roleText->setPlainText(
-        cfg.role.isEmpty() ? tr("(no system role set)") : cfg.role);
-    m_contextText->setPlainText(
-        cfg.context.isEmpty() ? tr("(no context block)") : cfg.context);
+        cfg.systemPrompt.isEmpty() ? tr("(no system prompt set)") : cfg.systemPrompt);
 
     m_filePatternsValue->setText(cfg.match.filePatterns.join(QStringLiteral(", ")));
     m_filePatternsValue->setPlaceholderText(tr("(matches every file)"));
 
     m_messageFormat->setPlainText(
-        cfg.messageFormat.isEmpty() ? tr("(inherited from parent / none)")
-                                    : cfg.messageFormat);
+        cfg.body.isEmpty()
+            ? tr("(inherited from parent / none)")
+            : QString::fromUtf8(QJsonDocument(cfg.body).toJson(QJsonDocument::Indented)));
 
     const FileReadResult raw = readFileTextCapped(cfg.sourcePath, kRawTomlMaxBytes);
     switch (raw.status) {
@@ -422,7 +433,6 @@ void AgentDetailPane::clear()
     m_modelValue->clear();
     m_effectiveUrl->clear();
     m_roleText->clear();
-    m_contextText->clear();
     m_filePatternsValue->clear();
     m_messageFormat->clear();
     m_rawToml->clear();

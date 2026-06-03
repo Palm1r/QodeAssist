@@ -53,12 +53,22 @@ public:
     void registerConfig(AgentConfig config);
     void clear();
 
+    // Per-agent model chosen in QodeAssist settings. The agent TOML's `model`
+    // is only the default; an override here (keyed by agent name) wins and is
+    // applied when the agent is built. Empty model clears the override.
+    [[nodiscard]] QString modelOverride(const QString &agentName) const;
+    void setModelOverride(const QString &agentName, const QString &model);
+
     [[nodiscard]] Providers::ProviderInstanceFactory *instanceFactory() const noexcept;
     [[nodiscard]] Providers::ProviderSecretsStore *secretsStore() const noexcept;
 
 private:
+    void loadModelOverrides();
+    void saveModelOverrides() const;
+
     std::vector<AgentConfig> m_configs;
     QHash<QString, qsizetype> m_indexByName;
+    QHash<QString, QString> m_modelOverrides;
     QStringList m_errors;
     QStringList m_warnings;
     QPointer<Providers::ProviderInstanceFactory> m_instanceFactory;

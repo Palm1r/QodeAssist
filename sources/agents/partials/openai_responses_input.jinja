@@ -1,0 +1,30 @@
+{% for msg in ctx.history %}
+  {% if msg.role == "assistant" %}
+    {% if msg.content != "" %}
+    { "role": "assistant", "content": {{ tojson(msg.content) }} },
+    {% endif %}
+    {% for b in filter_by_type(msg.content_blocks, "tool_use") %}
+    { "type": "function_call", "call_id": {{ tojson(b.id) }}, "name": {{ tojson(b.name) }}, "arguments": {{ tojson(tojson(b.input)) }} },
+    {% endfor %}
+  {% else if length(filter_by_type(msg.content_blocks, "tool_result")) > 0 %}
+    {% for b in filter_by_type(msg.content_blocks, "tool_result") %}
+    { "type": "function_call_output", "call_id": {{ tojson(b.tool_use_id) }}, "output": {{ tojson(b.content) }} },
+    {% endfor %}
+  {% else %}
+    {% if existsIn(msg, "images") %}
+    { "role": "user", "content": [
+      { "type": "input_text", "text": {{ tojson(msg.content) }} }
+      {% for img in msg.images %}
+      ,
+      {% if img.is_url %}
+      { "type": "input_image", "detail": "auto", "image_url": {{ tojson(img.data) }} }
+      {% else %}
+      { "type": "input_image", "detail": "auto", "image_url": "data:{{ img.media_type }};base64,{{ img.data }}" }
+      {% endif %}
+      {% endfor %}
+    ] },
+    {% else %}
+    { "role": "user", "content": {{ tojson(msg.content) }} },
+    {% endif %}
+  {% endif %}
+{% endfor %}

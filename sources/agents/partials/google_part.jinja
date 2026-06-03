@@ -1,0 +1,17 @@
+{% if b.type == "text" %}
+{ "text": {{ tojson(b.text) }} },
+{% else if b.type == "thinking" %}
+{ "text": {{ tojson(b.thinking) }}, "thought": true, "thoughtSignature": {{ tojson(b.signature) }} },
+{% else if b.type == "tool_use" %}
+{ "functionCall": { "name": {{ tojson(b.name) }}, "args": {{ tojson(b.input) }} } },
+{% else if b.type == "tool_result" %}
+{ "functionResponse": { "name": {{ tojson(b.name) }}, "response": { "result": {{ tojson(b.content) }} } } },
+{% else if b.type == "image" %}
+  {% if b.is_url %}
+  { "file_data": { "mime_type": {{ tojson(b.media_type) }}, "file_uri": {{ tojson(b.data) }} } },
+  {% else %}
+  { "inline_data": { "mime_type": {{ tojson(b.media_type) }}, "data": {{ tojson(b.data) }} } },
+  {% endif %}
+{% else %}
+{ "text": "" },
+{% endif %}

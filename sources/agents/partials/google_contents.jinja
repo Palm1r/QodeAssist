@@ -1,0 +1,6 @@
+{% for msg in ctx.history %}
+{
+  "role": {% if msg.role == "assistant" %}"model"{% else %}"user"{% endif %},
+  "parts": [ {% for b in msg.content_blocks %}{% include "partials/google_part.jinja" %}{% endfor %} ]
+},
+{% endfor %}
