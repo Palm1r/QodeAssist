@@ -17,8 +17,6 @@
 #include "widgets/EditorChatButtonHandler.hpp"
 #include "widgets/RefactorWidgetHandler.hpp"
 #include <languageclient/client.h>
-#include <pluginllmcore/IPromptProvider.hpp>
-#include <pluginllmcore/IProviderRegistry.hpp>
 
 namespace QodeAssist {
 

@@ -9,6 +9,7 @@ add_library(Session STATIC
     Session.hpp Session.cpp
     SessionManager.hpp SessionManager.cpp
     SystemPromptBuilder.hpp SystemPromptBuilder.cpp
+    ToolContributorRegistry.hpp
 )
 
 target_link_libraries(Session

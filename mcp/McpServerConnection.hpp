@@ -14,14 +14,16 @@
 #include <QTimer>
 #include <QUrl>
 
+#include <LLMQore/McpTypes.hpp>
+
+namespace LLMQore {
+class ToolsManager;
+}
+
 namespace LLMQore::Mcp {
 class McpClient;
 class McpTransport;
 } // namespace LLMQore::Mcp
-
-namespace QodeAssist::PluginLLMCore {
-class Provider;
-}
 
 namespace QodeAssist::Mcp {
 
@@ -61,10 +63,17 @@ public:
     const McpServerConfig &config() const { return m_config; }
     McpConnectionState state() const { return m_state; }
     QString statusText() const { return m_statusText; }
-    int toolCount() const { return m_toolIds.size(); }
-    QStringList toolNames() const { return m_toolIds; }
+    int toolCount() const { return m_tools.size(); }
+    QStringList toolNames() const
+    {
+        QStringList names;
+        names.reserve(m_tools.size());
+        for (const auto &tool : m_tools)
+            names << tool.name;
+        return names;
+    }
 
-    void setProviders(const QList<PluginLLMCore::Provider *> &providers);
+    void registerToolsOn(::LLMQore::ToolsManager *tools);
 
     void connectToServer();
     void disconnectFromServer();
@@ -75,7 +84,6 @@ signals:
 private:
     void setState(McpConnectionState state, const QString &text = {});
     void fetchAndRegisterTools();
-    void registerTools(const QList<::LLMQore::Mcp::McpClient *> & /*unused*/);
     void unregisterTools();
     ::LLMQore::Mcp::McpTransport *createTransport();
 
@@ -87,8 +95,7 @@ private:
     QPointer<::LLMQore::Mcp::McpTransport> m_transport;
     QPointer<QTimer> m_listToolsWatchdog;
 
-    QList<QPointer<PluginLLMCore::Provider>> m_providers;
-    QStringList m_toolIds;
+    QList<::LLMQore::Mcp::ToolInfo> m_tools;
 };
 
 } // namespace QodeAssist::Mcp

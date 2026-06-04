@@ -334,14 +334,7 @@ Templates::ContextData LLMClientInterface::prepareContext(
 
     Context::DocumentContextReader
         reader(documentInfo.document, documentInfo.mimeType, documentInfo.filePath);
-    const PluginLLMCore::ContextData legacy
-        = reader.prepareContext(lineNumber, cursorPosition, m_completeSettings);
-
-    Templates::ContextData context;
-    context.prefix = legacy.prefix;
-    context.suffix = legacy.suffix;
-    context.fileContext = legacy.fileContext;
-    return context;
+    return reader.prepareContext(lineNumber, cursorPosition, m_completeSettings);
 }
 
 Context::ContextManager *LLMClientInterface::contextManager() const

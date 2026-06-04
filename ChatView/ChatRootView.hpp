@@ -59,6 +59,8 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(bool isThinkingSupport READ isThinkingSupport NOTIFY isThinkingSupportChanged FINAL)
     Q_PROPERTY(QStringList availableChatAgents READ availableChatAgents NOTIFY availableChatAgentsChanged FINAL)
     Q_PROPERTY(QString currentChatAgent READ currentChatAgent WRITE setCurrentChatAgent NOTIFY currentChatAgentChanged FINAL)
+    Q_PROPERTY(QStringList availableRoles READ availableRoles NOTIFY availableRolesChanged FINAL)
+    Q_PROPERTY(QString currentRole READ currentRole WRITE setCurrentRole NOTIFY currentRoleChanged FINAL)
     Q_PROPERTY(bool isCompressing READ isCompressing NOTIFY isCompressingChanged FINAL)
     Q_PROPERTY(bool isInEditor READ isInEditor NOTIFY isInEditorChanged FINAL)
     Q_PROPERTY(QString chatTitle READ chatTitle NOTIFY chatTitleChanged FINAL)
@@ -155,6 +157,11 @@ public:
     QString currentChatAgent() const;
     void setCurrentChatAgent(const QString &name);
 
+    Q_INVOKABLE void loadAvailableRoles();
+    QStringList availableRoles() const;
+    QString currentRole() const;
+    void setCurrentRole(const QString &roleId);
+
     int currentMessageTotalEdits() const;
     int currentMessageAppliedEdits() const;
     int currentMessagePendingEdits() const;
@@ -208,6 +215,8 @@ signals:
 
     void availableChatAgentsChanged();
     void currentChatAgentChanged();
+    void availableRolesChanged();
+    void currentRoleChanged();
 
     void isCompressingChanged();
     void compressionCompleted(const QString &compressedChatPath);
@@ -261,6 +270,9 @@ private:
     QString m_lastErrorMessage;
 
     QString m_lastInfoMessage;
+
+    QString m_currentRole = QStringLiteral("developer");
+    QStringList m_availableRoles;
 
     ChatCompressor *m_chatCompressor;
     ChatAgentController *m_agentController;

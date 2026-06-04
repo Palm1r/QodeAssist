@@ -25,6 +25,7 @@ Rectangle {
     property alias contextButton: contextButtonId
     property alias settingsButton: settingsButtonId
     property alias agentSelector: agentSelectorId
+    property alias roleSelector: roleSelectorId
     property alias relocateTooltip: relocateTooltipId
 
     color: palette.window.hslLightness > 0.5 ?
@@ -141,7 +142,22 @@ Rectangle {
                 QoAToolTip {
                     visible: agentSelectorId.hovered
                     delay: 250
-                    text: qsTr("Select chat agent (provider, model and role come from the agent)")
+                    text: qsTr("Select chat agent (provider and model come from the agent)")
+                }
+            }
+
+            QoAComboBox {
+                id: roleSelectorId
+
+                implicitHeight: 25
+
+                model: []
+                currentIndex: 0
+
+                QoAToolTip {
+                    visible: roleSelectorId.hovered
+                    delay: 250
+                    text: qsTr("Select the role (system prompt) for the chat")
                 }
             }
         }

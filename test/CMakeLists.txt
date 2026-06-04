@@ -2,7 +2,6 @@ add_executable(QodeAssistTest
     ../CodeHandler.cpp
     ../LLMSuggestion.cpp
     CodeHandlerTest.cpp
-    ClaudeCacheControlTest.cpp
     DocumentContextReaderTest.cpp
     LLMSuggestionTest.cpp
     # LLMClientInterfaceTests.cpp
@@ -17,7 +16,7 @@ target_link_libraries(QodeAssistTest PRIVATE
     GTest::Main
     QtCreator::LanguageClient
     Context
-    PluginLLMCore
+    Common
     LLMQore
 )
 

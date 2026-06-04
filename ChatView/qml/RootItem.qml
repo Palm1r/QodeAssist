@@ -152,6 +152,19 @@ ChatRootView {
                     root.loadAvailableChatAgents()
                 }
             }
+            roleSelector {
+                model: root.availableRoles
+                displayText: root.currentRole
+                onActivated: function(index) {
+                    root.currentRole = root.availableRoles[index]
+                }
+
+                Component.onCompleted: root.loadAvailableRoles()
+
+                popup.onAboutToShow: {
+                    root.loadAvailableRoles()
+                }
+            }
         }
 
         RowLayout {

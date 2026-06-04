@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
 
+list(APPEND CMAKE_PREFIX_PATH "/Users/palm1r/Qt/Qt Creator.sdk/lib/cmake/QtCreator")
+
 project(QodeAssist)
 
 set(CMAKE_AUTOMOC ON)
@@ -38,7 +40,6 @@ add_definitions(
 
 add_subdirectory(sources)
 add_subdirectory(logger)
-add_subdirectory(pluginllmcore)
 add_subdirectory(settings)
 add_subdirectory(UIControls)
 add_subdirectory(ChatView)
@@ -70,7 +71,6 @@ add_qtc_plugin(QodeAssist
     QtCreator::Utils
     QtCreator::CPlusPlus
     LLMQore
-    PluginLLMCore
     ProvidersConfig
     Agents
     Skills
@@ -84,42 +84,6 @@ add_qtc_plugin(QodeAssist
     QodeAssisttr.h
     LLMClientInterface.hpp LLMClientInterface.cpp
     RefactorContextHelper.hpp
-    templates/Templates.hpp
-    templates/CodeLlamaFim.hpp
-    templates/Ollama.hpp
-    templates/Claude.hpp
-    templates/OpenAI.hpp
-    templates/MistralAI.hpp
-    templates/StarCoder2Fim.hpp
-    templates/Qwen25CoderFIM.hpp
-    templates/OpenAICompatible.hpp
-    templates/Llama3.hpp
-    templates/ChatML.hpp
-    templates/Alpaca.hpp
-    templates/Llama2.hpp
-    templates/CodeLlamaQMLFim.hpp
-    templates/GoogleAI.hpp
-    templates/LlamaCppFim.hpp
-    templates/Qwen3CoderFIM.hpp
-    templates/OpenAIResponses.hpp
-    providers/Providers.hpp
-    providers/ProviderUrlUtils.hpp
-    providers/OllamaProvider.hpp providers/OllamaProvider.cpp
-    providers/OllamaCompatProvider.hpp providers/OllamaCompatProvider.cpp
-    providers/ClaudeProvider.hpp providers/ClaudeProvider.cpp
-    providers/OpenAIProvider.hpp providers/OpenAIProvider.cpp
-    providers/MistralAIProvider.hpp providers/MistralAIProvider.cpp
-    providers/LMStudioProvider.hpp providers/LMStudioProvider.cpp
-    providers/LMStudioResponsesProvider.hpp providers/LMStudioResponsesProvider.cpp
-    providers/OpenAICompatProvider.hpp providers/OpenAICompatProvider.cpp
-    providers/OpenRouterAIProvider.hpp providers/OpenRouterAIProvider.cpp
-    providers/GoogleAIProvider.hpp providers/GoogleAIProvider.cpp
-    providers/LlamaCppProvider.hpp providers/LlamaCppProvider.cpp
-    providers/CodestralProvider.hpp providers/CodestralProvider.cpp
-    providers/OpenAIResponsesProvider.hpp providers/OpenAIResponsesProvider.cpp
-    providers/QwenProvider.hpp providers/QwenProvider.cpp
-    providers/QwenResponsesProvider.hpp providers/QwenResponsesProvider.cpp
-    providers/DeepSeekProvider.hpp providers/DeepSeekProvider.cpp
     QodeAssist.qrc
     LSPCompletion.hpp
     LLMSuggestion.hpp LLMSuggestion.cpp

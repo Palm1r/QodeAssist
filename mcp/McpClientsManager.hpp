@@ -35,6 +35,8 @@ public:
     bool removeServer(const QString &name);
     void reload();
 
+    void registerToolsOn(::LLMQore::ToolsManager *tools) const;
+
 signals:
     void serversChanged();
     void writeFailed(const QString &reason);
@@ -50,7 +52,6 @@ private:
     void setupWatcher();
     void updateWatchedPaths();
 
-    QList<PluginLLMCore::Provider *> toolsCapableProviders() const;
     static QJsonObject builtinServers();
     QJsonObject readRoot() const;
     bool writeRoot(const QJsonObject &root);

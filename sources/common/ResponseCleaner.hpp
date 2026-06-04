@@ -8,7 +8,7 @@
 #include <QStringList>
 #include <QRegularExpression>
 
-namespace QodeAssist::PluginLLMCore {
+namespace QodeAssist {
 
 class ResponseCleaner
 {
@@ -100,5 +100,4 @@ private:
     }
 };
 
-} // namespace QodeAssist::PluginLLMCore
-
+} // namespace QodeAssist

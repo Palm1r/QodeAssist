@@ -12,6 +12,9 @@ struct Bindings
 {
     QString projectDir;
     QString homeDir;
+    // Role id selected at runtime (e.g. in the chat). Used by the no-arg
+    // `{{ agent_role() }}` template callback; empty falls back to "developer".
+    QString roleId;
 };
 
 QString render(const QString &templateSource, const Bindings &bindings,

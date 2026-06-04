@@ -59,6 +59,10 @@ public:
     [[nodiscard]] QString modelOverride(const QString &agentName) const;
     void setModelOverride(const QString &agentName, const QString &model);
 
+    // The model that will actually be sent for this agent: the settings
+    // override if set, otherwise the agent TOML's default `model`.
+    [[nodiscard]] QString effectiveModel(const QString &agentName) const;
+
     [[nodiscard]] Providers::ProviderInstanceFactory *instanceFactory() const noexcept;
     [[nodiscard]] Providers::ProviderSecretsStore *secretsStore() const noexcept;
 

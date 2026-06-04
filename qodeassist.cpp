@@ -42,13 +42,12 @@
 #include "chat/ChatOutputPane.h"
 #include "chat/NavigationPanel.hpp"
 #include "context/DocumentReaderQtCreator.hpp"
-#include "pluginllmcore/ProvidersManager.hpp"
 #include "logger/RequestPerformanceLogger.hpp"
 #include "mcp/McpClientsManager.hpp"
 #include "mcp/McpServerManager.hpp"
 #include "sources/skills/SkillsManager.hpp"
 #include "tools/ToolsRegistration.hpp"
-#include "providers/Providers.hpp"
+#include "settings/AgentRole.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProjectSettingsPanel.hpp"
@@ -64,7 +63,6 @@
 #include <AgentFactory.hpp>
 #include <GenericProvider.hpp>
 #include <SessionManager.hpp>
-#include "templates/Templates.hpp"
 #include "widgets/CustomInstructionsManager.hpp"
 #include "widgets/QuickRefactorDialog.hpp"
 #include <ChatView/ChatView.hpp>
@@ -141,9 +139,6 @@ public:
 
         loadTranslations();
 
-        Providers::registerProviders();
-        Templates::registerTemplates();
-        
         CustomInstructionsManager::instance().loadInstructions();
 
         Utils::Icon QCODEASSIST_ICON(
@@ -180,16 +175,6 @@ public:
         m_sessionFileRegistry = new Chat::SessionFileRegistry{this};
         m_skillsManager = new Skills::SkillsManager{this};
 
-        {
-            auto &providers = PluginLLMCore::ProvidersManager::instance();
-            for (const QString &providerName : providers.providersNames()) {
-                if (auto *provider = providers.getProviderByName(providerName)) {
-                    if (auto *toolsManager = provider->toolsManager())
-                        Tools::registerSkillTool(toolsManager, m_skillsManager);
-                }
-            }
-        }
-
         if (Settings::chatAssistantSettings().enableChatInBottomToolBar()) {
             m_chatOutputPane = new Chat::ChatOutputPane{
                 m_engine, m_sessionFileRegistry, m_skillsManager};
@@ -214,8 +199,26 @@ public:
             m_providerLauncher,
             m_providersPageNavigator);
 
+        // Ensure the default agent roles exist on disk before agents load, so a
+        // chat agent's `role = "<id>"` resolves to a system prompt even on a fresh
+        // install where the Roles settings page was never opened.
+        Settings::AgentRolesManager::ensureDefaultRoles();
+
         m_agentFactory = new AgentFactory(m_providerInstanceFactory, m_providerSecretsStore, this);
         m_sessionManager = new SessionManager(m_agentFactory, this);
+        {
+            auto &contributors = m_sessionManager->toolContributors();
+            contributors.add([](::LLMQore::ToolsManager *tools) {
+                Tools::registerQodeAssistTools(tools);
+            });
+            contributors.add([skills = m_skillsManager](::LLMQore::ToolsManager *tools) {
+                if (skills)
+                    Tools::registerSkillTool(tools, skills);
+            });
+            contributors.add([](::LLMQore::ToolsManager *tools) {
+                Mcp::McpClientsManager::instance().registerToolsOn(tools);
+            });
+        }
         m_engine->rootContext()->setContextProperty("agentFactory", m_agentFactory);
         m_engine->rootContext()->setContextProperty("sessionManager", m_sessionManager);
         m_agentsPageNavigator = new Settings::AgentsPageNavigator(this);

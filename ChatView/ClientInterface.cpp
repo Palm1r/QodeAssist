@@ -30,7 +30,10 @@
 
 #include <ConversationHistory.hpp>
 #include <Message.hpp>
+#include <ContextRenderer.hpp>
 #include <Session.hpp>
+
+#include <QDir>
 #include <SessionManager.hpp>
 #include <SystemPromptBuilder.hpp>
 
@@ -73,6 +76,11 @@ void ClientInterface::setSessionManager(SessionManager *sessionManager)
 void ClientInterface::setActiveAgent(const QString &agentName)
 {
     m_activeAgent = agentName;
+}
+
+void ClientInterface::setActiveRole(const QString &roleId)
+{
+    m_activeRoleId = roleId;
 }
 
 void ClientInterface::sendMessage(
@@ -175,9 +183,15 @@ void ClientInterface::sendMessage(
         return;
     }
 
-    Tools::registerQodeAssistTools(client->tools());
-    if (m_skillsManager)
-        Tools::registerSkillTool(client->tools(), m_skillsManager);
+    auto *project = ProjectExplorer::ProjectManager::startupProject();
+    Templates::ContextRenderer::Bindings bindings;
+    bindings.projectDir = project ? project->projectDirectory().toFSPathString() : QString();
+    bindings.homeDir = QDir::homePath();
+    bindings.roleId = m_activeRoleId;
+    session->setContextBindings(bindings);
+
+    if (m_sessionManager)
+        m_sessionManager->toolContributors().contribute(client->tools());
     client->setMaxToolContinuations(Settings::toolsSettings().maxToolContinuations());
     client->setTransferTimeout(
         static_cast<int>(Settings::generalSettings().requestTimeout() * 1000));

@@ -37,6 +37,7 @@ public:
     void setSkillsManager(Skills::SkillsManager *skillsManager);
     void setSessionManager(SessionManager *sessionManager);
     void setActiveAgent(const QString &agentName);
+    void setActiveRole(const QString &roleId);
 
     void sendMessage(
         const QString &message,
@@ -98,6 +99,7 @@ private:
     Skills::SkillsManager *m_skillsManager = nullptr;
     QPointer<SessionManager> m_sessionManager;
     QString m_activeAgent;
+    QString m_activeRoleId;
     QString m_chatFilePath;
 
     QHash<QString, RequestContext> m_activeRequests;

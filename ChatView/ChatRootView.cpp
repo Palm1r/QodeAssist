@@ -32,6 +32,7 @@
 #include <SessionManager.hpp>
 
 #include "ChatAgentController.hpp"
+#include "AgentRole.hpp"
 #include "ChatAssistantSettings.hpp"
 #include "ChatCompressor.hpp"
 #include "ChatHistoryStore.hpp"
@@ -393,6 +394,43 @@ void ChatRootView::setCurrentChatAgent(const QString &name)
     m_agentController->setCurrentAgent(name);
 }
 
+QStringList ChatRootView::availableRoles() const
+{
+    return m_availableRoles;
+}
+
+QString ChatRootView::currentRole() const
+{
+    return m_currentRole;
+}
+
+void ChatRootView::setCurrentRole(const QString &roleId)
+{
+    if (m_currentRole == roleId)
+        return;
+    m_currentRole = roleId;
+    emit currentRoleChanged();
+}
+
+void ChatRootView::loadAvailableRoles()
+{
+    QStringList ids;
+    const QList<Settings::AgentRole> roles = Settings::AgentRolesManager::loadAllRoles();
+    ids.reserve(roles.size());
+    for (const auto &r : roles)
+        ids << r.id;
+
+    if (ids != m_availableRoles) {
+        m_availableRoles = ids;
+        emit availableRolesChanged();
+    }
+
+    if (!m_availableRoles.isEmpty() && !m_availableRoles.contains(m_currentRole))
+        setCurrentRole(m_availableRoles.contains(QStringLiteral("developer"))
+                           ? QStringLiteral("developer")
+                           : m_availableRoles.first());
+}
+
 QVariantList ChatRootView::searchSkills(const QString &query) const
 {
     QVariantList results;
@@ -501,6 +539,7 @@ void ChatRootView::dispatchSend(
     m_clientInterface->setSkillsManager(skillsManager());
     m_clientInterface->setSessionManager(sessionManager());
     m_clientInterface->setActiveAgent(currentChatAgent());
+    m_clientInterface->setActiveRole(currentRole());
     m_clientInterface->sendMessage(message, attachments, linkedFiles);
 
     m_fileManager->clearIntermediateStorage();

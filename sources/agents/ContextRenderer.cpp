@@ -8,7 +8,11 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QStringList>
+
+#include <coreplugin/icore.h>
 
 #include <filesystem>
 
@@ -155,6 +159,45 @@ void registerStringHelpers(inja::Environment &env)
     });
 }
 
+// Read a role's system prompt from the role JSON written by the settings Roles
+// UI (AgentRolesManager). Returns "" if the role doesn't exist.
+std::string roleSystemPrompt(const QString &id)
+{
+    if (id.isEmpty())
+        return {};
+    const QString path
+        = Core::ICore::userResourcePath(
+              QStringLiteral("qodeassist/agent_roles/%1.json").arg(id))
+              .toFSPathString();
+    QFile f(path);
+    if (!f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning("[QodeAssist] agent_role: role '%s' not found at %s",
+                 qUtf8Printable(id), qUtf8Printable(path));
+        return {};
+    }
+    return QJsonDocument::fromJson(f.readAll())
+        .object()
+        .value("systemPrompt")
+        .toString()
+        .toStdString();
+}
+
+// Building blocks for composing a profile's `system_prompt` (alongside
+// read_file/file_exists):
+//   {{ agent_role() }}      — the runtime-selected role (Bindings.roleId, which
+//                             the chat sets; falls back to "developer")
+//   {{ agent_role("<id>") }} — a specific role by id
+void registerAgentRole(inja::Environment &env, const Bindings &b)
+{
+    const QString runtimeRole = b.roleId.isEmpty() ? QStringLiteral("developer") : b.roleId;
+    env.add_callback("agent_role", 0, [runtimeRole](inja::Arguments &) -> nlohmann::json {
+        return roleSystemPrompt(runtimeRole);
+    });
+    env.add_callback("agent_role", 1, [](inja::Arguments &args) -> nlohmann::json {
+        return roleSystemPrompt(QString::fromStdString(args.at(0)->get<std::string>()));
+    });
+}
+
 void registerSandbox(inja::Environment &env)
 {
     
@@ -183,6 +226,7 @@ QString render(const QString &templateSource, const Bindings &bindings, QString 
     registerFileExists(env, bindings);
     registerReadDir(env, bindings);
     registerStringHelpers(env);
+    registerAgentRole(env, bindings);
 
     inja::Template tpl;
     try {

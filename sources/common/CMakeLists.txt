@@ -2,6 +2,7 @@ add_library(Common INTERFACE)
 
 target_sources(Common INTERFACE
     ContextData.hpp
+    ResponseCleaner.hpp
 )
 
 target_include_directories(Common INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})

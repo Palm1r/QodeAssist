@@ -7,7 +7,7 @@
 #include <texteditor/textdocument.h>
 #include <QTextDocument>
 
-#include <pluginllmcore/ContextData.hpp>
+#include <sources/common/ContextData.hpp>
 #include <settings/CodeCompletionSettings.hpp>
 
 namespace QodeAssist::Context {
@@ -58,7 +58,7 @@ public:
 
     CopyrightInfo copyrightInfo() const;
 
-    PluginLLMCore::ContextData prepareContext(
+    Templates::ContextData prepareContext(
         int lineNumber, int cursorPosition, const Settings::CodeCompletionSettings &settings) const;
 
 private:

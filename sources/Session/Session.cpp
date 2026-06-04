@@ -210,7 +210,9 @@ LLMQore::RequestID Session::sendCompletion(Templates::ContextData ctx)
     if (!provider->prepareRequest(payload, tmpl, ctx, /*tools=*/false, /*thinking=*/false))
         return {};
 
-    const auto id = provider->sendRequest(QUrl(provider->url()), payload, cfg.endpoint);
+    QString endpoint = cfg.endpoint;
+    endpoint.replace(QStringLiteral("${MODEL}"), cfg.model);
+    const auto id = provider->sendRequest(QUrl(provider->url()), payload, endpoint);
     if (id.isEmpty())
         return {};
 
@@ -242,7 +244,9 @@ LLMQore::RequestID Session::dispatch(
     if (!provider->prepareRequest(payload, tmpl, ctx, tools, thinking))
         return {};
 
-    const auto id = provider->sendRequest(QUrl(provider->url()), payload, cfg.endpoint);
+    QString endpoint = cfg.endpoint;
+    endpoint.replace(QStringLiteral("${MODEL}"), cfg.model);
+    const auto id = provider->sendRequest(QUrl(provider->url()), payload, endpoint);
     if (id.isEmpty())
         return {};
 

@@ -248,6 +248,15 @@ void AgentFactory::setModelOverride(const QString &agentName, const QString &mod
     saveModelOverrides();
 }
 
+QString AgentFactory::effectiveModel(const QString &agentName) const
+{
+    const QString ov = m_modelOverrides.value(agentName);
+    if (!ov.isEmpty())
+        return ov;
+    const AgentConfig *cfg = configByName(agentName);
+    return cfg ? cfg->model : QString();
+}
+
 namespace {
 QString modelOverridesPath()
 {

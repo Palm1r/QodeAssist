@@ -3,11 +3,12 @@ schema_version = 1
 name        = "Ollama Base Chat"
 description = "Ollama native /api/chat request body. Abstract — extend it and set model/options."
 abstract    = true
-extends     = "Chat Base"
 
 provider_instance = "Ollama (Native)"
 endpoint          = "/api/chat"
 tags = ["ollama", "local"]
+
+system_prompt = """{{ agent_role() }}"""
 
 [body]
 stream   = true

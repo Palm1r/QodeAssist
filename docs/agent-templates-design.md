@@ -43,18 +43,26 @@ exactly like the curl body.
 
 No runtime toggles: thinking / tools / streaming are **fixed per agent**. A thinking
 agent literally carries the `thinking` fields; a non-thinking variant is a separate
-file. There is no `{% if thinking %}` and no `thinkingEnabled` flag threaded into
-rendering. `system` uses `{% if existsIn(ctx, "system_prompt") %}` only because that
-is about *presence of data*, not a mode toggle.
+file. There is no `{% if thinking %}` in the body. `system` uses
+`{% if existsIn(ctx, "system_prompt") %}` only because that is about *presence of
+data*, not a mode toggle. `enable_thinking` / `enable_tools` are **capability hints**
+(used for UI badges and to decide tool-definition injection) — the body is the source
+of truth for what is actually sent, so a thinking agent's body must carry the thinking
+fields regardless of the flag.
 
 Outside the body:
-- `model` — supplied by the **client** from its own settings; never in the profile.
-  Google embeds the model in the URL, so its `endpoint` uses a `${MODEL}` placeholder
-  the client resolves (same substitution style as `${PROJECT_DIR}` / `${HOME}`).
+- `model` — the TOML `model` is the **default**; a per-agent override chosen in
+  QodeAssist settings wins. Overrides are stored in `agent_models.json`
+  (agentName → model) and applied by `AgentFactory` when it builds the agent
+  (`AgentFactory::effectiveModel`/`setModelOverride`); `Session` still seeds the
+  payload `model` from the resolved `cfg.model`. URL-model providers (Google) put a
+  `${MODEL}` placeholder in `endpoint`; `Session` substitutes the resolved model into
+  the endpoint before sending (same substitution style as `${PROJECT_DIR}`/`${HOME}`),
+  so the override drives the URL too.
 - `tools` — injected by the **provider** when `enable_tools` is set (tool
   definitions are dynamic, from `ToolsManager`; they can't be authored in TOML).
 - `stream` — always on. Literal `"stream": true` in the body for OpenAI / Claude /
-  Mistral; encoded in the `endpoint` URL for Google.
+  Mistral / Responses / Ollama; encoded in the `endpoint` URL for Google.
 
 ### 2. `include` re-enabled as whitelisted partials
 
@@ -71,19 +79,20 @@ A missing/typo'd partial is a **load-time** error.
 ### 3. `extends` shares config down a hierarchy
 
 `extends` already exists (`resolveExtends` + `deepMerge` + `abstract`/`hidden`); it
-keeps doing what it does, now over the structured `[body]` too. Typical 2–3 levels:
+keeps doing what it does, now over the structured `[body]` too. A flat 2 levels — each
+provider base sets `system_prompt = """{{ agent_role("developer") }}"""` (the role text
+comes from the role JSON via the `agent_role` callback; see below). No shared root base:
 
 ```
-chat_base (abstract)            → system_prompt (shared by all)
-  ├─ openai_base (abstract)     → provider/endpoint/enable_tools + [body]
-  │    ├─ openai_chat           → name
-  │    ├─ mistral_chat          → name, provider, endpoint
-  │    └─ mistral_reasoning      → + [body].reasoning_effort
-  ├─ anthropic_base (abstract)  → provider/endpoint/thinking + [body]
-  │    ├─ claude_chat           → name
-  │    └─ claude_sonnet          → + [body.output_config].effort
-  └─ google_base (abstract)     → provider/endpoint + [body]
-       └─ gemini_chat           → name
+openai_base (abstract)     → system_prompt + provider/endpoint/enable_tools + [body]
+  ├─ openai_chat           → name
+  ├─ mistral_chat          → name, provider, endpoint
+  └─ mistral_reasoning     → + enable_thinking
+anthropic_base (abstract)  → system_prompt + provider/endpoint + [body]
+  ├─ claude_chat           → name
+  └─ claude_sonnet         → + [body] thinking / output_config
+google_base (abstract)     → system_prompt + provider + [body]
+  └─ gemini_chat           → endpoint (${MODEL}) + [body.generationConfig] thinkingConfig
 ```
 
 Notes:
@@ -98,21 +107,33 @@ Notes:
   by `model` become one agent (the client picks the model). A separate file is only
   needed when the body genuinely differs (effort, no-thinking, …).
 
-### `role` + `context` merged into `system_prompt`
+### System prompt — a composable template with building blocks
 
-The old `role` (static) and `context` (jinja, reads files) are two layers of the
-same system prompt (`SystemPromptBuilder` layers `agent.role` / `agent.context`).
-Merge into one `system_prompt` field, always rendered through `ContextRenderer`
-(static text passes through; dynamic parts use `{% %}`), e.g. README via
-`file_exists` instead of the `set readme / if length` dance. `Session` collapses the
-two layers into one rendered layer.
+The old `role` (static text) and `context` (jinja) layers collapse into one
+`agent.system` layer in `Session`, rendered through `ContextRenderer`. The agent's
+`system_prompt` field IS that template, and the user edits it (in the profile) to
+compose the prompt from building-block callbacks:
+
+- `{{ agent_role("<id>") }}` — insert a role's text (Developer/Reviewer/Researcher…).
+  Implemented as a `ContextRenderer` callback (`registerAgentRole`) that reads
+  `userResourcePath("qodeassist/agent_roles/<id>.json")["systemPrompt"]`. Returns "" if
+  missing. Lives in `sources/agents` (no dependency on `settings/`), so it works in the
+  plugin and bench. The role text lives once in the role JSON (managed by the settings
+  Roles UI); the chat bases just carry `system_prompt = """{{ agent_role("developer") }}"""`.
+- `{{ read_file("...") }}` / `file_exists` / `${PROJECT_DIR}` / `${HOME}` — existing
+  `ContextRenderer` helpers, composable in the same template.
+
+So a profile can do `system_prompt = """{{ agent_role("developer") }}\n\n{{ read_file("…") }}"""`.
+`qodeassist.cpp` calls `AgentRolesManager::ensureDefaultRoles()` at startup so the default
+role JSONs exist before agents load. There is NO per-agent settings override — the edit
+point is the profile's `system_prompt`. Code-completion/FIM agents set no `system_prompt`.
 
 ## Worked examples
 
 OpenAI base:
 ```toml
-extends = "Chat Base"
 abstract = true
+system_prompt = """{{ agent_role("developer") }}"""
 provider_instance = "OpenAI (Chat Completions)"
 endpoint = "/chat/completions"
 enable_tools = true
@@ -140,8 +161,8 @@ reasoning_effort = "medium"
 
 Claude base (literally the curl body):
 ```toml
-extends = "Chat Base"
 abstract = true
+system_prompt = """{{ agent_role("developer") }}"""
 provider_instance = "Claude"
 endpoint = "/v1/messages"
 enable_thinking = true
@@ -170,8 +191,8 @@ effort = "medium"
 
 Google base (`${MODEL}` in endpoint; streaming in the URL):
 ```toml
-extends = "Chat Base"
 abstract = true
+system_prompt = """{{ agent_role("developer") }}"""
 provider_instance = "Google AI"
 endpoint = "/models/${MODEL}:streamGenerateContent?alt=sse"
 enable_thinking = true
@@ -337,10 +358,16 @@ In `AgentConfig` / `AgentLoader`:
   as JSON (render once against a synthetic context with tool_use / tool_result /
   image). Catches breakage at startup, not mid-conversation.
 
-In the client / provider layer:
-- The client sets `model` from its settings (and resolves `${MODEL}` in the
-  endpoint); `Session` no longer seeds the payload with `cfg.model`.
-- The provider keeps injecting `tools` when `enable_tools` is set.
+Model selection (per-agent override):
+- `AgentFactory` owns an agentName → model map loaded from `agent_models.json`
+  (`loadModelOverrides`/`saveModelOverrides`). `create()`/`createFromFile()` apply the
+  override into the built `AgentConfig`; `effectiveModel()` exposes the resolved value;
+  `setModelOverride()` persists. The settings UI (`AgentDetailPane`) edits it via an
+  editable Model field; list/roster widgets display `effectiveModel`.
+- `Session` substitutes `${MODEL}` in `cfg.endpoint` with the resolved model before
+  `sendRequest` (covers Google, whose model lives in the URL), and still seeds the
+  payload `model` from `cfg.model`. The provider keeps injecting `tools` when
+  `enable_tools` is set.
 
 In `Session`:
 - Collapse the `agent.role` + `agent.context` system-prompt layers into one rendered
@@ -353,6 +380,7 @@ In `Session`:
 2. `[body]`-table model in `JsonPromptTemplate` + loader; delete
    sampling/thinking/`applySampling`; drop `thinkingEnabled`.
 3. `system_prompt` merge in loader + `Session`.
-4. `model` from client (+ `${MODEL}` endpoint substitution); convert bundled agents
-   to the base/partials/`extends` layout.
+4. Per-agent model override in `AgentFactory` (`agent_models.json`) + `${MODEL}`
+   endpoint substitution in `Session`; editable Model field in settings; convert
+   bundled agents to the base/partials/`extends` layout.
 5. Load-time validation (partial resolves, body parses).

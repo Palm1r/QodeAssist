@@ -199,6 +199,7 @@ public:
     AgentRosterRow(int index,
                    const QString &name,
                    const AgentConfig *cfg,
+                   const QString &effectiveModel,
                    bool active,
                    bool first,
                    bool last,
@@ -226,6 +227,7 @@ private:
 AgentRosterRow::AgentRosterRow(int index,
                                const QString &name,
                                const AgentConfig *cfg,
+                               const QString &effectiveModel,
                                bool active,
                                bool first,
                                bool last,
@@ -282,7 +284,7 @@ AgentRosterRow::AgentRosterRow(int index,
     body->setSpacing(2);
 
     const QString displayName = cfg ? cfg->name : tr("%1 (missing)").arg(name);
-    const QString model = cfg ? cfg->model : QString();
+    const QString model = effectiveModel;
     const bool isUser = cfg && cfg->isUserSource();
 
     body->addWidget(buildIdentityLine(displayName, model, active, isUser, theme));
@@ -562,9 +564,11 @@ void AgentRosterWidget::rebuildRows()
     for (int i = 0; i < m_names.size(); ++i) {
         const QString &name = m_names.at(i);
         const AgentConfig *cfg = m_factory ? m_factory->configByName(name) : nullptr;
+        const QString effModel = m_factory ? m_factory->effectiveModel(name) : QString();
         auto *row = new AgentRosterRow(i,
                                        name,
                                        cfg,
+                                       effModel,
                                        i == m_activeIndex,
                                        /*first*/ i == 0,
                                        /*last*/ i == m_names.size() - 1,

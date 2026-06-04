@@ -9,6 +9,8 @@
 #include <QPointer>
 #include <QString>
 
+#include "ToolContributorRegistry.hpp"
+
 namespace QodeAssist {
 
 class AgentFactory;
@@ -41,6 +43,9 @@ public:
 
     void cancelAll();
 
+    ToolContributorRegistry &toolContributors() noexcept { return m_toolContributors; }
+    const ToolContributorRegistry &toolContributors() const noexcept { return m_toolContributors; }
+
 signals:
     void sessionCreated(Session *session);
     void sessionRemoved(Session *session);
@@ -48,6 +53,7 @@ signals:
 private:
     QPointer<AgentFactory> m_agentFactory;
     QList<QPointer<Session>> m_sessions;
+    ToolContributorRegistry m_toolContributors;
 };
 
 } // namespace QodeAssist

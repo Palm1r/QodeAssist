@@ -12,7 +12,6 @@
         <file>partials/google_part.jinja</file>
         <file>partials/ollama_messages.jinja</file>
 
-        <file>chat_base.toml</file>
         <file>openai_base_chat.toml</file>
         <file>openai_responses_base.toml</file>
         <file>anthropic_base_chat.toml</file>

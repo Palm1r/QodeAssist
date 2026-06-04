@@ -21,7 +21,7 @@
 #include <context/DocumentReaderQtCreator.hpp>
 #include <context/Utils.hpp>
 #include <logger/Logger.hpp>
-#include <pluginllmcore/ResponseCleaner.hpp>
+#include <sources/common/ResponseCleaner.hpp>
 #include <settings/QuickRefactorSettings.hpp>
 #include <settings/ToolsSettings.hpp>
 
@@ -378,7 +378,7 @@ void QuickRefactorHandler::handleLLMResponse(
 
     if (isComplete) {
         m_isRefactoringInProgress = false;
-        QString cleanedResponse = PluginLLMCore::ResponseCleaner::clean(response);
+        QString cleanedResponse = ResponseCleaner::clean(response);
 
         RefactorResult result;
         result.newText = cleanedResponse;

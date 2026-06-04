@@ -171,7 +171,10 @@ void AgentListPane::rebuildList()
     const QSet<QString> &activeTags = m_tagStrip->activeTags();
     auto addAgents = [&](const std::vector<const AgentConfig *> &agents) {
         for (const AgentConfig *cfg : agents) {
-            auto *item = new AgentListItem(*cfg, content);
+            AgentConfig display = *cfg;
+            if (m_factory)
+                display.model = m_factory->effectiveModel(cfg->name);
+            auto *item = new AgentListItem(display, content);
             item->setSelected(cfg->name == m_currentName);
             item->setActiveTags(activeTags);
             connect(item, &AgentListItem::clicked, this, &AgentListPane::onRowClicked);

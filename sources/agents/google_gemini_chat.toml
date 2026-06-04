@@ -4,7 +4,7 @@ extends     = "Google Base Chat"
 name        = "Gemini Chat"
 description = "Google Gemini 2.5 Flash (generateContent API) — coding chat with thinking."
 
-endpoint = "/models/gemini-2.5-flash:streamGenerateContent?alt=sse"
+endpoint = "/models/${MODEL}:streamGenerateContent?alt=sse"
 model    = "gemini-2.5-flash"
 
 enable_thinking = true
