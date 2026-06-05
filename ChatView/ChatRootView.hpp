@@ -49,6 +49,7 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(int activeRulesCount READ activeRulesCount NOTIFY activeRulesCountChanged FINAL)
     Q_PROPERTY(bool useTools READ useTools WRITE setUseTools NOTIFY useToolsChanged FINAL)
     Q_PROPERTY(bool useThinking READ useThinking WRITE setUseThinking NOTIFY useThinkingChanged FINAL)
+    Q_PROPERTY(QString sendShortcutText READ sendShortcutText NOTIFY sendShortcutTextChanged FINAL)
     
     Q_PROPERTY(int currentMessageTotalEdits READ currentMessageTotalEdits NOTIFY currentMessageEditsStatsChanged FINAL)
     Q_PROPERTY(int currentMessageAppliedEdits READ currentMessageAppliedEdits NOTIFY currentMessageEditsStatsChanged FINAL)
@@ -98,6 +99,8 @@ public:
     Q_INVOKABLE void showAddImageDialog();
     Q_INVOKABLE bool isImageFile(const QString &filePath) const;
     Q_INVOKABLE void calculateMessageTokensCount(const QString &message);
+    Q_INVOKABLE bool isSendShortcut(int key, int modifiers) const;
+    QString sendShortcutText() const;
     Q_INVOKABLE void setIsSyncOpenFiles(bool state);
     Q_INVOKABLE void openChatHistoryFolder();
     Q_INVOKABLE void openRulesFolder();
@@ -218,6 +221,7 @@ signals:
 
     void lastErrorMessageChanged();
     void lastInfoMessageChanged();
+    void sendShortcutTextChanged();
     void activeRulesChanged();
     void activeRulesCountChanged();
 

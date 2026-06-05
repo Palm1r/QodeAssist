@@ -309,7 +309,7 @@ public:
         sendMessageAction.setContext(Core::Context(Constants::QODE_ASSIST_CHAT_CONTEXT));
         sendMessageAction.setText(Tr::tr("Send QodeAssist Chat Message"));
         sendMessageAction.setToolTip(Tr::tr("Send the current message to the LLM"));
-        sendMessageAction.setDefaultKeySequence(QKeySequence(Qt::CTRL | Qt::Key_Return));
+        sendMessageAction.setDefaultKeySequence(QKeySequence(Qt::Key_Return));
         sendMessageAction.addOnTriggered(this, [] {
             if (auto chatWidget = Chat::ChatWidget::focusedInstance())
                 chatWidget->sendMessage();

@@ -19,6 +19,9 @@ ChatRootView {
         colorGroup: SystemPalette.Active
     }
 
+    property bool hasActiveError: false
+    readonly property color errorColor: "#d32f2f"
+
     palette {
         window: sysPalette.window
         windowText: sysPalette.windowText
@@ -411,11 +414,10 @@ ChatRootView {
             QQC.TextArea {
                 id: messageInput
 
-                placeholderText: Qt.platform.os === "osx"
-                                 ? qsTr("Type your message here... (⌘+↩ to send)")
-                                 : qsTr("Type your message here... (Ctrl+Enter to send)")
+                placeholderText: qsTr("Type your message here... (%1 to send)").arg(root.sendShortcutText)
                 placeholderTextColor: palette.mid
                 color: palette.text
+                wrapMode: TextArea.Wrap
                 background: Rectangle {
                     radius: 2
                     color: palette.base
@@ -494,6 +496,9 @@ ChatRootView {
                             skillCommandPopup.dismiss()
                             event.accepted = true
                         }
+                    } else if (root.isSendShortcut(event.key, event.modifiers)) {
+                        root.sendChatMessage()
+                        event.accepted = true
                     }
                 }
 
@@ -586,13 +591,21 @@ ChatRootView {
             Layout.preferredHeight: 40
 
             isCompressing: root.isCompressing
+            isProcessing: root.isRequestInProgress
             sendButton.onClicked: !root.isRequestInProgress ? root.sendChatMessage()
                                                             : root.cancelRequest()
-            sendButton.icon.source: !root.isRequestInProgress ? "qrc:/qt/qml/ChatView/icons/chat-icon.svg"
-                                                              : "qrc:/qt/qml/ChatView/icons/chat-pause-icon.svg"
-            sendButton.text: !root.isRequestInProgress ? qsTr("Send") : qsTr("Stop")
-            sendButtonTooltip.text: !root.isRequestInProgress ? qsTr("Send message to LLM %1").arg(Qt.platform.os === "osx" ? "Cmd+Return" : "Ctrl+Return")
-                                                         : qsTr("Stop")
+            sendButton.icon.source: root.isRequestInProgress
+                                    ? ""
+                                    : (root.hasActiveError ? "qrc:/qt/qml/ChatView/icons/warning-icon.svg"
+                                                           : "qrc:/qt/qml/ChatView/icons/chat-icon.svg")
+            sendButton.text: root.isRequestInProgress ? qsTr("Stop") : qsTr("Send")
+            sendButton.accentColor: (root.hasActiveError && !root.isRequestInProgress)
+                                    ? root.errorColor : "transparent"
+            sendButtonTooltip.text: root.isRequestInProgress
+                                    ? qsTr("Stop")
+                                    : (root.hasActiveError
+                                       ? root.lastErrorMessage
+                                       : qsTr("Send message to LLM %1").arg(root.sendShortcutText))
             compressButton.onClicked: compressConfirmDialog.open()
             cancelCompressButton.onClicked: root.cancelCompression()
             syncOpenFiles {
@@ -667,6 +680,7 @@ ChatRootView {
     }
 
     function sendChatMessage() {
+        root.hasActiveError = false
         root.sendMessage(fileMentionPopup.expandMentions(messageInput.text))
         messageInput.text = ""
         fileMentionPopup.clearMentions()
@@ -689,13 +703,122 @@ ChatRootView {
         onAccepted: root.compressCurrentChat()
     }
 
-    Toast {
-        id: errorToast
-        z: 1000
+    Rectangle {
+        id: errorBanner
 
-        color: Qt.rgba(0.8, 0.2, 0.2, 0.9)
-        border.color: Qt.darker(infoToast.color, 1.3)
-        toastTextColor: "#FFFFFF"
+        z: 1000
+        visible: root.hasActiveError && root.lastErrorMessage.length > 0
+
+        width: parent.width / 2
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.rightMargin: 10
+        anchors.bottomMargin: bottomBar.height + 48
+
+        height: visible ? errorRow.implicitHeight + 12 : 0
+
+        color: Qt.rgba(0.83, 0.18, 0.18, 0.96)
+        radius: 6
+        border.color: Qt.darker(color, 1.3)
+        border.width: 1
+
+        RowLayout {
+            id: errorRow
+
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.verticalCenter: parent.verticalCenter
+            anchors.leftMargin: 10
+            anchors.rightMargin: 6
+            spacing: 8
+
+            TextEdit {
+                Layout.fillWidth: true
+                text: root.lastErrorMessage
+                color: "#FFFFFF"
+                font.pixelSize: 12
+                wrapMode: TextEdit.Wrap
+                readOnly: true
+                selectByMouse: true
+                selectionColor: Qt.darker(errorBanner.color, 1.3)
+            }
+
+            Rectangle {
+                id: copyErrorButton
+
+                property bool copied: false
+
+                Layout.alignment: Qt.AlignTop
+                implicitWidth: copyErrorLabel.implicitWidth + 18
+                implicitHeight: 22
+                radius: 4
+                color: copyErrorMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.28)
+                                                    : Qt.rgba(1, 1, 1, 0.16)
+                border.color: Qt.rgba(1, 1, 1, 0.45)
+                border.width: 1
+
+                Behavior on color { ColorAnimation { duration: 120 } }
+
+                Text {
+                    id: copyErrorLabel
+
+                    anchors.centerIn: parent
+                    text: copyErrorButton.copied ? qsTr("Copied") : qsTr("Copy")
+                    color: "#FFFFFF"
+                    font.pixelSize: 12
+                }
+
+                MouseArea {
+                    id: copyErrorMouse
+
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: {
+                        root.copyToClipboard(root.lastErrorMessage)
+                        copyErrorButton.copied = true
+                        copyErrorResetTimer.restart()
+                    }
+                }
+
+                Timer {
+                    id: copyErrorResetTimer
+
+                    interval: 1500
+                    onTriggered: copyErrorButton.copied = false
+                }
+            }
+
+            Rectangle {
+                id: closeErrorButton
+
+                Layout.alignment: Qt.AlignTop
+                implicitWidth: 22
+                implicitHeight: 22
+                radius: 4
+                color: closeErrorMouse.containsMouse ? Qt.rgba(1, 1, 1, 0.28) : "transparent"
+                border.color: Qt.rgba(1, 1, 1, 0.45)
+                border.width: closeErrorMouse.containsMouse ? 1 : 0
+
+                Behavior on color { ColorAnimation { duration: 120 } }
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "✕"
+                    color: "#FFFFFF"
+                    font.pixelSize: 12
+                }
+
+                MouseArea {
+                    id: closeErrorMouse
+
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.hasActiveError = false
+                }
+            }
+        }
     }
 
     Toast {
@@ -735,7 +858,7 @@ ChatRootView {
         target: root
         function onLastErrorMessageChanged() {
             if (root.lastErrorMessage.length > 0) {
-                errorToast.show(root.lastErrorMessage)
+                root.hasActiveError = true
             }
         }
         function onLastInfoMessageChanged() {

@@ -10,6 +10,7 @@
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QKeySequence>
 #include <QMessageBox>
 #include <QQmlContext>
 #include <QQmlEngine>
@@ -52,6 +53,21 @@ bool isChatEditor(Core::IEditor *editor)
     return editor && editor->document()
            && editor->document()->id() == Utils::Id(Constants::QODE_ASSIST_CHAT_EDITOR_ID);
 }
+
+QKeySequence sendMessageKeySequence()
+{
+    auto command = Core::ActionManager::command(Constants::QODE_ASSIST_CHAT_SEND_MESSAGE);
+    if (!command)
+        return {};
+
+    QKeySequence sequence = command->keySequence();
+    if (sequence.isEmpty()) {
+        const QList<QKeySequence> defaults = command->defaultKeySequences();
+        if (!defaults.isEmpty())
+            sequence = defaults.constFirst();
+    }
+    return sequence;
+}
 } // namespace
 
 ChatRootView::ChatRootView(QQuickItem *parent)
@@ -75,6 +91,22 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         &Utils::BaseAspect::changed,
         this,
         [this]() { setIsSyncOpenFiles(Settings::chatAssistantSettings().linkOpenFiles()); });
+
+    QMetaObject::invokeMethod(
+        this,
+        [this] {
+            if (auto sendCommand
+                = Core::ActionManager::command(Constants::QODE_ASSIST_CHAT_SEND_MESSAGE)) {
+                connect(
+                    sendCommand,
+                    &Core::Command::keySequenceChanged,
+                    this,
+                    &ChatRootView::sendShortcutTextChanged,
+                    Qt::UniqueConnection);
+            }
+            emit sendShortcutTextChanged();
+        },
+        Qt::QueuedConnection);
 
     auto &settings = Settings::generalSettings();
 
@@ -741,6 +773,32 @@ QStringList ChatRootView::convertUrlsToLocalPaths(const QVariantList &urls) cons
 void ChatRootView::calculateMessageTokensCount(const QString &message)
 {
     m_tokenCounter->setMessage(message);
+}
+
+bool ChatRootView::isSendShortcut(int key, int modifiers) const
+{
+    const QKeySequence sequence = sendMessageKeySequence();
+    if (sequence.isEmpty())
+        return false;
+
+    const QKeyCombination combination = sequence[0];
+    const int sequenceKey = combination.key();
+
+    const int relevantMask = Qt::ShiftModifier | Qt::ControlModifier | Qt::AltModifier
+                             | Qt::MetaModifier;
+    const int sequenceModifiers = combination.keyboardModifiers() & relevantMask;
+    const int eventModifiers = modifiers & relevantMask;
+
+    const bool isReturnLike = sequenceKey == Qt::Key_Return || sequenceKey == Qt::Key_Enter;
+    const bool keyMatches = key == sequenceKey
+        || (isReturnLike && (key == Qt::Key_Return || key == Qt::Key_Enter));
+
+    return keyMatches && eventModifiers == sequenceModifiers;
+}
+
+QString ChatRootView::sendShortcutText() const
+{
+    return sendMessageKeySequence().toString(QKeySequence::NativeText);
 }
 
 void ChatRootView::setIsSyncOpenFiles(bool state)

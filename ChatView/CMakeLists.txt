@@ -45,6 +45,7 @@ qt_add_qml_module(QodeAssistChatView
     icons/window-unlock.svg
     icons/chat-icon.svg
     icons/chat-pause-icon.svg
+    icons/warning-icon.svg
     icons/new-chat-icon.svg
     icons/rules-icon.svg
     icons/context-icon.svg

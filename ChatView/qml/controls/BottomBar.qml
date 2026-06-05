@@ -19,6 +19,7 @@ Rectangle {
     property alias cancelCompressButton: cancelCompressButtonId
 
     property bool isCompressing: false
+    property bool isProcessing: false
     property alias sendButtonTooltip: sendButtonTooltipId
 
     color: palette.window.hslLightness > 0.5 ?
@@ -159,9 +160,23 @@ Rectangle {
         QoAButton {
             id: sendButtonId
 
+            leftPadding: root.isProcessing ? 22 : 4
+
             icon {
                 height: 15
                 width: 15
+            }
+
+            BusyIndicator {
+                id: sendBusyIndicator
+
+                anchors.left: parent.left
+                anchors.leftMargin: 5
+                anchors.verticalCenter: parent.verticalCenter
+                width: 14
+                height: 14
+                running: root.isProcessing
+                visible: root.isProcessing
             }
 
             QoAToolTip {
