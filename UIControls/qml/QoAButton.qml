@@ -7,6 +7,8 @@ import QtQuick.Controls.Basic
 Button {
     id: control
 
+    property color accentColor: "transparent"
+
     focusPolicy: Qt.NoFocus
     padding: 4
 
@@ -18,11 +20,15 @@ Button {
     background: Rectangle {
         id: bg
 
+        readonly property bool hasAccent: control.accentColor.a > 0
+
         implicitHeight: 20
 
         color: !control.enabled || !control.down ? control.palette.button : control.palette.dark
-        border.color: !control.enabled || (!control.hovered && !control.visualFocus) ? control.palette.mid : control.palette.highlight
-        border.width: 1
+        border.color: bg.hasAccent
+                      ? control.accentColor
+                      : (!control.enabled || (!control.hovered && !control.visualFocus) ? control.palette.mid : control.palette.highlight)
+        border.width: bg.hasAccent ? 2 : 1
         radius: 4
 
         Rectangle {
@@ -34,6 +40,14 @@ Button {
             }
             opacity: control.hovered ? 0.3 : 0.01
             Behavior on opacity {NumberAnimation{duration: 250}}
+        }
+
+        Rectangle {
+            anchors.fill: bg
+            radius: bg.radius
+            color: control.accentColor
+            visible: bg.hasAccent
+            opacity: 0.15
         }
     }
 }
