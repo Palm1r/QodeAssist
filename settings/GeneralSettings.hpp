@@ -28,6 +28,8 @@ public:
     Utils::BoolAspect enableLogging{this};
     Utils::BoolAspect enableCheckUpdate{this};
 
+    Utils::IntegerAspect requestTimeout{this};
+
     ButtonAspect checkUpdate{this};
     ButtonAspect resetToDefaults{this};
 

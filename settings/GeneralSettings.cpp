@@ -73,6 +73,17 @@ GeneralSettings::GeneralSettings()
     enableCheckUpdate.setLabelText(TrConstants::ENABLE_CHECK_UPDATE_ON_START);
     enableCheckUpdate.setDefaultValue(true);
 
+    requestTimeout.setSettingsKey(Constants::REQUEST_TIMEOUT);
+    requestTimeout.setLabelText(Tr::tr("Request timeout (seconds):"));
+    requestTimeout.setToolTip(Tr::tr(
+        "Maximum time to wait for the model to send data before a request is aborted. "
+        "Applies to all requests — chat, code completion, quick refactor and chat compression. "
+        "The timer resets every time data is received, so this effectively limits the "
+        "time-to-first-token and any stall between tokens. Increase it for slow or local "
+        "models that need a long time to start responding. Set to 0 to disable the timeout."));
+    requestTimeout.setRange(0, 3600);
+    requestTimeout.setDefaultValue(120);
+
     resetToDefaults.m_buttonText = TrConstants::RESET_TO_DEFAULTS;
     checkUpdate.m_buttonText = TrConstants::CHECK_UPDATE;
     
@@ -333,6 +344,10 @@ GeneralSettings::GeneralSettings()
                 Row{qrPresetConfig, qrConfigureApiKey, Stretch{1}},
                 qrGrid}};
 
+        auto networkGroup = Group{
+            title(Tr::tr("Network")),
+            Column{Row{requestTimeout, Stretch{1}}}};
+
         auto *supportLabel = new QLabel(Tr::tr("Support the development of QodeAssist:"));
 
         auto *supportLinks = new QLabel(
@@ -348,11 +363,13 @@ GeneralSettings::GeneralSettings()
         supportLinks->setTextFormat(Qt::RichText);
 
         auto rootLayout = Column{
-            Row{supportLabel, supportLinks, Stretch{1}},
+            Row{supportLabel, supportLinks, Stretch{1}, checkUpdate, resetToDefaults},
             Space{8},
-            Row{enableQodeAssist, Stretch{1}, Row{checkUpdate, resetToDefaults}},
+            Row{enableQodeAssist, Stretch{1}},
             Row{enableLogging, Stretch{1}},
             Row{enableCheckUpdate, Stretch{1}},
+            Space{8},
+            networkGroup,
             Space{8},
             ccGroup,
             Space{8},
@@ -679,6 +696,7 @@ void GeneralSettings::resetPageToDefaults()
     if (reply == QMessageBox::Yes) {
         resetAspect(enableQodeAssist);
         resetAspect(enableLogging);
+        resetAspect(requestTimeout);
         resetAspect(ccProvider);
         resetAspect(ccModel);
         resetAspect(ccTemplate);

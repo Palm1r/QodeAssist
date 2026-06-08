@@ -338,6 +338,9 @@ void ClientInterface::sendMessage(
     provider->client()->setMaxToolContinuations(
         Settings::toolsSettings().maxToolContinuations());
 
+    provider->client()->setTransferTimeout(
+        static_cast<int>(Settings::generalSettings().requestTimeout() * 1000));
+
     connect(
         provider->client(),
         &::LLMQore::BaseClient::chunkReceived,

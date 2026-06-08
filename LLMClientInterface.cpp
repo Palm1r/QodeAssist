@@ -354,6 +354,9 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         &LLMClientInterface::handleRequestFailed,
         Qt::UniqueConnection);
 
+    provider->client()->setTransferTimeout(
+        static_cast<int>(m_generalSettings.requestTimeout() * 1000));
+
     auto requestId
         = provider->sendRequest(QUrl(url), payload, resolveEndpoint(promptTemplate, isPreset1Active));
     m_activeRequests[requestId] = {request, provider};

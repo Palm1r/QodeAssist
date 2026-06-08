@@ -144,6 +144,9 @@ void QuickRefactorHandler::prepareAndSendRequest(
     provider->client()->setMaxToolContinuations(
         Settings::toolsSettings().maxToolContinuations());
 
+    provider->client()->setTransferTimeout(
+        static_cast<int>(Settings::generalSettings().requestTimeout() * 1000));
+
     m_isRefactoringInProgress = true;
 
     connect(
