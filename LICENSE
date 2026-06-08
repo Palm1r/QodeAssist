@@ -1,3 +1,24 @@
+===============================================================
+ADDITIONAL TERMS UNDER GPLv3 SECTION 7(b)
+===============================================================
+
+In accordance with Section 7(b) of the GNU General Public License v3.0,
+the following additional attribution term applies to QodeAssist:
+
+  You must preserve all author attributions, copyright notices, and the
+  project name "QodeAssist" in all copies and modified versions,
+  including in source file headers, the plugin metadata
+  (QodeAssist.json.in), and the About dialog or equivalent user-facing
+  identification. Modified versions must be clearly marked as different
+  from the original.
+
+This is a reasonable attribution requirement permitted under GPLv3
+§7(b) and §7(c). It supplements the notice-preservation obligations of
+§4 and §5.
+
+Copyright (C) 2024-2026 Petr Mironychev
+===============================================================
+
                     GNU GENERAL PUBLIC LICENSE
                        Version 3, 29 June 2007
 

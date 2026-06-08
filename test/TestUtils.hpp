@@ -1,5 +1,6 @@
 // Copyright (C) 2025 Povilas Kanapickas
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Additional attribution terms under GPLv3 §7(b) apply — see LICENSE
 
 #include <iostream>
 #include <pluginllmcore/ContextData.hpp>

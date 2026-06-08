@@ -20,6 +20,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with QodeAssist. If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Additional attribution terms under GPLv3 §7(b) apply — see LICENSE
  */
 
 #pragma once

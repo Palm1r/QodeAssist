@@ -1,6 +1,7 @@
 // Copyright (C) 2024-2026 Petr Mironychev
 // Copyright (C) 2025 Povilas Kanapickas <povilas@radix.lt>
 // SPDX-License-Identifier: GPL-3.0-or-later
+// Additional attribution terms under GPLv3 §7(b) apply — see LICENSE
 
 #include "CodeHandler.hpp"
 #include <settings/CodeCompletionSettings.hpp>
