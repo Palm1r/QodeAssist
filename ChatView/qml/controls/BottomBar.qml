@@ -109,7 +109,7 @@ Rectangle {
             visible: root.isCompressing
             spacing: 6
 
-            BusyIndicator {
+            QoABusyIndicator {
                 id: compressBusyIndicator
 
                 anchors.verticalCenter: parent.verticalCenter
@@ -168,7 +168,7 @@ Rectangle {
                 width: 15
             }
 
-            BusyIndicator {
+            QoABusyIndicator {
                 id: sendBusyIndicator
 
                 anchors.left: parent.left
@@ -177,7 +177,6 @@ Rectangle {
                 width: 14
                 height: 14
                 running: root.isProcessing
-                visible: root.isProcessing
             }
 
             QoAToolTip {

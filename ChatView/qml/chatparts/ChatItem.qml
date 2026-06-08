@@ -356,10 +356,9 @@ Rectangle {
                 smooth: true
                 mipmap: true
 
-                BusyIndicator {
+                QoABusyIndicator {
                     anchors.centerIn: parent
                     running: imageDisplay.status === Image.Loading
-                    visible: running
                 }
 
                 Text {

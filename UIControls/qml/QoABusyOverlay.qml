@@ -3,7 +3,6 @@
 // Additional attribution terms under GPLv3 §7(b) apply — see LICENSE
 
 import QtQuick
-import QtQuick.Controls
 
 Rectangle {
     id: root
@@ -26,11 +25,11 @@ Rectangle {
         anchors.centerIn: parent
         spacing: 10
 
-        BusyIndicator {
+        QoABusyIndicator {
             anchors.horizontalCenter: parent.horizontalCenter
             running: root.active
-            implicitWidth: 36
-            implicitHeight: 36
+            width: 36
+            height: 36
         }
 
         Text {
