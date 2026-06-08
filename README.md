@@ -590,6 +590,45 @@ cmake --build .
 
 For detailed development guidelines, architecture patterns, and best practices, see the [project workspace rules](.cursor/rules.mdc).
 
+## License
+
+QodeAssist is licensed under the **GNU General Public License v3.0**
+(see [`LICENSE`](LICENSE)), with **additional attribution terms under
+GPLv3 Section 7(b)**.
+
+You are free to use, modify, and redistribute QodeAssist under GPL-3.0,
+but you **must preserve** the original author attribution, copyright
+notices, and project identification — including in source file headers,
+the plugin metadata (`QodeAssist.json.in`), and the About dialog or
+equivalent user-facing identification. Modified versions must be clearly
+marked as different from the original.
+
+### Commercial licensing
+
+QodeAssist is also available under a separate commercial license for use
+in proprietary or closed-source products without GPL-3.0 obligations.
+For commercial licensing inquiries, contact **palm1r-github-dev@pm.me**.
+
+### Qt Creator components and attributions
+
+QodeAssist is a plugin for Qt Creator and incorporates certain components
+(plugin templates, API headers, and related boilerplate) originating from
+Qt Creator, which are copyright (C) The Qt Company Ltd.
+
+These components are provided by The Qt Company under the GNU General
+Public License version 3, annotated with **The Qt Company GPL Exception
+1.0**. This exception permits the development and distribution of Qt
+Creator plugins under licenses of the plugin author's own choosing,
+notwithstanding the GPL's general linking requirements. It is this
+exception that allows QodeAssist to be offered under both GPL-3.0 and a
+separate commercial license.
+
+The original copyright and license notices of The Qt Company are
+preserved in the relevant source files and must not be removed.
+
+For Qt Creator's licensing terms, see
+[LICENSE.GPL3-EXCEPT](https://github.com/qt-creator/qt-creator/blob/master/LICENSES/LICENSE.GPL3-EXCEPT).
+
 ![qodeassist-icon](https://github.com/user-attachments/assets/dc336712-83cb-440d-8761-8d0a31de898d)
 ![qodeassist-icon-small](https://github.com/user-attachments/assets/8ec241bf-3186-452e-b8db-8d70543c2f41)
 
