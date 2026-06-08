@@ -2,6 +2,21 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="da_DK">
 <context>
+    <name>AttachedFilesPlace</name>
+    <message>
+        <source>Open in Qt Creator</source>
+        <translation>Åbn i Qt Creator</translation>
+    </message>
+    <message>
+        <source>Open in External Editor</source>
+        <translation>Åbn i ekstern editor</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Fjern</translation>
+    </message>
+</context>
+<context>
     <name>BottomBar</name>
     <message>
         <source>Attach file to message</source>
@@ -312,6 +327,10 @@ Opret .md-filer i .qodeassist/rules/common/ eller .qodeassist/rules/chat/</trans
 </context>
 <context>
     <name>MessageNavigator</name>
+    <message>
+        <source>#%1  ·  %2</source>
+        <translation>#%1  ·  %2</translation>
+    </message>
     <message>
         <source>Jump to message #%1</source>
         <translation>Gå til besked #%1</translation>
@@ -1348,8 +1367,32 @@ developers write better code. If you find it useful, please</source>
 udviklere med at skrive bedre kode. Hvis du finder det nyttigt, så</translation>
     </message>
     <message>
-        <source>QodeAssistUpdater - convenient tool for plugin installation and updates</source>
-        <translation>QodeAssistUpdater - praktisk værktøj til pluginstallation og opdateringer</translation>
+        <source>Install via Extension Registry (recommended)</source>
+        <translation>Installer via Extension Registry (anbefales)</translation>
+    </message>
+    <message>
+        <source>In Qt Creator open Extensions → Browser tab, enable &quot;Use External Repository&quot;, add one of the URLs below and click Apply to install QodeAssist. Updates are then installed from the same screen.</source>
+        <translation>I Qt Creator skal du åbne Extensions → fanen Browser, aktivere „Use External Repository“, tilføje en af URL'erne nedenfor og klikke på Apply for at installere QodeAssist. Opdateringer installeres derefter fra samme skærm.</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>Kopiér</translation>
+    </message>
+    <message>
+        <source>Latest (for the newest Qt Creator, always up to date)</source>
+        <translation>Nyeste (til den nyeste Qt Creator, altid opdateret)</translation>
+    </message>
+    <message>
+        <source>Only for Qt Creator %1</source>
+        <translation>Kun til Qt Creator %1</translation>
+    </message>
+    <message>
+        <source>Alternative: QodeAssistUpdater</source>
+        <translation>Alternativ: QodeAssistUpdater</translation>
+    </message>
+    <message>
+        <source>A standalone tool for installing and updating the plugin.</source>
+        <translation>Et selvstændigt værktøj til at installere og opdatere pluginnet.</translation>
     </message>
     <message>
         <source>Download QodeAssistUpdater</source>
@@ -1434,6 +1477,14 @@ udviklere med at skrive bedre kode. Hvis du finder det nyttigt, så</translation
 %2</translation>
     </message>
     <message>
+        <source>Request timeout (seconds):</source>
+        <translation>Anmodningstimeout (sekunder):</translation>
+    </message>
+    <message>
+        <source>Maximum time to wait for the model to send data before a request is aborted. Applies to all requests — chat, code completion, quick refactor and chat compression. The timer resets every time data is received, so this effectively limits the time-to-first-token and any stall between tokens. Increase it for slow or local models that need a long time to start responding. Set to 0 to disable the timeout.</source>
+        <translation>Maksimal ventetid på data fra modellen, før en anmodning afbrydes. Gælder for alle anmodninger — chat, kodefuldførelse, hurtig refaktorering og chatkomprimering. Timeren nulstilles, hver gang der modtages data, så den begrænser reelt tiden til det første token og enhver pause mellem tokens. Forøg den for langsomme eller lokale modeller, der skal bruge lang tid på at begynde at svare. Sæt til 0 for at deaktivere timeout.</translation>
+    </message>
+    <message>
         <source>Quick Setup</source>
         <translation>Hurtig opsætning</translation>
     </message>
@@ -1452,6 +1503,14 @@ udviklere med at skrive bedre kode. Hvis du finder det nyttigt, så</translation
     <message>
         <source>Show template information</source>
         <translation>Vis skabeloninformation</translation>
+    </message>
+    <message>
+        <source>Network</source>
+        <translation>Netværk</translation>
+    </message>
+    <message>
+        <source>Support the development of QodeAssist:</source>
+        <translation>Støt udviklingen af QodeAssist:</translation>
     </message>
     <message>
         <source>Template Information</source>
@@ -2628,6 +2687,14 @@ Bemærk: Reduktion af indsats = hurtigere svar + færre tokens</translation>
         <translation>llama.cpp API-nøgle:</translation>
     </message>
     <message>
+        <source>Qwen API Key:</source>
+        <translation>Qwen API-nøgle:</translation>
+    </message>
+    <message>
+        <source>DeepSeek API Key:</source>
+        <translation>DeepSeek API-nøgle:</translation>
+    </message>
+    <message>
         <source>OpenRouter Settings</source>
         <translation>OpenRouter-indstillinger</translation>
     </message>
@@ -2654,6 +2721,14 @@ Bemærk: Reduktion af indsats = hurtigere svar + færre tokens</translation>
     <message>
         <source>llama.cpp Settings</source>
         <translation>llama.cpp-indstillinger</translation>
+    </message>
+    <message>
+        <source>Qwen (Alibaba) Settings</source>
+        <translation>Qwen (Alibaba)-indstillinger</translation>
+    </message>
+    <message>
+        <source>DeepSeek Settings</source>
+        <translation>DeepSeek-indstillinger</translation>
     </message>
     <message>
         <source>Agent roles define different system prompts for specific tasks.</source>
@@ -3023,12 +3098,8 @@ Bemærk: Reduktion af indsats = hurtigere svar + færre tokens</translation>
         <translation>Flyt denne chat til et separat vindue</translation>
     </message>
     <message>
-        <source>Type your message here... (⌘+↩ to send)</source>
-        <translation>Skriv din besked her... (⌘+↩ for at sende)</translation>
-    </message>
-    <message>
-        <source>Type your message here... (Ctrl+Enter to send)</source>
-        <translation>Skriv din besked her... (Ctrl+Enter for at sende)</translation>
+        <source>Type your message here... (%1 to send)</source>
+        <translation>Skriv din besked her... (%1 for at sende)</translation>
     </message>
     <message>
         <source>Cut</source>
@@ -3073,6 +3144,10 @@ The summary will be generated by LLM and saved as a new chat file.</source>
         <translation>Opret en opsummeret kopi af denne chat?
 
 Oversigten genereres af LLM og gemmes som en ny chatfil.</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>Kopieret</translation>
     </message>
 </context>
 <context>

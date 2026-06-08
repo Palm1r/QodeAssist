@@ -2,6 +2,21 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en" sourcelanguage="en">
 <context>
+    <name>AttachedFilesPlace</name>
+    <message>
+        <source>Open in Qt Creator</source>
+        <translation>Open in Qt Creator</translation>
+    </message>
+    <message>
+        <source>Open in External Editor</source>
+        <translation>Open in External Editor</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Remove</translation>
+    </message>
+</context>
+<context>
     <name>BottomBar</name>
     <message>
         <source>Attach file to message</source>
@@ -312,6 +327,10 @@ Create .md files in .qodeassist/rules/common/ or .qodeassist/rules/chat/</transl
 </context>
 <context>
     <name>MessageNavigator</name>
+    <message>
+        <source>#%1  ·  %2</source>
+        <translation>#%1  ·  %2</translation>
+    </message>
     <message>
         <source>Jump to message #%1</source>
         <translation>Jump to message #%1</translation>
@@ -1348,8 +1367,32 @@ developers write better code. If you find it useful, please</source>
 developers write better code. If you find it useful, please</translation>
     </message>
     <message>
-        <source>QodeAssistUpdater - convenient tool for plugin installation and updates</source>
-        <translation>QodeAssistUpdater - convenient tool for plugin installation and updates</translation>
+        <source>Install via Extension Registry (recommended)</source>
+        <translation>Install via Extension Registry (recommended)</translation>
+    </message>
+    <message>
+        <source>In Qt Creator open Extensions → Browser tab, enable &quot;Use External Repository&quot;, add one of the URLs below and click Apply to install QodeAssist. Updates are then installed from the same screen.</source>
+        <translation>In Qt Creator open Extensions → Browser tab, enable &quot;Use External Repository&quot;, add one of the URLs below and click Apply to install QodeAssist. Updates are then installed from the same screen.</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>Copy</translation>
+    </message>
+    <message>
+        <source>Latest (for the newest Qt Creator, always up to date)</source>
+        <translation>Latest (for the newest Qt Creator, always up to date)</translation>
+    </message>
+    <message>
+        <source>Only for Qt Creator %1</source>
+        <translation>Only for Qt Creator %1</translation>
+    </message>
+    <message>
+        <source>Alternative: QodeAssistUpdater</source>
+        <translation>Alternative: QodeAssistUpdater</translation>
+    </message>
+    <message>
+        <source>A standalone tool for installing and updating the plugin.</source>
+        <translation>A standalone tool for installing and updating the plugin.</translation>
     </message>
     <message>
         <source>Download QodeAssistUpdater</source>
@@ -1636,6 +1679,14 @@ If entering a new model name:
         <translation>Are you sure you want to delete this configuration?</translation>
     </message>
     <message>
+        <source>Request timeout (seconds):</source>
+        <translation>Request timeout (seconds):</translation>
+    </message>
+    <message>
+        <source>Maximum time to wait for the model to send data before a request is aborted. Applies to all requests — chat, code completion, quick refactor and chat compression. The timer resets every time data is received, so this effectively limits the time-to-first-token and any stall between tokens. Increase it for slow or local models that need a long time to start responding. Set to 0 to disable the timeout.</source>
+        <translation>Maximum time to wait for the model to send data before a request is aborted. Applies to all requests — chat, code completion, quick refactor and chat compression. The timer resets every time data is received, so this effectively limits the time-to-first-token and any stall between tokens. Increase it for slow or local models that need a long time to start responding. Set to 0 to disable the timeout.</translation>
+    </message>
+    <message>
         <source>Quick Setup</source>
         <translation>Quick Setup</translation>
     </message>
@@ -1654,6 +1705,14 @@ If entering a new model name:
     <message>
         <source>Show template information</source>
         <translation>Show template information</translation>
+    </message>
+    <message>
+        <source>Network</source>
+        <translation>Network</translation>
+    </message>
+    <message>
+        <source>Support the development of QodeAssist:</source>
+        <translation>Support the development of QodeAssist:</translation>
     </message>
     <message>
         <source>Template Information</source>
@@ -2320,8 +2379,24 @@ Note: Reducing effort = faster responses + fewer tokens</translation>
         <translation>llama.cpp API Key:</translation>
     </message>
     <message>
+        <source>Qwen API Key:</source>
+        <translation>Qwen API Key:</translation>
+    </message>
+    <message>
+        <source>DeepSeek API Key:</source>
+        <translation>DeepSeek API Key:</translation>
+    </message>
+    <message>
         <source>llama.cpp Settings</source>
         <translation>llama.cpp Settings</translation>
+    </message>
+    <message>
+        <source>Qwen (Alibaba) Settings</source>
+        <translation>Qwen (Alibaba) Settings</translation>
+    </message>
+    <message>
+        <source>DeepSeek Settings</source>
+        <translation>DeepSeek Settings</translation>
     </message>
     <message>
         <source>OpenRouter Settings</source>
@@ -3023,12 +3098,8 @@ Note: Reducing effort = faster responses + fewer tokens</translation>
         <translation>Move this chat to a separate window</translation>
     </message>
     <message>
-        <source>Type your message here... (⌘+↩ to send)</source>
-        <translation>Type your message here... (⌘+↩ to send)</translation>
-    </message>
-    <message>
-        <source>Type your message here... (Ctrl+Enter to send)</source>
-        <translation>Type your message here... (Ctrl+Enter to send)</translation>
+        <source>Type your message here... (%1 to send)</source>
+        <translation>Type your message here... (%1 to send)</translation>
     </message>
     <message>
         <source>Cut</source>
@@ -3073,6 +3144,10 @@ The summary will be generated by LLM and saved as a new chat file.</source>
         <translation>Create a summarized copy of this chat?
 
 The summary will be generated by LLM and saved as a new chat file.</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>Copied</translation>
     </message>
 </context>
 <context>

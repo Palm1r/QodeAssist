@@ -2,6 +2,21 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="ja_JP">
 <context>
+    <name>AttachedFilesPlace</name>
+    <message>
+        <source>Open in Qt Creator</source>
+        <translation>Qt Creator で開く</translation>
+    </message>
+    <message>
+        <source>Open in External Editor</source>
+        <translation>外部エディタで開く</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>削除</translation>
+    </message>
+</context>
+<context>
     <name>BottomBar</name>
     <message>
         <source>Attach file to message</source>
@@ -312,6 +327,10 @@ Create .md files in .qodeassist/rules/common/ or .qodeassist/rules/chat/</source
 </context>
 <context>
     <name>MessageNavigator</name>
+    <message>
+        <source>#%1  ·  %2</source>
+        <translation>#%1  ·  %2</translation>
+    </message>
     <message>
         <source>Jump to message #%1</source>
         <translation>メッセージ #%1 へ移動</translation>
@@ -1347,8 +1366,32 @@ developers write better code. If you find it useful, please</source>
 支援するオープンソースプロジェクトです。役に立った場合は、ぜひ</translation>
     </message>
     <message>
-        <source>QodeAssistUpdater - convenient tool for plugin installation and updates</source>
-        <translation>QodeAssistUpdater - プラグインのインストールと更新のための便利なツール</translation>
+        <source>Install via Extension Registry (recommended)</source>
+        <translation>Extension Registry からインストール（推奨）</translation>
+    </message>
+    <message>
+        <source>In Qt Creator open Extensions → Browser tab, enable &quot;Use External Repository&quot;, add one of the URLs below and click Apply to install QodeAssist. Updates are then installed from the same screen.</source>
+        <translation>Qt Creator で Extensions → Browser タブを開き、「Use External Repository」を有効にして、下のいずれかの URL を追加し、Apply をクリックして QodeAssist をインストールします。更新は同じ画面からインストールされます。</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>コピー</translation>
+    </message>
+    <message>
+        <source>Latest (for the newest Qt Creator, always up to date)</source>
+        <translation>最新（最新の Qt Creator 用、常に最新の状態）</translation>
+    </message>
+    <message>
+        <source>Only for Qt Creator %1</source>
+        <translation>Qt Creator %1 専用</translation>
+    </message>
+    <message>
+        <source>Alternative: QodeAssistUpdater</source>
+        <translation>代替手段: QodeAssistUpdater</translation>
+    </message>
+    <message>
+        <source>A standalone tool for installing and updating the plugin.</source>
+        <translation>プラグインのインストールと更新を行うスタンドアロンツールです。</translation>
     </message>
     <message>
         <source>Download QodeAssistUpdater</source>
@@ -1433,6 +1476,14 @@ developers write better code. If you find it useful, please</source>
 %2</translation>
     </message>
     <message>
+        <source>Request timeout (seconds):</source>
+        <translation>リクエストタイムアウト（秒）:</translation>
+    </message>
+    <message>
+        <source>Maximum time to wait for the model to send data before a request is aborted. Applies to all requests — chat, code completion, quick refactor and chat compression. The timer resets every time data is received, so this effectively limits the time-to-first-token and any stall between tokens. Increase it for slow or local models that need a long time to start responding. Set to 0 to disable the timeout.</source>
+        <translation>リクエストが中止されるまでに、モデルがデータを送信するのを待つ最大時間です。すべてのリクエスト（チャット、コード補完、クイックリファクタリング、チャット圧縮）に適用されます。タイマーはデータを受信するたびにリセットされるため、実質的に最初のトークンまでの時間とトークン間の停止を制限します。応答の開始に時間がかかる低速モデルやローカルモデルでは値を大きくしてください。0 に設定するとタイムアウトを無効にします。</translation>
+    </message>
+    <message>
         <source>Quick Setup</source>
         <translation>クイックセットアップ</translation>
     </message>
@@ -1451,6 +1502,14 @@ developers write better code. If you find it useful, please</source>
     <message>
         <source>Show template information</source>
         <translation>テンプレート情報を表示</translation>
+    </message>
+    <message>
+        <source>Network</source>
+        <translation>ネットワーク</translation>
+    </message>
+    <message>
+        <source>Support the development of QodeAssist:</source>
+        <translation>QodeAssist の開発を支援する:</translation>
     </message>
     <message>
         <source>Template Information</source>
@@ -2627,6 +2686,14 @@ High: 最大の推論努力 (gpt-5-pro のみがこれをサポート)
         <translation>llama.cpp API キー:</translation>
     </message>
     <message>
+        <source>Qwen API Key:</source>
+        <translation>Qwen API キー:</translation>
+    </message>
+    <message>
+        <source>DeepSeek API Key:</source>
+        <translation>DeepSeek API キー:</translation>
+    </message>
+    <message>
         <source>OpenRouter Settings</source>
         <translation>OpenRouter 設定</translation>
     </message>
@@ -2653,6 +2720,14 @@ High: 最大の推論努力 (gpt-5-pro のみがこれをサポート)
     <message>
         <source>llama.cpp Settings</source>
         <translation>llama.cpp 設定</translation>
+    </message>
+    <message>
+        <source>Qwen (Alibaba) Settings</source>
+        <translation>Qwen (Alibaba) 設定</translation>
+    </message>
+    <message>
+        <source>DeepSeek Settings</source>
+        <translation>DeepSeek 設定</translation>
     </message>
     <message>
         <source>Agent roles define different system prompts for specific tasks.</source>
@@ -3022,12 +3097,8 @@ High: 最大の推論努力 (gpt-5-pro のみがこれをサポート)
         <translation>このチャットを別ウィンドウに移動</translation>
     </message>
     <message>
-        <source>Type your message here... (⌘+↩ to send)</source>
-        <translation>ここにメッセージを入力... (⌘+↩ で送信)</translation>
-    </message>
-    <message>
-        <source>Type your message here... (Ctrl+Enter to send)</source>
-        <translation>ここにメッセージを入力... (Ctrl+Enter で送信)</translation>
+        <source>Type your message here... (%1 to send)</source>
+        <translation>ここにメッセージを入力... (%1 で送信)</translation>
     </message>
     <message>
         <source>Cut</source>
@@ -3072,6 +3143,10 @@ The summary will be generated by LLM and saved as a new chat file.</source>
         <translation>このチャットの要約コピーを作成しますか?
 
 要約は LLM によって生成され、新しいチャットファイルとして保存されます。</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>コピーしました</translation>
     </message>
 </context>
 <context>

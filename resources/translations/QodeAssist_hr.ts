@@ -2,6 +2,21 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="hr_HR">
 <context>
+    <name>AttachedFilesPlace</name>
+    <message>
+        <source>Open in Qt Creator</source>
+        <translation>Otvori u Qt Creatoru</translation>
+    </message>
+    <message>
+        <source>Open in External Editor</source>
+        <translation>Otvori u vanjskom uređivaču</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Ukloni</translation>
+    </message>
+</context>
+<context>
     <name>BottomBar</name>
     <message>
         <source>Attach file to message</source>
@@ -312,6 +327,10 @@ Stvori .md datoteke u .qodeassist/rules/common/ ili .qodeassist/rules/chat/</tra
 </context>
 <context>
     <name>MessageNavigator</name>
+    <message>
+        <source>#%1  ·  %2</source>
+        <translation>#%1  ·  %2</translation>
+    </message>
     <message>
         <source>Jump to message #%1</source>
         <translation>Skoči na poruku #%1</translation>
@@ -1349,8 +1368,32 @@ developers write better code. If you find it useful, please</source>
 razvojnim programerima da pišu bolji kod. Ako vam je koristan, molimo</translation>
     </message>
     <message>
-        <source>QodeAssistUpdater - convenient tool for plugin installation and updates</source>
-        <translation>QodeAssistUpdater - praktičan alat za instalaciju i ažuriranje dodatka</translation>
+        <source>Install via Extension Registry (recommended)</source>
+        <translation>Instalacija putem Extension Registryja (preporučeno)</translation>
+    </message>
+    <message>
+        <source>In Qt Creator open Extensions → Browser tab, enable &quot;Use External Repository&quot;, add one of the URLs below and click Apply to install QodeAssist. Updates are then installed from the same screen.</source>
+        <translation>U Qt Creatoru otvorite Extensions → karticu Browser, omogućite „Use External Repository“, dodajte jedan od URL-ova u nastavku i kliknite Apply za instalaciju QodeAssista. Ažuriranja se zatim instaliraju s istog zaslona.</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>Kopiraj</translation>
+    </message>
+    <message>
+        <source>Latest (for the newest Qt Creator, always up to date)</source>
+        <translation>Najnovija (za najnoviji Qt Creator, uvijek ažurna)</translation>
+    </message>
+    <message>
+        <source>Only for Qt Creator %1</source>
+        <translation>Samo za Qt Creator %1</translation>
+    </message>
+    <message>
+        <source>Alternative: QodeAssistUpdater</source>
+        <translation>Alternativa: QodeAssistUpdater</translation>
+    </message>
+    <message>
+        <source>A standalone tool for installing and updating the plugin.</source>
+        <translation>Samostalan alat za instalaciju i ažuriranje dodatka.</translation>
     </message>
     <message>
         <source>Download QodeAssistUpdater</source>
@@ -1435,6 +1478,14 @@ razvojnim programerima da pišu bolji kod. Ako vam je koristan, molimo</translat
 %2</translation>
     </message>
     <message>
+        <source>Request timeout (seconds):</source>
+        <translation>Istek vremena zahtjeva (sekunde):</translation>
+    </message>
+    <message>
+        <source>Maximum time to wait for the model to send data before a request is aborted. Applies to all requests — chat, code completion, quick refactor and chat compression. The timer resets every time data is received, so this effectively limits the time-to-first-token and any stall between tokens. Increase it for slow or local models that need a long time to start responding. Set to 0 to disable the timeout.</source>
+        <translation>Najdulje vrijeme čekanja na podatke od modela prije nego što se zahtjev prekine. Primjenjuje se na sve zahtjeve — chat, dovršavanje koda, brzo refaktoriranje i sažimanje chata. Mjerač se resetira svaki put kad se prime podaci, pa zapravo ograničava vrijeme do prvog tokena i svaki zastoj između tokena. Povećajte ga za spore ili lokalne modele kojima treba dugo da počnu odgovarati. Postavite na 0 za isključivanje isteka vremena.</translation>
+    </message>
+    <message>
         <source>Quick Setup</source>
         <translation>Brza postava</translation>
     </message>
@@ -1453,6 +1504,14 @@ razvojnim programerima da pišu bolji kod. Ako vam je koristan, molimo</translat
     <message>
         <source>Show template information</source>
         <translation>Prikaži informacije o predlošku</translation>
+    </message>
+    <message>
+        <source>Network</source>
+        <translation>Mreža</translation>
+    </message>
+    <message>
+        <source>Support the development of QodeAssist:</source>
+        <translation>Podržite razvoj QodeAssista:</translation>
     </message>
     <message>
         <source>Template Information</source>
@@ -2629,6 +2688,14 @@ Napomena: Smanjenje truda = brži odgovori + manje tokena</translation>
         <translation>llama.cpp API ključ:</translation>
     </message>
     <message>
+        <source>Qwen API Key:</source>
+        <translation>Qwen API ključ:</translation>
+    </message>
+    <message>
+        <source>DeepSeek API Key:</source>
+        <translation>DeepSeek API ključ:</translation>
+    </message>
+    <message>
         <source>OpenRouter Settings</source>
         <translation>Postavke OpenRoutera</translation>
     </message>
@@ -2655,6 +2722,14 @@ Napomena: Smanjenje truda = brži odgovori + manje tokena</translation>
     <message>
         <source>llama.cpp Settings</source>
         <translation>Postavke llama.cpp</translation>
+    </message>
+    <message>
+        <source>Qwen (Alibaba) Settings</source>
+        <translation>Postavke Qwen (Alibaba)</translation>
+    </message>
+    <message>
+        <source>DeepSeek Settings</source>
+        <translation>Postavke DeepSeek</translation>
     </message>
     <message>
         <source>Agent roles define different system prompts for specific tasks.</source>
@@ -3024,12 +3099,8 @@ Napomena: Smanjenje truda = brži odgovori + manje tokena</translation>
         <translation>Premjesti ovaj razgovor u zasebni prozor</translation>
     </message>
     <message>
-        <source>Type your message here... (⌘+↩ to send)</source>
-        <translation>Upišite svoju poruku ovdje... (⌘+↩ za slanje)</translation>
-    </message>
-    <message>
-        <source>Type your message here... (Ctrl+Enter to send)</source>
-        <translation>Upišite svoju poruku ovdje... (Ctrl+Enter za slanje)</translation>
+        <source>Type your message here... (%1 to send)</source>
+        <translation>Ovdje upišite svoju poruku... (%1 za slanje)</translation>
     </message>
     <message>
         <source>Cut</source>
@@ -3074,6 +3145,10 @@ The summary will be generated by LLM and saved as a new chat file.</source>
         <translation>Stvoriti sažetu kopiju ovog razgovora?
 
 Sažetak će generirati LLM i bit će spremljen kao nova datoteka razgovora.</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>Kopirano</translation>
     </message>
 </context>
 <context>

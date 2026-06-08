@@ -2,6 +2,21 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="zh_TW">
 <context>
+    <name>AttachedFilesPlace</name>
+    <message>
+        <source>Open in Qt Creator</source>
+        <translation>在 Qt Creator 中開啟</translation>
+    </message>
+    <message>
+        <source>Open in External Editor</source>
+        <translation>在外部編輯器中開啟</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>移除</translation>
+    </message>
+</context>
+<context>
     <name>BottomBar</name>
     <message>
         <source>Attach file to message</source>
@@ -312,6 +327,10 @@ Create .md files in .qodeassist/rules/common/ or .qodeassist/rules/chat/</source
 </context>
 <context>
     <name>MessageNavigator</name>
+    <message>
+        <source>#%1  ·  %2</source>
+        <translation>#%1  ·  %2</translation>
+    </message>
     <message>
         <source>Jump to message #%1</source>
         <translation>跳至訊息 #%1</translation>
@@ -1347,8 +1366,32 @@ developers write better code. If you find it useful, please</source>
 開發者撰寫更優質的程式碼。若您覺得實用,請</translation>
     </message>
     <message>
-        <source>QodeAssistUpdater - convenient tool for plugin installation and updates</source>
-        <translation>QodeAssistUpdater - 用於外掛安裝及更新的便利工具</translation>
+        <source>Install via Extension Registry (recommended)</source>
+        <translation>透過 Extension Registry 安裝（推薦）</translation>
+    </message>
+    <message>
+        <source>In Qt Creator open Extensions → Browser tab, enable &quot;Use External Repository&quot;, add one of the URLs below and click Apply to install QodeAssist. Updates are then installed from the same screen.</source>
+        <translation>在 Qt Creator 中開啟 Extensions → Browser 分頁，啟用「Use External Repository」，新增下方其中一個 URL，然後按一下 Apply 以安裝 QodeAssist。之後可在同一畫面安裝更新。</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>複製</translation>
+    </message>
+    <message>
+        <source>Latest (for the newest Qt Creator, always up to date)</source>
+        <translation>最新（適用於最新的 Qt Creator，始終保持最新）</translation>
+    </message>
+    <message>
+        <source>Only for Qt Creator %1</source>
+        <translation>僅適用於 Qt Creator %1</translation>
+    </message>
+    <message>
+        <source>Alternative: QodeAssistUpdater</source>
+        <translation>替代方案：QodeAssistUpdater</translation>
+    </message>
+    <message>
+        <source>A standalone tool for installing and updating the plugin.</source>
+        <translation>用於安裝與更新外掛的獨立工具。</translation>
     </message>
     <message>
         <source>Download QodeAssistUpdater</source>
@@ -1433,6 +1476,14 @@ developers write better code. If you find it useful, please</source>
 %2</translation>
     </message>
     <message>
+        <source>Request timeout (seconds):</source>
+        <translation>請求逾時（秒）:</translation>
+    </message>
+    <message>
+        <source>Maximum time to wait for the model to send data before a request is aborted. Applies to all requests — chat, code completion, quick refactor and chat compression. The timer resets every time data is received, so this effectively limits the time-to-first-token and any stall between tokens. Increase it for slow or local models that need a long time to start responding. Set to 0 to disable the timeout.</source>
+        <translation>在中止請求之前，等待模型傳送資料的最長時間。適用於所有請求——聊天、程式碼補全、快速重構和聊天壓縮。每次收到資料時計時器都會重設，因此實際上限制了第一個 token 的等待時間以及 token 之間的任何停頓。對於需要較長時間才能開始回應的慢速或本機模型，請增大此值。設為 0 可停用逾時。</translation>
+    </message>
+    <message>
         <source>Quick Setup</source>
         <translation>快速設定</translation>
     </message>
@@ -1451,6 +1502,14 @@ developers write better code. If you find it useful, please</source>
     <message>
         <source>Show template information</source>
         <translation>顯示範本資訊</translation>
+    </message>
+    <message>
+        <source>Network</source>
+        <translation>網路</translation>
+    </message>
+    <message>
+        <source>Support the development of QodeAssist:</source>
+        <translation>支持 QodeAssist 的開發:</translation>
     </message>
     <message>
         <source>Template Information</source>
@@ -2627,6 +2686,14 @@ Note: Reducing effort = faster responses + fewer tokens</source>
         <translation>llama.cpp API 金鑰:</translation>
     </message>
     <message>
+        <source>Qwen API Key:</source>
+        <translation>Qwen API 金鑰:</translation>
+    </message>
+    <message>
+        <source>DeepSeek API Key:</source>
+        <translation>DeepSeek API 金鑰:</translation>
+    </message>
+    <message>
         <source>OpenRouter Settings</source>
         <translation>OpenRouter 設定</translation>
     </message>
@@ -2653,6 +2720,14 @@ Note: Reducing effort = faster responses + fewer tokens</source>
     <message>
         <source>llama.cpp Settings</source>
         <translation>llama.cpp 設定</translation>
+    </message>
+    <message>
+        <source>Qwen (Alibaba) Settings</source>
+        <translation>Qwen (Alibaba) 設定</translation>
+    </message>
+    <message>
+        <source>DeepSeek Settings</source>
+        <translation>DeepSeek 設定</translation>
     </message>
     <message>
         <source>Agent roles define different system prompts for specific tasks.</source>
@@ -3022,12 +3097,8 @@ Note: Reducing effort = faster responses + fewer tokens</source>
         <translation>將此聊天移至獨立視窗</translation>
     </message>
     <message>
-        <source>Type your message here... (⌘+↩ to send)</source>
-        <translation>在此輸入您的訊息... (⌘+↩ 傳送)</translation>
-    </message>
-    <message>
-        <source>Type your message here... (Ctrl+Enter to send)</source>
-        <translation>在此輸入您的訊息... (Ctrl+Enter 傳送)</translation>
+        <source>Type your message here... (%1 to send)</source>
+        <translation>在此輸入您的訊息... (%1 傳送)</translation>
     </message>
     <message>
         <source>Cut</source>
@@ -3072,6 +3143,10 @@ The summary will be generated by LLM and saved as a new chat file.</source>
         <translation>建立此聊天的摘要副本?
 
 摘要將由 LLM 產生並儲存為新的聊天檔案。</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>已複製</translation>
     </message>
 </context>
 <context>

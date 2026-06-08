@@ -2,6 +2,21 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="uk_UA">
 <context>
+    <name>AttachedFilesPlace</name>
+    <message>
+        <source>Open in Qt Creator</source>
+        <translation>Відкрити у Qt Creator</translation>
+    </message>
+    <message>
+        <source>Open in External Editor</source>
+        <translation>Відкрити у зовнішньому редакторі</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Вилучити</translation>
+    </message>
+</context>
+<context>
     <name>BottomBar</name>
     <message>
         <source>Attach file to message</source>
@@ -312,6 +327,10 @@ Create .md files in .qodeassist/rules/common/ or .qodeassist/rules/chat/</source
 </context>
 <context>
     <name>MessageNavigator</name>
+    <message>
+        <source>#%1  ·  %2</source>
+        <translation>#%1  ·  %2</translation>
+    </message>
     <message>
         <source>Jump to message #%1</source>
         <translation>Перейти до повідомлення #%1</translation>
@@ -1349,8 +1368,32 @@ developers write better code. If you find it useful, please</source>
 розробникам писати кращий код. Якщо він вам корисний, будь ласка</translation>
     </message>
     <message>
-        <source>QodeAssistUpdater - convenient tool for plugin installation and updates</source>
-        <translation>QodeAssistUpdater — зручний інструмент для встановлення та оновлення плагіна</translation>
+        <source>Install via Extension Registry (recommended)</source>
+        <translation>Встановлення через Extension Registry (рекомендовано)</translation>
+    </message>
+    <message>
+        <source>In Qt Creator open Extensions → Browser tab, enable &quot;Use External Repository&quot;, add one of the URLs below and click Apply to install QodeAssist. Updates are then installed from the same screen.</source>
+        <translation>У Qt Creator відкрийте Extensions → вкладку Browser, увімкніть «Use External Repository», додайте один з URL нижче й натисніть Apply, щоб встановити QodeAssist. Оновлення потім встановлюються на тому ж екрані.</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>Копіювати</translation>
+    </message>
+    <message>
+        <source>Latest (for the newest Qt Creator, always up to date)</source>
+        <translation>Найновіша (для найновішого Qt Creator, завжди актуальна)</translation>
+    </message>
+    <message>
+        <source>Only for Qt Creator %1</source>
+        <translation>Лише для Qt Creator %1</translation>
+    </message>
+    <message>
+        <source>Alternative: QodeAssistUpdater</source>
+        <translation>Альтернатива: QodeAssistUpdater</translation>
+    </message>
+    <message>
+        <source>A standalone tool for installing and updating the plugin.</source>
+        <translation>Окремий інструмент для встановлення та оновлення плагіна.</translation>
     </message>
     <message>
         <source>Download QodeAssistUpdater</source>
@@ -1435,6 +1478,14 @@ developers write better code. If you find it useful, please</source>
 %2</translation>
     </message>
     <message>
+        <source>Request timeout (seconds):</source>
+        <translation>Тайм-аут запиту (секунди):</translation>
+    </message>
+    <message>
+        <source>Maximum time to wait for the model to send data before a request is aborted. Applies to all requests — chat, code completion, quick refactor and chat compression. The timer resets every time data is received, so this effectively limits the time-to-first-token and any stall between tokens. Increase it for slow or local models that need a long time to start responding. Set to 0 to disable the timeout.</source>
+        <translation>Максимальний час очікування даних від моделі, після якого запит переривається. Застосовується до всіх запитів — чату, автодоповнення коду, швидкого рефакторингу та стиснення чату. Таймер скидається щоразу при отриманні даних, тому він фактично обмежує час до першого токена та будь-яку затримку між токенами. Збільште його для повільних або локальних моделей, яким потрібно багато часу, щоб почати відповідати. Встановіть 0, щоб вимкнути тайм-аут.</translation>
+    </message>
+    <message>
         <source>Quick Setup</source>
         <translation>Швидке налаштування</translation>
     </message>
@@ -1453,6 +1504,14 @@ developers write better code. If you find it useful, please</source>
     <message>
         <source>Show template information</source>
         <translation>Показати інформацію про шаблон</translation>
+    </message>
+    <message>
+        <source>Network</source>
+        <translation>Мережа</translation>
+    </message>
+    <message>
+        <source>Support the development of QodeAssist:</source>
+        <translation>Підтримайте розробку QodeAssist:</translation>
     </message>
     <message>
         <source>Template Information</source>
@@ -2629,6 +2688,14 @@ High: Максимальне зусилля міркування (підтрим
         <translation>Ключ API llama.cpp:</translation>
     </message>
     <message>
+        <source>Qwen API Key:</source>
+        <translation>Ключ API Qwen:</translation>
+    </message>
+    <message>
+        <source>DeepSeek API Key:</source>
+        <translation>Ключ API DeepSeek:</translation>
+    </message>
+    <message>
         <source>OpenRouter Settings</source>
         <translation>Налаштування OpenRouter</translation>
     </message>
@@ -2655,6 +2722,14 @@ High: Максимальне зусилля міркування (підтрим
     <message>
         <source>llama.cpp Settings</source>
         <translation>Налаштування llama.cpp</translation>
+    </message>
+    <message>
+        <source>Qwen (Alibaba) Settings</source>
+        <translation>Налаштування Qwen (Alibaba)</translation>
+    </message>
+    <message>
+        <source>DeepSeek Settings</source>
+        <translation>Налаштування DeepSeek</translation>
     </message>
     <message>
         <source>Agent roles define different system prompts for specific tasks.</source>
@@ -3024,12 +3099,8 @@ High: Максимальне зусилля міркування (підтрим
         <translation>Перемістити цей чат в окреме вікно</translation>
     </message>
     <message>
-        <source>Type your message here... (⌘+↩ to send)</source>
-        <translation>Введіть ваше повідомлення тут... (⌘+↩ для надсилання)</translation>
-    </message>
-    <message>
-        <source>Type your message here... (Ctrl+Enter to send)</source>
-        <translation>Введіть ваше повідомлення тут... (Ctrl+Enter для надсилання)</translation>
+        <source>Type your message here... (%1 to send)</source>
+        <translation>Введіть ваше повідомлення тут... (%1 для надсилання)</translation>
     </message>
     <message>
         <source>Cut</source>
@@ -3074,6 +3145,10 @@ The summary will be generated by LLM and saved as a new chat file.</source>
         <translation>Створити стислу копію цього чату?
 
 Резюме буде згенеровано LLM та збережено як новий файл чату.</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>Скопійовано</translation>
     </message>
 </context>
 <context>

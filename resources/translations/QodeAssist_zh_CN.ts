@@ -2,6 +2,21 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="zh_CN">
 <context>
+    <name>AttachedFilesPlace</name>
+    <message>
+        <source>Open in Qt Creator</source>
+        <translation>在 Qt Creator 中打开</translation>
+    </message>
+    <message>
+        <source>Open in External Editor</source>
+        <translation>在外部编辑器中打开</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>移除</translation>
+    </message>
+</context>
+<context>
     <name>BottomBar</name>
     <message>
         <source>Attach file to message</source>
@@ -312,6 +327,10 @@ Create .md files in .qodeassist/rules/common/ or .qodeassist/rules/chat/</source
 </context>
 <context>
     <name>MessageNavigator</name>
+    <message>
+        <source>#%1  ·  %2</source>
+        <translation>#%1  ·  %2</translation>
+    </message>
     <message>
         <source>Jump to message #%1</source>
         <translation>跳转到消息 #%1</translation>
@@ -1347,8 +1366,32 @@ developers write better code. If you find it useful, please</source>
 写出更好代码的开源项目。如果您觉得它有用,请</translation>
     </message>
     <message>
-        <source>QodeAssistUpdater - convenient tool for plugin installation and updates</source>
-        <translation>QodeAssistUpdater - 便捷的插件安装与更新工具</translation>
+        <source>Install via Extension Registry (recommended)</source>
+        <translation>通过 Extension Registry 安装（推荐）</translation>
+    </message>
+    <message>
+        <source>In Qt Creator open Extensions → Browser tab, enable &quot;Use External Repository&quot;, add one of the URLs below and click Apply to install QodeAssist. Updates are then installed from the same screen.</source>
+        <translation>在 Qt Creator 中打开 Extensions → Browser 选项卡，启用“Use External Repository”，添加下面的某个 URL，然后点击 Apply 安装 QodeAssist。之后可在同一界面安装更新。</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>复制</translation>
+    </message>
+    <message>
+        <source>Latest (for the newest Qt Creator, always up to date)</source>
+        <translation>最新（适用于最新的 Qt Creator，始终保持最新）</translation>
+    </message>
+    <message>
+        <source>Only for Qt Creator %1</source>
+        <translation>仅适用于 Qt Creator %1</translation>
+    </message>
+    <message>
+        <source>Alternative: QodeAssistUpdater</source>
+        <translation>备选方案：QodeAssistUpdater</translation>
+    </message>
+    <message>
+        <source>A standalone tool for installing and updating the plugin.</source>
+        <translation>用于安装和更新插件的独立工具。</translation>
     </message>
     <message>
         <source>Download QodeAssistUpdater</source>
@@ -1433,6 +1476,14 @@ developers write better code. If you find it useful, please</source>
 %2</translation>
     </message>
     <message>
+        <source>Request timeout (seconds):</source>
+        <translation>请求超时（秒）:</translation>
+    </message>
+    <message>
+        <source>Maximum time to wait for the model to send data before a request is aborted. Applies to all requests — chat, code completion, quick refactor and chat compression. The timer resets every time data is received, so this effectively limits the time-to-first-token and any stall between tokens. Increase it for slow or local models that need a long time to start responding. Set to 0 to disable the timeout.</source>
+        <translation>在中止请求之前，等待模型发送数据的最长时间。适用于所有请求——聊天、代码补全、快速重构和聊天压缩。每次收到数据时计时器都会重置，因此它实际上限制了首个 token 的等待时间以及 token 之间的任何停顿。对于需要较长时间才能开始响应的慢速或本地模型，请增大该值。设为 0 可禁用超时。</translation>
+    </message>
+    <message>
         <source>Quick Setup</source>
         <translation>快速设置</translation>
     </message>
@@ -1451,6 +1502,14 @@ developers write better code. If you find it useful, please</source>
     <message>
         <source>Show template information</source>
         <translation>显示模板信息</translation>
+    </message>
+    <message>
+        <source>Network</source>
+        <translation>网络</translation>
+    </message>
+    <message>
+        <source>Support the development of QodeAssist:</source>
+        <translation>支持 QodeAssist 的开发:</translation>
     </message>
     <message>
         <source>Template Information</source>
@@ -2627,6 +2686,14 @@ High:最大推理强度(仅 gpt-5-pro 支持)
         <translation>llama.cpp API 密钥:</translation>
     </message>
     <message>
+        <source>Qwen API Key:</source>
+        <translation>Qwen API 密钥:</translation>
+    </message>
+    <message>
+        <source>DeepSeek API Key:</source>
+        <translation>DeepSeek API 密钥:</translation>
+    </message>
+    <message>
         <source>OpenRouter Settings</source>
         <translation>OpenRouter 设置</translation>
     </message>
@@ -2653,6 +2720,14 @@ High:最大推理强度(仅 gpt-5-pro 支持)
     <message>
         <source>llama.cpp Settings</source>
         <translation>llama.cpp 设置</translation>
+    </message>
+    <message>
+        <source>Qwen (Alibaba) Settings</source>
+        <translation>Qwen (Alibaba) 设置</translation>
+    </message>
+    <message>
+        <source>DeepSeek Settings</source>
+        <translation>DeepSeek 设置</translation>
     </message>
     <message>
         <source>Agent roles define different system prompts for specific tasks.</source>
@@ -3022,12 +3097,8 @@ High:最大推理强度(仅 gpt-5-pro 支持)
         <translation>将此聊天移到单独窗口</translation>
     </message>
     <message>
-        <source>Type your message here... (⌘+↩ to send)</source>
-        <translation>在此输入您的消息... (⌘+↩ 发送)</translation>
-    </message>
-    <message>
-        <source>Type your message here... (Ctrl+Enter to send)</source>
-        <translation>在此输入您的消息... (Ctrl+Enter 发送)</translation>
+        <source>Type your message here... (%1 to send)</source>
+        <translation>在此输入您的消息... (%1 发送)</translation>
     </message>
     <message>
         <source>Cut</source>
@@ -3072,6 +3143,10 @@ The summary will be generated by LLM and saved as a new chat file.</source>
         <translation>创建此聊天的摘要副本?
 
 摘要将由 LLM 生成并保存为新的聊天文件。</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>已复制</translation>
     </message>
 </context>
 <context>

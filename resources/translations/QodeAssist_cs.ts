@@ -2,6 +2,21 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="cs_CZ">
 <context>
+    <name>AttachedFilesPlace</name>
+    <message>
+        <source>Open in Qt Creator</source>
+        <translation>Otevřít v Qt Creatoru</translation>
+    </message>
+    <message>
+        <source>Open in External Editor</source>
+        <translation>Otevřít v externím editoru</translation>
+    </message>
+    <message>
+        <source>Remove</source>
+        <translation>Odebrat</translation>
+    </message>
+</context>
+<context>
     <name>BottomBar</name>
     <message>
         <source>Attach file to message</source>
@@ -312,6 +327,10 @@ Vytvořte soubory .md v .qodeassist/rules/common/ nebo .qodeassist/rules/chat/</
 </context>
 <context>
     <name>MessageNavigator</name>
+    <message>
+        <source>#%1  ·  %2</source>
+        <translation>#%1  ·  %2</translation>
+    </message>
     <message>
         <source>Jump to message #%1</source>
         <translation>Přejít na zprávu #%1</translation>
@@ -1349,8 +1368,32 @@ developers write better code. If you find it useful, please</source>
 vývojářům psát lepší kód. Pokud jej považujete za užitečný, prosíme</translation>
     </message>
     <message>
-        <source>QodeAssistUpdater - convenient tool for plugin installation and updates</source>
-        <translation>QodeAssistUpdater - pohodlný nástroj pro instalaci a aktualizaci pluginu</translation>
+        <source>Install via Extension Registry (recommended)</source>
+        <translation>Instalace přes Extension Registry (doporučeno)</translation>
+    </message>
+    <message>
+        <source>In Qt Creator open Extensions → Browser tab, enable &quot;Use External Repository&quot;, add one of the URLs below and click Apply to install QodeAssist. Updates are then installed from the same screen.</source>
+        <translation>V Qt Creatoru otevřete Extensions → kartu Browser, zapněte „Use External Repository“, přidejte jednu z níže uvedených URL a klikněte na Apply pro instalaci QodeAssistu. Aktualizace se pak instalují ze stejné obrazovky.</translation>
+    </message>
+    <message>
+        <source>Copy</source>
+        <translation>Kopírovat</translation>
+    </message>
+    <message>
+        <source>Latest (for the newest Qt Creator, always up to date)</source>
+        <translation>Nejnovější (pro nejnovější Qt Creator, vždy aktuální)</translation>
+    </message>
+    <message>
+        <source>Only for Qt Creator %1</source>
+        <translation>Pouze pro Qt Creator %1</translation>
+    </message>
+    <message>
+        <source>Alternative: QodeAssistUpdater</source>
+        <translation>Alternativa: QodeAssistUpdater</translation>
+    </message>
+    <message>
+        <source>A standalone tool for installing and updating the plugin.</source>
+        <translation>Samostatný nástroj pro instalaci a aktualizaci pluginu.</translation>
     </message>
     <message>
         <source>Download QodeAssistUpdater</source>
@@ -1435,6 +1478,14 @@ vývojářům psát lepší kód. Pokud jej považujete za užitečný, prosíme
 %2</translation>
     </message>
     <message>
+        <source>Request timeout (seconds):</source>
+        <translation>Časový limit požadavku (sekundy):</translation>
+    </message>
+    <message>
+        <source>Maximum time to wait for the model to send data before a request is aborted. Applies to all requests — chat, code completion, quick refactor and chat compression. The timer resets every time data is received, so this effectively limits the time-to-first-token and any stall between tokens. Increase it for slow or local models that need a long time to start responding. Set to 0 to disable the timeout.</source>
+        <translation>Maximální doba čekání na data od modelu, po jejímž uplynutí se požadavek přeruší. Platí pro všechny požadavky — chat, doplňování kódu, rychlý refaktoring a kompresi chatu. Časovač se resetuje při každém přijetí dat, takže fakticky omezuje dobu do prvního tokenu i jakoukoli prodlevu mezi tokeny. Zvyšte ji pro pomalé nebo lokální modely, které potřebují dlouho, než začnou odpovídat. Nastavením na 0 časový limit vypnete.</translation>
+    </message>
+    <message>
         <source>Quick Setup</source>
         <translation>Rychlé nastavení</translation>
     </message>
@@ -1453,6 +1504,14 @@ vývojářům psát lepší kód. Pokud jej považujete za užitečný, prosíme
     <message>
         <source>Show template information</source>
         <translation>Zobrazit informace o šabloně</translation>
+    </message>
+    <message>
+        <source>Network</source>
+        <translation>Síť</translation>
+    </message>
+    <message>
+        <source>Support the development of QodeAssist:</source>
+        <translation>Podpořte vývoj QodeAssistu:</translation>
     </message>
     <message>
         <source>Template Information</source>
@@ -2629,6 +2688,14 @@ Poznámka: Snížení úsilí = rychlejší odpovědi + méně tokenů</translat
         <translation>llama.cpp API klíč:</translation>
     </message>
     <message>
+        <source>Qwen API Key:</source>
+        <translation>Qwen API klíč:</translation>
+    </message>
+    <message>
+        <source>DeepSeek API Key:</source>
+        <translation>DeepSeek API klíč:</translation>
+    </message>
+    <message>
         <source>OpenRouter Settings</source>
         <translation>Nastavení OpenRouter</translation>
     </message>
@@ -2655,6 +2722,14 @@ Poznámka: Snížení úsilí = rychlejší odpovědi + méně tokenů</translat
     <message>
         <source>llama.cpp Settings</source>
         <translation>Nastavení llama.cpp</translation>
+    </message>
+    <message>
+        <source>Qwen (Alibaba) Settings</source>
+        <translation>Nastavení Qwen (Alibaba)</translation>
+    </message>
+    <message>
+        <source>DeepSeek Settings</source>
+        <translation>Nastavení DeepSeek</translation>
     </message>
     <message>
         <source>Agent roles define different system prompts for specific tasks.</source>
@@ -3024,12 +3099,8 @@ Poznámka: Snížení úsilí = rychlejší odpovědi + méně tokenů</translat
         <translation>Přesunout tento chat do samostatného okna</translation>
     </message>
     <message>
-        <source>Type your message here... (⌘+↩ to send)</source>
-        <translation>Sem napište svou zprávu... (⌘+↩ pro odeslání)</translation>
-    </message>
-    <message>
-        <source>Type your message here... (Ctrl+Enter to send)</source>
-        <translation>Sem napište svou zprávu... (Ctrl+Enter pro odeslání)</translation>
+        <source>Type your message here... (%1 to send)</source>
+        <translation>Sem napište svou zprávu... (%1 pro odeslání)</translation>
     </message>
     <message>
         <source>Cut</source>
@@ -3074,6 +3145,10 @@ The summary will be generated by LLM and saved as a new chat file.</source>
         <translation>Vytvořit shrnutou kopii tohoto chatu?
 
 Shrnutí bude vygenerováno pomocí LLM a uloženo jako nový soubor chatu.</translation>
+    </message>
+    <message>
+        <source>Copied</source>
+        <translation>Zkopírováno</translation>
     </message>
 </context>
 <context>
