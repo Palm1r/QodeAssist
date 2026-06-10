@@ -70,7 +70,7 @@ public:
     LLMQore::RequestID sendText(const QString &text);
 
     LLMQore::RequestID sendCompletion(Templates::ContextData ctx);
-    
+
     void cancel();
 
 signals:
@@ -87,6 +87,7 @@ private:
     LLMQore::RequestID dispatch(
         std::optional<bool> toolsOverride = std::nullopt,
         std::optional<bool> thinkingOverride = std::nullopt);
+    LLMQore::RequestID dispatchContext(Templates::ContextData ctx, bool tools, bool thinking);
     Templates::ContextData toLegacyContext() const;
 
     Agent *m_agent = nullptr;                              // child if non-null

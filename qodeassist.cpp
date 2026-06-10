@@ -225,9 +225,8 @@ public:
         m_agentsOptionsPage = Settings::createAgentsSettingsPage(
             m_agentFactory, m_agentsPageNavigator);
 
-        m_agentPipelinesPageNavigator = new Settings::AgentPipelinesPageNavigator(this);
-        m_agentPipelinesOptionsPage = Settings::createAgentPipelinesSettingsPage(
-            m_agentFactory, m_agentPipelinesPageNavigator, m_agentsPageNavigator);
+        Settings::generalSettings().setAgentPipelinesContext(
+            m_agentFactory, m_agentsPageNavigator);
 
         m_mcpServerManager = new Mcp::McpServerManager(this);
         m_mcpServerManager->init();
@@ -347,7 +346,6 @@ public:
         m_qodeAssistClient = new QodeAssistClient(new LLMClientInterface(
             Settings::generalSettings(),
             Settings::codeCompletionSettings(),
-            *m_sessionManager,
             *m_agentFactory,
             m_documentReader,
             m_performanceLogger));
@@ -533,8 +531,6 @@ private:
     QPointer<SessionManager> m_sessionManager;
     QPointer<Settings::AgentsPageNavigator> m_agentsPageNavigator;
     std::unique_ptr<Core::IOptionsPage> m_agentsOptionsPage;
-    QPointer<Settings::AgentPipelinesPageNavigator> m_agentPipelinesPageNavigator;
-    std::unique_ptr<Core::IOptionsPage> m_agentPipelinesOptionsPage;
 };
 
 } // namespace QodeAssist::Internal

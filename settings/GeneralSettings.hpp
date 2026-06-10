@@ -4,18 +4,11 @@
 
 #pragma once
 
-#include <memory>
-
-#include <QObject>
-#include <QString>
+#include <QPointer>
 
 #include <utils/aspects.h>
 
 #include "ButtonAspect.hpp"
-
-namespace Core {
-class IOptionsPage;
-}
 
 namespace QodeAssist {
 class AgentFactory;
@@ -23,10 +16,15 @@ class AgentFactory;
 
 namespace QodeAssist::Settings {
 
+class AgentsPageNavigator;
+
 class GeneralSettings : public Utils::AspectContainer
 {
 public:
     GeneralSettings();
+
+    void setAgentPipelinesContext(
+        AgentFactory *agentFactory, AgentsPageNavigator *agentsNavigator);
 
     Utils::BoolAspect enableQodeAssist{this};
     Utils::BoolAspect enableLogging{this};
@@ -40,29 +38,14 @@ public:
 private:
     void setupConnections();
     void resetPageToDefaults();
+
+    QPointer<AgentFactory> m_agentFactory;
+    QPointer<AgentsPageNavigator> m_agentsNavigator;
 };
 
 GeneralSettings &generalSettings();
 
 void showSettings(const Utils::Id page);
 void showSettings(const Utils::Id page, Utils::Id item);
-
-class AgentsPageNavigator;
-
-class AgentPipelinesPageNavigator : public QObject
-{
-    Q_OBJECT
-    Q_DISABLE_COPY_MOVE(AgentPipelinesPageNavigator)
-public:
-    explicit AgentPipelinesPageNavigator(QObject *parent = nullptr);
-
-signals:
-    void editAgentRequested(const QString &agentName);
-};
-
-std::unique_ptr<Core::IOptionsPage> createAgentPipelinesSettingsPage(
-    AgentFactory *agentFactory,
-    AgentPipelinesPageNavigator *navigator,
-    AgentsPageNavigator *agentsNavigator);
 
 } // namespace QodeAssist::Settings

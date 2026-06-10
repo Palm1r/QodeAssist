@@ -22,6 +22,7 @@
 #include <context/Utils.hpp>
 #include <logger/Logger.hpp>
 #include <sources/common/ResponseCleaner.hpp>
+#include <settings/GeneralSettings.hpp>
 #include <settings/QuickRefactorSettings.hpp>
 #include <settings/ToolsSettings.hpp>
 
@@ -177,7 +178,7 @@ void QuickRefactorHandler::prepareAndSendRequest(
     session->systemPrompt()->setLayer(
         QStringLiteral("refactor"), buildSystemPrompt(editor, range));
 
-    provider->client()->setTransferTimeout(
+    client->setTransferTimeout(
         static_cast<int>(Settings::generalSettings().requestTimeout() * 1000));
 
     m_isRefactoringInProgress = true;

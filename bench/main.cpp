@@ -33,7 +33,6 @@
 #include <ProviderSecretsStore.hpp>
 #include <ResponseEvent.hpp>
 #include <Session.hpp>
-#include <SessionManager.hpp>
 
 using namespace QodeAssist;
 
@@ -259,7 +258,6 @@ int main(int argc, char *argv[])
     auto *instances = new Providers::ProviderInstanceFactory(&app);
     auto *secrets = new Providers::ProviderSecretsStore(&app);
     auto *agentFactory = new AgentFactory(instances, secrets, &app);
-    auto *sessions = new SessionManager(agentFactory, &app);
 
     if (parser.isSet(listOpt)) {
         const QStringList names = agentFactory->configNames();
@@ -271,21 +269,26 @@ int main(int argc, char *argv[])
     }
 
     QString error;
-    Session *session = nullptr;
+    Agent *agent = nullptr;
     if (parser.isSet(fileOpt)) {
-        Agent *agent = agentFactory->createFromFile(parser.value(fileOpt), &app, &error);
-        if (agent)
-            session = new Session(agent, &app);
+        agent = agentFactory->createFromFile(parser.value(fileOpt), &app, &error);
     } else if (parser.isSet(agentOpt)) {
-        session = sessions->createSession(parser.value(agentOpt), &error);
+        agent = agentFactory->create(parser.value(agentOpt), &app, &error);
     } else {
         err() << "Specify an agent with --agent <name> or --file <path>, or use --list.\n";
         return 2;
     }
 
-    if (!session || !session->isValid()) {
-        err() << "Failed to create session: "
-              << (session ? session->invalidReason() : error) << "\n";
+    if (!agent) {
+        err() << "Failed to create agent: " << error << "\n";
+        return 1;
+    }
+
+    const bool fimMode = parser.isSet(fimOpt);
+
+    Session *session = new Session(agent, &app);
+    if (!session->isValid()) {
+        err() << "Failed to create session: " << session->invalidReason() << "\n";
         return 1;
     }
 
@@ -303,14 +306,14 @@ int main(int argc, char *argv[])
 
         QString key = parser.value(apiKeyOpt);
         if (key.isEmpty()) {
-            const AgentConfig &cfg = session->agent()->config();
+            const AgentConfig &cfg = agent->config();
             const Providers::ProviderInstance *inst
                 = instances->instanceByName(cfg.providerInstance);
             if (inst)
                 key = resolveApiKey(envFile, inst->clientApi, inst->apiKeyRef);
         }
-        if (!key.isEmpty() && session->agent()->provider())
-            session->agent()->provider()->setApiKey(key);
+        if (!key.isEmpty() && agent->provider())
+            agent->provider()->setApiKey(key);
     }
 
     {
@@ -340,23 +343,26 @@ int main(int argc, char *argv[])
     const bool showThinking = !parser.isSet(noThinkingOpt);
     int exitCode = 0;
 
-    QObject::connect(session, &Session::event, &app, [showThinking](const ResponseEvent &ev) {
-        printEvent(ev, showThinking);
-    });
     QObject::connect(
-        session, &Session::finished, &app, [&](const LLMQore::RequestID &, const QString &reason) {
+        session, &Session::event, &app, [showThinking](const ResponseEvent &ev) {
+            printEvent(ev, showThinking);
+        });
+    QObject::connect(
+        session, &Session::finished, &app,
+        [&](const LLMQore::RequestID &, const QString &reason) {
             err() << "\n[done] stopReason=" << (reason.isEmpty() ? "<none>" : reason) << "\n";
             QCoreApplication::quit();
         });
     QObject::connect(
-        session, &Session::failed, &app, [&](const LLMQore::RequestID &, const QString &msg) {
+        session, &Session::failed, &app,
+        [&](const LLMQore::RequestID &, const QString &msg) {
             err() << "\n[failed] " << msg << "\n";
             exitCode = 1;
             QCoreApplication::quit();
         });
 
     auto dispatch = [&] {
-        if (parser.isSet(fimOpt)) {
+        if (fimMode) {
             Templates::ContextData ctx;
             ctx.prefix = prompt;
             if (parser.isSet(suffixOpt))

@@ -150,6 +150,15 @@ LLMQore::RequestID Session::sendText(const QString &text)
     return send(std::move(blocks));
 }
 
+LLMQore::RequestID Session::sendCompletion(Templates::ContextData ctx)
+{
+    if (!isValid())
+        return {};
+    if (isInFlight())
+        cancel();
+    return dispatchContext(std::move(ctx), /*tools=*/false, /*thinking=*/false);
+}
+
 LLMQore::RequestID Session::send(
     std::vector<std::unique_ptr<LLMQore::ContentBlock>> userBlocks,
     std::optional<bool> toolsOverride,
@@ -185,49 +194,9 @@ void Session::cancel()
     emit failed(id, QStringLiteral("Cancelled by user"));
 }
 
-LLMQore::RequestID Session::sendCompletion(Templates::ContextData ctx)
-{
-    if (!isValid())
-        return {};
-    if (isInFlight())
-        cancel();
-
-    if (m_history)
-        m_history->clear();
-
-    auto *provider = m_agent->provider();
-    auto *tmpl = m_agent->promptTemplate();
-    const auto &cfg = m_agent->config();
-
-    const QString rolePrompt = m_systemPrompt ? m_systemPrompt->compose() : QString();
-    if (!rolePrompt.isEmpty()) {
-        ctx.systemPrompt = (ctx.systemPrompt && !ctx.systemPrompt->isEmpty())
-                               ? rolePrompt + QStringLiteral("\n\n") + *ctx.systemPrompt
-                               : rolePrompt;
-    }
-
-    QJsonObject payload{{QStringLiteral("model"), cfg.model}};
-    if (!provider->prepareRequest(payload, tmpl, ctx, /*tools=*/false, /*thinking=*/false))
-        return {};
-
-    QString endpoint = cfg.endpoint;
-    endpoint.replace(QStringLiteral("${MODEL}"), cfg.model);
-    const auto id = provider->sendRequest(QUrl(provider->url()), payload, endpoint);
-    if (id.isEmpty())
-        return {};
-
-    m_inFlight = id;
-    if (m_router)
-        m_router->beginRequest(id);
-    emit started(id);
-    return id;
-}
-
 LLMQore::RequestID Session::dispatch(
     std::optional<bool> toolsOverride, std::optional<bool> thinkingOverride)
 {
-    auto *provider = m_agent->provider();
-    auto *tmpl = m_agent->promptTemplate();
     const auto &cfg = m_agent->config();
 
     const QString renderedContext = renderAgentContext();
@@ -236,11 +205,19 @@ LLMQore::RequestID Session::dispatch(
     else
         m_systemPrompt->setLayer(QStringLiteral("agent.system"), renderedContext);
 
-    Templates::ContextData ctx = toLegacyContext();
-    QJsonObject payload{{QStringLiteral("model"), cfg.model}};
-
     const bool tools = toolsOverride.value_or(cfg.enableTools);
     const bool thinking = thinkingOverride.value_or(cfg.enableThinking);
+    return dispatchContext(toLegacyContext(), tools, thinking);
+}
+
+LLMQore::RequestID Session::dispatchContext(
+    Templates::ContextData ctx, bool tools, bool thinking)
+{
+    auto *provider = m_agent->provider();
+    auto *tmpl = m_agent->promptTemplate();
+    const auto &cfg = m_agent->config();
+
+    QJsonObject payload{{QStringLiteral("model"), cfg.model}};
     if (!provider->prepareRequest(payload, tmpl, ctx, tools, thinking))
         return {};
 

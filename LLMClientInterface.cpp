@@ -13,12 +13,12 @@
 #include <projectexplorer/projectmanager.h>
 #include <utils/filepath.h>
 
+#include <Agent.hpp>
 #include <AgentConfig.hpp>
 #include <AgentFactory.hpp>
 #include <AgentRouter.hpp>
-#include <ResponseEvent.hpp>
+#include <ConversationHistory.hpp>
 #include <Session.hpp>
-#include <SessionManager.hpp>
 #include "sources/common/ContextData.hpp"
 
 #include "CodeHandler.hpp"
@@ -34,13 +34,11 @@ namespace QodeAssist {
 LLMClientInterface::LLMClientInterface(
     const Settings::GeneralSettings &generalSettings,
     const Settings::CodeCompletionSettings &completeSettings,
-    SessionManager &sessionManager,
     AgentFactory &agentFactory,
     Context::IDocumentReader &documentReader,
     IRequestPerformanceLogger &performanceLogger)
     : m_generalSettings(generalSettings)
     , m_completeSettings(completeSettings)
-    , m_sessionManager(sessionManager)
     , m_agentFactory(agentFactory)
     , m_documentReader(documentReader)
     , m_performanceLogger(performanceLogger)
@@ -63,32 +61,24 @@ void LLMClientInterface::startImpl()
     emit started();
 }
 
-void LLMClientInterface::onSessionEvent(const QString &requestId, const ResponseEvent &event)
+void LLMClientInterface::onCompletionFinished(const QString &requestId)
 {
     auto it = m_activeRequests.find(requestId);
     if (it == m_activeRequests.end())
         return;
 
-    if (event.kind() == ResponseEvent::Kind::TextDelta) {
-        if (const auto *delta = event.as<ResponseEvents::TextDelta>())
-            it.value().accumulated += delta->text;
+    QString fullText;
+    if (Session *session = it.value().session) {
+        if (auto *history = session->history(); history && !history->isEmpty())
+            fullText = history->messages().back().text();
     }
-}
-
-void LLMClientInterface::onSessionFinished(const QString &requestId)
-{
-    auto it = m_activeRequests.find(requestId);
-    if (it == m_activeRequests.end())
-        return;
-
-    const QString fullText = it.value().accumulated;
     const QJsonObject originalRequest = it.value().originalRequest;
 
     sendCompletionToClient(fullText, originalRequest, true);
     finishRequest(requestId);
 }
 
-void LLMClientInterface::onSessionFailed(const QString &requestId, const QString &error)
+void LLMClientInterface::onCompletionFailed(const QString &requestId, const QString &error)
 {
     auto it = m_activeRequests.find(requestId);
     if (it == m_activeRequests.end())
@@ -120,7 +110,7 @@ void LLMClientInterface::finishRequest(const QString &requestId)
     m_performanceLogger.endTimeMeasurement(requestId);
 
     if (session)
-        m_sessionManager.removeSession(session);
+        session->deleteLater();
 }
 
 void LLMClientInterface::sendData(const QByteArray &data)
@@ -158,8 +148,10 @@ void LLMClientInterface::handleCancelRequest()
 
     for (auto it = requests.begin(); it != requests.end(); ++it) {
         m_performanceLogger.endTimeMeasurement(it.key());
-        if (it.value().session)
-            m_sessionManager.removeSession(it.value().session);
+        if (Session *session = it.value().session) {
+            session->cancel();
+            session->deleteLater();
+        }
     }
 
     LOG_MESSAGE("All requests cancelled and state cleared");
@@ -252,11 +244,20 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         return;
     }
 
-    QString sessionError;
-    Session *session = m_sessionManager.createSession(agentName, &sessionError);
-    if (!session) {
-        LOG_MESSAGE(sessionError);
-        sendErrorResponse(request, sessionError);
+    QString agentError;
+    Agent *agent = m_agentFactory.create(agentName, /*parent=*/nullptr, &agentError);
+    if (!agent) {
+        LOG_MESSAGE(agentError);
+        sendErrorResponse(request, agentError);
+        return;
+    }
+
+    auto *session = new Session(agent, this);
+    if (!session->isValid()) {
+        const QString error = session->invalidReason();
+        delete session;
+        LOG_MESSAGE(error);
+        sendErrorResponse(request, error);
         return;
     }
 
@@ -272,14 +273,11 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     if (!editorContext.isEmpty())
         context.systemPrompt = editorContext;
 
-    connect(session, &Session::event, this, [this, session](const ResponseEvent &event) {
-        onSessionEvent(requestIdForSession(session), event);
-    });
     connect(session, &Session::finished, this, [this, session](const LLMQore::RequestID &, const QString &) {
-        onSessionFinished(requestIdForSession(session));
+        onCompletionFinished(requestIdForSession(session));
     });
     connect(session, &Session::failed, this, [this, session](const LLMQore::RequestID &, const QString &error) {
-        onSessionFailed(requestIdForSession(session), error);
+        onCompletionFailed(requestIdForSession(session), error);
     });
 
     if (auto *client = session->client())
@@ -288,14 +286,14 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
 
     const LLMQore::RequestID requestId = session->sendCompletion(std::move(context));
     if (requestId.isEmpty()) {
-        m_sessionManager.removeSession(session);
+        session->deleteLater();
         QString error = QString("Failed to start completion request for agent: %1").arg(agentName);
         LOG_MESSAGE(error);
         sendErrorResponse(request, error);
         return;
     }
 
-    m_activeRequests[requestId] = {request, session, QString()};
+    m_activeRequests[requestId] = {request, session};
     m_performanceLogger.startTimeMeasurement(requestId);
 }
 

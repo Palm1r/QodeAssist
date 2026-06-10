@@ -22,10 +22,8 @@ class QNetworkAccessManager;
 
 namespace QodeAssist {
 
-class SessionManager;
 class AgentFactory;
 class Session;
-class ResponseEvent;
 
 namespace Templates {
 struct ContextData;
@@ -39,7 +37,6 @@ public:
     LLMClientInterface(
         const Settings::GeneralSettings &generalSettings,
         const Settings::CodeCompletionSettings &completeSettings,
-        SessionManager &sessionManager,
         AgentFactory &agentFactory,
         Context::IDocumentReader &documentReader,
         IRequestPerformanceLogger &performanceLogger);
@@ -69,9 +66,8 @@ private:
     void handleCancelRequest();
     void sendErrorResponse(const QJsonObject &request, const QString &errorMessage);
 
-    void onSessionEvent(const QString &requestId, const ResponseEvent &event);
-    void onSessionFinished(const QString &requestId);
-    void onSessionFailed(const QString &requestId, const QString &error);
+    void onCompletionFinished(const QString &requestId);
+    void onCompletionFailed(const QString &requestId, const QString &error);
     void finishRequest(const QString &requestId);
     QString requestIdForSession(Session *session) const;
 
@@ -79,7 +75,6 @@ private:
     {
         QJsonObject originalRequest;
         QPointer<Session> session;
-        QString accumulated;
     };
 
     Templates::ContextData prepareContext(
@@ -89,7 +84,6 @@ private:
 
     const Settings::CodeCompletionSettings &m_completeSettings;
     const Settings::GeneralSettings &m_generalSettings;
-    SessionManager &m_sessionManager;
     AgentFactory &m_agentFactory;
     Context::IDocumentReader &m_documentReader;
     IRequestPerformanceLogger &m_performanceLogger;
