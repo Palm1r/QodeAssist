@@ -10,15 +10,13 @@
 #include <coreplugin/editormanager/editormanager.h>
 #include <texteditor/texteditor.h>
 
-#include "ChatModel.hpp"
 #include "Logger.hpp"
 #include "context/ChangesManager.h"
 
 namespace QodeAssist::Chat {
 
-FileEditController::FileEditController(ChatModel *chatModel, QObject *parent)
+FileEditController::FileEditController(QObject *parent)
     : QObject(parent)
-    , m_chatModel(chatModel)
 {
     auto &changes = Context::ChangesManager::instance();
     connect(&changes, &Context::ChangesManager::fileEditAdded, this, [this](const QString &) {
@@ -80,7 +78,6 @@ void FileEditController::applyFileEdit(const QString &editId)
     LOG_MESSAGE(QString("Applying file edit: %1").arg(editId));
     if (Context::ChangesManager::instance().applyFileEdit(editId)) {
         emit infoMessage(QString("File edit applied successfully"));
-        updateFileEditStatus(editId, "applied");
     } else {
         auto edit = Context::ChangesManager::instance().getFileEdit(editId);
         emit errorOccurred(
@@ -95,7 +92,6 @@ void FileEditController::rejectFileEdit(const QString &editId)
     LOG_MESSAGE(QString("Rejecting file edit: %1").arg(editId));
     if (Context::ChangesManager::instance().rejectFileEdit(editId)) {
         emit infoMessage(QString("File edit rejected"));
-        updateFileEditStatus(editId, "rejected");
     } else {
         auto edit = Context::ChangesManager::instance().getFileEdit(editId);
         emit errorOccurred(
@@ -110,7 +106,6 @@ void FileEditController::undoFileEdit(const QString &editId)
     LOG_MESSAGE(QString("Undoing file edit: %1").arg(editId));
     if (Context::ChangesManager::instance().undoFileEdit(editId)) {
         emit infoMessage(QString("File edit undone successfully"));
-        updateFileEditStatus(editId, "rejected");
     } else {
         auto edit = Context::ChangesManager::instance().getFileEdit(editId);
         emit errorOccurred(
@@ -163,44 +158,6 @@ void FileEditController::openFileEditInEditor(const QString &editId)
     LOG_MESSAGE(QString("Opened file in editor: %1").arg(edit.filePath));
 }
 
-void FileEditController::updateFileEditStatus(const QString &editId, const QString &status)
-{
-    auto messages = m_chatModel->getChatHistory();
-    for (int i = 0; i < messages.size(); ++i) {
-        if (messages[i].role == Chat::ChatModel::FileEdit && messages[i].id == editId) {
-            QString content = messages[i].content;
-
-            const QString marker = "QODEASSIST_FILE_EDIT:";
-            int markerPos = content.indexOf(marker);
-
-            QString jsonStr = content;
-            if (markerPos >= 0) {
-                jsonStr = content.mid(markerPos + marker.length());
-            }
-
-            QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8());
-            if (doc.isObject()) {
-                QJsonObject obj = doc.object();
-                obj["status"] = status;
-
-                auto edit = Context::ChangesManager::instance().getFileEdit(editId);
-                if (!edit.statusMessage.isEmpty()) {
-                    obj["status_message"] = edit.statusMessage;
-                }
-
-                QString updatedContent = marker
-                                         + QString::fromUtf8(
-                                             QJsonDocument(obj).toJson(QJsonDocument::Compact));
-                m_chatModel->updateMessageContent(editId, updatedContent);
-                LOG_MESSAGE(QString("Updated file edit status to: %1").arg(status));
-            }
-            break;
-        }
-    }
-
-    updateStats();
-}
-
 void FileEditController::applyAllForCurrentMessage()
 {
     if (m_currentRequestId.isEmpty()) {
@@ -221,13 +178,6 @@ void FileEditController::applyAllForCurrentMessage()
             errorMsg.isEmpty()
                 ? QString("Failed to apply some file edits")
                 : QString("Failed to apply some file edits:\n%1").arg(errorMsg));
-    }
-
-    auto edits = Context::ChangesManager::instance().getEditsForRequest(m_currentRequestId);
-    for (const auto &edit : edits) {
-        if (edit.status == Context::ChangesManager::Applied) {
-            updateFileEditStatus(edit.editId, "applied");
-        }
     }
 
     updateStats();
@@ -253,13 +203,6 @@ void FileEditController::undoAllForCurrentMessage()
             errorMsg.isEmpty()
                 ? QString("Failed to undo some file edits")
                 : QString("Failed to undo some file edits:\n%1").arg(errorMsg));
-    }
-
-    auto edits = Context::ChangesManager::instance().getEditsForRequest(m_currentRequestId);
-    for (const auto &edit : edits) {
-        if (edit.status == Context::ChangesManager::Rejected) {
-            updateFileEditStatus(edit.editId, "rejected");
-        }
     }
 
     updateStats();

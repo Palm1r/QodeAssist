@@ -16,15 +16,20 @@
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectmanager.h>
 
-#include "ChatModel.hpp"
+#include <ConversationHistory.hpp>
+#include <Message.hpp>
+#include <PluginBlocks.hpp>
+
+#include <LLMQore/ContentBlocks.hpp>
+
 #include "Logger.hpp"
 #include "ProjectSettings.hpp"
 
 namespace QodeAssist::Chat {
 
-ChatHistoryStore::ChatHistoryStore(ChatModel *chatModel, QObject *parent)
+ChatHistoryStore::ChatHistoryStore(ConversationHistory *history, QObject *parent)
     : QObject(parent)
-    , m_chatModel(chatModel)
+    , m_history(history)
 {}
 
 QString ChatHistoryStore::historyDir() const
@@ -52,17 +57,23 @@ QString ChatHistoryStore::suggestedFileName() const
 {
     QString shortMessage;
 
-    if (m_chatModel->rowCount() > 0) {
-        QString firstMessage
-            = m_chatModel->data(m_chatModel->index(0), ChatModel::Content).toString();
-        shortMessage = firstMessage.split('\n').first().simplified().left(30);
+    if (m_history) {
+        for (const auto &message : m_history->messages()) {
+            if (message.role() != Message::Role::User)
+                continue;
 
-        if (shortMessage.isEmpty()) {
-            QVariantList images
-                = m_chatModel->data(m_chatModel->index(0), ChatModel::Images).toList();
-            if (!images.isEmpty()) {
-                shortMessage = "image_chat";
+            const QString text = message.text();
+            if (!text.trimmed().isEmpty()) {
+                shortMessage = text.split('\n').first().simplified().left(30);
+            } else {
+                for (const auto &block : message.blocks()) {
+                    if (dynamic_cast<StoredImageContent *>(block.get())) {
+                        shortMessage = "image_chat";
+                        break;
+                    }
+                }
             }
+            break;
         }
     }
 
@@ -107,12 +118,12 @@ QString ChatHistoryStore::autosaveFilePath(
 
 SerializationResult ChatHistoryStore::save(const QString &filePath) const
 {
-    return ChatSerializer::saveToFile(m_chatModel, filePath);
+    return ChatSerializer::saveToFile(m_history, filePath);
 }
 
 SerializationResult ChatHistoryStore::load(const QString &filePath) const
 {
-    return ChatSerializer::loadFromFile(m_chatModel, filePath);
+    return ChatSerializer::loadFromFile(m_history, filePath);
 }
 
 void ChatHistoryStore::showSaveDialog()

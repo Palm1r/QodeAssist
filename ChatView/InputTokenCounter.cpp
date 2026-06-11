@@ -9,17 +9,19 @@
 #include <utils/aspects.h>
 
 #include "ChatAssistantSettings.hpp"
-#include "ChatModel.hpp"
 #include "Logger.hpp"
 #include "context/ContextManager.hpp"
 #include "context/TokenUtils.hpp"
 
+#include <ConversationHistory.hpp>
+#include <Message.hpp>
+
 namespace QodeAssist::Chat {
 
 InputTokenCounter::InputTokenCounter(
-    ChatModel *chatModel, Context::ContextManager *contextManager, QObject *parent)
+    ConversationHistory *history, Context::ContextManager *contextManager, QObject *parent)
     : QObject(parent)
-    , m_chatModel(chatModel)
+    , m_history(history)
     , m_contextManager(contextManager)
 {
     auto &settings = Settings::chatAssistantSettings();
@@ -100,10 +102,11 @@ void InputTokenCounter::recompute()
         }
     }
 
-    const auto &history = m_chatModel->getChatHistory();
-    for (const auto &message : history) {
-        inputTokens += Context::TokenUtils::estimateTokens(message.content);
-        inputTokens += 4; // + role
+    if (m_history) {
+        for (const auto &message : m_history->messages()) {
+            inputTokens += Context::TokenUtils::estimateTokens(message.text());
+            inputTokens += 4; // + role
+        }
     }
 
     m_inputTokens = static_cast<int>(inputTokens * m_calibrationFactor);

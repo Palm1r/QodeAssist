@@ -325,9 +325,10 @@ Templates::ContextData Session::buildLegacyContext(
             } else if (auto *sa = dynamic_cast<StoredAttachmentContent *>(block)) {
                 if (!loader)
                     continue;
-                const QString text = loader(sa->storedPath());
-                if (text.isEmpty())
+                const QString stored = loader(sa->storedPath());
+                if (stored.isEmpty())
                     continue;
+                const QString text = QString::fromUtf8(QByteArray::fromBase64(stored.toUtf8()));
                 ContentBlockEntry e;
                 e.kind = ContentBlockEntry::Kind::Text;
                 e.text = QStringLiteral("File: %1\n```\n%2\n```")

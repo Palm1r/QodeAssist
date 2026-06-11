@@ -5,6 +5,7 @@
 #include "ClientInterface.hpp"
 
 #include <memory>
+#include <vector>
 
 #include <LLMQore/BaseClient.hpp>
 #include <LLMQore/ContentBlocks.hpp>
@@ -20,6 +21,7 @@
 #include <texteditor/textdocument.h>
 #include <texteditor/texteditor.h>
 
+#include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
@@ -29,11 +31,10 @@
 #include <QUuid>
 
 #include <ConversationHistory.hpp>
-#include <Message.hpp>
 #include <ContextRenderer.hpp>
+#include <Message.hpp>
+#include <PluginBlocks.hpp>
 #include <Session.hpp>
-
-#include <QDir>
 #include <SessionManager.hpp>
 #include <SystemPromptBuilder.hpp>
 
@@ -51,6 +52,15 @@
 #include <sources/skills/SkillsManager.hpp>
 
 namespace QodeAssist::Chat {
+
+namespace {
+struct StoredImage
+{
+    QString fileName;
+    QString storedPath;
+    QString mediaType;
+};
+} // namespace
 
 ClientInterface::ClientInterface(ChatModel *chatModel, QObject *parent)
     : QObject(parent)
@@ -71,6 +81,11 @@ void ClientInterface::setSkillsManager(Skills::SkillsManager *skillsManager)
 void ClientInterface::setSessionManager(SessionManager *sessionManager)
 {
     m_sessionManager = sessionManager;
+}
+
+void ClientInterface::setHistory(ConversationHistory *history)
+{
+    m_history = history;
 }
 
 void ClientInterface::setActiveAgent(const QString &agentName)
@@ -94,7 +109,6 @@ void ClientInterface::sendMessage(
     }
 
     cancelRequest();
-    m_accumulatedResponses.clear();
 
     Context::ChangesManager::instance().archiveAllNonArchivedEdits();
 
@@ -126,7 +140,7 @@ void ClientInterface::sendMessage(
                         .arg(textFiles.size()));
     }
 
-    QList<ChatModel::ImageAttachment> imageAttachments;
+    QList<StoredImage> storedImages;
     if (!imageFiles.isEmpty() && !m_chatFilePath.isEmpty()) {
         for (const QString &imagePath : imageFiles) {
             QString base64Data = encodeImageToBase64(imagePath);
@@ -137,11 +151,8 @@ void ClientInterface::sendMessage(
             QFileInfo fileInfo(imagePath);
             if (ChatSerializer::saveContentToStorage(
                     m_chatFilePath, fileInfo.fileName(), base64Data, storedPath)) {
-                ChatModel::ImageAttachment imageAttachment;
-                imageAttachment.fileName = fileInfo.fileName();
-                imageAttachment.storedPath = storedPath;
-                imageAttachment.mediaType = getMediaTypeForImage(imagePath);
-                imageAttachments.append(imageAttachment);
+                storedImages.append(
+                    {fileInfo.fileName(), storedPath, getMediaTypeForImage(imagePath)});
                 LOG_MESSAGE(QString("Stored image %1 as %2").arg(fileInfo.fileName(), storedPath));
             }
         }
@@ -156,15 +167,15 @@ void ClientInterface::sendMessage(
         emit errorOccurred(error);
         return;
     }
-
-    // Snapshot prior turns BEFORE the new user message is appended to the model.
-    const QVector<ChatModel::Message> priorHistory = m_chatModel->getChatHistory();
-
-    m_chatModel
-        ->addMessage(message, ChatModel::ChatRole::User, "", storedAttachments, imageAttachments);
+    if (!m_history) {
+        const QString error = QStringLiteral("Chat history is not available");
+        LOG_MESSAGE(error);
+        emit errorOccurred(error);
+        return;
+    }
 
     QString sessionError;
-    Session *session = m_sessionManager->createSession(m_activeAgent, &sessionError);
+    Session *session = m_sessionManager->createSession(m_activeAgent, m_history, &sessionError);
     if (!session) {
         const QString error = sessionError.isEmpty()
                                   ? QStringLiteral("No chat agent selected")
@@ -190,8 +201,12 @@ void ClientInterface::sendMessage(
     bindings.roleId = m_activeRoleId;
     session->setContextBindings(bindings);
 
-    if (m_sessionManager)
-        m_sessionManager->toolContributors().contribute(client->tools());
+    const QString chatFilePath = m_chatFilePath;
+    session->setContentLoader([chatFilePath](const QString &storedPath) {
+        return ChatSerializer::loadContentFromStorage(chatFilePath, storedPath);
+    });
+
+    m_sessionManager->toolContributors().contribute(client->tools());
     client->setMaxToolContinuations(Settings::toolsSettings().maxToolContinuations());
     client->setTransferTimeout(
         static_cast<int>(Settings::generalSettings().requestTimeout() * 1000));
@@ -200,60 +215,24 @@ void ClientInterface::sendMessage(
     if (!chatContext.isEmpty())
         session->systemPrompt()->setLayer(QStringLiteral("chat.context"), chatContext);
 
-    seedHistory(*session->history(), priorHistory);
+    std::vector<std::unique_ptr<LLMQore::ContentBlock>> blocks;
+    blocks.push_back(std::make_unique<LLMQore::TextContent>(message));
 
-    QString userText = message;
-    if (!storedAttachments.isEmpty() && !m_chatFilePath.isEmpty()) {
-        userText += "\n\nAttached files:";
-        for (const auto &attachment : storedAttachments) {
-            QString fileContent
-                = ChatSerializer::loadContentFromStorage(m_chatFilePath, attachment.content);
-            if (!fileContent.isEmpty()) {
-                QString decoded = QString::fromUtf8(QByteArray::fromBase64(fileContent.toUtf8()));
-                userText += QString("\n\nFile: %1\n```\n%2\n```").arg(attachment.filename, decoded);
-            }
-        }
+    for (const auto &attachment : storedAttachments) {
+        blocks.push_back(
+            std::make_unique<StoredAttachmentContent>(attachment.filename, attachment.content));
     }
 
-    std::vector<std::unique_ptr<LLMQore::ContentBlock>> blocks;
-    blocks.push_back(std::make_unique<LLMQore::TextContent>(userText));
-
-    if (!imageAttachments.isEmpty() && session->supportsImages() && !m_chatFilePath.isEmpty()) {
-        for (const auto &image : imageAttachments) {
-            QString base64
-                = ChatSerializer::loadContentFromStorage(m_chatFilePath, image.storedPath);
-            if (base64.isEmpty())
-                continue;
-            blocks.push_back(std::make_unique<LLMQore::ImageContent>(
-                base64, image.mediaType, LLMQore::ImageContent::ImageSourceType::Base64));
+    if (!storedImages.isEmpty() && session->supportsImages()) {
+        for (const auto &image : storedImages) {
+            blocks.push_back(std::make_unique<StoredImageContent>(
+                image.fileName, image.storedPath, image.mediaType));
         }
-    } else if (!imageAttachments.isEmpty() && !session->supportsImages()) {
+    } else if (!storedImages.isEmpty() && !session->supportsImages()) {
         LOG_MESSAGE(QString("Agent '%1' doesn't support images, %2 ignored")
                         .arg(m_activeAgent)
-                        .arg(imageAttachments.size()));
+                        .arg(storedImages.size()));
     }
-
-    connect(
-        client, &::LLMQore::BaseClient::chunkReceived,
-        this, &ClientInterface::handlePartialResponse, Qt::UniqueConnection);
-    connect(
-        client, &::LLMQore::BaseClient::requestCompleted,
-        this, &ClientInterface::handleFullResponse, Qt::UniqueConnection);
-    connect(
-        client, &::LLMQore::BaseClient::requestFinalized,
-        this, &ClientInterface::handleRequestFinalized, Qt::UniqueConnection);
-    connect(
-        client, &::LLMQore::BaseClient::requestFailed,
-        this, &ClientInterface::handleRequestFailed, Qt::UniqueConnection);
-    connect(
-        client, &::LLMQore::BaseClient::toolStarted,
-        this, &ClientInterface::handleToolExecutionStarted, Qt::UniqueConnection);
-    connect(
-        client, &::LLMQore::BaseClient::toolResultReady,
-        this, &ClientInterface::handleToolExecutionCompleted, Qt::UniqueConnection);
-    connect(
-        client, &::LLMQore::BaseClient::thinkingBlockReceived,
-        this, &ClientInterface::handleThinkingBlockReceived, Qt::UniqueConnection);
 
     if (!m_chatFilePath.isEmpty()) {
         if (auto *todoTool
@@ -266,6 +245,18 @@ void ClientInterface::sendMessage(
         }
     }
 
+    connect(session, &Session::event, this, [this, session](const QodeAssist::ResponseEvent &ev) {
+        onSessionEvent(session, ev);
+    });
+    connect(
+        session, &Session::finished, this,
+        [this](const LLMQore::RequestID &id, const QString &) { onSessionFinished(id); });
+    connect(
+        session, &Session::failed, this,
+        [this](const LLMQore::RequestID &id, const QodeAssist::ErrorInfo &error) {
+            onSessionFailed(id, error);
+        });
+
     const LLMQore::RequestID requestId = session->send(std::move(blocks));
     if (requestId.isEmpty()) {
         const QString error = QStringLiteral("Failed to start chat request for agent '%1': %2")
@@ -276,83 +267,87 @@ void ClientInterface::sendMessage(
         return;
     }
 
-    QJsonObject request{{"id", requestId}};
-    m_activeRequests[requestId] = {request, session};
+    m_activeRequests[requestId] = {QJsonObject{{"id", requestId}}, session};
 
     emit requestStarted(requestId);
 }
 
-void ClientInterface::seedHistory(
-    ConversationHistory &history, const QVector<ChatModel::Message> &messages) const
+QString ClientInterface::requestIdForSession(Session *session) const
 {
-    int i = 0;
-    while (i < messages.size()) {
-        const ChatModel::Message &msg = messages[i];
-
-        if (msg.role == ChatModel::ChatRole::Tool) {
-            Message assistant(Message::Role::Assistant);
-            Message toolResults(Message::Role::User);
-            while (i < messages.size() && messages[i].role == ChatModel::ChatRole::Tool) {
-                const ChatModel::Message &toolMsg = messages[i];
-                if (!toolMsg.toolName.isEmpty()) {
-                    assistant.appendBlock(std::make_unique<LLMQore::ToolUseContent>(
-                        toolMsg.id, toolMsg.toolName, toolMsg.toolArguments));
-                    toolResults.appendBlock(
-                        std::make_unique<LLMQore::ToolResultContent>(toolMsg.id, toolMsg.toolResult));
-                }
-                ++i;
-            }
-            if (!assistant.blocks().empty()) {
-                history.append(std::move(assistant));
-                history.append(std::move(toolResults));
-            }
-            continue;
-        }
-
-        ++i;
-
-        if (msg.role == ChatModel::ChatRole::FileEdit
-            || msg.role == ChatModel::ChatRole::Thinking) {
-            continue;
-        }
-
-        if (msg.role == ChatModel::ChatRole::User) {
-            Message userMessage(Message::Role::User);
-            QString content = msg.content;
-            if (!msg.attachments.isEmpty() && !m_chatFilePath.isEmpty()) {
-                content += "\n\nAttached files:";
-                for (const auto &attachment : msg.attachments) {
-                    QString fileContent = ChatSerializer::loadContentFromStorage(
-                        m_chatFilePath, attachment.content);
-                    if (!fileContent.isEmpty()) {
-                        QString decoded
-                            = QString::fromUtf8(QByteArray::fromBase64(fileContent.toUtf8()));
-                        content
-                            += QString("\n\nFile: %1\n```\n%2\n```").arg(attachment.filename, decoded);
-                    }
-                }
-            }
-            userMessage.appendBlock(std::make_unique<LLMQore::TextContent>(content));
-
-            if (!msg.images.isEmpty() && !m_chatFilePath.isEmpty()) {
-                for (const auto &image : msg.images) {
-                    QString base64 = ChatSerializer::loadContentFromStorage(
-                        m_chatFilePath, image.storedPath);
-                    if (base64.isEmpty())
-                        continue;
-                    userMessage.appendBlock(std::make_unique<LLMQore::ImageContent>(
-                        base64, image.mediaType, LLMQore::ImageContent::ImageSourceType::Base64));
-                }
-            }
-            history.append(std::move(userMessage));
-        } else { // Assistant
-            if (msg.content.trimmed().isEmpty())
-                continue;
-            Message assistant(Message::Role::Assistant);
-            assistant.appendBlock(std::make_unique<LLMQore::TextContent>(msg.content));
-            history.append(std::move(assistant));
-        }
+    for (auto it = m_activeRequests.cbegin(); it != m_activeRequests.cend(); ++it) {
+        if (it.value().session == session)
+            return it.key();
     }
+    return {};
+}
+
+void ClientInterface::onSessionEvent(Session *session, const QodeAssist::ResponseEvent &ev)
+{
+    if (ev.kind() != ResponseEvent::Kind::Usage)
+        return;
+
+    const auto *usage = ev.as<ResponseEvents::Usage>();
+    if (!usage)
+        return;
+
+    const QString requestId = requestIdForSession(session);
+    if (!requestId.isEmpty()) {
+        m_chatModel->setMessageUsage(
+            requestId,
+            usage->inputTokens,
+            usage->outputTokens,
+            usage->cachedTokens,
+            usage->reasoningTokens);
+    }
+
+    emit messageUsageReceived(
+        usage->inputTokens, usage->outputTokens, usage->cachedTokens, usage->reasoningTokens);
+
+    LOG_MESSAGE(QString("Chat usage [%1]: prompt=%2 completion=%3 cached=%4 reasoning=%5")
+                    .arg(requestId)
+                    .arg(usage->inputTokens)
+                    .arg(usage->outputTokens)
+                    .arg(usage->cachedTokens)
+                    .arg(usage->reasoningTokens));
+}
+
+void ClientInterface::onSessionFinished(const QString &requestId)
+{
+    auto it = m_activeRequests.find(requestId);
+    if (it == m_activeRequests.end())
+        return;
+
+    Session *session = it.value().session;
+
+    QString applyError;
+    if (!Context::ChangesManager::instance().applyPendingEditsForRequest(requestId, &applyError)) {
+        LOG_MESSAGE(QString("Some edits for request %1 were not auto-applied: %2")
+                        .arg(requestId, applyError));
+    }
+
+    emit messageReceivedCompletely();
+
+    m_activeRequests.erase(it);
+
+    if (session && m_sessionManager)
+        m_sessionManager->removeSession(session);
+}
+
+void ClientInterface::onSessionFailed(const QString &requestId, const QodeAssist::ErrorInfo &error)
+{
+    auto it = m_activeRequests.find(requestId);
+    if (it == m_activeRequests.end())
+        return;
+
+    Session *session = it.value().session;
+
+    LOG_MESSAGE(QString("Chat request %1 failed: %2").arg(requestId, error.message));
+    emit errorOccurred(error.message);
+
+    m_activeRequests.erase(it);
+
+    if (session && m_sessionManager)
+        m_sessionManager->removeSession(session);
 }
 
 QString ClientInterface::buildChatContextLayer(
@@ -431,37 +426,22 @@ QString ClientInterface::buildChatContextLayer(
 
 void ClientInterface::clearMessages()
 {
-    m_chatModel->clear();
+    if (m_history)
+        m_history->clear();
 }
 
 void ClientInterface::cancelRequest()
 {
     const auto requests = m_activeRequests;
     m_activeRequests.clear();
-    m_accumulatedResponses.clear();
-    m_awaitingContinuation.clear();
 
     for (auto it = requests.begin(); it != requests.end(); ++it) {
         Session *session = it.value().session;
-        if (!session)
-            continue;
-        if (auto *client = session->client())
-            disconnect(client, nullptr, this, nullptr);
-        if (m_sessionManager)
+        if (session && m_sessionManager)
             m_sessionManager->removeSession(session);
     }
 
     LOG_MESSAGE("All chat requests cancelled and state cleared");
-}
-
-void ClientInterface::handleLLMResponse(const QString &response, const QJsonObject &request)
-{
-    const auto message = response.trimmed();
-
-    if (!message.isEmpty()) {
-        QString messageId = request["id"].toString();
-        m_chatModel->addMessage(message, ChatModel::ChatRole::Assistant, messageId);
-    }
 }
 
 QString ClientInterface::getCurrentFileContext() const
@@ -491,149 +471,6 @@ QString ClientInterface::getCurrentFileContext() const
 Context::ContextManager *ClientInterface::contextManager() const
 {
     return m_contextManager;
-}
-
-void ClientInterface::handlePartialResponse(const QString &requestId, const QString &partialText)
-{
-    auto it = m_activeRequests.find(requestId);
-    if (it == m_activeRequests.end())
-        return;
-
-    if (m_awaitingContinuation.remove(requestId)) {
-        m_accumulatedResponses[requestId].clear();
-        LOG_MESSAGE(
-            QString("Cleared accumulated responses for continuation request %1").arg(requestId));
-    }
-
-    m_accumulatedResponses[requestId] += partialText;
-
-    const RequestContext &ctx = it.value();
-    handleLLMResponse(m_accumulatedResponses[requestId], ctx.originalRequest);
-}
-
-void ClientInterface::handleFullResponse(const QString &requestId, const QString &fullText)
-{
-    auto it = m_activeRequests.find(requestId);
-    if (it == m_activeRequests.end())
-        return;
-
-    const QJsonObject originalRequest = it.value().originalRequest;
-    Session *session = it.value().session;
-
-    QString finalText = !fullText.isEmpty() ? fullText : m_accumulatedResponses[requestId];
-
-    QString applyError;
-    bool applySuccess
-        = Context::ChangesManager::instance().applyPendingEditsForRequest(requestId, &applyError);
-
-    if (!applySuccess) {
-        LOG_MESSAGE(QString("Some edits for request %1 were not auto-applied: %2")
-                        .arg(requestId, applyError));
-    }
-
-    LOG_MESSAGE(
-        "Message completed. Final response for message " + originalRequest["id"].toString() + ": "
-        + finalText);
-    emit messageReceivedCompletely();
-
-    m_activeRequests.erase(it);
-    m_accumulatedResponses.remove(requestId);
-    m_awaitingContinuation.remove(requestId);
-
-    if (session && m_sessionManager)
-        m_sessionManager->removeSession(session);
-}
-
-void ClientInterface::handleRequestFinalized(
-    const ::LLMQore::RequestID &requestId, const ::LLMQore::CompletionInfo &info)
-{
-    if (!m_activeRequests.contains(requestId))
-        return;
-    if (!info.usage)
-        return;
-
-    const auto &u = *info.usage;
-    m_chatModel->setMessageUsage(
-        requestId, u.promptTokens, u.completionTokens, u.cachedPromptTokens, u.reasoningTokens);
-
-    emit messageUsageReceived(
-        u.promptTokens, u.completionTokens, u.cachedPromptTokens, u.reasoningTokens);
-
-    LOG_MESSAGE(QString("Chat usage [%1]: prompt=%2 completion=%3 cached=%4 reasoning=%5")
-                    .arg(requestId)
-                    .arg(u.promptTokens)
-                    .arg(u.completionTokens)
-                    .arg(u.cachedPromptTokens)
-                    .arg(u.reasoningTokens));
-}
-
-void ClientInterface::handleRequestFailed(const QString &requestId, const QString &error)
-{
-    auto it = m_activeRequests.find(requestId);
-    if (it == m_activeRequests.end())
-        return;
-
-    Session *session = it.value().session;
-
-    LOG_MESSAGE(QString("Chat request %1 failed: %2").arg(requestId, error));
-    emit errorOccurred(error);
-
-    m_activeRequests.erase(it);
-    m_accumulatedResponses.remove(requestId);
-    m_awaitingContinuation.remove(requestId);
-
-    if (session && m_sessionManager)
-        m_sessionManager->removeSession(session);
-}
-
-void ClientInterface::handleThinkingBlockReceived(
-    const QString &requestId, const QString &thinking, const QString &signature)
-{
-    if (!m_activeRequests.contains(requestId)) {
-        LOG_MESSAGE(QString("Ignoring thinking block for non-chat request: %1").arg(requestId));
-        return;
-    }
-
-    if (m_awaitingContinuation.remove(requestId)) {
-        m_accumulatedResponses[requestId].clear();
-        LOG_MESSAGE(
-            QString("Cleared accumulated responses for continuation request %1").arg(requestId));
-    }
-
-    if (thinking.isEmpty()) {
-        m_chatModel->addRedactedThinkingBlock(requestId, signature);
-    } else {
-        m_chatModel->addThinkingBlock(requestId, thinking, signature);
-    }
-}
-
-void ClientInterface::handleToolExecutionStarted(
-    const QString &requestId,
-    const QString &toolId,
-    const QString &toolName,
-    const QJsonObject &arguments)
-{
-    if (!m_activeRequests.contains(requestId)) {
-        LOG_MESSAGE(QString("Ignoring tool execution start for non-chat request: %1").arg(requestId));
-        return;
-    }
-
-    m_chatModel->addToolExecutionStatus(requestId, toolId, toolName, arguments);
-    m_awaitingContinuation.insert(requestId);
-}
-
-void ClientInterface::handleToolExecutionCompleted(
-    const QString &requestId,
-    const QString &toolId,
-    const QString &toolName,
-    const QString &toolOutput)
-{
-    if (!m_activeRequests.contains(requestId)) {
-        LOG_MESSAGE(QString("Ignoring tool execution result for non-chat request: %1").arg(requestId));
-        return;
-    }
-
-    m_chatModel->updateToolResult(requestId, toolId, toolName, toolOutput);
 }
 
 bool ClientInterface::isImageFile(const QString &filePath) const

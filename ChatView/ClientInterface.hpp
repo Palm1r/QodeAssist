@@ -6,12 +6,12 @@
 
 #include <QObject>
 #include <QPointer>
-#include <QSet>
 #include <QString>
-#include <QVector>
 
 #include "ChatModel.hpp"
+#include <ErrorInfo.hpp>
 #include <LLMQore/BaseClient.hpp>
+#include <ResponseEvent.hpp>
 #include <context/ContextManager.hpp>
 
 namespace QodeAssist {
@@ -36,6 +36,7 @@ public:
 
     void setSkillsManager(Skills::SkillsManager *skillsManager);
     void setSessionManager(SessionManager *sessionManager);
+    void setHistory(ConversationHistory *history);
     void setActiveAgent(const QString &agentName);
     void setActiveRole(const QString &roleId);
 
@@ -58,31 +59,15 @@ signals:
     void messageUsageReceived(
         int promptTokens, int completionTokens, int cachedPromptTokens, int reasoningTokens);
 
-private slots:
-    void handlePartialResponse(const QString &requestId, const QString &partialText);
-    void handleFullResponse(const QString &requestId, const QString &fullText);
-    void handleRequestFinalized(const ::LLMQore::RequestID &requestId, const ::LLMQore::CompletionInfo &info);
-    void handleRequestFailed(const QString &requestId, const QString &error);
-    void handleThinkingBlockReceived(
-        const QString &requestId, const QString &thinking, const QString &signature);
-    void handleToolExecutionStarted(
-        const QString &requestId,
-        const QString &toolId,
-        const QString &toolName,
-        const QJsonObject &arguments);
-    void handleToolExecutionCompleted(
-        const QString &requestId,
-        const QString &toolId,
-        const QString &toolName,
-        const QString &toolOutput);
-
 private:
-    void handleLLMResponse(const QString &response, const QJsonObject &request);
+    void onSessionEvent(Session *session, const QodeAssist::ResponseEvent &ev);
+    void onSessionFinished(const QString &requestId);
+    void onSessionFailed(const QString &requestId, const QodeAssist::ErrorInfo &error);
+
     QString getCurrentFileContext() const;
     QString buildChatContextLayer(
         const QString &message, const QList<QString> &linkedFiles) const;
-    void seedHistory(
-        ConversationHistory &history, const QVector<ChatModel::Message> &messages) const;
+    QString requestIdForSession(Session *session) const;
     bool isImageFile(const QString &filePath) const;
     QString getMediaTypeForImage(const QString &filePath) const;
     QString encodeImageToBase64(const QString &filePath) const;
@@ -95,6 +80,7 @@ private:
 
     ChatModel *m_chatModel;
     Context::ContextManager *m_contextManager;
+    QPointer<ConversationHistory> m_history;
     Skills::SkillsManager *m_skillsManager = nullptr;
     QPointer<SessionManager> m_sessionManager;
     QString m_activeAgent;
@@ -102,8 +88,6 @@ private:
     QString m_chatFilePath;
 
     QHash<QString, RequestContext> m_activeRequests;
-    QHash<QString, QString> m_accumulatedResponses;
-    QSet<QString> m_awaitingContinuation;
 };
 
 } // namespace QodeAssist::Chat

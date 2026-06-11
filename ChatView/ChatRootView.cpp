@@ -29,6 +29,8 @@
 #include "QodeAssistConstants.hpp"
 
 #include <AgentFactory.hpp>
+#include <ConversationHistory.hpp>
+#include <Message.hpp>
 #include <SessionManager.hpp>
 
 #include "ChatAgentController.hpp"
@@ -74,17 +76,20 @@ QKeySequence sendMessageKeySequence()
 
 ChatRootView::ChatRootView(QQuickItem *parent)
     : QQuickItem(parent)
+    , m_history(new QodeAssist::ConversationHistory(this))
     , m_chatModel(new ChatModel(this))
     , m_clientInterface(new ClientInterface(m_chatModel, this))
     , m_fileManager(new ChatFileManager(this))
     , m_isRequestInProgress(false)
     , m_chatCompressor(new ChatCompressor(this))
     , m_agentController(new ChatAgentController(this))
-    , m_fileEditController(new FileEditController(m_chatModel, this))
-    , m_tokenCounter(
-          new InputTokenCounter(m_chatModel, m_clientInterface->contextManager(), this))
-    , m_historyStore(new ChatHistoryStore(m_chatModel, this))
+    , m_fileEditController(new FileEditController(this))
+    , m_tokenCounter(new InputTokenCounter(m_history, m_clientInterface->contextManager(), this))
+    , m_historyStore(new ChatHistoryStore(m_history, this))
 {
+    m_chatModel->setHistory(m_history);
+    m_clientInterface->setHistory(m_history);
+
     m_isSyncOpenFiles = Settings::chatAssistantSettings().linkOpenFiles();
     connect(
         &Settings::chatAssistantSettings().linkOpenFiles,
@@ -923,13 +928,12 @@ QString ChatRootView::chatTitle() const
 
 QString ChatRootView::computeChatTitle() const
 {
-    if (!m_chatModel)
+    if (!m_history)
         return {};
-    const auto history = m_chatModel->getChatHistory();
-    for (const auto &msg : history) {
-        if (msg.role != ChatModel::User)
+    for (const auto &msg : m_history->messages()) {
+        if (msg.role() != Message::Role::User)
             continue;
-        const QString content = msg.content.trimmed();
+        const QString content = msg.text().trimmed();
         if (content.isEmpty())
             continue;
         const QString firstLine = content.section(QChar('\n'), 0, 0).trimmed();
@@ -1266,7 +1270,7 @@ void ChatRootView::compressCurrentChat()
         loadAvailableChatAgents();
     m_chatCompressor->setSessionManager(sessionManager());
     m_chatCompressor->setActiveAgent(currentChatAgent());
-    m_chatCompressor->startCompression(m_recentFilePath, m_chatModel);
+    m_chatCompressor->startCompression(m_recentFilePath, m_history);
 }
 
 void ChatRootView::cancelCompression()

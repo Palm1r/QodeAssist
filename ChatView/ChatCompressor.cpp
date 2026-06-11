@@ -9,7 +9,6 @@
 #include <LLMQore/BaseClient.hpp>
 #include <LLMQore/ContentBlocks.hpp>
 
-#include "ChatModel.hpp"
 #include "GeneralSettings.hpp"
 #include "logger/Logger.hpp"
 
@@ -43,7 +42,8 @@ void ChatCompressor::setActiveAgent(const QString &agentName)
     m_activeAgent = agentName;
 }
 
-void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *chatModel)
+void ChatCompressor::startCompression(
+    const QString &chatFilePath, ConversationHistory *sourceHistory)
 {
     if (m_isCompressing) {
         emit compressionFailed(tr("Compression already in progress"));
@@ -55,7 +55,7 @@ void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *ch
         return;
     }
 
-    if (!chatModel || chatModel->rowCount() == 0) {
+    if (!sourceHistory || sourceHistory->isEmpty()) {
         emit compressionFailed(tr("Chat is empty, nothing to compress"));
         return;
     }
@@ -81,9 +81,7 @@ void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *ch
     }
 
     m_isCompressing = true;
-    m_chatModel = chatModel;
     m_originalChatPath = chatFilePath;
-    m_accumulatedSummary.clear();
     m_session = session;
 
     emit compressionStarted();
@@ -96,28 +94,26 @@ void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *ch
             "discussion."));
 
     auto *history = session->history();
-    for (const auto &msg : m_chatModel->getChatHistory()) {
-        if (msg.role == ChatModel::ChatRole::Tool || msg.role == ChatModel::ChatRole::FileEdit
-            || msg.role == ChatModel::ChatRole::Thinking)
+    for (const auto &msg : sourceHistory->messages()) {
+        if (msg.role() != Message::Role::User && msg.role() != Message::Role::Assistant)
             continue;
-        if (msg.content.trimmed().isEmpty())
+        const QString text = msg.text();
+        if (text.trimmed().isEmpty())
             continue;
 
-        Message apiMessage(
-            msg.role == ChatModel::ChatRole::User ? Message::Role::User : Message::Role::Assistant);
-        apiMessage.appendBlock(std::make_unique<LLMQore::TextContent>(msg.content));
+        Message apiMessage(msg.role());
+        apiMessage.appendBlock(std::make_unique<LLMQore::TextContent>(text));
         history->append(std::move(apiMessage));
     }
 
-    m_connections.append(connect(
-        client, &::LLMQore::BaseClient::chunkReceived,
-        this, &ChatCompressor::onPartialResponseReceived, Qt::UniqueConnection));
-    m_connections.append(connect(
-        client, &::LLMQore::BaseClient::requestCompleted,
-        this, &ChatCompressor::onFullResponseReceived, Qt::UniqueConnection));
-    m_connections.append(connect(
-        client, &::LLMQore::BaseClient::requestFailed,
-        this, &ChatCompressor::onRequestFailed, Qt::UniqueConnection));
+    connect(
+        session, &Session::finished, this,
+        [this](const LLMQore::RequestID &id, const QString &) { onCompressionFinished(id); });
+    connect(
+        session, &Session::failed, this,
+        [this](const LLMQore::RequestID &id, const QodeAssist::ErrorInfo &error) {
+            onCompressionFailed(id, error.message);
+        });
 
     client->setTransferTimeout(
         static_cast<int>(Settings::generalSettings().requestTimeout() * 1000));
@@ -149,26 +145,20 @@ void ChatCompressor::cancelCompression()
     emit compressionFailed(tr("Compression cancelled"));
 }
 
-void ChatCompressor::onPartialResponseReceived(const QString &requestId, const QString &partialText)
+void ChatCompressor::onCompressionFinished(const QString &requestId)
 {
     if (!m_isCompressing || requestId != m_currentRequestId)
         return;
 
-    m_accumulatedSummary += partialText;
-}
+    QString summary;
+    if (m_session) {
+        if (auto *history = m_session->history(); history && !history->isEmpty())
+            summary = history->messages().back().text();
+    }
 
-void ChatCompressor::onFullResponseReceived(const QString &requestId, const QString &fullText)
-{
-    Q_UNUSED(fullText)
-
-    if (!m_isCompressing || requestId != m_currentRequestId)
-        return;
-
-    LOG_MESSAGE(
-        QString("Received summary, length: %1 characters").arg(m_accumulatedSummary.length()));
+    LOG_MESSAGE(QString("Received summary, length: %1 characters").arg(summary.length()));
 
     const QString compressedPath = createCompressedChatPath(m_originalChatPath);
-    const QString summary = m_accumulatedSummary;
     const QString sourcePath = m_originalChatPath;
 
     cleanupState();
@@ -182,7 +172,7 @@ void ChatCompressor::onFullResponseReceived(const QString &requestId, const QStr
     emit compressionCompleted(compressedPath);
 }
 
-void ChatCompressor::onRequestFailed(const QString &requestId, const QString &error)
+void ChatCompressor::onCompressionFailed(const QString &requestId, const QString &error)
 {
     if (!m_isCompressing || requestId != m_currentRequestId)
         return;
@@ -242,11 +232,11 @@ bool ChatCompressor::createCompressedChatFile(
 
     QJsonObject summaryMessage;
     summaryMessage["role"] = "assistant";
-    summaryMessage["content"] = QString("# Chat Summary\n\n%1").arg(summary);
     summaryMessage["id"] = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    summaryMessage["isRedacted"] = false;
-    summaryMessage["attachments"] = QJsonArray();
-    summaryMessage["images"] = QJsonArray();
+    QJsonObject textBlock;
+    textBlock["type"] = "text";
+    textBlock["text"] = QString("# Chat Summary\n\n%1").arg(summary);
+    summaryMessage["blocks"] = QJsonArray{textBlock};
 
     root["messages"] = QJsonArray{summaryMessage};
     root["compressedFrom"] = sourcePath;
@@ -265,24 +255,13 @@ bool ChatCompressor::createCompressedChatFile(
     return true;
 }
 
-void ChatCompressor::disconnectAllSignals()
-{
-    for (const auto &connection : std::as_const(m_connections))
-        disconnect(connection);
-    m_connections.clear();
-}
-
 void ChatCompressor::cleanupState()
 {
-    disconnectAllSignals();
-
     Session *session = m_session;
 
     m_isCompressing = false;
     m_currentRequestId.clear();
     m_originalChatPath.clear();
-    m_accumulatedSummary.clear();
-    m_chatModel = nullptr;
     m_session = nullptr;
 
     if (session && m_sessionManager)
