@@ -29,9 +29,11 @@
 #include "QodeAssistConstants.hpp"
 
 #include <AgentFactory.hpp>
+#include <AgentRouter.hpp>
 #include <ConversationHistory.hpp>
 #include <Message.hpp>
 #include <SessionManager.hpp>
+#include <sources/settings/PipelinesConfig.hpp>
 
 #include "ChatAgentController.hpp"
 #include "AgentRole.hpp"
@@ -1269,7 +1271,16 @@ void ChatRootView::compressCurrentChat()
     if (currentChatAgent().isEmpty())
         loadAvailableChatAgents();
     m_chatCompressor->setSessionManager(sessionManager());
-    m_chatCompressor->setActiveAgent(currentChatAgent());
+
+    QString compressionAgent = currentChatAgent();
+    const QStringList roster = Settings::PipelinesConfig::load().rosters.chatCompression;
+    if (!roster.isEmpty() && agentFactory()) {
+        const QString picked
+            = AgentRouter::pickAgent(roster, AgentRouter::Context{}, *agentFactory());
+        if (!picked.isEmpty())
+            compressionAgent = picked;
+    }
+    m_chatCompressor->setActiveAgent(compressionAgent);
     m_chatCompressor->startCompression(m_recentFilePath, m_history);
 }
 

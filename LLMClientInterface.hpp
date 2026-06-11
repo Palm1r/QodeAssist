@@ -24,6 +24,7 @@ namespace QodeAssist {
 
 class AgentFactory;
 class Session;
+class SessionManager;
 
 namespace Templates {
 struct ContextData;
@@ -38,6 +39,7 @@ public:
         const Settings::GeneralSettings &generalSettings,
         const Settings::CodeCompletionSettings &completeSettings,
         AgentFactory &agentFactory,
+        SessionManager &sessionManager,
         Context::IDocumentReader &documentReader,
         IRequestPerformanceLogger &performanceLogger);
     ~LLMClientInterface() override;
@@ -85,6 +87,7 @@ private:
     const Settings::CodeCompletionSettings &m_completeSettings;
     const Settings::GeneralSettings &m_generalSettings;
     AgentFactory &m_agentFactory;
+    SessionManager &m_sessionManager;
     Context::IDocumentReader &m_documentReader;
     IRequestPerformanceLogger &m_performanceLogger;
     QElapsedTimer m_completionTimer;

@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <QHash>
 #include <QList>
 #include <QObject>
 #include <QPointer>
@@ -33,6 +34,9 @@ public:
         ConversationHistory *externalHistory,
         QString *errorOut = nullptr);
 
+    Session *acquire(const QString &agentName, QString *errorOut = nullptr);
+    void release(Session *session);
+
     void removeSession(Session *session);
 
     QList<Session *> sessions() const;
@@ -47,8 +51,13 @@ signals:
     void sessionRemoved(Session *session);
 
 private:
+    void resetSession(Session *session);
+
+    static constexpr int kMaxPooledPerAgent = 2;
+
     QPointer<AgentFactory> m_agentFactory;
     QList<QPointer<Session>> m_sessions;
+    QHash<QString, QList<QPointer<Session>>> m_pool;
     ToolContributorRegistry m_toolContributors;
 };
 

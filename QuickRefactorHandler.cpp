@@ -156,7 +156,7 @@ void QuickRefactorHandler::prepareAndSendRequest(
     }
 
     QString sessionError;
-    Session *session = m_sessionManager->createSession(agentName, &sessionError);
+    Session *session = m_sessionManager->acquire(agentName, &sessionError);
     if (!session) {
         emitError(sessionError.isEmpty() ? QStringLiteral("No quick refactor agent selected")
                                          : sessionError);
@@ -172,7 +172,7 @@ void QuickRefactorHandler::prepareAndSendRequest(
 
     const bool enableTools = Settings::quickRefactorSettings().useTools();
     if (enableTools) {
-        Tools::registerQodeAssistTools(client->tools());
+        m_sessionManager->toolContributors().contribute(client->tools());
         client->setMaxToolContinuations(Settings::toolsSettings().maxToolContinuations());
     }
 
@@ -385,7 +385,7 @@ void QuickRefactorHandler::cancelRequest()
         Session *session = it.value().session;
         m_activeRequests.erase(it);
         if (session && m_sessionManager)
-            m_sessionManager->removeSession(session);
+            m_sessionManager->release(session);
     }
 
     RefactorResult result;
@@ -429,7 +429,7 @@ void QuickRefactorHandler::onRefactorFinished(const QString &requestId)
     emit refactoringCompleted(result);
 
     if (session && m_sessionManager)
-        m_sessionManager->removeSession(session);
+        m_sessionManager->release(session);
 }
 
 void QuickRefactorHandler::onRefactorFailed(
@@ -453,7 +453,7 @@ void QuickRefactorHandler::onRefactorFailed(
     emit refactoringCompleted(result);
 
     if (session && m_sessionManager)
-        m_sessionManager->removeSession(session);
+        m_sessionManager->release(session);
 }
 
 } // namespace QodeAssist

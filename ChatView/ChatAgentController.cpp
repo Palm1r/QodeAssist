@@ -9,6 +9,7 @@
 
 #include <AgentConfig.hpp>
 #include <AgentFactory.hpp>
+#include <sources/settings/PipelinesConfig.hpp>
 
 namespace QodeAssist::Chat {
 
@@ -52,7 +53,20 @@ void ChatAgentController::setCurrentAgent(const QString &name)
 
 void ChatAgentController::reload()
 {
-    m_availableAgents = m_agentFactory ? m_agentFactory->configNames() : QStringList{};
+    const QStringList all = m_agentFactory ? m_agentFactory->configNames() : QStringList{};
+    const QStringList roster = Settings::PipelinesConfig::load().rosters.chatAssistant;
+
+    if (roster.isEmpty()) {
+        m_availableAgents = all;
+    } else {
+        QStringList filtered;
+        for (const QString &name : roster) {
+            if (all.contains(name))
+                filtered.append(name);
+        }
+        m_availableAgents = filtered.isEmpty() ? all : filtered;
+    }
+
     emit availableAgentsChanged();
     ensureValidCurrent();
 }

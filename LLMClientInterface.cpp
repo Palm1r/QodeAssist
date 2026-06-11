@@ -20,6 +20,7 @@
 #include <ConversationHistory.hpp>
 #include <PluginBlocks.hpp>
 #include <Session.hpp>
+#include <SessionManager.hpp>
 #include <SystemPromptBuilder.hpp>
 #include "sources/common/ContextData.hpp"
 
@@ -42,11 +43,13 @@ LLMClientInterface::LLMClientInterface(
     const Settings::GeneralSettings &generalSettings,
     const Settings::CodeCompletionSettings &completeSettings,
     AgentFactory &agentFactory,
+    SessionManager &sessionManager,
     Context::IDocumentReader &documentReader,
     IRequestPerformanceLogger &performanceLogger)
     : m_generalSettings(generalSettings)
     , m_completeSettings(completeSettings)
     , m_agentFactory(agentFactory)
+    , m_sessionManager(sessionManager)
     , m_documentReader(documentReader)
     , m_performanceLogger(performanceLogger)
     , m_contextManager(new Context::ContextManager(this))
@@ -117,7 +120,7 @@ void LLMClientInterface::finishRequest(const QString &requestId)
     m_performanceLogger.endTimeMeasurement(requestId);
 
     if (session)
-        session->deleteLater();
+        m_sessionManager.release(session);
 }
 
 void LLMClientInterface::sendData(const QByteArray &data)
@@ -155,10 +158,8 @@ void LLMClientInterface::handleCancelRequest()
 
     for (auto it = requests.begin(); it != requests.end(); ++it) {
         m_performanceLogger.endTimeMeasurement(it.key());
-        if (Session *session = it.value().session) {
-            session->cancel();
-            session->deleteLater();
-        }
+        if (Session *session = it.value().session)
+            m_sessionManager.release(session);
     }
 
     LOG_MESSAGE("All requests cancelled and state cleared");
@@ -251,20 +252,11 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         return;
     }
 
-    QString agentError;
-    Agent *agent = m_agentFactory.create(agentName, /*parent=*/nullptr, &agentError);
-    if (!agent) {
-        LOG_MESSAGE(agentError);
-        sendErrorResponse(request, agentError);
-        return;
-    }
-
-    auto *session = new Session(agent, this);
-    if (!session->isValid()) {
-        const QString error = session->invalidReason();
-        delete session;
-        LOG_MESSAGE(error);
-        sendErrorResponse(request, error);
+    QString sessionError;
+    Session *session = m_sessionManager.acquire(agentName, &sessionError);
+    if (!session) {
+        LOG_MESSAGE(sessionError);
+        sendErrorResponse(request, sessionError);
         return;
     }
 

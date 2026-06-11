@@ -347,6 +347,7 @@ public:
             Settings::generalSettings(),
             Settings::codeCompletionSettings(),
             *m_agentFactory,
+            *m_sessionManager,
             m_documentReader,
             m_performanceLogger));
         m_qodeAssistClient->setSessionManager(m_sessionManager);

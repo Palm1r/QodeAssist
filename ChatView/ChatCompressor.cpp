@@ -66,7 +66,7 @@ void ChatCompressor::startCompression(
     }
 
     QString sessionError;
-    Session *session = m_sessionManager->createSession(m_activeAgent, &sessionError);
+    Session *session = m_sessionManager->acquire(m_activeAgent, &sessionError);
     if (!session) {
         emit compressionFailed(
             sessionError.isEmpty() ? tr("No chat agent selected") : sessionError);
@@ -265,7 +265,7 @@ void ChatCompressor::cleanupState()
     m_session = nullptr;
 
     if (session && m_sessionManager)
-        m_sessionManager->removeSession(session);
+        m_sessionManager->release(session);
 }
 
 } // namespace QodeAssist::Chat
