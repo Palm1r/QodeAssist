@@ -1103,11 +1103,7 @@ void ChatRootView::setRecentFilePath(const QString &filePath)
 
 bool ChatRootView::shouldIgnoreFileForAttach(const Utils::FilePath &filePath)
 {
-    auto project = ProjectExplorer::ProjectManager::projectForFile(filePath);
-    if (project
-        && m_clientInterface->contextManager()
-               ->ignoreManager()
-               ->shouldIgnore(filePath.toFSPathString(), project)) {
+    if (m_clientInterface->contextManager()->shouldIgnore(filePath.toFSPathString())) {
         LOG_MESSAGE(QString("Ignoring file for attachment due to .qodeassistignore: %1")
                         .arg(filePath.toFSPathString()));
         return true;

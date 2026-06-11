@@ -273,9 +273,8 @@ void QodeAssistClient::requestCompletions(TextEditor::TextEditorWidget *editor)
         return;
 
 
-    if (m_llmClient->contextManager()
-            ->ignoreManager()
-            ->shouldIgnore(editor->textDocument()->filePath().toUrlishString(), project)) {
+    if (m_llmClient->contextManager()->shouldIgnore(
+            editor->textDocument()->filePath().toUrlishString())) {
         LOG_MESSAGE(QString("Ignoring file due to .qodeassistignore: %1")
                         .arg(editor->textDocument()->filePath().toUrlishString()));
         return;
@@ -319,9 +318,8 @@ void QodeAssistClient::requestQuickRefactor(
     if (!isEnabled(project))
         return;
 
-    if (m_llmClient->contextManager()
-            ->ignoreManager()
-            ->shouldIgnore(editor->textDocument()->filePath().toUrlishString(), project)) {
+    if (m_llmClient->contextManager()->shouldIgnore(
+            editor->textDocument()->filePath().toUrlishString())) {
         LOG_MESSAGE(QString("Ignoring file due to .qodeassistignore: %1")
                         .arg(editor->textDocument()->filePath().toUrlishString()));
         return;

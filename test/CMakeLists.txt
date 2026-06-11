@@ -4,6 +4,8 @@ add_executable(QodeAssistTest
     CodeHandlerTest.cpp
     DocumentContextReaderTest.cpp
     LLMSuggestionTest.cpp
+    JsonPromptTemplateTest.cpp
+    ResponseRouterTest.cpp
     # LLMClientInterfaceTests.cpp
     unittest_main.cpp
 )
@@ -18,6 +20,9 @@ target_link_libraries(QodeAssistTest PRIVATE
     Context
     Common
     LLMQore
+    Templates
+    Agents
+    Session
 )
 
 target_include_directories(QodeAssistTest PRIVATE ${CMAKE_SOURCE_DIR})

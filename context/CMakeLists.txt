@@ -2,6 +2,8 @@ add_library(Context STATIC
     DocumentContextReader.hpp DocumentContextReader.cpp
     ChangesManager.h ChangesManager.cpp
     ContextManager.hpp ContextManager.cpp
+    IProjectScanner.hpp
+    ProjectScannerQtCreator.hpp ProjectScannerQtCreator.cpp
     ContentFile.hpp
     DocumentReaderQtCreator.hpp
     IDocumentReader.hpp
