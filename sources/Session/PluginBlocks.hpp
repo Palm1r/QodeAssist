@@ -31,6 +31,24 @@ private:
     QString m_mediaType;
 };
 
+class CompletionContent : public LLMQore::ContentBlock
+{
+public:
+    CompletionContent(QString prefix, QString suffix)
+        : m_prefix(std::move(prefix))
+        , m_suffix(std::move(suffix))
+    {}
+
+    QString type() const override { return QStringLiteral("completion"); }
+
+    QString prefix() const { return m_prefix; }
+    QString suffix() const { return m_suffix; }
+
+private:
+    QString m_prefix;
+    QString m_suffix;
+};
+
 class StoredAttachmentContent : public LLMQore::ContentBlock
 {
 public:

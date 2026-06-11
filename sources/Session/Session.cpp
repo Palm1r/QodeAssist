@@ -134,17 +134,6 @@ LLMQore::RequestID Session::sendText(const QString &text)
     return send(std::move(blocks));
 }
 
-LLMQore::RequestID Session::sendCompletion(Templates::ContextData ctx)
-{
-    if (!isValid()) {
-        m_lastError = makeError(ErrorCategory::Config, invalidReason());
-        return {};
-    }
-    if (isInFlight())
-        cancel();
-    return dispatchContext(std::move(ctx), /*tools=*/false);
-}
-
 LLMQore::RequestID Session::send(
     std::vector<std::unique_ptr<LLMQore::ContentBlock>> userBlocks,
     std::optional<bool> toolsOverride)
@@ -289,6 +278,12 @@ Templates::ContextData Session::buildLegacyContext(
     for (const auto &m : history) {
         if (m.role() == Message::Role::System)
             continue;
+
+        if (auto *cc = m.lastBlockOfType<CompletionContent>()) {
+            ctx.prefix = cc->prefix();
+            ctx.suffix = cc->suffix();
+            continue;
+        }
 
         QVector<ContentBlockEntry> blockEntries;
 

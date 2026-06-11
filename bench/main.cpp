@@ -31,6 +31,7 @@
 #include <AgentFactory.hpp>
 #include <ContextData.hpp>
 #include <ContextRenderer.hpp>
+#include <PluginBlocks.hpp>
 #include <GenericProvider.hpp>
 #include <Provider.hpp>
 #include <ProviderInstance.hpp>
@@ -532,11 +533,11 @@ int main(int argc, char *argv[])
 
     auto dispatch = [&] {
         if (fimMode) {
-            Templates::ContextData ctx;
-            ctx.prefix = turns.value(0);
-            if (parser.isSet(suffixOpt))
-                ctx.suffix = parser.value(suffixOpt);
-            if (session->sendCompletion(std::move(ctx)).isEmpty()) {
+            const QString prefix = turns.value(0);
+            const QString suffix = parser.isSet(suffixOpt) ? parser.value(suffixOpt) : QString();
+            std::vector<std::unique_ptr<LLMQore::ContentBlock>> blocks;
+            blocks.push_back(std::make_unique<QodeAssist::CompletionContent>(prefix, suffix));
+            if (session->send(std::move(blocks), /*toolsOverride=*/false).isEmpty()) {
                 err() << "Failed to dispatch FIM request: " << session->lastError().message << "\n";
                 exitCode = 1;
                 QCoreApplication::quit();

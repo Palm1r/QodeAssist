@@ -30,6 +30,7 @@
 
 #include <AgentFactory.hpp>
 #include <AgentRouter.hpp>
+#include <ConversationHistory.hpp>
 #include <Session.hpp>
 #include <SessionManager.hpp>
 #include <SystemPromptBuilder.hpp>
@@ -184,14 +185,13 @@ void QuickRefactorHandler::prepareAndSendRequest(
     m_isRefactoringInProgress = true;
 
     connect(
-        client, &::LLMQore::BaseClient::requestCompleted,
-        this, &QuickRefactorHandler::handleFullResponse, Qt::UniqueConnection);
+        session, &Session::finished, this,
+        [this](const LLMQore::RequestID &id, const QString &) { onRefactorFinished(id); });
     connect(
-        client, &::LLMQore::BaseClient::requestFinalized,
-        this, &QuickRefactorHandler::handleRequestFinalized, Qt::UniqueConnection);
-    connect(
-        client, &::LLMQore::BaseClient::requestFailed,
-        this, &QuickRefactorHandler::handleRequestFailed, Qt::UniqueConnection);
+        session, &Session::failed, this,
+        [this](const LLMQore::RequestID &id, const QodeAssist::ErrorInfo &error) {
+            onRefactorFailed(id, error);
+        });
 
     std::vector<std::unique_ptr<LLMQore::ContentBlock>> blocks;
     const QString userMessage = instructions.isEmpty()
@@ -371,32 +371,6 @@ QString QuickRefactorHandler::buildSystemPrompt(
     return systemPrompt;
 }
 
-void QuickRefactorHandler::handleLLMResponse(
-    const QString &response, const QJsonObject &request, bool isComplete)
-{
-    if (request["id"].toString() != m_lastRequestId) {
-        return;
-    }
-
-    if (isComplete) {
-        m_isRefactoringInProgress = false;
-        QString cleanedResponse = ResponseCleaner::clean(response);
-
-        RefactorResult result;
-        result.newText = cleanedResponse;
-        result.insertRange = m_currentRange;
-        result.success = true;
-        result.editor = m_currentEditor;
-
-        LOG_MESSAGE("Refactoring completed successfully. New code to insert: ");
-        LOG_MESSAGE("---------- BEGIN REFACTORED CODE ----------");
-        LOG_MESSAGE(cleanedResponse);
-        LOG_MESSAGE("----------- END REFACTORED CODE -----------");
-
-        emit refactoringCompleted(result);
-    }
-}
-
 void QuickRefactorHandler::cancelRequest()
 {
     if (!m_isRefactoringInProgress)
@@ -410,12 +384,8 @@ void QuickRefactorHandler::cancelRequest()
     if (it != m_activeRequests.end()) {
         Session *session = it.value().session;
         m_activeRequests.erase(it);
-        if (session) {
-            if (auto *client = session->client())
-                disconnect(client, nullptr, this, nullptr);
-            if (m_sessionManager)
-                m_sessionManager->removeSession(session);
-        }
+        if (session && m_sessionManager)
+            m_sessionManager->removeSession(session);
     }
 
     RefactorResult result;
@@ -424,7 +394,7 @@ void QuickRefactorHandler::cancelRequest()
     emit refactoringCompleted(result);
 }
 
-void QuickRefactorHandler::handleFullResponse(const QString &requestId, const QString &fullText)
+void QuickRefactorHandler::onRefactorFinished(const QString &requestId)
 {
     if (requestId != m_lastRequestId)
         return;
@@ -434,30 +404,36 @@ void QuickRefactorHandler::handleFullResponse(const QString &requestId, const QS
     if (it != m_activeRequests.end())
         m_activeRequests.erase(it);
 
-    QJsonObject request{{"id", requestId}};
-    handleLLMResponse(fullText, request, true);
+    QString fullText;
+    if (session) {
+        if (auto *history = session->history(); history && !history->isEmpty())
+            fullText = history->messages().back().text();
+    }
+
+    m_isRefactoringInProgress = false;
+    m_lastRequestId.clear();
+
+    const QString cleanedResponse = ResponseCleaner::clean(fullText);
+
+    RefactorResult result;
+    result.newText = cleanedResponse;
+    result.insertRange = m_currentRange;
+    result.success = true;
+    result.editor = m_currentEditor;
+
+    LOG_MESSAGE("Refactoring completed successfully. New code to insert: ");
+    LOG_MESSAGE("---------- BEGIN REFACTORED CODE ----------");
+    LOG_MESSAGE(cleanedResponse);
+    LOG_MESSAGE("----------- END REFACTORED CODE -----------");
+
+    emit refactoringCompleted(result);
 
     if (session && m_sessionManager)
         m_sessionManager->removeSession(session);
 }
 
-void QuickRefactorHandler::handleRequestFinalized(
-    const ::LLMQore::RequestID &requestId, const ::LLMQore::CompletionInfo &info)
-{
-    if (requestId != m_lastRequestId || !info.usage)
-        return;
-
-    const auto &u = *info.usage;
-    LOG_MESSAGE(
-        QString("Quick refactor usage [%1]: prompt=%2 completion=%3 cached=%4 reasoning=%5")
-            .arg(requestId)
-            .arg(u.promptTokens)
-            .arg(u.completionTokens)
-            .arg(u.cachedPromptTokens)
-            .arg(u.reasoningTokens));
-}
-
-void QuickRefactorHandler::handleRequestFailed(const QString &requestId, const QString &error)
+void QuickRefactorHandler::onRefactorFailed(
+    const QString &requestId, const QodeAssist::ErrorInfo &error)
 {
     if (requestId != m_lastRequestId)
         return;
@@ -468,9 +444,11 @@ void QuickRefactorHandler::handleRequestFailed(const QString &requestId, const Q
         m_activeRequests.erase(it);
 
     m_isRefactoringInProgress = false;
+    m_lastRequestId.clear();
+
     RefactorResult result;
     result.success = false;
-    result.errorMessage = error;
+    result.errorMessage = error.message;
     result.editor = m_currentEditor;
     emit refactoringCompleted(result);
 

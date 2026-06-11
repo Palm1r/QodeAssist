@@ -12,6 +12,7 @@
 #include <texteditor/texteditor.h>
 #include <utils/textutils.h>
 
+#include <ErrorInfo.hpp>
 #include <context/ContextManager.hpp>
 #include <context/IDocumentReader.hpp>
 
@@ -49,19 +50,14 @@ public:
 signals:
     void refactoringCompleted(const QodeAssist::RefactorResult &result);
 
-private slots:
-    void handleFullResponse(const QString &requestId, const QString &fullText);
-    void handleRequestFinalized(
-        const ::LLMQore::RequestID &requestId, const ::LLMQore::CompletionInfo &info);
-    void handleRequestFailed(const QString &requestId, const QString &error);
-
 private:
     void prepareAndSendRequest(
         TextEditor::TextEditorWidget *editor,
         const QString &instructions,
         const Utils::Text::Range &range);
 
-    void handleLLMResponse(const QString &response, const QJsonObject &request, bool isComplete);
+    void onRefactorFinished(const QString &requestId);
+    void onRefactorFailed(const QString &requestId, const QodeAssist::ErrorInfo &error);
     QString buildSystemPrompt(
         TextEditor::TextEditorWidget *editor, const Utils::Text::Range &range);
     QString pickRefactorAgent(const QString &filePath) const;

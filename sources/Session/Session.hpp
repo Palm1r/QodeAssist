@@ -66,8 +66,6 @@ public:
 
     LLMQore::RequestID sendText(const QString &text);
 
-    LLMQore::RequestID sendCompletion(Templates::ContextData ctx);
-
     void cancel();
 
 signals:

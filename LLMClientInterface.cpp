@@ -18,8 +18,15 @@
 #include <AgentFactory.hpp>
 #include <AgentRouter.hpp>
 #include <ConversationHistory.hpp>
+#include <PluginBlocks.hpp>
 #include <Session.hpp>
+#include <SystemPromptBuilder.hpp>
 #include "sources/common/ContextData.hpp"
+
+#include <LLMQore/ContentBlocks.hpp>
+
+#include <memory>
+#include <vector>
 
 #include "CodeHandler.hpp"
 #include "context/DocumentContextReader.hpp"
@@ -271,7 +278,7 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         editorContext.append(m_contextManager->openedFilesContext({filePath}));
 
     if (!editorContext.isEmpty())
-        context.systemPrompt = editorContext;
+        session->systemPrompt()->setLayer(QStringLiteral("completion.context"), editorContext);
 
     connect(session, &Session::finished, this, [this, session](const LLMQore::RequestID &, const QString &) {
         onCompletionFinished(requestIdForSession(session));
@@ -284,7 +291,10 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
         client->setTransferTimeout(
             static_cast<int>(m_generalSettings.requestTimeout() * 1000));
 
-    const LLMQore::RequestID requestId = session->sendCompletion(std::move(context));
+    std::vector<std::unique_ptr<LLMQore::ContentBlock>> blocks;
+    blocks.push_back(std::make_unique<CompletionContent>(
+        context.prefix.value_or(QString()), context.suffix.value_or(QString())));
+    const LLMQore::RequestID requestId = session->send(std::move(blocks), /*toolsOverride=*/false);
     if (requestId.isEmpty()) {
         QString error = QString("Failed to start completion request for agent '%1': %2")
                             .arg(agentName, session->lastError().message);
