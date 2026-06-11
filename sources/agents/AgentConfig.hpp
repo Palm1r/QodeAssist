@@ -48,7 +48,6 @@ struct AgentConfig
     bool hidden = false;
 
     QString sourcePath;
-    bool overridesBundled = false;
     bool isUserSource() const { return !sourcePath.startsWith(QLatin1StringView{":/"}); }
 
     static QString validate(const AgentConfig &config);

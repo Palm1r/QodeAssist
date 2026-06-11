@@ -1,0 +1,11 @@
+schema_version = 1
+
+extends     = "OpenAI Responses Base"
+name        = "LM Studio Responses Base"
+description = "LM Studio Responses API. Abstract — extend it and set model."
+abstract    = true
+
+provider_instance = "LM Studio (Responses API)"
+endpoint          = "/v1/responses"
+
+tags = ["chat", "lmstudio", "responses", "local"]

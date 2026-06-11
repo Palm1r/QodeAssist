@@ -1,0 +1,10 @@
+schema_version = 1
+
+extends     = "OpenAI Base Chat"
+name        = "OpenAI Compatible Base Chat"
+description = "Any OpenAI-compatible Chat Completions endpoint. Abstract — extend it and set model."
+abstract    = true
+
+provider_instance = "OpenAI Compatible"
+
+tags = ["chat", "openai", "compatible"]

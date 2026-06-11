@@ -1,0 +1,11 @@
+schema_version = 1
+
+extends     = "OpenAI Base Chat"
+name        = "Mistral Base Chat"
+description = "Mistral AI Chat Completions. Abstract — extend it and set model."
+abstract    = true
+
+provider_instance = "Mistral AI"
+endpoint          = "/v1/chat/completions"
+
+tags = ["chat", "mistral", "cloud"]

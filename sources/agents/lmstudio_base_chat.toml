@@ -1,0 +1,11 @@
+schema_version = 1
+
+extends     = "OpenAI Base Chat"
+name        = "LM Studio Base Chat"
+description = "LM Studio Chat Completions. Abstract — extend it and set model."
+abstract    = true
+
+provider_instance = "LM Studio (Chat Completions)"
+endpoint          = "/v1/chat/completions"
+
+tags = ["chat", "lmstudio", "local"]

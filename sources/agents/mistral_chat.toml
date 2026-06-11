@@ -1,11 +1,7 @@
 schema_version = 1
 
-extends     = "OpenAI Base Chat"
+extends     = "Mistral Base Chat"
 name        = "Mistral Chat"
 description = "Mistral Large (Chat Completions API) — coding chat assistant."
 
-provider_instance = "Mistral AI"
-endpoint          = "/v1/chat/completions"
-model             = "mistral-large-latest"
-
-tags = ["chat", "mistral", "cloud"]
+model = "mistral-large-latest"

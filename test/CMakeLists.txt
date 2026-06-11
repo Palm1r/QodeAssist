@@ -7,6 +7,7 @@ add_executable(QodeAssistTest
     JsonPromptTemplateTest.cpp
     ResponseRouterTest.cpp
     BundledAgentsTest.cpp
+    AgentLoaderTest.cpp
     # LLMClientInterfaceTests.cpp
     unittest_main.cpp
 )

@@ -79,21 +79,30 @@ A missing/typo'd partial is a **load-time** error.
 ### 3. `extends` shares config down a hierarchy
 
 `extends` already exists (`resolveExtends` + `deepMerge` + `abstract`/`hidden`); it
-keeps doing what it does, now over the structured `[body]` too. A flat 2 levels — each
-provider base sets `system_prompt = """{{ agent_role("developer") }}"""` (the role text
-comes from the role JSON via the `agent_role` callback; see below). No shared root base:
+keeps doing what it does, now over the structured `[body]` too. Each API-shape base
+sets `system_prompt = """{{ agent_role() }}"""` (the role text comes from the role
+JSON via the `agent_role` callback; see below). No shared root base. Between the
+API-shape base and the concrete agents sits one thin abstract base **per provider**
+(provider_instance + endpoint only) — the designated extension point for user
+agents, so a custom agent is `extends` + `name` + `model`:
 
 ```
-openai_base (abstract)     → system_prompt + provider/endpoint/enable_tools + [body]
-  ├─ openai_chat           → name
-  ├─ mistral_chat          → name, provider, endpoint
-  └─ mistral_reasoning     → + enable_thinking
-anthropic_base (abstract)  → system_prompt + provider/endpoint + [body]
-  ├─ claude_chat           → name
-  └─ claude_sonnet         → + [body] thinking / output_config
-google_base (abstract)     → system_prompt + provider + [body]
-  └─ gemini_chat           → endpoint (${MODEL}) + [body.generationConfig] thinkingConfig
+openai_base (abstract)        → system_prompt + [body]   (API shape)
+  ├─ mistral_base (abstract)  → provider, endpoint       (per-provider)
+  │   ├─ mistral_chat         → name, model
+  │   └─ mistral_reasoning    → name, model + enable_thinking
+  ├─ openrouter_base (abstract) ...
+  └─ openai_chat              → name, model              (own provider = no mid layer)
+anthropic_base (abstract)     → system_prompt + provider/endpoint + [body]
+  └─ claude_sonnet46          → name, model + [body] thinking / output_config
+google_base (abstract)        → system_prompt + provider + [body]
+  └─ gemini_chat              → endpoint (${MODEL}) + [body.generationConfig] thinkingConfig
 ```
+
+Bundled agents are read-only: the loader rejects a user file that reuses a bundled
+`name`. Customisation = a user agent under a new name extending a bundled base (or a
+concrete bundled agent); the per-agent model override in settings covers the
+model-only case without any file.
 
 Notes:
 - `[body]` is shared whole when identical (the 8 OpenAI-compatible providers); a

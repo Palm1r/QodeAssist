@@ -145,16 +145,49 @@ struct RawEntry
 {
     QJsonObject obj;
     QString filePath;
-    bool overridesBundled = false;
+    bool isUserLayer = false;
 };
 
 constexpr int kMaxExtendsDepth = 32;
+
+void lintUnknownKeys(const QJsonObject &obj, const QString &filePath, QStringList &warnings)
+{
+    static const QSet<QString> kTopLevelKeys = {
+        QStringLiteral("schema_version"), QStringLiteral("name"),
+        QStringLiteral("description"),    QStringLiteral("provider_instance"),
+        QStringLiteral("model"),          QStringLiteral("endpoint"),
+        QStringLiteral("system_prompt"),  QStringLiteral("tags"),
+        QStringLiteral("match"),          QStringLiteral("enable_thinking"),
+        QStringLiteral("enable_tools"),   QStringLiteral("cache_prompt"),
+        QStringLiteral("cache_ttl"),      QStringLiteral("body"),
+        QStringLiteral("extends"),        QStringLiteral("abstract"),
+        QStringLiteral("hidden")};
+    static const QSet<QString> kMatchKeys = {
+        QStringLiteral("file_patterns"),
+        QStringLiteral("path_patterns"),
+        QStringLiteral("project_names")};
+
+    for (auto it = obj.constBegin(); it != obj.constEnd(); ++it) {
+        if (!kTopLevelKeys.contains(it.key())) {
+            warnings.append(QStringLiteral("Unknown key '%1' in %2 — ignored (typo?)")
+                                .arg(it.key(), filePath));
+        }
+    }
+    const QJsonObject matchObj = obj.value("match").toObject();
+    for (auto it = matchObj.constBegin(); it != matchObj.constEnd(); ++it) {
+        if (!kMatchKeys.contains(it.key())) {
+            warnings.append(QStringLiteral("Unknown key 'match.%1' in %2 — ignored (typo?)")
+                                .arg(it.key(), filePath));
+        }
+    }
+}
 
 void scanDir(
     const QString &dir,
     bool isUserLayer,
     QHash<QString, RawEntry> &raw,
-    QStringList &errors)
+    QStringList &errors,
+    QStringList *warnings)
 {
     if (dir.isEmpty()) return;
     QDir d(dir);
@@ -173,9 +206,37 @@ void scanDir(
             errors.append(QStringLiteral("Agent at %1 has no 'name'").arg(fullPath));
             continue;
         }
-        const bool overrides = isUserLayer && raw.contains(name);
-        raw.insert(name, {*objOpt, fullPath, overrides});
+        if (warnings)
+            lintUnknownKeys(*objOpt, fullPath, *warnings);
+        const auto existing = raw.constFind(name);
+        if (existing != raw.constEnd() && existing->isUserLayer != isUserLayer) {
+            errors.append(
+                QStringLiteral("Agent '%1' at %2 has the same name as a bundled agent — "
+                               "bundled agents cannot be replaced; rename it and use "
+                               "'extends' to build on the bundled one")
+                    .arg(name, fullPath));
+            continue;
+        }
+        if (warnings && existing != raw.constEnd()) {
+            warnings->append(
+                QStringLiteral("Agent '%1' is defined in both %2 and %3 — %3 wins")
+                    .arg(name, existing->filePath, fullPath));
+        }
+        raw.insert(name, {*objOpt, fullPath, isUserLayer});
     }
+}
+
+QJsonObject mergeChild(const QJsonObject &parentMerged, const QJsonObject &self, const QString &name)
+{
+    QJsonObject merged = deepMerge(parentMerged, self);
+    merged["name"] = name;
+    for (const QString &key : {QStringLiteral("abstract"), QStringLiteral("hidden")}) {
+        if (self.contains(key))
+            merged[key] = self.value(key);
+        else
+            merged.remove(key);
+    }
+    return merged;
 }
 
 QJsonObject resolveExtends(
@@ -196,7 +257,7 @@ QJsonObject resolveExtends(
         return {};
     }
     if (!raw.contains(name)) {
-        errors.append(QStringLiteral("Unknown parent agent '%1'").arg(name));
+        errors.append(QStringLiteral("Unknown agent '%1'").arg(name));
         return {};
     }
     visiting.insert(name);
@@ -204,15 +265,15 @@ QJsonObject resolveExtends(
     QJsonObject self = raw.value(name).obj;
     const QString parent = self.value("extends").toString();
     if (!parent.isEmpty()) {
+        if (!raw.contains(parent)) {
+            errors.append(QStringLiteral("Agent '%1' extends unknown agent '%2' (%3)")
+                              .arg(name, parent, raw.value(name).filePath));
+            visiting.remove(name);
+            return {};
+        }
         const QJsonObject parentMerged
             = resolveExtends(parent, raw, visiting, errors, depth + 1);
-        QJsonObject merged = deepMerge(parentMerged, self);
-        merged["name"] = name;
-        if (self.contains("abstract"))
-            merged["abstract"] = self.value("abstract");
-        else
-            merged.remove("abstract");
-        self = merged;
+        self = mergeChild(parentMerged, self, name);
     }
     visiting.remove(name);
     return self;
@@ -224,7 +285,7 @@ std::optional<AgentConfig> AgentLoader::parseFile(
     const QString &path,
     const QString &qrcPrefix,
     QString *error,
-    QStringList * /*warnings*/)
+    QStringList *warnings)
 {
     auto objOpt = parseTomlFile(path, error);
     if (!objOpt) return std::nullopt;
@@ -234,12 +295,14 @@ std::optional<AgentConfig> AgentLoader::parseFile(
         if (error) *error = QStringLiteral("Agent at %1 has no 'name'").arg(path);
         return std::nullopt;
     }
+    if (warnings)
+        lintUnknownKeys(*objOpt, path, *warnings);
 
     QHash<QString, RawEntry> raw;
     QStringList scanErrors;
-    scanDir(qrcPrefix, /*isUserLayer=*/false, raw, scanErrors);
-    scanDir(QFileInfo(path).absolutePath(), /*isUserLayer=*/true, raw, scanErrors);
-    raw.insert(name, {*objOpt, path, raw.contains(name)});
+    scanDir(qrcPrefix, /*isUserLayer=*/false, raw, scanErrors, nullptr);
+    scanDir(QFileInfo(path).absolutePath(), /*isUserLayer=*/true, raw, scanErrors, nullptr);
+    raw.insert(name, {*objOpt, path, true});
 
     QSet<QString> visiting;
     QStringList resolveErrors;
@@ -270,8 +333,8 @@ AgentLoader::LoadResult AgentLoader::load(const QString &qrcPrefix, const QStrin
     LoadResult result;
     QHash<QString, RawEntry> raw;
 
-    scanDir(qrcPrefix, /*isUserLayer=*/false, raw, result.errors);
-    scanDir(userDir,   /*isUserLayer=*/true,  raw, result.errors);
+    scanDir(qrcPrefix, /*isUserLayer=*/false, raw, result.errors, &result.warnings);
+    scanDir(userDir,   /*isUserLayer=*/true,  raw, result.errors, &result.warnings);
 
     for (auto it = raw.constBegin(); it != raw.constEnd(); ++it) {
         const QString &name = it.key();
@@ -282,7 +345,6 @@ AgentLoader::LoadResult AgentLoader::load(const QString &qrcPrefix, const QStrin
 
         AgentConfig cfg = configFromMerged(merged);
         cfg.sourcePath = it.value().filePath;
-        cfg.overridesBundled = it.value().overridesBundled;
 
         if (cfg.abstract) continue;
 

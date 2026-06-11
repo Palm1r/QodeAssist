@@ -161,8 +161,13 @@ string values render and splice as raw JSON, literals pass through, empty render
 drop the key). `include` resolves only sandboxed partial roots. Profiles validate
 at load: a referenced partial must resolve and the assembled body must parse as
 JSON against a synthetic context — config errors surface in the agents settings
-page, never as a silent runtime drop. Full spec:
-[`agent-templates-design.md`](agent-templates-design.md).
+page, never as a silent runtime drop. The loader also lints: unknown top-level /
+`[match]` keys and same-layer duplicate names are warnings; a user file that
+reuses a bundled agent's name is rejected (bundled agents cannot be replaced —
+users extend them, or the per-provider abstract bases, under a new name);
+`abstract` and `hidden` are never inherited through `extends`. Full spec:
+[`agent-templates-design.md`](agent-templates-design.md); user-facing guide:
+[`creating-agents.md`](creating-agents.md).
 
 ---
 

@@ -1,0 +1,15 @@
+schema_version = 1
+
+extends     = "Ollama FIM Base"
+name        = "Ollama Qwen2.5-Coder FIM"
+description = "Local Qwen2.5-Coder on Ollama, FIM completion via <|fim_*|> markers."
+
+model = "qwen2.5-coder"
+
+tags = ["fim", "ollama", "local", "qwen"]
+
+[body]
+prompt = """{% if existsIn(ctx, "suffix") and length(ctx.suffix) > 0 %}{{ tojson("<|fim_prefix|>" + ctx.prefix + "<|fim_suffix|>" + ctx.suffix + "<|fim_middle|>") }}{% else %}{{ tojson("<|fim_prefix|>" + ctx.prefix + "<|fim_middle|>") }}{% endif %}"""
+
+[body.options]
+stop = ["<|endoftext|>", "<|fim_prefix|>", "<|fim_suffix|>", "<|fim_middle|>", "<|fim_pad|>", "<|repo_name|>", "<|file_sep|>"]

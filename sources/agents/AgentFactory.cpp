@@ -59,6 +59,7 @@ void AgentFactory::reload()
     Q_ASSERT(thread() == QThread::currentThread());
     clear();
 
+    QDir().mkpath(userAgentsDir());
     auto result = Agents::AgentLoader::load(agentQrcPrefix(), userAgentsDir());
     for (const QString &err : result.errors)
         LOG_MESSAGE(QString("[Agents] error: %1").arg(err));

@@ -296,9 +296,7 @@ void AgentSlotWidget::setAgentConfig(const AgentConfig &cfg)
     m_name->setText(cfg.name);
 
     if (cfg.isUserSource()) {
-        m_sourcePill->setText(cfg.overridesBundled
-                                  ? Tr::tr("User overrides bundled")
-                                  : Tr::tr("User"));
+        m_sourcePill->setText(Tr::tr("User"));
         m_sourcePill->show();
     } else {
         m_sourcePill->hide();

@@ -1,11 +1,7 @@
 schema_version = 1
 
-extends     = "OpenAI Base Chat"
+extends     = "Ollama (OpenAI-compatible) Base Chat"
 name        = "Ollama (OpenAI-compatible) Chat"
 description = "Ollama via its OpenAI-compatible Chat Completions endpoint — local coding chat assistant."
 
-provider_instance = "Ollama (OpenAI-compatible)"
-endpoint          = "/v1/chat/completions"
-model             = "qwen2.5-coder"
-
-tags = ["chat", "ollama", "local"]
+model = "qwen2.5-coder"

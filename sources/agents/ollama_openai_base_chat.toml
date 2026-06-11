@@ -1,0 +1,11 @@
+schema_version = 1
+
+extends     = "OpenAI Base Chat"
+name        = "Ollama (OpenAI-compatible) Base Chat"
+description = "Ollama via its OpenAI-compatible Chat Completions endpoint. Abstract — extend it and set model."
+abstract    = true
+
+provider_instance = "Ollama (OpenAI-compatible)"
+endpoint          = "/v1/chat/completions"
+
+tags = ["chat", "ollama", "local"]

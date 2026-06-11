@@ -216,6 +216,7 @@ For optimal coding assistance, we recommend using these top-tier models:
 
 ### Additional Configuration
 
+- **[Creating and Extending Agents](docs/creating-agents.md)** - Add custom agents or override bundled ones with TOML profiles
 - **[Agent Roles](docs/agent-roles.md)** - Create AI personas with specialized system prompts
 - **[Chat Summarization](docs/chat-summarization.md)** - Compress conversations to save context tokens
 - **[Ignoring Files](docs/ignoring-files.md)** - Exclude files from context using `.qodeassistignore`
@@ -531,7 +532,7 @@ If you find QodeAssist helpful, there are several ways you can support the proje
 
 1. **Report Issues**: If you encounter any bugs or have suggestions for improvements, please [open an issue](https://github.com/Palm1r/qodeassist/issues) on our GitHub repository.
 
-2. **Contribute**: Feel free to submit pull requests with bug fixes or new features.
+2. **Contribute**: Feel free to submit pull requests with bug fixes or new features. The easiest contribution is an agent preset for a provider or model you use — it's a single TOML file, no C++ required; see [Contributing your agent](docs/creating-agents.md#contributing-your-agent-to-qodeassist).
 
 3. **Spread the Word**: Star our GitHub repository and share QodeAssist with your fellow developers.
 
@@ -578,6 +579,10 @@ cmake --build .
 - `<path_to_plugin_source>`: Path to this plugin directory
 
 ## For Contributors
+
+### Adding an agent preset
+
+New provider/model presets are plain TOML — extend a provider base, register the file in `agents.qrc`, and the test suite validates it automatically. Step-by-step guide: [docs/creating-agents.md](docs/creating-agents.md#contributing-your-agent-to-qodeassist).
 
 ### Code Style
 

@@ -147,10 +147,7 @@ AgentRowCard::AgentRowCard(const AgentConfig &cfg, QWidget *parent)
 
     Pill *sourcePill = nullptr;
     if (cfg.isUserSource()) {
-        sourcePill = new Pill(
-            Pill::User,
-            cfg.overridesBundled ? Tr::tr("Override") : Tr::tr("User"),
-            this);
+        sourcePill = new Pill(Pill::User, Tr::tr("User"), this);
     }
 
     auto *description = new QLabel(this);

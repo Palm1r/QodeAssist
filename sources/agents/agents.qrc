@@ -18,6 +18,15 @@
         <file>google_base_chat.toml</file>
         <file>ollama_base_chat.toml</file>
         <file>ollama_base_fim.toml</file>
+        <file>mistral_base_chat.toml</file>
+        <file>codestral_base_chat.toml</file>
+        <file>codestral_fim_base.toml</file>
+        <file>openrouter_base_chat.toml</file>
+        <file>lmstudio_base_chat.toml</file>
+        <file>lmstudio_responses_base.toml</file>
+        <file>llamacpp_base_chat.toml</file>
+        <file>ollama_openai_base_chat.toml</file>
+        <file>openai_compatible_base_chat.toml</file>
 
         <file>openai_chat.toml</file>
         <file>openai_compatible_chat.toml</file>
@@ -35,8 +44,8 @@
         <file>ollama_gemma4_e4b_chat.toml</file>
         <file>ollama_codellama_7b_code_fim.toml</file>
         <file>ollama_codellama_13b_qml_fim.toml</file>
+        <file>ollama_qwen25_coder_fim.toml</file>
 
-        <file>claude_sonnet_chat.toml</file>
         <file>claude_sonnet46_chat.toml</file>
         <file>claude_haiku45_chat.toml</file>
         <file>claude_opus_max.toml</file>

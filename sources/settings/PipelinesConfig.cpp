@@ -95,10 +95,10 @@ void fillMissingFromDefaults(PipelineRosters &r, const toml::table &section)
 PipelineRosters PipelineRosters::defaults()
 {
     PipelineRosters r;
-    r.codeCompletion = {QStringLiteral("Ollama Qwen2.5-Coder Completion")};
-    r.chatAssistant = {QStringLiteral("Ollama Chat")};
-    r.chatCompression = {QStringLiteral("Ollama Compression")};
-    r.quickRefactor = {QStringLiteral("Ollama Quick Refactor")};
+    r.codeCompletion = {QStringLiteral("Ollama Qwen2.5-Coder FIM")};
+    r.chatAssistant = {QStringLiteral("Ollama (OpenAI-compatible) Chat")};
+    r.chatCompression = {QStringLiteral("Ollama (OpenAI-compatible) Chat")};
+    r.quickRefactor = {QStringLiteral("Ollama (OpenAI-compatible) Chat")};
     return r;
 }
 

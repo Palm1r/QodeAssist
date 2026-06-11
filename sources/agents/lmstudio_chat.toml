@@ -1,11 +1,7 @@
 schema_version = 1
 
-extends     = "OpenAI Base Chat"
+extends     = "LM Studio Base Chat"
 name        = "LM Studio Chat"
 description = "LM Studio (Chat Completions API) — local coding chat assistant."
 
-provider_instance = "LM Studio (Chat Completions)"
-endpoint          = "/v1/chat/completions"
-model             = "local-model"
-
-tags = ["chat", "lmstudio", "local"]
+model = "local-model"

@@ -1,0 +1,17 @@
+schema_version = 1
+
+name        = "Codestral FIM Base"
+description = "Mistral fill-in-the-middle completion (/v1/fim/completions). Abstract — extend it and set model."
+abstract    = true
+
+provider_instance = "Mistral AI"
+endpoint          = "/v1/fim/completions"
+
+tags = ["fim", "mistral", "cloud", "completion"]
+
+[body]
+max_tokens  = 256
+temperature = 0.2
+stream      = true
+prompt      = """{{ tojson(ctx.prefix) }}"""
+suffix      = """{% if existsIn(ctx, "suffix") %}{{ tojson(ctx.suffix) }}{% endif %}"""

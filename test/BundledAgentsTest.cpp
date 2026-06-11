@@ -23,6 +23,10 @@ TEST(BundledAgentsTest, AllBundledAgentsLoadResolveAndRender)
         << "bundled agent load errors: "
         << result.errors.join(QStringLiteral("; ")).toStdString();
 
+    EXPECT_TRUE(result.warnings.isEmpty())
+        << "bundled agent load warnings: "
+        << result.warnings.join(QStringLiteral("; ")).toStdString();
+
     ASSERT_FALSE(result.configs.empty()) << "no bundled agents were loaded from :/agents";
 
     for (const auto &cfg : result.configs) {
