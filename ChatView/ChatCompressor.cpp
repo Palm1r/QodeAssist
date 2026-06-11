@@ -125,10 +125,10 @@ void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *ch
     std::vector<std::unique_ptr<LLMQore::ContentBlock>> blocks;
     blocks.push_back(std::make_unique<LLMQore::TextContent>(buildCompressionPrompt()));
 
-    m_currentRequestId = session->send(
-        std::move(blocks), /*toolsOverride=*/false, /*thinkingOverride=*/false);
+    m_currentRequestId = session->send(std::move(blocks), /*toolsOverride=*/false);
     if (m_currentRequestId.isEmpty()) {
-        handleCompressionError(tr("Failed to start compression request"));
+        handleCompressionError(tr("Failed to start compression request: %1")
+                                   .arg(session->lastError().message));
         return;
     }
     LOG_MESSAGE(QString("Starting compression request: %1").arg(m_currentRequestId));

@@ -3,6 +3,7 @@ add_library(Providers STATIC
     Provider.hpp Provider.cpp
     ProviderFactory.hpp ProviderFactory.cpp
     GenericProvider.hpp GenericProvider.cpp
+    ClaudeCacheControl.hpp
 )
 
 target_link_libraries(Providers

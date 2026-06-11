@@ -40,9 +40,7 @@ public:
     virtual bool isSupportModel(const QString & /*modelName*/) const { return true; }
 
     [[nodiscard]] virtual bool buildFullRequest(
-        QJsonObject &request,
-        const ContextData &context,
-        bool /*thinkingEnabled*/ = false) const
+        QJsonObject &request, const ContextData &context) const
     {
         prepareRequest(request, context);
         return true;

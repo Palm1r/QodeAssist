@@ -276,8 +276,8 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     connect(session, &Session::finished, this, [this, session](const LLMQore::RequestID &, const QString &) {
         onCompletionFinished(requestIdForSession(session));
     });
-    connect(session, &Session::failed, this, [this, session](const LLMQore::RequestID &, const QString &error) {
-        onCompletionFailed(requestIdForSession(session), error);
+    connect(session, &Session::failed, this, [this, session](const LLMQore::RequestID &, const QodeAssist::ErrorInfo &error) {
+        onCompletionFailed(requestIdForSession(session), error.message);
     });
 
     if (auto *client = session->client())
@@ -286,8 +286,9 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
 
     const LLMQore::RequestID requestId = session->sendCompletion(std::move(context));
     if (requestId.isEmpty()) {
+        QString error = QString("Failed to start completion request for agent '%1': %2")
+                            .arg(agentName, session->lastError().message);
         session->deleteLater();
-        QString error = QString("Failed to start completion request for agent: %1").arg(agentName);
         LOG_MESSAGE(error);
         sendErrorResponse(request, error);
         return;

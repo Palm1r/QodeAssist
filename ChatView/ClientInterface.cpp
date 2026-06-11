@@ -268,8 +268,8 @@ void ClientInterface::sendMessage(
 
     const LLMQore::RequestID requestId = session->send(std::move(blocks));
     if (requestId.isEmpty()) {
-        const QString error = QStringLiteral("Failed to start chat request for agent: %1")
-                                  .arg(m_activeAgent);
+        const QString error = QStringLiteral("Failed to start chat request for agent '%1': %2")
+                                  .arg(m_activeAgent, session->lastError().message);
         LOG_MESSAGE(error);
         m_sessionManager->removeSession(session);
         emit errorOccurred(error);
@@ -277,7 +277,7 @@ void ClientInterface::sendMessage(
     }
 
     QJsonObject request{{"id", requestId}};
-    m_activeRequests[requestId] = {request, session, /*dropPreToolText=*/false};
+    m_activeRequests[requestId] = {request, session};
 
     emit requestStarted(requestId);
 }
@@ -613,15 +613,11 @@ void ClientInterface::handleToolExecutionStarted(
     const QString &toolName,
     const QJsonObject &arguments)
 {
-    const auto requestIt = m_activeRequests.constFind(requestId);
-    if (requestIt == m_activeRequests.constEnd()) {
+    if (!m_activeRequests.contains(requestId)) {
         LOG_MESSAGE(QString("Ignoring tool execution start for non-chat request: %1").arg(requestId));
         return;
     }
 
-    if (requestIt->dropPreToolText) {
-        m_chatModel->dropTrailingAssistantMessage(requestId);
-    }
     m_chatModel->addToolExecutionStatus(requestId, toolId, toolName, arguments);
     m_awaitingContinuation.insert(requestId);
 }

@@ -15,9 +15,12 @@ class SystemPromptBuilder : public QObject
 {
     Q_OBJECT
 public:
+    static constexpr int kAgentPriority = 0;
+    static constexpr int kDefaultPriority = 100;
+
     explicit SystemPromptBuilder(QObject *parent = nullptr);
 
-    void setLayer(const QString &name, const QString &text);
+    void setLayer(const QString &name, const QString &text, int priority = kDefaultPriority);
     void clearLayer(const QString &name);
     void clear();
 
@@ -31,7 +34,14 @@ signals:
     void layersChanged();
 
 private:
-    QVector<QPair<QString, QString>> m_layers;
+    struct Layer
+    {
+        QString name;
+        QString text;
+        int priority = kDefaultPriority;
+    };
+
+    QVector<Layer> m_layers;
 };
 
 } // namespace QodeAssist

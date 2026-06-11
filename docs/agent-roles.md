@@ -168,7 +168,6 @@ This allows roles to augment rather than replace your base configuration.
 
 ## Related Documentation
 
-- [Project Rules](project-rules.md) - Project-specific AI behavior customization
 - [Chat Assistant Features](../README.md#chat-assistant) - Overview of chat functionality
 - [File Context](file-context.md) - Attaching files to chat context
 

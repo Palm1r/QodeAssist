@@ -3,8 +3,17 @@
   "role": {{ tojson(msg.role) }},
   "content": [
     {% for b in msg.content_blocks %}
-      {% if b.type == "image" %}{% include "partials/anthropic_image.jinja" %}
-      {% else %}{{ tojson(b) }},
+      {% if b.type == "text" %}
+      { "type": "text", "text": {{ tojson(b.text) }} },
+      {% else if b.type == "thinking" %}
+      { "type": "thinking", "thinking": {{ tojson(b.thinking) }}, "signature": {{ tojson(b.signature) }} },
+      {% else if b.type == "redacted_thinking" %}
+      { "type": "redacted_thinking", "data": {{ tojson(b.data) }} },
+      {% else if b.type == "tool_use" %}
+      { "type": "tool_use", "id": {{ tojson(b.id) }}, "name": {{ tojson(b.name) }}, "input": {{ tojson(b.input) }} },
+      {% else if b.type == "tool_result" %}
+      { "type": "tool_result", "tool_use_id": {{ tojson(b.tool_use_id) }}, "content": {{ tojson(b.content) }} },
+      {% else if b.type == "image" %}{% include "partials/anthropic_image.jinja" %}
       {% endif %}
     {% endfor %}
   ]

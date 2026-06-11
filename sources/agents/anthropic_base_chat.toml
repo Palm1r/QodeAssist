@@ -7,6 +7,7 @@ abstract    = true
 provider_instance = "Claude"
 endpoint          = "/v1/messages"
 enable_tools      = true
+cache_prompt      = true
 tags = ["chat", "claude", "anthropic", "cloud"]
 
 system_prompt = """{{ agent_role() }}"""

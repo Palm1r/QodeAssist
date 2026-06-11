@@ -36,15 +36,9 @@ QString roleToLegacyString(Message::Role role)
     return QStringLiteral("user");
 }
 
-} // namespace
+[[maybe_unused]] const int kErrorInfoMetaTypeId = qRegisterMetaType<QodeAssist::ErrorInfo>();
 
-Session::Session(QObject *parent)
-    : QObject(parent)
-    , m_history(new ConversationHistory(this))
-    , m_systemPrompt(new SystemPromptBuilder(this))
-{
-    m_invalidReason = QStringLiteral("Session: no agent attached");
-}
+} // namespace
 
 Session::Session(Agent *agent, QObject *parent)
     : Session(agent, /*externalHistory=*/nullptr, parent)
@@ -86,7 +80,7 @@ Session::Session(Agent *agent, ConversationHistory *externalHistory, QObject *pa
 Session::~Session()
 {
     if (isInFlight())
-        cancel();
+        teardownInFlight();
 }
 
 bool Session::isValid() const noexcept
@@ -102,6 +96,11 @@ QString Session::invalidReason() const
 bool Session::isInFlight() const noexcept
 {
     return !m_inFlight.isEmpty();
+}
+
+const ErrorInfo &Session::lastError() const noexcept
+{
+    return m_lastError;
 }
 
 LLMQore::BaseClient *Session::client() const noexcept
@@ -127,21 +126,6 @@ void Session::setContextBindings(Templates::ContextRenderer::Bindings bindings)
     m_contextBindings = std::move(bindings);
 }
 
-QString Session::renderAgentContext() const
-{
-    if (!m_agent)
-        return {};
-    const auto &cfg = m_agent->config();
-    if (cfg.systemPrompt.isEmpty())
-        return {};
-    QString err;
-    QString rendered
-        = Templates::ContextRenderer::render(cfg.systemPrompt, m_contextBindings, &err);
-    if (!err.isEmpty())
-        qWarning("[QodeAssist] agent.system render failed: %s", qUtf8Printable(err));
-    return rendered;
-}
-
 LLMQore::RequestID Session::sendText(const QString &text)
 {
     std::vector<std::unique_ptr<LLMQore::ContentBlock>> blocks;
@@ -152,22 +136,27 @@ LLMQore::RequestID Session::sendText(const QString &text)
 
 LLMQore::RequestID Session::sendCompletion(Templates::ContextData ctx)
 {
-    if (!isValid())
+    if (!isValid()) {
+        m_lastError = makeError(ErrorCategory::Config, invalidReason());
         return {};
+    }
     if (isInFlight())
         cancel();
-    return dispatchContext(std::move(ctx), /*tools=*/false, /*thinking=*/false);
+    return dispatchContext(std::move(ctx), /*tools=*/false);
 }
 
 LLMQore::RequestID Session::send(
     std::vector<std::unique_ptr<LLMQore::ContentBlock>> userBlocks,
-    std::optional<bool> toolsOverride,
-    std::optional<bool> thinkingOverride)
+    std::optional<bool> toolsOverride)
 {
-    if (!isValid() || userBlocks.empty())
+    if (!isValid()) {
+        m_lastError = makeError(ErrorCategory::Config, invalidReason());
         return {};
-    if (!m_history)
+    }
+    if (userBlocks.empty() || !m_history) {
+        m_lastError = makeError(ErrorCategory::Validation, QStringLiteral("Session: nothing to send"));
         return {};
+    }
 
     if (isInFlight())
         cancel();
@@ -177,10 +166,20 @@ LLMQore::RequestID Session::send(
         msg.appendBlock(std::move(b));
     m_history->append(std::move(msg));
 
-    return dispatch(toolsOverride, thinkingOverride);
+    return dispatch(toolsOverride);
 }
 
 void Session::cancel()
+{
+    if (m_inFlight.isEmpty())
+        return;
+
+    const auto id = m_inFlight;
+    teardownInFlight();
+    emit cancelled(id);
+}
+
+void Session::teardownInFlight()
 {
     if (m_inFlight.isEmpty())
         return;
@@ -191,41 +190,61 @@ void Session::cancel()
         m_router->endRequest();
     if (m_agent && m_agent->provider())
         m_agent->provider()->cancelRequest(id);
-    emit failed(id, QStringLiteral("Cancelled by user"));
 }
 
-LLMQore::RequestID Session::dispatch(
-    std::optional<bool> toolsOverride, std::optional<bool> thinkingOverride)
+LLMQore::RequestID Session::dispatch(std::optional<bool> toolsOverride)
 {
     const auto &cfg = m_agent->config();
 
-    const QString renderedContext = renderAgentContext();
-    if (renderedContext.isEmpty())
+    if (cfg.systemPrompt.isEmpty()) {
         m_systemPrompt->clearLayer(QStringLiteral("agent.system"));
-    else
-        m_systemPrompt->setLayer(QStringLiteral("agent.system"), renderedContext);
+    } else {
+        QString renderErr;
+        const QString renderedContext = Templates::ContextRenderer::render(
+            cfg.systemPrompt, m_contextBindings, &renderErr);
+        if (!renderErr.isEmpty()) {
+            m_lastError = makeError(
+                ErrorCategory::Validation,
+                QStringLiteral("Agent '%1' system_prompt render failed: %2")
+                    .arg(cfg.name, renderErr));
+            qWarning("[QodeAssist] %s", qUtf8Printable(m_lastError.message));
+            return {};
+        }
+        if (renderedContext.isEmpty())
+            m_systemPrompt->clearLayer(QStringLiteral("agent.system"));
+        else
+            m_systemPrompt->setLayer(
+                QStringLiteral("agent.system"), renderedContext, SystemPromptBuilder::kAgentPriority);
+    }
 
     const bool tools = toolsOverride.value_or(cfg.enableTools);
-    const bool thinking = thinkingOverride.value_or(cfg.enableThinking);
-    return dispatchContext(toLegacyContext(), tools, thinking);
+    return dispatchContext(toLegacyContext(), tools);
 }
 
-LLMQore::RequestID Session::dispatchContext(
-    Templates::ContextData ctx, bool tools, bool thinking)
+LLMQore::RequestID Session::dispatchContext(Templates::ContextData ctx, bool tools)
 {
+    m_lastError = {};
+
     auto *provider = m_agent->provider();
     auto *tmpl = m_agent->promptTemplate();
     const auto &cfg = m_agent->config();
 
     QJsonObject payload{{QStringLiteral("model"), cfg.model}};
-    if (!provider->prepareRequest(payload, tmpl, ctx, tools, thinking))
+    QString prepareErr;
+    if (!provider->prepareRequest(payload, tmpl, ctx, tools, &prepareErr)) {
+        m_lastError = makeError(ErrorCategory::Validation, prepareErr, prepareErr);
         return {};
+    }
 
     QString endpoint = cfg.endpoint;
     endpoint.replace(QStringLiteral("${MODEL}"), cfg.model);
     const auto id = provider->sendRequest(QUrl(provider->url()), payload, endpoint);
-    if (id.isEmpty())
+    if (id.isEmpty()) {
+        m_lastError = makeError(
+            ErrorCategory::Provider,
+            QStringLiteral("Provider '%1' failed to start the request").arg(provider->name()));
         return {};
+    }
 
     m_inFlight = id;
     if (m_router)
@@ -389,9 +408,11 @@ void Session::onRouterEvent(const ResponseEvent &ev)
     } else if (ev.kind() == ResponseEvent::Kind::Error) {
         const auto *err = ev.as<ResponseEvents::Error>();
         const QString msg = err ? err->message : QStringLiteral("unknown error");
+        const ErrorCategory category = err ? err->category : ErrorCategory::Provider;
+        m_lastError = makeError(category, msg, msg);
         const auto id = m_inFlight;
         m_inFlight.clear();
-        emit failed(id, msg);
+        emit failed(id, m_lastError);
     }
 }
 

@@ -6,6 +6,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QHash>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -123,6 +124,8 @@ AgentConfig configFromMerged(const QJsonObject &obj)
     cfg.systemPrompt = obj.value("system_prompt").toString();
     cfg.enableThinking = obj.value("enable_thinking").toBool(false);
     cfg.enableTools    = obj.value("enable_tools").toBool(false);
+    cfg.cachePrompt    = obj.value("cache_prompt").toBool(false);
+    cfg.cacheTtl       = obj.value("cache_ttl").toString();
     cfg.tags        = stringArray(obj.value("tags"));
 
     const QJsonObject matchObj = obj.value("match").toObject();
@@ -146,6 +149,34 @@ struct RawEntry
 };
 
 constexpr int kMaxExtendsDepth = 32;
+
+void scanDir(
+    const QString &dir,
+    bool isUserLayer,
+    QHash<QString, RawEntry> &raw,
+    QStringList &errors)
+{
+    if (dir.isEmpty()) return;
+    QDir d(dir);
+    if (!d.exists()) return;
+    const QStringList files = d.entryList({"*.toml"}, QDir::Files);
+    for (const QString &fname : files) {
+        const QString fullPath = d.filePath(fname);
+        QString err;
+        auto objOpt = parseTomlFile(fullPath, &err);
+        if (!objOpt) {
+            errors.append(err);
+            continue;
+        }
+        const QString name = objOpt->value("name").toString();
+        if (name.isEmpty()) {
+            errors.append(QStringLiteral("Agent at %1 has no 'name'").arg(fullPath));
+            continue;
+        }
+        const bool overrides = isUserLayer && raw.contains(name);
+        raw.insert(name, {*objOpt, fullPath, overrides});
+    }
+}
 
 QJsonObject resolveExtends(
     const QString &name,
@@ -190,12 +221,47 @@ QJsonObject resolveExtends(
 } // namespace
 
 std::optional<AgentConfig> AgentLoader::parseFile(
-    const QString &path, QString *error, QStringList * /*warnings*/)
+    const QString &path,
+    const QString &qrcPrefix,
+    QString *error,
+    QStringList * /*warnings*/)
 {
     auto objOpt = parseTomlFile(path, error);
     if (!objOpt) return std::nullopt;
-    AgentConfig cfg = configFromMerged(*objOpt);
+
+    const QString name = objOpt->value("name").toString();
+    if (name.isEmpty()) {
+        if (error) *error = QStringLiteral("Agent at %1 has no 'name'").arg(path);
+        return std::nullopt;
+    }
+
+    QHash<QString, RawEntry> raw;
+    QStringList scanErrors;
+    scanDir(qrcPrefix, /*isUserLayer=*/false, raw, scanErrors);
+    scanDir(QFileInfo(path).absolutePath(), /*isUserLayer=*/true, raw, scanErrors);
+    raw.insert(name, {*objOpt, path, raw.contains(name)});
+
+    QSet<QString> visiting;
+    QStringList resolveErrors;
+    const QJsonObject merged = resolveExtends(name, raw, visiting, resolveErrors);
+    if (!resolveErrors.isEmpty() || merged.isEmpty()) {
+        if (error) {
+            *error = resolveErrors.isEmpty()
+                         ? QStringLiteral("Agent '%1' resolved to an empty config").arg(name)
+                         : resolveErrors.join(QStringLiteral("; "));
+        }
+        return std::nullopt;
+    }
+
+    AgentConfig cfg = configFromMerged(merged);
     cfg.sourcePath = path;
+    if (cfg.abstract) {
+        if (error) {
+            *error = QStringLiteral("Agent '%1' is abstract — extend it instead of "
+                                    "loading it directly").arg(name);
+        }
+        return std::nullopt;
+    }
     return cfg;
 }
 
@@ -204,31 +270,8 @@ AgentLoader::LoadResult AgentLoader::load(const QString &qrcPrefix, const QStrin
     LoadResult result;
     QHash<QString, RawEntry> raw;
 
-    auto scan = [&](const QString &dir, bool isUserLayer) {
-        if (dir.isEmpty()) return;
-        QDir d(dir);
-        if (!d.exists()) return;
-        const QStringList files = d.entryList({"*.toml"}, QDir::Files);
-        for (const QString &fname : files) {
-            const QString fullPath = d.filePath(fname);
-            QString err;
-            auto objOpt = parseTomlFile(fullPath, &err);
-            if (!objOpt) {
-                result.errors.append(err);
-                continue;
-            }
-            const QString name = objOpt->value("name").toString();
-            if (name.isEmpty()) {
-                result.errors.append(QStringLiteral("Agent at %1 has no 'name'").arg(fullPath));
-                continue;
-            }
-            const bool overrides = isUserLayer && raw.contains(name);
-            raw.insert(name, {*objOpt, fullPath, overrides});
-        }
-    };
-
-    scan(qrcPrefix, /*isUserLayer=*/false);
-    scan(userDir,   /*isUserLayer=*/true);
+    scanDir(qrcPrefix, /*isUserLayer=*/false, raw, result.errors);
+    scanDir(userDir,   /*isUserLayer=*/true,  raw, result.errors);
 
     for (auto it = raw.constBegin(); it != raw.constEnd(); ++it) {
         const QString &name = it.key();

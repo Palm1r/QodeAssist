@@ -55,6 +55,8 @@ Agent::Agent(AgentConfig config, Providers::Provider *providerOwned, QObject *pa
         return;
     }
     m_provider->setParent(this);
+    m_provider->setPromptCaching(
+        m_config.cachePrompt, m_config.cacheTtl == QLatin1StringView{"1h"});
 
     QString tmplErr;
     m_promptTemplate = JsonPromptTemplate::fromConfig(m_config, &tmplErr);

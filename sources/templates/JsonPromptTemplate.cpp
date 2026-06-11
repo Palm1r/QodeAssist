@@ -310,6 +310,15 @@ ContextData makeValidationContext()
     Message asst;
     asst.role = QStringLiteral("assistant");
     {
+        ContentBlockEntry th;
+        th.kind = ContentBlockEntry::Kind::Thinking;
+        th.thinking = QStringLiteral("reasoning");
+        th.signature = QStringLiteral("sig");
+        asst.blocks.append(th);
+        ContentBlockEntry rth;
+        rth.kind = ContentBlockEntry::Kind::RedactedThinking;
+        rth.signature = QStringLiteral("sig");
+        asst.blocks.append(rth);
         ContentBlockEntry t;
         t.kind = ContentBlockEntry::Kind::Text;
         t.text = QStringLiteral("hi");
@@ -516,9 +525,7 @@ void JsonPromptTemplate::prepareRequest(QJsonObject &request, const ContextData 
 }
 
 bool JsonPromptTemplate::buildFullRequest(
-    QJsonObject &request,
-    const ContextData &context,
-    bool /*thinkingEnabled*/) const
+    QJsonObject &request, const ContextData &context) const
 {
     return mergeRenderedBody(request, renderBody(context));
 }

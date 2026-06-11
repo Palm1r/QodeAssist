@@ -3,6 +3,7 @@ add_library(Session STATIC
     MessageSerializer.hpp MessageSerializer.cpp
     PluginBlocks.hpp
     LLMRequest.hpp
+    ErrorInfo.hpp
     ResponseEvent.hpp
     ConversationHistory.hpp ConversationHistory.cpp
     ResponseRouter.hpp ResponseRouter.cpp

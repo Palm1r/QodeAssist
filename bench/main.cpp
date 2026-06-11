@@ -7,18 +7,23 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QHash>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QRegularExpression>
 #include <QTextStream>
 #include <QTimer>
 
+#include <functional>
 #include <memory>
+#include <optional>
 #include <vector>
 
 #include <LLMQore/BaseClient.hpp>
+#include <LLMQore/BaseTool.hpp>
 #include <LLMQore/ContentBlocks.hpp>
 #include <LLMQore/ToolRegistry.hpp>
+#include <LLMQore/ToolResult.hpp>
 #include <LLMQore/ToolsManager.hpp>
 
 #include <Agent.hpp>
@@ -145,6 +150,69 @@ QString imageMediaType(const QString &path)
     return {};
 }
 
+class BenchEchoTool : public LLMQore::BaseTool
+{
+public:
+    using BaseTool::BaseTool;
+    QString id() const override { return QStringLiteral("bench_echo"); }
+    QString displayName() const override { return QStringLiteral("Bench echo"); }
+    QString description() const override
+    {
+        return QStringLiteral("Echoes the given text back verbatim. "
+                              "Use whenever the user asks to echo something.");
+    }
+    QJsonObject parametersSchema() const override
+    {
+        return QJsonObject{
+            {QStringLiteral("type"), QStringLiteral("object")},
+            {QStringLiteral("properties"),
+             QJsonObject{
+                 {QStringLiteral("text"),
+                  QJsonObject{
+                      {QStringLiteral("type"), QStringLiteral("string")},
+                      {QStringLiteral("description"), QStringLiteral("Text to echo back")}}}}},
+            {QStringLiteral("required"), QJsonArray{QStringLiteral("text")}}};
+    }
+    QFuture<LLMQore::ToolResult> executeAsync(const QJsonObject &input) override
+    {
+        return QtFuture::makeReadyValueFuture(LLMQore::ToolResult::text(
+            QStringLiteral("echo: %1").arg(input.value(QStringLiteral("text")).toString())));
+    }
+};
+
+class BenchAddTool : public LLMQore::BaseTool
+{
+public:
+    using BaseTool::BaseTool;
+    QString id() const override { return QStringLiteral("bench_add"); }
+    QString displayName() const override { return QStringLiteral("Bench add"); }
+    QString description() const override
+    {
+        return QStringLiteral("Adds two numbers and returns the sum. "
+                              "Use whenever the user asks to add numbers.");
+    }
+    QJsonObject parametersSchema() const override
+    {
+        return QJsonObject{
+            {QStringLiteral("type"), QStringLiteral("object")},
+            {QStringLiteral("properties"),
+             QJsonObject{
+                 {QStringLiteral("a"),
+                  QJsonObject{{QStringLiteral("type"), QStringLiteral("number")}}},
+                 {QStringLiteral("b"),
+                  QJsonObject{{QStringLiteral("type"), QStringLiteral("number")}}}}},
+            {QStringLiteral("required"),
+             QJsonArray{QStringLiteral("a"), QStringLiteral("b")}}};
+    }
+    QFuture<LLMQore::ToolResult> executeAsync(const QJsonObject &input) override
+    {
+        const double sum = input.value(QStringLiteral("a")).toDouble()
+                           + input.value(QStringLiteral("b")).toDouble();
+        return QtFuture::makeReadyValueFuture(
+            LLMQore::ToolResult::text(QString::number(sum)));
+    }
+};
+
 void printEvent(const ResponseEvent &ev, bool showThinking)
 {
     switch (ev.kind()) {
@@ -178,8 +246,10 @@ void printEvent(const ResponseEvent &ev, bool showThinking)
             err() << "[tool-result" << (d->isError ? " ERROR" : "") << "] " << d->text << "\n";
         break;
     case ResponseEvent::Kind::Usage:
-        if (const auto *d = ev.as<ResponseEvents::Usage>())
-            err() << "\n[usage] in=" << d->inputTokens << " out=" << d->outputTokens << "\n";
+        if (const auto *d = ev.as<ResponseEvents::Usage>()) {
+            err() << "\n[usage] in=" << d->inputTokens << " out=" << d->outputTokens
+                  << " cached=" << d->cachedTokens << " reasoning=" << d->reasoningTokens << "\n";
+        }
         break;
     case ResponseEvent::Kind::Error:
         if (const auto *d = ev.as<ResponseEvents::Error>())
@@ -212,7 +282,9 @@ int main(int argc, char *argv[])
         QStringList{"f", "file"}, "Load an agent from a TOML file instead of by name.", "path");
     QCommandLineOption promptOpt(
         QStringList{"p", "prompt"},
-        "Prompt text. If omitted, positional args or stdin are used.",
+        "Prompt text. Repeatable: each occurrence is one chat turn, sent after the "
+        "previous turn finishes (history is replayed through the agent template). "
+        "If omitted, positional args or stdin are used as a single turn.",
         "text");
     QCommandLineOption noThinkingOpt("no-thinking", "Hide thinking deltas from output.");
     QCommandLineOption envOpt(
@@ -221,6 +293,11 @@ int main(int argc, char *argv[])
         "path");
     QCommandLineOption apiKeyOpt(
         "api-key", "API key to use for the agent's provider (overrides env/settings).", "value");
+    QCommandLineOption timeoutOpt(
+        "timeout",
+        "Network transfer timeout in seconds (a stalled stream fails instead of hanging). "
+        "Default 60, 0 disables.",
+        "seconds");
     QCommandLineOption projectDirOpt(
         QStringList{"C", "project-dir"},
         "Project root for the agent's context (${PROJECT_DIR}). Defaults to the current directory.",
@@ -233,6 +310,11 @@ int main(int argc, char *argv[])
         "mcp",
         "Load MCP servers from a JSON config (mcpServers map) to give the agent executable tools.",
         "path");
+    QCommandLineOption builtinToolsOpt(
+        "builtin-tools",
+        "Register local test tools (bench_echo, bench_add) and force tools on. "
+        "Lets the model exercise tool calls without an MCP server, e.g. "
+        "-p \"echo hello via the tool\" -p \"now add 2 and 3\".");
     QCommandLineOption fimOpt(
         "fim",
         "Fill-in-the-middle completion mode: send prompt as the prefix and --suffix as the suffix.");
@@ -245,9 +327,11 @@ int main(int argc, char *argv[])
     parser.addOption(noThinkingOpt);
     parser.addOption(envOpt);
     parser.addOption(apiKeyOpt);
+    parser.addOption(timeoutOpt);
     parser.addOption(projectDirOpt);
     parser.addOption(imageOpt);
     parser.addOption(mcpOpt);
+    parser.addOption(builtinToolsOpt);
     parser.addOption(fimOpt);
     parser.addOption(suffixOpt);
     parser.addPositionalArgument("prompt", "Prompt text (alternative to --prompt).", "[prompt...]");
@@ -293,6 +377,20 @@ int main(int argc, char *argv[])
     }
 
     {
+        bool ok = false;
+        const int timeoutSecs = parser.isSet(timeoutOpt)
+                                    ? parser.value(timeoutOpt).toInt(&ok)
+                                    : 60;
+        if (parser.isSet(timeoutOpt) && !ok) {
+            err() << "Invalid --timeout value.\n";
+            return 2;
+        }
+        if (timeoutSecs > 0)
+            if (auto *client = session->client())
+                client->setTransferTimeout(timeoutSecs * 1000);
+    }
+
+    {
         QHash<QString, QString> envFile;
         QString envPath = parser.value(envOpt);
         if (envPath.isEmpty() && QFile::exists(QStringLiteral(".env")))
@@ -327,21 +425,41 @@ int main(int argc, char *argv[])
 
     const QStringList imagePaths = parser.values(imageOpt);
 
-    QString prompt = parser.value(promptOpt);
-    if (prompt.isEmpty())
-        prompt = parser.positionalArguments().join(QLatin1Char(' '));
-    if (prompt.isEmpty() && imagePaths.isEmpty())
-        prompt = readStdin().trimmed();
-    if (prompt.isEmpty() && imagePaths.isEmpty()) {
+    QStringList turns = parser.values(promptOpt);
+    if (turns.isEmpty()) {
+        QString prompt = parser.positionalArguments().join(QLatin1Char(' '));
+        if (prompt.isEmpty() && imagePaths.isEmpty())
+            prompt = readStdin().trimmed();
+        if (!prompt.isEmpty())
+            turns << prompt;
+    }
+    if (turns.isEmpty() && imagePaths.isEmpty()) {
         err() << "Empty prompt.\n";
         return 2;
+    }
+    if (fimMode && turns.size() > 1) {
+        err() << "FIM mode takes a single prompt; extra turns ignored.\n";
+        turns = {turns.first()};
     }
 
     if (!imagePaths.isEmpty() && !session->supportsImages())
         err() << "[warning] agent's provider does not advertise image support.\n";
 
+    std::optional<bool> toolsOverride;
+    if (parser.isSet(builtinToolsOpt) || parser.isSet(mcpOpt))
+        toolsOverride = true;
+
+    if (parser.isSet(builtinToolsOpt)) {
+        auto *tools = session->client()->tools();
+        tools->addTool(new BenchEchoTool(tools));
+        tools->addTool(new BenchAddTool(tools));
+        err() << "[tools] registered bench_echo, bench_add\n";
+    }
+
     const bool showThinking = !parser.isSet(noThinkingOpt);
     int exitCode = 0;
+    int nextTurn = 0;
+    std::function<void()> sendNextTurn;
 
     QObject::connect(
         session, &Session::event, &app, [showThinking](const ResponseEvent &ev) {
@@ -351,63 +469,81 @@ int main(int argc, char *argv[])
         session, &Session::finished, &app,
         [&](const LLMQore::RequestID &, const QString &reason) {
             err() << "\n[done] stopReason=" << (reason.isEmpty() ? "<none>" : reason) << "\n";
+            if (!fimMode && nextTurn < turns.size()) {
+                sendNextTurn();
+                return;
+            }
             QCoreApplication::quit();
         });
     QObject::connect(
         session, &Session::failed, &app,
-        [&](const LLMQore::RequestID &, const QString &msg) {
-            err() << "\n[failed] " << msg << "\n";
+        [&](const LLMQore::RequestID &, const QodeAssist::ErrorInfo &info) {
+            err() << "\n[failed] " << info.message << "\n";
             exitCode = 1;
             QCoreApplication::quit();
         });
+    QObject::connect(
+        session, &Session::cancelled, &app, [&](const LLMQore::RequestID &) {
+            err() << "\n[cancelled]\n";
+            QCoreApplication::quit();
+        });
 
-    auto dispatch = [&] {
-        if (fimMode) {
-            Templates::ContextData ctx;
-            ctx.prefix = prompt;
-            if (parser.isSet(suffixOpt))
-                ctx.suffix = parser.value(suffixOpt);
-            if (session->sendCompletion(std::move(ctx)).isEmpty()) {
-                err() << "Failed to dispatch FIM request (check provider URL / model).\n";
-                exitCode = 1;
-                QCoreApplication::quit();
-            }
-            return;
-        }
-
+    sendNextTurn = [&] {
         std::vector<std::unique_ptr<LLMQore::ContentBlock>> blocks;
-        for (const QString &imgPath : imagePaths) {
-            QFile img(imgPath);
-            if (!img.open(QIODevice::ReadOnly)) {
-                err() << "[image] cannot open: " << imgPath << "\n";
-                exitCode = 1;
-                QCoreApplication::quit();
-                return;
+        if (nextTurn == 0) {
+            for (const QString &imgPath : imagePaths) {
+                QFile img(imgPath);
+                if (!img.open(QIODevice::ReadOnly)) {
+                    err() << "[image] cannot open: " << imgPath << "\n";
+                    exitCode = 1;
+                    QCoreApplication::quit();
+                    return;
+                }
+                const QString media = imageMediaType(imgPath);
+                if (media.isEmpty()) {
+                    err() << "[image] unsupported type: " << imgPath << "\n";
+                    exitCode = 1;
+                    QCoreApplication::quit();
+                    return;
+                }
+                const QString b64 = QString::fromLatin1(img.readAll().toBase64());
+                blocks.push_back(std::make_unique<LLMQore::ImageContent>(
+                    b64, media, LLMQore::ImageContent::ImageSourceType::Base64));
             }
-            const QString media = imageMediaType(imgPath);
-            if (media.isEmpty()) {
-                err() << "[image] unsupported type: " << imgPath << "\n";
-                exitCode = 1;
-                QCoreApplication::quit();
-                return;
-            }
-            const QString b64 = QString::fromLatin1(img.readAll().toBase64());
-            blocks.push_back(std::make_unique<LLMQore::ImageContent>(
-                b64, media, LLMQore::ImageContent::ImageSourceType::Base64));
         }
-        if (!prompt.isEmpty())
-            blocks.push_back(std::make_unique<LLMQore::TextContent>(prompt));
+        const QString text = turns.value(nextTurn);
+        if (!text.isEmpty())
+            blocks.push_back(std::make_unique<LLMQore::TextContent>(text));
         if (blocks.empty()) {
             err() << "Nothing to send.\n";
             exitCode = 1;
             QCoreApplication::quit();
             return;
         }
-        if (session->send(std::move(blocks)).isEmpty()) {
-            err() << "Failed to dispatch request (check provider URL / model).\n";
+        if (turns.size() > 1)
+            err() << "\n[turn " << (nextTurn + 1) << "/" << turns.size() << "] " << text << "\n";
+        ++nextTurn;
+        if (session->send(std::move(blocks), toolsOverride).isEmpty()) {
+            err() << "Failed to dispatch request: " << session->lastError().message << "\n";
             exitCode = 1;
             QCoreApplication::quit();
         }
+    };
+
+    auto dispatch = [&] {
+        if (fimMode) {
+            Templates::ContextData ctx;
+            ctx.prefix = turns.value(0);
+            if (parser.isSet(suffixOpt))
+                ctx.suffix = parser.value(suffixOpt);
+            if (session->sendCompletion(std::move(ctx)).isEmpty()) {
+                err() << "Failed to dispatch FIM request: " << session->lastError().message << "\n";
+                exitCode = 1;
+                QCoreApplication::quit();
+            }
+            return;
+        }
+        sendNextTurn();
     };
 
     if (parser.isSet(mcpOpt)) {

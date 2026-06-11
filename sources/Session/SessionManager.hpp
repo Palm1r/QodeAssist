@@ -22,13 +22,9 @@ class SessionManager : public QObject
     Q_OBJECT
     Q_DISABLE_COPY_MOVE(SessionManager)
 public:
-    explicit SessionManager(QObject *parent = nullptr);
-
-    SessionManager(AgentFactory *agentFactory, QObject *parent = nullptr);
+    explicit SessionManager(AgentFactory *agentFactory, QObject *parent = nullptr);
 
     ~SessionManager() override;
-
-    Session *createSession();
 
     Session *createSession(const QString &agentName, QString *errorOut = nullptr);
 

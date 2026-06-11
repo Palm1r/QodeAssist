@@ -61,7 +61,7 @@ public:
         PromptTemplate *prompt,
         const ContextData &context,
         bool isToolsEnabled,
-        bool isThinkingEnabled);
+        QString *errorOut = nullptr);
     virtual QFuture<QList<QString>> getInstalledModels(const QString &url) = 0;
     virtual ProviderID providerID() const = 0;
     virtual ProviderCapabilities capabilities() const { return {}; }
@@ -73,9 +73,13 @@ public:
     void cancelRequest(const RequestID &requestId);
     ::LLMQore::ToolsManager *toolsManager() const;
 
+    void setPromptCaching(bool enabled, bool extendedTtl);
+
 private:
     QString m_url;
     QString m_apiKey;
+    bool m_promptCachingEnabled = false;
+    bool m_promptCachingExtendedTtl = false;
 };
 
 } // namespace QodeAssist::Providers

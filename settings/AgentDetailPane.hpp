@@ -85,7 +85,7 @@ private:
     QLineEdit *m_filePatternsValue = nullptr;
 
     QPlainTextEdit *m_roleText = nullptr;
-    QPlainTextEdit *m_messageFormat = nullptr;
+    QPlainTextEdit *m_bodyView = nullptr;
 
     SectionBox *m_diagnostics = nullptr;
     QPlainTextEdit *m_diagnosticsView = nullptr;

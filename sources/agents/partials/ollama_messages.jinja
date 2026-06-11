@@ -2,15 +2,36 @@
 { "role": "system", "content": {{ tojson(ctx.system_prompt) }} },
 {% endif %}
 {% for msg in ctx.history %}
-{
-  "role": {{ tojson(msg.role) }},
-  "content": {{ tojson(msg.content) }}
-  {% if existsIn(msg, "images") %}
-  , "images": [
-    {% for img in msg.images %}
-    {{ tojson(img.data) }},
+  {% set tcalls = filter_by_type(msg.content_blocks, "tool_use") %}
+  {% set tresults = filter_by_type(msg.content_blocks, "tool_result") %}
+  {% if length(tresults) > 0 %}
+    {% for b in tresults %}
+    {
+      "role": "tool",
+      "content": {{ tojson(b.content) }}
+      {% if b.name != "" %}
+      , "tool_name": {{ tojson(b.name) }}
+      {% endif %}
+    },
     {% endfor %}
-  ]
+  {% else %}
+  {
+    "role": {{ tojson(msg.role) }},
+    "content": {{ tojson(msg.content) }}
+    {% if length(tcalls) > 0 %}
+    , "tool_calls": [
+      {% for b in tcalls %}
+      { "type": "function", "function": { "name": {{ tojson(b.name) }}, "arguments": {{ tojson(b.input) }} } },
+      {% endfor %}
+    ]
+    {% endif %}
+    {% if existsIn(msg, "images") %}
+    , "images": [
+      {% for img in msg.images %}
+      {{ tojson(img.data) }},
+      {% endfor %}
+    ]
+    {% endif %}
+  },
   {% endif %}
-},
 {% endfor %}

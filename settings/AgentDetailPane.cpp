@@ -227,15 +227,15 @@ AgentDetailPane::AgentDetailPane(QWidget *parent)
         tr("Jinja2 template (via inja) rendered to the request body. "
            "Built-in context: ctx.prefix, ctx.suffix, ctx.history, "
            "ctx.system_prompt, agent.model."));
-    m_messageFormat = new QPlainTextEdit(this);
-    m_messageFormat->setReadOnly(true);
-    m_messageFormat->setFont(monospaceFont(11));
-    m_messageFormat->setMinimumHeight(140);
+    m_bodyView = new QPlainTextEdit(this);
+    m_bodyView->setReadOnly(true);
+    m_bodyView->setFont(monospaceFont(11));
+    m_bodyView->setMinimumHeight(140);
 
     templ->bodyLayout()->addWidget(templHint);
     auto *mfLabel = new QLabel(tr("body:"), this);
     templ->bodyLayout()->addWidget(mfLabel);
-    templ->bodyLayout()->addWidget(m_messageFormat);
+    templ->bodyLayout()->addWidget(m_bodyView);
 
     m_diagnostics = new SectionBox(tr("Load errors"), this);
     m_diagnosticsView = new QPlainTextEdit(this);
@@ -378,7 +378,7 @@ void AgentDetailPane::setAgent(const AgentConfig &cfg)
     m_filePatternsValue->setText(cfg.match.filePatterns.join(QStringLiteral(", ")));
     m_filePatternsValue->setPlaceholderText(tr("(matches every file)"));
 
-    m_messageFormat->setPlainText(
+    m_bodyView->setPlainText(
         cfg.body.isEmpty()
             ? tr("(inherited from parent / none)")
             : QString::fromUtf8(QJsonDocument(cfg.body).toJson(QJsonDocument::Indented)));
@@ -434,7 +434,7 @@ void AgentDetailPane::clear()
     m_effectiveUrl->clear();
     m_roleText->clear();
     m_filePatternsValue->clear();
-    m_messageFormat->clear();
+    m_bodyView->clear();
     m_rawToml->clear();
     m_openBtn->setEnabled(false);
     m_dupBtn->setEnabled(false);

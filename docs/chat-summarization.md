@@ -112,4 +112,3 @@ No additional configuration is required.
 
 - [Agent Roles](agent-roles.md) - Switch between AI personas
 - [File Context](file-context.md) - Attach files to chat
-- [Project Rules](project-rules.md) - Customize AI behavior

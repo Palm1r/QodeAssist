@@ -10,24 +10,12 @@
 
 namespace QodeAssist {
 
-SessionManager::SessionManager(QObject *parent)
-    : QObject(parent)
-{}
-
 SessionManager::SessionManager(AgentFactory *agentFactory, QObject *parent)
     : QObject(parent)
     , m_agentFactory(agentFactory)
 {}
 
 SessionManager::~SessionManager() = default;
-
-Session *SessionManager::createSession()
-{
-    auto *session = new Session(this);
-    m_sessions.append(session);
-    emit sessionCreated(session);
-    return session;
-}
 
 Session *SessionManager::createSession(const QString &agentName, QString *errorOut)
 {

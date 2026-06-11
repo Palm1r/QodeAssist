@@ -390,22 +390,6 @@ void ChatModel::addToolExecutionStatus(
     }
 }
 
-void ChatModel::dropTrailingAssistantMessage(const QString &requestId)
-{
-    if (m_messages.isEmpty())
-        return;
-
-    const Message &last = m_messages.last();
-    if (last.role != ChatRole::Assistant || last.id != requestId)
-        return;
-
-    const int idx = m_messages.size() - 1;
-    beginRemoveRows(QModelIndex(), idx, idx);
-    m_messages.removeLast();
-    endRemoveRows();
-    LOG_MESSAGE(QString("Dropped leaked pre-tool assistant message at index %1").arg(idx));
-}
-
 void ChatModel::setToolMessageData(
     const QString &toolId,
     const QString &toolName,

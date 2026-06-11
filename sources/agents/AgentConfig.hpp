@@ -39,6 +39,8 @@ struct AgentConfig
 
     bool enableThinking = false;
     bool enableTools = false;
+    bool cachePrompt = false;
+    QString cacheTtl;
 
     QJsonObject body;
     QString extendsName;

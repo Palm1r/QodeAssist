@@ -202,9 +202,10 @@ void QuickRefactorHandler::prepareAndSendRequest(
     const LLMQore::RequestID requestId = session->send(std::move(blocks), enableTools);
     if (requestId.isEmpty()) {
         m_isRefactoringInProgress = false;
+        const QString reason = session->lastError().message;
         m_sessionManager->removeSession(session);
-        emitError(QStringLiteral("Failed to start quick refactor request for agent: %1")
-                      .arg(agentName));
+        emitError(QStringLiteral("Failed to start quick refactor request for agent '%1': %2")
+                      .arg(agentName, reason));
         return;
     }
 

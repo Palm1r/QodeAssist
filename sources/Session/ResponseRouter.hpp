@@ -6,6 +6,7 @@
 
 #include <LLMQore/BaseClient.hpp>
 
+#include <QJsonObject>
 #include <QObject>
 #include <QPointer>
 #include <QString>
@@ -41,7 +42,10 @@ private slots:
     void onThinking(
         const LLMQore::RequestID &id, const QString &thinking, const QString &signature);
     void onToolStarted(
-        const LLMQore::RequestID &id, const QString &toolId, const QString &toolName);
+        const LLMQore::RequestID &id,
+        const QString &toolId,
+        const QString &toolName,
+        const QJsonObject &arguments);
     void onToolResultReady(
         const LLMQore::RequestID &id,
         const QString &toolId,

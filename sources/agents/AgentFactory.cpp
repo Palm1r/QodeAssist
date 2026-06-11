@@ -194,7 +194,7 @@ Agent *AgentFactory::createFromFile(
 {
     QString parseErr;
     QStringList warnings;
-    auto cfgOpt = Agents::AgentLoader::parseFile(tomlPath, &parseErr, &warnings);
+    auto cfgOpt = Agents::AgentLoader::parseFile(tomlPath, agentQrcPrefix(), &parseErr, &warnings);
     if (!cfgOpt) {
         if (errorOut) *errorOut = parseErr;
         return nullptr;

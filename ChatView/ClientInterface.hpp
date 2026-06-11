@@ -91,7 +91,6 @@ private:
     {
         QJsonObject originalRequest;
         QPointer<Session> session;
-        bool dropPreToolText = false;
     };
 
     ChatModel *m_chatModel;

@@ -4,9 +4,11 @@
 
 #include "Provider.hpp"
 
+#include "ClaudeCacheControl.hpp"
 #include "PromptTemplate.hpp"
 
 #include <LLMQore/BaseClient.hpp>
+#include <LLMQore/ClaudeClient.hpp>
 #include <LLMQore/ToolsManager.hpp>
 
 #include <QJsonArray>
@@ -25,24 +27,27 @@ bool Provider::prepareRequest(
     PromptTemplate *prompt,
     const ContextData &context,
     bool isToolsEnabled,
-    bool isThinkingEnabled)
+    QString *errorOut)
 {
-    if (!prompt) {
-        LOG_MESSAGE(QString("Provider '%1': null template").arg(name()));
+    const auto fail = [errorOut](const QString &message) {
+        LOG_MESSAGE(message);
+        if (errorOut)
+            *errorOut = message;
         return false;
-    }
+    };
+
+    if (!prompt)
+        return fail(QString("Provider '%1': null template").arg(name()));
 
     if (!prompt->isSupportProvider(providerID())) {
-        LOG_MESSAGE(QString("Template '%1' doesn't support provider '%2'")
+        return fail(QString("Template '%1' doesn't support provider '%2'")
                         .arg(prompt->name(), name()));
-        return false;
     }
 
-    if (!prompt->buildFullRequest(request, context, isThinkingEnabled)) {
-        LOG_MESSAGE(
-            QString("Provider '%1': template '%2' failed to build request")
+    if (!prompt->buildFullRequest(request, context)) {
+        return fail(
+            QString("Provider '%1': template '%2' failed to build request (see log)")
                 .arg(name(), prompt->name()));
-        return false;
     }
 
     if (isToolsEnabled) {
@@ -51,7 +56,19 @@ bool Provider::prepareRequest(
             request["tools"] = toolsDefinitions;
         }
     }
+
+    if (m_promptCachingEnabled)
+        ClaudeCacheControl::apply(request, m_promptCachingExtendedTtl);
+
     return true;
+}
+
+void Provider::setPromptCaching(bool enabled, bool extendedTtl)
+{
+    m_promptCachingEnabled = enabled;
+    m_promptCachingExtendedTtl = enabled && extendedTtl;
+    if (auto *claude = qobject_cast<::LLMQore::ClaudeClient *>(client()))
+        claude->setUseExtendedCacheTTL(m_promptCachingExtendedTtl);
 }
 
 RequestID Provider::sendRequest(

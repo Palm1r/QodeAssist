@@ -102,7 +102,6 @@ public:
         const QString &toolId,
         const QString &toolName,
         const QJsonObject &toolArguments);
-    void dropTrailingAssistantMessage(const QString &requestId);
     void setToolMessageData(
         const QString &toolId,
         const QString &toolName,

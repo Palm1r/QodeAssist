@@ -47,9 +47,7 @@ public:
     void prepareRequest(QJsonObject &request, const ContextData &context) const override;
 
     [[nodiscard]] bool buildFullRequest(
-        QJsonObject &request,
-        const ContextData &context,
-        bool thinkingEnabled = false) const override;
+        QJsonObject &request, const ContextData &context) const override;
 
 private:
     JsonPromptTemplate() = default;
