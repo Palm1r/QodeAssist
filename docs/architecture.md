@@ -292,6 +292,11 @@ replaced the previously exposed `ignoreManager()`.
   asserts the assistant message is stamped with the request id, history is built
   correctly (thinking + text + tool use/result), the typed event stream is emitted,
   and wire errors are categorized.
+- `BundledAgentsTest` — loads every bundled agent through the real loader (extends
+  + partials resolved from the qrc) and renders each `[body]` against the synthetic
+  validation context. This is the load-time validation guarantee run in CI: a broken
+  bundled body, partial, or `extends` chain fails the test instead of surfacing as a
+  silent runtime drop.
 
 ---
 
@@ -300,8 +305,8 @@ replaced the previously exposed `ignoreManager()`.
 1. **Qt-Creator-free core build + CI** — `AgentFactory` / `ContextRenderer` still
    call `Core::ICore::userResourcePath`, so the core targets link `QtCreator::Core`.
    A `ResourcePaths` port + adapter would let the core build without Qt Creator and
-   enable a CI job that fails on a layering-violating include, plus golden
-   rendered-body snapshots over the bundled agents loaded through the real loader.
+   enable a CI job that fails on a layering-violating include. (The bundled-agent
+   render check already runs in the QtC-linked test binary — see §8.)
 2. **§9 target module layout** — the `core/ ide/ features/ hosts/` physical target
    split in `target-architecture.md` is not yet reflected in the directory layout.
 ```
