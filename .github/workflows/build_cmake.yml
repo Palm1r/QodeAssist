@@ -27,7 +27,7 @@ jobs:
         config:
         - {
             name: "Windows Latest MSVC", artifact: "Windows-x64",
-            os: windows-latest,
+            os: windows-2022,
             platform: windows_x64,
             cc: "cl", cxx: "cl",
             environment_script: "C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Auxiliary/Build/vcvars64.bat",
@@ -52,6 +52,10 @@ jobs:
         - {
             qt_version: "6.10.3",
             qt_creator_version: "19.0.2"
+          }
+        - {
+            qt_version: "6.11.1",
+            qt_creator_version: "20.0.0"
           }
 
     steps:
@@ -110,10 +114,14 @@ jobs:
         set(qt_creator_version "${{ matrix.qt_config.qt_creator_version }}")
 
         string(REPLACE "." "" qt_version_dotless "${qt_version}")
+        set(qt_repo_dir "qt6_${qt_version_dotless}")
         if ("${{ runner.os }}" STREQUAL "Windows")
           set(url_os "windows_x86")
           set(qt_package_arch_suffix "win64_msvc2022_64")
           set(qt_dir_prefix "${qt_version}/msvc2022_64")
+          if (qt_version VERSION_GREATER_EQUAL "6.11.0")
+            set(qt_repo_dir "qt6_${qt_version_dotless}_msvc2022_64")
+          endif()
           if (qt_creator_version VERSION_GREATER_EQUAL "18.0.0")
             set(qt_package_suffix "-Windows-Windows_11_24H2-MSVC2022-Windows-Windows_11_24H2-X86_64")
           else()
@@ -127,7 +135,9 @@ jobs:
             set(qt_package_arch_suffix "linux_gcc_64")
           endif()
           set(qt_dir_prefix "${qt_version}/gcc_64")
-          if (qt_creator_version VERSION_GREATER_EQUAL "18.0.0")
+          if (qt_version VERSION_GREATER_EQUAL "6.11.0")
+            set(qt_package_suffix "-Linux-RHEL_9_6-GCC-Linux-RHEL_9_6-X86_64")
+          elseif (qt_creator_version VERSION_GREATER_EQUAL "18.0.0")
             set(qt_package_suffix "-Linux-RHEL_9_4-GCC-Linux-RHEL_9_4-X86_64")
           else()
             set(qt_package_suffix "-Linux-RHEL_8_10-GCC-Linux-RHEL_8_10-X86_64")
@@ -143,7 +153,7 @@ jobs:
           endif()
         endif()
 
-        set(qt_base_url "https://download.qt.io/online/qtsdkrepository/${url_os}/desktop/qt6_${qt_version_dotless}/qt6_${qt_version_dotless}")
+        set(qt_base_url "https://download.qt.io/online/qtsdkrepository/${url_os}/desktop/qt6_${qt_version_dotless}/${qt_repo_dir}")
         file(DOWNLOAD "${qt_base_url}/Updates.xml" ./Updates.xml SHOW_PROGRESS)
 
         file(READ ./Updates.xml updates_xml)
@@ -170,7 +180,11 @@ jobs:
           )
         endforeach()
 
-        foreach(package qt5compat qtshadertools)
+        set(qt_addon_packages qt5compat qtshadertools)
+        if (qt_version VERSION_GREATER_EQUAL "6.11.0")
+          list(APPEND qt_addon_packages qttasktree)
+        endif()
+        foreach(package ${qt_addon_packages})
           downloadAndExtract(
             "${qt_base_url}/qt.qt6.${qt_version_dotless}.addons.${package}.${qt_package_arch_suffix}/${qt_package_version}${package}${qt_package_suffix}.7z"
             ${package}.7z
@@ -236,7 +250,7 @@ jobs:
         endif()
 
         set(build_plugin_py "scripts/build_plugin.py")
-        foreach(dir "share/qtcreator/scripts" "Qt Creator.app/Contents/Resources/scripts" "Contents/Resources/scripts")
+        foreach(dir "share/qtcreator/scripts" "Qt Creator.sdk/share/qtcreator/scripts" "Qt Creator.app/Contents/Resources/scripts" "Contents/Resources/scripts")
           if(EXISTS "${{ steps.qt_creator.outputs.qtc_dir }}/${dir}/build_plugin.py")
             set(build_plugin_py "${dir}/build_plugin.py")
             break()
