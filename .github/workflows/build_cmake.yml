@@ -45,17 +45,17 @@ jobs:
             cc: "clang", cxx: "clang++"
           }
         qt_config:
-        # - {
-        #     qt_version: "6.10.1",
-        #     qt_creator_version: "18.0.2"
-        #   }
-        # - {
-        #     qt_version: "6.10.3",
-        #     qt_creator_version: "19.0.2"
-        #   }
+        - {
+            qt_version: "6.10.1",
+            qt_creator_version: "18.0.2"
+          }
+        - {
+            qt_version: "6.10.3",
+            qt_creator_version: "19.0.2"
+          }
         - {
             qt_version: "6.11.1",
-            qt_creator_version: "20.0.0-rc1"
+            qt_creator_version: "20.0.0"
           }
 
     steps:
