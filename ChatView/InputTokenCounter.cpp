@@ -4,9 +4,6 @@
 
 #include "InputTokenCounter.hpp"
 
-#include <algorithm>
-
-#include "Logger.hpp"
 #include "context/ContextManager.hpp"
 #include "context/TokenUtils.hpp"
 
@@ -49,8 +46,6 @@ void InputTokenCounter::setLinkedFiles(const QStringList &linkedFiles)
 
 void InputTokenCounter::recompute()
 {
-    int inputTokens = m_messageTokens;
-
     const auto splitImageEstimate = [](const QStringList &paths, QStringList &textPaths) {
         int imageTokens = 0;
         for (const QString &p : paths) {
@@ -62,14 +57,23 @@ void InputTokenCounter::recompute()
         return imageTokens;
     };
 
+    int pendingTokens = m_messageTokens;
     if (!m_attachments.isEmpty()) {
         QStringList textPaths;
-        inputTokens += splitImageEstimate(m_attachments, textPaths);
+        pendingTokens += splitImageEstimate(m_attachments, textPaths);
         if (!textPaths.isEmpty()) {
             auto attachFiles = m_contextManager->getContentFiles(textPaths);
-            inputTokens += Context::TokenUtils::estimateFilesTokens(attachFiles);
+            pendingTokens += Context::TokenUtils::estimateFilesTokens(attachFiles);
         }
     }
+
+    if (m_hasServerUsage && m_history && !m_history->isEmpty()) {
+        m_inputTokens = m_serverInputTokens + pendingTokens;
+        emit inputTokensChanged();
+        return;
+    }
+
+    int inputTokens = pendingTokens;
 
     if (!m_linkedFiles.isEmpty()) {
         QStringList textPaths;
@@ -87,33 +91,25 @@ void InputTokenCounter::recompute()
         }
     }
 
-    m_inputTokens = static_cast<int>(inputTokens * m_calibrationFactor);
+    m_inputTokens = inputTokens;
     emit inputTokensChanged();
 }
 
-void InputTokenCounter::recordSent()
+void InputTokenCounter::recordServerUsage(int promptTokens, int cachedTokens)
 {
-    m_lastSentEstimate = m_calibrationFactor > 0.0
-                             ? static_cast<int>(m_inputTokens / m_calibrationFactor)
-                             : m_inputTokens;
-}
-
-void InputTokenCounter::recordServerUsage(int promptTokens)
-{
-    if (promptTokens <= 0 || m_lastSentEstimate <= 0)
+    const int serverInput = promptTokens + cachedTokens;
+    if (serverInput <= 0)
         return;
 
-    const double rawFactor
-        = static_cast<double>(promptTokens) / static_cast<double>(m_lastSentEstimate);
-    const double clamped = std::clamp(rawFactor, 0.5, 3.0);
-    m_calibrationFactor = 0.5 * m_calibrationFactor + 0.5 * clamped;
+    m_serverInputTokens = serverInput;
+    m_hasServerUsage = true;
+    recompute();
+}
 
-    LOG_MESSAGE(QString("Token calibration: server=%1 estimated=%2 ratio=%3 ema=%4")
-                    .arg(promptTokens)
-                    .arg(m_lastSentEstimate)
-                    .arg(rawFactor, 0, 'f', 3)
-                    .arg(m_calibrationFactor, 0, 'f', 3));
-
+void InputTokenCounter::resetServerUsage()
+{
+    m_serverInputTokens = 0;
+    m_hasServerUsage = false;
     recompute();
 }
 

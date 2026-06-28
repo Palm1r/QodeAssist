@@ -131,6 +131,7 @@ ChatRootView::ChatRootView(QQuickItem *parent)
 
     connect(m_chatModel, &ChatModel::modelReseted, this, [this]() {
         setRecentFilePath(QString{});
+        m_tokenCounter->resetServerUsage();
         m_fileEditController->clearCurrentRequestId();
     });
     auto maybeEmitTitle = [this] {
@@ -231,8 +232,8 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         m_clientInterface,
         &ClientInterface::messageUsageReceived,
         this,
-        [this](int promptTokens, int /*completionTokens*/, int /*cached*/, int /*reasoning*/) {
-            m_tokenCounter->recordServerUsage(promptTokens);
+        [this](int promptTokens, int /*completionTokens*/, int cachedTokens, int /*reasoning*/) {
+            m_tokenCounter->recordServerUsage(promptTokens, cachedTokens);
         });
 
     connect(
@@ -488,8 +489,6 @@ void ChatRootView::dispatchSend(
             LOG_MESSAGE(QString("Set chat file path for new chat: %1").arg(filePath));
         }
     }
-
-    m_tokenCounter->recordSent();
 
     if (currentChatAgent().isEmpty())
         loadAvailableChatAgents();

@@ -34,8 +34,8 @@ public:
     void setLinkedFiles(const QStringList &linkedFiles);
     void recompute();
 
-    void recordSent();
-    void recordServerUsage(int promptTokens);
+    void recordServerUsage(int promptTokens, int cachedTokens);
+    void resetServerUsage();
 
 signals:
     void inputTokensChanged();
@@ -48,8 +48,8 @@ private:
     QStringList m_linkedFiles;
     int m_messageTokens{0};
     int m_inputTokens{0};
-    int m_lastSentEstimate{0};
-    double m_calibrationFactor{1.0};
+    int m_serverInputTokens{0};
+    bool m_hasServerUsage{false};
 };
 
 } // namespace QodeAssist::Chat
