@@ -370,7 +370,7 @@ TEST_F(DocumentContextReaderTest, testPrepareContext)
         (QodeAssist::Templates::ContextData{
             .prefix = "Line 0\nLine 1\nLin",
             .suffix = "e 2\nLine 3\nLine 4",
-            .fileContext = "\n Language:  (MIME: text/python) filepath: /path/to/file()\n\n"
+            .fileContext = "\nFile information:\nMIME type: text/python\nFile path: /path/to/file\n\n"
                            "Recent Project Changes Context:\n "}));
 
     EXPECT_EQ(
@@ -378,7 +378,7 @@ TEST_F(DocumentContextReaderTest, testPrepareContext)
         (QodeAssist::Templates::ContextData{
             .prefix = "Line 1\nLin",
             .suffix = "e 2\nLine 3",
-            .fileContext = "\n Language:  (MIME: text/python) filepath: /path/to/file()\n\n"
+            .fileContext = "\nFile information:\nMIME type: text/python\nFile path: /path/to/file\n\n"
                            "Recent Project Changes Context:\n "}));
 
     EXPECT_EQ(
@@ -386,7 +386,7 @@ TEST_F(DocumentContextReaderTest, testPrepareContext)
         (QodeAssist::Templates::ContextData{
             .prefix = "Line 0\nLine 1\nLin",
             .suffix = "e 2\nLine 3\nLine 4",
-            .fileContext = "\n Language:  (MIME: text/python) filepath: /path/to/file()\n\n"
+            .fileContext = "\nFile information:\nMIME type: text/python\nFile path: /path/to/file\n\n"
                            "Recent Project Changes Context:\n "}));
 }
 

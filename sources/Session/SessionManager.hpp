@@ -34,6 +34,10 @@ public:
         ConversationHistory *externalHistory,
         QString *errorOut = nullptr);
 
+    Session *createDetachedSession(ConversationHistory *externalHistory, QObject *parent);
+
+    bool rebindAgentByName(Session *session, const QString &agentName, QString *errorOut = nullptr);
+
     Session *acquire(const QString &agentName, QString *errorOut = nullptr);
     void release(Session *session);
 

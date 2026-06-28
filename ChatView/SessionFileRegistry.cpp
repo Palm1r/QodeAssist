@@ -8,29 +8,43 @@
 
 #include <QFileInfo>
 
+#include <Session.hpp>
+
 namespace QodeAssist::Chat {
 
 SessionFileRegistry::SessionFileRegistry(QObject *parent)
     : QObject(parent)
 {}
 
+SessionFileRegistry::~SessionFileRegistry() = default;
+
 bool SessionFileRegistry::isLocked(const QString &path) const
 {
-    return !path.isEmpty() && m_lockedPaths.contains(path);
+    return !path.isEmpty() && !m_locks.value(path).isNull();
 }
 
-bool SessionFileRegistry::lock(const QString &path)
+bool SessionFileRegistry::isLockedByOther(const QString &path, QodeAssist::Session *self) const
 {
-    if (path.isEmpty() || m_lockedPaths.contains(path)) {
+    if (path.isEmpty())
         return false;
-    }
-    m_lockedPaths.insert(path);
+    const auto owner = m_locks.value(path);
+    return !owner.isNull() && owner != self;
+}
+
+bool SessionFileRegistry::lock(const QString &path, QodeAssist::Session *owner)
+{
+    if (path.isEmpty())
+        return false;
+    const auto existing = m_locks.value(path);
+    if (!existing.isNull() && existing != owner)
+        return false;
+    m_locks.insert(path, owner);
     return true;
 }
 
 void SessionFileRegistry::release(const QString &path)
 {
-    m_lockedPaths.remove(path);
+    m_locks.remove(path);
 }
 
 void SessionFileRegistry::setPendingChatFile(const QString &path)
@@ -45,7 +59,7 @@ QString SessionFileRegistry::takePendingChatFile()
 
 QString SessionFileRegistry::uniqueFreePath(const QString &desiredPath) const
 {
-    if (desiredPath.isEmpty() || !m_lockedPaths.contains(desiredPath)) {
+    if (desiredPath.isEmpty() || !isLocked(desiredPath)) {
         return desiredPath;
     }
 
@@ -59,7 +73,7 @@ QString SessionFileRegistry::uniqueFreePath(const QString &desiredPath) const
         if (!suffix.isEmpty()) {
             candidate += '.' + suffix;
         }
-        if (!m_lockedPaths.contains(candidate)) {
+        if (!isLocked(candidate)) {
             return candidate;
         }
     }

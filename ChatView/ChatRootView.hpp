@@ -21,6 +21,7 @@ namespace QodeAssist {
 class AgentFactory;
 class SessionManager;
 class ConversationHistory;
+class Session;
 }
 
 namespace QodeAssist::Chat {
@@ -233,6 +234,7 @@ private:
     Skills::SkillsManager *skillsManager() const;
     AgentFactory *agentFactory() const;
     SessionManager *sessionManager() const;
+    QodeAssist::Session *ownerSession();
 
     QodeAssist::ConversationHistory *m_history;
     ChatModel *m_chatModel;

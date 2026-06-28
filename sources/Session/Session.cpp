@@ -33,14 +33,33 @@ Session::Session(Agent *agent, QObject *parent)
 
 Session::Session(Agent *agent, ConversationHistory *externalHistory, QObject *parent)
     : QObject(parent)
-    , m_agent(agent)
     , m_history(externalHistory ? externalHistory : new ConversationHistory(this))
     , m_systemPrompt(new SystemPromptBuilder(this))
 {
-    if (!m_agent) {
-        m_invalidReason = QStringLiteral("Session: agent is null");
+    if (agent)
+        setAgent(agent);
+}
+
+void Session::setAgent(Agent *agent)
+{
+    if (agent == m_agent)
         return;
+
+    if (isInFlight())
+        teardownInFlight();
+
+    if (m_router) {
+        delete m_router;
+        m_router = nullptr;
     }
+
+    delete m_agent;
+    m_agent = agent;
+    m_invalidReason.clear();
+
+    if (!m_agent)
+        return;
+
     m_agent->setParent(this);
 
     if (!m_agent->isValid()) {
@@ -55,8 +74,7 @@ Session::Session(Agent *agent, ConversationHistory *externalHistory, QObject *pa
         return;
     }
     if (!m_agent->promptTemplate()) {
-        m_invalidReason
-            = QStringLiteral("Session: agent has no inline prompt template");
+        m_invalidReason = QStringLiteral("Session: agent has no inline prompt template");
         return;
     }
 
@@ -83,6 +101,16 @@ QString Session::invalidReason() const
 bool Session::isInFlight() const noexcept
 {
     return !m_inFlight.isEmpty();
+}
+
+bool Session::hasAgent() const noexcept
+{
+    return m_agent != nullptr;
+}
+
+bool Session::canSend() const noexcept
+{
+    return isValid() && m_agent != nullptr && client() != nullptr;
 }
 
 const ErrorInfo &Session::lastError() const noexcept
@@ -128,8 +156,12 @@ void Session::unpinContext(const QString &id)
 
 LLMQore::RequestID Session::send(std::vector<std::unique_ptr<LLMQore::ContentBlock>> userBlocks)
 {
-    if (!isValid()) {
-        m_lastError = makeError(ErrorCategory::Config, invalidReason());
+    if (!canSend()) {
+        const QString reason = m_agent ? (invalidReason().isEmpty()
+                                              ? QStringLiteral("Session: agent has no live client")
+                                              : invalidReason())
+                                       : QStringLiteral("Session: no agent bound");
+        m_lastError = makeError(ErrorCategory::Config, reason);
         return {};
     }
     if (userBlocks.empty() || !m_history) {

@@ -55,6 +55,9 @@ public:
     void setChatFilePath(const QString &filePath);
     QString chatFilePath() const;
 
+    void ensureSession();
+    Session *session() const;
+
 signals:
     void errorOccurred(const QString &error);
     void messageReceivedCompletely();
@@ -63,6 +66,8 @@ signals:
         int promptTokens, int completionTokens, int cachedPromptTokens, int reasoningTokens);
 
 private:
+    bool ensureAgentBound();
+
     void onSessionEvent(Session *session, const QodeAssist::ResponseEvent &ev);
     void onSessionFinished(const QString &requestId);
     void onSessionFailed(const QString &requestId, const QodeAssist::ErrorInfo &error);
@@ -85,7 +90,9 @@ private:
     QPointer<ConversationHistory> m_history;
     Skills::SkillsManager *m_skillsManager = nullptr;
     QPointer<SessionManager> m_sessionManager;
+    QPointer<Session> m_session;
     QString m_activeAgent;
+    QString m_boundAgent;
     QString m_chatFilePath;
     std::shared_ptr<StoredContentCache> m_contentCache;
 

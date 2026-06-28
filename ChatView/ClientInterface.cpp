@@ -97,6 +97,55 @@ void ClientInterface::setActiveAgent(const QString &agentName)
     m_activeAgent = agentName;
 }
 
+Session *ClientInterface::session() const
+{
+    return m_session;
+}
+
+void ClientInterface::ensureSession()
+{
+    if (m_session || !m_sessionManager || !m_history)
+        return;
+
+    m_session = m_sessionManager->createDetachedSession(m_history, this);
+
+    connect(m_session, &Session::event, this, [this](const QodeAssist::ResponseEvent &ev) {
+        onSessionEvent(m_session, ev);
+    });
+    connect(m_session, &Session::finished, this, [this](const LLMQore::RequestID &id, const QString &) {
+        onSessionFinished(id);
+    });
+    connect(
+        m_session,
+        &Session::failed,
+        this,
+        [this](const LLMQore::RequestID &id, const QodeAssist::ErrorInfo &error) {
+            onSessionFailed(id, error);
+        });
+}
+
+bool ClientInterface::ensureAgentBound()
+{
+    if (m_session->hasAgent() && m_boundAgent == m_activeAgent)
+        return true;
+
+    QString agentError;
+    if (!m_sessionManager->rebindAgentByName(m_session, m_activeAgent, &agentError)) {
+        m_boundAgent.clear();
+        const QString error = agentError.isEmpty() ? QStringLiteral("No chat agent selected")
+                                                   : agentError;
+        LOG_MESSAGE(error);
+        emit errorOccurred(error);
+        return false;
+    }
+    m_boundAgent = m_activeAgent;
+
+    if (auto *client = m_session->client())
+        m_sessionManager->toolContributors().contribute(client->tools());
+
+    return true;
+}
+
 void ClientInterface::sendMessage(
     const QString &message,
     const QList<QString> &attachments,
@@ -173,22 +222,21 @@ void ClientInterface::sendMessage(
         return;
     }
 
-    QString sessionError;
-    Session *session = m_sessionManager->createSession(m_activeAgent, m_history, &sessionError);
-    if (!session) {
-        const QString error = sessionError.isEmpty()
-                                  ? QStringLiteral("No chat agent selected")
-                                  : sessionError;
+    ensureSession();
+    if (!m_session) {
+        const QString error = QStringLiteral("Failed to create chat session");
         LOG_MESSAGE(error);
         emit errorOccurred(error);
         return;
     }
 
-    auto *client = session->client();
+    if (!ensureAgentBound())
+        return;
+
+    auto *client = m_session->client();
     if (!client) {
         const QString error = QStringLiteral("Chat agent has no live client");
         LOG_MESSAGE(error);
-        m_sessionManager->removeSession(session);
         emit errorOccurred(error);
         return;
     }
@@ -197,26 +245,27 @@ void ClientInterface::sendMessage(
     Templates::ContextRenderer::Bindings bindings;
     bindings.projectDir = project ? project->projectDirectory().toFSPathString() : QString();
     bindings.configDir = AgentFactory::userConfigDir();
-    session->setContextBindings(bindings);
+    m_session->setContextBindings(bindings);
 
     const QString chatFilePath = m_chatFilePath;
-    session->setContentLoader([chatFilePath, cache = m_contentCache](const QString &storedPath) {
+    m_session->setContentLoader([chatFilePath, cache = m_contentCache](const QString &storedPath) {
         return ChatSerializer::loadContentFromStorage(chatFilePath, storedPath, cache.get());
     });
 
-    m_sessionManager->toolContributors().contribute(client->tools());
     client->toolLoop()->setMaxRounds(Settings::toolsSettings().maxToolContinuations());
     client->setTransferTimeout(
         static_cast<int>(Settings::generalSettings().requestTimeout() * 1000));
 
     const QString chatContext = buildChatContextLayer();
-    if (!chatContext.isEmpty())
-        session->systemPrompt()->setLayer(QStringLiteral("chat.context"), chatContext);
+    if (chatContext.isEmpty())
+        m_session->systemPrompt()->clearLayer(QStringLiteral("chat.context"));
+    else
+        m_session->systemPrompt()->setLayer(QStringLiteral("chat.context"), chatContext);
 
     if (linkedFiles.isEmpty()) {
-        session->unpinContext(QStringLiteral("chat.files"));
+        m_session->unpinContext(QStringLiteral("chat.files"));
     } else {
-        session->pinContext(
+        m_session->pinContext(
             QStringLiteral("chat.files"),
             [contextManager = QPointer<Context::ContextManager>(m_contextManager),
              linkedFiles]() -> QString {
@@ -265,29 +314,16 @@ void ClientInterface::sendMessage(
         }
     }
 
-    connect(session, &Session::event, this, [this, session](const QodeAssist::ResponseEvent &ev) {
-        onSessionEvent(session, ev);
-    });
-    connect(
-        session, &Session::finished, this,
-        [this](const LLMQore::RequestID &id, const QString &) { onSessionFinished(id); });
-    connect(
-        session, &Session::failed, this,
-        [this](const LLMQore::RequestID &id, const QodeAssist::ErrorInfo &error) {
-            onSessionFailed(id, error);
-        });
-
-    const LLMQore::RequestID requestId = session->send(std::move(blocks));
+    const LLMQore::RequestID requestId = m_session->send(std::move(blocks));
     if (requestId.isEmpty()) {
         const QString error = QStringLiteral("Failed to start chat request for agent '%1': %2")
-                                  .arg(m_activeAgent, session->lastError().message);
+                                  .arg(m_activeAgent, m_session->lastError().message);
         LOG_MESSAGE(error);
-        m_sessionManager->removeSession(session);
         emit errorOccurred(error);
         return;
     }
 
-    m_activeRequests[requestId] = {QJsonObject{{"id", requestId}}, session};
+    m_activeRequests[requestId] = {QJsonObject{{"id", requestId}}, m_session};
 
     emit requestStarted(requestId);
 }
@@ -337,8 +373,6 @@ void ClientInterface::onSessionFinished(const QString &requestId)
     if (it == m_activeRequests.end())
         return;
 
-    Session *session = it.value().session;
-
     QString applyError;
     if (!Context::ChangesManager::instance().applyPendingEditsForRequest(requestId, &applyError)) {
         LOG_MESSAGE(QString("Some edits for request %1 were not auto-applied: %2")
@@ -348,9 +382,6 @@ void ClientInterface::onSessionFinished(const QString &requestId)
     emit messageReceivedCompletely();
 
     m_activeRequests.erase(it);
-
-    if (session && m_sessionManager)
-        m_sessionManager->removeSession(session);
 }
 
 void ClientInterface::onSessionFailed(const QString &requestId, const QodeAssist::ErrorInfo &error)
@@ -359,15 +390,10 @@ void ClientInterface::onSessionFailed(const QString &requestId, const QodeAssist
     if (it == m_activeRequests.end())
         return;
 
-    Session *session = it.value().session;
-
     LOG_MESSAGE(QString("Chat request %1 failed: %2").arg(requestId, error.message));
     emit errorOccurred(error.message);
 
     m_activeRequests.erase(it);
-
-    if (session && m_sessionManager)
-        m_sessionManager->removeSession(session);
 }
 
 QStringList ClientInterface::invokedSkillNames(const QString &message) const
@@ -419,20 +445,18 @@ QString ClientInterface::buildChatContextLayer() const
 
 void ClientInterface::clearMessages()
 {
+    if (m_session)
+        m_session->cancel();
+    m_activeRequests.clear();
     if (m_history)
         m_history->clear();
 }
 
 void ClientInterface::cancelRequest()
 {
-    const auto requests = m_activeRequests;
     m_activeRequests.clear();
-
-    for (auto it = requests.begin(); it != requests.end(); ++it) {
-        Session *session = it.value().session;
-        if (session && m_sessionManager)
-            m_sessionManager->removeSession(session);
-    }
+    if (m_session)
+        m_session->cancel();
 
     LOG_MESSAGE("All chat requests cancelled and state cleared");
 }

@@ -98,7 +98,7 @@ TEST(AgentLoaderTest, UserAgentCollidingWithBundledNameIsRejected)
     const AgentConfig *cfg = findConfig(result, QStringLiteral("A"));
     ASSERT_NE(cfg, nullptr);
     EXPECT_EQ(cfg->description, QStringLiteral("base"));
-    EXPECT_FALSE(cfg->isUserSource());
+    EXPECT_TRUE(cfg->sourcePath.startsWith(bundled.path()));
 }
 
 TEST(AgentLoaderTest, HiddenIsNotInherited)

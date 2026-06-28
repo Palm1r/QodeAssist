@@ -357,6 +357,15 @@ SessionManager *ChatRootView::sessionManager() const
     return m_sessionManager;
 }
 
+QodeAssist::Session *ChatRootView::ownerSession()
+{
+    if (!m_clientInterface)
+        return nullptr;
+    m_clientInterface->setSessionManager(sessionManager());
+    m_clientInterface->ensureSession();
+    return m_clientInterface->session();
+}
+
 void ChatRootView::loadAvailableChatAgents()
 {
     m_agentController->setAgentFactory(agentFactory());
@@ -535,13 +544,12 @@ void ChatRootView::clearMessages()
 
 void ChatRootView::saveHistory(const QString &filePath)
 {
-    if (filePath != m_recentFilePath) {
-        if (auto registry = sessionFileRegistry(); registry && registry->isLocked(filePath)) {
-            m_lastErrorMessage
-                = tr("This chat file is already in use by another QodeAssist chat session.");
-            emit lastErrorMessageChanged();
-            return;
-        }
+    if (auto registry = sessionFileRegistry();
+        registry && registry->isLockedByOther(filePath, ownerSession())) {
+        m_lastErrorMessage = tr(
+            "This chat file is already in use by another QodeAssist chat session.");
+        emit lastErrorMessageChanged();
+        return;
     }
 
     auto result = m_historyStore->save(filePath);
@@ -554,13 +562,11 @@ void ChatRootView::saveHistory(const QString &filePath)
 
 void ChatRootView::loadHistory(const QString &filePath)
 {
-    if (filePath != m_recentFilePath) {
-        if (auto registry = sessionFileRegistry(); registry && registry->isLocked(filePath)) {
-            m_lastErrorMessage
-                = tr("This chat is already open in another QodeAssist chat session.");
-            emit lastErrorMessageChanged();
-            return;
-        }
+    if (auto registry = sessionFileRegistry();
+        registry && registry->isLockedByOther(filePath, ownerSession())) {
+        m_lastErrorMessage = tr("This chat is already open in another QodeAssist chat session.");
+        emit lastErrorMessageChanged();
+        return;
     }
 
     auto result = m_historyStore->load(filePath);
@@ -1032,7 +1038,7 @@ void ChatRootView::setRecentFilePath(const QString &filePath)
             registry->release(m_recentFilePath);
         }
         if (!filePath.isEmpty()) {
-            registry->lock(filePath);
+            registry->lock(filePath, ownerSession());
         }
     }
 

@@ -4,24 +4,31 @@
 
 #pragma once
 
+#include <QHash>
 #include <QObject>
-#include <QSet>
+#include <QPointer>
 #include <QString>
+
+namespace QodeAssist {
+class Session;
+}
 
 namespace QodeAssist::Chat {
 
-// Shared registry of chat session (autosave) file paths that are currently held by a live
-// chat instance. Lets every chat view — bottom pane, navigation panel, editor split — claim
-// a unique history file so two sessions never autosave into the same path.
+// Shared registry mapping each chat (autosave) file to the live Session that owns it, so a
+// file is busy only while its owning Session is alive (a destroyed Session frees it — the
+// QPointer goes null). Keeps two chat views from autosaving into the same path.
 class SessionFileRegistry : public QObject
 {
     Q_OBJECT
 
 public:
     explicit SessionFileRegistry(QObject *parent = nullptr);
+    ~SessionFileRegistry() override;
 
     bool isLocked(const QString &path) const;
-    bool lock(const QString &path);
+    bool isLockedByOther(const QString &path, QodeAssist::Session *self) const;
+    bool lock(const QString &path, QodeAssist::Session *owner);
     void release(const QString &path);
 
     QString uniqueFreePath(const QString &desiredPath) const;
@@ -32,7 +39,7 @@ public:
     QString takePendingChatFile();
 
 private:
-    QSet<QString> m_lockedPaths;
+    QHash<QString, QPointer<QodeAssist::Session>> m_locks;
     QString m_pendingChatFile;
 };
 

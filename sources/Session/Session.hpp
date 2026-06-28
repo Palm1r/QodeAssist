@@ -46,6 +46,8 @@ public:
     bool isValid() const noexcept;
     QString invalidReason() const;
     bool isInFlight() const noexcept;
+    bool hasAgent() const noexcept;
+    bool canSend() const noexcept;
     const ErrorInfo &lastError() const noexcept;
 
     using ContentLoader = ContextAssembler::ContentLoader;
@@ -56,6 +58,7 @@ public:
     void unpinContext(const QString &id);
 
     Agent *agent() noexcept { return m_agent; }
+    void setAgent(Agent *agent);
     ConversationHistory *history() const noexcept { return m_history; }
     SystemPromptBuilder *systemPrompt() const noexcept { return m_systemPrompt; }
 

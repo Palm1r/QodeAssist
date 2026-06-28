@@ -59,6 +59,43 @@ Session *SessionManager::createSession(
     return session;
 }
 
+Session *SessionManager::createDetachedSession(ConversationHistory *externalHistory, QObject *parent)
+{
+    return new Session(/*agent=*/nullptr, externalHistory, parent);
+}
+
+bool SessionManager::rebindAgentByName(Session *session, const QString &agentName, QString *errorOut)
+{
+    if (!session) {
+        if (errorOut)
+            *errorOut = QStringLiteral("SessionManager: null session");
+        return false;
+    }
+    if (!m_agentFactory) {
+        if (errorOut)
+            *errorOut = QStringLiteral("SessionManager: no AgentFactory bound");
+        return false;
+    }
+
+    QString agentErr;
+    Agent *agent = m_agentFactory->create(agentName, /*parent=*/nullptr, &agentErr);
+    if (!agent) {
+        if (errorOut)
+            *errorOut = agentErr.isEmpty()
+                            ? QStringLiteral("SessionManager: agent '%1' not found").arg(agentName)
+                            : agentErr;
+        return false;
+    }
+
+    session->setAgent(agent);
+    if (!session->isValid()) {
+        if (errorOut)
+            *errorOut = session->invalidReason();
+        return false;
+    }
+    return true;
+}
+
 Session *SessionManager::acquire(const QString &agentName, QString *errorOut)
 {
     auto &bucket = m_pool[agentName];
