@@ -52,6 +52,9 @@ signals:
 
 private:
     void resetSession(Session *session);
+    void flushPool();
+    [[nodiscard]] bool pooledAgentMatchesCurrent(
+        Session *session, const QString &agentName) const;
 
     static constexpr int kMaxPooledPerAgent = 2;
 

@@ -18,7 +18,10 @@ namespace QodeAssist {
 SessionManager::SessionManager(AgentFactory *agentFactory, QObject *parent)
     : QObject(parent)
     , m_agentFactory(agentFactory)
-{}
+{
+    if (m_agentFactory)
+        connect(m_agentFactory, &AgentFactory::agentsChanged, this, &SessionManager::flushPool);
+}
 
 SessionManager::~SessionManager() = default;
 
@@ -101,7 +104,7 @@ Session *SessionManager::acquire(const QString &agentName, QString *errorOut)
     auto &bucket = m_pool[agentName];
     while (!bucket.isEmpty()) {
         QPointer<Session> pooled = bucket.takeLast();
-        if (pooled && pooled->isValid()) {
+        if (pooled && pooled->isValid() && pooledAgentMatchesCurrent(pooled, agentName)) {
             resetSession(pooled);
             m_sessions.append(pooled);
             return pooled.data();
@@ -152,6 +155,32 @@ void SessionManager::resetSession(Session *session)
         if (auto *tools = client->tools())
             tools->removeAllTools();
     }
+}
+
+bool SessionManager::pooledAgentMatchesCurrent(Session *session, const QString &agentName) const
+{
+    if (!m_agentFactory)
+        return true;
+    Agent *agent = session ? session->agent() : nullptr;
+    if (!agent)
+        return false;
+    const AgentConfig *current = m_agentFactory->configByName(agentName);
+    if (!current)
+        return false;
+    const AgentConfig &snapshot = agent->config();
+    return snapshot.model == current->model
+           && snapshot.providerInstance == current->providerInstance;
+}
+
+void SessionManager::flushPool()
+{
+    for (auto &bucket : m_pool) {
+        for (const QPointer<Session> &pooled : bucket) {
+            if (pooled)
+                pooled->deleteLater();
+        }
+    }
+    m_pool.clear();
 }
 
 void SessionManager::removeSession(Session *session)

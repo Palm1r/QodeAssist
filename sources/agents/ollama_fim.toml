@@ -10,7 +10,4 @@ tags  = ["completion", "ollama", "local", "fim"]
 [body.options]
 num_predict = 512
 temperature = 0.2
-top_p       = 0.9
-num_ctx     = 8192
 keep_alive  = "5m"
-stop        = ["<EOT>"]

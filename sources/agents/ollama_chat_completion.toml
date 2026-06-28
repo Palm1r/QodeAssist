@@ -26,7 +26,6 @@ messages = """
 
 [body.options]
 num_predict = 512
-temperature = 0
-num_ctx     = 8192
+temperature = 0.2
 keep_alive  = "5m"
 stop        = ["</code_context>"]

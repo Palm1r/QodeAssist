@@ -1,0 +1,23 @@
+schema_version = 1
+
+name        = "Ollama CodeLlama QML FIM"
+description = "Local Ollama FIM for the CodeLlama-13B QML fine-tune (raw passthrough Modelfile, suffix-first markers)."
+
+provider_instance = "Ollama (Native)"
+endpoint          = "/api/generate"
+
+model = "theqtcompany/codellama-7b-qml"
+tags  = ["completion", "ollama", "local", "fim", "qml"]
+
+[match]
+file_patterns = ["*.qml"]
+
+[body]
+prompt = """{{ tojson("<SUF>" + ctx.suffix + "<PRE>" + ctx.prefix + "<MID>") }}"""
+
+[body.options]
+temperature    = 0
+top_p          = 1
+repeat_penalty = 1.05
+num_predict    = 500
+stop           = ["<SUF>", "<PRE>", "</PRE>", "</SUF>", "< EOT >", "\\end", "<MID>", "</MID>", "##"]

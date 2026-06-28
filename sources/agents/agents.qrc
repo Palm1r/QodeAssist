@@ -18,6 +18,7 @@
         <file>ollama_chat_completion.toml</file>
         <file>ollama_base_fim.toml</file>
         <file>ollama_fim.toml</file>
+        <file>ollama_codellama_qml_fim.toml</file>
     </qresource>
     <qresource prefix="/roles">
         <file alias="qt-cpp-developer.md">roles/qt-cpp-developer.md</file>
