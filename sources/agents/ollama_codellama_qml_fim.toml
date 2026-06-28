@@ -16,8 +16,18 @@ file_patterns = ["*.qml"]
 prompt = """{{ tojson("<SUF>" + ctx.suffix + "<PRE>" + ctx.prefix + "<MID>") }}"""
 
 [body.options]
-temperature    = 0
-top_p          = 1
+temperature = 0
+top_p = 1
 repeat_penalty = 1.05
-num_predict    = 500
-stop           = ["<SUF>", "<PRE>", "</PRE>", "</SUF>", "< EOT >", "\\end", "<MID>", "</MID>", "##"]
+num_predict = 500
+stop = [
+  "<SUF>",
+  "<PRE>",
+  "</PRE>",
+  "</SUF>",
+  "< EOT >",
+  "\\end",
+  "<MID>",
+  "</MID>",
+  "##",
+]

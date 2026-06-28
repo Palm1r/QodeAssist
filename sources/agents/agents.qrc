@@ -7,6 +7,7 @@
         <file>claude_completion.toml</file>
         <file>claude_compression.toml</file>
         <file>claude_quick_refactor.toml</file>
+        <file>claude_quick_refactor_fast.toml</file>
         <file>openai_base_chat.toml</file>
         <file>openai_chat_completions.toml</file>
         <file>openai_responses_base.toml</file>
@@ -19,6 +20,8 @@
         <file>ollama_base_fim.toml</file>
         <file>ollama_fim.toml</file>
         <file>ollama_codellama_qml_fim.toml</file>
+        <file>ollama_quick_refactor.toml</file>
+        <file>ollama_compression.toml</file>
     </qresource>
     <qresource prefix="/roles">
         <file alias="qt-cpp-developer.md">roles/qt-cpp-developer.md</file>
@@ -29,5 +32,6 @@
     <qresource prefix="/tasks">
         <file alias="chat-compressor.md">tasks/chat-compressor.md</file>
         <file alias="code-completion.md">tasks/code-completion.md</file>
+        <file alias="quick-refactor.md">tasks/quick-refactor.md</file>
     </qresource>
 </RCC>

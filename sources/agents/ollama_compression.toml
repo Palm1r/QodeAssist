@@ -1,0 +1,17 @@
+schema_version = 1
+
+extends     = "Ollama Base Chat"
+name        = "Ollama Chat Compression"
+description = "Local Ollama conversation summarization (qwen2.5-coder). Carries the summary system prompt; no tools."
+
+model        = "qwen2.5-coder:7b"
+enable_tools = false
+tags         = ["compression", "ollama", "local"]
+
+system_prompt = """{{ read_file(":/tasks/chat-compressor.md") }}"""
+
+[body.options]
+num_predict = 2048
+temperature = 0.3
+num_ctx     = 8192
+keep_alive  = "5m"

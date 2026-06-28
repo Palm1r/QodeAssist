@@ -8,6 +8,6 @@ model = "qwen2.5-coder:7b"
 tags  = ["completion", "ollama", "local", "fim"]
 
 [body.options]
-num_predict = 512
+num_predict = 256
 temperature = 0.2
 keep_alive  = "5m"

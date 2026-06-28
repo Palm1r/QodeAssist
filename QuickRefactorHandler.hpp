@@ -60,7 +60,7 @@ private:
 
     void onRefactorFinished(const QString &requestId);
     void onRefactorFailed(const QString &requestId, const QodeAssist::ErrorInfo &error);
-    QString buildSystemPrompt(
+    QString buildContextLayer(
         TextEditor::TextEditorWidget *editor, const Utils::Text::Range &range);
     QString pickRefactorAgent() const;
 

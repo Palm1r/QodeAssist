@@ -2,12 +2,17 @@ schema_version = 1
 
 extends     = "Claude Base Chat"
 name        = "Claude Quick Refactor"
-description = "Anthropic Claude — deterministic inline refactor. QuickRefactorHandler supplies the refactor system prompt; output is cleaned and inserted into the editor. No thinking; tools off."
+description = "Anthropic Claude Sonnet — agentic inline refactor with extended thinking and tools (gathers context before editing). Static output rules from :/tasks/quick-refactor.md; QuickRefactorHandler injects the live editor context (file, code, cursor/selection)."
 
-model        = "claude-sonnet-4-6"
-enable_tools = false
-tags         = ["refactor", "claude", "cloud"]
+model           = "claude-sonnet-4-6"
+enable_tools    = true
+enable_thinking = true
+tags            = ["refactor", "claude", "cloud"]
+
+system_prompt = """{{ read_file(":/tasks/quick-refactor.md") }}"""
 
 [body]
-max_tokens  = 16000
-temperature = 0.2
+max_tokens    = 16000
+temperature   = 1
+thinking      = { type = "adaptive", display = "summarized" }
+output_config = { effort = "high" }

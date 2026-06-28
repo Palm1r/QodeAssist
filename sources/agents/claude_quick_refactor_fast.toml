@@ -1,0 +1,16 @@
+schema_version = 1
+
+extends     = "Claude Base Chat"
+name        = "Claude Quick Refactor Fast"
+description = "Anthropic Claude Haiku — fast single-shot inline refactor. Static output rules from :/tasks/quick-refactor.md; QuickRefactorHandler injects the live editor context (file, code, cursor/selection). No thinking; tools off."
+
+model           = "claude-haiku-4-5"
+enable_tools    = false
+enable_thinking = false
+tags            = ["refactor", "claude", "cloud", "fast"]
+
+system_prompt = """{{ read_file(":/tasks/quick-refactor.md") }}"""
+
+[body]
+max_tokens  = 8000
+temperature = 0.2
