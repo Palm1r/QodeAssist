@@ -6,6 +6,7 @@
 
 #include <coreplugin/icore.h>
 
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -201,6 +202,23 @@ PipelinesLoadResult PipelinesConfig::load()
         result.message = QStringLiteral("some entries had wrong type; see log");
     }
     return result;
+}
+
+PipelinesLoadResult PipelinesConfig::loadCached()
+{
+    static PipelinesLoadResult cached;
+    static QDateTime cachedMTime;
+    static bool valid = false;
+
+    const QFileInfo info(filePath());
+    const QDateTime mtime = info.exists() ? info.lastModified() : QDateTime();
+    if (valid && mtime == cachedMTime)
+        return cached;
+
+    cached = load();
+    cachedMTime = mtime;
+    valid = true;
+    return cached;
 }
 
 bool PipelinesConfig::save(const PipelineRosters &rosters, QString *errorOut)

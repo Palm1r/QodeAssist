@@ -92,7 +92,7 @@ TEST(SystemPromptBuilderTest, IdenticalSetLayerEmitsNoSignal)
     QSignalSpy spy(&builder, &SystemPromptBuilder::layersChanged);
     builder.setLayer(QStringLiteral("a"), QStringLiteral("A"), 10);
 
-    EXPECT_EQ(spy.count(), 0);
+    EXPECT_EQ(spy.size(), 0);
 }
 
 TEST(SystemPromptBuilderTest, ChangingSetLayerEmitsSignal)
@@ -103,7 +103,7 @@ TEST(SystemPromptBuilderTest, ChangingSetLayerEmitsSignal)
     QSignalSpy spy(&builder, &SystemPromptBuilder::layersChanged);
     builder.setLayer(QStringLiteral("a"), QStringLiteral("A"), 20);
 
-    EXPECT_EQ(spy.count(), 1);
+    EXPECT_EQ(spy.size(), 1);
 }
 
 TEST(SystemPromptBuilderTest, ClearLayerRemovesAndSignals)
@@ -115,7 +115,7 @@ TEST(SystemPromptBuilderTest, ClearLayerRemovesAndSignals)
     builder.clearLayer(QStringLiteral("a"));
 
     EXPECT_TRUE(builder.isEmpty());
-    EXPECT_EQ(spy.count(), 1);
+    EXPECT_EQ(spy.size(), 1);
 }
 
 TEST(SystemPromptBuilderTest, ClearMissingLayerEmitsNoSignal)
@@ -127,7 +127,7 @@ TEST(SystemPromptBuilderTest, ClearMissingLayerEmitsNoSignal)
     builder.clearLayer(QStringLiteral("nope"));
 
     EXPECT_FALSE(builder.isEmpty());
-    EXPECT_EQ(spy.count(), 0);
+    EXPECT_EQ(spy.size(), 0);
 }
 
 TEST(SystemPromptBuilderTest, ClearEmptiesAndSignals)
@@ -140,7 +140,7 @@ TEST(SystemPromptBuilderTest, ClearEmptiesAndSignals)
     builder.clear();
 
     EXPECT_TRUE(builder.isEmpty());
-    EXPECT_EQ(spy.count(), 1);
+    EXPECT_EQ(spy.size(), 1);
 }
 
 TEST(SystemPromptBuilderTest, ClearWhenAlreadyEmptyEmitsNoSignal)
@@ -150,5 +150,5 @@ TEST(SystemPromptBuilderTest, ClearWhenAlreadyEmptyEmitsNoSignal)
     QSignalSpy spy(&builder, &SystemPromptBuilder::layersChanged);
     builder.clear();
 
-    EXPECT_EQ(spy.count(), 0);
+    EXPECT_EQ(spy.size(), 0);
 }

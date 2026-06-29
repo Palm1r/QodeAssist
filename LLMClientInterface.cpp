@@ -292,7 +292,7 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
     if (requestId.isEmpty()) {
         QString error = QString("Failed to start completion request for agent '%1': %2")
                             .arg(agentName, session->lastError().message);
-        session->deleteLater();
+        m_sessionManager.removeSession(session);
         LOG_MESSAGE(error);
         sendErrorResponse(request, error);
         return;
@@ -304,7 +304,7 @@ void LLMClientInterface::handleCompletion(const QJsonObject &request)
 
 QString LLMClientInterface::pickCompletionAgent(const QString &filePath) const
 {
-    const QStringList roster = Settings::PipelinesConfig::load().rosters.codeCompletion;
+    const QStringList roster = Settings::PipelinesConfig::loadCached().rosters.codeCompletion;
     if (roster.isEmpty())
         return {};
 

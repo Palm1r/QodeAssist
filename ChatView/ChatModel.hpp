@@ -30,10 +30,10 @@ class ChatModel : public QAbstractListModel
     QML_ELEMENT
 
 public:
-    enum ChatRole { System, User, Assistant, Tool, FileEdit, Thinking };
+    enum ChatRole : int { System, User, Assistant, Tool, FileEdit, Thinking };
     Q_ENUM(ChatRole)
 
-    enum Roles {
+    enum Roles : int {
         RoleType = Qt::UserRole,
         Content,
         Attachments,
@@ -105,6 +105,7 @@ private:
         QString content;
         bool isRedacted = false;
         QString editId;
+        QString fileEditDisplay;
         QVector<AttachmentRef> attachments;
         QVector<ImageRef> images;
     };
@@ -121,6 +122,8 @@ private:
     int startMessageIndexFor(int messageIndex) const;
     int firstRowForMessage(int messageIndex) const;
     QHash<QString, QString> buildToolResultMap() const;
+    void mergeToolResultsFromMessage(int messageIndex);
+    void pruneUsageToHistory();
     void appendRowsForMessage(
         int messageIndex, const QHash<QString, QString> &toolResults, QVector<Row> &out) const;
     QString overlayFileEditStatus(const QString &content, const QString &editId) const;
@@ -129,6 +132,7 @@ private:
 
     QPointer<ConversationHistory> m_history;
     QVector<Row> m_rows;
+    QHash<QString, QString> m_toolResults;
     QHash<QString, Usage> m_usageByMessageId;
     QString m_chatFilePath;
 };

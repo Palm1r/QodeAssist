@@ -26,7 +26,7 @@ public:
         QString lineContent;
     };
 
-    enum FileEditStatus { Pending, Applied, Rejected, Archived };
+    enum FileEditStatus : int { Pending, Applied, Rejected, Archived };
 
     struct DiffHunk
     {

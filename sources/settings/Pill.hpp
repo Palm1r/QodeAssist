@@ -15,7 +15,7 @@ class Pill : public QLabel
 {
     Q_OBJECT
 public:
-    enum Kind { Neutral, Accent, On, Off, User, Tag, Active, Match };
+    enum Kind : int { Neutral, Accent, On, Off, User, Tag, Active, Match };
 
     explicit Pill(Kind kind, const QString &text = {}, QWidget *parent = nullptr);
 

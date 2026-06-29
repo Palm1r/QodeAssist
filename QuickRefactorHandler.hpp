@@ -28,7 +28,7 @@ struct RefactorResult
     Utils::Text::Range insertRange;
     bool success;
     QString errorMessage;
-    TextEditor::TextEditorWidget *editor{nullptr};
+    QPointer<TextEditor::TextEditorWidget> editor;
 };
 
 class QuickRefactorHandler : public QObject
@@ -73,7 +73,7 @@ private:
     QPointer<SessionManager> m_sessionManager;
     QPointer<AgentFactory> m_agentFactory;
     QHash<QString, RequestContext> m_activeRequests;
-    TextEditor::TextEditorWidget *m_currentEditor;
+    QPointer<TextEditor::TextEditorWidget> m_currentEditor;
     Utils::Text::Range m_currentRange;
     bool m_isRefactoringInProgress;
     QString m_lastRequestId;

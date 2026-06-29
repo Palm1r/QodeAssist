@@ -44,6 +44,8 @@ public:
 
     [[nodiscard]] static PipelinesLoadResult load();
 
+    [[nodiscard]] static PipelinesLoadResult loadCached();
+
     [[nodiscard]] static bool save(const PipelineRosters &rosters, QString *errorOut = nullptr);
 
     [[nodiscard]] static bool validate(

@@ -59,7 +59,7 @@ public:
         int lineNumber, int cursorPosition, const Settings::CodeCompletionSettings &settings) const;
 
 private:
-    TextEditor::TextDocument *m_textDocument;
+    TextEditor::TextDocument *m_textDocument = nullptr;
     QTextDocument *m_document;
     QString m_mimeType;
     QString m_filePath;

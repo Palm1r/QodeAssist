@@ -8,6 +8,7 @@
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QRegularExpression>
+#include <QSet>
 #include <QUrl>
 
 #include <LLMQore/ContentBlocks.hpp>
@@ -114,6 +115,7 @@ void ChatModel::setHistory(ConversationHistory *history)
     }
 
     beginResetModel();
+    m_usageByMessageId.clear();
     rebuildAll();
     endResetModel();
     emit sessionUsageChanged();
@@ -137,7 +139,7 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         return QVariant::fromValue(row.kind);
     case Roles::Content:
         if (row.kind == ChatRole::FileEdit)
-            return overlayFileEditStatus(row.content, row.editId);
+            return row.fileEditDisplay;
         return row.content;
     case Roles::Attachments:
         return buildAttachmentList(row.attachments);
@@ -364,6 +366,7 @@ void ChatModel::appendRowsForMessage(
                     editRow.messageId = id;
                     editRow.content = result;
                     editRow.editId = parseEditId(result);
+                    editRow.fileEditDisplay = overlayFileEditStatus(result, editRow.editId);
                     out.append(std::move(editRow));
                 }
             }
@@ -376,20 +379,54 @@ void ChatModel::appendRowsForMessage(
 void ChatModel::rebuildAll()
 {
     m_rows.clear();
+    m_toolResults.clear();
     if (!m_history)
         return;
-    const QHash<QString, QString> toolResults = buildToolResultMap();
+    m_toolResults = buildToolResultMap();
     for (int mi = 0; mi < m_history->size(); ++mi)
-        appendRowsForMessage(mi, toolResults, m_rows);
+        appendRowsForMessage(mi, m_toolResults, m_rows);
+}
+
+void ChatModel::mergeToolResultsFromMessage(int messageIndex)
+{
+    if (!m_history || messageIndex < 0 || messageIndex >= m_history->size())
+        return;
+    const Message &m = m_history->messages()[static_cast<size_t>(messageIndex)];
+    for (const auto &block : m.blocks()) {
+        if (auto *tr = dynamic_cast<LLMQore::ToolResultContent *>(block.get()))
+            m_toolResults.insert(tr->toolUseId(), tr->result());
+    }
+}
+
+void ChatModel::pruneUsageToHistory()
+{
+    if (!m_history) {
+        m_usageByMessageId.clear();
+        return;
+    }
+    QSet<QString> liveIds;
+    for (const auto &m : m_history->messages())
+        liveIds.insert(m.id());
+    for (auto it = m_usageByMessageId.begin(); it != m_usageByMessageId.end();) {
+        if (!liveIds.contains(it.key()))
+            it = m_usageByMessageId.erase(it);
+        else
+            ++it;
+    }
 }
 
 int ChatModel::firstRowForMessage(int messageIndex) const
 {
-    for (int i = 0; i < m_rows.size(); ++i) {
-        if (m_rows[i].messageIndex >= messageIndex)
-            return i;
+    int lo = 0;
+    int hi = m_rows.size();
+    while (lo < hi) {
+        const int mid = lo + (hi - lo) / 2;
+        if (m_rows[mid].messageIndex < messageIndex)
+            lo = mid + 1;
+        else
+            hi = mid;
     }
-    return m_rows.size();
+    return lo;
 }
 
 int ChatModel::startMessageIndexFor(int messageIndex) const
@@ -414,11 +451,10 @@ void ChatModel::reprojectTail(int startMessageIndex)
         return;
 
     const int oldStart = firstRowForMessage(startMessageIndex);
-    const QHash<QString, QString> toolResults = buildToolResultMap();
 
     QVector<Row> newTail;
     for (int mi = startMessageIndex; mi < m_history->size(); ++mi)
-        appendRowsForMessage(mi, toolResults, newTail);
+        appendRowsForMessage(mi, m_toolResults, newTail);
 
     const int oldCount = m_rows.size() - oldStart;
     const int newCount = newTail.size();
@@ -443,11 +479,13 @@ void ChatModel::reprojectTail(int startMessageIndex)
 
 void ChatModel::onHistoryMessageAdded(int index)
 {
+    mergeToolResultsFromMessage(index);
     reprojectTail(startMessageIndexFor(index));
 }
 
 void ChatModel::onHistoryMessageUpdated(int index)
 {
+    mergeToolResultsFromMessage(index);
     reprojectTail(startMessageIndexFor(index));
 }
 
@@ -455,6 +493,7 @@ void ChatModel::onHistoryCleared()
 {
     beginResetModel();
     m_rows.clear();
+    m_toolResults.clear();
     m_usageByMessageId.clear();
     endResetModel();
     emit modelReseted();
@@ -465,6 +504,7 @@ void ChatModel::onHistoryReset()
 {
     beginResetModel();
     rebuildAll();
+    pruneUsageToHistory();
     endResetModel();
     emit sessionUsageChanged();
 }
@@ -472,8 +512,10 @@ void ChatModel::onHistoryReset()
 void ChatModel::onFileEditStatusChanged(const QString &editId)
 {
     for (int i = 0; i < m_rows.size(); ++i) {
-        if (m_rows[i].kind == ChatRole::FileEdit && m_rows[i].editId == editId)
+        if (m_rows[i].kind == ChatRole::FileEdit && m_rows[i].editId == editId) {
+            m_rows[i].fileEditDisplay = overlayFileEditStatus(m_rows[i].content, editId);
             emit dataChanged(index(i), index(i), {Roles::Content});
+        }
     }
 }
 

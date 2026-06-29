@@ -160,8 +160,8 @@ void ClientInterface::sendMessage(
 
     Context::ChangesManager::instance().archiveAllNonArchivedEdits();
 
-    QList<QString> imageFiles;
-    QList<QString> textFiles;
+    QStringList imageFiles;
+    QStringList textFiles;
     for (const QString &filePath : attachments) {
         if (isImageFile(filePath))
             imageFiles.append(filePath);
