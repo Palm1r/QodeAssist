@@ -1,0 +1,16 @@
+schema_version = 1
+
+extends     = "OpenAI Base Chat"
+name        = "OpenAI Chat — Mini"
+description = "OpenAI GPT-5.4 mini — fast, lower-cost coding chat via Chat Completions at medium reasoning effort. NOTE: GPT-5 models use 'max_completion_tokens' + 'reasoning_effort' and reject 'temperature' on Chat Completions."
+
+model           = "gpt-5.4-mini"
+enable_tools    = true
+enable_thinking = true
+tags            = ["chat", "openai", "cloud"]
+
+system_prompt = """{{ read_file(":/roles/qt-cpp-developer.md") }}"""
+
+[body]
+max_completion_tokens = 16000
+reasoning_effort      = "medium"

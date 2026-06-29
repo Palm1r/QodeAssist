@@ -1,0 +1,16 @@
+schema_version = 1
+
+extends     = "OpenAI Base Chat"
+name        = "OpenAI Quick Refactor"
+description = "OpenAI GPT-5.1 — agentic inline refactor with tools at high reasoning effort (gathers context before editing). Static output rules from :/tasks/quick-refactor.md; QuickRefactorHandler injects the live editor context (file, code, cursor/selection). GPT-5 models use 'max_completion_tokens' + 'reasoning_effort' and reject 'temperature'."
+
+model           = "gpt-5.1"
+enable_tools    = true
+enable_thinking = true
+tags            = ["refactor", "openai", "cloud"]
+
+system_prompt = """{{ read_file(":/tasks/quick-refactor.md") }}"""
+
+[body]
+max_completion_tokens = 16000
+reasoning_effort      = "high"

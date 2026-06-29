@@ -2,9 +2,9 @@ schema_version = 1
 
 extends     = "OpenAI Base Responses"
 name        = "OpenAI Chat — Responses"
-description = "OpenAI o4-mini — reasoning coding chat via the Responses API."
+description = "OpenAI GPT-5.1 — reasoning coding chat via the Responses API. Best for agentic coding; surfaces a reasoning summary (summary=auto) as a thinking block. Uses max_output_tokens + the reasoning object (reasoning models reject temperature)."
 
-model           = "o4-mini"
+model           = "gpt-5.1"
 enable_tools    = true
 enable_thinking = true
 tags            = ["chat", "openai", "responses", "cloud"]
@@ -12,5 +12,5 @@ tags            = ["chat", "openai", "responses", "cloud"]
 system_prompt = """{{ read_file(":/roles/qt-cpp-developer.md") }}"""
 
 [body]
-max_output_tokens = 25000
-reasoning         = { effort = "medium", summary = "auto" }
+max_output_tokens = 32000
+reasoning         = { effort = "high", summary = "auto" }

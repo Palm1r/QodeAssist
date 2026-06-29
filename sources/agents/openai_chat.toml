@@ -2,9 +2,9 @@ schema_version = 1
 
 extends     = "OpenAI Base Chat"
 name        = "OpenAI Chat"
-description = "OpenAI GPT-4o — coding chat via Chat Completions."
+description = "OpenAI GPT-5.5 — flagship coding chat via Chat Completions at high reasoning effort. The default OpenAI choice. NOTE: GPT-5 models reject 'max_tokens' and 'temperature' on Chat Completions — use 'max_completion_tokens' + 'reasoning_effort'. Reasoning runs internally and is NOT surfaced as a thinking block on Chat Completions; use 'OpenAI Chat — Responses' for visible reasoning summaries."
 
-model           = "gpt-4o"
+model           = "gpt-5.5"
 enable_tools    = true
 enable_thinking = true
 tags            = ["chat", "openai", "cloud"]
@@ -12,5 +12,5 @@ tags            = ["chat", "openai", "cloud"]
 system_prompt = """{{ read_file(":/roles/qt-cpp-developer.md") }}"""
 
 [body]
-max_tokens  = 8192
-temperature = 0.7
+max_completion_tokens = 32000
+reasoning_effort      = "high"

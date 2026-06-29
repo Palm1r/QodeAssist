@@ -10,8 +10,12 @@
         <file>claude_quick_refactor_fast.toml</file>
         <file>openai_base_chat.toml</file>
         <file>openai_chat.toml</file>
+        <file>openai_chat_mini.toml</file>
         <file>openai_base_responses.toml</file>
         <file>openai_chat_responses.toml</file>
+        <file>openai_completion.toml</file>
+        <file>openai_compression.toml</file>
+        <file>openai_quick_refactor.toml</file>
         <file>google_base_chat.toml</file>
         <file>google_chat.toml</file>
         <file>mistral_base_chat.toml</file>

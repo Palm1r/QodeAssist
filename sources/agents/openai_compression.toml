@@ -1,0 +1,15 @@
+schema_version = 1
+
+extends     = "OpenAI Base Chat"
+name        = "OpenAI Compression"
+description = "OpenAI GPT-5.4 mini — fast, low-cost conversation summarization for shorter chats. Carries the summary system prompt; no tools, reasoning_effort=none. GPT-5 models reject 'temperature' on Chat Completions."
+
+model        = "gpt-5.4-mini"
+enable_tools = false
+tags         = ["compression", "openai", "cloud"]
+
+system_prompt = """{{ read_file(":/tasks/chat-compressor.md") }}"""
+
+[body]
+max_completion_tokens = 16000
+reasoning_effort      = "none"
