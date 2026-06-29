@@ -9,12 +9,15 @@
 #include "SettingsTheme.hpp"
 #include "SettingsUiBuilders.hpp"
 
+#include <optional>
+
 #include <utils/theme/theme.h>
 
 #include <AgentFactory.hpp>
 #include <ProviderInstance.hpp>
 #include <ProviderInstanceFactory.hpp>
 
+#include <QCheckBox>
 #include <QColor>
 #include <QComboBox>
 #include <QEvent>
@@ -29,6 +32,7 @@
 #include <QPlainTextEdit>
 #include <QPushButton>
 #include <QScopedValueRollback>
+#include <QSignalBlocker>
 #include <QToolButton>
 #include <QVBoxLayout>
 
@@ -247,6 +251,43 @@ AgentDetailPane::AgentDetailPane(QWidget *parent)
     m_effectiveUrl->setAutoFillBackground(true);
     connection->bodyLayout()->addWidget(m_effectiveUrl);
 
+    auto *capabilities = new SectionBox(tr("Capabilities"), this);
+    m_thinkingValue = new QLabel(this);
+
+    m_toolsCheck = new QCheckBox(tr("Allow tool calls"), this);
+    m_toolsCheck->setEnabled(false);
+    connect(m_toolsCheck, &QCheckBox::clicked, this, [this](bool on) { onToggleTools(on); });
+
+    m_toolsResetBtn = new QPushButton(tr("Reset"), this);
+    m_toolsResetBtn->setToolTip(tr("Remove the tools override and restore the agent's default"));
+    m_toolsResetBtn->setVisible(false);
+    connect(m_toolsResetBtn, &QPushButton::clicked, this, [this] { onResetTools(); });
+
+    auto *toolsHolder = new QWidget(this);
+    auto *toolsRow = new QHBoxLayout(toolsHolder);
+    toolsRow->setContentsMargins(0, 0, 0, 0);
+    toolsRow->setSpacing(6);
+    toolsRow->addWidget(m_toolsCheck);
+    toolsRow->addStretch(1);
+    toolsRow->addWidget(m_toolsResetBtn);
+
+    auto *capGrid = new QGridLayout;
+    capGrid->setContentsMargins(0, 0, 0, 0);
+    capGrid->setHorizontalSpacing(8);
+    capGrid->setVerticalSpacing(4);
+    FormBuilder(capGrid)
+        .row(
+            tr("Thinking:"),
+            m_thinkingValue,
+            tr("Whether this agent requests extended thinking. Defined by the "
+               "agent template."))
+        .row(
+            tr("Tools:"),
+            toolsHolder,
+            tr("Whether the agent may call tools. Toggle to save a per-agent "
+               "override in settings; Reset restores the agent's default."));
+    capabilities->bodyLayout()->addLayout(capGrid);
+
     auto *match = new SectionBox(tr("Match"), this);
     auto *matchHint = makeHintLabel(
         tr("When a feature slot has multiple bound agents, the first whose "
@@ -286,6 +327,7 @@ AgentDetailPane::AgentDetailPane(QWidget *parent)
     root->addWidget(m_description);
     root->addWidget(identity);
     root->addWidget(connection);
+    root->addWidget(capabilities);
     root->addWidget(match);
     root->addWidget(m_rawToggle, 0, Qt::AlignLeft);
     root->addWidget(m_rawToml);
@@ -414,6 +456,38 @@ void AgentDetailPane::onResetProvider()
         setAgent(*cfg);
 }
 
+void AgentDetailPane::onToggleTools(bool enabled)
+{
+    if (!m_agentFactory || !m_current)
+        return;
+
+    const QString name = m_current->name;
+    QString err;
+    if (!m_agentFactory->setAgentToolsOverride(name, enabled, &err)) {
+        QMessageBox::warning(this, tr("Set tools"), err);
+        return;
+    }
+    if (const AgentConfig *cfg = m_agentFactory->configByName(name))
+        setAgent(*cfg);
+}
+
+void AgentDetailPane::onResetTools()
+{
+    if (!m_agentFactory || !m_current)
+        return;
+    if (!m_agentFactory->agentToolsOverride(m_current->name).has_value())
+        return;
+
+    const QString name = m_current->name;
+    QString err;
+    if (!m_agentFactory->setAgentToolsOverride(name, std::nullopt, &err)) {
+        QMessageBox::warning(this, tr("Reset tools"), err);
+        return;
+    }
+    if (const AgentConfig *cfg = m_agentFactory->configByName(name))
+        setAgent(*cfg);
+}
+
 void AgentDetailPane::setAgent(const AgentConfig &cfg)
 {
     m_currentStorage = cfg;
@@ -481,6 +555,19 @@ void AgentDetailPane::setAgent(const AgentConfig &cfg)
         hasModelOverride ? tr("Overridden in settings. Reset to use the agent's default model.")
                          : QString());
 
+    m_thinkingValue->setText(cfg.enableThinking ? tr("Enabled") : tr("Disabled"));
+    {
+        QSignalBlocker block(m_toolsCheck);
+        m_toolsCheck->setChecked(cfg.enableTools);
+    }
+    m_toolsCheck->setEnabled(m_agentFactory != nullptr);
+    const bool hasToolsOverride = m_agentFactory
+                                  && m_agentFactory->agentToolsOverride(cfg.name).has_value();
+    m_toolsResetBtn->setVisible(hasToolsOverride);
+    m_toolsCheck->setToolTip(
+        hasToolsOverride ? tr("Overridden in settings. Reset to use the agent's default.")
+                         : QString());
+
     const QString eff = resolvedUrl + cfg.endpoint;
     m_effectiveUrl->setText(
         eff.isEmpty() ? tr("# effective request line\n(unknown — provider instance not found)")
@@ -542,6 +629,13 @@ void AgentDetailPane::clear()
     m_modelChangeBtn->setEnabled(false);
     m_modelResetBtn->setVisible(false);
     m_effectiveUrl->clear();
+    m_thinkingValue->clear();
+    {
+        QSignalBlocker block(m_toolsCheck);
+        m_toolsCheck->setChecked(false);
+    }
+    m_toolsCheck->setEnabled(false);
+    m_toolsResetBtn->setVisible(false);
     m_filePatternsValue->clear();
     m_rawToml->clear();
     m_openBtn->setEnabled(false);

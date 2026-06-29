@@ -243,6 +243,7 @@ private:
         }
         m_agentFactory->clearAgentModelOverride(name);
         m_agentFactory->clearAgentProviderOverride(name);
+        m_agentFactory->clearAgentToolsOverride(name);
         reloadFromDisk();
     }
 

@@ -18,6 +18,7 @@
 #include <QPalette>
 #include <QScopedValueRollback>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QStringList>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -164,6 +165,7 @@ void TagFilterStrip::rebuild()
                   return a.first.localeAwareCompare(b.first) < 0;
               });
 
+    constexpr int kMaxColumns = 3;
     auto *gridHost = new QWidget(this);
     auto *grid = new QGridLayout(gridHost);
     grid->setContentsMargins(0, 0, 0, 0);
@@ -176,12 +178,11 @@ void TagFilterStrip::rebuild()
         connect(chip, &TagChip::clicked, this, &TagFilterStrip::toggleTag);
         grid->addWidget(chip, gridRow, col, Qt::AlignLeft);
         m_chipByTag.insert(tag, chip);
-        if (++col >= 4) {
+        if (++col >= kMaxColumns) {
             col = 0;
             ++gridRow;
         }
     }
-    grid->setColumnStretch(4, 1);
 
     constexpr int kMaxVisibleRows = 4;
     constexpr int kRowSpacing = 5;
@@ -194,10 +195,12 @@ void TagFilterStrip::rebuild()
         scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         scroll->setWidget(gridHost);
         scroll->setMaximumHeight(
-            kMaxVisibleRows * chipHeight + (kMaxVisibleRows - 1) * kRowSpacing + 4);
-        m_layout->addWidget(scroll);
+            kMaxVisibleRows * chipHeight + (kMaxVisibleRows - 1) * kRowSpacing + chipHeight / 2 + 4);
+        const int scrollBarWidth = scroll->verticalScrollBar()->sizeHint().width();
+        scroll->setFixedWidth(gridHost->sizeHint().width() + scrollBarWidth + 2);
+        m_layout->addWidget(scroll, 0, Qt::AlignLeft);
     } else {
-        m_layout->addWidget(gridHost);
+        m_layout->addWidget(gridHost, 0, Qt::AlignLeft);
     }
 }
 

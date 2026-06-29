@@ -10,6 +10,7 @@
 
 #include <AgentConfig.hpp>
 
+class QCheckBox;
 class QComboBox;
 class QLabel;
 class QLineEdit;
@@ -56,6 +57,8 @@ private:
     void onResetModel();
     void onChangeProvider(int index);
     void onResetProvider();
+    void onToggleTools(bool enabled);
+    void onResetTools();
 
     bool m_inApplyPalette = false;
     bool m_providerComboPopulated = false;
@@ -87,6 +90,10 @@ private:
     QPushButton *m_modelChangeBtn = nullptr;
     QPushButton *m_modelResetBtn = nullptr;
     QLabel *m_effectiveUrl = nullptr;
+
+    QLabel *m_thinkingValue = nullptr;
+    QCheckBox *m_toolsCheck = nullptr;
+    QPushButton *m_toolsResetBtn = nullptr;
 
     QLineEdit *m_filePatternsValue = nullptr;
 

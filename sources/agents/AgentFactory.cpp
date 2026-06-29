@@ -89,6 +89,37 @@ void writeProviderOverride(const QString &name, const QString &providerInstance)
         s->setValue(providerOverrideKey(name), providerInstance);
     s->sync();
 }
+
+constexpr auto kToolsOverrideGroup = "QodeAssist/AgentToolsOverrides";
+
+Utils::Key toolsOverrideKey(const QString &name)
+{
+    return Utils::Key(
+        QStringLiteral("%1/%2").arg(QLatin1StringView(kToolsOverrideGroup), name).toUtf8());
+}
+
+std::optional<bool> readToolsOverride(const QString &name)
+{
+    auto *s = Core::ICore::settings();
+    if (!s)
+        return std::nullopt;
+    const Utils::Key key = toolsOverrideKey(name);
+    if (!s->contains(key))
+        return std::nullopt;
+    return s->value(key).toBool();
+}
+
+void writeToolsOverride(const QString &name, std::optional<bool> enabled)
+{
+    auto *s = Core::ICore::settings();
+    if (!s)
+        return;
+    if (!enabled.has_value())
+        s->remove(toolsOverrideKey(name));
+    else
+        s->setValue(toolsOverrideKey(name), *enabled);
+    s->sync();
+}
 } // namespace
 
 namespace QodeAssist {
@@ -146,6 +177,11 @@ void AgentFactory::reload()
         const QString overrideProvider = readProviderOverride(cfg.name);
         if (!overrideProvider.isEmpty())
             cfg.providerInstance = overrideProvider;
+
+        m_baseToolsByName.insert(cfg.name, cfg.enableTools);
+        const std::optional<bool> overrideTools = readToolsOverride(cfg.name);
+        if (overrideTools.has_value())
+            cfg.enableTools = *overrideTools;
     }
     emit agentsChanged();
 }
@@ -289,6 +325,7 @@ void AgentFactory::clear()
     m_indexByName.clear();
     m_baseModelByName.clear();
     m_baseProviderByName.clear();
+    m_baseToolsByName.clear();
 }
 
 Providers::ProviderInstanceFactory *AgentFactory::instanceFactory() const noexcept
@@ -359,6 +396,39 @@ QString AgentFactory::agentProviderOverride(const QString &name) const
 void AgentFactory::clearAgentProviderOverride(const QString &name)
 {
     writeProviderOverride(name, QString());
+}
+
+bool AgentFactory::setAgentToolsOverride(
+    const QString &name, std::optional<bool> enabled, QString *error)
+{
+    Q_ASSERT(thread() == QThread::currentThread());
+
+    const auto it = m_indexByName.constFind(name);
+    if (it == m_indexByName.constEnd()) {
+        if (error)
+            *error = QStringLiteral("Agent '%1' is not registered").arg(name);
+        return false;
+    }
+    AgentConfig &cfg = m_configs[it.value()];
+    const bool effective = enabled.has_value() ? *enabled
+                                               : m_baseToolsByName.value(name, cfg.enableTools);
+    if (cfg.enableTools == effective && readToolsOverride(name) == enabled)
+        return true;
+
+    writeToolsOverride(name, enabled);
+    cfg.enableTools = effective;
+    emit agentToolsChanged(name);
+    return true;
+}
+
+std::optional<bool> AgentFactory::agentToolsOverride(const QString &name) const
+{
+    return readToolsOverride(name);
+}
+
+void AgentFactory::clearAgentToolsOverride(const QString &name)
+{
+    writeToolsOverride(name, std::nullopt);
 }
 
 } // namespace QodeAssist

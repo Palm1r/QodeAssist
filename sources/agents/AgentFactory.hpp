@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <optional>
 #include <vector>
 
 #include <QHash>
@@ -60,18 +61,25 @@ public:
     [[nodiscard]] QString agentProviderOverride(const QString &name) const;
     void clearAgentProviderOverride(const QString &name);
 
+    bool setAgentToolsOverride(
+        const QString &name, std::optional<bool> enabled, QString *error = nullptr);
+    [[nodiscard]] std::optional<bool> agentToolsOverride(const QString &name) const;
+    void clearAgentToolsOverride(const QString &name);
+
     [[nodiscard]] Providers::ProviderInstanceFactory *instanceFactory() const noexcept;
 
 signals:
     void agentsChanged();
     void agentModelChanged(const QString &name);
     void agentProviderChanged(const QString &name);
+    void agentToolsChanged(const QString &name);
 
 private:
     std::vector<AgentConfig> m_configs;
     QHash<QString, qsizetype> m_indexByName;
     QHash<QString, QString> m_baseModelByName;
     QHash<QString, QString> m_baseProviderByName;
+    QHash<QString, bool> m_baseToolsByName;
     QPointer<Providers::ProviderInstanceFactory> m_instanceFactory;
     QPointer<Providers::ProviderSecretsStore> m_secrets;
 };
