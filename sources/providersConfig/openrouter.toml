@@ -2,7 +2,7 @@ schema_version = 1
 
 name        = "OpenRouter"
 client_api  = "OpenRouter"
-description = "OpenRouter aggregator (https://openrouter.ai)."
+description = "Cloud aggregator (openrouter.ai) — a single gateway to models from many providers (Anthropic, OpenAI, Google, Meta, …)."
 
 url         = "https://openrouter.ai/api"
 api_key_ref = "qodeassist/providers/OpenRouter"

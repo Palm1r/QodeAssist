@@ -2,7 +2,7 @@ schema_version = 1
 
 name        = "OpenAI (Chat Completions)"
 client_api  = "OpenAI (Chat Completions)"
-description = "OpenAI's hosted /v1/chat/completions endpoint."
+description = "Cloud (OpenAI). GPT models via the standard Chat Completions API. The default OpenAI choice."
 
 url         = "https://api.openai.com/v1"
 api_key_ref = "qodeassist/providers/OpenAI (Chat Completions)"

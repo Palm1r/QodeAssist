@@ -2,7 +2,7 @@ schema_version = 1
 
 name        = "Ollama (OpenAI-compatible)"
 client_api  = "Ollama (OpenAI-compatible)"
-description = "Local Ollama daemon spoken to via the OpenAI-compatible /v1 routes."
+description = "Local (Ollama). The OpenAI-compatible /v1 routes — for OpenAI-style agents. For everyday use prefer Ollama (Native)."
 
 url         = "http://localhost:11434"
 api_key_ref = "qodeassist/providers/Ollama (OpenAI-compatible)"

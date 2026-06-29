@@ -125,6 +125,8 @@ public:
                 this, &ProvidersPageWidget::onApiKeySave);
         connect(m_detailPane, &ProviderDetailPane::apiKeyClearRequested,
                 this, &ProvidersPageWidget::onApiKeyClear);
+        connect(m_detailPane, &ProviderDetailPane::apiKeyRevealRequested,
+                this, &ProvidersPageWidget::onApiKeyReveal);
         connect(m_detailPane, &ProviderDetailPane::launchStartRequested,
                 this, &ProvidersPageWidget::onLaunchStart);
         connect(m_detailPane, &ProviderDetailPane::launchStopRequested,
@@ -445,6 +447,16 @@ private slots:
             return;
         m_secrets->writeKey(inst->apiKeyRef, newKey);
         m_detailPane->refreshKeyStatus(true);
+    }
+
+    void onApiKeyReveal()
+    {
+        if (!m_factory || !m_secrets || m_currentName.isEmpty())
+            return;
+        const auto *inst = m_factory->instanceByName(m_currentName);
+        if (!inst || inst->apiKeyRef.isEmpty())
+            return;
+        m_detailPane->showRevealedKey(m_secrets->readKeySync(inst->apiKeyRef));
     }
 
     void onApiKeyClear()

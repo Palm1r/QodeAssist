@@ -2,7 +2,7 @@ schema_version = 1
 
 name        = "llama.cpp"
 client_api  = "llama.cpp"
-description = "Local llama.cpp server (llama-server)."
+description = "Local (llama.cpp). Your own llama-server running GGUF models. Point the URL at your server (default :8080)."
 
 url         = "http://localhost:8080"
 api_key_ref = "qodeassist/providers/llama.cpp"

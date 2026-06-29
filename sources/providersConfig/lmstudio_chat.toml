@@ -2,7 +2,7 @@ schema_version = 1
 
 name        = "LM Studio (Chat Completions)"
 client_api  = "LM Studio (Chat Completions)"
-description = "Local LM Studio server over the /v1/chat/completions endpoint."
+description = "Local (LM Studio). The OpenAI Chat Completions API — the right pick for most LM Studio models."
 
 url         = "http://localhost:1234"
 api_key_ref = "qodeassist/providers/LM Studio (Chat Completions)"

@@ -2,7 +2,7 @@ schema_version = 1
 
 name        = "Claude"
 client_api  = "Claude"
-description = "Anthropic's hosted Claude API."
+description = "Cloud (Anthropic). Claude Opus/Sonnet/Haiku via the Messages API."
 
 url         = "https://api.anthropic.com"
 api_key_ref = "qodeassist/providers/Claude"

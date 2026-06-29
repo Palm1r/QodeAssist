@@ -42,6 +42,11 @@ ProviderDetailPane::ProviderDetailPane(QWidget *parent)
     spp.setColor(QPalette::WindowText, Utils::creatorColor(Utils::Theme::PanelTextColorMid));
     m_sourcePathLabel->setPalette(spp);
 
+    m_protocolLabel = new QLabel(this);
+    m_protocolLabel->setPalette(spp);
+    m_protocolLabel->setToolTip(
+        tr("The client API (protocol) this provider speaks. Fixed when the provider is created."));
+
     m_editBtn = new QPushButton(tr("Edit…"), this);
     m_editBtn->setDefault(true);
     m_openInEditorBtn = new QPushButton(tr("Open in editor"), this);
@@ -89,6 +94,7 @@ ProviderDetailPane::ProviderDetailPane(QWidget *parent)
     headerLeft->setContentsMargins(0, 0, 0, 0);
     headerLeft->setSpacing(2);
     headerLeft->addLayout(titleRow);
+    headerLeft->addWidget(m_protocolLabel);
     headerLeft->addWidget(m_sourcePathLabel);
 
     auto *headerRow = new QHBoxLayout;
@@ -107,8 +113,6 @@ ProviderDetailPane::ProviderDetailPane(QWidget *parent)
 
     auto *identitySection = new SectionBox(tr("Identity"), this);
     m_nameEdit = new QLineEdit(this);
-    m_typeEdit = new QLineEdit(this);
-    m_typeEdit->setReadOnly(true);
     m_descriptionEdit = new QPlainTextEdit(this);
     m_descriptionEdit->setMaximumHeight(60);
     m_descriptionEdit->setReadOnly(true);
@@ -118,9 +122,6 @@ ProviderDetailPane::ProviderDetailPane(QWidget *parent)
     identityGrid->setVerticalSpacing(4);
     FormBuilder(identityGrid)
         .row(tr("Name:"), m_nameEdit)
-        .row(tr("Client API:"), m_typeEdit,
-             tr("The client API this provider speaks. "
-                "Cannot be changed after creation."))
         .row(tr("Description:"), m_descriptionEdit);
     identitySection->bodyLayout()->addLayout(identityGrid);
 
@@ -151,8 +152,10 @@ ProviderDetailPane::ProviderDetailPane(QWidget *parent)
     m_revealKeyBtn = new QToolButton(this);
     m_revealKeyBtn->setText(QStringLiteral("👁"));
     m_revealKeyBtn->setCheckable(true);
-    m_revealKeyBtn->setToolTip(tr("Show / hide API key"));
+    m_revealKeyBtn->setToolTip(tr("Show / hide the API key (loads the stored key)"));
     connect(m_revealKeyBtn, &QToolButton::toggled, this, [this](bool on) {
+        if (on && m_apiKeyEdit->text().isEmpty() && m_currentHasStoredKey)
+            emit apiKeyRevealRequested();
         m_apiKeyEdit->setEchoMode(on ? QLineEdit::Normal : QLineEdit::Password);
     });
     m_apiKeySaveBtn = new QPushButton(tr("Save key"), this);
@@ -307,7 +310,7 @@ void ProviderDetailPane::populate(const Providers::ProviderInstance &inst, bool 
         inst.description.isEmpty() ? tr("No description provided.") : inst.description);
 
     m_nameEdit->setText(inst.name);
-    m_typeEdit->setText(inst.clientApi);
+    m_protocolLabel->setText(tr("via %1").arg(inst.clientApi));
     m_descriptionEdit->setPlainText(inst.description);
     m_urlEdit->setText(inst.url);
 
@@ -363,7 +366,7 @@ void ProviderDetailPane::clear()
     m_sourcePathLabel->clear();
     m_descriptionLabel->clear();
     m_nameEdit->clear();
-    m_typeEdit->clear();
+    m_protocolLabel->clear();
     m_descriptionEdit->clear();
     m_urlEdit->clear();
     m_apiKeyEdit->clear();
@@ -474,6 +477,16 @@ void ProviderDetailPane::changeEvent(QEvent *event)
         applyPreviewPalette();
         applyTerminalPalette();
     }
+}
+
+void ProviderDetailPane::showRevealedKey(const QString &key)
+{
+    if (key.isEmpty())
+        return;
+    m_apiKeyEdit->setText(key);
+    m_apiKeyEdit->setEchoMode(QLineEdit::Normal);
+    if (!m_revealKeyBtn->isChecked())
+        m_revealKeyBtn->setChecked(true);
 }
 
 void ProviderDetailPane::setEditing(bool on)

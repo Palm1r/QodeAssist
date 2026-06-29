@@ -2,7 +2,7 @@ schema_version = 1
 
 name        = "OpenAI (Responses API)"
 client_api  = "OpenAI (Responses API)"
-description = "OpenAI's hosted /v1/responses endpoint."
+description = "Cloud (OpenAI). GPT models via the newer Responses API (needed for some o-series reasoning models). If unsure, use OpenAI (Chat Completions)."
 
 url         = "https://api.openai.com/v1"
 api_key_ref = "qodeassist/providers/OpenAI (Responses API)"

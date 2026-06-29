@@ -2,7 +2,7 @@ schema_version = 1
 
 name        = "Codestral"
 client_api  = "Codestral"
-description = "Mistral's Codestral FIM-capable code model API."
+description = "Cloud (Mistral). Codestral — a code model with native fill-in-the-middle, great for completion."
 
 url         = "https://codestral.mistral.ai"
 api_key_ref = "qodeassist/providers/Codestral"

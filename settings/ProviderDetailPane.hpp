@@ -32,6 +32,7 @@ public:
     void populate(const Providers::ProviderInstance &inst, bool hasStoredKey);
     void clear();
     void refreshKeyStatus(bool hasStoredKey);
+    void showRevealedKey(const QString &key);
     void setLaunchState(Providers::ProviderLauncher::State st, const QString &lastError);
     void resetLaunchTerminal(const QByteArray &scrollback);
     void appendLaunchBytes(const QByteArray &chunk);
@@ -44,6 +45,7 @@ signals:
     void deleteRequested();
     void apiKeySaveRequested(const QString &newKey);
     void apiKeyClearRequested();
+    void apiKeyRevealRequested();
     void launchStartRequested(const QString &providerName);
     void launchStopRequested(const QString &providerName);
     void launchRestartRequested(const QString &providerName);
@@ -74,7 +76,7 @@ private:
     QLabel *m_descriptionLabel = nullptr;
 
     QLineEdit *m_nameEdit = nullptr;
-    QLineEdit *m_typeEdit = nullptr;
+    QLabel *m_protocolLabel = nullptr;
     QPlainTextEdit *m_descriptionEdit = nullptr;
     QLineEdit *m_urlEdit = nullptr;
     QLabel *m_samplePreview = nullptr;

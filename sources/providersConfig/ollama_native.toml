@@ -2,7 +2,7 @@ schema_version = 1
 
 name        = "Ollama (Native)"
 client_api  = "Ollama (Native)"
-description = "Default local Ollama daemon over its native /api/* endpoints."
+description = "Local (Ollama). The default — native /api endpoints with the best support for FIM, thinking and tools. Use this for the bundled Ollama agents."
 
 url         = "http://localhost:11434"
 api_key_ref = "qodeassist/providers/Ollama (Native)"

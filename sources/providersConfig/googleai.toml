@@ -2,7 +2,7 @@ schema_version = 1
 
 name        = "Google AI"
 client_api  = "Google AI"
-description = "Google AI Studio (Gemini) hosted API."
+description = "Cloud (Google). Gemini models via Google AI Studio."
 
 url         = "https://generativelanguage.googleapis.com/v1beta"
 api_key_ref = "qodeassist/providers/Google AI"

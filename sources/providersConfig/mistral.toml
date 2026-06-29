@@ -2,7 +2,7 @@ schema_version = 1
 
 name        = "Mistral AI"
 client_api  = "Mistral AI"
-description = "Mistral's hosted chat / completions API."
+description = "Cloud (Mistral). Mistral chat/instruct models, incl. the Magistral reasoning model. For Mistral's FIM code model, use Codestral."
 
 url         = "https://api.mistral.ai"
 api_key_ref = "qodeassist/providers/Mistral AI"
