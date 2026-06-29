@@ -86,6 +86,13 @@ public:
         headerRow->setSpacing(8);
         headerRow->addWidget(m_titleLabel, 1);
 
+        auto *reloadButton = new QPushButton(tr("Reload from disk"), this);
+        connect(reloadButton, &QPushButton::clicked, this, [this] {
+            if (m_factory)
+                m_factory->reload();
+        });
+        headerRow->addWidget(reloadButton);
+
         auto *headerSep = new QFrame(this);
         headerSep->setFrameShape(QFrame::HLine);
         headerSep->setFrameShadow(QFrame::Sunken);

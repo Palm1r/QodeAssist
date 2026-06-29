@@ -13,9 +13,6 @@
 
 #include "ProviderInstance.hpp"
 
-class QFileSystemWatcher;
-class QTimer;
-
 namespace QodeAssist::Providers {
 
 class ProviderInstanceFactory : public QObject
@@ -47,7 +44,6 @@ signals:
     void instancesReloaded();
 
 private:
-    void rewatchUserDir();
     void rebuildIndexes();
 
     std::vector<ProviderInstance> m_instances;
@@ -55,10 +51,6 @@ private:
     QStringList m_knownClientApisCache;
     QStringList m_errors;
     QStringList m_warnings;
-
-
-    QFileSystemWatcher *m_watcher = nullptr;
-    QTimer *m_reloadDebounce = nullptr;
 };
 
 } // namespace QodeAssist::Providers

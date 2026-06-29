@@ -11,6 +11,7 @@
 
 #include <QLabel>
 #include <QListWidget>
+#include <QPushButton>
 
 #include "ProjectSettings.hpp"
 #include "SettingsConstants.hpp"
@@ -90,6 +91,9 @@ static ProjectSettingsWidget *createProjectPanel(Project *project)
     QObject::connect(
         &settings->projectSkillDirs, &Utils::BaseAspect::changed, skillsList, refreshSkills);
 
+    auto *reloadSkillsButton = new QPushButton(Tr::tr("Reload"));
+    QObject::connect(reloadSkillsButton, &QPushButton::clicked, skillsList, refreshSkills);
+
     Column{
         generalWidget,
         Space{8},
@@ -97,7 +101,7 @@ static ProjectSettingsWidget *createProjectPanel(Project *project)
             title(Tr::tr("Skills")),
             Column{
                 settings->projectSkillDirs,
-                new QLabel(Tr::tr("Discovered project skills:")),
+                Row{new QLabel(Tr::tr("Discovered project skills:")), st, reloadSkillsButton},
                 skillsList,
             },
         },

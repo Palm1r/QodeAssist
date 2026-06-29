@@ -5,7 +5,6 @@
 #include "SkillsManager.hpp"
 
 #include <QDir>
-#include <QFileSystemWatcher>
 
 #include "SkillsLoader.hpp"
 
@@ -13,10 +12,7 @@ namespace QodeAssist::Skills {
 
 SkillsManager::SkillsManager(QObject *parent)
     : QObject(parent)
-    , m_watcher(new QFileSystemWatcher(this))
-{
-    connect(m_watcher, &QFileSystemWatcher::directoryChanged, this, [this] { reload(); });
-}
+{}
 
 void SkillsManager::configure(
     const QString &projectPath,
@@ -61,26 +57,7 @@ void SkillsManager::reload()
 {
     const QStringList roots = resolveRoots(m_projectPath, m_globalRoots, m_projectSubdirs);
     m_skills = SkillsLoader::scan(roots);
-    updateWatcher(roots);
     emit skillsChanged();
-}
-
-void SkillsManager::updateWatcher(const QStringList &roots)
-{
-    const QStringList watched = m_watcher->directories();
-    if (!watched.isEmpty())
-        m_watcher->removePaths(watched);
-
-    QStringList toWatch;
-    for (const QString &root : roots) {
-        if (QDir(root).exists())
-            toWatch << root;
-    }
-    for (const AgentSkill &skill : m_skills)
-        toWatch << skill.skillDir;
-
-    if (!toWatch.isEmpty())
-        m_watcher->addPaths(toWatch);
 }
 
 QVector<AgentSkill> SkillsManager::skills() const

@@ -13,8 +13,6 @@
 
 #include "AgentSkill.hpp"
 
-class QFileSystemWatcher;
-
 namespace QodeAssist::Skills {
 
 class SkillsManager : public QObject
@@ -48,13 +46,10 @@ signals:
     void skillsChanged();
 
 private:
-    void updateWatcher(const QStringList &roots);
-
     QString m_projectPath;
     QStringList m_globalRoots;
     QStringList m_projectSubdirs;
     QVector<AgentSkill> m_skills;
-    QFileSystemWatcher *m_watcher = nullptr;
 };
 
 } // namespace QodeAssist::Skills

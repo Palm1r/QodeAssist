@@ -16,11 +16,9 @@
 #include <utils/filepath.h>
 #include <utils/theme/theme.h>
 
-#include <QDateTime>
 #include <QDesktopServices>
 #include <QDir>
 #include <QFile>
-#include <QFileSystemWatcher>
 #include <QFont>
 #include <QFontMetrics>
 #include <QFrame>
@@ -153,26 +151,6 @@ public:
                 &AgentListPane::selectByName);
         }
 
-        m_reloadDebounce = new QTimer(this);
-        m_reloadDebounce->setSingleShot(true);
-        m_reloadDebounce->setInterval(300);
-        connect(m_reloadDebounce, &QTimer::timeout, this, [this] {
-            constexpr qint64 kSelfWriteIgnoreMs = 1500;
-            if (QDateTime::currentMSecsSinceEpoch() - m_lastSelfWriteMs < kSelfWriteIgnoreMs) {
-                armWatcher();
-                return;
-            }
-            reloadFromDisk();
-        });
-
-        m_watcher = new QFileSystemWatcher(this);
-        connect(m_watcher, &QFileSystemWatcher::directoryChanged, this, [this](const QString &) {
-            m_reloadDebounce->start();
-        });
-        connect(m_watcher, &QFileSystemWatcher::fileChanged, this, [this](const QString &) {
-            m_reloadDebounce->start();
-        });
-
         reloadFromDisk();
 
         if (m_navigator) {
@@ -194,21 +172,6 @@ private:
         m_agentFactory->reload();
         updateUserPathLabel();
         m_listPane->refresh();
-        armWatcher();
-    }
-
-    void armWatcher()
-    {
-        if (!m_watcher)
-            return;
-        const QStringList watched = m_watcher->files() + m_watcher->directories();
-        if (!watched.isEmpty())
-            m_watcher->removePaths(watched);
-        const QString dir = QodeAssist::AgentFactory::userAgentsDir();
-        m_watcher->addPath(dir);
-        const QDir userDir(dir);
-        for (const QString &f : userDir.entryList({QStringLiteral("*.toml")}, QDir::Files))
-            m_watcher->addPath(userDir.filePath(f));
     }
 
     void updateUserPathLabel()
@@ -246,7 +209,6 @@ private:
 
     void customizeAgent(const AgentConfig &parent)
     {
-        m_lastSelfWriteMs = QDateTime::currentMSecsSinceEpoch();
         const AgentDuplicateResult res = duplicateAgentInUserDir(parent, *m_agentFactory);
         if (!res.ok) {
             QMessageBox::warning(this, tr("Duplicate"), res.error);
@@ -272,7 +234,6 @@ private:
                 QMessageBox::No)
             != QMessageBox::Yes)
             return;
-        m_lastSelfWriteMs = QDateTime::currentMSecsSinceEpoch();
         if (!QFile::remove(sourcePath)) {
             QMessageBox::warning(
                 this,
@@ -296,9 +257,6 @@ private:
     AgentListPane *m_listPane = nullptr;
     QScrollArea *m_detailScroll = nullptr;
     AgentDetailPane *m_detail = nullptr;
-    QFileSystemWatcher *m_watcher = nullptr;
-    QTimer *m_reloadDebounce = nullptr;
-    qint64 m_lastSelfWriteMs = 0;
 };
 
 class AgentsSettingsPage : public Core::IOptionsPage

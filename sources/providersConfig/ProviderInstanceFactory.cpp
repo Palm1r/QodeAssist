@@ -5,12 +5,9 @@
 #include "ProviderInstanceFactory.hpp"
 
 #include <QDir>
-#include <QFileInfo>
-#include <QFileSystemWatcher>
 #include <QLoggingCategory>
 #include <QSet>
 #include <QThread>
-#include <QTimer>
 
 #include <coreplugin/icore.h>
 
@@ -39,15 +36,6 @@ ProviderInstanceFactory::ProviderInstanceFactory(QObject *parent)
 {
     ::initProviderInstancesResource();
 
-    m_watcher = new QFileSystemWatcher(this);
-    m_reloadDebounce = new QTimer(this);
-    m_reloadDebounce->setSingleShot(true);
-    m_reloadDebounce->setInterval(150);
-    connect(m_reloadDebounce, &QTimer::timeout, this, [this] { reload(); });
-    auto kick = [this](const QString &) { m_reloadDebounce->start(); };
-    connect(m_watcher, &QFileSystemWatcher::fileChanged, this, kick);
-    connect(m_watcher, &QFileSystemWatcher::directoryChanged, this, kick);
-
     reload();
 }
 
@@ -65,6 +53,7 @@ void ProviderInstanceFactory::reload()
                Q_FUNC_INFO, "ProviderInstanceFactory must be used from its owner thread");
     clear();
 
+    QDir().mkpath(userInstancesDir());
     auto result = ProviderInstanceLoader::load(instanceQrcPrefix(), userInstancesDir());
     for (const QString &err : result.errors)
         LOG_MESSAGE(QString("[ProviderInstances] error: %1").arg(err));
@@ -83,7 +72,6 @@ void ProviderInstanceFactory::reload()
     m_warnings = std::move(result.warnings);
 
     rebuildIndexes();
-    rewatchUserDir();
     emit instancesReloaded();
 }
 
@@ -111,23 +99,6 @@ void ProviderInstanceFactory::rebuildIndexes()
               [](const QString &a, const QString &b) {
                   return a.compare(b, Qt::CaseInsensitive) < 0;
               });
-}
-
-void ProviderInstanceFactory::rewatchUserDir()
-{
-    if (!m_watcher)
-        return;
-
-    const QStringList stale = m_watcher->files() + m_watcher->directories();
-    if (!stale.isEmpty())
-        m_watcher->removePaths(stale);
-
-    const QString userDir = userInstancesDir();
-    QDir().mkpath(userDir);
-    m_watcher->addPath(userDir);
-    QDir d(userDir);
-    for (const QFileInfo &fi : d.entryInfoList({"*.toml"}, QDir::Files))
-        m_watcher->addPath(fi.absoluteFilePath());
 }
 
 const ProviderInstance *ProviderInstanceFactory::instanceByName(const QString &name) const

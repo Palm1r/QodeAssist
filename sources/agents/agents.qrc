@@ -14,6 +14,14 @@
         <file>openai_chat_responses.toml</file>
         <file>google_base_chat.toml</file>
         <file>google_chat.toml</file>
+        <file>mistral_base_chat.toml</file>
+        <file>mistral_chat.toml</file>
+        <file>mistral_chat_reasoning.toml</file>
+        <file>mistral_compression.toml</file>
+        <file>mistral_quick_refactor.toml</file>
+        <file>codestral_base_fim.toml</file>
+        <file>codestral_completion_fim.toml</file>
+        <file>mistral_completion_codestral_fim.toml</file>
         <file>ollama_base_chat.toml</file>
         <file>ollama_chat_simple.toml</file>
         <file>ollama_chat_thinking.toml</file>
