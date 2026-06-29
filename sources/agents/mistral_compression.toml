@@ -1,0 +1,15 @@
+schema_version = 1
+
+extends     = "Mistral Base Chat"
+name        = "Mistral Compression"
+description = "Mistral Small — fast, low-cost conversation summarization for shorter chats. Carries the summary system prompt; no tools, no thinking."
+
+model        = "mistral-small-latest"
+enable_tools = false
+tags         = ["compression", "mistral", "cloud"]
+
+system_prompt = """{{ read_file(":/tasks/chat-compressor.md") }}"""
+
+[body]
+max_tokens  = 8192
+temperature = 0.3

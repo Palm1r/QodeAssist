@@ -1,0 +1,13 @@
+schema_version = 1
+
+name        = "Codestral Base FIM"
+description = "Codestral native fill-in-the-middle request body (/v1/fim/completions). Abstract — extend it and set model."
+abstract    = true
+
+provider_instance = "Codestral"
+endpoint          = "/v1/fim/completions"
+
+[body]
+stream = true
+prompt = """{{ tojson(ctx.prefix) }}"""
+suffix = """{% if existsIn(ctx, "suffix") %}{{ tojson(ctx.suffix) }}{% endif %}"""

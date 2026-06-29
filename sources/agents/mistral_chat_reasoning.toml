@@ -1,0 +1,18 @@
+schema_version = 1
+
+extends     = "Mistral Base Chat"
+name        = "Mistral Chat — Reasoning"
+description = "Mistral Medium with reasoning_effort=high — coding chat that emits a thinking trace before the answer. Mistral returns the reasoning as typed content chunks (thinking + text); QodeAssist surfaces them as a thinking block. NOTE: the older Magistral models (magistral-*-latest) are deprecated and reject reasoning_effort — use mistral-medium-latest or mistral-small-latest here."
+
+model           = "mistral-medium-latest"
+enable_tools    = true
+enable_thinking = true
+tags            = ["chat", "mistral", "reasoning", "cloud"]
+
+system_prompt = """{{ read_file(":/roles/qt-cpp-developer.md") }}"""
+
+[body]
+max_tokens       = 32000
+temperature      = 0.7
+top_p            = 0.95
+reasoning_effort = "high"

@@ -1,0 +1,15 @@
+schema_version = 1
+
+extends     = "Mistral Base Chat"
+name        = "Mistral Quick Refactor"
+description = "Mistral Large — agentic inline refactor with tools (gathers context before editing). Static output rules from :/tasks/quick-refactor.md; QuickRefactorHandler injects the live editor context (file, code, cursor/selection)."
+
+model        = "mistral-large-latest"
+enable_tools = true
+tags         = ["refactor", "mistral", "cloud"]
+
+system_prompt = """{{ read_file(":/tasks/quick-refactor.md") }}"""
+
+[body]
+max_tokens  = 16000
+temperature = 0.3

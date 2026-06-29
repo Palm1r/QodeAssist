@@ -1,0 +1,12 @@
+schema_version = 1
+
+extends     = "Codestral Base FIM"
+name        = "Codestral Completion — FIM"
+description = "Codestral — native fill-in-the-middle code completion (prompt+suffix on /v1/fim/completions). Fast, code-only output; ideal for inline completion."
+
+model = "codestral-latest"
+tags  = ["completion", "codestral", "mistral", "cloud", "fim"]
+
+[body]
+max_tokens  = 256
+temperature = 0.2

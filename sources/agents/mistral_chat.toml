@@ -1,0 +1,15 @@
+schema_version = 1
+
+extends     = "Mistral Base Chat"
+name        = "Mistral Chat"
+description = "Mistral Large — coding chat via the OpenAI-compatible Chat Completions API."
+
+model        = "mistral-large-latest"
+enable_tools = true
+tags         = ["chat", "mistral", "cloud"]
+
+system_prompt = """{{ read_file(":/roles/qt-cpp-developer.md") }}"""
+
+[body]
+max_tokens  = 8192
+temperature = 0.7

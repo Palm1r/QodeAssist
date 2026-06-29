@@ -1,0 +1,13 @@
+schema_version = 1
+
+extends     = "Codestral Base FIM"
+name        = "Mistral Completion — Codestral FIM"
+description = "Codestral on the Mistral AI platform (api.mistral.ai) — native fill-in-the-middle code completion via /v1/fim/completions. Use this when you have a Mistral AI key; for the dedicated codestral.mistral.ai endpoint use 'Codestral Completion — FIM' instead."
+
+provider_instance = "Mistral AI"
+model             = "codestral-latest"
+tags              = ["completion", "mistral", "codestral", "cloud", "fim"]
+
+[body]
+max_tokens  = 256
+temperature = 0.2
