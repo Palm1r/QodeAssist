@@ -1,0 +1,15 @@
+schema_version = 1
+
+extends     = "LM Studio Base Responses"
+name        = "LM Studio Quick Refactor"
+description = "Local LM Studio deterministic inline refactor via the Responses API. Static output rules from :/tasks/quick-refactor.md; QuickRefactorHandler injects the live editor context. Tools off by default for a fast single shot; Gemma 4 12B is tool-capable if you enable them."
+
+model        = "google/gemma-4-12b"
+enable_tools = false
+tags         = ["refactor", "lmstudio", "responses", "local"]
+
+system_prompt = """{{ read_file(":/tasks/quick-refactor.md") }}"""
+
+[body]
+max_output_tokens = 8192
+temperature       = 0.2

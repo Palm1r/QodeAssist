@@ -2,12 +2,12 @@ schema_version = 1
 
 extends     = "Ollama Base FIM"
 name        = "Ollama Completion — FIM"
-description = "Native fill-in-the-middle completion — uses the model's OWN FIM template (prompt+suffix on /api/generate). Fast and clean (no markdown or prose), but works ONLY with models that ship a FIM template, and those are few: the base / '-code' variants, NOT instruct/chat models. Verified to work: qwen2.5-coder (incl. -base), codellama:7b-code, deepseek-coder-v2 lite-base. A plain chat model outputs garbage here — use 'Ollama Completion — Chat-style' instead. Check a model: `ollama show <model> --modelfile` must mention 'Suffix'."
+description = "Native fill-in-the-middle completion — uses the model's OWN FIM template (prompt+suffix on /api/generate). Fast and clean (no markdown or prose), but works ONLY with a true BASE / '-code' model. Pick a base tag explicitly: the bare 'qwen2.5-coder:7b' tag is the INSTRUCT model (it ships an im_start chat template), and on FIM it rambles whole programs and prose — use 'qwen2.5-coder:7b-base' instead. Verified base/-code FIM models: qwen2.5-coder:7b-base, codellama:7b-code, deepseek-coder-v2 lite-base. A plain chat/instruct model outputs garbage here — use 'Ollama Completion — Chat-style' instead. Check a model: `ollama show <model> --modelfile` must mention 'Suffix' and must NOT have an im_start/chat template."
 
-model = "qwen2.5-coder:7b"
+model = "qwen2.5-coder:7b-base-q5_K_M"
 tags  = ["completion", "ollama", "local", "fim", "8gb"]
 
 [body.options]
 num_predict = 256
-temperature = 0.2
+temperature = 0
 keep_alive  = "5m"

@@ -10,6 +10,9 @@ tags         = ["compression", "ollama", "local", "8gb"]
 
 system_prompt = """{{ read_file(":/tasks/chat-compressor.md") }}"""
 
+[body]
+think = false
+
 [body.options]
 num_predict = 2048
 temperature = 0.3

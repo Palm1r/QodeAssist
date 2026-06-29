@@ -39,6 +39,8 @@ public:
         const QUrl &url, const QJsonObject &payload, const QString &endpoint) override;
 
 private:
+    QString modelsEndpoint(const QString &url) const;
+
     QString m_name;
     ProviderID m_id;
     ::LLMQore::BaseClient *m_client;

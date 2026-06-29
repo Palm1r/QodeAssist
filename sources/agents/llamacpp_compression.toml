@@ -1,0 +1,15 @@
+schema_version = 1
+
+extends     = "llama.cpp Base Chat"
+name        = "llama.cpp Compression"
+description = "Local llama.cpp — conversation summarization via the OpenAI-compatible Chat Completions API. Carries the summary system prompt; no tools. llama-server serves whichever GGUF is loaded, so 'model' is only a label."
+
+model        = "qwen2.5-coder-7b-instruct"
+enable_tools = false
+tags         = ["compression", "llama.cpp", "local"]
+
+system_prompt = """{{ read_file(":/tasks/chat-compressor.md") }}"""
+
+[body]
+max_tokens  = 16000
+temperature = 0.3

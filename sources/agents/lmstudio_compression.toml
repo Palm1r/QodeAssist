@@ -1,0 +1,15 @@
+schema_version = 1
+
+extends     = "LM Studio Base Responses"
+name        = "LM Studio Compression"
+description = "Local LM Studio — conversation summarization via the Responses API. Carries the summary system prompt; no tools. Gemma 4 12B by default; set 'model' to the loaded model's identifier."
+
+model        = "google/gemma-4-12b"
+enable_tools = false
+tags         = ["compression", "lmstudio", "responses", "local"]
+
+system_prompt = """{{ read_file(":/tasks/chat-compressor.md") }}"""
+
+[body]
+max_output_tokens = 16000
+temperature       = 0.3

@@ -48,7 +48,26 @@ QFuture<QList<QString>> GenericProvider::getInstalledModels(const QString &url)
 {
     m_client->setUrl(url);
     m_client->setApiKey(apiKey());
-    return m_client->listModels();
+    return m_client->listModels(modelsEndpoint(url));
+}
+
+QString GenericProvider::modelsEndpoint(const QString &url) const
+{
+    switch (m_id) {
+    case ProviderID::OpenAI:
+    case ProviderID::OpenAIResponses:
+    case ProviderID::OpenAICompatible:
+    case ProviderID::LMStudio:
+    case ProviderID::OpenRouter:
+        break;
+    default:
+        return {};
+    }
+
+    QString base = url;
+    while (base.endsWith('/'))
+        base.chop(1);
+    return base.endsWith("/v1") ? QStringLiteral("/models") : QStringLiteral("/v1/models");
 }
 
 RequestID GenericProvider::sendRequest(

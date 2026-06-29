@@ -16,7 +16,7 @@ system_prompt = """
 
 [body]
 max_tokens = 512
-temperature = 0.2
+temperature = 0
 stop_sequences = ["</code_context>"]
 messages = """
 [

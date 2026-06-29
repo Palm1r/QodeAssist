@@ -18,6 +18,9 @@
         <file>openai_quick_refactor.toml</file>
         <file>google_base_chat.toml</file>
         <file>google_chat.toml</file>
+        <file>google_completion.toml</file>
+        <file>google_compression.toml</file>
+        <file>google_quick_refactor.toml</file>
         <file>mistral_base_chat.toml</file>
         <file>mistral_chat.toml</file>
         <file>mistral_chat_reasoning.toml</file>
@@ -40,6 +43,16 @@
         <file>ollama_compression_16gb.toml</file>
         <file>ollama_compression_32gb.toml</file>
         <file>ollama_chat_gemma4.toml</file>
+        <file>llamacpp_base_chat.toml</file>
+        <file>llamacpp_chat.toml</file>
+        <file>llamacpp_completion_fim.toml</file>
+        <file>llamacpp_compression.toml</file>
+        <file>llamacpp_quick_refactor.toml</file>
+        <file>lmstudio_base_responses.toml</file>
+        <file>lmstudio_chat.toml</file>
+        <file>lmstudio_completion.toml</file>
+        <file>lmstudio_compression.toml</file>
+        <file>lmstudio_quick_refactor.toml</file>
     </qresource>
     <qresource prefix="/roles">
         <file alias="qt-cpp-developer.md">roles/qt-cpp-developer.md</file>

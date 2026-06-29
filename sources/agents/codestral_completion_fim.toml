@@ -9,4 +9,4 @@ tags  = ["completion", "codestral", "mistral", "cloud", "fim"]
 
 [body]
 max_tokens  = 256
-temperature = 0.2
+temperature = 0

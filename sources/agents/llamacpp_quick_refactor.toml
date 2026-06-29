@@ -1,0 +1,15 @@
+schema_version = 1
+
+extends     = "llama.cpp Base Chat"
+name        = "llama.cpp Quick Refactor"
+description = "Local llama.cpp deterministic inline refactor via the OpenAI-compatible Chat Completions API. Static output rules from :/tasks/quick-refactor.md; QuickRefactorHandler injects the live editor context. Tools off by default for a fast single shot; enabling them needs a tool-capable model + llama-server --jinja."
+
+model        = "qwen2.5-coder-7b-instruct"
+enable_tools = false
+tags         = ["refactor", "llama.cpp", "local"]
+
+system_prompt = """{{ read_file(":/tasks/quick-refactor.md") }}"""
+
+[body]
+max_tokens  = 8192
+temperature = 0.2

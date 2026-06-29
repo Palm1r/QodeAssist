@@ -1,0 +1,16 @@
+schema_version = 1
+
+extends     = "Google Base Chat"
+name        = "Google Compression"
+description = "Google Gemini 3.1 Flash-Lite — fast, low-cost conversation summarization. Carries the summary system prompt; no tools, thinking disabled (thinkingBudget=0)."
+
+model        = "gemini-3.1-flash-lite"
+enable_tools = false
+tags         = ["compression", "gemini", "google", "cloud"]
+
+system_prompt = """{{ read_file(":/tasks/chat-compressor.md") }}"""
+
+[body.generationConfig]
+maxOutputTokens = 16000
+temperature     = 0.3
+thinkingConfig  = { thinkingBudget = 0 }

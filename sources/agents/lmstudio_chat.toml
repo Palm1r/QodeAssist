@@ -1,0 +1,15 @@
+schema_version = 1
+
+extends     = "LM Studio Base Responses"
+name        = "LM Studio Chat"
+description = "Local LM Studio — coding chat via the OpenAI-compatible Responses API (/v1/responses) on Gemma 4 12B (tools + vision capable). Set 'model' to the identifier of the model loaded in LM Studio."
+
+model        = "google/gemma-4-12b"
+enable_tools = true
+tags         = ["chat", "lmstudio", "responses", "local"]
+
+system_prompt = """{{ read_file(":/roles/qt-cpp-developer.md") }}"""
+
+[body]
+max_output_tokens = 8192
+temperature       = 0.7

@@ -1,0 +1,17 @@
+schema_version = 1
+
+extends     = "Google Base Chat"
+name        = "Google Quick Refactor"
+description = "Google Gemini 3.5 Flash — agentic inline refactor with tools and thinking (gathers context before editing). Static output rules from :/tasks/quick-refactor.md; QuickRefactorHandler injects the live editor context (file, code, cursor/selection)."
+
+model           = "gemini-3.5-flash"
+enable_tools    = true
+enable_thinking = true
+tags            = ["refactor", "gemini", "google", "cloud"]
+
+system_prompt = """{{ read_file(":/tasks/quick-refactor.md") }}"""
+
+[body.generationConfig]
+maxOutputTokens = 16000
+temperature     = 1
+thinkingConfig  = { includeThoughts = true, thinkingBudget = 8192 }

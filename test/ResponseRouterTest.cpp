@@ -58,7 +58,7 @@ protected:
         return {};
     }
     LLMQore::RequestID ask(const QString &, LLMQore::RequestMode) override { return {}; }
-    QFuture<QList<QString>> listModels() override { return {}; }
+    QFuture<QList<QString>> listModels(const QString & = {}) override { return {}; }
     LLMQore::ToolSchemaFormat toolSchemaFormat() const override
     {
         return LLMQore::ToolSchemaFormat::Claude;

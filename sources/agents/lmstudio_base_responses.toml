@@ -1,0 +1,9 @@
+schema_version = 1
+
+extends     = "OpenAI Base Responses"
+name        = "LM Studio Base Responses"
+description = "LM Studio Responses API request body (OpenAI-compatible /v1/responses). Abstract — extend it and set model."
+abstract    = true
+
+provider_instance = "LM Studio (Responses API)"
+endpoint          = "/v1/responses"

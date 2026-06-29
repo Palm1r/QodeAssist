@@ -1,0 +1,15 @@
+schema_version = 1
+
+name        = "llama.cpp Completion — FIM"
+description = "Local llama.cpp native fill-in-the-middle via the /infill endpoint (input_prefix + input_suffix). Fast and clean, but the loaded GGUF MUST be a FIM-trained model (qwen2.5-coder, codellama-code, deepseek-coder, starcoder2, codegemma). A plain chat model produces garbage here — there is no native completion path for those. llama-server serves whichever model is loaded, so 'model' is only a label."
+
+provider_instance = "llama.cpp"
+endpoint          = "/infill"
+model             = "qwen2.5-coder-7b"
+tags              = ["completion", "llama.cpp", "local", "fim"]
+
+[body]
+input_prefix = """{{ tojson(ctx.prefix) }}"""
+input_suffix = """{% if existsIn(ctx, "suffix") %}{{ tojson(ctx.suffix) }}{% endif %}"""
+n_predict    = 256
+temperature  = 0.2

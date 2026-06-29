@@ -1,0 +1,24 @@
+schema_version = 1
+
+extends     = "LM Studio Base Responses"
+name        = "LM Studio Completion"
+description = "Local LM Studio — code completion via the Responses API: the cursor sits in a <code_context> message, so the model continues the code. Use a NON-thinking instruct/code model and set `model` to whatever you have loaded (qwen2.5-coder-7b-instruct is a good pick). Avoid reasoning models: Gemma 4 (incl. -qat) and similar emit reasoning tokens before any code, the detailed completion task makes them deliberate for hundreds-to-thousands of tokens (worst on the no-op cases), and reasoning cannot be disabled via the Responses API — so they exhaust max_output_tokens and return an empty completion no matter how high it is set."
+
+model = "qwen2.5-coder-7b-instruct"
+tags  = ["completion", "lmstudio", "responses", "local"]
+
+system_prompt = """
+{%- if language == "qml" %}{{ read_file(":/roles/code-completion-qml.md") }}
+{%- else if language == "c-like" %}{{ read_file(":/roles/code-completion-c-like.md") }}
+{%- else %}{{ read_file(":/roles/code-completion.md") }}
+{%- endif %}
+{{ read_file(":/tasks/code-completion.md") }}"""
+
+[body]
+max_output_tokens = 256
+temperature       = 0
+input = """
+[
+  { "role": "user", "content": {{ tojson("Here is the code context with insertion points:\\n<code_context>\\n" + ctx.prefix + "<cursor>" + ctx.suffix + "\\n</code_context>") }} }
+]
+"""

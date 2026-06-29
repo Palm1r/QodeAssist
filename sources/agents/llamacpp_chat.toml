@@ -1,0 +1,15 @@
+schema_version = 1
+
+extends     = "llama.cpp Base Chat"
+name        = "llama.cpp Chat"
+description = "Local llama.cpp (llama-server) — coding chat via the OpenAI-compatible Chat Completions API. llama-server serves whichever GGUF you loaded, so 'model' is only a label. Tool calling needs a tool-capable model and llama-server started with --jinja."
+
+model        = "qwen2.5-coder-7b-instruct"
+enable_tools = true
+tags         = ["chat", "llama.cpp", "local"]
+
+system_prompt = """{{ read_file(":/roles/qt-cpp-developer.md") }}"""
+
+[body]
+max_tokens  = 8192
+temperature = 0.7
