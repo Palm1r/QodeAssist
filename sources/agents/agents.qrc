@@ -1,30 +1,37 @@
 <RCC>
     <qresource prefix="/agents">
         <file>claude_base_chat.toml</file>
-        <file>claude_chat.toml</file>
-        <file>claude_opus_chat.toml</file>
-        <file>claude_opus_max.toml</file>
+        <file>claude_chat_sonnet.toml</file>
+        <file>claude_chat_opus_xhigh.toml</file>
+        <file>claude_chat_opus_max.toml</file>
         <file>claude_completion.toml</file>
         <file>claude_compression.toml</file>
         <file>claude_quick_refactor.toml</file>
         <file>claude_quick_refactor_fast.toml</file>
         <file>openai_base_chat.toml</file>
-        <file>openai_chat_completions.toml</file>
-        <file>openai_responses_base.toml</file>
-        <file>openai_responses_chat.toml</file>
+        <file>openai_chat.toml</file>
+        <file>openai_base_responses.toml</file>
+        <file>openai_chat_responses.toml</file>
         <file>google_base_chat.toml</file>
         <file>google_chat.toml</file>
         <file>ollama_base_chat.toml</file>
-        <file>ollama_chat.toml</file>
-        <file>ollama_chat_completion.toml</file>
+        <file>ollama_chat_simple.toml</file>
+        <file>ollama_chat_thinking.toml</file>
+        <file>ollama_completion_chat.toml</file>
         <file>ollama_base_fim.toml</file>
-        <file>ollama_fim.toml</file>
-        <file>ollama_codellama_qml_fim.toml</file>
-        <file>ollama_quick_refactor.toml</file>
-        <file>ollama_compression.toml</file>
+        <file>ollama_completion_fim.toml</file>
+        <file>ollama_completion_qml.toml</file>
+        <file>ollama_quick_refactor_simple.toml</file>
+        <file>ollama_quick_refactor_qwen35.toml</file>
+        <file>ollama_quick_refactor_gemma4.toml</file>
+        <file>ollama_compression_8gb.toml</file>
+        <file>ollama_compression_16gb.toml</file>
+        <file>ollama_compression_32gb.toml</file>
+        <file>ollama_chat_gemma4.toml</file>
     </qresource>
     <qresource prefix="/roles">
         <file alias="qt-cpp-developer.md">roles/qt-cpp-developer.md</file>
+        <file alias="agentic-coder.md">roles/agentic-coder.md</file>
         <file alias="code-completion.md">roles/code-completion.md</file>
         <file alias="code-completion-c-like.md">roles/code-completion-c-like.md</file>
         <file alias="code-completion-qml.md">roles/code-completion-qml.md</file>

@@ -1,0 +1,19 @@
+schema_version = 1
+
+extends     = "Ollama Base Chat"
+name        = "Ollama Chat — Thinking"
+description = "Local Ollama agentic coding chat — tools + native reasoning, for any tools/thinking-capable model (Qwen3.5 9B by default). Acts through IDE tools (read/edit/build) via the act-first agentic-coder role."
+
+model           = "qwen3.5:9b"
+enable_tools    = true
+enable_thinking = true
+tags            = ["chat", "ollama", "local", "16gb"]
+
+system_prompt = """{{ read_file(":/roles/agentic-coder.md") }}"""
+
+[body]
+think = true
+
+[body.options]
+num_predict = 8192
+keep_alive  = "5m"

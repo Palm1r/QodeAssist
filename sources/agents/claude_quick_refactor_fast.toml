@@ -1,7 +1,7 @@
 schema_version = 1
 
 extends     = "Claude Base Chat"
-name        = "Claude Quick Refactor Fast"
+name        = "Claude Quick Refactor — Fast"
 description = "Anthropic Claude Haiku — fast single-shot inline refactor. Static output rules from :/tasks/quick-refactor.md; QuickRefactorHandler injects the live editor context (file, code, cursor/selection). No thinking; tools off."
 
 model           = "claude-haiku-4-5"

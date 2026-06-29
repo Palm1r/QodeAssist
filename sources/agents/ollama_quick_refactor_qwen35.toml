@@ -1,0 +1,19 @@
+schema_version = 1
+
+extends     = "Ollama Base Chat"
+name        = "Ollama Quick Refactor — Qwen3.5"
+description = "Local Ollama smart inline refactor — qwen3.5:9b with native reasoning (thinks before editing). Static output rules from :/tasks/quick-refactor.md; QuickRefactorHandler injects the live editor context. No tools."
+
+model           = "qwen3.5:9b"
+enable_tools    = false
+enable_thinking = true
+tags            = ["refactor", "ollama", "local", "16gb"]
+
+system_prompt = """{{ read_file(":/tasks/quick-refactor.md") }}"""
+
+[body]
+think = true
+
+[body.options]
+num_predict = 4096
+keep_alive  = "5m"

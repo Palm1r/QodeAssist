@@ -1,0 +1,17 @@
+schema_version = 1
+
+extends     = "Ollama Base Chat"
+name        = "Ollama Compression — 8 GB"
+description = "Conversation summarization tuned for ~8 GB RAM — qwen3.5:4b at num_ctx 8192 (~5.5 GB resident). Smallest qwen3.5 (same family as the bigger tiers), decent context for the footprint. KV cache is reserved at load per num_ctx. No tools."
+
+model        = "qwen3.5:4b"
+enable_tools = false
+tags         = ["compression", "ollama", "local", "8gb"]
+
+system_prompt = """{{ read_file(":/tasks/chat-compressor.md") }}"""
+
+[body.options]
+num_predict = 2048
+temperature = 0.3
+num_ctx     = 8192
+keep_alive  = "5m"

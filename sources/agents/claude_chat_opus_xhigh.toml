@@ -1,10 +1,10 @@
 schema_version = 1
 
 extends     = "Claude Base Chat"
-name        = "Claude Sonnet Chat"
-description = "Anthropic Claude — coding chat with adaptive thinking."
+name        = "Claude Chat — Opus xHigh"
+description = "Anthropic Claude Opus 4.8 — coding chat with adaptive thinking at xhigh effort, tuned for agentic and coding work."
 
-model             = "claude-sonnet-4-6"
+model             = "claude-opus-4-8"
 enable_tools      = true
 enable_thinking   = true
 cache_prompt      = true
@@ -14,7 +14,7 @@ tags              = ["chat", "claude", "cloud"]
 system_prompt = """{{ read_file(":/roles/qt-cpp-developer.md") }}"""
 
 [body]
-max_tokens    = 16000
+max_tokens    = 64000
 temperature   = 1
 thinking      = { type = "adaptive", display = "summarized" }
-output_config = { effort = "high" }
+output_config = { effort = "xhigh" }

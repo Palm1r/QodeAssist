@@ -28,6 +28,31 @@ ollama run qwen2.5-coder:32b
 
 You're all set! QodeAssist is now ready to use in Qt Creator.
 
+## Which models do I actually need?
+
+You do **not** need a separate model for every agent. Each bundled Ollama agent
+names a *default* model only as an example — you can point any agent at a model
+you already have via its settings → **Change…** (a per-agent override; it does not
+edit the bundled agent). **Seeing a model name on an agent is not a reason to
+download it.**
+
+The defaults cluster into a tiny set, so one or two pulls cover everyday use:
+
+| Pull this | Unlocks |
+|---|---|
+| `qwen2.5-coder:7b` | Ollama Chat — Simple · Ollama Completion — FIM · Ollama Completion — Chat-style · Ollama Quick Refactor |
+| `qwen3.5:9b` (or `:4b` on ~8 GB) | Ollama Chat — Thinking · Ollama Compression — 16/32 GB (`:4b` → Compression — 8 GB) |
+
+Optional specialists — pull only if you want that capability:
+
+| Pull this | For |
+|---|---|
+| `gemma4:12b` | Ollama Chat — Gemma 4 — agentic chat with vision + native reasoning |
+| `theqtcompany/codellama-7b-qml` | Ollama Completion — QML (Qt) — Qt's QML-specific completion model |
+
+Rule of thumb: pick the agent for the job, then either pull its named model **or**
+swap it (Change…) for one you already have.
+
 ## Extended Thinking Mode
 
 Ollama supports extended thinking mode for models that are capable of deep reasoning (such as DeepSeek-R1, QwQ, and similar reasoning models). This mode allows the model to show its step-by-step reasoning process before providing the final answer.

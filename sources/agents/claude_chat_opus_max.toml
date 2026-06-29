@@ -1,7 +1,7 @@
 schema_version = 1
 
 extends     = "Claude Base Chat"
-name        = "Claude Opus Max Chat"
+name        = "Claude Chat — Opus Max"
 description = "Anthropic Claude Opus 4.8 — maximum-capability coding chat; adaptive thinking at max effort with 128k output. For frontier problems; higher cost and latency."
 
 model             = "claude-opus-4-8"

@@ -1,0 +1,13 @@
+schema_version = 1
+
+extends     = "Ollama Base FIM"
+name        = "Ollama Completion — FIM"
+description = "Native fill-in-the-middle completion — uses the model's OWN FIM template (prompt+suffix on /api/generate). Fast and clean (no markdown or prose), but works ONLY with models that ship a FIM template, and those are few: the base / '-code' variants, NOT instruct/chat models. Verified to work: qwen2.5-coder (incl. -base), codellama:7b-code, deepseek-coder-v2 lite-base. A plain chat model outputs garbage here — use 'Ollama Completion — Chat-style' instead. Check a model: `ollama show <model> --modelfile` must mention 'Suffix'."
+
+model = "qwen2.5-coder:7b"
+tags  = ["completion", "ollama", "local", "fim", "8gb"]
+
+[body.options]
+num_predict = 256
+temperature = 0.2
+keep_alive  = "5m"

@@ -1,0 +1,16 @@
+schema_version = 1
+
+extends     = "Ollama Base Chat"
+name        = "Ollama Quick Refactor — Simple"
+description = "Local Ollama deterministic inline refactor — fast single-shot, any model (Qwen2.5-Coder 7B by default). Static output rules from :/tasks/quick-refactor.md; QuickRefactorHandler injects the live editor context. No thinking, no tools."
+
+model        = "qwen2.5-coder:7b"
+enable_tools = false
+tags         = ["refactor", "ollama", "local", "8gb"]
+
+system_prompt = """{{ read_file(":/tasks/quick-refactor.md") }}"""
+
+[body.options]
+num_predict = 2048
+temperature = 0.2
+keep_alive  = "5m"

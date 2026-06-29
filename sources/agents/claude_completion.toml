@@ -1,7 +1,7 @@
 schema_version = 1
 
 extends     = "Claude Base Chat"
-name        = "Claude Code Completion"
+name        = "Claude Completion"
 description = "Anthropic Claude — code completion using the master <code_context> message format over the Messages API."
 
 model = "claude-haiku-4-5"

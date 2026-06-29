@@ -1,0 +1,33 @@
+schema_version = 1
+
+name        = "Ollama Completion — QML (Qt)"
+description = "Specialized QML completion built for The Qt Company's CodeLlama-QML fine-tune (`theqtcompany/codellama-7b-qml` / `13b-qml`) — a model trained specifically for QML. Native fill-in-the-middle with the fine-tune's suffix-first markers; route `.qml` files here via [match]. Not a general agent — use only with a Qt QML model (theqtcompany/* or palm1r/codellama-13b-code-qml)."
+
+provider_instance = "Ollama (Native)"
+endpoint          = "/api/generate"
+
+model = "theqtcompany/codellama-7b-qml"
+tags  = ["completion", "ollama", "local", "fim", "qml", "8gb"]
+
+[match]
+file_patterns = ["*.qml"]
+
+[body]
+prompt = """{{ tojson("<SUF>" + ctx.suffix + "<PRE>" + ctx.prefix + "<MID>") }}"""
+
+[body.options]
+temperature = 0
+top_p = 1
+repeat_penalty = 1.05
+num_predict = 500
+stop = [
+  "<SUF>",
+  "<PRE>",
+  "</PRE>",
+  "</SUF>",
+  "< EOT >",
+  "\\end",
+  "<MID>",
+  "</MID>",
+  "##",
+]

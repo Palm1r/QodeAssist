@@ -1,11 +1,11 @@
 schema_version = 1
 
 extends     = "Ollama Base Chat"
-name        = "Ollama FIM-on-chat"
-description = "Local Ollama code completion over /api/chat using the <code_context> message format — FIM-on-chat."
+name        = "Ollama Completion — Chat-style"
+description = "Code completion via a chat request — the cursor sits in a <code_context> message on /api/chat, so the model just continues the code. Works with ANY normal chat/instruct model (qwen2.5-coder, qwen3, llama3, gemma, mistral, codellama-instruct, …), so use this when your model is NOT a dedicated FIM model. Tradeoff vs native 'Ollama Completion — FIM': a bit slower and may leak code fences or explanations, so slightly less precise."
 
 model = "qwen2.5-coder:7b"
-tags  = ["completion", "ollama", "local", "fim"]
+tags  = ["completion", "ollama", "local", "fim", "8gb"]
 
 system_prompt = """
 {%- if language == "qml" %}{{ read_file(":/roles/code-completion-qml.md") }}
@@ -25,7 +25,7 @@ messages = """
 """
 
 [body.options]
-num_predict = 512
+num_predict = 256
 temperature = 0.2
 keep_alive  = "5m"
 stop        = ["</code_context>"]

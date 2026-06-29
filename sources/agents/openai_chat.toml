@@ -1,7 +1,7 @@
 schema_version = 1
 
 extends     = "OpenAI Base Chat"
-name        = "OpenAI Chat Completions"
+name        = "OpenAI Chat"
 description = "OpenAI GPT-4o — coding chat via Chat Completions."
 
 model           = "gpt-4o"

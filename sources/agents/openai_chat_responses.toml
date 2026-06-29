@@ -1,7 +1,7 @@
 schema_version = 1
 
-extends     = "OpenAI Responses Base"
-name        = "OpenAI Responses Chat"
+extends     = "OpenAI Base Responses"
+name        = "OpenAI Chat — Responses"
 description = "OpenAI o4-mini — reasoning coding chat via the Responses API."
 
 model           = "o4-mini"

@@ -1,7 +1,7 @@
 schema_version = 1
 
 extends     = "Claude Base Chat"
-name        = "Claude Chat Compression"
+name        = "Claude Compression"
 description = "Anthropic Claude Haiku — fast, low-cost conversation summarization for shorter chats. Carries the summary system prompt; no tools, no thinking."
 
 model        = "claude-haiku-4-5"

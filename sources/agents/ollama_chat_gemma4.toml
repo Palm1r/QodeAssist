@@ -1,0 +1,22 @@
+schema_version = 1
+
+extends     = "Ollama Base Chat"
+name        = "Ollama Chat — Gemma 4"
+description = "Local Ollama agentic coding chat (Gemma 4 12B by default) — native reasoning plus IDE tool use (read/edit/build), driven by the act-first agentic-coder role. Vision-capable."
+
+model           = "gemma4:12b"
+enable_tools    = true
+enable_thinking = true
+tags            = ["chat", "ollama", "local", "16gb"]
+
+system_prompt = """{{ read_file(":/roles/agentic-coder.md") }}"""
+
+[body]
+think = true
+
+[body.options]
+temperature = 1.0
+top_p       = 0.95
+top_k       = 64
+num_predict = 8096
+keep_alive  = "5m"

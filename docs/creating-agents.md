@@ -143,18 +143,18 @@ needs:
 |---|---|
 | `Claude Base Chat` | Claude, Anthropic Messages (`/v1/messages`) |
 | `OpenAI Base Chat` | OpenAI, Chat Completions (`/chat/completions`) |
-| `OpenAI Responses Base` | OpenAI, Responses API (`/responses`) |
+| `OpenAI Base Responses` | OpenAI, Responses API (`/responses`) |
 | `Google Base Chat` | Google AI, Gemini `generateContent` |
 | `Ollama Base Chat` | Ollama, native `/api/chat` |
-| `Ollama FIM Base` | Ollama, native `/api/generate` fill-in-the-middle |
+| `Ollama Base FIM` | Ollama, native `/api/generate` fill-in-the-middle |
 
 For any OpenAI-compatible provider (Mistral, OpenRouter, LM Studio, llama.cpp,
 DeepSeek, …) extend `OpenAI Base Chat` and override `provider_instance`.
 
-Each bundled concrete agent (`Claude Sonnet Chat`, `Claude Code Completion`,
-`OpenAI Chat Completions`, `OpenAI Responses Chat`, `Google Chat`,
-`Ollama Chat`, `Ollama FIM`) is itself a thin delta over one of these bases and
-works as a parent too — `extends = "Claude Sonnet Chat"` inherits everything including
+Each bundled concrete agent (`Claude Chat — Sonnet`, `Claude Completion`,
+`OpenAI Chat`, `OpenAI Chat — Responses`, `Google Chat`,
+`Ollama Chat — Simple`, `Ollama Completion — FIM`) is itself a thin delta over one of these bases and
+works as a parent too — `extends = "Claude Chat — Sonnet"` inherits everything including
 the model.
 
 ## `[body]` — the request, literally

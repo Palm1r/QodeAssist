@@ -1,6 +1,6 @@
 schema_version = 1
 
-name        = "OpenAI Responses Base"
+name        = "OpenAI Base Responses"
 description = "OpenAI Responses API request body (/responses). Abstract — extend it and set model."
 abstract    = true
 

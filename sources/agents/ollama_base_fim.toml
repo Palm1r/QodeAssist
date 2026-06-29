@@ -1,6 +1,6 @@
 schema_version = 1
 
-name        = "Ollama FIM Base"
+name        = "Ollama Base FIM"
 description = "Ollama native /api/generate FIM request body. Abstract — extend it and set model."
 abstract    = true
 
