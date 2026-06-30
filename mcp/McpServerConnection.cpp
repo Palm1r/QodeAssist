@@ -5,12 +5,11 @@
 #include "McpServerConnection.hpp"
 
 #include <LLMQore/McpClient.hpp>
-#include <LLMQore/McpExceptions.hpp>
 #include <LLMQore/McpHttpTransport.hpp>
 #include <LLMQore/McpRemoteTool.hpp>
-#include <LLMQore/McpStdioTransport.hpp>
-#include <LLMQore/McpTransport.hpp>
 #include <LLMQore/McpTypes.hpp>
+#include <LLMQore/RpcStdioTransport.hpp>
+#include <LLMQore/RpcTransport.hpp>
 #include <LLMQore/ToolsManager.hpp>
 #include <LLMQore/Version.hpp>
 
@@ -125,7 +124,7 @@ McpServerConnection::~McpServerConnection()
     disconnectFromServer();
 }
 
-::LLMQore::Mcp::McpTransport *McpServerConnection::createTransport()
+::LLMQore::Rpc::Transport *McpServerConnection::createTransport()
 {
     if (m_config.transport == McpTransportKind::Http) {
         if (!m_config.url.isValid()) {
@@ -149,7 +148,7 @@ McpServerConnection::~McpServerConnection()
         return nullptr;
     }
 
-    ::LLMQore::Mcp::StdioLaunchConfig cfg;
+    ::LLMQore::Rpc::StdioLaunchConfig cfg;
     cfg.arguments = m_config.args;
     cfg.workingDirectory = m_config.workingDirectory;
 
@@ -194,7 +193,7 @@ McpServerConnection::~McpServerConnection()
         env.insert(it.key(), it.value());
     cfg.environment = env;
 
-    return new ::LLMQore::Mcp::McpStdioClientTransport(cfg, this);
+    return new ::LLMQore::Rpc::StdioClientTransport(cfg, this);
 }
 
 void McpServerConnection::connectToServer()
