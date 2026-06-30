@@ -49,6 +49,8 @@ private:
     std::vector<const AgentConfig *> visibleAgents() const;
     void setCurrentNameInternal(const QString &name, bool emitSignal);
     void onRowClicked(const QString &name);
+    QString providerLabel(const AgentConfig &a) const;
+    QString groupKey(const AgentConfig &a) const;
 
     AgentFactory *m_factory;
     QLineEdit *m_filterEdit = nullptr;
@@ -58,6 +60,7 @@ private:
     QScrollArea *m_listScroll = nullptr;
     QList<AgentListItem *> m_rows;
     QString m_currentName;
+    QSet<QString> m_expandedGroups;
 };
 
 } // namespace QodeAssist::Settings

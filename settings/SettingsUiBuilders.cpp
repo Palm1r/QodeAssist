@@ -31,14 +31,22 @@ void applyMutedSmallCaps(QLabel *label)
 QLabel *makeSectionHeader(const QString &title, QWidget *parent)
 {
     auto *header = new QLabel(title.toUpper(), parent);
-    applyMutedSmallCaps(header);
-    header->setContentsMargins(8, 4, 8, 4);
+    QFont f = header->font();
+    f.setPixelSize(11);
+    f.setBold(true);
+    f.setLetterSpacing(QFont::AbsoluteSpacing, 0.6);
+    header->setFont(f);
+    QPalette p = header->palette();
+    p.setColor(QPalette::WindowText, Utils::creatorColor(Utils::Theme::PanelTextColorLight));
+    header->setPalette(p);
+    header->setContentsMargins(8, 5, 8, 5);
     header->setAutoFillBackground(true);
+    const QColor base = Utils::creatorColor(Utils::Theme::BackgroundColorNormal);
+    const QColor mid = Utils::creatorColor(Utils::Theme::PanelTextColorMid);
     header->setStyleSheet(
         QStringLiteral("QLabel { background:%1; border-top:1px solid %2;"
                        " border-bottom:1px solid %2; }")
-            .arg(cssColor(Utils::creatorColor(Utils::Theme::BackgroundColorNormal)),
-                 cssColor(Utils::creatorColor(Utils::Theme::SplitterColor))));
+            .arg(cssColor(mix(base, mid, 0.16)), cssColor(mix(base, mid, 0.30))));
     return header;
 }
 

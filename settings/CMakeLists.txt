@@ -30,6 +30,7 @@ add_library(QodeAssistSettings STATIC
     AgentListPane.hpp AgentListPane.cpp
     AgentDuplicator.hpp AgentDuplicator.cpp
     TagFilterStrip.hpp TagFilterStrip.cpp
+    CollapsibleHeader.hpp CollapsibleHeader.cpp
 )
 
 target_link_libraries(QodeAssistSettings

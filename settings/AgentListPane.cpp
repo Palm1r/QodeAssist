@@ -5,6 +5,7 @@
 #include "AgentListPane.hpp"
 
 #include "AgentListItem.hpp"
+#include "CollapsibleHeader.hpp"
 #include "SettingsTheme.hpp"
 #include "SettingsUiBuilders.hpp"
 #include "TagFilterStrip.hpp"
@@ -21,6 +22,7 @@
 #include <QLineEdit>
 #include <QMap>
 #include <QPalette>
+#include <QPointer>
 #include <QScrollArea>
 #include <QTimer>
 #include <QVBoxLayout>
@@ -90,12 +92,18 @@ void AgentListPane::selectByName(const QString &name)
 {
     if (name.isEmpty())
         return;
+    if (m_factory) {
+        if (const AgentConfig *cfg = m_factory->configByName(name))
+            m_expandedGroups.insert(groupKey(*cfg));
+    }
     setCurrentNameInternal(name, false);
     rebuildList();
     for (auto *item : m_rows) {
         if (item->agentName() == name) {
-            QTimer::singleShot(0, this, [this, item] {
-                m_listScroll->ensureWidgetVisible(item, 0, 60);
+            QPointer<AgentListItem> guarded(item);
+            QTimer::singleShot(0, this, [this, guarded] {
+                if (guarded)
+                    m_listScroll->ensureWidgetVisible(guarded, 0, 60);
             });
             break;
         }
@@ -183,6 +191,7 @@ void AgentListPane::rebuildList()
     contentLayout->setSpacing(0);
 
     const QSet<QString> &activeTags = m_tagStrip->activeTags();
+    const bool filtersActive = !lowerFilter.isEmpty() || !activeTags.isEmpty();
     auto addAgents = [&](const std::vector<const AgentConfig *> &agents) {
         for (const AgentConfig *cfg : agents) {
             auto *item = new AgentListItem(*cfg, content);
@@ -196,16 +205,50 @@ void AgentListPane::rebuildList()
             newRows.append(item);
         }
     };
+    QSet<QString> liveKeys;
+    auto addSection = [&](const QString &title, const QString &sectionKey,
+                          const std::vector<const AgentConfig *> &agents) {
+        if (agents.empty())
+            return;
+        contentLayout->addWidget(makeSectionHeader(title, content));
 
-    if (!userAgents.empty()) {
-        contentLayout->addWidget(makeSectionHeader(tr("User"), content));
-        addAgents(userAgents);
-    }
-    if (!bundledAgents.empty()) {
-        contentLayout->addWidget(makeSectionHeader(tr("Bundled"), content));
-        addAgents(bundledAgents);
-    }
-    if (newRows.isEmpty()) {
+        QMap<QString, std::vector<const AgentConfig *>> byProvider;
+        for (const AgentConfig *cfg : agents)
+            byProvider[providerLabel(*cfg)].push_back(cfg);
+        QStringList providers = byProvider.keys();
+        std::sort(providers.begin(), providers.end(),
+                  [](const QString &l, const QString &r) { return l.localeAwareCompare(r) < 0; });
+
+        for (const QString &provider : providers) {
+            const std::vector<const AgentConfig *> &group = byProvider[provider];
+            const QString key = sectionKey + QLatin1Char('/') + provider;
+            liveKeys.insert(key);
+            const bool expanded = filtersActive || m_expandedGroups.contains(key);
+
+            auto *header = new CollapsibleHeader(provider, int(group.size()), content);
+            header->setExpanded(expanded);
+            header->setClickable(!filtersActive);
+            if (!filtersActive) {
+                connect(header, &CollapsibleHeader::toggled, this,
+                        [this, key] {
+                            if (!m_expandedGroups.remove(key))
+                                m_expandedGroups.insert(key);
+                            rebuildList();
+                        },
+                        Qt::QueuedConnection);
+            }
+            contentLayout->addWidget(header);
+
+            if (expanded)
+                addAgents(group);
+        }
+    };
+
+    addSection(tr("User"), QStringLiteral("user"), userAgents);
+    addSection(tr("Bundled"), QStringLiteral("bundled"), bundledAgents);
+    if (!filtersActive)
+        m_expandedGroups.intersect(liveKeys);
+    if (userAgents.empty() && bundledAgents.empty()) {
         auto *empty = new QLabel(tr("No agents match these filters."), content);
         empty->setAlignment(Qt::AlignCenter);
         empty->setContentsMargins(10, 16, 10, 16);
@@ -246,6 +289,17 @@ void AgentListPane::setCurrentNameInternal(const QString &name, bool emitSignal)
         item->setSelected(item->agentName() == name);
     if (emitSignal)
         emit currentAgentChanged(m_currentName);
+}
+
+QString AgentListPane::providerLabel(const AgentConfig &a) const
+{
+    return a.providerInstance.isEmpty() ? tr("Other") : a.providerInstance;
+}
+
+QString AgentListPane::groupKey(const AgentConfig &a) const
+{
+    const QString section = a.isUserSource() ? QStringLiteral("user") : QStringLiteral("bundled");
+    return section + QLatin1Char('/') + providerLabel(a);
 }
 
 } // namespace QodeAssist::Settings
