@@ -12,6 +12,7 @@
 
 class QCheckBox;
 class QComboBox;
+class QFrame;
 class QLabel;
 class QLineEdit;
 class QPlainTextEdit;
@@ -51,6 +52,8 @@ protected:
 
 private:
     QLineEdit *makeReadOnlyLine(bool mono = false);
+    void fillRawToml(QPlainTextEdit *view, const QString &path);
+    void setDetailsVisible(bool visible);
     void applyCodePalette();
     void populateProviderCombo();
     void onChangeModel();
@@ -69,6 +72,9 @@ private:
 
     QLabel *m_name = nullptr;
     QLabel *m_path = nullptr;
+    QFrame *m_headerSep = nullptr;
+    QWidget *m_actionsHolder = nullptr;
+    QWidget *m_body = nullptr;
     QPushButton *m_openBtn = nullptr;
     QPushButton *m_dupBtn = nullptr;
     QPushButton *m_deleteBtn = nullptr;
@@ -99,6 +105,9 @@ private:
 
     QToolButton *m_rawToggle = nullptr;
     QPlainTextEdit *m_rawToml = nullptr;
+
+    QToolButton *m_baseRawToggle = nullptr;
+    QPlainTextEdit *m_baseRawToml = nullptr;
 };
 
 } // namespace QodeAssist::Settings

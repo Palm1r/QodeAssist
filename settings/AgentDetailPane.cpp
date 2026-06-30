@@ -92,7 +92,10 @@ AgentDetailPane::AgentDetailPane(QWidget *parent)
     m_path->setPalette(pp);
 
     m_openBtn = new QPushButton(tr("Open in editor"), this);
-    m_dupBtn = new QPushButton(tr("Duplicate…"), this);
+    m_dupBtn = new QPushButton(tr("Customize a copy…"), this);
+    m_dupBtn->setToolTip(
+        tr("Create an editable user agent that inherits from this one — "
+           "override only the fields you want."));
     m_deleteBtn = new QPushButton(tr("Delete"), this);
     connect(m_openBtn, &QPushButton::clicked, this, [this] {
         if (m_current)
@@ -107,7 +110,8 @@ AgentDetailPane::AgentDetailPane(QWidget *parent)
             emit deleteRequested(*m_current);
     });
 
-    auto *actions = new QHBoxLayout;
+    m_actionsHolder = new QWidget(this);
+    auto *actions = new QHBoxLayout(m_actionsHolder);
     actions->setContentsMargins(0, 0, 0, 0);
     actions->setSpacing(6);
     actions->addWidget(m_openBtn);
@@ -130,11 +134,11 @@ AgentDetailPane::AgentDetailPane(QWidget *parent)
     headerRow->setContentsMargins(0, 0, 0, 0);
     headerRow->setSpacing(8);
     headerRow->addLayout(headerLeft, 1);
-    headerRow->addLayout(actions);
+    headerRow->addWidget(m_actionsHolder);
 
-    auto *headerSep = new QFrame(this);
-    headerSep->setFrameShape(QFrame::HLine);
-    headerSep->setFrameShadow(QFrame::Sunken);
+    m_headerSep = new QFrame(this);
+    m_headerSep->setFrameShape(QFrame::HLine);
+    m_headerSep->setFrameShadow(QFrame::Sunken);
 
     m_description = new QLabel(this);
     m_description->setWordWrap(true);
@@ -319,18 +323,41 @@ AgentDetailPane::AgentDetailPane(QWidget *parent)
         m_rawToggle->setText(on ? tr("▾ Hide raw TOML") : tr("▸ Show raw TOML"));
     });
 
+    m_baseRawToggle = new QToolButton(this);
+    m_baseRawToggle->setText(tr("▸ Show base agent TOML"));
+    m_baseRawToggle->setCursor(Qt::PointingHandCursor);
+    m_baseRawToggle->setAutoRaise(true);
+    m_baseRawToggle->setCheckable(true);
+    m_baseRawToml = new QPlainTextEdit(this);
+    m_baseRawToml->setReadOnly(true);
+    m_baseRawToml->setFont(monospaceFont(11));
+    m_baseRawToml->setMinimumHeight(140);
+    m_baseRawToml->setVisible(false);
+    connect(m_baseRawToggle, &QToolButton::toggled, this, [this](bool on) {
+        m_baseRawToml->setVisible(on);
+        m_baseRawToggle->setText(on ? tr("▾ Hide base agent TOML") : tr("▸ Show base agent TOML"));
+    });
+
+    m_body = new QWidget(this);
+    auto *bodyLayout = new QVBoxLayout(m_body);
+    bodyLayout->setContentsMargins(0, 0, 0, 0);
+    bodyLayout->setSpacing(10);
+    bodyLayout->addWidget(identity);
+    bodyLayout->addWidget(connection);
+    bodyLayout->addWidget(capabilities);
+    bodyLayout->addWidget(match);
+    bodyLayout->addWidget(m_rawToggle, 0, Qt::AlignLeft);
+    bodyLayout->addWidget(m_rawToml);
+    bodyLayout->addWidget(m_baseRawToggle, 0, Qt::AlignLeft);
+    bodyLayout->addWidget(m_baseRawToml);
+
     auto *root = new QVBoxLayout(this);
     root->setContentsMargins(12, 12, 12, 12);
     root->setSpacing(10);
     root->addLayout(headerRow);
-    root->addWidget(headerSep);
+    root->addWidget(m_headerSep);
     root->addWidget(m_description);
-    root->addWidget(identity);
-    root->addWidget(connection);
-    root->addWidget(capabilities);
-    root->addWidget(match);
-    root->addWidget(m_rawToggle, 0, Qt::AlignLeft);
-    root->addWidget(m_rawToml);
+    root->addWidget(m_body);
     root->addStretch(1);
 
     clear();
@@ -494,6 +521,8 @@ void AgentDetailPane::setAgent(const AgentConfig &cfg)
     m_current = &m_currentStorage;
     const bool user = cfg.isUserSource();
 
+    setDetailsVisible(true);
+
     m_name->setText(cfg.name);
     m_path->setText(cfg.sourcePath);
     m_description->setText(
@@ -576,23 +605,17 @@ void AgentDetailPane::setAgent(const AgentConfig &cfg)
     m_filePatternsValue->setText(cfg.match.filePatterns.join(QStringLiteral(", ")));
     m_filePatternsValue->setPlaceholderText(tr("(matches every file)"));
 
-    const FileReadResult raw = readFileTextCapped(cfg.sourcePath, kRawTomlMaxBytes);
-    switch (raw.status) {
-    case FileReadStatus::Ok:
-        m_rawToml->setPlainText(raw.content);
-        break;
-    case FileReadStatus::Truncated:
-        m_rawToml->setPlainText(
-            raw.content + QStringLiteral("\n\n")
-            + tr("(truncated at %1 bytes)").arg(kRawTomlMaxBytes));
-        break;
-    case FileReadStatus::Empty:
-        m_rawToml->setPlainText(tr("(source file is empty)"));
-        break;
-    case FileReadStatus::OpenFailed:
-        m_rawToml->setPlainText(tr("(source file unavailable: %1)").arg(raw.error));
-        break;
-    }
+    fillRawToml(m_rawToml, cfg.sourcePath);
+
+    const QString basePath
+        = m_agentFactory ? m_agentFactory->sourcePathForName(cfg.extendsName) : QString();
+    const bool hasBase = !cfg.extendsName.isEmpty() && !basePath.isEmpty();
+    m_baseRawToggle->setVisible(hasBase);
+    m_baseRawToml->setVisible(hasBase && m_baseRawToggle->isChecked());
+    if (hasBase)
+        fillRawToml(m_baseRawToml, basePath);
+    else
+        m_baseRawToml->clear();
 
     m_openBtn->setEnabled(user);
     m_openBtn->setToolTip(
@@ -609,6 +632,7 @@ void AgentDetailPane::clear()
 {
     m_currentStorage = AgentConfig{};
     m_current = nullptr;
+    setDetailsVisible(false);
     m_name->setText(tr("Select an agent"));
     m_path->clear();
     m_description->setText(tr("Pick an agent from the list to see its details."));
@@ -638,6 +662,9 @@ void AgentDetailPane::clear()
     m_toolsResetBtn->setVisible(false);
     m_filePatternsValue->clear();
     m_rawToml->clear();
+    m_baseRawToml->clear();
+    m_baseRawToggle->setVisible(false);
+    m_baseRawToml->setVisible(false);
     m_openBtn->setEnabled(false);
     m_dupBtn->setEnabled(false);
     m_deleteBtn->setEnabled(false);
@@ -659,6 +686,35 @@ QLineEdit *AgentDetailPane::makeReadOnlyLine(bool mono)
     if (mono)
         e->setFont(monospaceFont(11));
     return e;
+}
+
+void AgentDetailPane::fillRawToml(QPlainTextEdit *view, const QString &path)
+{
+    const FileReadResult raw = readFileTextCapped(path, kRawTomlMaxBytes);
+    switch (raw.status) {
+    case FileReadStatus::Ok:
+        view->setPlainText(raw.content);
+        break;
+    case FileReadStatus::Truncated:
+        view->setPlainText(
+            raw.content + QStringLiteral("\n\n")
+            + tr("(truncated at %1 bytes)").arg(kRawTomlMaxBytes));
+        break;
+    case FileReadStatus::Empty:
+        view->setPlainText(tr("(source file is empty)"));
+        break;
+    case FileReadStatus::OpenFailed:
+        view->setPlainText(tr("(source file unavailable: %1)").arg(raw.error));
+        break;
+    }
+}
+
+void AgentDetailPane::setDetailsVisible(bool visible)
+{
+    m_headerSep->setVisible(visible);
+    m_path->setVisible(visible);
+    m_actionsHolder->setVisible(visible);
+    m_body->setVisible(visible);
 }
 
 void AgentDetailPane::applyCodePalette()

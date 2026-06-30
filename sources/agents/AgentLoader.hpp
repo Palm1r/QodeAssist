@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <QHash>
 #include <QString>
 #include <QStringList>
 #include <vector>
@@ -18,6 +19,7 @@ public:
     struct LoadResult
     {
         std::vector<AgentConfig> configs;
+        QHash<QString, QString> sourcePathByName;
         QStringList errors;
         QStringList warnings;
     };

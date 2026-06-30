@@ -193,7 +193,7 @@ private:
                 this,
                 tr("Open agent"),
                 tr("'%1' is bundled with the plugin and read-only.\n"
-                   "Use Duplicate to create an editable user copy.")
+                   "Use Customize a copy… to create an editable user agent.")
                     .arg(name));
             return;
         }
@@ -211,7 +211,7 @@ private:
     {
         const AgentDuplicateResult res = duplicateAgentInUserDir(parent, *m_agentFactory);
         if (!res.ok) {
-            QMessageBox::warning(this, tr("Duplicate"), res.error);
+            QMessageBox::warning(this, tr("Customize a copy"), res.error);
             return;
         }
         const QString newName = res.newName;

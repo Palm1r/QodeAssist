@@ -41,6 +41,7 @@ public:
     [[nodiscard]] static QString userConfigDir();
 
     [[nodiscard]] const AgentConfig *configByName(const QString &name) const;
+    [[nodiscard]] QString sourcePathForName(const QString &name) const;
     [[nodiscard]] QStringList configNames() const;
     [[nodiscard]] const std::vector<AgentConfig> &configs() const noexcept { return m_configs; }
 
@@ -77,6 +78,7 @@ signals:
 private:
     std::vector<AgentConfig> m_configs;
     QHash<QString, qsizetype> m_indexByName;
+    QHash<QString, QString> m_sourcePathByName;
     QHash<QString, QString> m_baseModelByName;
     QHash<QString, QString> m_baseProviderByName;
     QHash<QString, bool> m_baseToolsByName;

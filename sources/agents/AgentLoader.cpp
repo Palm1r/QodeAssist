@@ -348,6 +348,9 @@ AgentLoader::LoadResult AgentLoader::load(const QString &qrcPrefix, const QStrin
     scanDir(qrcPrefix, /*isUserLayer=*/false, raw, result.errors, &result.warnings);
     scanDir(userDir,   /*isUserLayer=*/true,  raw, result.errors, &result.warnings);
 
+    for (auto it = raw.constBegin(); it != raw.constEnd(); ++it)
+        result.sourcePathByName.insert(it.key(), it.value().filePath);
+
     for (auto it = raw.constBegin(); it != raw.constEnd(); ++it) {
         const QString &name = it.key();
 

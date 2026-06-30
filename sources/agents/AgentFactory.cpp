@@ -155,6 +155,7 @@ void AgentFactory::reload()
 
     QDir().mkpath(userAgentsDir());
     auto result = Agents::AgentLoader::load(agentQrcPrefix(), userAgentsDir());
+    m_sourcePathByName = std::move(result.sourcePathByName);
     for (const QString &err : result.errors)
         LOG_MESSAGE(QString("[Agents] error: %1").arg(err));
     for (const QString &warn : result.warnings)
@@ -210,6 +211,11 @@ const AgentConfig *AgentFactory::configByName(const QString &name) const
     if (it == m_indexByName.constEnd())
         return nullptr;
     return &m_configs[it.value()];
+}
+
+QString AgentFactory::sourcePathForName(const QString &name) const
+{
+    return m_sourcePathByName.value(name);
 }
 
 QStringList AgentFactory::configNames() const
@@ -323,6 +329,7 @@ void AgentFactory::clear()
     Q_ASSERT(thread() == QThread::currentThread());
     m_configs.clear();
     m_indexByName.clear();
+    m_sourcePathByName.clear();
     m_baseModelByName.clear();
     m_baseProviderByName.clear();
     m_baseToolsByName.clear();
