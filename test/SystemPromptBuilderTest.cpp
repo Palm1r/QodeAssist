@@ -49,8 +49,10 @@ TEST(SystemPromptBuilderTest, EqualPriorityKeepsInsertionOrder)
 TEST(SystemPromptBuilderTest, AgentPriorityComposesBeforeDefault)
 {
     SystemPromptBuilder builder;
-    builder.setLayer(QStringLiteral("env"), QStringLiteral("ENV"), SystemPromptBuilder::kDefaultPriority);
-    builder.setLayer(QStringLiteral("agent"), QStringLiteral("SYS"), SystemPromptBuilder::kAgentPriority);
+    builder.setLayer(
+        QStringLiteral("env"), QStringLiteral("ENV"), SystemPromptBuilder::kDefaultPriority);
+    builder.setLayer(
+        QStringLiteral("agent"), QStringLiteral("SYS"), SystemPromptBuilder::kAgentPriority);
 
     EXPECT_EQ(builder.compose(), QStringLiteral("SYS\n\nENV"));
 }

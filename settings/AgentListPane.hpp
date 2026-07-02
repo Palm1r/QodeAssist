@@ -61,6 +61,7 @@ private:
     QList<AgentListItem *> m_rows;
     QString m_currentName;
     QSet<QString> m_expandedGroups;
+    bool m_notifyOnRebuild = false;
 };
 
 } // namespace QodeAssist::Settings

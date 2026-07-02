@@ -257,15 +257,18 @@ CodeCompletionSettings::CodeCompletionSettings()
                 startSuggestionTimer,
                 Stretch{1}}};
 
-        return Column{Row{Stretch{1}, resetToDefaults},
-                      Space{8},
-                      Group{title(TrConstants::AUTO_COMPLETION_SETTINGS),
-                            Column{Group{title(Tr::tr("General Settings")), generalSettings},
-                                   Space{8},
-                                   Group{title(Tr::tr("Automatic Trigger Mode")), autoTriggerSettings}}},
-                      Space{8},
-                      Group{title(Tr::tr("Context Settings")), contextItem},
-                      Stretch{1}};
+        return Column{
+            Row{Stretch{1}, resetToDefaults},
+            Space{8},
+            Group{
+                title(TrConstants::AUTO_COMPLETION_SETTINGS),
+                Column{
+                    Group{title(Tr::tr("General Settings")), generalSettings},
+                    Space{8},
+                    Group{title(Tr::tr("Automatic Trigger Mode")), autoTriggerSettings}}},
+            Space{8},
+            Group{title(Tr::tr("Context Settings")), contextItem},
+            Stretch{1}};
     });
 }
 

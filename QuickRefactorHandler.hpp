@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <QJsonObject>
 #include <QObject>
 #include <QPointer>
 
@@ -26,9 +25,11 @@ struct RefactorResult
 {
     QString newText;
     Utils::Text::Range insertRange;
-    bool success;
+    bool success = false;
+    bool cancelled = false;
     QString errorMessage;
     QPointer<TextEditor::TextEditorWidget> editor;
+    int documentRevision = -1;
 };
 
 class QuickRefactorHandler : public QObject
@@ -60,23 +61,18 @@ private:
 
     void onRefactorFinished(const QString &requestId);
     void onRefactorFailed(const QString &requestId, const QodeAssist::ErrorInfo &error);
-    QString buildContextLayer(
-        TextEditor::TextEditorWidget *editor, const Utils::Text::Range &range);
+    QString buildContextLayer(TextEditor::TextEditorWidget *editor, const Utils::Text::Range &range);
     QString pickRefactorAgent() const;
-
-    struct RequestContext
-    {
-        QJsonObject originalRequest;
-        QPointer<Session> session;
-    };
+    void abortActiveRequest();
 
     QPointer<SessionManager> m_sessionManager;
     QPointer<AgentFactory> m_agentFactory;
-    QHash<QString, RequestContext> m_activeRequests;
+    QPointer<Session> m_activeSession;
     QPointer<TextEditor::TextEditorWidget> m_currentEditor;
     Utils::Text::Range m_currentRange;
     bool m_isRefactoringInProgress;
     QString m_lastRequestId;
+    int m_currentDocumentRevision = -1;
     Context::ContextManager m_contextManager;
 };
 

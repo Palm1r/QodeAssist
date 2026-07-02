@@ -99,6 +99,5 @@ TEST(AgentRouterTest, UnconstrainedDimensionDoesNotBlock)
     AgentConfig::Match m;
     m.projectNames = {QStringLiteral("P")};
 
-    // file path is irrelevant because no file/path patterns are set
     EXPECT_TRUE(matches(m, ctx(QString(), QStringLiteral("P"))));
 }

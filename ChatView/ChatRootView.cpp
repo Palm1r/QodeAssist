@@ -41,12 +41,12 @@
 #include "FileEditController.hpp"
 #include "GeneralSettings.hpp"
 #include "InputTokenCounter.hpp"
-#include "SettingsConstants.hpp"
 #include "Logger.hpp"
-#include "SessionFileRegistry.hpp"
-#include "context/ContextManager.hpp"
 #include "ProjectSettings.hpp"
+#include "SessionFileRegistry.hpp"
+#include "SettingsConstants.hpp"
 #include "SkillsSettings.hpp"
+#include "context/ContextManager.hpp"
 #include "sources/skills/SkillsManager.hpp"
 
 namespace QodeAssist::Chat {
@@ -85,7 +85,7 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     , m_agentController(new ChatAgentController(this))
     , m_fileEditController(new FileEditController(this))
     , m_tokenCounter(new InputTokenCounter(m_history, m_clientInterface->contextManager(), this))
-    , m_historyStore(new ChatHistoryStore(m_history, this))
+    , m_historyStore(new ChatHistoryStore(m_history, m_chatModel, this))
 {
     m_chatModel->setHistory(m_history);
     m_clientInterface->setHistory(m_history);
@@ -145,7 +145,6 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     connect(m_chatModel, &QAbstractItemModel::modelReset, this, maybeEmitTitle);
     connect(m_chatModel, &QAbstractItemModel::rowsInserted, this, maybeEmitTitle);
     connect(m_chatModel, &QAbstractItemModel::rowsRemoved, this, maybeEmitTitle);
-    connect(m_chatModel, &QAbstractItemModel::dataChanged, this, maybeEmitTitle);
     connect(this, &ChatRootView::attachmentFilesChanged, this, [this]() {
         m_tokenCounter->setAttachments(m_attachmentFiles);
     });
@@ -174,6 +173,14 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         &ChatAgentController::currentAgentChanged,
         this,
         &ChatRootView::useToolsChanged);
+    connect(
+        Settings::PipelinesNotifier::instance(),
+        &Settings::PipelinesNotifier::pipelinesChanged,
+        this,
+        [this]() {
+            emit availableChatAgentsChanged();
+            emit useToolsChanged();
+        });
 
     auto editors = Core::EditorManager::instance();
 
@@ -223,10 +230,14 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     });
 
     connect(
-        m_clientInterface,
-        &ClientInterface::requestStarted,
-        this,
-        [this](const QString &requestId) { m_fileEditController->setCurrentRequestId(requestId); });
+        m_clientInterface, &ClientInterface::requestStarted, this, [this](const QString &requestId) {
+            m_fileEditController->setCurrentRequestId(requestId);
+            setRequestProgressStatus(true);
+        });
+
+    connect(m_clientInterface, &ClientInterface::requestCancelled, this, [this]() {
+        setRequestProgressStatus(false);
+    });
 
     connect(
         m_clientInterface,
@@ -428,6 +439,11 @@ ChatModel *ChatRootView::chatModel() const
 
 void ChatRootView::sendMessage(const QString &message)
 {
+    if (message.trimmed().isEmpty() && m_attachmentFiles.isEmpty())
+        return;
+    if (m_chatCompressor->isCompressing())
+        return;
+
     const QStringList attachments = m_attachmentFiles;
     const QStringList linkedFiles = m_linkedFiles;
 
@@ -438,9 +454,7 @@ void ChatRootView::sendMessage(const QString &message)
 }
 
 bool ChatRootView::deferSendForAutoCompress(
-    const QString &message,
-    const QStringList &attachments,
-    const QStringList &linkedFiles)
+    const QString &message, const QStringList &attachments, const QStringList &linkedFiles)
 {
     auto &settings = Settings::chatAssistantSettings();
     if (!settings.autoCompress())
@@ -456,6 +470,9 @@ bool ChatRootView::deferSendForAutoCompress(
 
     if (m_recentFilePath.isEmpty()) {
         QString filePath = getAutosaveFilePath(message, attachments);
+        if (auto registry = sessionFileRegistry()) {
+            filePath = registry->uniqueFreePath(filePath);
+        }
         if (filePath.isEmpty())
             return false;
         setRecentFilePath(filePath);
@@ -475,9 +492,7 @@ bool ChatRootView::deferSendForAutoCompress(
 }
 
 void ChatRootView::dispatchSend(
-    const QString &message,
-    const QStringList &attachments,
-    const QStringList &linkedFiles)
+    const QString &message, const QStringList &attachments, const QStringList &linkedFiles)
 {
     if (m_recentFilePath.isEmpty()) {
         QString filePath = getAutosaveFilePath(message, attachments);
@@ -500,7 +515,6 @@ void ChatRootView::dispatchSend(
 
     m_fileManager->clearIntermediateStorage();
     clearAttachmentFiles();
-    setRequestProgressStatus(true);
 }
 
 void ChatRootView::copyToClipboard(const QString &text)
@@ -568,10 +582,17 @@ void ChatRootView::loadHistory(const QString &filePath)
         return;
     }
 
+    m_clientInterface->cancelRequest();
+
     auto result = m_historyStore->load(filePath);
     if (!result.success) {
         LOG_MESSAGE(QString("Failed to load chat history: %1").arg(result.errorMessage));
     } else {
+        if (!result.errorMessage.isEmpty()) {
+            m_lastInfoMessage = result.errorMessage;
+            emit lastInfoMessageChanged();
+            LOG_MESSAGE(QString("Chat history loaded with issues: %1").arg(result.errorMessage));
+        }
         setRecentFilePath(filePath);
     }
 
@@ -589,6 +610,12 @@ void ChatRootView::loadHistory(const QString &filePath)
 void ChatRootView::showSaveDialog()
 {
     m_historyStore->showSaveDialog();
+}
+
+void ChatRootView::resetChatTo(int index)
+{
+    m_clientInterface->cancelRequest();
+    m_chatModel->resetModelTo(index);
 }
 
 void ChatRootView::showLoadDialog()
@@ -939,8 +966,6 @@ void ChatRootView::relocateToWindow()
     clearAttachmentFiles();
     emit closeHostRequested();
 
-    // Closing the source split raises the main window; re-raise the chat window once that
-    // queued teardown has run. The registry outlives this view, which the split close deletes.
     if (auto registry = sessionFileRegistry()) {
         QMetaObject::invokeMethod(
             registry,
@@ -1210,7 +1235,13 @@ void ChatRootView::compressCurrentChat()
     if (compressionAgent.isEmpty())
         return;
 
-    autosave();
+    const auto saveResult = m_historyStore->save(m_recentFilePath);
+    if (!saveResult.success) {
+        m_lastErrorMessage
+            = tr("Failed to save chat before compression: %1").arg(saveResult.errorMessage);
+        emit lastErrorMessageChanged();
+        return;
+    }
 
     m_chatCompressor->setSessionManager(sessionManager());
     m_chatCompressor->setActiveAgent(compressionAgent);

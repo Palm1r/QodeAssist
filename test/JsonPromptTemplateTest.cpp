@@ -25,8 +25,8 @@ AgentConfig makeConfig(const QJsonObject &body)
     return cfg;
 }
 
-const QString kUserMessages
-    = QStringLiteral("[ { \"role\": \"user\", \"content\": {{ tojson(ctx.prefix) }} } ]");
+const QString kUserMessages = QStringLiteral(
+    "[ { \"role\": \"user\", \"content\": {{ tojson(ctx.prefix) }} } ]");
 
 const QString kSystemField = QStringLiteral(
     "{% if existsIn(ctx, \"system_prompt\") %}{{ tojson(ctx.system_prompt) }}{% endif %}");
@@ -35,12 +35,13 @@ const QString kSystemField = QStringLiteral(
 
 TEST(JsonPromptTemplateTest, RendersJinjaSplicesAndKeepsLiterals)
 {
-    auto tmpl = JsonPromptTemplate::fromConfig(makeConfig(QJsonObject{
-        {"max_tokens", 128},
-        {"temperature", 0.5},
-        {"stream", true},
-        {"messages", kUserMessages},
-    }));
+    auto tmpl = JsonPromptTemplate::fromConfig(makeConfig(
+        QJsonObject{
+            {"max_tokens", 128},
+            {"temperature", 0.5},
+            {"stream", true},
+            {"messages", kUserMessages},
+        }));
     ASSERT_NE(tmpl, nullptr);
 
     ContextData ctx;
@@ -55,16 +56,16 @@ TEST(JsonPromptTemplateTest, RendersJinjaSplicesAndKeepsLiterals)
 
     const QJsonArray messages = request.value("messages").toArray();
     ASSERT_EQ(messages.size(), 1);
-    EXPECT_EQ(
-        messages.at(0).toObject().value("content").toString(), QStringLiteral("hello world"));
+    EXPECT_EQ(messages.at(0).toObject().value("content").toString(), QStringLiteral("hello world"));
 }
 
 TEST(JsonPromptTemplateTest, DropsKeyWhenJinjaRendersEmpty)
 {
-    auto tmpl = JsonPromptTemplate::fromConfig(makeConfig(QJsonObject{
-        {"system", kSystemField},
-        {"messages", kUserMessages},
-    }));
+    auto tmpl = JsonPromptTemplate::fromConfig(makeConfig(
+        QJsonObject{
+            {"system", kSystemField},
+            {"messages", kUserMessages},
+        }));
     ASSERT_NE(tmpl, nullptr);
 
     ContextData ctx;
@@ -79,10 +80,11 @@ TEST(JsonPromptTemplateTest, DropsKeyWhenJinjaRendersEmpty)
 
 TEST(JsonPromptTemplateTest, RendersSystemPromptWhenPresent)
 {
-    auto tmpl = JsonPromptTemplate::fromConfig(makeConfig(QJsonObject{
-        {"system", kSystemField},
-        {"messages", kUserMessages},
-    }));
+    auto tmpl = JsonPromptTemplate::fromConfig(makeConfig(
+        QJsonObject{
+            {"system", kSystemField},
+            {"messages", kUserMessages},
+        }));
     ASSERT_NE(tmpl, nullptr);
 
     ContextData ctx;
@@ -92,16 +94,16 @@ TEST(JsonPromptTemplateTest, RendersSystemPromptWhenPresent)
     QJsonObject request;
     ASSERT_TRUE(tmpl->buildFullRequest(request, ctx));
 
-    EXPECT_EQ(
-        request.value("system").toString(), QStringLiteral("You are a helpful assistant."));
+    EXPECT_EQ(request.value("system").toString(), QStringLiteral("You are a helpful assistant."));
 }
 
 TEST(JsonPromptTemplateTest, PreservesNestedLiteralObjects)
 {
-    auto tmpl = JsonPromptTemplate::fromConfig(makeConfig(QJsonObject{
-        {"thinking", QJsonObject{{"type", "adaptive"}, {"budget", 8192}}},
-        {"messages", kUserMessages},
-    }));
+    auto tmpl = JsonPromptTemplate::fromConfig(makeConfig(
+        QJsonObject{
+            {"thinking", QJsonObject{{"type", "adaptive"}, {"budget", 8192}}},
+            {"messages", kUserMessages},
+        }));
     ASSERT_NE(tmpl, nullptr);
 
     ContextData ctx;
@@ -119,11 +121,45 @@ TEST(JsonPromptTemplateTest, RejectsBodyThatRendersInvalidJsonAtLoad)
 {
     QString error;
     auto tmpl = JsonPromptTemplate::fromConfig(
-        makeConfig(QJsonObject{
-            {"messages", QStringLiteral("[ {{ tojson(ctx.prefix) }}")},
-        }),
+        makeConfig(
+            QJsonObject{
+                {"messages", QStringLiteral("[ {{ tojson(ctx.prefix) }}")},
+            }),
         &error);
 
     EXPECT_EQ(tmpl, nullptr);
     EXPECT_FALSE(error.isEmpty());
+}
+
+TEST(JsonPromptTemplateTest, RejectsHandQuotedInterpolationAtLoad)
+{
+    QString error;
+    auto tmpl = JsonPromptTemplate::fromConfig(
+        makeConfig(
+            QJsonObject{
+                {"messages",
+                 QStringLiteral("[ { \"role\": \"user\", \"content\": \"{{ ctx.prefix }}\" } ]")},
+            }),
+        &error);
+
+    EXPECT_EQ(tmpl, nullptr);
+    EXPECT_FALSE(error.isEmpty());
+}
+
+TEST(JsonPromptTemplateTest, RoundTripsQuotesBackslashesAndNewlinesViaTojson)
+{
+    auto tmpl = JsonPromptTemplate::fromConfig(makeConfig(
+        QJsonObject{
+            {"messages", kUserMessages},
+        }));
+    ASSERT_NE(tmpl, nullptr);
+
+    ContextData ctx;
+    ctx.prefix = QStringLiteral("a \"quoted\" back\\slash\nnewline");
+
+    QJsonObject request;
+    ASSERT_TRUE(tmpl->buildFullRequest(request, ctx));
+    const QJsonArray messages = request.value("messages").toArray();
+    ASSERT_EQ(messages.size(), 1);
+    EXPECT_EQ(messages.at(0).toObject().value("content").toString(), *ctx.prefix);
 }

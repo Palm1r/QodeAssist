@@ -23,8 +23,7 @@ TEST(BundledAgentsTest, AllBundledAgentsLoadResolveAndRender)
     const AgentLoader::LoadResult result = AgentLoader::load(QStringLiteral(":/agents"), QString());
 
     EXPECT_TRUE(result.errors.isEmpty())
-        << "bundled agent load errors: "
-        << result.errors.join(QStringLiteral("; ")).toStdString();
+        << "bundled agent load errors: " << result.errors.join(QStringLiteral("; ")).toStdString();
 
     EXPECT_TRUE(result.warnings.isEmpty())
         << "bundled agent load warnings: "
@@ -45,8 +44,7 @@ TEST(BundledAgentsTest, AllBundledSystemPromptsResolveQrcResources)
     Q_INIT_RESOURCE(agents);
 
     const AgentLoader::LoadResult result = AgentLoader::load(QStringLiteral(":/agents"), QString());
-    ASSERT_TRUE(result.errors.isEmpty())
-        << result.errors.join(QStringLiteral("; ")).toStdString();
+    ASSERT_TRUE(result.errors.isEmpty()) << result.errors.join(QStringLiteral("; ")).toStdString();
     ASSERT_FALSE(result.configs.empty());
 
     const QStringList languages = {QString(), QStringLiteral("qml"), QStringLiteral("c-like")};
@@ -64,8 +62,8 @@ TEST(BundledAgentsTest, AllBundledSystemPromptsResolveQrcResources)
             const QString rendered = render(cfg.systemPrompt, bindings, &error);
 
             EXPECT_TRUE(error.isEmpty())
-                << "agent '" << cfg.name.toStdString() << "' (language='"
-                << lang.toStdString() << "') system_prompt render error: " << error.toStdString();
+                << "agent '" << cfg.name.toStdString() << "' (language='" << lang.toStdString()
+                << "') system_prompt render error: " << error.toStdString();
             EXPECT_FALSE(rendered.trimmed().isEmpty())
                 << "agent '" << cfg.name.toStdString() << "' (language='" << lang.toStdString()
                 << "') system_prompt rendered empty — a read_file(\":/...\") path is likely broken";

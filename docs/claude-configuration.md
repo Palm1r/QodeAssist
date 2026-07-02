@@ -1,16 +1,12 @@
 # Configure for Anthropic Claude
 
-1. Open Qt Creator settings and navigate to the QodeAssist section
-2. Go to Provider Settings tab and configure Claude api key
-3. Return to General tab and configure:
-   - Set "Claude" as the provider for code completion or/and chat assistant
-   - Set the Claude URL (https://api.anthropic.com)
-   - Select your preferred model (e.g., claude-3-5-sonnet-20241022)
-   - Choose the Claude template for code completion or/and chat
+1. Open Qt Creator settings and navigate to QodeAssist > Providers
+2. Select the bundled **Claude** provider and enter your Anthropic API key
+3. Go to QodeAssist > General > Agent Pipelines and assign Claude agents to the features you want:
+   - Code completion: **Claude Completion**
+   - Chat assistant: **Claude Chat — Sonnet** (or an Opus variant)
+   - Chat compression: **Claude Compression**
+   - Quick refactor: **Claude Quick Refactor** (or the Fast variant)
 
-<details>
-  <summary>Example of Claude settings: (click to expand)</summary>
-
-<img width="823" alt="Claude Settings" src="https://github.com/user-attachments/assets/828e09ea-e271-4a7a-8271-d3d5dd5c13fd" />
-</details>
-
+To change the model or request parameters, duplicate the bundled agent on the
+QodeAssist > Agents page (it extends the Claude base agent) and edit your copy.

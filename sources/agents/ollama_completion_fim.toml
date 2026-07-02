@@ -7,7 +7,9 @@ description = "Native fill-in-the-middle completion — uses the model's OWN FIM
 model = "qwen2.5-coder:7b-base-q5_K_M"
 tags  = ["completion", "ollama", "local", "fim", "8gb"]
 
+[body]
+keep_alive = "5m"
+
 [body.options]
 num_predict = 256
 temperature = 0
-keep_alive  = "5m"

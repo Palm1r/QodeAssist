@@ -52,8 +52,7 @@ public:
     void fireFailed(const QString &id, const QString &error) { emit requestFailed(id, error); }
 
 protected:
-    LLMQore::RequestID sendMessage(
-        const QJsonObject &, const QString &, LLMQore::RequestMode) override
+    LLMQore::RequestID sendMessage(const QJsonObject &, const QString &, LLMQore::RequestMode) override
     {
         return {};
     }
@@ -156,4 +155,92 @@ TEST(ResponseRouterTest, IgnoresEventsForInactiveRequest)
     client.fireChunk(QStringLiteral("OTHER"), QStringLiteral("ignored"));
 
     EXPECT_TRUE(history.isEmpty());
+}
+
+TEST(ResponseRouterTest, DistinctThinkingBlocksStayDistinctWithOwnSignatures)
+{
+    FakeClient client;
+    ConversationHistory history;
+    ResponseRouter router(&client, &history);
+
+    const QString id = QStringLiteral("req-4");
+    router.beginRequest(id);
+    client.fireThinking(id, QStringLiteral("first"), QStringLiteral("sig1"));
+    client.fireThinking(id, QStringLiteral("second"), QStringLiteral("sig2"));
+
+    ASSERT_EQ(history.size(), 1);
+    const auto &blocks = history.messages()[0].blocks();
+    ASSERT_EQ(blocks.size(), 2u);
+
+    const auto *first = dynamic_cast<const LLMQore::ThinkingContent *>(blocks[0].get());
+    const auto *second = dynamic_cast<const LLMQore::ThinkingContent *>(blocks[1].get());
+    ASSERT_NE(first, nullptr);
+    ASSERT_NE(second, nullptr);
+    EXPECT_EQ(first->thinking(), QStringLiteral("first"));
+    EXPECT_EQ(first->signature(), QStringLiteral("sig1"));
+    EXPECT_EQ(second->thinking(), QStringLiteral("second"));
+    EXPECT_EQ(second->signature(), QStringLiteral("sig2"));
+}
+
+TEST(ResponseRouterTest, SignatureOnlyEmissionBecomesRedactedThinking)
+{
+    FakeClient client;
+    ConversationHistory history;
+    ResponseRouter router(&client, &history);
+
+    const QString id = QStringLiteral("req-5");
+    router.beginRequest(id);
+    client.fireThinking(id, QStringLiteral("visible"), QStringLiteral("sig1"));
+    client.fireThinking(id, QString(), QStringLiteral("redacted-payload"));
+
+    ASSERT_EQ(history.size(), 1);
+    const auto &blocks = history.messages()[0].blocks();
+    ASSERT_EQ(blocks.size(), 2u);
+
+    const auto *visible = dynamic_cast<const LLMQore::ThinkingContent *>(blocks[0].get());
+    const auto *redacted = dynamic_cast<const LLMQore::RedactedThinkingContent *>(blocks[1].get());
+    ASSERT_NE(visible, nullptr);
+    ASSERT_NE(redacted, nullptr);
+    EXPECT_EQ(visible->signature(), QStringLiteral("sig1"));
+    EXPECT_EQ(redacted->signature(), QStringLiteral("redacted-payload"));
+}
+
+TEST(ResponseRouterTest, TextAfterToolUseStaysAfterToolUse)
+{
+    FakeClient client;
+    ConversationHistory history;
+    ResponseRouter router(&client, &history);
+
+    const QString id = QStringLiteral("req-6");
+    router.beginRequest(id);
+    client.fireChunk(id, QStringLiteral("before"));
+    client.fireToolStarted(id, QStringLiteral("t1"), QStringLiteral("tool"), QJsonObject{});
+    client.fireChunk(id, QStringLiteral("after"));
+
+    ASSERT_EQ(history.size(), 1);
+    const auto &blocks = history.messages()[0].blocks();
+    ASSERT_EQ(blocks.size(), 3u);
+    EXPECT_NE(dynamic_cast<const LLMQore::TextContent *>(blocks[0].get()), nullptr);
+    EXPECT_NE(dynamic_cast<const LLMQore::ToolUseContent *>(blocks[1].get()), nullptr);
+    const auto *after = dynamic_cast<const LLMQore::TextContent *>(blocks[2].get());
+    ASSERT_NE(after, nullptr);
+    EXPECT_EQ(after->text(), QStringLiteral("after"));
+}
+
+TEST(ResponseRouterTest, BatchedToolResultsMergeIntoOneUserMessage)
+{
+    FakeClient client;
+    ConversationHistory history;
+    ResponseRouter router(&client, &history);
+
+    const QString id = QStringLiteral("req-7");
+    router.beginRequest(id);
+    client.fireChunk(id, QStringLiteral("calling tools"));
+    client.fireToolResult(id, QStringLiteral("t1"), QStringLiteral("tool_a"), QStringLiteral("r1"));
+    client.fireToolResult(id, QStringLiteral("t2"), QStringLiteral("tool_b"), QStringLiteral("r2"));
+
+    ASSERT_EQ(history.size(), 2);
+    const Message &results = history.messages()[1];
+    EXPECT_EQ(results.role(), Message::Role::User);
+    EXPECT_EQ(results.blocks().size(), 2u);
 }

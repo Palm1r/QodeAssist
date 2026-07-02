@@ -30,6 +30,9 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
+#include <AgentConfig.hpp>
+#include <AgentFactory.hpp>
+
 #include "ProviderDetailPane.hpp"
 #include "ProviderInstance.hpp"
 #include "ProviderInstanceFactory.hpp"
@@ -69,11 +72,13 @@ public:
         Providers::ProviderInstanceFactory *factory,
         Providers::ProviderSecretsStore *secrets,
         Providers::ProviderLauncher *launcher,
-        ProvidersPageNavigator *navigator)
+        ProvidersPageNavigator *navigator,
+        AgentFactory *agents)
         : m_factory(factory)
         , m_secrets(secrets)
         , m_launcher(launcher)
         , m_navigator(navigator)
+        , m_agents(agents)
     {
         m_titleLabel = new QLabel(tr("Providers"), this);
         QFont tf = m_titleLabel->font();
@@ -132,8 +137,11 @@ public:
                 this, &ProvidersPageWidget::onApiKeySave);
         connect(m_detailPane, &ProviderDetailPane::apiKeyClearRequested,
                 this, &ProvidersPageWidget::onApiKeyClear);
-        connect(m_detailPane, &ProviderDetailPane::apiKeyRevealRequested,
-                this, &ProvidersPageWidget::onApiKeyReveal);
+        connect(
+            m_detailPane,
+            &ProviderDetailPane::apiKeyRevealRequested,
+            this,
+            &ProvidersPageWidget::onApiKeyReveal);
         connect(m_detailPane, &ProviderDetailPane::launchStartRequested,
                 this, &ProvidersPageWidget::onLaunchStart);
         connect(m_detailPane, &ProviderDetailPane::launchStopRequested,
@@ -231,7 +239,7 @@ private slots:
             delete item;
         }
         m_rows.clear();
-        m_listLayout->addStretch(1); // re-add trailing stretch
+        m_listLayout->addStretch(1);
 
         const QString filter = m_filterEdit->text().trimmed().toLower();
         auto matches = [&](const Providers::ProviderInstance &inst) {
@@ -241,7 +249,6 @@ private slots:
                    || inst.clientApi.toLower().contains(filter)
                    || inst.url.toLower().contains(filter);
         };
-
 
         auto addSection = [&](const QString &title, bool userSection) {
             auto *header = makeSectionHeader(title, m_listContent);
@@ -279,7 +286,8 @@ private slots:
                     m_listContent);
                 empty->setContentsMargins(10, 6, 10, 6);
                 QPalette ep = empty->palette();
-                ep.setColor(QPalette::WindowText, Utils::creatorColor(Utils::Theme::PanelTextColorMid));
+                ep.setColor(
+                    QPalette::WindowText, Utils::creatorColor(Utils::Theme::PanelTextColorMid));
                 empty->setPalette(ep);
                 m_listLayout->insertWidget(m_listLayout->count() - 1, empty);
             }
@@ -346,6 +354,18 @@ private slots:
         selectInstance(copy.name);
     }
 
+    QStringList agentsReferencing(const QString &providerName) const
+    {
+        QStringList out;
+        if (!m_agents)
+            return out;
+        for (const auto &cfg : m_agents->configs()) {
+            if (cfg.providerInstance == providerName)
+                out.append(cfg.name);
+        }
+        return out;
+    }
+
     void onRemoveClicked()
     {
         if (!m_factory || m_currentName.isEmpty())
@@ -357,16 +377,26 @@ private slots:
 
         const QString instName = instPtr->name;
         const QString sourcePath = instPtr->sourcePath;
-        if (QMessageBox::question(
-                this, tr("Delete provider"),
-                tr("Delete user provider '%1'?\n\nFile: %2").arg(instName, sourcePath))
-            != QMessageBox::Yes)
+        const QString apiKeyRef = instPtr->apiKeyRef;
+
+        QString question = tr("Delete user provider '%1'?\n\nFile: %2").arg(instName, sourcePath);
+        const QStringList referencing = agentsReferencing(instName);
+        if (!referencing.isEmpty()) {
+            question += QStringLiteral("\n\n")
+                        + tr("%n agent(s) reference this provider and will stop working:\n%1",
+                             nullptr,
+                             static_cast<int>(referencing.size()))
+                              .arg(referencing.join(QStringLiteral(", ")));
+        }
+        if (QMessageBox::question(this, tr("Delete provider"), question) != QMessageBox::Yes)
             return;
         if (!QFile::remove(sourcePath)) {
             QMessageBox::warning(this, tr("Delete provider"),
                                  tr("Failed to delete file:\n%1").arg(sourcePath));
             return;
         }
+        if (m_secrets && !apiKeyRef.isEmpty())
+            m_secrets->eraseKey(apiKeyRef);
         m_currentName.clear();
         m_factory->reload();
         m_detailPane->clear();
@@ -400,6 +430,21 @@ private slots:
                 QMessageBox::warning(this, tr("Save"),
                                      tr("An instance named '%1' already exists.").arg(e.name));
                 return;
+            }
+            const QStringList referencing = agentsReferencing(priorName);
+            if (!referencing.isEmpty()) {
+                if (QMessageBox::warning(
+                        this,
+                        tr("Save"),
+                        tr("%n agent(s) reference '%1' and will stop working until "
+                           "updated to '%2':\n%3\n\nRename anyway?",
+                           nullptr,
+                           static_cast<int>(referencing.size()))
+                            .arg(priorName, e.name, referencing.join(QStringLiteral(", "))),
+                        QMessageBox::Yes | QMessageBox::No,
+                        QMessageBox::No)
+                    != QMessageBox::Yes)
+                    return;
             }
         }
         const QString softWarning = Providers::ProviderInstance::warnings(e);
@@ -540,6 +585,7 @@ private:
     QPointer<Providers::ProviderInstanceFactory> m_factory;
     QPointer<Providers::ProviderSecretsStore> m_secrets;
     QPointer<ProvidersPageNavigator> m_navigator;
+    QPointer<AgentFactory> m_agents;
 
     QLabel *m_titleLabel = nullptr;
     QLineEdit *m_filterEdit = nullptr;
@@ -598,13 +644,14 @@ public:
         Providers::ProviderInstanceFactory *factory,
         Providers::ProviderSecretsStore *secrets,
         Providers::ProviderLauncher *launcher,
-        ProvidersPageNavigator *navigator)
+        ProvidersPageNavigator *navigator,
+        AgentFactory *agents)
     {
         setId(Constants::QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID);
         setDisplayName(QObject::tr("Providers"));
         setCategory(Constants::QODE_ASSIST_GENERAL_OPTIONS_CATEGORY);
-        setWidgetCreator([factory, secrets, launcher, navigator] {
-            return new ProvidersPageWidget(factory, secrets, launcher, navigator);
+        setWidgetCreator([factory, secrets, launcher, navigator, agents] {
+            return new ProvidersPageWidget(factory, secrets, launcher, navigator, agents);
         });
     }
 };
@@ -615,10 +662,11 @@ std::unique_ptr<Core::IOptionsPage> createProvidersSettingsPage(
     Providers::ProviderInstanceFactory *instanceFactory,
     Providers::ProviderSecretsStore *secrets,
     Providers::ProviderLauncher *launcher,
-    ProvidersPageNavigator *navigator)
+    ProvidersPageNavigator *navigator,
+    AgentFactory *agents)
 {
     return std::make_unique<ProvidersOptionsPage>(
-        instanceFactory, secrets, launcher, navigator);
+        instanceFactory, secrets, launcher, navigator, agents);
 }
 
 } // namespace QodeAssist::Settings

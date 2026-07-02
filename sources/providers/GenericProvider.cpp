@@ -73,8 +73,6 @@ QString GenericProvider::modelsEndpoint(const QString &url) const
 RequestID GenericProvider::sendRequest(
     const QUrl &url, const QJsonObject &payload, const QString &endpoint)
 {
-    // Gemini carries the model in the URL and rejects unknown body fields, so
-    // the model/stream keys injected by the generic pipeline must be dropped.
     if (m_id == ProviderID::GoogleAI) {
         QJsonObject cleaned = payload;
         cleaned.remove("model");
@@ -98,9 +96,7 @@ GenericProvider::ClientFactory makeFactory()
 
 void registerBuiltinProviders()
 {
-    const auto reg = [](const QString &api,
-                        ProviderID id,
-                        GenericProvider::ClientFactory factory) {
+    const auto reg = [](const QString &api, ProviderID id, GenericProvider::ClientFactory factory) {
         ProviderFactory::registerType(api, [=](QObject *parent) -> Provider * {
             return new GenericProvider(api, id, factory, parent);
         });
@@ -109,21 +105,23 @@ void registerBuiltinProviders()
     reg("Claude", ProviderID::Claude, makeFactory<::LLMQore::ClaudeClient>());
     reg("Google AI", ProviderID::GoogleAI, makeFactory<::LLMQore::GoogleAIClient>());
     reg("llama.cpp", ProviderID::LlamaCpp, makeFactory<::LLMQore::LlamaCppClient>());
-    reg("LM Studio (Chat Completions)", ProviderID::LMStudio,
+    reg("LM Studio (Chat Completions)",
+        ProviderID::LMStudio,
         makeFactory<::LLMQore::OpenAIClient>());
-    reg("LM Studio (Responses API)", ProviderID::OpenAIResponses,
+    reg("LM Studio (Responses API)",
+        ProviderID::OpenAIResponses,
         makeFactory<::LLMQore::OpenAIResponsesClient>());
     reg("Mistral AI", ProviderID::MistralAI, makeFactory<::LLMQore::MistralClient>());
     reg("Codestral", ProviderID::MistralAI, makeFactory<::LLMQore::MistralClient>());
     reg("Ollama (Native)", ProviderID::Ollama, makeFactory<::LLMQore::OllamaClient>());
-    reg("Ollama (OpenAI-compatible)", ProviderID::OpenAICompatible,
+    reg("Ollama (OpenAI-compatible)",
+        ProviderID::OpenAICompatible,
         makeFactory<::LLMQore::OpenAIClient>());
-    reg("OpenAI (Chat Completions)", ProviderID::OpenAI,
-        makeFactory<::LLMQore::OpenAIClient>());
-    reg("OpenAI (Responses API)", ProviderID::OpenAIResponses,
+    reg("OpenAI (Chat Completions)", ProviderID::OpenAI, makeFactory<::LLMQore::OpenAIClient>());
+    reg("OpenAI (Responses API)",
+        ProviderID::OpenAIResponses,
         makeFactory<::LLMQore::OpenAIResponsesClient>());
-    reg("OpenAI Compatible", ProviderID::OpenAICompatible,
-        makeFactory<::LLMQore::OpenAIClient>());
+    reg("OpenAI Compatible", ProviderID::OpenAICompatible, makeFactory<::LLMQore::OpenAIClient>());
     reg("OpenRouter", ProviderID::OpenRouter, makeFactory<::LLMQore::OpenAIClient>());
 }
 

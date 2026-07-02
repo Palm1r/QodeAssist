@@ -56,14 +56,14 @@ void ChangesManager::addChange(
     }
 }
 
-QString ChangesManager::getRecentChangesContext(const TextEditor::TextDocument *currentDocument) const
+QString ChangesManager::getRecentChangesContext(const QString &currentFilePath) const
 {
     QString context;
     for (auto it = m_documentChanges.constBegin(); it != m_documentChanges.constEnd(); ++it) {
-        if (it.key() != currentDocument) {
-            for (const auto &change : it.value()) {
-                context += change.lineContent + "\n";
-            }
+        if (it.key() && it.key()->filePath().toFSPathString() == currentFilePath)
+            continue;
+        for (const auto &change : it.value()) {
+            context += change.lineContent + "\n";
         }
     }
     return context;

@@ -67,7 +67,7 @@ public:
 
     void addChange(
         TextEditor::TextDocument *document, int position, int charsRemoved, int charsAdded);
-    QString getRecentChangesContext(const TextEditor::TextDocument *currentDocument) const;
+    QString getRecentChangesContext(const QString &currentFilePath) const;
 
     void addFileEdit(
         const QString &editId,
@@ -106,9 +106,10 @@ private:
     ChangesManager &operator=(const ChangesManager &) = delete;
 
     QString readFileContent(const QString &filePath) const;
-    
-    DiffInfo createDiffInfo(const QString &originalContent, const QString &modifiedContent, const QString &filePath);
-    
+
+    DiffInfo createDiffInfo(
+        const QString &originalContent, const QString &modifiedContent, const QString &filePath);
+
     // Helper method for fragment-based apply/undo operations
     bool performFragmentReplacement(
         const QString &filePath,

@@ -2,14 +2,16 @@ schema_version = 1
 
 extends     = "Ollama Base Chat"
 name        = "Ollama Chat — Simple"
-description = "Local Ollama coding chat for any model — plain conversational assistant, no tools, no thinking (Qwen2.5-Coder 7B by default)."
+description = "Local Ollama coding chat for any model — plain conversational assistant, no tools, no thinking (Qwen3.5 4B by default)."
 
 model = "qwen3.5:4b"
 tags  = ["chat", "ollama", "local", "8gb"]
 
 system_prompt = """{{ read_file(":/roles/qt-cpp-developer.md") }}"""
 
+[body]
+keep_alive = "5m"
+
 [body.options]
 num_predict = 2048
 temperature = 0.7
-keep_alive  = "5m"

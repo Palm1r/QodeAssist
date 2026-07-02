@@ -12,8 +12,8 @@ tags            = ["refactor", "ollama", "local", "16gb"]
 system_prompt = """{{ read_file(":/tasks/quick-refactor.md") }}"""
 
 [body]
-think = true
+think      = true
+keep_alive = "5m"
 
 [body.options]
 num_predict = 4096
-keep_alive  = "5m"

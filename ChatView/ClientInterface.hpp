@@ -22,7 +22,7 @@ namespace QodeAssist {
 class SessionManager;
 class Session;
 class ConversationHistory;
-}
+} // namespace QodeAssist
 
 namespace QodeAssist::Skills {
 class SkillsManager;
@@ -62,6 +62,7 @@ signals:
     void errorOccurred(const QString &error);
     void messageReceivedCompletely();
     void requestStarted(const QString &requestId);
+    void requestCancelled();
     void messageUsageReceived(
         int promptTokens, int completionTokens, int cachedPromptTokens, int reasoningTokens);
 
@@ -71,6 +72,7 @@ private:
     void onSessionEvent(Session *session, const QodeAssist::ResponseEvent &ev);
     void onSessionFinished(const QString &requestId);
     void onSessionFailed(const QString &requestId, const QodeAssist::ErrorInfo &error);
+    void onSessionCancelled(const QString &requestId);
 
     QStringList invokedSkillNames(const QString &message) const;
     QString buildChatContextLayer() const;

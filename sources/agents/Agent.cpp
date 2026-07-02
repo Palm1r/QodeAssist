@@ -56,7 +56,8 @@ Agent::Agent(AgentConfig config, Providers::Provider *providerOwned, QObject *pa
     }
     m_provider->setParent(this);
     m_provider->setPromptCaching(
-        m_config.cachePrompt, m_config.cacheTtl == QLatin1StringView{"1h"},
+        m_config.cachePrompt,
+        m_config.cacheTtl == QLatin1StringView{"1h"},
         m_config.cacheBreakpoints);
 
     QString tmplErr;

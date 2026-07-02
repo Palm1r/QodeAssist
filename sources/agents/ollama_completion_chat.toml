@@ -15,6 +15,7 @@ system_prompt = """
 {{ read_file(":/tasks/code-completion.md") }}"""
 
 [body]
+keep_alive = "5m"
 messages = """
 [
 {% if existsIn(ctx, "system_prompt") %}
@@ -27,5 +28,4 @@ messages = """
 [body.options]
 num_predict = 256
 temperature = 0.2
-keep_alive  = "5m"
 stop        = ["</code_context>"]

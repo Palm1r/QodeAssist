@@ -51,8 +51,8 @@ QString formatProject(const ProjectEnv &env)
 
 QString formatFile(const FileEnv &env)
 {
-    const QString language
-        = LanguageServerProtocol::TextDocumentItem::mimeTypeToLanguageId(env.mimeType);
+    const QString language = LanguageServerProtocol::TextDocumentItem::mimeTypeToLanguageId(
+        env.mimeType);
 
     QString out = QStringLiteral("File information:");
     if (!language.isEmpty())

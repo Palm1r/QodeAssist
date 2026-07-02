@@ -34,8 +34,7 @@ TEST(EnvBlockFormatterTest, FormatProjectEmptyEnv)
 
 TEST(EnvBlockFormatterTest, FormatFileWithKnownMime)
 {
-    const QString out
-        = EnvBlockFormatter::formatFile({"/home/dev/myapp/main.cpp", "text/x-c++src"});
+    const QString out = EnvBlockFormatter::formatFile({"/home/dev/myapp/main.cpp", "text/x-c++src"});
 
     EXPECT_TRUE(out.startsWith("File information:"));
     EXPECT_TRUE(out.contains("Language:"));

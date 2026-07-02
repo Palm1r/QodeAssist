@@ -22,8 +22,8 @@ public:
     void setKeyColumnWidth(int width) { m_keyColumnWidth = width; }
 
     void writeBlankLine();
-    void writeComment(const QString &line);     // "# line\n"
-    void writeTableHeader(const QString &name); // "[name]\n"
+    void writeComment(const QString &line);
+    void writeTableHeader(const QString &name);
 
     void writeString(const QString &key, const QString &value);
     void writeBool(const QString &key, bool value);

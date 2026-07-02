@@ -87,9 +87,10 @@ void Pill::applyTheme()
     QScopedValueRollback<bool> guard(m_inApplyTheme, true);
 
     const PillTone t = toneFor(m_kind);
-    setStyleSheet(QStringLiteral("QLabel { background-color:%1; color:%2;"
-                                 " border:1px solid %3; border-radius:3px;"
-                                 " padding:1px 7px; font-size:11px; }")
+    setStyleSheet(QStringLiteral(
+                      "QLabel { background-color:%1; color:%2;"
+                      " border:1px solid %3; border-radius:3px;"
+                      " padding:1px 7px; font-size:11px; }")
                       .arg(cssColor(t.bg), cssColor(t.fg), cssColor(t.border)));
 }
 

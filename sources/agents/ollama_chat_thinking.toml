@@ -12,8 +12,8 @@ tags            = ["chat", "ollama", "local", "16gb"]
 system_prompt = """{{ read_file(":/roles/agentic-coder.md") }}"""
 
 [body]
-think = true
+think      = true
+keep_alive = "5m"
 
 [body.options]
 num_predict = 8192
-keep_alive  = "5m"

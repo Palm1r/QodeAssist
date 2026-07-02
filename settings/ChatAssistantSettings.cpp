@@ -147,10 +147,7 @@ ChatAssistantSettings::ChatAssistantSettings()
             Space{8},
             Group{
                 title(Tr::tr("Chat Settings")),
-                Column{
-                    linkOpenFiles,
-                    autosave,
-                    Row{autoCompress, autoCompressThreshold, Stretch{1}}}},
+                Column{linkOpenFiles, autosave, Row{autoCompress, autoCompressThreshold, Stretch{1}}}},
             Space{8},
             Group{title(Tr::tr("Chat Settings")), Row{chatViewSettingsGrid, Stretch{1}}},
             Stretch{1}};

@@ -110,8 +110,9 @@ void CollapsibleHeader::applyTheme()
     const QColor mid = Utils::creatorColor(Utils::Theme::PanelTextColorMid);
     const QColor bg = mix(base, mid, m_hovered ? 0.18 : 0.08);
 
-    setStyleSheet(QStringLiteral("#CollapsibleHeader { background:%1;"
-                                 " border-top:1px solid %2; }")
+    setStyleSheet(QStringLiteral(
+                      "#CollapsibleHeader { background:%1;"
+                      " border-top:1px solid %2; }")
                       .arg(cssColor(bg), cssColor(mix(base, mid, 0.25))));
 
     QPalette ap = m_arrow->palette();

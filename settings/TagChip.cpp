@@ -125,9 +125,9 @@ void TagChip::applyTheme()
         countColor = muted;
     }
 
-    setStyleSheet(QStringLiteral(
-                      "#TagChip { background:%1; border:1px solid %2; border-radius:10px; }")
-                      .arg(bg, cssColor(border)));
+    setStyleSheet(
+        QStringLiteral("#TagChip { background:%1; border:1px solid %2; border-radius:10px; }")
+            .arg(bg, cssColor(border)));
 
     QFont lf = m_label->font();
     lf.setBold(m_active);

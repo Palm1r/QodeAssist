@@ -18,7 +18,6 @@
 
 #include "Logger.hpp"
 #include "TomlWriter.hpp"
-#include <AgentFactory.hpp>
 
 namespace QodeAssist::Settings {
 
@@ -45,8 +44,6 @@ QString toSingleString(const toml::node *node, const QString &slotKey, bool *sch
         return {};
     if (const auto *s = node->as_string())
         return trimAndCap(QString::fromStdString(s->get()));
-    // Backward compatibility: older pipelines.toml stored these slots as an
-    // ordered array. Collapse to the first usable name.
     if (const auto *arr = node->as_array()) {
         for (size_t i = 0; i < arr->size(); ++i) {
             if (const auto *s = (*arr)[i].as_string()) {
@@ -115,17 +112,51 @@ void fillMissingFromDefaults(PipelineRosters &r, const toml::table &section)
         r.quickRefactor = defs.quickRefactor;
 }
 
+struct CacheState
+{
+    PipelinesLoadResult result;
+    QDateTime mtime;
+    qint64 size = -1;
+    bool valid = false;
+};
+
+CacheState &cacheState()
+{
+    static CacheState s;
+    return s;
+}
+
+QString &filePathOverride()
+{
+    static QString p;
+    return p;
+}
+
 } // namespace
 
 PipelineRosters PipelineRosters::defaults()
 {
-    return PipelineRosters{};
+    return PipelineRosters{
+        {QStringLiteral("Ollama Completion — FIM")},
+        {QStringLiteral("Ollama Chat — Simple"),
+         QStringLiteral("Ollama Chat — Thinking"),
+         QStringLiteral("Ollama Chat — Gemma 4")},
+        QStringLiteral("Ollama Compression — 8 GB"),
+        QStringLiteral("Ollama Quick Refactor — Simple")};
 }
 
 QString PipelinesConfig::filePath()
 {
+    if (!filePathOverride().isEmpty())
+        return filePathOverride();
     return Core::ICore::userResourcePath(QStringLiteral("qodeassist/config/pipelines.toml"))
         .toFSPathString();
+}
+
+void PipelinesConfig::setFilePathForTests(const QString &path)
+{
+    filePathOverride() = path;
+    cacheState() = {};
 }
 
 PipelinesLoadResult PipelinesConfig::load()
@@ -206,19 +237,18 @@ PipelinesLoadResult PipelinesConfig::load()
 
 PipelinesLoadResult PipelinesConfig::loadCached()
 {
-    static PipelinesLoadResult cached;
-    static QDateTime cachedMTime;
-    static bool valid = false;
-
+    auto &cache = cacheState();
     const QFileInfo info(filePath());
     const QDateTime mtime = info.exists() ? info.lastModified() : QDateTime();
-    if (valid && mtime == cachedMTime)
-        return cached;
+    const qint64 size = info.exists() ? info.size() : -1;
+    if (cache.valid && mtime == cache.mtime && size == cache.size)
+        return cache.result;
 
-    cached = load();
-    cachedMTime = mtime;
-    valid = true;
-    return cached;
+    cache.result = load();
+    cache.mtime = mtime;
+    cache.size = size;
+    cache.valid = true;
+    return cache.result;
 }
 
 bool PipelinesConfig::save(const PipelineRosters &rosters, QString *errorOut)
@@ -236,15 +266,14 @@ bool PipelinesConfig::save(const PipelineRosters &rosters, QString *errorOut)
 
     TomlSerializer::TomlWriter w;
     w.writeComment(QStringLiteral("QodeAssist pipelines — which agent each feature uses."));
-    w.writeComment(QStringLiteral(
-        "code_completion: ordered list; the router walks it top-down and uses"));
-    w.writeComment(QStringLiteral(
-        "  the first agent whose match rules fit the current file/project."));
-    w.writeComment(QStringLiteral(
-        "chat_assistant: agents offered in the chat picker (order irrelevant —"));
+    w.writeComment(
+        QStringLiteral("code_completion: ordered list; the router walks it top-down and uses"));
+    w.writeComment(
+        QStringLiteral("  the first agent whose match rules fit the current file/project."));
+    w.writeComment(
+        QStringLiteral("chat_assistant: agents offered in the chat picker (order irrelevant —"));
     w.writeComment(QStringLiteral("  you choose one in the UI)."));
-    w.writeComment(QStringLiteral(
-        "chat_compression / quick_refactor: a single agent name."));
+    w.writeComment(QStringLiteral("chat_compression / quick_refactor: a single agent name."));
     w.writeBlankLine();
     w.writeTableHeader(QString::fromUtf8(kSection));
     w.writeStringArray(QString::fromUtf8(kCodeCompletion), rosters.codeCompletion);
@@ -276,56 +305,8 @@ bool PipelinesConfig::save(const PipelineRosters &rosters, QString *errorOut)
             *errorOut = out.errorString();
         return false;
     }
-    return true;
-}
-
-bool PipelinesConfig::validate(const QodeAssist::AgentFactory &factory, QString *errorOut)
-{
-    PipelinesLoadResult lr = load();
-    PipelineRosters &r = lr.rosters;
-    bool changed = false;
-
-    auto fix = [&](QStringList &current) {
-        QStringList kept;
-        kept.reserve(current.size());
-        for (const QString &raw : current) {
-            const QString name = trimAndCap(raw);
-            if (name.isEmpty() || kept.contains(name))
-                continue;
-            if (factory.configByName(name))
-                kept.append(name);
-        }
-        if (kept != current) {
-            current = std::move(kept);
-            changed = true;
-        }
-    };
-
-    auto fixOne = [&](QString &current) {
-        const QString name = trimAndCap(current);
-        const QString next = (!name.isEmpty() && factory.configByName(name)) ? name : QString();
-        if (next != current) {
-            current = next;
-            changed = true;
-        }
-    };
-
-    fix(r.codeCompletion);
-    fix(r.chatAssistant);
-    fixOne(r.chatCompression);
-    fixOne(r.quickRefactor);
-
-    if (!changed && lr.status == PipelinesLoadStatus::Ok)
-        return true;
-
-    QString saveErr;
-    if (!save(r, &saveErr)) {
-        const QString msg = QStringLiteral("failed to persist after validation: %1").arg(saveErr);
-        LOG_MESSAGE(QStringLiteral("[Pipelines] %1").arg(msg));
-        if (errorOut)
-            *errorOut = msg;
-        return false;
-    }
+    cacheState() = {};
+    PipelinesNotifier::instance()->notifyChanged();
     return true;
 }
 

@@ -8,14 +8,12 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
-#include <utils/environment.h>
 
 #include "ContextData.hpp"
 #include "ProviderID.hpp"
 #include "LLMQore/BaseClient.hpp"
 
 namespace LLMQore {
-class BaseClient;
 class ToolsManager;
 }
 
@@ -63,8 +61,7 @@ public:
     void cancelRequest(const RequestID &requestId);
     ::LLMQore::ToolsManager *toolsManager() const;
 
-    void setPromptCaching(
-        bool enabled, bool extendedTtl, const QStringList &breakpoints = {});
+    void setPromptCaching(bool enabled, bool extendedTtl, const QStringList &breakpoints = {});
 
 private:
     QString m_url;

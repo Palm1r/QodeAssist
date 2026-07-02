@@ -17,9 +17,6 @@
 #include <settings/CodeCompletionSettings.hpp>
 #include <settings/GeneralSettings.hpp>
 
-class QNetworkReply;
-class QNetworkAccessManager;
-
 namespace QodeAssist {
 
 class AgentFactory;
@@ -51,7 +48,6 @@ public:
 
     void handleCompletion(const QJsonObject &request);
 
-    // exposed for tests
     void sendData(const QByteArray &data) override;
 
     Context::ContextManager *contextManager() const;
@@ -63,7 +59,8 @@ private:
     void handleInitialize(const QJsonObject &request);
     void handleShutdown(const QJsonObject &request);
     void handleTextDocumentDidOpen(const QJsonObject &request);
-    void handleCancelRequest();
+    void handleCancelRequest(const QJsonObject &request);
+    void cancelAllRequests();
     void sendErrorResponse(const QJsonObject &request, const QString &errorMessage);
 
     void onCompletionFinished(const QString &requestId);
@@ -82,13 +79,12 @@ private:
 
     QString pickCompletionAgent(const QString &filePath) const;
 
-    const Settings::CodeCompletionSettings &m_completeSettings;
     const Settings::GeneralSettings &m_generalSettings;
+    const Settings::CodeCompletionSettings &m_completeSettings;
     AgentFactory &m_agentFactory;
     SessionManager &m_sessionManager;
     Context::IDocumentReader &m_documentReader;
     IRequestPerformanceLogger &m_performanceLogger;
-    QElapsedTimer m_completionTimer;
     Context::ContextManager *m_contextManager;
     QHash<QString, RequestContext> m_activeRequests;
 };

@@ -102,7 +102,7 @@ void ResponseRouter::onThinking(
         return;
     ensureAssistantOpen();
     if (m_history)
-        m_history->appendThinkingDeltaToLast(thinking, signature);
+        m_history->appendThinkingBlockToLast(thinking, signature);
     emit event(ResponseEvent::thinkingDelta(thinking, signature));
 }
 
@@ -153,11 +153,12 @@ void ResponseRouter::onFinalized(
     if (id != m_activeId)
         return;
     if (info.usage) {
-        emit event(ResponseEvent::usage(
-            info.usage->promptTokens,
-            info.usage->completionTokens,
-            info.usage->cachedPromptTokens,
-            info.usage->reasoningTokens));
+        emit event(
+            ResponseEvent::usage(
+                info.usage->promptTokens,
+                info.usage->completionTokens,
+                info.usage->cachedPromptTokens,
+                info.usage->reasoningTokens));
     }
     emit event(ResponseEvent::messageStop(info.stopReason));
     endRequest();

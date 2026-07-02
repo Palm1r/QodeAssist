@@ -17,9 +17,6 @@ using namespace QodeAssist;
 
 namespace {
 
-// Round-trips a message through JSON and back, returning the re-serialized
-// form so it can be compared against the original serialization. Any field
-// dropped or mangled by fromJson/toJson surfaces as a JSON mismatch.
 QJsonObject reserialize(const Message &message)
 {
     bool ok = false;
@@ -92,10 +89,11 @@ TEST(MessageSerializerTest, RedactedThinkingRoundtrip)
 TEST(MessageSerializerTest, ImageBase64Roundtrip)
 {
     Message m(Message::Role::User);
-    m.appendBlock(std::make_unique<LLMQore::ImageContent>(
-        QStringLiteral("ZGF0YQ=="),
-        QStringLiteral("image/png"),
-        LLMQore::ImageContent::ImageSourceType::Base64));
+    m.appendBlock(
+        std::make_unique<LLMQore::ImageContent>(
+            QStringLiteral("ZGF0YQ=="),
+            QStringLiteral("image/png"),
+            LLMQore::ImageContent::ImageSourceType::Base64));
 
     const QJsonObject block
         = MessageSerializer::toJson(m).value("blocks").toArray().first().toObject();
@@ -109,10 +107,11 @@ TEST(MessageSerializerTest, ImageBase64Roundtrip)
 TEST(MessageSerializerTest, ImageUrlSourceTypeRoundtrip)
 {
     Message m(Message::Role::User);
-    m.appendBlock(std::make_unique<LLMQore::ImageContent>(
-        QStringLiteral("https://example.com/a.png"),
-        QStringLiteral("image/png"),
-        LLMQore::ImageContent::ImageSourceType::Url));
+    m.appendBlock(
+        std::make_unique<LLMQore::ImageContent>(
+            QStringLiteral("https://example.com/a.png"),
+            QStringLiteral("image/png"),
+            LLMQore::ImageContent::ImageSourceType::Url));
 
     const QJsonObject block
         = MessageSerializer::toJson(m).value("blocks").toArray().first().toObject();
@@ -124,10 +123,9 @@ TEST(MessageSerializerTest, ImageUrlSourceTypeRoundtrip)
 TEST(MessageSerializerTest, ToolUseRoundtrip)
 {
     Message m(Message::Role::Assistant);
-    m.appendBlock(std::make_unique<LLMQore::ToolUseContent>(
-        QStringLiteral("tu1"),
-        QStringLiteral("read_file"),
-        QJsonObject{{"path", "a.cpp"}}));
+    m.appendBlock(
+        std::make_unique<LLMQore::ToolUseContent>(
+            QStringLiteral("tu1"), QStringLiteral("read_file"), QJsonObject{{"path", "a.cpp"}}));
 
     const QJsonObject block
         = MessageSerializer::toJson(m).value("blocks").toArray().first().toObject();
@@ -157,8 +155,9 @@ TEST(MessageSerializerTest, ToolResultRoundtrip)
 TEST(MessageSerializerTest, StoredImageRoundtrip)
 {
     Message m(Message::Role::User);
-    m.appendBlock(std::make_unique<StoredImageContent>(
-        QStringLiteral("shot.png"), QStringLiteral("stored/shot"), QStringLiteral("image/png")));
+    m.appendBlock(
+        std::make_unique<StoredImageContent>(
+            QStringLiteral("shot.png"), QStringLiteral("stored/shot"), QStringLiteral("image/png")));
 
     const QJsonObject block
         = MessageSerializer::toJson(m).value("blocks").toArray().first().toObject();
@@ -173,8 +172,9 @@ TEST(MessageSerializerTest, StoredImageRoundtrip)
 TEST(MessageSerializerTest, StoredAttachmentRoundtrip)
 {
     Message m(Message::Role::User);
-    m.appendBlock(std::make_unique<StoredAttachmentContent>(
-        QStringLiteral("notes.txt"), QStringLiteral("stored/notes")));
+    m.appendBlock(
+        std::make_unique<StoredAttachmentContent>(
+            QStringLiteral("notes.txt"), QStringLiteral("stored/notes")));
 
     const QJsonObject block
         = MessageSerializer::toJson(m).value("blocks").toArray().first().toObject();
@@ -188,8 +188,9 @@ TEST(MessageSerializerTest, StoredAttachmentRoundtrip)
 TEST(MessageSerializerTest, SkillInvocationRoundtrip)
 {
     Message m(Message::Role::User);
-    m.appendBlock(std::make_unique<SkillInvocationContent>(
-        QStringLiteral("review"), QStringLiteral("Review the code.")));
+    m.appendBlock(
+        std::make_unique<SkillInvocationContent>(
+            QStringLiteral("review"), QStringLiteral("Review the code.")));
 
     const QJsonObject block
         = MessageSerializer::toJson(m).value("blocks").toArray().first().toObject();
@@ -203,13 +204,14 @@ TEST(MessageSerializerTest, SkillInvocationRoundtrip)
 TEST(MessageSerializerTest, FileEditRoundtripWithStatusAndMessage)
 {
     Message m(Message::Role::Assistant);
-    m.appendBlock(std::make_unique<FileEditContent>(
-        QStringLiteral("e1"),
-        QStringLiteral("a.cpp"),
-        QStringLiteral("old"),
-        QStringLiteral("new"),
-        FileEditContent::Status::Applied,
-        QStringLiteral("done")));
+    m.appendBlock(
+        std::make_unique<FileEditContent>(
+            QStringLiteral("e1"),
+            QStringLiteral("a.cpp"),
+            QStringLiteral("old"),
+            QStringLiteral("new"),
+            FileEditContent::Status::Applied,
+            QStringLiteral("done")));
 
     const QJsonObject block
         = MessageSerializer::toJson(m).value("blocks").toArray().first().toObject();
@@ -227,11 +229,12 @@ TEST(MessageSerializerTest, FileEditRoundtripWithStatusAndMessage)
 TEST(MessageSerializerTest, FileEditOmitsEmptyStatusMessageAndDefaultsToPending)
 {
     Message m(Message::Role::Assistant);
-    m.appendBlock(std::make_unique<FileEditContent>(
-        QStringLiteral("e1"),
-        QStringLiteral("a.cpp"),
-        QStringLiteral("old"),
-        QStringLiteral("new")));
+    m.appendBlock(
+        std::make_unique<FileEditContent>(
+            QStringLiteral("e1"),
+            QStringLiteral("a.cpp"),
+            QStringLiteral("old"),
+            QStringLiteral("new")));
 
     const QJsonObject block
         = MessageSerializer::toJson(m).value("blocks").toArray().first().toObject();
@@ -243,8 +246,9 @@ TEST(MessageSerializerTest, MultipleBlocksPreserveOrder)
 {
     Message m(Message::Role::Assistant);
     m.appendBlock(std::make_unique<LLMQore::TextContent>(QStringLiteral("calling")));
-    m.appendBlock(std::make_unique<LLMQore::ToolUseContent>(
-        QStringLiteral("tu1"), QStringLiteral("read_file"), QJsonObject()));
+    m.appendBlock(
+        std::make_unique<LLMQore::ToolUseContent>(
+            QStringLiteral("tu1"), QStringLiteral("read_file"), QJsonObject()));
 
     const QJsonArray blocks = MessageSerializer::toJson(m).value("blocks").toArray();
     ASSERT_EQ(blocks.size(), 2);
@@ -295,8 +299,7 @@ TEST(MessageSerializerTest, UnknownBlocksSkippedButKnownKept)
     QJsonObject json;
     json["role"] = QStringLiteral("assistant");
     json["blocks"] = QJsonArray{
-        QJsonObject{{"type", "future_block"}},
-        QJsonObject{{"type", "text"}, {"text", "kept"}}};
+        QJsonObject{{"type", "future_block"}}, QJsonObject{{"type", "text"}, {"text", "kept"}}};
 
     bool ok = false;
     const Message m = MessageSerializer::fromJson(json, &ok);

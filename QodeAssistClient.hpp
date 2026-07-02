@@ -12,8 +12,8 @@
 #include "LSPCompletion.hpp"
 #include "QuickRefactorHandler.hpp"
 #include "RefactorSuggestionHoverHandler.hpp"
-#include "widgets/CompletionProgressHandler.hpp"
 #include "widgets/CompletionErrorHandler.hpp"
+#include "widgets/CompletionProgressHandler.hpp"
 #include "widgets/RefactorWidgetHandler.hpp"
 #include <languageclient/client.h>
 
@@ -47,6 +47,7 @@ private:
     void handleCompletions(
         const GetCompletionRequest::Response &response, TextEditor::TextEditorWidget *editor);
     void cancelRunningRequest(TextEditor::TextEditorWidget *editor);
+    void onEditorDestroyed(QObject *editorObject);
     bool isEnabled(ProjectExplorer::Project *project) const;
 
     void setupConnections();

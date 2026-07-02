@@ -20,7 +20,7 @@ QT_END_NAMESPACE
 namespace QodeAssist {
 class AgentFactory;
 class Agent;
-}
+} // namespace QodeAssist
 
 namespace QodeAssist::Settings {
 

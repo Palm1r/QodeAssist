@@ -14,10 +14,6 @@ class BaseClient;
 
 namespace QodeAssist::Providers {
 
-// A configuration-driven provider: it owns an LLMQore client and exposes a
-// fixed identity. Concrete behaviour (request shape) comes from the agent's
-// prompt template via Provider::prepareRequest, so a single class covers
-// every client_api by varying the client factory + metadata.
 class GenericProvider : public Provider
 {
     Q_OBJECT
@@ -25,10 +21,7 @@ public:
     using ClientFactory = std::function<::LLMQore::BaseClient *(QObject *)>;
 
     GenericProvider(
-        QString name,
-        ProviderID id,
-        const ClientFactory &clientFactory,
-        QObject *parent = nullptr);
+        QString name, ProviderID id, const ClientFactory &clientFactory, QObject *parent = nullptr);
 
     QString name() const override;
     QFuture<QList<QString>> getInstalledModels(const QString &url) override;
@@ -46,8 +39,6 @@ private:
     ::LLMQore::BaseClient *m_client;
 };
 
-// Registers every built-in client_api into ProviderFactory. Must be called once
-// at plugin startup before any agent/session is created.
 void registerBuiltinProviders();
 
 } // namespace QodeAssist::Providers

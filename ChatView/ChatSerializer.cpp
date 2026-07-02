@@ -29,7 +29,6 @@ namespace {
 
 const QString kFileEditMarker = QStringLiteral("QODEASSIST_FILE_EDIT:");
 
-// Legacy (<= 0.2) per-row ChatRole values, kept only for importing old chat files.
 enum class LegacyRole { System = 0, User = 1, Assistant = 2, Tool = 3, FileEdit = 4, Thinking = 5 };
 
 void registerEditFromResult(const QString &result)
@@ -51,8 +50,21 @@ void registerEditFromResult(const QString &result)
         filePath,
         obj.value("old_content").toString(),
         obj.value("new_content").toString(),
-        /*autoApply=*/false,
-        /*isFromHistory=*/true);
+        false,
+        true);
+}
+
+void appendMergingAssistants(std::vector<Message> &out, Message message)
+{
+    if (message.role() == Message::Role::Assistant && !out.empty()
+        && out.back().role() == Message::Role::Assistant) {
+        if (out.back().id().isEmpty() && !message.id().isEmpty())
+            out.back().setId(message.id());
+        for (auto &block : message.takeBlocks())
+            out.back().appendBlock(std::move(block));
+        return;
+    }
+    out.push_back(std::move(message));
 }
 
 } // namespace
@@ -60,7 +72,7 @@ void registerEditFromResult(const QString &result)
 const QString ChatSerializer::VERSION = "0.3";
 
 SerializationResult ChatSerializer::saveToFile(
-    const ConversationHistory *history, const QString &filePath)
+    const ConversationHistory *history, const QString &filePath, const QJsonObject &usage)
 {
     if (!history)
         return {false, "No conversation history"};
@@ -74,7 +86,7 @@ SerializationResult ChatSerializer::saveToFile(
         return {false, QString("Failed to open file for writing: %1").arg(filePath)};
     }
 
-    QJsonDocument doc(serializeChat(history));
+    QJsonDocument doc(serializeChat(history, usage));
     if (file.write(doc.toJson(QJsonDocument::Indented)) == -1) {
         return {false, QString("Failed to write to file: %1").arg(file.errorString())};
     }
@@ -83,7 +95,7 @@ SerializationResult ChatSerializer::saveToFile(
 }
 
 SerializationResult ChatSerializer::loadFromFile(
-    ConversationHistory *history, const QString &filePath)
+    ConversationHistory *history, const QString &filePath, QJsonObject *usageOut)
 {
     if (!history)
         return {false, "No conversation history"};
@@ -106,11 +118,12 @@ SerializationResult ChatSerializer::loadFromFile(
     }
 
     if (version == VERSION)
-        return loadCurrent(history, root);
-    return loadLegacy(history, root);
+        return loadCurrent(history, root, usageOut);
+    return loadLegacy(history, root, usageOut);
 }
 
-QJsonObject ChatSerializer::serializeChat(const ConversationHistory *history)
+QJsonObject ChatSerializer::serializeChat(
+    const ConversationHistory *history, const QJsonObject &usage)
 {
     QJsonArray messagesArray;
     for (const auto &message : history->messages())
@@ -119,29 +132,57 @@ QJsonObject ChatSerializer::serializeChat(const ConversationHistory *history)
     QJsonObject root;
     root["version"] = VERSION;
     root["messages"] = messagesArray;
+    if (!usage.isEmpty())
+        root["usage"] = usage;
     return root;
 }
 
-SerializationResult ChatSerializer::loadCurrent(ConversationHistory *history, const QJsonObject &root)
+SerializationResult ChatSerializer::loadCurrent(
+    ConversationHistory *history, const QJsonObject &root, QJsonObject *usageOut)
 {
     history->clear();
 
+    int skipped = 0;
     const QJsonArray messagesArray = root["messages"].toArray();
     for (const auto &value : messagesArray) {
         bool ok = false;
         Message message = MessageSerializer::fromJson(value.toObject(), &ok);
         if (ok)
             history->append(std::move(message));
+        else
+            ++skipped;
     }
 
+    if (usageOut)
+        *usageOut = root["usage"].toObject();
+
     registerHistoricalFileEdits(history);
+    if (skipped > 0) {
+        return {true, QString("%1 message(s) could not be parsed and were skipped").arg(skipped)};
+    }
     return {true, QString()};
 }
 
-SerializationResult ChatSerializer::loadLegacy(ConversationHistory *history, const QJsonObject &root)
+SerializationResult ChatSerializer::loadLegacy(
+    ConversationHistory *history, const QJsonObject &root, QJsonObject *usageOut)
 {
     history->clear();
 
+    QJsonObject usage;
+    const auto collectUsage = [&usage](const QJsonObject &mj) {
+        const QString id = mj["id"].toString();
+        const QJsonObject legacyUsage = mj["usage"].toObject();
+        if (id.isEmpty() || legacyUsage.isEmpty())
+            return;
+        QJsonObject entry;
+        entry["prompt"] = legacyUsage["promptTokens"].toInt();
+        entry["completion"] = legacyUsage["completionTokens"].toInt();
+        entry["cached"] = legacyUsage["cachedPromptTokens"].toInt();
+        entry["reasoning"] = legacyUsage["reasoningTokens"].toInt();
+        usage.insert(id, entry);
+    };
+
+    std::vector<Message> merged;
     const QJsonArray arr = root["messages"].toArray();
     int i = 0;
     while (i < arr.size()) {
@@ -152,21 +193,23 @@ SerializationResult ChatSerializer::loadLegacy(ConversationHistory *history, con
             Message assistant(Message::Role::Assistant);
             Message toolResults(Message::Role::User);
             while (i < arr.size()
-                   && static_cast<LegacyRole>(arr[i].toObject()["role"].toInt()) == LegacyRole::Tool) {
+                   && static_cast<LegacyRole>(arr[i].toObject()["role"].toInt())
+                          == LegacyRole::Tool) {
                 const QJsonObject tj = arr[i].toObject();
                 const QString toolName = tj["toolName"].toString();
                 const QString id = tj["id"].toString();
                 if (!toolName.isEmpty()) {
-                    assistant.appendBlock(std::make_unique<LLMQore::ToolUseContent>(
-                        id, toolName, tj["toolArguments"].toObject()));
-                    toolResults.appendBlock(std::make_unique<LLMQore::ToolResultContent>(
-                        id, tj["toolResult"].toString()));
+                    assistant.appendBlock(
+                        std::make_unique<LLMQore::ToolUseContent>(
+                            id, toolName, tj["toolArguments"].toObject()));
+                    toolResults.appendBlock(
+                        std::make_unique<LLMQore::ToolResultContent>(id, tj["toolResult"].toString()));
                 }
                 ++i;
             }
             if (!assistant.blocks().empty()) {
-                history->append(std::move(assistant));
-                history->append(std::move(toolResults));
+                appendMergingAssistants(merged, std::move(assistant));
+                merged.push_back(std::move(toolResults));
             }
             continue;
         }
@@ -174,22 +217,21 @@ SerializationResult ChatSerializer::loadLegacy(ConversationHistory *history, con
         ++i;
 
         if (role == LegacyRole::FileEdit)
-            continue; // derived from the tool result in the new model
+            continue;
 
         if (role == LegacyRole::Thinking) {
             const QString content = mj["content"].toString();
             const QString signature = mj["signature"].toString();
             Message assistant(Message::Role::Assistant);
             if (mj["isRedacted"].toBool(false)) {
-                assistant.appendBlock(
-                    std::make_unique<LLMQore::RedactedThinkingContent>(signature));
+                assistant.appendBlock(std::make_unique<LLMQore::RedactedThinkingContent>(signature));
             } else {
                 const int sigPos = content.indexOf(QStringLiteral("\n[Signature:"));
                 const QString thinking = sigPos >= 0 ? content.left(sigPos) : content;
                 assistant.appendBlock(
                     std::make_unique<LLMQore::ThinkingContent>(thinking, signature));
             }
-            history->append(std::move(assistant));
+            appendMergingAssistants(merged, std::move(assistant));
             continue;
         }
 
@@ -198,28 +240,40 @@ SerializationResult ChatSerializer::loadLegacy(ConversationHistory *history, con
             user.appendBlock(std::make_unique<LLMQore::TextContent>(mj["content"].toString()));
             for (const auto &a : mj["attachments"].toArray()) {
                 const QJsonObject ao = a.toObject();
-                user.appendBlock(std::make_unique<StoredAttachmentContent>(
-                    ao["fileName"].toString(), ao["storedPath"].toString()));
+                user.appendBlock(
+                    std::make_unique<StoredAttachmentContent>(
+                        ao["fileName"].toString(), ao["storedPath"].toString()));
             }
             for (const auto &im : mj["images"].toArray()) {
                 const QJsonObject io = im.toObject();
-                user.appendBlock(std::make_unique<StoredImageContent>(
-                    io["fileName"].toString(),
-                    io["storedPath"].toString(),
-                    io["mediaType"].toString()));
+                user.appendBlock(
+                    std::make_unique<StoredImageContent>(
+                        io["fileName"].toString(),
+                        io["storedPath"].toString(),
+                        io["mediaType"].toString()));
             }
-            history->append(std::move(user));
+            merged.push_back(std::move(user));
         } else {
             const QString content = mj["content"].toString();
             if (content.trimmed().isEmpty())
                 continue;
-            const Message::Role mapped
-                = role == LegacyRole::System ? Message::Role::System : Message::Role::Assistant;
+            const Message::Role mapped = role == LegacyRole::System ? Message::Role::System
+                                                                    : Message::Role::Assistant;
             Message message(mapped, mj["id"].toString());
             message.appendBlock(std::make_unique<LLMQore::TextContent>(content));
-            history->append(std::move(message));
+            collectUsage(mj);
+            if (mapped == Message::Role::Assistant)
+                appendMergingAssistants(merged, std::move(message));
+            else
+                merged.push_back(std::move(message));
         }
     }
+
+    for (auto &message : merged)
+        history->append(std::move(message));
+
+    if (usageOut)
+        *usageOut = usage;
 
     registerHistoricalFileEdits(history);
     return {true, QString()};

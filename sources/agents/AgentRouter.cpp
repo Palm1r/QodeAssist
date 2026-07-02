@@ -24,11 +24,11 @@ QRegularExpression compiledGlob(const QString &pattern)
     const auto it = cache.constFind(pattern);
     if (it != cache.constEnd())
         return *it;
-    const QRegularExpression re(
-        QRegularExpression::anchoredPattern(
-            QRegularExpression::wildcardToRegularExpression(
-                pattern, QRegularExpression::NonPathWildcardConversion)),
-        QRegularExpression::CaseInsensitiveOption);
+    const QRegularExpression
+        re(QRegularExpression::anchoredPattern(
+               QRegularExpression::wildcardToRegularExpression(
+                   pattern, QRegularExpression::NonPathWildcardConversion)),
+           QRegularExpression::CaseInsensitiveOption);
     cache.insert(pattern, re);
     return re;
 }
@@ -67,11 +67,9 @@ bool matchesPathPatterns(const QStringList &patterns, const QString &filePath)
 bool matchesProjectNames(const QStringList &names, const QString &projectName)
 {
     if (names.isEmpty())
-        return true; // dimension unconstrained
+        return true;
     if (projectName.isEmpty())
         return false;
-    // Project names are user-facing identifiers, not paths — case
-    // sensitive comparison matches what ProjectExplorer hands us.
     return names.contains(projectName);
 }
 
@@ -80,7 +78,7 @@ bool matchesProjectNames(const QStringList &names, const QString &projectName)
 bool matches(const AgentConfig::Match &m, const Context &ctx)
 {
     if (m.isEmpty())
-        return true; // explicit catch-all
+        return true;
     return matchesFilePatterns(m.filePatterns, ctx.filePath)
            && matchesPathPatterns(m.pathPatterns, ctx.filePath)
            && matchesProjectNames(m.projectNames, ctx.projectName);
@@ -92,7 +90,7 @@ QString pickAgent(
     for (const QString &name : roster) {
         const AgentConfig *cfg = factory.configByName(name);
         if (!cfg)
-            continue; // stale roster entry — silently skip
+            continue;
         if (matches(cfg->match, ctx))
             return name;
     }

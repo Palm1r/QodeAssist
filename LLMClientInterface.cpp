@@ -8,8 +8,6 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QJsonDocument>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
 
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectmanager.h>
@@ -59,7 +57,7 @@ LLMClientInterface::LLMClientInterface(
 
 LLMClientInterface::~LLMClientInterface()
 {
-    handleCancelRequest();
+    cancelAllRequests();
 }
 
 Utils::FilePath LLMClientInterface::serverDeviceTemplate() const
@@ -144,7 +142,7 @@ void LLMClientInterface::sendData(const QByteArray &data)
     } else if (method == "getCompletionsCycling") {
         handleCompletion(request);
     } else if (method == "$/cancelRequest") {
-        handleCancelRequest();
+        handleCancelRequest(request);
     } else if (method == "exit") {
         // TODO make exit handler
     } else {
@@ -152,7 +150,40 @@ void LLMClientInterface::sendData(const QByteArray &data)
     }
 }
 
-void LLMClientInterface::handleCancelRequest()
+void LLMClientInterface::handleCancelRequest(const QJsonObject &request)
+{
+    const QJsonValue lspId = request["params"].toObject()["id"];
+
+    QString matchedKey;
+    for (auto it = m_activeRequests.cbegin(); it != m_activeRequests.cend(); ++it) {
+        if (it.value().originalRequest["id"] == lspId) {
+            matchedKey = it.key();
+            break;
+        }
+    }
+    if (matchedKey.isEmpty()) {
+        LOG_MESSAGE(QString("No active completion request to cancel for LSP id %1")
+                        .arg(lspId.toVariant().toString()));
+        return;
+    }
+
+    finishRequest(matchedKey);
+
+    QJsonObject response;
+    response["jsonrpc"] = "2.0";
+    response[LanguageServerProtocol::idKey] = lspId;
+
+    QJsonObject errorObject;
+    errorObject["code"] = -32800;
+    errorObject["message"] = QStringLiteral("Request cancelled");
+    response["error"] = errorObject;
+
+    emit messageReceived(LanguageServerProtocol::JsonRpcMessage(response));
+
+    LOG_MESSAGE(QString("Cancelled completion request %1").arg(matchedKey));
+}
+
+void LLMClientInterface::cancelAllRequests()
 {
     const auto requests = m_activeRequests;
     m_activeRequests.clear();
@@ -213,10 +244,6 @@ void LLMClientInterface::sendErrorResponse(const QJsonObject &request, const QSt
     response["error"] = errorObject;
 
     emit messageReceived(LanguageServerProtocol::JsonRpcMessage(response));
-
-    // End performance measurement if it was started
-    QString requestId = request["id"].toString();
-    m_performanceLogger.endTimeMeasurement(requestId);
 }
 
 void LLMClientInterface::handleCompletion(const QJsonObject &request)
@@ -404,8 +431,6 @@ void LLMClientInterface::sendCompletionToClient(
         QString("Full response: \n%1")
             .arg(QString::fromUtf8(QJsonDocument(response).toJson(QJsonDocument::Indented))));
 
-    QString requestId = request["id"].toString();
-    m_performanceLogger.endTimeMeasurement(requestId);
     emit messageReceived(LanguageServerProtocol::JsonRpcMessage(response));
 }
 

@@ -138,6 +138,30 @@ TEST(ContextRendererTest, FileExistsOutsideAllowedRootsThrowsLoudly)
     EXPECT_TRUE(error.contains(QStringLiteral("file_exists")));
 }
 
+TEST(ContextRendererTest, FileExistsWithUnresolvedProjectDirReturnsFalse)
+{
+    QString error;
+    EXPECT_EQ(
+        render(
+            QStringLiteral(
+                "{% if file_exists(\"${PROJECT_DIR}/x.md\") %}yes{% else %}no{% endif %}"),
+            Bindings{QString(), QString()},
+            &error),
+        QStringLiteral("no"));
+    EXPECT_TRUE(error.isEmpty());
+}
+
+TEST(ContextRendererTest, ReadFileWithUnresolvedProjectDirThrowsLoudly)
+{
+    QString error;
+    const QString out = render(
+        QStringLiteral("{{ read_file(\"${PROJECT_DIR}/x.md\") }}"),
+        Bindings{QString(), QString()},
+        &error);
+    EXPECT_TRUE(out.isEmpty());
+    EXPECT_TRUE(error.contains(QStringLiteral("read_file")));
+}
+
 TEST(ContextRendererTest, HeadLinesTakesLeadingLines)
 {
     QTemporaryDir proj;
@@ -153,8 +177,7 @@ TEST(ContextRendererTest, HeadLinesTakesLeadingLines)
 TEST(ContextRendererTest, StringHelpers)
 {
     const Bindings none{};
-    EXPECT_EQ(
-        render(QStringLiteral("{{ basename(\"/a/b/c.txt\") }}"), none), QStringLiteral("c.txt"));
+    EXPECT_EQ(render(QStringLiteral("{{ basename(\"/a/b/c.txt\") }}"), none), QStringLiteral("c.txt"));
     EXPECT_EQ(render(QStringLiteral("{{ ext(\"/a/b/c.txt\") }}"), none), QStringLiteral("txt"));
     EXPECT_EQ(render(QStringLiteral("{{ dirname(\"/a/b/c.txt\") }}"), none), QStringLiteral("/a/b"));
     EXPECT_EQ(render(QStringLiteral("{{ lower(\"ABC\") }}"), none), QStringLiteral("abc"));
@@ -189,7 +212,8 @@ TEST(ContextRendererTest, SelectsCompletionRoleByLanguageFromQrc)
 
     const QString tpl = QStringLiteral(
         "{%- if language == \"qml\" %}{{ read_file(\":/roles/code-completion-qml.md\") }}"
-        "{%- else if language == \"c-like\" %}{{ read_file(\":/roles/code-completion-c-like.md\") }}"
+        "{%- else if language == \"c-like\" %}{{ read_file(\":/roles/code-completion-c-like.md\") "
+        "}}"
         "{%- else %}{{ read_file(\":/roles/code-completion.md\") }}"
         "{%- endif %}");
 

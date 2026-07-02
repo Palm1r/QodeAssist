@@ -61,11 +61,18 @@ QString expandAndResolvePath(const QString &raw, const Bindings &b)
     return p;
 }
 
+bool hasUnresolvedVars(const QString &p)
+{
+    return p.contains(QStringLiteral("${PROJECT_DIR}"))
+           || p.contains(QStringLiteral("${CONFIG_DIR}"));
+}
+
 [[noreturn]] void throwOutsideRoots(const char *fn, const QString &path)
 {
     throw std::runtime_error(
-        QStringLiteral("%1: path is outside the allowed read roots "
-                       "(the project directory, ~/qodeassist, or bundled :/ resources): %2")
+        QStringLiteral(
+            "%1: path is outside the allowed read roots "
+            "(the project directory, ~/qodeassist, or bundled :/ resources): %2")
             .arg(QString::fromLatin1(fn), path)
             .toStdString());
 }
@@ -77,6 +84,13 @@ void registerReadFile(inja::Environment &env, const Bindings &b)
         const QString path
             = expandAndResolvePath(QString::fromStdString(args.at(0)->get<std::string>()), caps);
 
+        if (hasUnresolvedVars(path)) {
+            throw std::runtime_error(QStringLiteral(
+                                         "read_file: ${PROJECT_DIR}/${CONFIG_DIR} is not available "
+                                         "(no project open?): %1")
+                                         .arg(path)
+                                         .toStdString());
+        }
         if (!isPathAllowed(path, caps))
             throwOutsideRoots("read_file", path);
 
@@ -97,6 +111,8 @@ void registerFileExists(inja::Environment &env, const Bindings &b)
     env.add_callback("file_exists", 1, [caps](inja::Arguments &args) -> nlohmann::json {
         const QString p
             = expandAndResolvePath(QString::fromStdString(args.at(0)->get<std::string>()), caps);
+        if (hasUnresolvedVars(p))
+            return false;
         if (!isPathAllowed(p, caps))
             throwOutsideRoots("file_exists", p);
         return QFileInfo::exists(p);
@@ -110,6 +126,8 @@ void registerReadDir(inja::Environment &env, const Bindings &b)
     env.add_callback("read_dir", 1, [caps](inja::Arguments &args) -> nlohmann::json {
         const QString p
             = expandAndResolvePath(QString::fromStdString(args.at(0)->get<std::string>()), caps);
+        if (hasUnresolvedVars(p))
+            return nlohmann::json::array();
         if (!isPathAllowed(p, caps))
             throwOutsideRoots("read_dir", p);
         QDir dir(p);

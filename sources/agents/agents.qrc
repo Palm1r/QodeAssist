@@ -16,6 +16,8 @@
         <file>openai_completion.toml</file>
         <file>openai_compression.toml</file>
         <file>openai_quick_refactor.toml</file>
+        <file>deepseek_chat.toml</file>
+        <file>qwen_chat.toml</file>
         <file>google_base_chat.toml</file>
         <file>google_chat.toml</file>
         <file>google_completion.toml</file>

@@ -15,6 +15,7 @@
 #include <Agent.hpp>
 #include <AgentFactory.hpp>
 
+#include <algorithm>
 #include <QEvent>
 #include <QFont>
 #include <QHBoxLayout>
@@ -26,7 +27,6 @@
 #include <QScrollArea>
 #include <QTimer>
 #include <QVBoxLayout>
-#include <algorithm>
 
 namespace QodeAssist::Settings {
 
@@ -74,15 +74,14 @@ AgentListPane::AgentListPane(AgentFactory *factory, QWidget *parent)
             Qt::QueuedConnection);
 
     if (m_factory) {
-        connect(m_factory, &AgentFactory::agentModelChanged, this,
-                [this](const QString &name) {
-                    const AgentConfig *cfg = m_factory->configByName(name);
-                    if (!cfg)
-                        return;
-                    for (auto *item : m_rows)
-                        if (item->agentName() == name)
-                            item->setModel(cfg->model);
-                });
+        connect(m_factory, &AgentFactory::agentModelChanged, this, [this](const QString &name) {
+            const AgentConfig *cfg = m_factory->configByName(name);
+            if (!cfg)
+                return;
+            for (auto *item : m_rows)
+                if (item->agentName() == name)
+                    item->setModel(cfg->model);
+        });
     }
 
     applyFilterHolderTheme();
@@ -97,6 +96,7 @@ void AgentListPane::selectByName(const QString &name)
             m_expandedGroups.insert(groupKey(*cfg));
     }
     setCurrentNameInternal(name, false);
+    m_notifyOnRebuild = true;
     rebuildList();
     for (auto *item : m_rows) {
         if (item->agentName() == name) {
@@ -117,6 +117,7 @@ void AgentListPane::refresh()
         for (const QString &t : a->tags)
             counts[t] += 1;
     m_tagStrip->setAvailableTags(counts);
+    m_notifyOnRebuild = true;
     rebuildList();
 }
 
@@ -132,10 +133,12 @@ void AgentListPane::applyFilterHolderTheme()
     if (!m_filterHolder)
         return;
     m_filterHolder->setStyleSheet(
-        QStringLiteral("QWidget#FilterHolder { background:%1;"
-                       " border-bottom:1px solid %2; }")
-            .arg(cssColor(Utils::creatorColor(Utils::Theme::BackgroundColorNormal)),
-                 cssColor(Utils::creatorColor(Utils::Theme::SplitterColor))));
+        QStringLiteral(
+            "QWidget#FilterHolder { background:%1;"
+            " border-bottom:1px solid %2; }")
+            .arg(
+                cssColor(Utils::creatorColor(Utils::Theme::BackgroundColorNormal)),
+                cssColor(Utils::creatorColor(Utils::Theme::SplitterColor))));
 }
 
 std::vector<const AgentConfig *> AgentListPane::visibleAgents() const
@@ -198,15 +201,19 @@ void AgentListPane::rebuildList()
             item->setSelected(cfg->name == m_currentName);
             item->setActiveTags(activeTags);
             connect(item, &AgentListItem::clicked, this, &AgentListPane::onRowClicked);
-            connect(item, &AgentListItem::tagClicked, this,
-                    [this](const QString &) { refresh(); },
-                    Qt::QueuedConnection);
+            connect(
+                item,
+                &AgentListItem::tagClicked,
+                this,
+                [this](const QString &tag) { m_tagStrip->toggleTag(tag); },
+                Qt::QueuedConnection);
             contentLayout->addWidget(item);
             newRows.append(item);
         }
     };
     QSet<QString> liveKeys;
-    auto addSection = [&](const QString &title, const QString &sectionKey,
+    auto addSection = [&](const QString &title,
+                          const QString &sectionKey,
                           const std::vector<const AgentConfig *> &agents) {
         if (agents.empty())
             return;
@@ -216,8 +223,9 @@ void AgentListPane::rebuildList()
         for (const AgentConfig *cfg : agents)
             byProvider[providerLabel(*cfg)].push_back(cfg);
         QStringList providers = byProvider.keys();
-        std::sort(providers.begin(), providers.end(),
-                  [](const QString &l, const QString &r) { return l.localeAwareCompare(r) < 0; });
+        std::sort(providers.begin(), providers.end(), [](const QString &l, const QString &r) {
+            return l.localeAwareCompare(r) < 0;
+        });
 
         for (const QString &provider : providers) {
             const std::vector<const AgentConfig *> &group = byProvider[provider];
@@ -229,13 +237,16 @@ void AgentListPane::rebuildList()
             header->setExpanded(expanded);
             header->setClickable(!filtersActive);
             if (!filtersActive) {
-                connect(header, &CollapsibleHeader::toggled, this,
-                        [this, key] {
-                            if (!m_expandedGroups.remove(key))
-                                m_expandedGroups.insert(key);
-                            rebuildList();
-                        },
-                        Qt::QueuedConnection);
+                connect(
+                    header,
+                    &CollapsibleHeader::toggled,
+                    this,
+                    [this, key] {
+                        if (!m_expandedGroups.remove(key))
+                            m_expandedGroups.insert(key);
+                        rebuildList();
+                    },
+                    Qt::QueuedConnection);
             }
             contentLayout->addWidget(header);
 
@@ -269,10 +280,14 @@ void AgentListPane::rebuildList()
     if (!current && !m_rows.isEmpty()) {
         const QString fallback = m_rows.front()->agentName();
         m_rows.front()->setSelected(true);
-        setCurrentNameInternal(fallback, /*emitSignal*/ true);
+        m_notifyOnRebuild = false;
+        setCurrentNameInternal(fallback, true);
         return;
     }
-    emit currentAgentChanged(m_currentName);
+    if (m_notifyOnRebuild) {
+        m_notifyOnRebuild = false;
+        emit currentAgentChanged(m_currentName);
+    }
 }
 
 void AgentListPane::onRowClicked(const QString &name)

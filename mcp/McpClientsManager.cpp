@@ -9,11 +9,9 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QFileSystemWatcher>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSaveFile>
-#include <QTimer>
 
 #include <LLMQore/ToolsManager.hpp>
 #include <logger/Logger.hpp>
@@ -86,7 +84,6 @@ void McpClientsManager::init()
     m_initialized = true;
 
     ensureFileExists();
-    setupWatcher();
 
     connect(
         &Settings::mcpSettings().enableMcpClients,
@@ -126,48 +123,6 @@ void McpClientsManager::ensureFileExists()
         f.close();
         LOG_MESSAGE(QString("Created empty MCP clients config: %1").arg(path));
     }
-}
-
-void McpClientsManager::setupWatcher()
-{
-    m_watcher = new QFileSystemWatcher(this);
-    m_reloadDebounce = new QTimer(this);
-    m_reloadDebounce->setSingleShot(true);
-    m_reloadDebounce->setInterval(300);
-
-    connect(m_reloadDebounce.data(), &QTimer::timeout, this, [this]() {
-        const bool suppress = m_suppressNextWatcherReload;
-        m_suppressNextWatcherReload = false;
-        if (!suppress)
-            loadFromDisk();
-        updateWatchedPaths();
-    });
-    connect(m_watcher.data(), &QFileSystemWatcher::fileChanged, this, [this]() {
-        m_reloadDebounce->start();
-    });
-    connect(m_watcher.data(), &QFileSystemWatcher::directoryChanged, this, [this]() {
-        m_reloadDebounce->start();
-    });
-
-    updateWatchedPaths();
-}
-
-void McpClientsManager::updateWatchedPaths()
-{
-    if (!m_watcher)
-        return;
-    if (!m_watcher->files().isEmpty())
-        m_watcher->removePaths(m_watcher->files());
-    if (!m_watcher->directories().isEmpty())
-        m_watcher->removePaths(m_watcher->directories());
-
-    const QString path = configFilePath();
-    const QFileInfo info(path);
-    if (info.exists())
-        m_watcher->addPath(path);
-    const QString dir = info.absolutePath();
-    if (QFileInfo::exists(dir))
-        m_watcher->addPath(dir);
 }
 
 QList<McpServerConnection *> McpClientsManager::connections() const
@@ -242,14 +197,12 @@ bool McpClientsManager::writeRoot(const QJsonObject &root)
         emit writeFailed(reason);
         return false;
     }
-    m_suppressNextWatcherReload = true;
     return true;
 }
 
 void McpClientsManager::reload()
 {
     loadFromDisk();
-    updateWatchedPaths();
 }
 
 bool McpClientsManager::setServerEnabled(const QString &name, bool enabled)

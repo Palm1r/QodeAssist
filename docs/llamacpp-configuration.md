@@ -1,16 +1,14 @@
 # Configure for llama.cpp
 
-1. Open Qt Creator settings and navigate to the QodeAssist section
-2. Go to General tab and configure:
-   - Set "llama.cpp" as the provider for code completion or/and chat assistant
-   - Set the llama.cpp URL (e.g. http://localhost:8080)
-   - Fill in model name
-   - Choose template for model(e.g. llama.cpp FIM for any model with FIM support)
-   - Disable using tools if your model doesn't support tooling
+1. Start `llama-server` locally (default http://localhost:8080)
+2. Open Qt Creator settings and navigate to QodeAssist > Providers
+   - Select the bundled **llama.cpp** provider and adjust the URL if your server runs elsewhere (no API key needed)
+3. Go to QodeAssist > General > Agent Pipelines and assign llama.cpp agents to the features you want:
+   - Code completion: **LlamaCpp Completion — FIM** (needs a FIM-capable model)
+   - Chat assistant: **LlamaCpp Chat**
+   - Chat compression: **LlamaCpp Compression**
+   - Quick refactor: **LlamaCpp Quick Refactor**
 
-<details>
-  <summary>Example of llama.cpp settings: (click to expand)</summary>
-
-<img width="829" alt="llama.cpp Settings" src="https://github.com/user-attachments/assets/8c75602c-60f3-49ed-a7a9-d3c972061ea2" />
-</details>
-
+To change the model or request parameters, duplicate the bundled agent on the
+QodeAssist > Agents page (it extends the llama.cpp base agent) and edit your
+copy. Disable `enable_tools` in your agent if the model doesn't support tool calling.

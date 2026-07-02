@@ -181,8 +181,9 @@ void QuickRefactorDialog::setupUi()
         }
 
         QLabel *agentHint = new QLabel(
-            Tr::tr("No Quick Refactor agent is set. "
-                   "<a href=\"pipelines\">Assign one in the Pipelines settings</a>."),
+            Tr::tr(
+                "No Quick Refactor agent is set. "
+                "<a href=\"pipelines\">Assign one in the Pipelines settings</a>."),
             this);
         agentHint->setWordWrap(true);
         agentHint->setTextInteractionFlags(

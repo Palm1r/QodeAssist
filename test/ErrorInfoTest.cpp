@@ -10,7 +10,8 @@ using namespace QodeAssist;
 
 TEST(ErrorInfoTest, MakeErrorPopulatesFields)
 {
-    const ErrorInfo e = makeError(ErrorCategory::Tool, QStringLiteral("boom"), QStringLiteral("detail"));
+    const ErrorInfo e
+        = makeError(ErrorCategory::Tool, QStringLiteral("boom"), QStringLiteral("detail"));
     EXPECT_EQ(e.category, ErrorCategory::Tool);
     EXPECT_EQ(e.message, QStringLiteral("boom"));
     EXPECT_EQ(e.providerDetail, QStringLiteral("detail"));
@@ -42,7 +43,8 @@ TEST(ErrorInfoTest, CategorizesForbiddenAsAuth)
 
 TEST(ErrorInfoTest, CategorizesApiKeyAsAuth)
 {
-    EXPECT_EQ(categorizeProviderError(QStringLiteral("invalid api key supplied")), ErrorCategory::Auth);
+    EXPECT_EQ(
+        categorizeProviderError(QStringLiteral("invalid api key supplied")), ErrorCategory::Auth);
 }
 
 TEST(ErrorInfoTest, CategorizesAuthenticationAsAuth)

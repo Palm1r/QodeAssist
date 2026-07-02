@@ -12,6 +12,7 @@
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectmanager.h>
 
+#include "ChatSerializer.hpp"
 #include "GeneralSettings.hpp"
 #include "logger/Logger.hpp"
 
@@ -47,8 +48,7 @@ void ChatCompressor::setActiveAgent(const QString &agentName)
     m_activeAgent = agentName;
 }
 
-void ChatCompressor::startCompression(
-    const QString &chatFilePath, ConversationHistory *sourceHistory)
+void ChatCompressor::startCompression(const QString &chatFilePath, ConversationHistory *sourceHistory)
 {
     if (m_isCompressing) {
         emit compressionFailed(tr("Compression already in progress"));
@@ -73,8 +73,7 @@ void ChatCompressor::startCompression(
     QString sessionError;
     Session *session = m_sessionManager->acquire(m_activeAgent, &sessionError);
     if (!session) {
-        emit compressionFailed(
-            sessionError.isEmpty() ? tr("No chat agent selected") : sessionError);
+        emit compressionFailed(sessionError.isEmpty() ? tr("No chat agent selected") : sessionError);
         return;
     }
 
@@ -117,11 +116,13 @@ void ChatCompressor::startCompression(
 
     const QString transcript = transcriptParts.join(QStringLiteral("\n\n"));
 
+    connect(session, &Session::finished, this, [this](const LLMQore::RequestID &id, const QString &) {
+        onCompressionFinished(id);
+    });
     connect(
-        session, &Session::finished, this,
-        [this](const LLMQore::RequestID &id, const QString &) { onCompressionFinished(id); });
-    connect(
-        session, &Session::failed, this,
+        session,
+        &Session::failed,
+        this,
         [this](const LLMQore::RequestID &id, const QodeAssist::ErrorInfo &error) {
             onCompressionFailed(id, error.message);
         });
@@ -134,8 +135,8 @@ void ChatCompressor::startCompression(
 
     m_currentRequestId = session->send(std::move(blocks));
     if (m_currentRequestId.isEmpty()) {
-        handleCompressionError(tr("Failed to start compression request: %1")
-                                   .arg(session->lastError().message));
+        handleCompressionError(
+            tr("Failed to start compression request: %1").arg(session->lastError().message));
         return;
     }
     LOG_MESSAGE(QString("Starting compression request: %1").arg(m_currentRequestId));
@@ -168,6 +169,11 @@ void ChatCompressor::onCompressionFinished(const QString &requestId)
     }
 
     LOG_MESSAGE(QString("Received summary, length: %1 characters").arg(summary.length()));
+
+    if (summary.trimmed().isEmpty()) {
+        handleCompressionError(tr("Compression produced an empty summary"));
+        return;
+    }
 
     const QString compressedPath = createCompressedChatPath(m_originalChatPath);
     const QString sourcePath = m_originalChatPath;
@@ -209,23 +215,8 @@ QString ChatCompressor::createCompressedChatPath(const QString &originalPath) co
 bool ChatCompressor::createCompressedChatFile(
     const QString &sourcePath, const QString &destPath, const QString &summary)
 {
-    QFile sourceFile(sourcePath);
-    if (!sourceFile.open(QIODevice::ReadOnly)) {
-        LOG_MESSAGE(QString("Failed to open source chat file: %1").arg(sourcePath));
-        return false;
-    }
-
-    QJsonParseError parseError;
-    QJsonDocument doc = QJsonDocument::fromJson(sourceFile.readAll(), &parseError);
-    sourceFile.close();
-
-    if (doc.isNull() || !doc.isObject()) {
-        LOG_MESSAGE(QString("Invalid JSON in chat file: %1 (Error: %2)")
-                        .arg(sourcePath, parseError.errorString()));
-        return false;
-    }
-
-    QJsonObject root = doc.object();
+    QJsonObject root;
+    root["version"] = ChatSerializer::VERSION;
 
     QJsonObject summaryMessage;
     summaryMessage["role"] = "assistant";

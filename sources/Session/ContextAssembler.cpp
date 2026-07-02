@@ -22,9 +22,12 @@ Q_LOGGING_CATEGORY(ctxLog, "qodeassist.context")
 QString roleToWireString(Message::Role role)
 {
     switch (role) {
-    case Message::Role::System: return QStringLiteral("system");
-    case Message::Role::User: return QStringLiteral("user");
-    case Message::Role::Assistant: return QStringLiteral("assistant");
+    case Message::Role::System:
+        return QStringLiteral("system");
+    case Message::Role::User:
+        return QStringLiteral("user");
+    case Message::Role::Assistant:
+        return QStringLiteral("assistant");
     }
     return QStringLiteral("user");
 }
@@ -70,7 +73,9 @@ QString Manifest::summary() const
     if (unsupportedBlocks > 0)
         s += QStringLiteral(", unsupported=%1").arg(unsupportedBlocks);
     if (!elided.isEmpty())
-        s += QStringLiteral(", elided=%1 [%2]").arg(elided.size()).arg(elided.join(QStringLiteral("; ")));
+        s += QStringLiteral(", elided=%1 [%2]")
+                 .arg(elided.size())
+                 .arg(elided.join(QStringLiteral("; ")));
     return s;
 }
 
@@ -135,8 +140,7 @@ Templates::ContextData assemble(
                 e.kind = ContentBlockEntry::Kind::Image;
                 e.imageData = img->data();
                 e.mediaType = img->mediaType();
-                e.isImageUrl
-                    = (img->sourceType() == LLMQore::ImageContent::ImageSourceType::Url);
+                e.isImageUrl = (img->sourceType() == LLMQore::ImageContent::ImageSourceType::Url);
                 blockEntries.append(std::move(e));
                 ++manifest.imageBlocks;
             } else if (auto *si = dynamic_cast<StoredImageContent *>(block)) {
@@ -144,8 +148,7 @@ Templates::ContextData assemble(
                 if (base64.isEmpty()) {
                     blockEntries.append(
                         makeTextEntry(placeholderFor(QStringLiteral("Image"), si->fileName())));
-                    manifest.elided
-                        << QStringLiteral("image unavailable: %1").arg(si->fileName());
+                    manifest.elided << QStringLiteral("image unavailable: %1").arg(si->fileName());
                     qCWarning(ctxLog).noquote()
                         << "stored image unavailable, placeholder inserted:" << si->fileName();
                     continue;
@@ -165,8 +168,7 @@ Templates::ContextData assemble(
                     manifest.elided
                         << QStringLiteral("attachment unavailable: %1").arg(sa->fileName());
                     qCWarning(ctxLog).noquote()
-                        << "stored attachment unavailable, placeholder inserted:"
-                        << sa->fileName();
+                        << "stored attachment unavailable, placeholder inserted:" << sa->fileName();
                     continue;
                 }
                 const QString text = QString::fromUtf8(QByteArray::fromBase64(stored.toUtf8()));
@@ -199,8 +201,7 @@ Templates::ContextData assemble(
                 blockEntries.append(std::move(e));
             } else if (auto *tu = dynamic_cast<LLMQore::ToolUseContent *>(block)) {
                 if (!resolvedToolUseIds.contains(tu->id())) {
-                    manifest.elided
-                        << QStringLiteral("orphan tool_use dropped: %1").arg(tu->id());
+                    manifest.elided << QStringLiteral("orphan tool_use dropped: %1").arg(tu->id());
                     continue;
                 }
                 ContentBlockEntry e;
@@ -233,11 +234,11 @@ Templates::ContextData assemble(
         if (blockEntries.isEmpty())
             continue;
 
-        const bool hasNonThinking = std::any_of(
-            blockEntries.begin(), blockEntries.end(), [](const ContentBlockEntry &e) {
-                return e.kind != ContentBlockEntry::Kind::Thinking
-                       && e.kind != ContentBlockEntry::Kind::RedactedThinking;
-            });
+        const bool hasNonThinking
+            = std::any_of(blockEntries.begin(), blockEntries.end(), [](const ContentBlockEntry &e) {
+                  return e.kind != ContentBlockEntry::Kind::Thinking
+                         && e.kind != ContentBlockEntry::Kind::RedactedThinking;
+              });
         if (!hasNonThinking) {
             manifest.elided << QStringLiteral("thinking-only message dropped");
             continue;

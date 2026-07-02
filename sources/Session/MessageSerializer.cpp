@@ -165,7 +165,7 @@ std::unique_ptr<LLMQore::ContentBlock> blockFromJson(const QJsonObject &obj)
             FileEditContent::statusFromString(obj.value("status").toString()),
             obj.value("statusMessage").toString());
     }
-    return nullptr; // unknown type — skipped
+    return nullptr;
 }
 
 } // namespace
@@ -179,8 +179,11 @@ QJsonObject MessageSerializer::toJson(const Message &message)
 
     QJsonArray blocks;
     for (const auto &b : message.blocks()) {
-        if (b)
-            blocks.append(blockToJson(*b));
+        if (!b)
+            continue;
+        const QJsonObject blockObj = blockToJson(*b);
+        if (!blockObj.isEmpty())
+            blocks.append(blockObj);
     }
     obj["blocks"] = blocks;
     return obj;

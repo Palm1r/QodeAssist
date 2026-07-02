@@ -1,0 +1,8 @@
+schema_version = 1
+
+name        = "Qwen"
+client_api  = "OpenAI Compatible"
+description = "Cloud (Alibaba Qwen via DashScope, international endpoint). OpenAI-compatible Chat Completions API — qwen-plus / qwen-max / qwen-coder model families. Get an API key in the Alibaba Cloud Model Studio console."
+
+url         = "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
+api_key_ref = "qodeassist/providers/Qwen"

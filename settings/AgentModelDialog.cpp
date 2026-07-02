@@ -24,10 +24,7 @@
 namespace QodeAssist::Settings {
 
 AgentModelDialog::AgentModelDialog(
-    AgentFactory *factory,
-    const QString &agentName,
-    const QString &currentModel,
-    QWidget *parent)
+    AgentFactory *factory, const QString &agentName, const QString &currentModel, QWidget *parent)
     : QDialog(parent)
     , m_factory(factory)
     , m_agentName(agentName)
@@ -103,8 +100,9 @@ void AgentModelDialog::fetchModels()
 
     if (!m_watcher) {
         m_watcher = new QFutureWatcher<QList<QString>>(this);
-        connect(m_watcher, &QFutureWatcher<QList<QString>>::finished, this,
-                [this] { onModelsFetched(); });
+        connect(m_watcher, &QFutureWatcher<QList<QString>>::finished, this, [this] {
+            onModelsFetched();
+        });
     }
 
     m_fetchBtn->setEnabled(false);
@@ -134,9 +132,8 @@ void AgentModelDialog::onModelsFetched()
     m_modelEdit->setText(keep);
 
     m_status->setText(
-        models.isEmpty()
-            ? tr("No models returned — type the model name manually.")
-            : tr("%n model(s) available.", nullptr, static_cast<int>(models.size())));
+        models.isEmpty() ? tr("No models returned — type the model name manually.")
+                         : tr("%n model(s) available.", nullptr, static_cast<int>(models.size())));
 }
 
 } // namespace QodeAssist::Settings

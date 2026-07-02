@@ -120,9 +120,7 @@ ProviderDetailPane::ProviderDetailPane(QWidget *parent)
     identityGrid->setContentsMargins(0, 0, 0, 0);
     identityGrid->setHorizontalSpacing(8);
     identityGrid->setVerticalSpacing(4);
-    FormBuilder(identityGrid)
-        .row(tr("Name:"), m_nameEdit)
-        .row(tr("Description:"), m_descriptionEdit);
+    FormBuilder(identityGrid).row(tr("Name:"), m_nameEdit).row(tr("Description:"), m_descriptionEdit);
     identitySection->bodyLayout()->addLayout(identityGrid);
 
     auto *endpointSection = new SectionBox(tr("Endpoint"), this);
@@ -332,13 +330,12 @@ void ProviderDetailPane::populate(const Providers::ProviderInstance &inst, bool 
         m_keyHint->setText(tr("No key stored yet. Type a key and press Save key."));
     }
 
-    const LegacyApiKeyEntry legacy
-        = needsKey ? legacyApiKeyForClientApi(inst.clientApi) : LegacyApiKeyEntry{};
+    const LegacyApiKeyEntry legacy = needsKey ? legacyApiKeyForClientApi(inst.clientApi, inst.name)
+                                              : LegacyApiKeyEntry{};
     m_legacyKeyValue = legacy.value;
     if (!legacy.value.isEmpty()) {
         m_legacyKeyBtn->setToolTip(
-            tr("Insert the API key saved in the old %1 settings into the field.")
-                .arg(legacy.label));
+            tr("Insert the API key saved in the old %1 settings into the field.").arg(legacy.label));
         m_legacyKeyBtn->setVisible(true);
     } else {
         m_legacyKeyBtn->setVisible(false);
@@ -425,11 +422,13 @@ void ProviderDetailPane::setLaunchState(
         return;
     }
 
-    const QString detachedNote = m_current.launch.detach
-        ? QStringLiteral(" <span style='color:%1'>%2</span>")
-              .arg(Utils::creatorColor(Utils::Theme::PanelTextColorMid).name(),
-                   tr("(detached — survives Qt Creator restart)"))
-        : QString();
+    const QString detachedNote
+        = m_current.launch.detach
+              ? QStringLiteral(" <span style='color:%1'>%2</span>")
+                    .arg(
+                        Utils::creatorColor(Utils::Theme::PanelTextColorMid).name(),
+                        tr("(detached — survives Qt Creator restart)"))
+              : QString();
     m_launchCmdLabel->setText(
         QStringLiteral("<b>%1</b> %2%3")
             .arg(m_current.launch.command.toHtmlEscaped(),
@@ -515,8 +514,9 @@ void ProviderDetailPane::applyPreviewPalette()
 {
     m_samplePreview->setStyleSheet(
         QStringLiteral("QLabel { background:%1; border:1px solid %2; }")
-            .arg(cssColor(Utils::creatorColor(Utils::Theme::BackgroundColorNormal)),
-                 cssColor(Utils::creatorColor(Utils::Theme::SplitterColor))));
+            .arg(
+                cssColor(Utils::creatorColor(Utils::Theme::BackgroundColorNormal)),
+                cssColor(Utils::creatorColor(Utils::Theme::SplitterColor))));
 }
 
 void ProviderDetailPane::applyTerminalPalette()

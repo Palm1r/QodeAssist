@@ -4,11 +4,10 @@
 
 #pragma once
 
-#include <texteditor/textdocument.h>
 #include <QTextDocument>
 
-#include <sources/common/ContextData.hpp>
 #include <settings/CodeCompletionSettings.hpp>
+#include <sources/common/ContextData.hpp>
 
 namespace QodeAssist::Context {
 
@@ -59,7 +58,6 @@ public:
         int lineNumber, int cursorPosition, const Settings::CodeCompletionSettings &settings) const;
 
 private:
-    TextEditor::TextDocument *m_textDocument = nullptr;
     QTextDocument *m_document;
     QString m_mimeType;
     QString m_filePath;

@@ -20,8 +20,7 @@ ProjectScannerQtCreator::ProjectScannerQtCreator()
 
 ProjectScannerQtCreator::~ProjectScannerQtCreator() = default;
 
-QList<OpenedTextFile> ProjectScannerQtCreator::openedTextFiles(
-    const QStringList &excludeFiles) const
+QList<OpenedTextFile> ProjectScannerQtCreator::openedTextFiles(const QStringList &excludeFiles) const
 {
     QList<OpenedTextFile> files;
 

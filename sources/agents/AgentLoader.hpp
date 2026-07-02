@@ -4,10 +4,10 @@
 
 #pragma once
 
+#include <vector>
 #include <QHash>
 #include <QString>
 #include <QStringList>
-#include <vector>
 
 #include "AgentConfig.hpp"
 

@@ -22,14 +22,17 @@
 
 #include <LLMQore/ContentBlocks.hpp>
 
+#include "ChatModel.hpp"
 #include "Logger.hpp"
 #include "ProjectSettings.hpp"
 
 namespace QodeAssist::Chat {
 
-ChatHistoryStore::ChatHistoryStore(ConversationHistory *history, QObject *parent)
+ChatHistoryStore::ChatHistoryStore(
+    ConversationHistory *history, ChatModel *chatModel, QObject *parent)
     : QObject(parent)
     , m_history(history)
+    , m_chatModel(chatModel)
 {}
 
 QString ChatHistoryStore::historyDir() const
@@ -118,12 +121,17 @@ QString ChatHistoryStore::autosaveFilePath(
 
 SerializationResult ChatHistoryStore::save(const QString &filePath) const
 {
-    return ChatSerializer::saveToFile(m_history, filePath);
+    return ChatSerializer::saveToFile(
+        m_history, filePath, m_chatModel ? m_chatModel->usageToJson() : QJsonObject{});
 }
 
 SerializationResult ChatHistoryStore::load(const QString &filePath) const
 {
-    return ChatSerializer::loadFromFile(m_history, filePath);
+    QJsonObject usage;
+    const SerializationResult result = ChatSerializer::loadFromFile(m_history, filePath, &usage);
+    if (result.success && m_chatModel)
+        m_chatModel->restoreUsageFromJson(usage);
+    return result;
 }
 
 void ChatHistoryStore::showSaveDialog()

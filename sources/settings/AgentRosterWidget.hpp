@@ -31,20 +31,12 @@ class AgentRosterWidget : public QWidget
 public:
     explicit AgentRosterWidget(QWidget *parent = nullptr);
 
-    void setSlot(
-        const QString &title,
-        const QString &hint,
-        const QStringList &presetTags = {});
+    void setSlot(const QString &title, const QString &hint, const QStringList &presetTags = {});
     void setRoster(const QStringList &names, AgentFactory *factory);
+    void setRoutingContext(const AgentRouter::Context &ctx);
 
-    // When false, the list is an unordered set: no move arrows, no position
-    // numbers, no "first matching" routing hint. Used by pipelines where the
-    // user — not a router — chooses the agent (e.g. the chat picker).
     void setOrderable(bool orderable);
 
-    // When true, the card holds at most one agent: "Add" becomes "Change",
-    // selecting replaces the current entry, and the routing footer is hidden.
-    // Implies a non-orderable list. Used by single-agent pipelines.
     void setSingle(bool single);
 
     [[nodiscard]] QStringList roster() const { return m_names; }

@@ -40,14 +40,13 @@ bool Provider::prepareRequest(
         return fail(QString("Provider '%1': null template").arg(name()));
 
     if (!prompt->isSupportProvider(providerID())) {
-        return fail(QString("Template '%1' doesn't support provider '%2'")
-                        .arg(prompt->name(), name()));
+        return fail(
+            QString("Template '%1' doesn't support provider '%2'").arg(prompt->name(), name()));
     }
 
     if (!prompt->buildFullRequest(request, context)) {
-        return fail(
-            QString("Provider '%1': template '%2' failed to build request (see log)")
-                .arg(name(), prompt->name()));
+        return fail(QString("Provider '%1': template '%2' failed to build request (see log)")
+                        .arg(name(), prompt->name()));
     }
 
     if (isToolsEnabled) {
@@ -58,18 +57,23 @@ bool Provider::prepareRequest(
     }
 
     if (m_promptCachingEnabled)
-        ClaudeCacheControl::apply(
-            request, m_promptCachingExtendedTtl, m_promptCacheBreakpoints);
+        ClaudeCacheControl::apply(request, m_promptCachingExtendedTtl, m_promptCacheBreakpoints);
 
     return true;
 }
 
 void Provider::setPromptCaching(bool enabled, bool extendedTtl, const QStringList &breakpoints)
 {
+    auto *claude = qobject_cast<::LLMQore::ClaudeClient *>(client());
+    if (enabled && !claude) {
+        LOG_MESSAGE(
+            QString("%1: cache_prompt is only supported by Claude providers, ignoring").arg(name()));
+        enabled = false;
+    }
     m_promptCachingEnabled = enabled;
     m_promptCachingExtendedTtl = enabled && extendedTtl;
     m_promptCacheBreakpoints = breakpoints;
-    if (auto *claude = qobject_cast<::LLMQore::ClaudeClient *>(client()))
+    if (claude)
         claude->setUseExtendedCacheTTL(m_promptCachingExtendedTtl);
 }
 

@@ -1,6 +1,7 @@
 add_executable(QodeAssistTest
     ../CodeHandler.cpp
     ../LLMSuggestion.cpp
+    ../sources/settings/PipelinesConfig.cpp
     CodeHandlerTest.cpp
     DocumentContextReaderTest.cpp
     EnvBlockFormatterTest.cpp
@@ -16,9 +17,9 @@ add_executable(QodeAssistTest
     ContextRendererTest.cpp
     ErrorInfoTest.cpp
     MessageSerializerTest.cpp
+    PipelinesConfigTest.cpp
     ResponseCleanerTest.cpp
     SystemPromptBuilderTest.cpp
-    # LLMClientInterfaceTests.cpp
     unittest_main.cpp
 )
 
@@ -35,9 +36,17 @@ target_link_libraries(QodeAssistTest PRIVATE
     Templates
     Agents
     Session
+    TomlSerializer
+    tomlplusplus::tomlplusplus
+    QodeAssistLogger
 )
 
-target_include_directories(QodeAssistTest PRIVATE ${CMAKE_SOURCE_DIR})
+target_include_directories(QodeAssistTest PRIVATE
+    ${CMAKE_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/sources/settings
+    ${CMAKE_SOURCE_DIR}/sources/tomlSerializer
+    ${CMAKE_SOURCE_DIR}/logger
+)
 
 target_compile_definitions(QodeAssistTest PRIVATE CMAKE_CURRENT_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
 

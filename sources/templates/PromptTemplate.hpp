@@ -27,15 +27,10 @@ public:
     PromptTemplate &operator=(PromptTemplate &&) = delete;
 
     virtual QString name() const = 0;
-    virtual void prepareRequest(QJsonObject &request, const ContextData &context) const = 0;
     virtual QString description() const = 0;
     virtual bool isSupportProvider(ProviderID id) const = 0;
 
-    [[nodiscard]] virtual bool buildFullRequest(
-        QJsonObject &request, const ContextData &context) const
-    {
-        prepareRequest(request, context);
-        return true;
-    }
+    [[nodiscard]] virtual bool buildFullRequest(QJsonObject &request, const ContextData &context) const
+        = 0;
 };
 } // namespace QodeAssist::Templates

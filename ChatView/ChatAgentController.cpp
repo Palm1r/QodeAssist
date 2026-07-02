@@ -23,6 +23,12 @@ ChatAgentController::ChatAgentController(QObject *parent)
 {
     if (auto *settings = Core::ICore::settings())
         m_currentAgent = settings->value(kChatAgentKey).toString();
+
+    connect(
+        Settings::PipelinesNotifier::instance(),
+        &Settings::PipelinesNotifier::pipelinesChanged,
+        this,
+        &ChatAgentController::reload);
 }
 
 void ChatAgentController::setAgentFactory(AgentFactory *factory)

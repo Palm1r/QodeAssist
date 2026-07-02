@@ -17,7 +17,6 @@ inline bool isDarkPalette(const QPalette &p)
     return p.color(QPalette::Window).lightness() < 128;
 }
 
-// Linear blend a→b by t∈[0,1]; used to derive subtle tints from theme roles.
 inline QColor mix(const QColor &a, const QColor &b, double t)
 {
     const double s = 1.0 - t;
@@ -28,9 +27,6 @@ inline QColor mix(const QColor &a, const QColor &b, double t)
         1.0);
 }
 
-// Serialize a theme color for a Qt stylesheet preserving alpha. Some Qt Creator
-// theme roles (e.g. BackgroundColorHover) are semi-transparent; QColor::name()
-// drops the alpha and would render them as solid black.
 inline QString cssColor(const QColor &c)
 {
     return QStringLiteral("rgba(%1, %2, %3, %4)")

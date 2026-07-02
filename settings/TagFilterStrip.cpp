@@ -9,6 +9,7 @@
 
 #include <utils/theme/theme.h>
 
+#include <algorithm>
 #include <QEvent>
 #include <QFont>
 #include <QGridLayout>
@@ -22,7 +23,6 @@
 #include <QStringList>
 #include <QTimer>
 #include <QVBoxLayout>
-#include <algorithm>
 
 namespace QodeAssist::Settings {
 
@@ -87,6 +87,8 @@ void TagFilterStrip::refreshActiveStates()
 {
     for (auto it = m_chipByTag.cbegin(); it != m_chipByTag.cend(); ++it)
         it.value()->setActive(m_activeTags.contains(it.key()));
+    if (m_clearLink)
+        m_clearLink->setVisible(!m_activeTags.isEmpty());
 }
 
 void TagFilterStrip::applyTheme()
@@ -96,8 +98,9 @@ void TagFilterStrip::applyTheme()
     QScopedValueRollback<bool> guard(m_inApplyTheme, true);
     const QString bg = Utils::creatorColor(Utils::Theme::BackgroundColorNormal).name();
     const QString line = Utils::creatorColor(Utils::Theme::SplitterColor).name();
-    setStyleSheet(QStringLiteral("QWidget#TagStrip { background:%1;"
-                                 " border-bottom:1px solid %2; }")
+    setStyleSheet(QStringLiteral(
+                      "QWidget#TagStrip { background:%1;"
+                      " border-bottom:1px solid %2; }")
                       .arg(bg, line));
 }
 
@@ -116,6 +119,7 @@ void TagFilterStrip::rebuild()
         delete item;
     }
     m_chipByTag.clear();
+    m_clearLink = nullptr;
 
     if (m_counts.isEmpty()) {
         setVisible(false);
@@ -141,17 +145,16 @@ void TagFilterStrip::rebuild()
     }
     headerLine->addWidget(andHint);
     headerLine->addStretch(1);
-    if (!m_activeTags.isEmpty()) {
-        auto *clear = new QLabel(QStringLiteral("<a href=\"#\">%1</a>").arg(tr("clear")), this);
-        connect(clear, &QLabel::linkActivated, this, [this](const QString &) {
-            if (m_activeTags.isEmpty())
-                return;
-            m_activeTags.clear();
-            refreshActiveStates();
-            emit activeTagsChanged(m_activeTags);
-        });
-        headerLine->addWidget(clear);
-    }
+    m_clearLink = new QLabel(QStringLiteral("<a href=\"#\">%1</a>").arg(tr("clear")), this);
+    m_clearLink->setVisible(!m_activeTags.isEmpty());
+    connect(m_clearLink, &QLabel::linkActivated, this, [this](const QString &) {
+        if (m_activeTags.isEmpty())
+            return;
+        m_activeTags.clear();
+        refreshActiveStates();
+        emit activeTagsChanged(m_activeTags);
+    });
+    headerLine->addWidget(m_clearLink);
     m_layout->addLayout(headerLine);
 
     std::vector<std::pair<QString, int>> sorted;

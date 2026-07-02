@@ -57,8 +57,36 @@ TEST(ResponseCleanerTest, TrimsLeadingAndTrailingNewlines)
 
 TEST(ResponseCleanerTest, FencedCodeWithExplanationLineInsideIsExtractedVerbatim)
 {
-    // The fence body is returned verbatim; explanation stripping only inspects
-    // the first lines of the *extracted* code, which here is real code.
     const QString input = QStringLiteral("```python\nx = 1\ny = 2\n```");
     EXPECT_EQ(ResponseCleaner::clean(input), QStringLiteral("x = 1\ny = 2"));
+}
+
+TEST(ResponseCleanerTest, FencedPythonDefLineIsPreserved)
+{
+    const QString input = QStringLiteral("```python\ndef foo():\n    return 1\n```");
+    EXPECT_EQ(ResponseCleaner::clean(input), QStringLiteral("def foo():\n    return 1"));
+}
+
+TEST(ResponseCleanerTest, FencedAccessSpecifierLineIsPreserved)
+{
+    const QString input = QStringLiteral("```cpp\npublic:\n    void foo();\n```");
+    EXPECT_EQ(ResponseCleaner::clean(input), QStringLiteral("public:\n    void foo();"));
+}
+
+TEST(ResponseCleanerTest, UnfencedCodeStartingWithColonLineIsPreserved)
+{
+    const QString input = QStringLiteral("def foo():\n    return 1");
+    EXPECT_EQ(ResponseCleaner::clean(input), input);
+}
+
+TEST(ResponseCleanerTest, UnfencedCaseLabelIsPreserved)
+{
+    const QString input = QStringLiteral("case 1:\n    break;");
+    EXPECT_EQ(ResponseCleaner::clean(input), input);
+}
+
+TEST(ResponseCleanerTest, UnfencedProseHeaderIsStripped)
+{
+    const QString input = QStringLiteral("Refactored version:\nint x = 1;");
+    EXPECT_EQ(ResponseCleaner::clean(input), QStringLiteral("int x = 1;"));
 }

@@ -5,7 +5,9 @@
 #include "GeneralSettings.hpp"
 
 #include <coreplugin/dialogs/ioptionspage.h>
+#include <coreplugin/editormanager/editormanager.h>
 #include <coreplugin/icore.h>
+#include <coreplugin/idocument.h>
 #include <utils/infolabel.h>
 #include <utils/layoutbuilder.h>
 #include <QFont>
@@ -27,6 +29,7 @@
 #include "UpdateDialog.hpp"
 
 #include <AgentFactory.hpp>
+#include <AgentRouter.hpp>
 
 namespace QodeAssist::Settings {
 
@@ -63,6 +66,14 @@ public:
         headerRow->setContentsMargins(0, 0, 0, 0);
         headerRow->setSpacing(8);
         headerRow->addWidget(m_titleLabel);
+        auto *instantApplyHint = new QLabel(tr("changes apply immediately"), this);
+        {
+            QFont hf = instantApplyHint->font();
+            hf.setPointSizeF(hf.pointSizeF() * 0.9);
+            instantApplyHint->setFont(hf);
+            instantApplyHint->setEnabled(false);
+        }
+        headerRow->addWidget(instantApplyHint);
         headerRow->addStretch(1);
 
         auto *headerSep = new QFrame(this);
@@ -79,6 +90,11 @@ public:
             Tr::tr(TrConstants::CODE_COMPLETION),
             Tr::tr(TrConstants::SLOT_HINT_CODE_COMPLETION),
             {QStringLiteral("completion")});
+        if (auto *doc = Core::EditorManager::currentDocument()) {
+            AgentRouter::Context routingCtx;
+            routingCtx.filePath = doc->filePath().toFSPathString();
+            m_completionRoster->setRoutingContext(routingCtx);
+        }
 
         m_chatRoster = new AgentRosterWidget(this);
         m_chatRoster->setSlot(
@@ -121,10 +137,14 @@ public:
 
         for (AgentRosterWidget *roster :
              {m_completionRoster, m_chatRoster, m_compressionRoster, m_refactorRoster}) {
-            connect(roster, &AgentRosterWidget::editAgentRequested, this,
-                    &AgentPipelinesWidget::onEditAgent);
-            connect(roster, &AgentRosterWidget::rosterChanged, this,
-                    [this](const QStringList &) { m_saveDebounce->start(); });
+            connect(
+                roster,
+                &AgentRosterWidget::editAgentRequested,
+                this,
+                &AgentPipelinesWidget::onEditAgent);
+            connect(roster, &AgentRosterWidget::rosterChanged, this, [this](const QStringList &) {
+                m_saveDebounce->start();
+            });
         }
     }
 

@@ -13,7 +13,7 @@ namespace QodeAssist {
 class SessionManager;
 class Session;
 class ConversationHistory;
-}
+} // namespace QodeAssist
 
 namespace QodeAssist::Chat {
 

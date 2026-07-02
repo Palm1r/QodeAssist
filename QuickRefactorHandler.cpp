@@ -10,9 +10,6 @@
 #include <LLMQore/ContentBlocks.hpp>
 #include <LLMQore/ToolLoopRunner.hpp>
 #include <LLMQore/ToolsManager.hpp>
-#include <QJsonArray>
-#include <QJsonDocument>
-#include <QUuid>
 
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectmanager.h>
@@ -23,10 +20,10 @@
 #include <context/EnvBlockFormatter.hpp>
 #include <context/Utils.hpp>
 #include <logger/Logger.hpp>
-#include <sources/common/ResponseCleaner.hpp>
 #include <settings/GeneralSettings.hpp>
 #include <settings/QuickRefactorSettings.hpp>
 #include <settings/ToolsSettings.hpp>
+#include <sources/common/ResponseCleaner.hpp>
 
 #include "sources/common/ContextData.hpp"
 
@@ -67,10 +64,11 @@ void QuickRefactorHandler::sendRefactorRequest(
     TextEditor::TextEditorWidget *editor, const QString &instructions)
 {
     if (m_isRefactoringInProgress) {
-        cancelRequest();
+        abortActiveRequest();
     }
 
     m_currentEditor = editor;
+    m_currentDocumentRevision = editor->document()->revision();
 
     Utils::Text::Range range;
     if (editor->textCursor().hasSelection()) {
@@ -119,7 +117,7 @@ void QuickRefactorHandler::sendRefactorRequest(
 
 QString QuickRefactorHandler::configuredAgent(AgentFactory *agentFactory)
 {
-    const QString configured = Settings::PipelinesConfig::load().rosters.quickRefactor;
+    const QString configured = Settings::PipelinesConfig::loadCached().rosters.quickRefactor;
     if (configured.isEmpty() || !agentFactory || !agentFactory->configByName(configured))
         return {};
     return configured;
@@ -151,16 +149,17 @@ void QuickRefactorHandler::prepareAndSendRequest(
 
     const QString agentName = pickRefactorAgent();
     if (agentName.isEmpty()) {
-        emitError(QStringLiteral(
-            "No quick refactor agent configured. Set one in QodeAssist > General."));
+        emitError(
+            QStringLiteral("No quick refactor agent configured. Set one in QodeAssist > General."));
         return;
     }
 
     QString sessionError;
     Session *session = m_sessionManager->acquire(agentName, &sessionError);
     if (!session) {
-        emitError(sessionError.isEmpty() ? QStringLiteral("No quick refactor agent selected")
-                                         : sessionError);
+        emitError(
+            sessionError.isEmpty() ? QStringLiteral("No quick refactor agent selected")
+                                   : sessionError);
         return;
     }
 
@@ -177,34 +176,36 @@ void QuickRefactorHandler::prepareAndSendRequest(
     bindings.configDir = AgentFactory::userConfigDir();
     session->setContextBindings(bindings);
 
-    const AgentConfig *agentConfig
-        = m_agentFactory ? m_agentFactory->configByName(agentName) : nullptr;
+    const AgentConfig *agentConfig = m_agentFactory ? m_agentFactory->configByName(agentName)
+                                                    : nullptr;
     if (agentConfig && agentConfig->enableTools) {
         m_sessionManager->toolContributors().contribute(client->tools());
         client->toolLoop()->setMaxRounds(Settings::toolsSettings().maxToolContinuations());
     }
 
-    session->systemPrompt()->setLayer(
-        QStringLiteral("refactor"), buildContextLayer(editor, range));
+    session->systemPrompt()->setLayer(QStringLiteral("refactor"), buildContextLayer(editor, range));
 
     client->setTransferTimeout(
         static_cast<int>(Settings::generalSettings().requestTimeout() * 1000));
 
     m_isRefactoringInProgress = true;
 
+    connect(session, &Session::finished, this, [this](const LLMQore::RequestID &id, const QString &) {
+        onRefactorFinished(id);
+    });
     connect(
-        session, &Session::finished, this,
-        [this](const LLMQore::RequestID &id, const QString &) { onRefactorFinished(id); });
-    connect(
-        session, &Session::failed, this,
+        session,
+        &Session::failed,
+        this,
         [this](const LLMQore::RequestID &id, const QodeAssist::ErrorInfo &error) {
             onRefactorFailed(id, error);
         });
 
     std::vector<std::unique_ptr<LLMQore::ContentBlock>> blocks;
-    const QString userMessage = instructions.isEmpty()
-        ? QStringLiteral("Refactor the code to improve its quality and maintainability.")
-        : instructions;
+    const QString userMessage
+        = instructions.isEmpty()
+              ? QStringLiteral("Refactor the code to improve its quality and maintainability.")
+              : instructions;
     blocks.push_back(std::make_unique<LLMQore::TextContent>(userMessage));
 
     const LLMQore::RequestID requestId = session->send(std::move(blocks));
@@ -218,7 +219,7 @@ void QuickRefactorHandler::prepareAndSendRequest(
     }
 
     m_lastRequestId = requestId;
-    m_activeRequests[requestId] = {QJsonObject{{"id", requestId}}, session};
+    m_activeSession = session;
 }
 
 QString QuickRefactorHandler::buildContextLayer(
@@ -312,12 +313,13 @@ QString QuickRefactorHandler::buildContextLayer(
     contextLayer += "\n# Code Context with Position Markers\n" + taggedContent;
 
     contextLayer += "\n\n# What to Generate:";
-    contextLayer += cursor.hasSelection()
-        ? "\n- Generate ONLY the code that should REPLACE the selected text between "
-          "<selection_start> and <selection_end> markers"
-          "\n- Your output will completely replace the selected code"
-        : "\n- Generate ONLY the code that should be INSERTED at the <cursor> position"
-          "\n- Your output will be inserted at the cursor location";
+    contextLayer
+        += cursor.hasSelection()
+               ? "\n- Generate ONLY the code that should REPLACE the selected text between "
+                 "<selection_start> and <selection_end> markers"
+                 "\n- Your output will completely replace the selected code"
+               : "\n- Generate ONLY the code that should be INSERTED at the <cursor> position"
+                 "\n- Your output will be inserted at the cursor location";
 
     QString indentNote;
     if (cursor.hasSelection()) {
@@ -329,10 +331,12 @@ QString QuickRefactorHandler::buildContextLayer(
             else break;
         }
         if (leadingSpaces > 0) {
-            indentNote = QString("\n- CRITICAL: The code to replace starts with %1 spaces of indentation"
-                                 "\n- Your output MUST start with exactly %1 spaces (or equivalent tabs)"
-                                 "\n- Each line in your output must maintain this base indentation")
-                             .arg(leadingSpaces);
+            indentNote
+                = QString(
+                      "\n- CRITICAL: The code to replace starts with %1 spaces of indentation"
+                      "\n- Your output MUST start with exactly %1 spaces (or equivalent tabs)"
+                      "\n- Each line in your output must maintain this base indentation")
+                      .arg(leadingSpaces);
         }
         indentNote += "\n- PRESERVE all indentation from the original code";
     } else {
@@ -345,9 +349,12 @@ QString QuickRefactorHandler::buildContextLayer(
             else break;
         }
         if (leadingSpaces > 0) {
-            indentNote = QString("\n- CRITICAL: Current line has %1 spaces of indentation"
-                                 "\n- If generating multiline code, EVERY line must start with at least %1 spaces"
-                                 "\n- If generating single-line code, it will be inserted inline (no indentation needed)")
+            indentNote = QString(
+                             "\n- CRITICAL: Current line has %1 spaces of indentation"
+                             "\n- If generating multiline code, EVERY line must start with at "
+                             "least %1 spaces"
+                             "\n- If generating single-line code, it will be inserted inline (no "
+                             "indentation needed)")
                              .arg(leadingSpaces);
         }
     }
@@ -361,26 +368,32 @@ QString QuickRefactorHandler::buildContextLayer(
     return contextLayer;
 }
 
+void QuickRefactorHandler::abortActiveRequest()
+{
+    if (!m_isRefactoringInProgress)
+        return;
+
+    m_isRefactoringInProgress = false;
+    m_lastRequestId.clear();
+
+    Session *session = m_activeSession;
+    m_activeSession = nullptr;
+    if (session && m_sessionManager)
+        m_sessionManager->release(session);
+}
+
 void QuickRefactorHandler::cancelRequest()
 {
     if (!m_isRefactoringInProgress)
         return;
 
-    const auto id = m_lastRequestId;
-    m_isRefactoringInProgress = false;
-    m_lastRequestId.clear();
-
-    auto it = m_activeRequests.find(id);
-    if (it != m_activeRequests.end()) {
-        Session *session = it.value().session;
-        m_activeRequests.erase(it);
-        if (session && m_sessionManager)
-            m_sessionManager->release(session);
-    }
+    abortActiveRequest();
 
     RefactorResult result;
     result.success = false;
+    result.cancelled = true;
     result.errorMessage = "Refactoring request was cancelled";
+    result.editor = m_currentEditor;
     emit refactoringCompleted(result);
 }
 
@@ -389,10 +402,8 @@ void QuickRefactorHandler::onRefactorFinished(const QString &requestId)
     if (requestId != m_lastRequestId)
         return;
 
-    auto it = m_activeRequests.find(requestId);
-    Session *session = (it != m_activeRequests.end()) ? it.value().session.data() : nullptr;
-    if (it != m_activeRequests.end())
-        m_activeRequests.erase(it);
+    Session *session = m_activeSession;
+    m_activeSession = nullptr;
 
     QString fullText;
     if (session) {
@@ -410,6 +421,7 @@ void QuickRefactorHandler::onRefactorFinished(const QString &requestId)
     result.insertRange = m_currentRange;
     result.success = true;
     result.editor = m_currentEditor;
+    result.documentRevision = m_currentDocumentRevision;
 
     LOG_MESSAGE("Refactoring completed successfully. New code to insert: ");
     LOG_MESSAGE("---------- BEGIN REFACTORED CODE ----------");
@@ -428,10 +440,8 @@ void QuickRefactorHandler::onRefactorFailed(
     if (requestId != m_lastRequestId)
         return;
 
-    auto it = m_activeRequests.find(requestId);
-    Session *session = (it != m_activeRequests.end()) ? it.value().session.data() : nullptr;
-    if (it != m_activeRequests.end())
-        m_activeRequests.erase(it);
+    Session *session = m_activeSession;
+    m_activeSession = nullptr;
 
     m_isRefactoringInProgress = false;
     m_lastRequestId.clear();

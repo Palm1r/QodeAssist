@@ -4,9 +4,9 @@
 
 #pragma once
 
+#include <QRegularExpression>
 #include <QString>
 #include <QStringList>
-#include <QRegularExpression>
 
 namespace QodeAssist {
 
@@ -15,14 +15,15 @@ class ResponseCleaner
 public:
     static QString clean(const QString &response)
     {
-        QString cleaned = removeCodeBlocks(response);
+        bool extractedFromFence = false;
+        QString cleaned = removeCodeBlocks(response, extractedFromFence);
         cleaned = trimWhitespace(cleaned);
-        cleaned = removeExplanations(cleaned);
+        cleaned = removeExplanations(cleaned, extractedFromFence);
         return cleaned;
     }
 
 private:
-    static QString removeCodeBlocks(const QString &text)
+    static QString removeCodeBlocks(const QString &text, bool &extractedFromFence)
     {
         if (!text.contains("```")) {
             return text;
@@ -31,6 +32,7 @@ private:
         QRegularExpression codeBlockRegex("```\\w*\\n([\\s\\S]*?)```");
         QRegularExpressionMatch match = codeBlockRegex.match(text);
         if (match.hasMatch()) {
+            extractedFromFence = true;
             return match.captured(1);
         }
 
@@ -39,6 +41,7 @@ private:
         if (firstFence != -1 && lastFence > firstFence) {
             int firstNewLine = text.indexOf('\n', firstFence);
             if (firstNewLine != -1) {
+                extractedFromFence = true;
                 return text.mid(firstNewLine + 1, lastFence - firstNewLine - 1);
             }
         }
@@ -58,13 +61,34 @@ private:
         return result;
     }
 
-    static QString removeExplanations(const QString &text)
+    static bool isProseHeader(const QString &line)
     {
-        static const QStringList explanationPrefixes = {
-            "here's the", "here is the", "here's", "here is",
-            "the refactored", "refactored code:", "code:",
-            "i've refactored", "i refactored", "i've changed", "i changed"
-        };
+        if (line.length() >= 50 || !line.endsWith(':') || !line.contains(' ')) {
+            return false;
+        }
+        const QString head = line.left(line.length() - 1);
+        for (const QChar c : head) {
+            if (!c.isLetter() && c != ' ') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    static QString removeExplanations(const QString &text, bool extractedFromFence)
+    {
+        static const QStringList explanationPrefixes
+            = {"here's the",
+               "here is the",
+               "here's",
+               "here is",
+               "the refactored",
+               "refactored code:",
+               "code:",
+               "i've refactored",
+               "i refactored",
+               "i've changed",
+               "i changed"};
 
         QStringList lines = text.split('\n');
         int startLine = 0;
@@ -80,7 +104,7 @@ private:
                 }
             }
 
-            if (line.length() < 50 && line.endsWith(':')) {
+            if (!extractedFromFence && isProseHeader(line)) {
                 isExplanation = true;
             }
 

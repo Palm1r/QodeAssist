@@ -33,7 +33,7 @@ void ConversationHistory::appendTextDeltaToLast(const QString &delta)
         return;
 
     auto &last = m_messages.back();
-    if (auto *text = last.lastBlockOfType<LLMQore::TextContent>()) {
+    if (auto *text = dynamic_cast<LLMQore::TextContent *>(last.lastBlock())) {
         text->appendText(delta);
     } else {
         last.appendBlock(std::make_unique<LLMQore::TextContent>(delta));
@@ -41,22 +41,16 @@ void ConversationHistory::appendTextDeltaToLast(const QString &delta)
     emit messageUpdated(static_cast<int>(m_messages.size()) - 1);
 }
 
-void ConversationHistory::appendThinkingDeltaToLast(const QString &delta, const QString &signature)
+void ConversationHistory::appendThinkingBlockToLast(const QString &thinking, const QString &signature)
 {
-    if (m_messages.empty() || (delta.isEmpty() && signature.isEmpty()))
+    if (m_messages.empty() || (thinking.isEmpty() && signature.isEmpty()))
         return;
 
     auto &last = m_messages.back();
-    auto *thinking = last.lastBlockOfType<LLMQore::ThinkingContent>();
-    if (!thinking) {
-        auto fresh = std::make_unique<LLMQore::ThinkingContent>(delta, signature);
-        last.appendBlock(std::move(fresh));
-    } else {
-        if (!delta.isEmpty())
-            thinking->appendThinking(delta);
-        if (!signature.isEmpty())
-            thinking->setSignature(signature);
-    }
+    if (thinking.isEmpty())
+        last.appendBlock(std::make_unique<LLMQore::RedactedThinkingContent>(signature));
+    else
+        last.appendBlock(std::make_unique<LLMQore::ThinkingContent>(thinking, signature));
     emit messageUpdated(static_cast<int>(m_messages.size()) - 1);
 }
 

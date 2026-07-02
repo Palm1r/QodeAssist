@@ -15,9 +15,6 @@ class Session;
 
 namespace QodeAssist::Chat {
 
-// Shared registry mapping each chat (autosave) file to the live Session that owns it, so a
-// file is busy only while its owning Session is alive (a destroyed Session frees it — the
-// QPointer goes null). Keeps two chat views from autosaving into the same path.
 class SessionFileRegistry : public QObject
 {
     Q_OBJECT
@@ -33,8 +30,6 @@ public:
 
     QString uniqueFreePath(const QString &desiredPath) const;
 
-    // Handoff slot for relocating a live chat between hosts (split <-> window): the source
-    // chat stores its history file here, the freshly created host picks it up exactly once.
     void setPendingChatFile(const QString &path);
     QString takePendingChatFile();
 

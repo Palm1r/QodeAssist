@@ -33,12 +33,12 @@ namespace {
 
 enum class PillKind {
     Template,
-    On,       // capability on (thinking/tools)
-    Off,      // capability off ("plain")
-    User,     // user-defined agent
-    Active,   // ✓ active
-    Match,    // matched-this-row chip background
-    Tag,      // free-form discoverability tag from AgentConfig::tags
+    On,
+    Off,
+    User,
+    Active,
+    Match,
+    Tag,
     Neutral,
 };
 
@@ -192,16 +192,17 @@ class AgentRosterRow : public QFrame
 {
     Q_OBJECT
 public:
-    AgentRosterRow(int index,
-                   const QString &name,
-                   const AgentConfig *cfg,
-                   const QString &model,
-                   bool active,
-                   bool first,
-                   bool last,
-                   bool orderable,
-                   const Theme &theme,
-                   QWidget *parent = nullptr);
+    AgentRosterRow(
+        int index,
+        const QString &name,
+        const AgentConfig *cfg,
+        const QString &model,
+        bool active,
+        bool first,
+        bool last,
+        bool orderable,
+        const Theme &theme,
+        QWidget *parent = nullptr);
 
 signals:
     void moveUpRequested(int index);
@@ -221,17 +222,19 @@ private:
     int m_index;
 };
 
-AgentRosterRow::AgentRosterRow(int index,
-                               const QString &name,
-                               const AgentConfig *cfg,
-                               const QString &model,
-                               bool active,
-                               bool first,
-                               bool last,
-                               bool orderable,
-                               const Theme &theme,
-                               QWidget *parent)
-    : QFrame(parent), m_index(index)
+AgentRosterRow::AgentRosterRow(
+    int index,
+    const QString &name,
+    const AgentConfig *cfg,
+    const QString &model,
+    bool active,
+    bool first,
+    bool last,
+    bool orderable,
+    const Theme &theme,
+    QWidget *parent)
+    : QFrame(parent)
+    , m_index(index)
 {
     setAutoFillBackground(true);
     QPalette pal = palette();
@@ -334,8 +337,8 @@ QWidget *AgentRosterRow::buildIdentityLine(const QString &displayName,
     return w;
 }
 
-QWidget *AgentRosterRow::buildMetaLine(const AgentConfig *cfg, bool active, bool showMatch,
-                                       const Theme &t)
+QWidget *AgentRosterRow::buildMetaLine(
+    const AgentConfig *cfg, bool active, bool showMatch, const Theme &t)
 {
     auto *w = new QWidget(this);
     auto *line = new QHBoxLayout(w);
@@ -352,14 +355,16 @@ QWidget *AgentRosterRow::buildMetaLine(const AgentConfig *cfg, bool active, bool
             QString chipText = QStringLiteral(
                                    "<span style='opacity:0.7'>%1</span> "
                                    "<span style='color:%2'>%3:</span> %4")
-                                   .arg(sm.icon,
-                                        hex(active ? t.pill(PillKind::Match).fg : t.textFaint),
-                                        sm.kind,
-                                        sm.value.toHtmlEscaped());
+                                   .arg(
+                                       sm.icon,
+                                       hex(active ? t.pill(PillKind::Match).fg : t.textFaint),
+                                       sm.kind,
+                                       sm.value.toHtmlEscaped());
             chip->setTextFormat(Qt::RichText);
             chip->setText(chipText);
-            chip->setStyleSheet(QStringLiteral("background:%1; color:%2; border:1px solid %3;"
-                                               "padding:1px 6px; border-radius:3px; font-size:11px;")
+            chip->setStyleSheet(QStringLiteral(
+                                    "background:%1; color:%2; border:1px solid %3;"
+                                    "padding:1px 6px; border-radius:3px; font-size:11px;")
                                     .arg(hex(bg), hex(fg), hex(bd)));
             chip->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
             line->addWidget(chip);
@@ -457,14 +462,14 @@ AgentRosterWidget::AgentRosterWidget(QWidget *parent)
     m_rowsFrame = new QFrame(this);
     m_rowsFrame->setObjectName(QStringLiteral("rosterCard"));
     m_rowsFrame->setStyleSheet(
-        QStringLiteral("QFrame#rosterCard { background:%1; border:1px solid %2; border-radius:4px; }")
+        QStringLiteral(
+            "QFrame#rosterCard { background:%1; border:1px solid %2; border-radius:4px; }")
             .arg(hex(t.cardBg), hex(t.cardBorder)));
     m_rowsLayout = new QVBoxLayout(m_rowsFrame);
     m_rowsLayout->setContentsMargins(0, 0, 0, 0);
     m_rowsLayout->setSpacing(0);
 
-    m_emptyHint = new QLabel(tr("No agent selected yet — use \"Add agent…\" below."),
-                             m_rowsFrame);
+    m_emptyHint = new QLabel(tr("No agent selected yet — use \"Add agent…\" below."), m_rowsFrame);
     m_emptyHint->setAlignment(Qt::AlignCenter);
     m_emptyHint->setContentsMargins(10, 12, 10, 12);
     QFont eh = m_emptyHint->font();
@@ -497,9 +502,7 @@ AgentRosterWidget::AgentRosterWidget(QWidget *parent)
 }
 
 void AgentRosterWidget::setSlot(
-    const QString &title,
-    const QString &hint,
-    const QStringList &presetTags)
+    const QString &title, const QString &hint, const QStringList &presetTags)
 {
     m_presetTags = presetTags;
     m_titleLabel->setText(title);
@@ -514,13 +517,14 @@ void AgentRosterWidget::setRoster(const QStringList &names, AgentFactory *factor
         QObject::disconnect(m_modelConn);
         m_factory = factory;
         if (m_factory) {
-            m_factoryConn = connect(m_factory, &AgentFactory::agentsChanged, this,
-                                    [this] { rebuildRows(); });
-            m_modelConn = connect(m_factory, &AgentFactory::agentModelChanged, this,
-                                  [this](const QString &name) {
-                                      if (m_names.contains(name))
-                                          rebuildRows();
-                                  });
+            m_factoryConn = connect(m_factory, &AgentFactory::agentsChanged, this, [this] {
+                rebuildRows();
+            });
+            m_modelConn = connect(
+                m_factory, &AgentFactory::agentModelChanged, this, [this](const QString &name) {
+                    if (m_names.contains(name))
+                        rebuildRows();
+                });
         }
     }
     m_names = names;
@@ -558,6 +562,13 @@ void AgentRosterWidget::applyMode()
     m_footerHint->setVisible(!footer.isEmpty());
 }
 
+void AgentRosterWidget::setRoutingContext(const AgentRouter::Context &ctx)
+{
+    m_routingCtx = ctx;
+    if (!m_names.isEmpty())
+        rebuildRows();
+}
+
 void AgentRosterWidget::recomputeActive()
 {
     if (!m_orderable || !m_factory || m_names.isEmpty()
@@ -571,7 +582,6 @@ void AgentRosterWidget::recomputeActive()
 
 void AgentRosterWidget::rebuildRows()
 {
-    // Tear down existing row widgets (keep the empty hint).
     while (m_rowsLayout->count() > 0) {
         QLayoutItem *it = m_rowsLayout->takeAt(0);
         if (auto *w = it->widget()) {
@@ -598,16 +608,17 @@ void AgentRosterWidget::rebuildRows()
         const QString &name = m_names.at(i);
         const AgentConfig *cfg = m_factory ? m_factory->configByName(name) : nullptr;
         const QString model = cfg ? cfg->model : QString();
-        auto *row = new AgentRosterRow(i,
-                                       name,
-                                       cfg,
-                                       model,
-                                       i == m_activeIndex,
-                                       /*first*/ i == 0,
-                                       /*last*/ i == m_names.size() - 1,
-                                       m_orderable,
-                                       t,
-                                       m_rowsFrame);
+        auto *row = new AgentRosterRow(
+            i,
+            name,
+            cfg,
+            model,
+            i == m_activeIndex,
+            /*first*/ i == 0,
+            /*last*/ i == m_names.size() - 1,
+            m_orderable,
+            t,
+            m_rowsFrame);
         connect(row, &AgentRosterRow::moveUpRequested, this, &AgentRosterWidget::onRowMoveUp);
         connect(row, &AgentRosterRow::moveDownRequested, this, &AgentRosterWidget::onRowMoveDown);
         connect(row, &AgentRosterRow::editRequested, this, &AgentRosterWidget::onRowEdit);
@@ -621,11 +632,12 @@ void AgentRosterWidget::onAddClicked()
     if (!m_factory)
         return;
 
-    AgentSelectionDialog dialog(m_factory->configs(),
-                                /*currentName*/ m_single ? m_names.value(0) : QString{},
-                                m_factory.data(),
-                                m_presetTags,
-                                Core::ICore::dialogParent());
+    AgentSelectionDialog dialog(
+        m_factory->configs(),
+        /*currentName*/ m_single ? m_names.value(0) : QString{},
+        m_factory.data(),
+        m_presetTags,
+        Core::ICore::dialogParent());
     if (dialog.exec() != QDialog::Accepted)
         return;
     const QString picked = dialog.selectedName();

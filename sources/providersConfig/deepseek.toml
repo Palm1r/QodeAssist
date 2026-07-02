@@ -1,0 +1,8 @@
+schema_version = 1
+
+name        = "DeepSeek"
+client_api  = "OpenAI Compatible"
+description = "Cloud (DeepSeek). OpenAI-compatible Chat Completions API — deepseek-chat (V4 family) and deepseek-reasoner. Get an API key at platform.deepseek.com."
+
+url         = "https://api.deepseek.com/v1"
+api_key_ref = "qodeassist/providers/DeepSeek"

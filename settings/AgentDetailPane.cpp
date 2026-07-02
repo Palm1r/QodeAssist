@@ -366,7 +366,23 @@ AgentDetailPane::AgentDetailPane(QWidget *parent)
 
 void AgentDetailPane::setInstanceFactory(Providers::ProviderInstanceFactory *factory)
 {
+    if (m_instanceFactory)
+        disconnect(m_instanceFactory, nullptr, this, nullptr);
     m_instanceFactory = factory;
+    if (m_instanceFactory) {
+        connect(
+            m_instanceFactory,
+            &Providers::ProviderInstanceFactory::instancesReloaded,
+            this,
+            [this]() {
+                const QString selected = m_providerCombo->currentData().toString();
+                m_providerComboPopulated = false;
+                populateProviderCombo();
+                const int idx = m_providerCombo->findData(selected);
+                if (idx >= 0)
+                    m_providerCombo->setCurrentIndex(idx);
+            });
+    }
     m_providerComboPopulated = false;
     populateProviderCombo();
 }
@@ -607,8 +623,8 @@ void AgentDetailPane::setAgent(const AgentConfig &cfg)
 
     fillRawToml(m_rawToml, cfg.sourcePath);
 
-    const QString basePath
-        = m_agentFactory ? m_agentFactory->sourcePathForName(cfg.extendsName) : QString();
+    const QString basePath = m_agentFactory ? m_agentFactory->sourcePathForName(cfg.extendsName)
+                                            : QString();
     const bool hasBase = !cfg.extendsName.isEmpty() && !basePath.isEmpty();
     m_baseRawToggle->setVisible(hasBase);
     m_baseRawToml->setVisible(hasBase && m_baseRawToggle->isChecked());

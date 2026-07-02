@@ -46,8 +46,8 @@ public:
 
 private:
     AgentConfig m_config;
-    std::unique_ptr<Templates::JsonPromptTemplate> m_promptTemplate; // owned
-    Providers::Provider *m_provider = nullptr;                        // child of this
+    std::unique_ptr<Templates::JsonPromptTemplate> m_promptTemplate;
+    Providers::Provider *m_provider = nullptr;
     QString m_invalidReason;
 };
 

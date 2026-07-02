@@ -35,7 +35,7 @@ public:
         const Utils::Text::Range &range,
         const QString &contextBefore,
         const QString &contextAfter);
-    
+
     void hideRefactorWidget();
 
     void setApplyCallback(std::function<void(const QString &)> callback);

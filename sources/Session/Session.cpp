@@ -28,13 +28,14 @@ namespace {
 } // namespace
 
 Session::Session(Agent *agent, QObject *parent)
-    : Session(agent, /*externalHistory=*/nullptr, parent)
+    : Session(agent, nullptr, parent)
 {}
 
 Session::Session(Agent *agent, ConversationHistory *externalHistory, QObject *parent)
     : QObject(parent)
     , m_history(externalHistory ? externalHistory : new ConversationHistory(this))
     , m_systemPrompt(new SystemPromptBuilder(this))
+    , m_externalHistory(externalHistory != nullptr)
 {
     if (agent)
         setAgent(agent);
@@ -45,15 +46,16 @@ void Session::setAgent(Agent *agent)
     if (agent == m_agent)
         return;
 
-    if (isInFlight())
-        teardownInFlight();
+    cancel();
 
     if (m_router) {
-        delete m_router;
+        m_router->disconnect(this);
+        m_router->deleteLater();
         m_router = nullptr;
     }
 
-    delete m_agent;
+    if (m_agent)
+        m_agent->deleteLater();
     m_agent = agent;
     m_invalidReason.clear();
 
@@ -84,8 +86,7 @@ void Session::setAgent(Agent *agent)
 
 Session::~Session()
 {
-    if (isInFlight())
-        teardownInFlight();
+    cancel();
 }
 
 bool Session::isValid() const noexcept
@@ -154,6 +155,11 @@ void Session::unpinContext(const QString &id)
     std::erase_if(m_pinnedProviders, [&id](const auto &entry) { return entry.first == id; });
 }
 
+void Session::clearPinnedContext()
+{
+    m_pinnedProviders.clear();
+}
+
 LLMQore::RequestID Session::send(std::vector<std::unique_ptr<LLMQore::ContentBlock>> userBlocks)
 {
     if (!canSend()) {
@@ -165,19 +171,24 @@ LLMQore::RequestID Session::send(std::vector<std::unique_ptr<LLMQore::ContentBlo
         return {};
     }
     if (userBlocks.empty() || !m_history) {
-        m_lastError = makeError(ErrorCategory::Validation, QStringLiteral("Session: nothing to send"));
+        m_lastError
+            = makeError(ErrorCategory::Validation, QStringLiteral("Session: nothing to send"));
         return {};
     }
 
     if (isInFlight())
         cancel();
 
+    const int preSendSize = m_history->size();
     Message msg(Message::Role::User);
     for (auto &b : userBlocks)
         msg.appendBlock(std::move(b));
     m_history->append(std::move(msg));
 
-    return dispatch();
+    const auto id = dispatch();
+    if (id.isEmpty())
+        m_history->resetTo(preSendSize);
+    return id;
 }
 
 QVector<ContextAssembler::PinnedBlock> Session::materializePinned() const
@@ -223,8 +234,8 @@ LLMQore::RequestID Session::dispatch()
         m_systemPrompt->clearLayer(QStringLiteral("agent.system"));
     } else {
         QString renderErr;
-        const QString renderedContext = Templates::ContextRenderer::render(
-            cfg.systemPrompt, m_contextBindings, &renderErr);
+        const QString renderedContext
+            = Templates::ContextRenderer::render(cfg.systemPrompt, m_contextBindings, &renderErr);
         if (!renderErr.isEmpty()) {
             m_lastError = makeError(
                 ErrorCategory::Validation,
@@ -237,7 +248,9 @@ LLMQore::RequestID Session::dispatch()
             m_systemPrompt->clearLayer(QStringLiteral("agent.system"));
         else
             m_systemPrompt->setLayer(
-                QStringLiteral("agent.system"), renderedContext, SystemPromptBuilder::kAgentPriority);
+                QStringLiteral("agent.system"),
+                renderedContext,
+                SystemPromptBuilder::kAgentPriority);
     }
 
     return dispatchContext(assembleContext(), cfg.enableTools);
@@ -259,11 +272,35 @@ LLMQore::RequestID Session::dispatchContext(const Templates::ContextData &ctx, b
 
     QString endpoint = cfg.endpoint;
     endpoint.replace(QStringLiteral("${MODEL}"), cfg.model);
+
+    LLMQore::RequestID earlyFailId;
+    QString earlyFailError;
+    QMetaObject::Connection earlyFailConn;
+    if (auto *cl = client()) {
+        earlyFailConn = connect(
+            cl,
+            &LLMQore::BaseClient::requestFailed,
+            this,
+            [&earlyFailId, &earlyFailError](const LLMQore::RequestID &fid, const QString &err) {
+                earlyFailId = fid;
+                earlyFailError = err;
+            },
+            Qt::DirectConnection);
+    }
+
     const auto id = provider->sendRequest(QUrl(provider->url()), payload, endpoint);
+
+    if (earlyFailConn)
+        disconnect(earlyFailConn);
+
     if (id.isEmpty()) {
         m_lastError = makeError(
             ErrorCategory::Provider,
             QStringLiteral("Provider '%1' failed to start the request").arg(provider->name()));
+        return {};
+    }
+    if (id == earlyFailId && !earlyFailError.isEmpty()) {
+        m_lastError = makeError(categorizeProviderError(earlyFailError), earlyFailError);
         return {};
     }
 
@@ -274,8 +311,7 @@ LLMQore::RequestID Session::dispatchContext(const Templates::ContextData &ctx, b
     return id;
 }
 
-QJsonObject Session::buildPayload(
-    const Templates::ContextData &ctx, bool tools, QString *errOut) const
+QJsonObject Session::buildPayload(const Templates::ContextData &ctx, bool tools, QString *errOut) const
 {
     auto *provider = m_agent->provider();
     auto *tmpl = m_agent->promptTemplate();
@@ -302,7 +338,7 @@ Templates::ContextData Session::assembleContext() const
 void Session::onRouterEvent(const ResponseEvent &ev)
 {
     if (m_inFlight.isEmpty())
-        return; // stale events after cancel
+        return;
 
     emit event(ev);
 

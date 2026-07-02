@@ -7,13 +7,9 @@
 #include <QJsonObject>
 #include <QList>
 #include <QObject>
-#include <QPointer>
 #include <QString>
 
 #include "McpServerConnection.hpp"
-
-class QFileSystemWatcher;
-class QTimer;
 
 namespace QodeAssist::Mcp {
 
@@ -49,18 +45,13 @@ private:
 
     void loadFromDisk();
     void ensureFileExists();
-    void setupWatcher();
-    void updateWatchedPaths();
 
     static QJsonObject builtinServers();
     QJsonObject readRoot() const;
     bool writeRoot(const QJsonObject &root);
 
     bool m_initialized = false;
-    bool m_suppressNextWatcherReload = false;
     QList<McpServerConnection *> m_connections;
-    QPointer<QFileSystemWatcher> m_watcher;
-    QPointer<QTimer> m_reloadDebounce;
 };
 
 } // namespace QodeAssist::Mcp

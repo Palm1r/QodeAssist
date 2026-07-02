@@ -4,24 +4,35 @@
 
 #pragma once
 
+#include <QObject>
 #include <QString>
 #include <QStringList>
 
-namespace QodeAssist {
-class AgentFactory;
-}
-
 namespace QodeAssist::Settings {
+
+class PipelinesNotifier : public QObject
+{
+    Q_OBJECT
+public:
+    static PipelinesNotifier *instance()
+    {
+        static PipelinesNotifier notifier;
+        return &notifier;
+    }
+
+    void notifyChanged() { emit pipelinesChanged(); }
+
+signals:
+    void pipelinesChanged();
+
+private:
+    PipelinesNotifier() = default;
+};
 
 struct PipelineRosters
 {
-    // Code completion is auto-routed: the router walks this ordered list at
-    // request time and uses the first agent whose match rules fit the file.
     QStringList codeCompletion;
-    // Chat is user-driven: this is an unordered allow-list of the agents
-    // offered in the chat picker. The user picks; no routing happens.
     QStringList chatAssistant;
-    // Compression and quick refactor each use a single fixed agent.
     QString chatCompression;
     QString quickRefactor;
 
@@ -48,8 +59,7 @@ public:
 
     [[nodiscard]] static bool save(const PipelineRosters &rosters, QString *errorOut = nullptr);
 
-    [[nodiscard]] static bool validate(
-        const QodeAssist::AgentFactory &factory, QString *errorOut = nullptr);
+    static void setFilePathForTests(const QString &path);
 };
 
 } // namespace QodeAssist::Settings

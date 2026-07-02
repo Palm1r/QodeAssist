@@ -13,5 +13,7 @@
         <file>codestral.toml</file>
         <file>googleai.toml</file>
         <file>llamacpp.toml</file>
+        <file>deepseek.toml</file>
+        <file>qwen.toml</file>
     </qresource>
 </RCC>

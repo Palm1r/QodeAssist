@@ -39,7 +39,7 @@ QodeAssist enhances Qt Creator with AI-powered coding assistance:
 - **MCP Server** — expose QodeAssist's project-aware tools to external MCP clients (Claude Code, VS Code, Claude Desktop via bridge)
 - **MCP Client Hub** — connect QodeAssist to external MCP servers and use their tools in Chat and Quick Refactor (authenticated MCP servers are not supported yet)
 - **File Context** — attach, link, or auto-sync open editor files for richer prompts
-- **Many Providers** — Ollama, llama.cpp, LM Studio (Chat + Responses), Claude, OpenAI (Chat + Responses), Google AI, Mistral, Codestral, OpenRouter, Qwen (OpenAI + Responses), DeepSeek, any OpenAI-compatible endpoint
+- **Many Providers** — Ollama, llama.cpp, LM Studio (Chat + Responses), Claude, OpenAI (Chat + Responses), Google AI, Mistral, Codestral, OpenRouter, Qwen, DeepSeek, any OpenAI-compatible endpoint
 - **Reasoning / Thinking** — streamed chain-of-thought is shown for reasoning models across Claude, Google, OpenAI Responses, and any OpenAI-compatible endpoint that returns `reasoning_content` (DeepSeek, Qwen QwQ/Qwen3-Thinking, LM Studio, OpenRouter, …)
 - **Customizable** — per-agent personas (agent TOML `system_prompt`), reusable refactor templates, full prompt-template control
 
@@ -157,29 +157,17 @@ For more information, visit the [QodeAssistUpdater repository](https://github.co
 
 ## Configuration
 
-### Quick Setup (Recommended for Beginners)
+### Quick Setup
 
-The Quick Setup feature provides one-click configuration for popular cloud AI models. Get started in 3 easy steps:
-<details>
-  <summary>Quick setup: (click to expand)</summary>
-  <img width="600" alt="Quick Setup" src="https://github.com/user-attachments/assets/20df9155-9095-420c-8387-908bd931bcfa">
-</details>
+QodeAssist is configured through three settings pages (Preferences > QodeAssist):
 
-1. **Open QodeAssist Settings**
-2. **Select a Preset** - Choose from the Quick Setup dropdown:
-   - **Anthropic Claude** (Sonnet 4.5, Haiku 4.5, Opus 4.5)
-   - **OpenAI** (gpt-5.2-codex)
-   - **Mistral AI** (Codestral 2501)
-   - **Google AI** (Gemini 2.5 Flash)
-   - **Qwen** (Qwen3.6 Plus, Qwen3.7 Max)
-   - **DeepSeek** (DeepSeek V4 Flash, DeepSeek V4 Pro)
-3. **Configure API Key** - Click "Configure API Key" button and enter your API key in Provider Settings
+1. **Providers** — pick a bundled provider instance (Claude, OpenAI, Google AI, Mistral, Ollama, …) and enter its API key. Local providers (Ollama, llama.cpp, LM Studio) need no key.
+2. **Agents** — every feature runs an *agent*: a bundled TOML preset combining a provider, model, and request template. The bundled agents work out of the box; create your own by extending a base agent under a new name.
+3. **General > Agent Pipelines** — assign agents to the four feature slots: code completion (ordered, routed per file), chat assistant (picker allow-list), chat compression, and quick refactor. Local Ollama agents are pre-assigned by default; an unassigned slot disables that feature.
 
-All settings (provider, model, template, URL) are configured automatically. Just add your API key and you're ready to go!
+### Providers
 
-### Manual Provider Configuration
-
-For advanced users or local models, choose your preferred provider and follow the detailed configuration guide:
+Choose your preferred provider:
 
 **Local providers:**
 - **[Ollama](docs/ollama-configuration.md)** — native Ollama API
@@ -193,8 +181,8 @@ For advanced users or local models, choose your preferred provider and follow th
 - **[OpenAI](docs/openai-configuration.md)** — Chat Completions and Responses API
 - **[Mistral AI](docs/mistral-configuration.md)** / **Codestral**
 - **[Google AI](docs/google-ai-configuration.md)** — Gemini
-- **Qwen (Alibaba)** — DashScope OpenAI-compatible Chat and Responses endpoints
-- **DeepSeek** — `deepseek-chat` and `deepseek-reasoner` (reasoning shown as thinking)
+- **Qwen (Alibaba)** — DashScope OpenAI-compatible endpoint (`qwen-plus`, `qwen-max`, `qwen-coder`)
+- **DeepSeek** — OpenAI-compatible endpoint, `deepseek-chat` and `deepseek-reasoner`
 - **OpenAI-compatible** — OpenRouter and any custom endpoint
 
 ### Recommended Models for Best Experience

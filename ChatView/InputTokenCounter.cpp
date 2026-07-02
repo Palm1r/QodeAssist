@@ -87,7 +87,7 @@ void InputTokenCounter::recompute()
     if (m_history) {
         for (const auto &message : m_history->messages()) {
             inputTokens += Context::TokenUtils::estimateTokens(message.text());
-            inputTokens += 4; // + role
+            inputTokens += 4;
         }
     }
 

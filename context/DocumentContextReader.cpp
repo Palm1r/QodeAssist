@@ -263,7 +263,7 @@ Templates::ContextData DocumentContextReader::prepareContext(
 
     if (settings.useProjectChangesCache())
         fileContext.append("Recent Project Changes Context:\n ")
-            .append(ChangesManager::instance().getRecentChangesContext(m_textDocument));
+            .append(ChangesManager::instance().getRecentChangesContext(m_filePath));
 
     return {.prefix = contextBefore, .suffix = contextAfter, .fileContext = fileContext};
 }

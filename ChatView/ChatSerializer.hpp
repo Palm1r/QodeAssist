@@ -33,11 +33,13 @@ using StoredContentCache = QHash<QString, StoredContentEntry>;
 class ChatSerializer
 {
 public:
-    static SerializationResult saveToFile(
-        const ConversationHistory *history, const QString &filePath);
-    static SerializationResult loadFromFile(ConversationHistory *history, const QString &filePath);
+    static const QString VERSION;
 
-    // Content management (images and text files)
+    static SerializationResult saveToFile(
+        const ConversationHistory *history, const QString &filePath, const QJsonObject &usage = {});
+    static SerializationResult loadFromFile(
+        ConversationHistory *history, const QString &filePath, QJsonObject *usageOut = nullptr);
+
     static QString getChatContentFolder(const QString &chatFilePath);
     static bool saveContentToStorage(
         const QString &chatFilePath,
@@ -45,16 +47,14 @@ public:
         const QString &base64Data,
         QString &storedPath);
     static QString loadContentFromStorage(
-        const QString &chatFilePath,
-        const QString &storedPath,
-        StoredContentCache *cache = nullptr);
+        const QString &chatFilePath, const QString &storedPath, StoredContentCache *cache = nullptr);
 
 private:
-    static const QString VERSION;
-
-    static QJsonObject serializeChat(const ConversationHistory *history);
-    static SerializationResult loadCurrent(ConversationHistory *history, const QJsonObject &root);
-    static SerializationResult loadLegacy(ConversationHistory *history, const QJsonObject &root);
+    static QJsonObject serializeChat(const ConversationHistory *history, const QJsonObject &usage);
+    static SerializationResult loadCurrent(
+        ConversationHistory *history, const QJsonObject &root, QJsonObject *usageOut);
+    static SerializationResult loadLegacy(
+        ConversationHistory *history, const QJsonObject &root, QJsonObject *usageOut);
     static void registerHistoricalFileEdits(const ConversationHistory *history);
 
     static bool ensureDirectoryExists(const QString &filePath);

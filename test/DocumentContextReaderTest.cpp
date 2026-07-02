@@ -370,24 +370,27 @@ TEST_F(DocumentContextReaderTest, testPrepareContext)
         (QodeAssist::Templates::ContextData{
             .prefix = "Line 0\nLine 1\nLin",
             .suffix = "e 2\nLine 3\nLine 4",
-            .fileContext = "\nFile information:\nMIME type: text/python\nFile path: /path/to/file\n\n"
-                           "Recent Project Changes Context:\n "}));
+            .fileContext
+            = "\nFile information:\nMIME type: text/python\nFile path: /path/to/file\n\n"
+              "Recent Project Changes Context:\n "}));
 
     EXPECT_EQ(
         reader.prepareContext(2, 3, *createSettingsForLines(1, 1)),
         (QodeAssist::Templates::ContextData{
             .prefix = "Line 1\nLin",
             .suffix = "e 2\nLine 3",
-            .fileContext = "\nFile information:\nMIME type: text/python\nFile path: /path/to/file\n\n"
-                           "Recent Project Changes Context:\n "}));
+            .fileContext
+            = "\nFile information:\nMIME type: text/python\nFile path: /path/to/file\n\n"
+              "Recent Project Changes Context:\n "}));
 
     EXPECT_EQ(
         reader.prepareContext(2, 3, *createSettingsForLines(2, 2)),
         (QodeAssist::Templates::ContextData{
             .prefix = "Line 0\nLine 1\nLin",
             .suffix = "e 2\nLine 3\nLine 4",
-            .fileContext = "\nFile information:\nMIME type: text/python\nFile path: /path/to/file\n\n"
-                           "Recent Project Changes Context:\n "}));
+            .fileContext
+            = "\nFile information:\nMIME type: text/python\nFile path: /path/to/file\n\n"
+              "Recent Project Changes Context:\n "}));
 }
 
 #include "DocumentContextReaderTest.moc"

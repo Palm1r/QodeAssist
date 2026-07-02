@@ -272,7 +272,6 @@ void QodeAssistClient::requestCompletions(TextEditor::TextEditorWidget *editor)
     if (!isEnabled(project))
         return;
 
-
     if (m_llmClient->contextManager()->shouldIgnore(
             editor->textDocument()->filePath().toUrlishString())) {
         LOG_MESSAGE(QString("Ignoring file due to .qodeassistignore: %1")
@@ -306,6 +305,12 @@ void QodeAssistClient::requestCompletions(TextEditor::TextEditorWidget *editor)
         QTC_ASSERT(editor, return);
         handleCompletions(response, editor);
     });
+    connect(
+        editor,
+        &TextEditorWidget::destroyed,
+        this,
+        &QodeAssistClient::onEditorDestroyed,
+        Qt::UniqueConnection);
     m_runningRequests[editor] = request;
     sendMessage(request);
 }
@@ -367,10 +372,12 @@ void QodeAssistClient::scheduleRequest(TextEditor::TextEditorWidget *editor)
                 return;
             requestCompletions(editor);
         });
-        connect(editor, &TextEditorWidget::destroyed, this, [this, editor]() {
-            delete m_scheduledRequests.take(editor);
-            cancelRunningRequest(editor);
-        });
+        connect(
+            editor,
+            &TextEditorWidget::destroyed,
+            this,
+            &QodeAssistClient::onEditorDestroyed,
+            Qt::UniqueConnection);
         it = m_scheduledRequests.insert(editor, timer);
     }
 
@@ -386,9 +393,12 @@ void QodeAssistClient::handleCompletions(
         editor->abortAssist();
 
     if (response.error()) {
+        m_runningRequests.remove(editor);
         log(*response.error());
-        m_errorHandler
-            .showError(editor, tr("Code completion failed: %1").arg(response.error()->message()));
+        if (response.error()->code() != -32800) {
+            m_errorHandler
+                .showError(editor, tr("Code completion failed: %1").arg(response.error()->message()));
+        }
         return;
     }
 
@@ -489,6 +499,13 @@ void QodeAssistClient::cancelRunningRequest(TextEditor::TextEditorWidget *editor
     m_runningRequests.erase(it);
 }
 
+void QodeAssistClient::onEditorDestroyed(QObject *editorObject)
+{
+    auto *editor = static_cast<TextEditor::TextEditorWidget *>(editorObject);
+    delete m_scheduledRequests.take(editor);
+    cancelRunningRequest(editor);
+}
+
 bool QodeAssistClient::isEnabled(ProjectExplorer::Project *project) const
 {
     if (!project)
@@ -530,6 +547,11 @@ void QodeAssistClient::handleRefactoringResult(const RefactorResult &result)
 {
     m_progressHandler.hideProgress();
 
+    if (result.cancelled) {
+        LOG_MESSAGE("Refactoring request was cancelled");
+        return;
+    }
+
     if (!result.success) {
         QString errorMessage = result.errorMessage.isEmpty()
                                    ? tr("Quick refactor failed")
@@ -545,6 +567,15 @@ void QodeAssistClient::handleRefactoringResult(const RefactorResult &result)
 
     if (!result.editor) {
         LOG_MESSAGE("Refactoring result has no editor");
+        return;
+    }
+
+    if (result.documentRevision >= 0
+        && result.editor->document()->revision() != result.documentRevision) {
+        m_errorHandler.showError(
+            result.editor,
+            tr("Quick refactor discarded: the document changed while the request was running"));
+        LOG_MESSAGE("Refactoring result discarded: document revision changed");
         return;
     }
 
@@ -644,7 +675,14 @@ void QodeAssistClient::displayRefactoringWidget(const RefactorResult &result)
         displayRefactored = result.newText;
     }
 
-    m_refactorWidgetHandler->setApplyCallback([this, editorWidget, result](const QString &editedText) {
+    const int revisionAtDisplay = editorWidget->document()->revision();
+    m_refactorWidgetHandler->setApplyCallback([this, editorWidget, result, revisionAtDisplay](
+                                                  const QString &editedText) {
+        if (editorWidget->document()->revision() != revisionAtDisplay) {
+            m_errorHandler.showError(
+                editorWidget, tr("Quick refactor discarded: the document changed before applying"));
+            return;
+        }
         applyRefactoringEdit(editorWidget, result.insertRange, editedText);
     });
 

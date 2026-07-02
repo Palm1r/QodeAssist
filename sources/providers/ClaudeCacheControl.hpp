@@ -38,8 +38,8 @@ inline void applyToSystem(QJsonObject &request, const QJsonObject &cacheControl)
     if (sys.isString()) {
         const QString text = sys.toString();
         if (!text.isEmpty()) {
-            request["system"] = QJsonArray{QJsonObject{
-                {"type", "text"}, {"text", text}, {"cache_control", cacheControl}}};
+            request["system"] = QJsonArray{
+                QJsonObject{{"type", "text"}, {"text", text}, {"cache_control", cacheControl}}};
         }
     } else if (sys.isArray()) {
         QJsonArray blocks = sys.toArray();

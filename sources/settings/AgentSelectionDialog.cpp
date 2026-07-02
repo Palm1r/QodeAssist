@@ -4,8 +4,8 @@
 
 #include "AgentSelectionDialog.hpp"
 
-#include "PipelinesConfig.hpp"
 #include "Pill.hpp"
+#include "PipelinesConfig.hpp"
 #include "SettingsTr.hpp"
 #include "TagFilterStrip.hpp"
 
@@ -13,6 +13,7 @@
 
 #include <AgentFactory.hpp>
 
+#include <algorithm>
 #include <QDialogButtonBox>
 #include <QEnterEvent>
 #include <QEvent>
@@ -27,11 +28,8 @@
 #include <QSet>
 #include <QTimer>
 #include <QVBoxLayout>
-#include <algorithm>
 
 namespace QodeAssist::Settings {
-
-// -- ListRowCard -------------------------------------------------------
 
 ListRowCard::ListRowCard(QWidget *parent)
     : QFrame(parent)
@@ -128,16 +126,13 @@ void ListRowCard::applyTheme()
                       .arg(bg, bd));
 }
 
-// -- AgentRowCard ------------------------------------------------------
-
 AgentRowCard::AgentRowCard(const AgentConfig &cfg, QWidget *parent)
     : ListRowCard(parent)
 {
     setItemName(cfg.name);
     setItemTags(cfg.tags);
-    QStringList haystack{cfg.name, cfg.providerInstance, cfg.model,
-                         cfg.description, cfg.systemPrompt,
-                         cfg.endpoint};
+    QStringList haystack{
+        cfg.name, cfg.providerInstance, cfg.model, cfg.description, cfg.systemPrompt, cfg.endpoint};
     haystack += cfg.tags;
     buildSearchHaystack(haystack);
 
@@ -249,8 +244,6 @@ AgentRowCard::AgentRowCard(const AgentConfig &cfg, QWidget *parent)
     setToolTip(tooltip.trimmed());
 }
 
-// -- ProviderSection ---------------------------------------------------
-
 ProviderSection::ProviderSection(const QString &name, QWidget *parent)
     : QWidget(parent)
 {
@@ -337,8 +330,6 @@ bool ProviderSection::eventFilter(QObject *watched, QEvent *event)
     return QWidget::eventFilter(watched, event);
 }
 
-// -- AgentSelectionDialog ----------------------------------------------
-
 AgentSelectionDialog::AgentSelectionDialog(
     const std::vector<AgentConfig> &configs,
     const QString &currentName,
@@ -380,10 +371,10 @@ AgentSelectionDialog::AgentSelectionDialog(
         m_resultCount->setPalette(rp);
     }
 
-    auto *expandAll = new QLabel(
-        QStringLiteral("<a href=\"#\">%1</a>").arg(Tr::tr("Expand all")), this);
-    auto *collapseAll = new QLabel(
-        QStringLiteral("<a href=\"#\">%1</a>").arg(Tr::tr("Collapse all")), this);
+    auto *expandAll
+        = new QLabel(QStringLiteral("<a href=\"#\">%1</a>").arg(Tr::tr("Expand all")), this);
+    auto *collapseAll
+        = new QLabel(QStringLiteral("<a href=\"#\">%1</a>").arg(Tr::tr("Collapse all")), this);
 
     auto *controlsRow = new QHBoxLayout;
     controlsRow->setContentsMargins(2, 0, 2, 0);
@@ -425,8 +416,9 @@ AgentSelectionDialog::AgentSelectionDialog(
             preset.insert(tag);
     m_tagStrip->setAvailableTags(tagCounts, preset);
 
-    connect(m_tagStrip, &TagFilterStrip::activeTagsChanged, this,
-            [this](const QSet<QString> &) { applyFilters(); });
+    connect(m_tagStrip, &TagFilterStrip::activeTagsChanged, this, [this](const QSet<QString> &) {
+        applyFilters();
+    });
     connect(expandAll, &QLabel::linkActivated, this, [this](const QString &) {
         setAllExpanded(true);
     });
@@ -436,8 +428,7 @@ AgentSelectionDialog::AgentSelectionDialog(
 
     rebuild(currentName);
 
-    connect(m_filter, &QLineEdit::textChanged, this,
-            [this](const QString &) { applyFilters(); });
+    connect(m_filter, &QLineEdit::textChanged, this, [this](const QString &) { applyFilters(); });
     connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
 
@@ -486,7 +477,8 @@ void AgentSelectionDialog::rebuild(const QString &currentName)
 
     QMap<QString, std::vector<const AgentConfig *>> byProvider;
     for (const auto &cfg : configs) {
-        if (cfg.hidden) continue; // hidden profiles stay loaded but don't surface in the picker
+        if (cfg.hidden)
+            continue;
         const QString key = cfg.providerInstance.isEmpty()
                                 ? Tr::tr("(Unknown provider instance)")
                                 : cfg.providerInstance;
@@ -565,8 +557,7 @@ void AgentSelectionDialog::applyFilters()
     if (m_emptyLabel)
         m_emptyLabel->setVisible(total == 0);
     if (m_resultCount)
-        m_resultCount->setText(total == 0 ? tr("No matches")
-                                          : tr("%n agent(s)", nullptr, total));
+        m_resultCount->setText(total == 0 ? tr("No matches") : tr("%n agent(s)", nullptr, total));
 
     if (m_tagStrip) {
         QMap<QString, int> liveCounts;

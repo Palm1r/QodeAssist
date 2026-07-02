@@ -11,6 +11,10 @@
 
 namespace Core { class IOptionsPage; }
 
+namespace QodeAssist {
+class AgentFactory;
+}
+
 namespace QodeAssist::Providers {
 class ProviderInstanceFactory;
 class ProviderSecretsStore;
@@ -39,6 +43,7 @@ std::unique_ptr<Core::IOptionsPage> createProvidersSettingsPage(
     Providers::ProviderInstanceFactory *instanceFactory,
     Providers::ProviderSecretsStore *secrets,
     Providers::ProviderLauncher *launcher,
-    ProvidersPageNavigator *navigator);
+    ProvidersPageNavigator *navigator,
+    AgentFactory *agents);
 
 } // namespace QodeAssist::Settings

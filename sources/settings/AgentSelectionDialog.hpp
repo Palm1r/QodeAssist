@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <vector>
 #include <QDialog>
 #include <QFont>
 #include <QFrame>
@@ -11,7 +12,6 @@
 #include <QPalette>
 #include <QSet>
 #include <QStringList>
-#include <vector>
 
 #include <AgentConfig.hpp>
 
@@ -142,7 +142,6 @@ public:
     void setExpanded(bool expanded);
     const QList<ListRowCard *> &cards() const { return m_cards; }
 
-    // returns number of visible cards
     int applyFilter(const QString &needle, const QSet<QString> &activeTags);
 
 protected:
@@ -189,7 +188,7 @@ private:
     QString m_selectedName;
 
     AgentFactory *m_agentFactory = nullptr;
-    std::vector<AgentConfig> m_localConfigs; // fallback when no factory
+    std::vector<AgentConfig> m_localConfigs;
     QStringList m_presetTags;
 };
 

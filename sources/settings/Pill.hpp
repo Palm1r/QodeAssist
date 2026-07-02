@@ -9,8 +9,6 @@
 
 namespace QodeAssist::Settings {
 
-// Small rounded chip. Theme-aware: recolors itself on palette/style changes.
-// All colors derive from the active Qt Creator theme (Utils::Theme).
 class Pill : public QLabel
 {
     Q_OBJECT

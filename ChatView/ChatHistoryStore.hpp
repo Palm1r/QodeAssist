@@ -15,12 +15,15 @@ class ConversationHistory;
 
 namespace QodeAssist::Chat {
 
+class ChatModel;
+
 class ChatHistoryStore : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit ChatHistoryStore(ConversationHistory *history, QObject *parent = nullptr);
+    explicit ChatHistoryStore(
+        ConversationHistory *history, ChatModel *chatModel, QObject *parent = nullptr);
 
     QString historyDir() const;
     QString suggestedFileName() const;
@@ -45,6 +48,7 @@ private:
     QString generateChatFileName(const QString &shortMessage, const QString &dir) const;
 
     ConversationHistory *m_history;
+    ChatModel *m_chatModel;
 };
 
 } // namespace QodeAssist::Chat

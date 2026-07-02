@@ -43,14 +43,14 @@ struct ErrorInfo
         return text.contains(QLatin1String(needle));
     };
 
-    if (contains("401") || contains("403") || contains("unauthorized")
-        || contains("forbidden") || contains("api key") || contains("apikey")
-        || contains("authentication") || contains("invalid token"))
+    if (contains("401") || contains("403") || contains("unauthorized") || contains("forbidden")
+        || contains("api key") || contains("apikey") || contains("authentication")
+        || contains("invalid token"))
         return ErrorCategory::Auth;
 
     if (contains("timeout") || contains("timed out") || contains("connection")
-        || contains("could not resolve") || contains("unreachable")
-        || contains("network") || contains("ssl") || contains("refused"))
+        || contains("could not resolve") || contains("unreachable") || contains("network")
+        || contains("ssl") || contains("refused"))
         return ErrorCategory::Network;
 
     return ErrorCategory::Provider;

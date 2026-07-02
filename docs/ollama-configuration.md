@@ -17,14 +17,13 @@ ollama run qwen2.5-coder:32b
 ```
 
 3. Open Qt Creator settings (Edit > Preferences on Linux/Windows, Qt Creator > Preferences on macOS)
-4. Navigate to the "QodeAssist" tab
-5. On the "General" page, verify:
-    - Ollama is selected as your LLM provider
-    - The URL is set to http://localhost:11434
-    - Your installed model appears in the model selection
-    - The prompt template is Ollama Auto FIM or Ollama Auto Chat for chat assistance. You can specify template if it is not work correct
-    - Disable using tools if your model doesn't support tooling
-6. Click Apply if you made any changes
+4. Navigate to QodeAssist > Providers and verify the bundled **Ollama (Native)** provider points at http://localhost:11434 (no API key needed)
+5. Navigate to QodeAssist > General > Agent Pipelines — the Ollama agents are assigned by default:
+    - Code completion: **Ollama Completion — FIM** (needs a base/FIM model; use **Ollama Completion — Chat-style** for instruct models)
+    - Chat assistant: **Ollama Chat — Simple / Thinking / Gemma 4**
+    - Chat compression: **Ollama Compression — 8 GB** (or the 16/32 GB tier for your machine)
+    - Quick refactor: **Ollama Quick Refactor — Simple**
+6. Point the agents at models you actually have (see the next section)
 
 You're all set! QodeAssist is now ready to use in Qt Creator.
 
@@ -55,45 +54,13 @@ swap it (Change…) for one you already have.
 
 ## Extended Thinking Mode
 
-Ollama supports extended thinking mode for models that are capable of deep reasoning (such as DeepSeek-R1, QwQ, and similar reasoning models). This mode allows the model to show its step-by-step reasoning process before providing the final answer.
+Ollama supports native reasoning for models trained for it (Qwen3.5, Gemma 4, DeepSeek-R1, QwQ, …). Reasoning is streamed into collapsible "Thinking" blocks in the chat.
 
-### How to Enable
+Thinking is a property of the **agent**, not a global switch:
 
-**For Chat Assistant:**
-1. Navigate to Qt Creator > Preferences > QodeAssist > Chat Assistant
-2. In the "Extended Thinking (Claude, Ollama)" section, check "Enable extended thinking mode"
-3. Select a reasoning-capable model (e.g., deepseek-r1:8b, qwq:32b)
-4. Click Apply
+- For chat, pick a thinking agent in the chat panel: **Ollama Chat — Thinking** or **Ollama Chat — Gemma 4**
+- For quick refactor, assign **Ollama Quick Refactor — Qwen3.5** or **— Gemma 4** in Agent Pipelines
+- In your own agents, set `think = true` in the `[body]` table (top level, not under `[body.options]`)
 
-**For Quick Refactoring:**
-1. Navigate to Qt Creator > Preferences > QodeAssist > Quick Refactor
-2. Check "Enable Thinking Mode"
-3. Configure thinking budget and max tokens as needed
-4. Click Apply
-
-### Supported Models
-
-Thinking mode works best with models specifically designed for reasoning:
-- **DeepSeek-R1** series (deepseek-r1:8b, deepseek-r1:14b, deepseek-r1:32b)
-- **QwQ** series (qwq:32b)
-- Other models trained for chain-of-thought reasoning
-
-### How It Works
-
-When thinking mode is enabled:
-1. The model generates internal reasoning (visible in the chat as "Thinking" blocks)
-2. After reasoning, it provides the final answer
-3. You can collapse/expand thinking blocks to focus on the final answer
-4. Temperature is automatically set to 1.0 for optimal reasoning performance
-
-**Technical Details:**
-- Thinking mode adds the `enable_thinking: true` parameter to requests sent to Ollama
-- This is natively supported by the Ollama API for compatible models
-- Works in both Chat Assistant and Quick Refactoring contexts
-
-<details>
-  <summary>Example of Ollama settings: (click to expand)</summary>
-
-<img width="824" alt="Ollama Settings" src="https://github.com/user-attachments/assets/ed64e03a-a923-467a-aa44-4f790e315b53" />
-</details>
+Use a reasoning-capable model with these agents — a non-reasoning model simply ignores the flag.
 

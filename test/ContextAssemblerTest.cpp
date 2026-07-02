@@ -27,9 +27,7 @@ Message textMessage(Message::Role role, const QString &text)
 
 ContextAssembler::ContentLoader base64Loader(const QString &content)
 {
-    return [content](const QString &) {
-        return QString::fromUtf8(content.toUtf8().toBase64());
-    };
+    return [content](const QString &) { return QString::fromUtf8(content.toUtf8().toBase64()); };
 }
 
 ContextAssembler::ContentLoader emptyLoader()
@@ -145,8 +143,7 @@ TEST(ContextAssemblerTest, OrphanToolUseIsDropped)
     std::vector<Message> history;
     Message m(Message::Role::Assistant);
     m.appendBlock(std::make_unique<LLMQore::TextContent>("calling"));
-    m.appendBlock(
-        std::make_unique<LLMQore::ToolUseContent>("tu1", "read_file", QJsonObject()));
+    m.appendBlock(std::make_unique<LLMQore::ToolUseContent>("tu1", "read_file", QJsonObject()));
     history.push_back(std::move(m));
 
     ContextAssembler::Manifest manifest;
@@ -179,8 +176,8 @@ TEST(ContextAssemblerTest, PairedToolUseAndResultAreKept)
 {
     std::vector<Message> history;
     Message use(Message::Role::Assistant);
-    use.appendBlock(std::make_unique<LLMQore::ToolUseContent>(
-        "tu1", "read_file", QJsonObject{{"path", "a.cpp"}}));
+    use.appendBlock(
+        std::make_unique<LLMQore::ToolUseContent>("tu1", "read_file", QJsonObject{{"path", "a.cpp"}}));
     history.push_back(std::move(use));
     Message result(Message::Role::User);
     result.appendBlock(std::make_unique<LLMQore::ToolResultContent>("tu1", "contents"));
@@ -205,8 +202,7 @@ TEST(ContextAssemblerTest, AttachmentMaterializedThroughLoader)
     m.appendBlock(std::make_unique<StoredAttachmentContent>("notes.txt", "stored/notes"));
     history.push_back(std::move(m));
 
-    const auto ctx
-        = ContextAssembler::assemble(history, QString(), base64Loader("file body"));
+    const auto ctx = ContextAssembler::assemble(history, QString(), base64Loader("file body"));
 
     ASSERT_TRUE(ctx.history.has_value());
     const auto &block = ctx.history->first().blocks.first();
@@ -235,8 +231,7 @@ TEST(ContextAssemblerTest, StoredImageMaterializedThroughLoader)
 {
     std::vector<Message> history;
     Message m(Message::Role::User);
-    m.appendBlock(
-        std::make_unique<StoredImageContent>("shot.png", "stored/shot", "image/png"));
+    m.appendBlock(std::make_unique<StoredImageContent>("shot.png", "stored/shot", "image/png"));
     history.push_back(std::move(m));
 
     ContextAssembler::Manifest manifest;
@@ -255,8 +250,7 @@ TEST(ContextAssemblerTest, MissingImageWithNullLoaderGetsPlaceholder)
 {
     std::vector<Message> history;
     Message m(Message::Role::User);
-    m.appendBlock(
-        std::make_unique<StoredImageContent>("shot.png", "stored/shot", "image/png"));
+    m.appendBlock(std::make_unique<StoredImageContent>("shot.png", "stored/shot", "image/png"));
     history.push_back(std::move(m));
 
     ContextAssembler::Manifest manifest;
@@ -343,8 +337,7 @@ TEST(ContextAssemblerTest, PinnedAnchorsToTypedMessageNotToolResults)
     std::vector<Message> history;
     history.push_back(textMessage(Message::Role::User, "fix the bug"));
     Message use(Message::Role::Assistant);
-    use.appendBlock(
-        std::make_unique<LLMQore::ToolUseContent>("tu1", "edit_file", QJsonObject()));
+    use.appendBlock(std::make_unique<LLMQore::ToolUseContent>("tu1", "edit_file", QJsonObject()));
     history.push_back(std::move(use));
     Message result(Message::Role::User);
     result.appendBlock(std::make_unique<LLMQore::ToolResultContent>("tu1", "edited"));
@@ -366,8 +359,7 @@ TEST(ContextAssemblerTest, PinnedInsertedAfterLeadingToolResults)
 {
     std::vector<Message> history;
     Message use(Message::Role::Assistant);
-    use.appendBlock(
-        std::make_unique<LLMQore::ToolUseContent>("tu1", "edit_file", QJsonObject()));
+    use.appendBlock(std::make_unique<LLMQore::ToolUseContent>("tu1", "edit_file", QJsonObject()));
     history.push_back(std::move(use));
     Message result(Message::Role::User);
     result.appendBlock(std::make_unique<LLMQore::ToolResultContent>("tu1", "edited"));

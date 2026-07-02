@@ -185,7 +185,7 @@ Rectangle {
                 id: sendButtonId
 
                 anchors.fill: parent
-                enabled: root.isProcessing || root.canSend
+                enabled: root.isProcessing || (root.canSend && !root.isCompressing)
                 leftPadding: root.isProcessing ? 22 : 4
 
                 icon {

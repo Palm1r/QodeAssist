@@ -10,7 +10,9 @@ tags         = ["refactor", "ollama", "local", "8gb"]
 
 system_prompt = """{{ read_file(":/tasks/quick-refactor.md") }}"""
 
+[body]
+keep_alive = "5m"
+
 [body.options]
 num_predict = 2048
 temperature = 0.2
-keep_alive  = "5m"

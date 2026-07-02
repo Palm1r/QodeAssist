@@ -226,8 +226,7 @@ TEST(ClaudeCacheControlTest, EmptyBreakpointListMarksEveryDimension)
     apply(request, false, QStringList());
 
     EXPECT_TRUE(request.value("system").isArray());
-    EXPECT_TRUE(
-        request.value("tools").toArray().last().toObject().contains("cache_control"));
+    EXPECT_TRUE(request.value("tools").toArray().last().toObject().contains("cache_control"));
     const QJsonArray msgs = request.value("messages").toArray();
     EXPECT_TRUE(msgs[0].toObject().value("content").isArray());
 }

@@ -43,10 +43,10 @@ QLabel *makeSectionHeader(const QString &title, QWidget *parent)
     header->setAutoFillBackground(true);
     const QColor base = Utils::creatorColor(Utils::Theme::BackgroundColorNormal);
     const QColor mid = Utils::creatorColor(Utils::Theme::PanelTextColorMid);
-    header->setStyleSheet(
-        QStringLiteral("QLabel { background:%1; border-top:1px solid %2;"
-                       " border-bottom:1px solid %2; }")
-            .arg(cssColor(mix(base, mid, 0.16)), cssColor(mix(base, mid, 0.30))));
+    header->setStyleSheet(QStringLiteral(
+                              "QLabel { background:%1; border-top:1px solid %2;"
+                              " border-bottom:1px solid %2; }")
+                              .arg(cssColor(mix(base, mid, 0.16)), cssColor(mix(base, mid, 0.30))));
     return header;
 }
 

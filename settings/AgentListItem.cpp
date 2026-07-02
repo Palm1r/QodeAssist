@@ -127,9 +127,8 @@ void AgentListItem::applyTheme()
     if (m_inApplyTheme)
         return;
     QScopedValueRollback<bool> guard(m_inApplyTheme, true);
-    const QString accent = m_selected
-        ? cssColor(Utils::creatorColor(Utils::Theme::TextColorLink))
-        : QStringLiteral("transparent");
+    const QString accent = m_selected ? cssColor(Utils::creatorColor(Utils::Theme::TextColorLink))
+                                      : QStringLiteral("transparent");
     setStyleSheet(QStringLiteral(
                       "#AgentListItem { background:transparent;"
                       " border-top:1px solid %1; border-left:3px solid %2; }")

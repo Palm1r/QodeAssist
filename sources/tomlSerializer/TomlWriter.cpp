@@ -52,11 +52,31 @@ void TomlWriter::writeTableHeader(const QString &name)
     m_out += QLatin1String("]\n");
 }
 
+namespace {
+
+bool isBareKey(const QString &key)
+{
+    if (key.isEmpty())
+        return false;
+    for (QChar c : key) {
+        if (!c.isLetterOrNumber() && c != QLatin1Char('_') && c != QLatin1Char('-'))
+            return false;
+        if (c.unicode() > 0x7f)
+            return false;
+    }
+    return true;
+}
+
+} // namespace
+
 void TomlWriter::writeKeyPrefix(const QString &key)
 {
-    m_out += key;
-    if (m_keyColumnWidth > key.size())
-        m_out += QString(m_keyColumnWidth - key.size(), QLatin1Char(' '));
+    const QString rendered = isBareKey(key)
+                                 ? key
+                                 : QLatin1Char('"') + escapeBasic(key) + QLatin1Char('"');
+    m_out += rendered;
+    if (m_keyColumnWidth > rendered.size())
+        m_out += QString(m_keyColumnWidth - rendered.size(), QLatin1Char(' '));
     m_out += QLatin1String(" = ");
 }
 

@@ -49,7 +49,8 @@ void SystemPromptBuilder::clear()
 QString SystemPromptBuilder::layer(const QString &name) const
 {
     for (const auto &l : m_layers) {
-        if (l.name == name) return l.text;
+        if (l.name == name)
+            return l.text;
     }
     return {};
 }
@@ -58,16 +59,17 @@ QStringList SystemPromptBuilder::layerNames() const
 {
     QStringList out;
     out.reserve(m_layers.size());
-    for (const auto &l : m_layers) out.append(l.name);
+    for (const auto &l : m_layers)
+        out.append(l.name);
     return out;
 }
 
 QString SystemPromptBuilder::compose(const QString &separator) const
 {
     QVector<Layer> ordered = m_layers;
-    std::stable_sort(
-        ordered.begin(), ordered.end(),
-        [](const Layer &a, const Layer &b) { return a.priority < b.priority; });
+    std::stable_sort(ordered.begin(), ordered.end(), [](const Layer &a, const Layer &b) {
+        return a.priority < b.priority;
+    });
 
     QStringList parts;
     parts.reserve(ordered.size());

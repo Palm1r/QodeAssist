@@ -13,7 +13,6 @@ add_library(QodeAssistSettings STATIC
     ProjectSettings.hpp ProjectSettings.cpp
     ProjectSettingsPanel.hpp ProjectSettingsPanel.cpp
     ProviderSettings.hpp ProviderSettings.cpp
-    ProviderNameMigration.hpp
     ProvidersSettingsPage.hpp ProvidersSettingsPage.cpp
     SettingsTheme.hpp
     SettingsUiBuilders.hpp SettingsUiBuilders.cpp

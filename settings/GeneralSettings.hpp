@@ -25,8 +25,7 @@ class GeneralSettings : public Utils::AspectContainer
 public:
     GeneralSettings();
 
-    void setAgentPipelinesContext(
-        AgentFactory *agentFactory, AgentsPageNavigator *agentsNavigator);
+    void setAgentPipelinesContext(AgentFactory *agentFactory, AgentsPageNavigator *agentsNavigator);
 
     Utils::BoolAspect enableQodeAssist{this};
     Utils::BoolAspect enableLogging{this};

@@ -317,7 +317,7 @@ ChatRootView {
                     onResetChatToMessage: function(idx) {
                         messageInput.text = model.content
                         messageInput.cursorPosition = model.content.length
-                        root.chatModel.resetModelTo(idx)
+                        root.resetChatTo(idx)
                     }
 
                     onOpenFileRequested: function(filePath) {
@@ -659,6 +659,10 @@ ChatRootView {
     }
 
     function sendChatMessage() {
+        if (root.isCompressing)
+            return
+        if (messageInput.text.trim() === "" && root.attachmentFiles.length === 0)
+            return
         root.hasActiveError = false
         root.sendMessage(fileMentionPopup.expandMentions(messageInput.text))
         messageInput.text = ""

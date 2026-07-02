@@ -1,0 +1,16 @@
+schema_version = 1
+
+extends     = "OpenAI Base Chat"
+name        = "Qwen Chat"
+description = "Alibaba Qwen coding chat (qwen-plus stable alias, currently the Qwen3.6 Plus family) over the DashScope OpenAI-compatible Chat Completions API — conversational assistant with IDE tool use."
+
+provider_instance = "Qwen"
+model             = "qwen-plus"
+enable_tools      = true
+tags              = ["chat", "qwen", "cloud"]
+
+system_prompt = """{{ read_file(":/roles/qt-cpp-developer.md") }}"""
+
+[body]
+max_tokens  = 8192
+temperature = 0.3

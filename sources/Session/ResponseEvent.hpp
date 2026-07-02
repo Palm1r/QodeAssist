@@ -144,8 +144,7 @@ public:
             ResponseEvents::Usage{inputTokens, outputTokens, cachedTokens, reasoningTokens}};
     }
 
-    static ResponseEvent error(
-        QString message, ErrorCategory category = ErrorCategory::Provider)
+    static ResponseEvent error(QString message, ErrorCategory category = ErrorCategory::Provider)
     {
         return {Kind::Error, ResponseEvents::Error{std::move(message), category}};
     }

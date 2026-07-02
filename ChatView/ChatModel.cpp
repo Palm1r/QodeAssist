@@ -28,10 +28,14 @@ const QString kFileEditMarker = QStringLiteral("QODEASSIST_FILE_EDIT:");
 QString changesStatusToString(Context::ChangesManager::FileEditStatus status)
 {
     switch (status) {
-    case Context::ChangesManager::Pending: return QStringLiteral("pending");
-    case Context::ChangesManager::Applied: return QStringLiteral("applied");
-    case Context::ChangesManager::Rejected: return QStringLiteral("rejected");
-    case Context::ChangesManager::Archived: return QStringLiteral("archived");
+    case Context::ChangesManager::Pending:
+        return QStringLiteral("pending");
+    case Context::ChangesManager::Applied:
+        return QStringLiteral("applied");
+    case Context::ChangesManager::Rejected:
+        return QStringLiteral("rejected");
+    case Context::ChangesManager::Archived:
+        return QStringLiteral("archived");
     }
     return QStringLiteral("pending");
 }
@@ -80,17 +84,25 @@ ChatModel::ChatModel(QObject *parent)
 {
     auto &changes = Context::ChangesManager::instance();
     connect(
-        &changes, &Context::ChangesManager::fileEditApplied,
-        this, &ChatModel::onFileEditStatusChanged);
+        &changes,
+        &Context::ChangesManager::fileEditApplied,
+        this,
+        &ChatModel::onFileEditStatusChanged);
     connect(
-        &changes, &Context::ChangesManager::fileEditRejected,
-        this, &ChatModel::onFileEditStatusChanged);
+        &changes,
+        &Context::ChangesManager::fileEditRejected,
+        this,
+        &ChatModel::onFileEditStatusChanged);
     connect(
-        &changes, &Context::ChangesManager::fileEditUndone,
-        this, &ChatModel::onFileEditStatusChanged);
+        &changes,
+        &Context::ChangesManager::fileEditUndone,
+        this,
+        &ChatModel::onFileEditStatusChanged);
     connect(
-        &changes, &Context::ChangesManager::fileEditArchived,
-        this, &ChatModel::onFileEditStatusChanged);
+        &changes,
+        &Context::ChangesManager::fileEditArchived,
+        this,
+        &ChatModel::onFileEditStatusChanged);
 }
 
 void ChatModel::setHistory(ConversationHistory *history)
@@ -105,11 +117,12 @@ void ChatModel::setHistory(ConversationHistory *history)
 
     if (m_history) {
         connect(
-            m_history, &ConversationHistory::messageAdded,
-            this, &ChatModel::onHistoryMessageAdded);
+            m_history, &ConversationHistory::messageAdded, this, &ChatModel::onHistoryMessageAdded);
         connect(
-            m_history, &ConversationHistory::messageUpdated,
-            this, &ChatModel::onHistoryMessageUpdated);
+            m_history,
+            &ConversationHistory::messageUpdated,
+            this,
+            &ChatModel::onHistoryMessageUpdated);
         connect(m_history, &ConversationHistory::cleared, this, &ChatModel::onHistoryCleared);
         connect(m_history, &ConversationHistory::reset, this, &ChatModel::onHistoryReset);
     }
@@ -244,8 +257,7 @@ QString ChatModel::overlayFileEditStatus(const QString &content, const QString &
                 obj["status_message"] = edit.statusMessage;
         }
     }
-    return kFileEditMarker
-           + QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
+    return kFileEditMarker + QString::fromUtf8(QJsonDocument(obj).toJson(QJsonDocument::Compact));
 }
 
 QHash<QString, QString> ChatModel::buildToolResultMap() const
@@ -328,8 +340,7 @@ void ChatModel::appendRowsForMessage(
                 row.messageId = id;
                 row.content = content;
                 out.append(std::move(row));
-            } else if (
-                auto *rth = dynamic_cast<LLMQore::RedactedThinkingContent *>(block.get())) {
+            } else if (auto *rth = dynamic_cast<LLMQore::RedactedThinkingContent *>(block.get())) {
                 QString content = QStringLiteral("[Thinking content redacted by safety systems]");
                 if (!rth->signature().isEmpty())
                     content += QStringLiteral("\n[Signature: ") + rth->signature().left(40)
@@ -642,6 +653,36 @@ void ChatModel::setMessageUsage(
         }
     }
     emit sessionUsageChanged();
+}
+
+QJsonObject ChatModel::usageToJson() const
+{
+    QJsonObject out;
+    for (auto it = m_usageByMessageId.cbegin(); it != m_usageByMessageId.cend(); ++it) {
+        const Usage &u = it.value();
+        if (u.prompt == 0 && u.completion == 0 && u.cached == 0 && u.reasoning == 0)
+            continue;
+        QJsonObject entry;
+        entry["prompt"] = u.prompt;
+        entry["completion"] = u.completion;
+        entry["cached"] = u.cached;
+        entry["reasoning"] = u.reasoning;
+        out.insert(it.key(), entry);
+    }
+    return out;
+}
+
+void ChatModel::restoreUsageFromJson(const QJsonObject &usage)
+{
+    for (auto it = usage.constBegin(); it != usage.constEnd(); ++it) {
+        const QJsonObject entry = it.value().toObject();
+        setMessageUsage(
+            it.key(),
+            entry.value("prompt").toInt(),
+            entry.value("completion").toInt(),
+            entry.value("cached").toInt(),
+            entry.value("reasoning").toInt());
+    }
 }
 
 int ChatModel::sessionPromptTokens() const

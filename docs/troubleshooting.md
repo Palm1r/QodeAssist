@@ -9,11 +9,11 @@ Make sure you're using the correct default URLs:
 - **LM Studio**: `http://localhost:1234`
 - **llama.cpp**: `http://localhost:8080`
 
-### 2. Check model and template compatibility
+### 2. Check agent and model compatibility
 
-- Ensure the correct model is selected in settings
-- Verify that the selected prompt template matches your model
-- Some models may not support certain features (e.g., tool calling)
+- Ensure each Agent Pipelines slot (QodeAssist > General) has an agent assigned — an unassigned slot disables that feature
+- Verify the agent's model exists on your provider (check the agent on the QodeAssist > Agents page)
+- Some models may not support certain features (e.g., tool calling or native FIM completion) — pick an agent variant that matches your model
 
 ### 3. Linux compatibility
 
@@ -31,7 +31,7 @@ If issues persist, you can reset settings to their default values:
 
 **Note:**
 - API keys are preserved during reset
-- You will need to re-select your model after reset
+- Resetting the General page restores the default local Ollama agent pipelines — re-assign your own agents afterwards
 
 ## Chat History Migration
 

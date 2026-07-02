@@ -32,7 +32,7 @@ public:
     void appendBlockToLast(std::unique_ptr<LLMQore::ContentBlock> block);
 
     void appendTextDeltaToLast(const QString &delta);
-    void appendThinkingDeltaToLast(const QString &delta, const QString &signature = QString());
+    void appendThinkingBlockToLast(const QString &thinking, const QString &signature = QString());
 
     void clear();
     void resetTo(int index);

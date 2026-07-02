@@ -45,6 +45,16 @@ public:
             m_blocks.push_back(std::move(block));
     }
 
+    LLMQore::ContentBlock *lastBlock() noexcept
+    {
+        return m_blocks.empty() ? nullptr : m_blocks.back().get();
+    }
+
+    std::vector<std::unique_ptr<LLMQore::ContentBlock>> takeBlocks() noexcept
+    {
+        return std::move(m_blocks);
+    }
+
     template<typename T>
     T *lastBlockOfType()
     {

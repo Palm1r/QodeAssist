@@ -32,8 +32,8 @@
 #include <QUuid>
 
 #include <AgentFactory.hpp>
-#include <ConversationHistory.hpp>
 #include <ContextRenderer.hpp>
+#include <ConversationHistory.hpp>
 #include <Message.hpp>
 #include <PluginBlocks.hpp>
 #include <Session.hpp>
@@ -122,6 +122,9 @@ void ClientInterface::ensureSession()
         [this](const LLMQore::RequestID &id, const QodeAssist::ErrorInfo &error) {
             onSessionFailed(id, error);
         });
+    connect(m_session, &Session::cancelled, this, [this](const LLMQore::RequestID &id) {
+        onSessionCancelled(id);
+    });
 }
 
 bool ClientInterface::ensureAgentBound()
@@ -147,9 +150,7 @@ bool ClientInterface::ensureAgentBound()
 }
 
 void ClientInterface::sendMessage(
-    const QString &message,
-    const QList<QString> &attachments,
-    const QList<QString> &linkedFiles)
+    const QString &message, const QList<QString> &attachments, const QList<QString> &linkedFiles)
 {
     if (message.trimmed().isEmpty() && attachments.isEmpty()) {
         LOG_MESSAGE("Ignoring empty chat message");
@@ -299,13 +300,13 @@ void ClientInterface::sendMessage(
     }
 
     for (const auto &image : storedImages) {
-        blocks.push_back(std::make_unique<StoredImageContent>(
-            image.fileName, image.storedPath, image.mediaType));
+        blocks.push_back(
+            std::make_unique<StoredImageContent>(image.fileName, image.storedPath, image.mediaType));
     }
 
     if (!m_chatFilePath.isEmpty()) {
-        if (auto *todoTool
-            = qobject_cast<QodeAssist::Tools::TodoTool *>(client->tools()->tool("todo_tool"))) {
+        if (auto *todoTool = qobject_cast<QodeAssist::Tools::TodoTool *>(
+                client->tools()->tool("todo_tool"))) {
             todoTool->setCurrentSessionId(m_chatFilePath);
         }
         if (auto *historyTool = qobject_cast<QodeAssist::Tools::ReadOriginalHistoryTool *>(
@@ -396,14 +397,19 @@ void ClientInterface::onSessionFailed(const QString &requestId, const QodeAssist
     m_activeRequests.erase(it);
 }
 
+void ClientInterface::onSessionCancelled(const QString &requestId)
+{
+    m_activeRequests.remove(requestId);
+    emit requestCancelled();
+}
+
 QStringList ClientInterface::invokedSkillNames(const QString &message) const
 {
     QStringList names;
     if (!m_skillsManager || !Settings::skillsSettings().enableSkills())
         return names;
 
-    static const QRegularExpression skillCommand(
-        QStringLiteral("(?:^|\\s)/([a-z0-9][a-z0-9-]*)"));
+    static const QRegularExpression skillCommand(QStringLiteral("(?:^|\\s)/([a-z0-9][a-z0-9-]*)"));
     auto skillMatch = skillCommand.globalMatch(message);
     while (skillMatch.hasNext()) {
         const QString skillName = skillMatch.next().captured(1);
@@ -415,16 +421,16 @@ QStringList ClientInterface::invokedSkillNames(const QString &message) const
 
 QString ClientInterface::buildChatContextLayer() const
 {
-    QString context
-        = Context::EnvBlockFormatter::formatProject(Context::EnvBlockFormatter::currentProject());
+    QString context = Context::EnvBlockFormatter::formatProject(
+        Context::EnvBlockFormatter::currentProject());
 
     auto *project = ProjectExplorer::ProjectManager::startupProject();
     if (m_skillsManager && Settings::skillsSettings().enableSkills()) {
         QStringList projectSkillDirs;
         if (project) {
             Settings::ProjectSettings projectSettings(project);
-            projectSkillDirs
-                = Settings::SkillsSettings::splitLines(projectSettings.projectSkillDirs());
+            projectSkillDirs = Settings::SkillsSettings::splitLines(
+                projectSettings.projectSkillDirs());
         }
         m_skillsManager->configure(
             project ? project->projectDirectory().toFSPathString() : QString(),

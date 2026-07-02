@@ -27,7 +27,7 @@ SessionManager::~SessionManager() = default;
 
 Session *SessionManager::createSession(const QString &agentName, QString *errorOut)
 {
-    return createSession(agentName, /*externalHistory=*/nullptr, errorOut);
+    return createSession(agentName, nullptr, errorOut);
 }
 
 Session *SessionManager::createSession(
@@ -40,7 +40,7 @@ Session *SessionManager::createSession(
     }
 
     QString agentErr;
-    Agent *agent = m_agentFactory->create(agentName, /*parent=*/nullptr, &agentErr);
+    Agent *agent = m_agentFactory->create(agentName, nullptr, &agentErr);
     if (!agent) {
         if (errorOut)
             *errorOut = agentErr.isEmpty()
@@ -53,7 +53,7 @@ Session *SessionManager::createSession(
     if (!session->isValid()) {
         if (errorOut)
             *errorOut = session->invalidReason();
-        delete session; // also deletes the reparented agent
+        delete session;
         return nullptr;
     }
 
@@ -64,7 +64,7 @@ Session *SessionManager::createSession(
 
 Session *SessionManager::createDetachedSession(ConversationHistory *externalHistory, QObject *parent)
 {
-    return new Session(/*agent=*/nullptr, externalHistory, parent);
+    return new Session(nullptr, externalHistory, parent);
 }
 
 bool SessionManager::rebindAgentByName(Session *session, const QString &agentName, QString *errorOut)
@@ -81,7 +81,7 @@ bool SessionManager::rebindAgentByName(Session *session, const QString &agentNam
     }
 
     QString agentErr;
-    Agent *agent = m_agentFactory->create(agentName, /*parent=*/nullptr, &agentErr);
+    Agent *agent = m_agentFactory->create(agentName, nullptr, &agentErr);
     if (!agent) {
         if (errorOut)
             *errorOut = agentErr.isEmpty()
@@ -113,7 +113,7 @@ Session *SessionManager::acquire(const QString &agentName, QString *errorOut)
             pooled->deleteLater();
     }
 
-    return createSession(agentName, /*externalHistory=*/nullptr, errorOut);
+    return createSession(agentName, nullptr, errorOut);
 }
 
 void SessionManager::release(Session *session)
@@ -130,10 +130,16 @@ void SessionManager::release(Session *session)
         session->cancel();
 
     session->disconnect();
+
+    if (session->usesExternalHistory()) {
+        emit sessionRemoved(session);
+        session->deleteLater();
+        return;
+    }
+
     resetSession(session);
 
-    const QString agentName
-        = session->agent() ? session->agent()->config().name : QString();
+    const QString agentName = session->agent() ? session->agent()->config().name : QString();
     QList<QPointer<Session>> &bucket = m_pool[agentName];
     if (agentName.isEmpty() || bucket.size() >= kMaxPooledPerAgent) {
         emit sessionRemoved(session);
@@ -155,6 +161,9 @@ void SessionManager::resetSession(Session *session)
         if (auto *tools = client->tools())
             tools->removeAllTools();
     }
+    session->setContentLoader({});
+    session->setContextBindings({});
+    session->clearPinnedContext();
 }
 
 bool SessionManager::pooledAgentMatchesCurrent(Session *session, const QString &agentName) const

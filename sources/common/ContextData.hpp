@@ -24,15 +24,15 @@ struct ContentBlockEntry
 
     Kind kind = Kind::Text;
 
-    QString text;          // Text
-    QString thinking;      // Thinking
-    QString signature;     // Thinking / RedactedThinking
-    QString toolUseId;     // ToolUse / ToolResult
-    QString toolName;      // ToolUse
-    QJsonObject toolInput; // ToolUse
-    QString result;        // ToolResult
-    QString imageData;     // Image (base64 or url)
-    QString mediaType;     // Image
+    QString text;
+    QString thinking;
+    QString signature;
+    QString toolUseId;
+    QString toolName;
+    QJsonObject toolInput;
+    QString result;
+    QString imageData;
+    QString mediaType;
     bool isImageUrl = false;
 
     bool operator==(const ContentBlockEntry &) const = default;
@@ -43,7 +43,6 @@ struct Message
     QString role;
     QVector<ContentBlockEntry> blocks;
 
-    // Convenience for callers that only need a single text block.
     static Message text(const QString &role, const QString &text)
     {
         Message m;

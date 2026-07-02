@@ -56,10 +56,12 @@ public:
     using PinnedProvider = std::function<QString()>;
     void pinContext(const QString &id, PinnedProvider provider);
     void unpinContext(const QString &id);
+    void clearPinnedContext();
 
     Agent *agent() noexcept { return m_agent; }
     void setAgent(Agent *agent);
     ConversationHistory *history() const noexcept { return m_history; }
+    bool usesExternalHistory() const noexcept { return m_externalHistory; }
     SystemPromptBuilder *systemPrompt() const noexcept { return m_systemPrompt; }
 
     LLMQore::BaseClient *client() const noexcept;
@@ -89,10 +91,11 @@ private:
     QVector<ContextAssembler::PinnedBlock> materializePinned() const;
     QJsonObject buildPayload(const Templates::ContextData &ctx, bool tools, QString *errOut) const;
 
-    Agent *m_agent = nullptr;                              // child if non-null
-    QPointer<ConversationHistory> m_history;               // child if internal, external otherwise
-    SystemPromptBuilder *m_systemPrompt = nullptr; // child
-    ResponseRouter *m_router = nullptr;                    // child, only when valid
+    Agent *m_agent = nullptr;
+    QPointer<ConversationHistory> m_history;
+    SystemPromptBuilder *m_systemPrompt = nullptr;
+    ResponseRouter *m_router = nullptr;
+    bool m_externalHistory = false;
 
     LLMQore::RequestID m_inFlight;
     QString m_invalidReason;

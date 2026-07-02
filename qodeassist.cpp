@@ -33,7 +33,6 @@
 #include <QMessageBox>
 #include <QTranslator>
 
-#include <QInputDialog>
 #include "QodeAssistClient.hpp"
 #include "QuickRefactorHandler.hpp"
 #include "UpdateStatusWidget.hpp"
@@ -46,38 +45,39 @@
 #include "logger/RequestPerformanceLogger.hpp"
 #include "mcp/McpClientsManager.hpp"
 #include "mcp/McpServerManager.hpp"
-#include "sources/skills/SkillsManager.hpp"
-#include "tools/ToolsRegistration.hpp"
+#include "settings/AgentsSettingsPage.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProjectSettingsPanel.hpp"
-#include "settings/AgentsSettingsPage.hpp"
 #include "settings/ProvidersSettingsPage.hpp"
 #include "settings/QuickRefactorSettings.hpp"
 #include "settings/SettingsConstants.hpp"
+#include "sources/skills/SkillsManager.hpp"
+#include "tools/ToolsRegistration.hpp"
+#include <QInputDialog>
 
 #include "ProviderInstanceFactory.hpp"
 #include "ProviderLauncher.hpp"
 #include "ProviderSecretsStore.hpp"
 
-#include <AgentFactory.hpp>
-#include <GenericProvider.hpp>
-#include <SessionManager.hpp>
 #include "widgets/CustomInstructionsManager.hpp"
 #include "widgets/QuickRefactorDialog.hpp"
-#include <ChatView/ChatView.hpp>
+#include <AgentFactory.hpp>
 #include <ChatView/ChatFileManager.hpp>
 #include <ChatView/ChatRootView.hpp>
+#include <ChatView/ChatView.hpp>
 #include <ChatView/ChatWidget.hpp>
 #include <ChatView/SessionFileRegistry.hpp>
-#include <coreplugin/editormanager/editormanager.h>
-#include <QQmlContext>
-#include <QUuid>
+#include <GenericProvider.hpp>
+#include <SessionManager.hpp>
 #include <coreplugin/actionmanager/actioncontainer.h>
 #include <coreplugin/actionmanager/actionmanager.h>
+#include <coreplugin/editormanager/editormanager.h>
 #include <texteditor/textdocument.h>
 #include <texteditor/texteditor.h>
 #include <texteditor/texteditorconstants.h>
+#include <QQmlContext>
+#include <QUuid>
 
 using namespace Utils;
 using namespace Core;
@@ -182,19 +182,20 @@ public:
         m_providerSecretsStore = new Providers::ProviderSecretsStore(this);
         m_providerLauncher = new Providers::ProviderLauncher(this);
         m_providersPageNavigator = new Settings::ProvidersPageNavigator(this);
+
+        m_agentFactory = new AgentFactory(m_providerInstanceFactory, m_providerSecretsStore, this);
+
         m_providersOptionsPage = Settings::createProvidersSettingsPage(
             m_providerInstanceFactory,
             m_providerSecretsStore,
             m_providerLauncher,
-            m_providersPageNavigator);
-
-        m_agentFactory = new AgentFactory(m_providerInstanceFactory, m_providerSecretsStore, this);
+            m_providersPageNavigator,
+            m_agentFactory);
         m_sessionManager = new SessionManager(m_agentFactory, this);
         {
             auto &contributors = m_sessionManager->toolContributors();
-            contributors.add([](::LLMQore::ToolsManager *tools) {
-                Tools::registerQodeAssistTools(tools);
-            });
+            contributors.add(
+                [](::LLMQore::ToolsManager *tools) { Tools::registerQodeAssistTools(tools); });
             contributors.add([skills = m_skillsManager](::LLMQore::ToolsManager *tools) {
                 if (skills)
                     Tools::registerSkillTool(tools, skills);
@@ -221,8 +222,7 @@ public:
         m_agentsOptionsPage = Settings::createAgentsSettingsPage(
             m_agentFactory, m_agentsPageNavigator);
 
-        Settings::generalSettings().setAgentPipelinesContext(
-            m_agentFactory, m_agentsPageNavigator);
+        Settings::generalSettings().setAgentPipelinesContext(m_agentFactory, m_agentsPageNavigator);
 
         m_mcpServerManager = new Mcp::McpServerManager(this);
         m_mcpServerManager->init();
@@ -387,8 +387,6 @@ private:
         QString title = Tr::tr("QodeAssist Chat");
         Core::IEditor *editor = Core::EditorManager::openEditorWithContents(
             Constants::QODE_ASSIST_CHAT_EDITOR_ID, &title, {}, QUuid::createUuid().toString());
-        // For the "New Chat" button pending is empty (no-op). For relocate-to-editor it
-        // carries the handed-off chat file and gets loaded into the freshly opened tab.
         if (auto chatEditor = qobject_cast<Chat::ChatEditor *>(editor))
             chatEditor->consumePendingChatFile();
     }

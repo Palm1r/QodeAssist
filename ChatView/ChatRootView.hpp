@@ -22,7 +22,7 @@ class AgentFactory;
 class SessionManager;
 class ConversationHistory;
 class Session;
-}
+} // namespace QodeAssist
 
 namespace QodeAssist::Chat {
 
@@ -57,8 +57,12 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(int currentMessageAppliedEdits READ currentMessageAppliedEdits NOTIFY currentMessageEditsStatsChanged FINAL)
     Q_PROPERTY(int currentMessagePendingEdits READ currentMessagePendingEdits NOTIFY currentMessageEditsStatsChanged FINAL)
     Q_PROPERTY(int currentMessageRejectedEdits READ currentMessageRejectedEdits NOTIFY currentMessageEditsStatsChanged FINAL)
-    Q_PROPERTY(QStringList availableChatAgents READ availableChatAgents NOTIFY availableChatAgentsChanged FINAL)
-    Q_PROPERTY(QString currentChatAgent READ currentChatAgent WRITE setCurrentChatAgent NOTIFY currentChatAgentChanged FINAL)
+    Q_PROPERTY(
+        QStringList availableChatAgents READ availableChatAgents NOTIFY availableChatAgentsChanged
+            FINAL)
+    Q_PROPERTY(
+        QString currentChatAgent READ currentChatAgent WRITE setCurrentChatAgent NOTIFY
+            currentChatAgentChanged FINAL)
     Q_PROPERTY(bool isCompressing READ isCompressing NOTIFY isCompressingChanged FINAL)
     Q_PROPERTY(bool canCompress READ canCompress NOTIFY availableChatAgentsChanged FINAL)
     Q_PROPERTY(bool isInEditor READ isInEditor NOTIFY isInEditorChanged FINAL)
@@ -77,6 +81,7 @@ public:
 
     Q_INVOKABLE void showSaveDialog();
     Q_INVOKABLE void showLoadDialog();
+    Q_INVOKABLE void resetChatTo(int index);
 
     void autosave();
     QString getAutosaveFilePath() const;
@@ -220,13 +225,9 @@ private:
     void triggerOpenChatCommand(Utils::Id commandId);
     void handOffSession();
     bool deferSendForAutoCompress(
-        const QString &message,
-        const QStringList &attachments,
-        const QStringList &linkedFiles);
+        const QString &message, const QStringList &attachments, const QStringList &linkedFiles);
     void dispatchSend(
-        const QString &message,
-        const QStringList &attachments,
-        const QStringList &linkedFiles);
+        const QString &message, const QStringList &attachments, const QStringList &linkedFiles);
     QString configuredCompressionAgent() const;
     bool hasImageAttachments(const QStringList &attachments) const;
 

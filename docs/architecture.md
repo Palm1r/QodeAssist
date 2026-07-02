@@ -63,15 +63,24 @@ Agent(config, provider)
                    validated at load against a synthetic context
   provider.setPromptCaching(cfg.cachePrompt, cfg.cacheTtl == "1h")
   ▼
-SessionManager — two ways to obtain a Session:
-  • createSession(agentName, externalHistory?)  — chat: attaches a persistent,
-                                                  externally-owned history
+SessionManager — three ways to obtain a Session:
+  • createDetachedSession(externalHistory)      — chat: one persistent, caller-owned
+                                                  session over an externally-owned
+                                                  history; the agent is (re)bound via
+                                                  rebindAgentByName when the picker
+                                                  changes (rebinding cancels any
+                                                  in-flight request)
+  • createSession(agentName, externalHistory?)  — manager-tracked session, removed
+                                                  via removeSession
   • acquire(agentName) / release(session)       — one-shot pipelines: a small
                                                   per-agent pool of internal-history
                                                   sessions; acquire hands out a
                                                   session with cleared history,
-                                                  cleared system-prompt layers and
-                                                  cleared client tools
+                                                  cleared system-prompt layers,
+                                                  cleared client tools and cleared
+                                                  pinned context / content loader /
+                                                  bindings; release refuses to pool
+                                                  external-history sessions
   ▼
 Session(agent[, externalHistory])
   ├─ ConversationHistory     — messages as polymorphic ContentBlocks
@@ -214,20 +223,24 @@ ChatRootView (QML)  — owns ConversationHistory m_history
         chatAssistant allow-list; active agent persisted
   ▼ dispatchSend
 ClientInterface
-  session = sessionManager.createSession(activeAgent, m_history)
+  session = sessionManager.createDetachedSession(m_history)   — one persistent
+            session per chat view; ensureAgentBound → rebindAgentByName on
+            picker change
   sessionManager.toolContributors().contribute(client.tools())   — builtin+skills+MCP
   session.setContentLoader(ChatSerializer::loadContentFromStorage)
   systemPrompt layer "chat.context" = project info + skills + linked files
   session.send( blocks{ TextContent + StoredAttachmentContent + StoredImageContent } )
      ▼ consumes Session signals (NOT raw client signals):
   event(Usage)        → ChatModel.setMessageUsage + token-counter calibration
-  finished(id)        → ChangesManager.applyPendingEditsForRequest + persist;
-                        removeSession (the persistent history survives)
-  failed(id, ErrorInfo) → surface error; removeSession
+  finished(id)        → ChangesManager.applyPendingEditsForRequest + persist
+  failed(id, ErrorInfo) → surface error
+  cancelled(id)       → clear busy state (the persistent session and history survive
+                        every outcome)
 
-ChatCompressor    → acquire(chatCompression agent — single configured) → seed history
-                    from the chat's messages → "compression" layer → send → read summary
-                    from the compression session's own history → release
+ChatCompressor    → acquire(chatCompression agent — single configured) → send the
+                    flattened transcript as one user message → read summary from the
+                    compression session's own history → write a fresh v0.3 file →
+                    release
 InputTokenCounter → estimates over ConversationHistory (calibrated by Usage events)
 ChatSerializer    → persists ConversationHistory via MessageSerializer (v0.3);
                     imports legacy v0.1/v0.2 files

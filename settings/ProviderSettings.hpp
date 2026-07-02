@@ -6,8 +6,6 @@
 
 #include <utils/aspects.h>
 
-#include "ButtonAspect.hpp"
-
 namespace QodeAssist::Settings {
 
 class ProviderSettings : public Utils::AspectContainer
@@ -15,14 +13,9 @@ class ProviderSettings : public Utils::AspectContainer
 public:
     ProviderSettings();
 
-    ButtonAspect resetToDefaults{this};
-
-    // API Keys
     Utils::StringAspect openRouterApiKey{this};
     Utils::StringAspect openAiCompatApiKey{this};
     Utils::StringAspect claudeApiKey{this};
-    Utils::BoolAspect claudeEnablePromptCaching{this};
-    Utils::BoolAspect claudeUseExtendedCacheTTL{this};
     Utils::StringAspect openAiApiKey{this};
     Utils::StringAspect mistralAiApiKey{this};
     Utils::StringAspect codestralApiKey{this};
@@ -31,10 +24,6 @@ public:
     Utils::StringAspect llamaCppApiKey{this};
     Utils::StringAspect qwenApiKey{this};
     Utils::StringAspect deepSeekApiKey{this};
-
-private:
-    void setupConnections();
-    void resetSettingsToDefaults();
 };
 
 ProviderSettings &providerSettings();
@@ -45,6 +34,7 @@ struct LegacyApiKeyEntry
     QString value;
 };
 
-LegacyApiKeyEntry legacyApiKeyForClientApi(const QString &clientApi);
+LegacyApiKeyEntry legacyApiKeyForClientApi(
+    const QString &clientApi, const QString &instanceName = {});
 
 } // namespace QodeAssist::Settings
