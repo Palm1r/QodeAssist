@@ -1,0 +1,11 @@
+schema_version = 1
+
+extends     = "LM Studio Completion"
+name        = "LM Studio Completion — 24 GB (Gemma 4 26B A4B)"
+description = "Balanced tier FIM completion. Gemma 4 26B-A4B QAT (Q4_0) — ~18 GB resident, 24 GB. Mixture-of-experts (~4B active) keeps completion latency near 12B. Reasoning disabled via reasoning.effort=none. Good values; may hallucinate a line on no-op positions. Point the LM Studio (Responses API) provider URL at your host."
+
+model = "google/gemma-4-26b-a4b-qat"
+tags  = ["completion", "lmstudio", "responses", "local", "gemma4", "24gb"]
+
+[body]
+reasoning = { effort = "none" }

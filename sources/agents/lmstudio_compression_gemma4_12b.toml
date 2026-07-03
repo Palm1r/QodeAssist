@@ -1,0 +1,11 @@
+schema_version = 1
+
+extends     = "LM Studio Compression"
+name        = "LM Studio Compression — 16 GB (Gemma 4 12B)"
+description = "Light tier. Conversation summarization on Gemma 4 12B QAT (Q4_0) — ~10 GB resident, 16 GB. Reasoning disabled via reasoning.effort=none for a direct summary (matches the Ollama compression tiers' think=false); fastest. Point the LM Studio (Responses API) provider URL at your host."
+
+model = "google/gemma-4-12b-qat"
+tags  = ["compression", "lmstudio", "responses", "local", "gemma4", "16gb"]
+
+[body]
+reasoning = { effort = "none" }

@@ -1,0 +1,11 @@
+schema_version = 1
+
+extends     = "LM Studio Quick Refactor"
+name        = "LM Studio Quick Refactor — 24 GB (Gemma 4 26B A4B)"
+description = "Balanced tier. Deterministic inline refactor on Gemma 4 26B-A4B QAT (Q4_0) — ~18 GB resident, 24 GB. Mixture-of-experts (~4B active) so it stays fast. Reasoning disabled via reasoning.effort=none for a fast single shot. temp=0.2, tools off, clean code output (no markdown fences). Point the LM Studio (Responses API) provider URL at your host."
+
+model = "google/gemma-4-26b-a4b-qat"
+tags  = ["refactor", "lmstudio", "responses", "local", "gemma4", "24gb"]
+
+[body]
+reasoning = { effort = "none" }

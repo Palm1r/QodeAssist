@@ -1,0 +1,14 @@
+schema_version = 1
+
+extends     = "LM Studio Chat"
+name        = "LM Studio Chat — 24 GB (Gemma 4 26B A4B)"
+description = "Balanced tier. Local LM Studio coding chat on Gemma 4 26B-A4B QAT (Q4_0) — ~15 GB weights, ~18 GB resident; wants ~24 GB. Mixture-of-experts (~4B active) so it runs at ~12B speed with 26B-class quality — the best all-round pick. Native reasoning + tools + vision. Point the LM Studio (Responses API) provider URL at your host. Note: on LM Studio the context length (KV cache) is a model-load setting, not per-request — the agent's only memory lever is the model."
+
+model           = "google/gemma-4-26b-a4b-qat"
+enable_thinking = true
+tags            = ["chat", "lmstudio", "responses", "local", "gemma4", "24gb"]
+
+[body]
+temperature       = 1.0
+top_p             = 0.95
+max_output_tokens = 16384

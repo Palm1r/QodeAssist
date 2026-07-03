@@ -55,6 +55,14 @@
         <file>lmstudio_completion.toml</file>
         <file>lmstudio_compression.toml</file>
         <file>lmstudio_quick_refactor.toml</file>
+        <file>lmstudio_chat_gemma4_12b.toml</file>
+        <file>lmstudio_chat_gemma4_26b_a4b.toml</file>
+        <file>lmstudio_completion_gemma4_12b.toml</file>
+        <file>lmstudio_completion_gemma4_26b_a4b.toml</file>
+        <file>lmstudio_compression_gemma4_12b.toml</file>
+        <file>lmstudio_compression_gemma4_26b_a4b.toml</file>
+        <file>lmstudio_quick_refactor_gemma4_12b.toml</file>
+        <file>lmstudio_quick_refactor_gemma4_26b_a4b.toml</file>
     </qresource>
     <qresource prefix="/roles">
         <file alias="qt-cpp-developer.md">roles/qt-cpp-developer.md</file>

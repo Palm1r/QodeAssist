@@ -1,0 +1,11 @@
+schema_version = 1
+
+extends     = "LM Studio Completion"
+name        = "LM Studio Completion — 16 GB (Gemma 4 12B)"
+description = "Light tier FIM completion. Gemma 4 12B QAT (Q4_0) — ~10 GB resident, 16 GB. Reasoning disabled via reasoning.effort=none (the only value that fully turns Gemma 4 QAT reasoning off; 'low' still reasons). Fastest; weakest no-op handling of the two tiers. Point the LM Studio (Responses API) provider URL at your host."
+
+model = "google/gemma-4-12b-qat"
+tags  = ["completion", "lmstudio", "responses", "local", "gemma4", "16gb"]
+
+[body]
+reasoning = { effort = "none" }
