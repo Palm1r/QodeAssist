@@ -20,6 +20,7 @@
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QInputDialog>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMessageBox>
@@ -103,7 +104,10 @@ public:
         headerSep->setFrameShadow(QFrame::Sunken);
 
         m_filterEdit = new QLineEdit(this);
-        m_filterEdit->setPlaceholderText(tr("Filter providers…"));
+        m_filterEdit->setPlaceholderText(tr("Filter by name, API, URL…"));
+        m_filterEdit->setClearButtonEnabled(true);
+        m_filterEdit->setToolTip(tr("Type to filter; Up/Down moves through the list."));
+        m_filterEdit->installEventFilter(this);
 
         m_listScroll = new QScrollArea(this);
         m_listScroll->setWidgetResizable(true);
@@ -127,55 +131,88 @@ public:
         leftLay->addWidget(m_listScroll, 1);
 
         m_detailPane = new ProviderDetailPane(this);
-        connect(m_detailPane, &ProviderDetailPane::saveRequested,
-                this, &ProvidersPageWidget::onSaveEdited);
-        connect(m_detailPane, &ProviderDetailPane::duplicateRequested,
-                this, &ProvidersPageWidget::onDuplicateClicked);
-        connect(m_detailPane, &ProviderDetailPane::deleteRequested,
-                this, &ProvidersPageWidget::onRemoveClicked);
-        connect(m_detailPane, &ProviderDetailPane::apiKeySaveRequested,
-                this, &ProvidersPageWidget::onApiKeySave);
-        connect(m_detailPane, &ProviderDetailPane::apiKeyClearRequested,
-                this, &ProvidersPageWidget::onApiKeyClear);
+        connect(
+            m_detailPane,
+            &ProviderDetailPane::saveRequested,
+            this,
+            &ProvidersPageWidget::onSaveEdited);
+        connect(
+            m_detailPane,
+            &ProviderDetailPane::duplicateRequested,
+            this,
+            &ProvidersPageWidget::onDuplicateClicked);
+        connect(
+            m_detailPane,
+            &ProviderDetailPane::deleteRequested,
+            this,
+            &ProvidersPageWidget::onRemoveClicked);
+        connect(
+            m_detailPane,
+            &ProviderDetailPane::apiKeySaveRequested,
+            this,
+            &ProvidersPageWidget::onApiKeySave);
+        connect(
+            m_detailPane,
+            &ProviderDetailPane::apiKeyClearRequested,
+            this,
+            &ProvidersPageWidget::onApiKeyClear);
         connect(
             m_detailPane,
             &ProviderDetailPane::apiKeyRevealRequested,
             this,
             &ProvidersPageWidget::onApiKeyReveal);
-        connect(m_detailPane, &ProviderDetailPane::launchStartRequested,
-                this, &ProvidersPageWidget::onLaunchStart);
-        connect(m_detailPane, &ProviderDetailPane::launchStopRequested,
-                this, &ProvidersPageWidget::onLaunchStop);
-        connect(m_detailPane, &ProviderDetailPane::launchRestartRequested,
-                this, &ProvidersPageWidget::onLaunchRestart);
-        connect(m_detailPane, &ProviderDetailPane::openInEditorRequested,
-                this, [this](const QString &path) {
-                    if (path.isEmpty() || path.startsWith(QLatin1String(":/"))) {
-                        QMessageBox::information(
-                            this, tr("Open in editor"),
-                            tr("Bundled providers are read-only. "
-                               "Use Duplicate to create an editable user copy first."));
-                        return;
-                    }
-                    Core::EditorManager::openEditor(Utils::FilePath::fromString(path));
-                });
+        connect(
+            m_detailPane,
+            &ProviderDetailPane::launchStartRequested,
+            this,
+            &ProvidersPageWidget::onLaunchStart);
+        connect(
+            m_detailPane,
+            &ProviderDetailPane::launchStopRequested,
+            this,
+            &ProvidersPageWidget::onLaunchStop);
+        connect(
+            m_detailPane,
+            &ProviderDetailPane::launchRestartRequested,
+            this,
+            &ProvidersPageWidget::onLaunchRestart);
+        connect(
+            m_detailPane,
+            &ProviderDetailPane::openInEditorRequested,
+            this,
+            [this](const QString &path) {
+                if (path.isEmpty() || path.startsWith(QLatin1String(":/"))) {
+                    QMessageBox::information(
+                        this,
+                        tr("Open in editor"),
+                        tr("Bundled providers are read-only. "
+                           "Use Duplicate to create an editable user copy first."));
+                    return;
+                }
+                Core::EditorManager::openEditor(Utils::FilePath::fromString(path));
+            });
         if (m_launcher) {
-            connect(m_launcher.data(), &Providers::ProviderLauncher::stateChanged,
-                    this, [this](const QString &name,
-                                 Providers::ProviderLauncher::State newState) {
-                        if (name == m_currentName)
-                            refreshDetailLaunch();
-                        const ProviderListItem::Status status = rowStatusFromState(newState);
-                        for (auto *row : m_rows) {
-                            if (row->providerName() == name)
-                                row->setStatus(status);
-                        }
-                    });
-            connect(m_launcher.data(), &Providers::ProviderLauncher::bytesReceived,
-                    this, [this](const QString &name, const QByteArray &chunk) {
-                        if (name == m_currentName)
-                            m_detailPane->appendLaunchBytes(chunk);
-                    });
+            connect(
+                m_launcher.data(),
+                &Providers::ProviderLauncher::stateChanged,
+                this,
+                [this](const QString &name, Providers::ProviderLauncher::State newState) {
+                    if (name == m_currentName)
+                        refreshDetailLaunch();
+                    const ProviderListItem::Status status = rowStatusFromState(newState);
+                    for (auto *row : m_rows) {
+                        if (row->providerName() == name)
+                            row->setStatus(status);
+                    }
+                });
+            connect(
+                m_launcher.data(),
+                &Providers::ProviderLauncher::bytesReceived,
+                this,
+                [this](const QString &name, const QByteArray &chunk) {
+                    if (name == m_currentName)
+                        m_detailPane->appendLaunchBytes(chunk);
+                });
         }
         m_detailScroll = new QScrollArea(this);
         m_detailScroll->setWidgetResizable(true);
@@ -199,26 +236,34 @@ public:
         m_filterDebounce = new QTimer(this);
         m_filterDebounce->setSingleShot(true);
         m_filterDebounce->setInterval(100);
-        connect(m_filterDebounce, &QTimer::timeout, this,
-                &ProvidersPageWidget::rebuildList);
-        connect(m_filterEdit, &QLineEdit::textChanged, this,
-                [this](const QString &) { m_filterDebounce->start(); });
+        connect(m_filterDebounce, &QTimer::timeout, this, &ProvidersPageWidget::rebuildList);
+        connect(m_filterEdit, &QLineEdit::textChanged, this, [this](const QString &) {
+            m_filterDebounce->start();
+        });
 
         if (m_factory) {
-            connect(m_factory.data(),
-                    &Providers::ProviderInstanceFactory::instancesReloaded,
-                    this, &ProvidersPageWidget::rebuildList);
+            connect(
+                m_factory.data(),
+                &Providers::ProviderInstanceFactory::instancesReloaded,
+                this,
+                &ProvidersPageWidget::rebuildList);
         }
         if (m_navigator) {
-            connect(m_navigator.data(),
-                    &ProvidersPageNavigator::selectInstanceRequested,
-                    this, &ProvidersPageWidget::selectInstance);
+            connect(
+                m_navigator.data(),
+                &ProvidersPageNavigator::selectInstanceRequested,
+                this,
+                &ProvidersPageWidget::selectInstance);
         }
 
         rebuildList();
 
-        const QString pending
-            = m_navigator ? m_navigator->takePendingSelection() : QString{};
+        QTimer::singleShot(0, this, [this] {
+            m_filterEdit->setFocus(Qt::OtherFocusReason);
+            m_filterEdit->selectAll();
+        });
+
+        const QString pending = m_navigator ? m_navigator->takePendingSelection() : QString{};
         if (!pending.isEmpty())
             selectInstance(pending);
         else if (m_factory && !m_factory->instances().empty())
@@ -226,6 +271,23 @@ public:
     }
 
     void apply() final {}
+
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override
+    {
+        if (watched == m_filterEdit && event->type() == QEvent::KeyPress) {
+            auto *ke = static_cast<QKeyEvent *>(event);
+            if (ke->key() == Qt::Key_Down) {
+                moveSelection(1);
+                return true;
+            }
+            if (ke->key() == Qt::Key_Up) {
+                moveSelection(-1);
+                return true;
+            }
+        }
+        return Core::IOptionsPageWidget::eventFilter(watched, event);
+    }
 
 private slots:
     void rebuildList()
@@ -245,9 +307,9 @@ private slots:
         auto matches = [&](const Providers::ProviderInstance &inst) {
             if (filter.isEmpty())
                 return true;
-            return inst.name.toLower().contains(filter)
-                   || inst.clientApi.toLower().contains(filter)
-                   || inst.url.toLower().contains(filter);
+            return inst.name.toLower().contains(filter) || inst.clientApi.toLower().contains(filter)
+                   || inst.url.toLower().contains(filter)
+                   || inst.description.toLower().contains(filter);
         };
 
         auto addSection = [&](const QString &title, bool userSection) {
@@ -262,17 +324,18 @@ private slots:
                     continue;
                 sorted.push_back(&inst);
             }
-            std::sort(sorted.begin(), sorted.end(),
-                      [](const Providers::ProviderInstance *a,
-                         const Providers::ProviderInstance *b) {
-                          return a->name.compare(b->name, Qt::CaseInsensitive) < 0;
-                      });
+            std::sort(
+                sorted.begin(),
+                sorted.end(),
+                [](const Providers::ProviderInstance *a, const Providers::ProviderInstance *b) {
+                    return a->name.compare(b->name, Qt::CaseInsensitive) < 0;
+                });
 
             int shown = 0;
             for (const auto *inst : sorted) {
                 auto *row = new ProviderListItem(*inst, m_listContent);
-                connect(row, &ProviderListItem::clicked,
-                        this, &ProvidersPageWidget::selectInstance);
+                row->setFilterHighlight(filter);
+                connect(row, &ProviderListItem::clicked, this, &ProvidersPageWidget::selectInstance);
                 if (m_launcher)
                     row->setStatus(rowStatusFromLauncher(inst->name));
                 m_rows.append(row);
@@ -281,8 +344,7 @@ private slots:
             }
             if (shown == 0) {
                 auto *empty = new QLabel(
-                    userSection ? tr("No user instances yet.")
-                                : tr("No bundled instances loaded."),
+                    userSection ? tr("No user instances yet.") : tr("No bundled instances loaded."),
                     m_listContent);
                 empty->setContentsMargins(10, 6, 10, 6);
                 QPalette ep = empty->palette();
@@ -322,21 +384,25 @@ private slots:
     {
         if (!m_factory || m_currentName.isEmpty())
             return;
-        const Providers::ProviderInstance *srcPtr
-            = m_factory->instanceByName(m_currentName);
+        const Providers::ProviderInstance *srcPtr = m_factory->instanceByName(m_currentName);
         if (!srcPtr)
             return;
         const Providers::ProviderInstance srcCopy = *srcPtr;
         bool ok = false;
         const QString name = QInputDialog::getText(
-            this, tr("Duplicate provider"),
-            tr("Name for the new provider:"), QLineEdit::Normal,
-            QStringLiteral("%1 (copy)").arg(srcCopy.name), &ok);
+            this,
+            tr("Duplicate provider"),
+            tr("Name for the new provider:"),
+            QLineEdit::Normal,
+            QStringLiteral("%1 (copy)").arg(srcCopy.name),
+            &ok);
         if (!ok || name.trimmed().isEmpty())
             return;
         if (m_factory->instanceByName(name.trimmed())) {
-            QMessageBox::warning(this, tr("Duplicate provider"),
-                                 tr("An instance named '%1' already exists.").arg(name.trimmed()));
+            QMessageBox::warning(
+                this,
+                tr("Duplicate provider"),
+                tr("An instance named '%1' already exists.").arg(name.trimmed()));
             return;
         }
         Providers::ProviderInstance copy = srcCopy;
@@ -346,7 +412,8 @@ private slots:
         copy.overridesBundled = false;
         QString writeErr;
         if (Providers::ProviderInstanceWriter::writeToUserDir(
-                copy, /*previousPath=*/QString{}, &writeErr).isEmpty()) {
+                copy, /*previousPath=*/QString{}, &writeErr)
+                .isEmpty()) {
             QMessageBox::warning(this, tr("Duplicate provider"), writeErr);
             return;
         }
@@ -370,8 +437,7 @@ private slots:
     {
         if (!m_factory || m_currentName.isEmpty())
             return;
-        const Providers::ProviderInstance *instPtr
-            = m_factory->instanceByName(m_currentName);
+        const Providers::ProviderInstance *instPtr = m_factory->instanceByName(m_currentName);
         if (!instPtr || !instPtr->isUserSource())
             return;
 
@@ -391,8 +457,8 @@ private slots:
         if (QMessageBox::question(this, tr("Delete provider"), question) != QMessageBox::Yes)
             return;
         if (!QFile::remove(sourcePath)) {
-            QMessageBox::warning(this, tr("Delete provider"),
-                                 tr("Failed to delete file:\n%1").arg(sourcePath));
+            QMessageBox::warning(
+                this, tr("Delete provider"), tr("Failed to delete file:\n%1").arg(sourcePath));
             return;
         }
         if (m_secrets && !apiKeyRef.isEmpty())
@@ -418,8 +484,8 @@ private slots:
         if (e.apiKeyRef.isEmpty() || (nameChanged && e.apiKeyRef == priorRef))
             e.apiKeyRef = QStringLiteral("qodeassist/providers/%1").arg(e.name);
 
-        const QString validation = Providers::ProviderInstance::validate(
-            e, m_factory->knownClientApis());
+        const QString validation
+            = Providers::ProviderInstance::validate(e, m_factory->knownClientApis());
         if (!validation.isEmpty()) {
             QMessageBox::warning(this, tr("Save"), validation);
             return;
@@ -427,8 +493,8 @@ private slots:
         if (nameChanged) {
             const auto *clash = m_factory->instanceByName(e.name);
             if (clash) {
-                QMessageBox::warning(this, tr("Save"),
-                                     tr("An instance named '%1' already exists.").arg(e.name));
+                QMessageBox::warning(
+                    this, tr("Save"), tr("An instance named '%1' already exists.").arg(e.name));
                 return;
             }
             const QStringList referencing = agentsReferencing(priorName);
@@ -449,20 +515,21 @@ private slots:
         }
         const QString softWarning = Providers::ProviderInstance::warnings(e);
         if (!softWarning.isEmpty()) {
-            if (QMessageBox::warning(this, tr("Save"),
-                                     softWarning + QStringLiteral("\n\n")
-                                         + tr("Save anyway?"),
-                                     QMessageBox::Yes | QMessageBox::No,
-                                     QMessageBox::No)
+            if (QMessageBox::warning(
+                    this,
+                    tr("Save"),
+                    softWarning + QStringLiteral("\n\n") + tr("Save anyway?"),
+                    QMessageBox::Yes | QMessageBox::No,
+                    QMessageBox::No)
                 != QMessageBox::Yes)
                 return;
         }
 
-        const QString previousPath
-            = (prior && prior->isUserSource()) ? prior->sourcePath : QString{};
+        const QString previousPath = (prior && prior->isUserSource()) ? prior->sourcePath
+                                                                      : QString{};
         QString writeErr;
-        const QString writtenPath = Providers::ProviderInstanceWriter::writeToUserDir(
-            e, previousPath, &writeErr);
+        const QString writtenPath
+            = Providers::ProviderInstanceWriter::writeToUserDir(e, previousPath, &writeErr);
         if (writtenPath.isEmpty()) {
             QMessageBox::warning(this, tr("Save"), writeErr);
             return;
@@ -472,7 +539,8 @@ private slots:
                    != QFileInfo(previousPath).absoluteFilePath()) {
             if (!QFile::remove(previousPath)) {
                 QMessageBox::warning(
-                    this, tr("Save"),
+                    this,
+                    tr("Save"),
                     tr("Saved to:\n%1\n\nbut could not remove the old file:\n%2\n\n"
                        "Two provider files now describe this instance — delete the "
                        "old file manually to avoid a duplicate-name error.")
@@ -515,15 +583,13 @@ private slots:
     {
         if (!m_factory || !m_secrets || m_currentName.isEmpty())
             return;
-        const Providers::ProviderInstance *instPtr
-            = m_factory->instanceByName(m_currentName);
+        const Providers::ProviderInstance *instPtr = m_factory->instanceByName(m_currentName);
         if (!instPtr || instPtr->apiKeyRef.isEmpty())
             return;
         const QString instName = instPtr->name;
         const QString apiKeyRef = instPtr->apiKeyRef;
         if (QMessageBox::question(
-                this, tr("Clear API key"),
-                tr("Erase the stored API key for '%1'?").arg(instName))
+                this, tr("Clear API key"), tr("Erase the stored API key for '%1'?").arg(instName))
             != QMessageBox::Yes)
             return;
         m_secrets->eraseKey(apiKeyRef);
@@ -558,6 +624,25 @@ private slots:
     }
 
 private:
+    void moveSelection(int delta)
+    {
+        if (m_rows.isEmpty())
+            return;
+        int cur = -1;
+        for (int i = 0; i < m_rows.size(); ++i) {
+            if (m_rows.at(i)->providerName() == m_currentName) {
+                cur = i;
+                break;
+            }
+        }
+        int next = cur < 0 ? (delta > 0 ? 0 : int(m_rows.size()) - 1) : cur + delta;
+        next = qBound(0, next, int(m_rows.size()) - 1);
+        if (next == cur)
+            return;
+        selectInstance(m_rows.at(next)->providerName());
+        m_listScroll->ensureWidgetVisible(m_rows.at(next), 0, 40);
+    }
+
     void populateDetail(const QString &name)
     {
         if (!m_factory)
@@ -567,14 +652,13 @@ private:
             m_detailPane->clear();
             return;
         }
-        const bool hasStoredKey
-            = m_secrets && !inst->apiKeyRef.isEmpty() && m_secrets->hasKey(inst->apiKeyRef);
+        const bool hasStoredKey = m_secrets && !inst->apiKeyRef.isEmpty()
+                                  && m_secrets->hasKey(inst->apiKeyRef);
         m_detailPane->populate(*inst, hasStoredKey);
 
         if (m_launcher) {
-            m_detailPane->setLaunchState(
-                m_launcher->state(inst->name),
-                m_launcher->lastError(inst->name));
+            m_detailPane
+                ->setLaunchState(m_launcher->state(inst->name), m_launcher->lastError(inst->name));
             m_detailPane->resetLaunchTerminal(m_launcher->scrollback(inst->name));
         } else {
             m_detailPane->setLaunchState(Providers::ProviderLauncher::Idle, {});
@@ -607,13 +691,11 @@ private:
     {
         if (!m_launcher || m_currentName.isEmpty())
             return;
-        m_detailPane->setLaunchState(
-            m_launcher->state(m_currentName),
-            m_launcher->lastError(m_currentName));
+        m_detailPane
+            ->setLaunchState(m_launcher->state(m_currentName), m_launcher->lastError(m_currentName));
     }
 
-    static ProviderListItem::Status rowStatusFromState(
-        Providers::ProviderLauncher::State state)
+    static ProviderListItem::Status rowStatusFromState(Providers::ProviderLauncher::State state)
     {
         switch (state) {
         case Providers::ProviderLauncher::Ready:

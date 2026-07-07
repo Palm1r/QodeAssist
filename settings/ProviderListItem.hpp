@@ -9,6 +9,10 @@
 class QLabel;
 class QMouseEvent;
 
+namespace Utils {
+class ElidingLabel;
+}
+
 namespace QodeAssist::Providers {
 struct ProviderInstance;
 }
@@ -21,11 +25,11 @@ class ProviderListItem : public QFrame
 public:
     enum class Status : int { Unknown, Ok, Fail };
 
-    explicit ProviderListItem(
-        const Providers::ProviderInstance &inst, QWidget *parent = nullptr);
+    explicit ProviderListItem(const Providers::ProviderInstance &inst, QWidget *parent = nullptr);
 
     void setStatus(Status s);
     void setSelected(bool s);
+    void setFilterHighlight(const QString &lowerFilter);
     QString providerName() const { return m_name; }
 
 signals:
@@ -38,14 +42,16 @@ protected:
 private:
     static QString statusColor(Status s);
     void applyTheme();
+    void updateNameText();
 
     QString m_name;
+    QString m_filter;
     Status m_status = Status::Unknown;
     bool m_selected = false;
     bool m_inApplyTheme = false;
     QLabel *m_statusDot = nullptr;
     QLabel *m_nameLabel = nullptr;
-    QLabel *m_urlLabel = nullptr;
+    Utils::ElidingLabel *m_urlLabel = nullptr;
 };
 
 } // namespace QodeAssist::Settings

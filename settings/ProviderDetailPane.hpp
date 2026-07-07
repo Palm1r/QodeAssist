@@ -57,7 +57,6 @@ protected:
 private:
     void setEditing(bool on);
     Providers::ProviderInstance collectEdits() const;
-    void applyPreviewPalette();
     void applyTerminalPalette();
 
     bool m_editing = false;
@@ -65,6 +64,7 @@ private:
     Providers::ProviderInstance m_current;
 
     QLabel *m_nameLabel = nullptr;
+    QLabel *m_sourceBadge = nullptr;
     QLabel *m_sourcePathLabel = nullptr;
     QPushButton *m_editBtn = nullptr;
     QPushButton *m_openInEditorBtn = nullptr;
@@ -75,11 +75,11 @@ private:
 
     QLabel *m_descriptionLabel = nullptr;
 
+    SectionBox *m_identitySection = nullptr;
     QLineEdit *m_nameEdit = nullptr;
     QLabel *m_protocolLabel = nullptr;
     QPlainTextEdit *m_descriptionEdit = nullptr;
     QLineEdit *m_urlEdit = nullptr;
-    QLabel *m_samplePreview = nullptr;
 
     QLineEdit *m_apiKeyEdit = nullptr;
     QToolButton *m_revealKeyBtn = nullptr;

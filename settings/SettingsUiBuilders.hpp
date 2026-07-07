@@ -16,6 +16,10 @@ namespace QodeAssist::Settings {
 
 void applyMutedSmallCaps(QLabel *label);
 
+void styleSourceBadge(QLabel *label, bool user);
+
+QString filterHighlightedHtml(const QString &text, const QString &lowerFilter);
+
 QLabel *makeSectionHeader(const QString &title, QWidget *parent);
 
 QLabel *makeHintLabel(const QString &text, QWidget *parent = nullptr);

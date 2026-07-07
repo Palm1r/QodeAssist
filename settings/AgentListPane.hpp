@@ -4,11 +4,11 @@
 
 #pragma once
 
+#include <vector>
 #include <QFrame>
 #include <QList>
 #include <QSet>
 #include <QString>
-#include <vector>
 
 #include <AgentConfig.hpp>
 
@@ -35,15 +35,19 @@ public:
     QString currentName() const { return m_currentName; }
     void selectByName(const QString &name);
     void refresh();
+    void focusFilter();
+    TagFilterStrip *tagStrip() const { return m_tagStrip; }
 
 signals:
     void currentAgentChanged(const QString &name);
 
 protected:
     void changeEvent(QEvent *event) override;
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private:
     void rebuildList();
+    void moveSelection(int delta);
     void applyFilterHolderTheme();
     bool matchesFilters(const AgentConfig &a, const QString &lowerFilter) const;
     std::vector<const AgentConfig *> visibleAgents() const;
@@ -60,7 +64,7 @@ private:
     QScrollArea *m_listScroll = nullptr;
     QList<AgentListItem *> m_rows;
     QString m_currentName;
-    QSet<QString> m_expandedGroups;
+    QSet<QString> m_collapsedGroups;
     bool m_notifyOnRebuild = false;
 };
 

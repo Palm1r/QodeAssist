@@ -26,6 +26,7 @@ public:
     void setAvailableTags(const QMap<QString, int> &countsByTag);
     void setAvailableTags(const QMap<QString, int> &countsByTag, const QSet<QString> &activeTags);
     void setVisibleCounts(const QMap<QString, int> &countsByTag);
+    void setMaxColumns(int columns);
     const QSet<QString> &activeTags() const { return m_activeTags; }
     void toggleTag(const QString &tag);
 
@@ -42,6 +43,7 @@ private:
 
     QMap<QString, int> m_counts;
     QSet<QString> m_activeTags;
+    int m_maxColumns = 3;
     QVBoxLayout *m_layout = nullptr;
     QHash<QString, TagChip *> m_chipByTag;
     QLabel *m_clearLink = nullptr;

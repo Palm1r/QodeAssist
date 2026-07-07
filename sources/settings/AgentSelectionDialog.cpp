@@ -7,6 +7,7 @@
 #include "Pill.hpp"
 #include "PipelinesConfig.hpp"
 #include "SettingsTr.hpp"
+#include "SettingsUiBuilders.hpp"
 #include "TagFilterStrip.hpp"
 
 #include <coreplugin/icore.h>
@@ -19,9 +20,11 @@
 #include <QEvent>
 #include <QFont>
 #include <QHBoxLayout>
+#include <QKeyEvent>
 #include <QLineEdit>
 #include <QMap>
 #include <QMouseEvent>
+#include <QPointer>
 #include <QPushButton>
 #include <QScopedValueRollback>
 #include <QScrollArea>
@@ -62,6 +65,11 @@ bool ListRowCard::hasAllTags(const QSet<QString> &activeTags) const
         if (!m_itemTags.contains(tag))
             return false;
     return true;
+}
+
+void ListRowCard::setFilterHighlight(const QString &lowerNeedle)
+{
+    Q_UNUSED(lowerNeedle)
 }
 
 void ListRowCard::buildSearchHaystack(const QStringList &parts)
@@ -121,9 +129,8 @@ void ListRowCard::applyTheme()
     } else if (m_hover) {
         bg = t.hoverBg;
     }
-    setStyleSheet(QStringLiteral(
-                      "#ListRowCard { background-color: %1; border: 1px solid %2; }")
-                      .arg(bg, bd));
+    setStyleSheet(
+        QStringLiteral("#ListRowCard { background-color: %1; border: 1px solid %2; }").arg(bg, bd));
 }
 
 AgentRowCard::AgentRowCard(const AgentConfig &cfg, QWidget *parent)
@@ -136,19 +143,25 @@ AgentRowCard::AgentRowCard(const AgentConfig &cfg, QWidget *parent)
     haystack += cfg.tags;
     buildSearchHaystack(haystack);
 
-    auto *name = new QLabel(cfg.name, this);
+    auto *name = new QLabel(cfg.name.toHtmlEscaped(), this);
     QFont nameFont = name->font();
     nameFont.setBold(true);
     nameFont.setPixelSize(13);
     name->setFont(nameFont);
     name->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
+    name->setTextFormat(Qt::RichText);
+    m_nameLabel = name;
 
     QLabel *model = nullptr;
     if (!cfg.model.isEmpty()) {
-        model = new QLabel(QStringLiteral("· %1").arg(cfg.model), this);
+        model = new QLabel(cfg.model.toHtmlEscaped(), this);
         model->setFont(CardStyle::monoFont(11));
         model->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
         model->setMinimumWidth(0);
+        model->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+        model->setTextFormat(Qt::RichText);
+        m_modelLabel = model;
+        m_model = cfg.model;
     }
 
     Pill *sourcePill = nullptr;
@@ -156,47 +169,21 @@ AgentRowCard::AgentRowCard(const AgentConfig &cfg, QWidget *parent)
         sourcePill = new Pill(Pill::User, Tr::tr("User"), this);
     }
 
-    auto *description = new QLabel(this);
-    description->setWordWrap(false);
-    QFont descFont = description->font();
-    descFont.setItalic(true);
-    description->setFont(descFont);
-    description->setText(cfg.description.isEmpty()
-                             ? Tr::tr("No description provided.")
-                             : cfg.description);
-    description->setMinimumWidth(0);
-    description->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
-    description->setTextInteractionFlags(Qt::NoTextInteraction);
-
-    QStringList endpointParts;
-    if (!cfg.endpoint.isEmpty())
-        endpointParts << cfg.endpoint;
-    endpointParts << (cfg.enableThinking ? Tr::tr("thinking") : Tr::tr("no-thinking"));
-    endpointParts << (cfg.enableTools ? Tr::tr("tools") : Tr::tr("no-tools"));
-
-    auto *endpoint = new QLabel(endpointParts.join(QStringLiteral(" · ")), this);
-    endpoint->setFont(CardStyle::monoFont(11));
-    endpoint->setMinimumWidth(0);
-    endpoint->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
-    endpoint->setTextInteractionFlags(Qt::NoTextInteraction);
-
     auto *headerRow = new QHBoxLayout;
     headerRow->setContentsMargins(0, 0, 0, 0);
     headerRow->setSpacing(6);
     headerRow->addWidget(name);
+    if (sourcePill)
+        headerRow->addWidget(sourcePill);
     if (model)
         headerRow->addWidget(model, 1);
     else
         headerRow->addStretch(1);
-    if (sourcePill)
-        headerRow->addWidget(sourcePill);
 
     auto *outer = new QVBoxLayout(this);
-    outer->setContentsMargins(10, 8, 10, 8);
-    outer->setSpacing(3);
+    outer->setContentsMargins(8, 5, 8, 5);
+    outer->setSpacing(2);
     outer->addLayout(headerRow);
-    outer->addWidget(description);
-    outer->addWidget(endpoint);
 
     if (!cfg.tags.isEmpty()) {
         constexpr int kMaxTagPills = 4;
@@ -207,10 +194,8 @@ AgentRowCard::AgentRowCard(const AgentConfig &cfg, QWidget *parent)
         for (int i = 0; i < std::min(tagCount, kMaxTagPills); ++i)
             tagsRow->addWidget(new Pill(Pill::Tag, cfg.tags.at(i), this));
         if (tagCount > kMaxTagPills) {
-            auto *more = new Pill(
-                Pill::Tag,
-                QStringLiteral("+%1").arg(tagCount - kMaxTagPills),
-                this);
+            auto *more
+                = new Pill(Pill::Tag, QStringLiteral("+%1").arg(tagCount - kMaxTagPills), this);
             more->setToolTip(cfg.tags.mid(kMaxTagPills).join(QStringLiteral(", ")));
             tagsRow->addWidget(more);
         }
@@ -218,30 +203,43 @@ AgentRowCard::AgentRowCard(const AgentConfig &cfg, QWidget *parent)
         outer->addLayout(tagsRow);
     }
 
-    const auto t = CardStyle::toneFor(CardStyle::isDark(palette()));
-    QPalette descPal = description->palette();
-    descPal.setColor(QPalette::WindowText,
-                     QColor(cfg.description.isEmpty() ? t.textFaint : t.textSoft));
-    description->setPalette(descPal);
-    QPalette endPal = endpoint->palette();
-    endPal.setColor(QPalette::WindowText, QColor(t.textFaint));
-    endpoint->setPalette(endPal);
     if (model) {
+        const auto t = CardStyle::toneFor(CardStyle::isDark(palette()));
         QPalette mp = model->palette();
         mp.setColor(QPalette::WindowText, QColor(t.textMute));
         model->setPalette(mp);
     }
 
+    QStringList capabilityParts;
+    if (!cfg.endpoint.isEmpty())
+        capabilityParts << cfg.endpoint;
+    capabilityParts << (cfg.enableThinking ? Tr::tr("thinking") : Tr::tr("no-thinking"));
+    capabilityParts << (cfg.enableTools ? Tr::tr("tools") : Tr::tr("no-tools"));
+
     QString tooltip;
     if (!cfg.description.isEmpty())
         tooltip += cfg.description + QStringLiteral("\n\n");
+    if (!cfg.model.isEmpty())
+        tooltip += Tr::tr("Model: %1\n").arg(cfg.model);
     if (!cfg.providerInstance.isEmpty())
         tooltip += Tr::tr("Provider instance: %1\n").arg(cfg.providerInstance);
     if (!cfg.systemPrompt.isEmpty())
         tooltip += Tr::tr("System prompt: %1\n").arg(cfg.systemPrompt);
-    if (!cfg.endpoint.isEmpty())
-        tooltip += Tr::tr("Endpoint: %1\n").arg(cfg.endpoint);
+    tooltip += capabilityParts.join(QStringLiteral(" · "));
+    if (!cfg.tags.isEmpty())
+        tooltip += QStringLiteral("\n")
+                   + Tr::tr("Tags: %1").arg(cfg.tags.join(QStringLiteral(", ")));
     setToolTip(tooltip.trimmed());
+}
+
+void AgentRowCard::setFilterHighlight(const QString &lowerNeedle)
+{
+    if (m_lowerNeedle == lowerNeedle)
+        return;
+    m_lowerNeedle = lowerNeedle;
+    m_nameLabel->setText(filterHighlightedHtml(itemName(), lowerNeedle));
+    if (m_modelLabel)
+        m_modelLabel->setText(filterHighlightedHtml(m_model, lowerNeedle));
 }
 
 ProviderSection::ProviderSection(const QString &name, QWidget *parent)
@@ -297,10 +295,12 @@ void ProviderSection::addCard(ListRowCard *card)
 
 int ProviderSection::applyFilter(const QString &needle, const QSet<QString> &activeTags)
 {
+    const QString lowerNeedle = needle.toLower();
     int visible = 0;
     for (auto *card : m_cards) {
         const bool show = card->matches(needle) && card->hasAllTags(activeTags);
         card->setVisible(show);
+        card->setFilterHighlight(lowerNeedle);
         if (show)
             ++visible;
     }
@@ -350,9 +350,10 @@ AgentSelectionDialog::AgentSelectionDialog(
         m_localConfigs = configs;
 
     m_filter = new QLineEdit(this);
-    m_filter->setPlaceholderText(
-        Tr::tr("Filter by name, provider, model, template, description…"));
+    m_filter->setPlaceholderText(Tr::tr("Filter by name, provider, model, template, description…"));
     m_filter->setClearButtonEnabled(true);
+    m_filter->setToolTip(Tr::tr("Type to filter; Up/Down moves through the list."));
+    m_filter->installEventFilter(this);
 
     auto *topRow = new QHBoxLayout;
     topRow->setContentsMargins(0, 0, 0, 0);
@@ -360,6 +361,7 @@ AgentSelectionDialog::AgentSelectionDialog(
     topRow->addWidget(m_filter, 1);
 
     m_tagStrip = new TagFilterStrip(this);
+    m_tagStrip->setMaxColumns(6);
 
     const bool dark = CardStyle::isDark(palette());
     const auto tone = CardStyle::toneFor(dark);
@@ -389,8 +391,7 @@ AgentSelectionDialog::AgentSelectionDialog(
     m_scroll->setFrameShape(QFrame::StyledPanel);
     m_scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
-    auto *buttons
-        = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
+    auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     m_okButton = buttons->button(QDialogButtonBox::Ok);
     m_okButton->setText(isChange ? Tr::tr("Change") : Tr::tr("Add"));
     m_okButton->setEnabled(false);
@@ -442,6 +443,59 @@ void AgentSelectionDialog::setAllExpanded(bool expanded)
             section->setExpanded(expanded);
 }
 
+bool AgentSelectionDialog::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == m_filter && event->type() == QEvent::KeyPress) {
+        auto *ke = static_cast<QKeyEvent *>(event);
+        if (ke->key() == Qt::Key_Down) {
+            moveSelection(1);
+            return true;
+        }
+        if (ke->key() == Qt::Key_Up) {
+            moveSelection(-1);
+            return true;
+        }
+    }
+    return QDialog::eventFilter(watched, event);
+}
+
+QList<ListRowCard *> AgentSelectionDialog::filteredCards() const
+{
+    const QString needle = m_filter ? m_filter->text().trimmed() : QString();
+    const QSet<QString> activeTags = m_tagStrip ? m_tagStrip->activeTags() : QSet<QString>();
+    QList<ListRowCard *> out;
+    for (auto *section : m_sections)
+        for (auto *card : section->cards())
+            if (card->matches(needle) && card->hasAllTags(activeTags))
+                out.append(card);
+    return out;
+}
+
+void AgentSelectionDialog::moveSelection(int delta)
+{
+    const QList<ListRowCard *> cards = filteredCards();
+    if (cards.isEmpty())
+        return;
+    const int cur = m_currentCard ? int(cards.indexOf(m_currentCard)) : -1;
+    int next = cur < 0 ? (delta > 0 ? 0 : int(cards.size()) - 1) : cur + delta;
+    next = qBound(0, next, int(cards.size()) - 1);
+    if (next == cur)
+        return;
+    ListRowCard *card = cards.at(next);
+    for (auto *section : m_sections) {
+        if (section->cards().contains(card)) {
+            section->setExpanded(true);
+            break;
+        }
+    }
+    selectCard(card);
+    QPointer<ListRowCard> guarded(card);
+    QTimer::singleShot(0, this, [this, guarded] {
+        if (guarded)
+            m_scroll->ensureWidgetVisible(guarded, 0, 40);
+    });
+}
+
 void AgentSelectionDialog::selectCard(ListRowCard *card)
 {
     if (m_currentCard == card)
@@ -467,8 +521,7 @@ void AgentSelectionDialog::rebuild(const QString &currentName)
     if (m_okButton)
         m_okButton->setEnabled(false);
 
-    const auto &configs
-        = m_agentFactory ? m_agentFactory->configs() : m_localConfigs;
+    const auto &configs = m_agentFactory ? m_agentFactory->configs() : m_localConfigs;
 
     auto *content = new QWidget;
     auto *contentLayout = new QVBoxLayout(content);
@@ -479,9 +532,8 @@ void AgentSelectionDialog::rebuild(const QString &currentName)
     for (const auto &cfg : configs) {
         if (cfg.hidden)
             continue;
-        const QString key = cfg.providerInstance.isEmpty()
-                                ? Tr::tr("(Unknown provider instance)")
-                                : cfg.providerInstance;
+        const QString key = cfg.providerInstance.isEmpty() ? Tr::tr("(Unknown provider instance)")
+                                                           : cfg.providerInstance;
         byProvider[key].push_back(&cfg);
     }
 
@@ -491,12 +543,13 @@ void AgentSelectionDialog::rebuild(const QString &currentName)
     for (auto it = byProvider.cbegin(); it != byProvider.cend(); ++it) {
         auto *section = new ProviderSection(it.key());
         auto sortedConfigs = it.value();
-        std::sort(sortedConfigs.begin(), sortedConfigs.end(),
-                  [](const AgentConfig *a, const AgentConfig *b) { return a->name < b->name; });
+        std::sort(
+            sortedConfigs.begin(),
+            sortedConfigs.end(),
+            [](const AgentConfig *a, const AgentConfig *b) { return a->name < b->name; });
         for (const AgentConfig *cfg : sortedConfigs) {
             auto *card = new AgentRowCard(*cfg);
-            connect(card, &ListRowCard::clicked, this,
-                    [this, card]() { selectCard(card); });
+            connect(card, &ListRowCard::clicked, this, [this, card]() { selectCard(card); });
             connect(card, &ListRowCard::activated, this, [this, card]() {
                 selectCard(card);
                 accept();
@@ -554,6 +607,8 @@ void AgentSelectionDialog::applyFilters()
             section->setExpanded(visible > 0);
         total += visible;
     }
+    if (m_currentCard && (!m_currentCard->matches(needle) || !m_currentCard->hasAllTags(activeTags)))
+        selectCard(nullptr);
     if (m_emptyLabel)
         m_emptyLabel->setVisible(total == 0);
     if (m_resultCount)

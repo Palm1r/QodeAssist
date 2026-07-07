@@ -19,6 +19,7 @@
 #include <QEvent>
 #include <QFont>
 #include <QHBoxLayout>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMap>
@@ -37,8 +38,13 @@ AgentListPane::AgentListPane(AgentFactory *factory, QWidget *parent)
     setFrameShape(QFrame::StyledPanel);
 
     m_filterEdit = new QLineEdit(this);
-    m_filterEdit->setPlaceholderText(tr("Filter agents…"));
+    m_filterEdit->setPlaceholderText(tr("Filter by name, model, provider, tag…"));
     m_filterEdit->setClearButtonEnabled(true);
+    m_filterEdit->setToolTip(tr("Type to filter; Up/Down moves through the list."));
+    m_filterEdit->installEventFilter(this);
+    setFocusProxy(m_filterEdit);
+
+    m_tagStrip = new TagFilterStrip(this);
 
     auto *filterRow = new QHBoxLayout;
     filterRow->setContentsMargins(6, 6, 6, 6);
@@ -47,8 +53,6 @@ AgentListPane::AgentListPane(AgentFactory *factory, QWidget *parent)
     m_filterHolder->setObjectName(QStringLiteral("FilterHolder"));
     m_filterHolder->setLayout(filterRow);
     m_filterHolder->setAutoFillBackground(true);
-
-    m_tagStrip = new TagFilterStrip(this);
 
     m_listScroll = new QScrollArea(this);
     m_listScroll->setWidgetResizable(true);
@@ -59,19 +63,22 @@ AgentListPane::AgentListPane(AgentFactory *factory, QWidget *parent)
     outer->setContentsMargins(0, 0, 0, 0);
     outer->setSpacing(0);
     outer->addWidget(m_filterHolder);
-    outer->addWidget(m_tagStrip);
     outer->addWidget(m_listScroll, 1);
 
     m_filterDebounce = new QTimer(this);
     m_filterDebounce->setSingleShot(true);
     m_filterDebounce->setInterval(100);
     connect(m_filterDebounce, &QTimer::timeout, this, &AgentListPane::rebuildList);
-    connect(m_filterEdit, &QLineEdit::textChanged, this,
-            [this](const QString &) { m_filterDebounce->start(); });
+    connect(m_filterEdit, &QLineEdit::textChanged, this, [this](const QString &) {
+        m_filterDebounce->start();
+    });
 
-    connect(m_tagStrip, &TagFilterStrip::activeTagsChanged, this,
-            [this](const QSet<QString> &) { rebuildList(); },
-            Qt::QueuedConnection);
+    connect(
+        m_tagStrip,
+        &TagFilterStrip::activeTagsChanged,
+        this,
+        [this](const QSet<QString> &) { rebuildList(); },
+        Qt::QueuedConnection);
 
     if (m_factory) {
         connect(m_factory, &AgentFactory::agentModelChanged, this, [this](const QString &name) {
@@ -93,7 +100,7 @@ void AgentListPane::selectByName(const QString &name)
         return;
     if (m_factory) {
         if (const AgentConfig *cfg = m_factory->configByName(name))
-            m_expandedGroups.insert(groupKey(*cfg));
+            m_collapsedGroups.remove(groupKey(*cfg));
     }
     setCurrentNameInternal(name, false);
     m_notifyOnRebuild = true;
@@ -121,11 +128,52 @@ void AgentListPane::refresh()
     rebuildList();
 }
 
+void AgentListPane::focusFilter()
+{
+    m_filterEdit->setFocus(Qt::OtherFocusReason);
+    m_filterEdit->selectAll();
+}
+
 void AgentListPane::changeEvent(QEvent *event)
 {
     QFrame::changeEvent(event);
     if (event->type() == QEvent::PaletteChange || event->type() == QEvent::StyleChange)
         applyFilterHolderTheme();
+}
+
+bool AgentListPane::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == m_filterEdit && event->type() == QEvent::KeyPress) {
+        auto *ke = static_cast<QKeyEvent *>(event);
+        if (ke->key() == Qt::Key_Down) {
+            moveSelection(1);
+            return true;
+        }
+        if (ke->key() == Qt::Key_Up) {
+            moveSelection(-1);
+            return true;
+        }
+    }
+    return QFrame::eventFilter(watched, event);
+}
+
+void AgentListPane::moveSelection(int delta)
+{
+    if (m_rows.isEmpty())
+        return;
+    int cur = -1;
+    for (int i = 0; i < m_rows.size(); ++i) {
+        if (m_rows.at(i)->agentName() == m_currentName) {
+            cur = i;
+            break;
+        }
+    }
+    int next = cur < 0 ? (delta > 0 ? 0 : int(m_rows.size()) - 1) : cur + delta;
+    next = qBound(0, next, int(m_rows.size()) - 1);
+    if (next == cur)
+        return;
+    setCurrentNameInternal(m_rows.at(next)->agentName(), true);
+    m_listScroll->ensureWidgetVisible(m_rows.at(next), 0, 40);
 }
 
 void AgentListPane::applyFilterHolderTheme()
@@ -156,9 +204,14 @@ std::vector<const AgentConfig *> AgentListPane::visibleAgents() const
 
 bool AgentListPane::matchesFilters(const AgentConfig &a, const QString &lowerFilter) const
 {
-    if (!lowerFilter.isEmpty()
-        && !(a.name + QLatin1Char(' ') + a.model).toLower().contains(lowerFilter))
-        return false;
+    if (!lowerFilter.isEmpty()) {
+        const QString haystack = (a.name + QLatin1Char(' ') + a.model + QLatin1Char(' ')
+                                  + a.providerInstance + QLatin1Char(' ')
+                                  + a.tags.join(QLatin1Char(' ')))
+                                     .toLower();
+        if (!haystack.contains(lowerFilter))
+            return false;
+    }
     const QSet<QString> &active = m_tagStrip->activeTags();
     for (const QString &t : active)
         if (!a.tags.contains(t))
@@ -199,14 +252,8 @@ void AgentListPane::rebuildList()
         for (const AgentConfig *cfg : agents) {
             auto *item = new AgentListItem(*cfg, content);
             item->setSelected(cfg->name == m_currentName);
-            item->setActiveTags(activeTags);
+            item->setFilterHighlight(lowerFilter);
             connect(item, &AgentListItem::clicked, this, &AgentListPane::onRowClicked);
-            connect(
-                item,
-                &AgentListItem::tagClicked,
-                this,
-                [this](const QString &tag) { m_tagStrip->toggleTag(tag); },
-                Qt::QueuedConnection);
             contentLayout->addWidget(item);
             newRows.append(item);
         }
@@ -231,7 +278,7 @@ void AgentListPane::rebuildList()
             const std::vector<const AgentConfig *> &group = byProvider[provider];
             const QString key = sectionKey + QLatin1Char('/') + provider;
             liveKeys.insert(key);
-            const bool expanded = filtersActive || m_expandedGroups.contains(key);
+            const bool expanded = filtersActive || !m_collapsedGroups.contains(key);
 
             auto *header = new CollapsibleHeader(provider, int(group.size()), content);
             header->setExpanded(expanded);
@@ -242,8 +289,8 @@ void AgentListPane::rebuildList()
                     &CollapsibleHeader::toggled,
                     this,
                     [this, key] {
-                        if (!m_expandedGroups.remove(key))
-                            m_expandedGroups.insert(key);
+                        if (!m_collapsedGroups.remove(key))
+                            m_collapsedGroups.insert(key);
                         rebuildList();
                     },
                     Qt::QueuedConnection);
@@ -258,7 +305,7 @@ void AgentListPane::rebuildList()
     addSection(tr("User"), QStringLiteral("user"), userAgents);
     addSection(tr("Bundled"), QStringLiteral("bundled"), bundledAgents);
     if (!filtersActive)
-        m_expandedGroups.intersect(liveKeys);
+        m_collapsedGroups.intersect(liveKeys);
     if (userAgents.empty() && bundledAgents.empty()) {
         auto *empty = new QLabel(tr("No agents match these filters."), content);
         empty->setAlignment(Qt::AlignCenter);
@@ -273,10 +320,9 @@ void AgentListPane::rebuildList()
     m_rows = newRows;
     m_listScroll->setWidget(content);
 
-    const AgentConfig *current
-        = m_currentName.isEmpty() || !m_factory
-              ? nullptr
-              : m_factory->configByName(m_currentName);
+    const AgentConfig *current = m_currentName.isEmpty() || !m_factory
+                                     ? nullptr
+                                     : m_factory->configByName(m_currentName);
     if (!current && !m_rows.isEmpty()) {
         const QString fallback = m_rows.front()->agentName();
         m_rows.front()->setSelected(true);

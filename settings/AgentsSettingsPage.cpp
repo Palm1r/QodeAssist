@@ -8,24 +8,21 @@
 #include "AgentDuplicator.hpp"
 #include "AgentListPane.hpp"
 #include "SettingsConstants.hpp"
-#include "SettingsTheme.hpp"
+#include "TagFilterStrip.hpp"
 
 #include <coreplugin/dialogs/ioptionspage.h>
 #include <coreplugin/editormanager/editormanager.h>
 
 #include <utils/filepath.h>
-#include <utils/theme/theme.h>
 
 #include <QDesktopServices>
 #include <QDir>
 #include <QFile>
 #include <QFont>
-#include <QFontMetrics>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMessageBox>
-#include <QPalette>
 #include <QPointer>
 #include <QPushButton>
 #include <QScrollArea>
@@ -76,13 +73,7 @@ public:
 
         m_reload = new QPushButton(tr("Reload from disk"), this);
         m_openUserDir = new QPushButton(tr("Open agents folder"), this);
-
-        m_userPathLabel = new QLabel(this);
-        m_userPathLabel->setFont(monospaceFont(11));
-        QPalette mutedPal = m_userPathLabel->palette();
-        mutedPal.setColor(QPalette::WindowText, Utils::creatorColor(Utils::Theme::PanelTextColorMid));
-        m_userPathLabel->setPalette(mutedPal);
-        m_userPathLabel->setMaximumWidth(260);
+        m_openUserDir->setToolTip(QodeAssist::AgentFactory::userAgentsDir());
 
         auto *headerRow = new QHBoxLayout;
         headerRow->setContentsMargins(0, 0, 0, 0);
@@ -90,7 +81,6 @@ public:
         headerRow->addWidget(m_titleLabel);
         headerRow->addStretch(1);
         headerRow->addWidget(m_reload);
-        headerRow->addWidget(m_userPathLabel);
         headerRow->addWidget(m_openUserDir);
 
         auto *headerSep = new QFrame(this);
@@ -98,6 +88,7 @@ public:
         headerSep->setFrameShadow(QFrame::Sunken);
 
         m_listPane = new AgentListPane(m_agentFactory, this);
+        m_listPane->tagStrip()->setMaxColumns(8);
 
         m_detail = new AgentDetailPane(this);
         m_detail->setInstanceFactory(m_agentFactory->instanceFactory());
@@ -119,6 +110,7 @@ public:
         root->setSpacing(6);
         root->addLayout(headerRow);
         root->addWidget(headerSep);
+        root->addWidget(m_listPane->tagStrip());
         root->addWidget(splitter, 1);
 
         connect(m_reload, &QPushButton::clicked, this, &AgentsWidget::reloadFromDisk);
@@ -153,6 +145,8 @@ public:
 
         reloadFromDisk();
 
+        QTimer::singleShot(0, this, [this] { m_listPane->focusFilter(); });
+
         if (m_navigator) {
             QTimer::singleShot(0, this, [this] {
                 if (!m_navigator)
@@ -170,16 +164,7 @@ private:
     void reloadFromDisk()
     {
         m_agentFactory->reload();
-        updateUserPathLabel();
         m_listPane->refresh();
-    }
-
-    void updateUserPathLabel()
-    {
-        const QString dir = QodeAssist::AgentFactory::userAgentsDir();
-        m_userPathLabel->setText(
-            QFontMetrics(m_userPathLabel->font()).elidedText(dir, Qt::ElideLeft, 256));
-        m_userPathLabel->setToolTip(dir);
     }
 
     void openAgentInEditor(const AgentConfig &agent)
@@ -253,7 +238,6 @@ private:
     QLabel *m_titleLabel = nullptr;
     QPushButton *m_reload = nullptr;
     QPushButton *m_openUserDir = nullptr;
-    QLabel *m_userPathLabel = nullptr;
 
     AgentListPane *m_listPane = nullptr;
     QScrollArea *m_detailScroll = nullptr;

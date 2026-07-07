@@ -24,7 +24,7 @@ add_library(QodeAssistSettings STATIC
     UpdateDialog.hpp UpdateDialog.cpp
     AgentsSettingsPage.hpp AgentsSettingsPage.cpp
     AgentDetailPane.hpp AgentDetailPane.cpp
-    AgentModelDialog.hpp AgentModelDialog.cpp
+    ModelSelector.hpp ModelSelector.cpp
     AgentListItem.hpp AgentListItem.cpp
     AgentListPane.hpp AgentListPane.cpp
     AgentDuplicator.hpp AgentDuplicator.cpp

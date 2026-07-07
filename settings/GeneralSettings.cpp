@@ -8,6 +8,8 @@
 #include <coreplugin/editormanager/editormanager.h>
 #include <coreplugin/icore.h>
 #include <coreplugin/idocument.h>
+#include <extensionsystem/pluginmanager.h>
+#include <extensionsystem/pluginspec.h>
 #include <utils/infolabel.h>
 #include <utils/layoutbuilder.h>
 #include <QFont>
@@ -42,6 +44,16 @@ GeneralSettings &generalSettings()
 namespace {
 
 constexpr int kSaveDebounceMs = 300;
+
+QString pluginVersionText()
+{
+    const auto pluginSpecs = ExtensionSystem::PluginManager::plugins();
+    for (const ExtensionSystem::PluginSpec *spec : pluginSpecs) {
+        if (spec->name() == QLatin1String("QodeAssist"))
+            return QStringLiteral("QodeAssist %1").arg(spec->version());
+    }
+    return QStringLiteral("QodeAssist");
+}
 
 class AgentPipelinesWidget : public QWidget
 {
@@ -261,12 +273,13 @@ GeneralSettings::GeneralSettings()
 
     requestTimeout.setSettingsKey(Constants::REQUEST_TIMEOUT);
     requestTimeout.setLabelText(Tr::tr("Request timeout (seconds):"));
-    requestTimeout.setToolTip(Tr::tr(
-        "Maximum time to wait for the model to send data before a request is aborted. "
-        "Applies to all requests — chat, code completion, quick refactor and chat compression. "
-        "The timer resets every time data is received, so this effectively limits the "
-        "time-to-first-token and any stall between tokens. Increase it for slow or local "
-        "models that need a long time to start responding. Set to 0 to disable the timeout."));
+    requestTimeout.setToolTip(
+        Tr::tr(
+            "Maximum time to wait for the model to send data before a request is aborted. "
+            "Applies to all requests — chat, code completion, quick refactor and chat compression. "
+            "The timer resets every time data is received, so this effectively limits the "
+            "time-to-first-token and any stall between tokens. Increase it for slow or local "
+            "models that need a long time to start responding. Set to 0 to disable the timeout."));
     requestTimeout.setRange(0, 3600);
     requestTimeout.setDefaultValue(120);
 
@@ -282,9 +295,15 @@ GeneralSettings::GeneralSettings()
     setLayouter([this]() {
         using namespace Layouting;
 
-        auto networkGroup = Group{
-            title(Tr::tr("Network")),
-            Column{Row{requestTimeout, Stretch{1}}}};
+        auto *versionLabel = new QLabel(pluginVersionText());
+        versionLabel->setEnabled(false);
+
+        auto advancedGroup = Group{
+            title(Tr::tr("Advanced")),
+            Column{
+                Row{enableLogging, Stretch{1}},
+                Row{enableCheckUpdate, Stretch{1}},
+                Row{requestTimeout, Stretch{1}}}};
 
         auto *supportLabel = new QLabel(Tr::tr("Support the development of QodeAssist:"));
 
@@ -307,16 +326,13 @@ GeneralSettings::GeneralSettings()
         };
 
         return Column{
-            Row{supportLabel, supportLinks, Stretch{1}, checkUpdate, resetToDefaults},
-            Space{8},
-            Row{enableQodeAssist, Stretch{1}},
-            Row{enableLogging, Stretch{1}},
-            Row{enableCheckUpdate, Stretch{1}},
-            Space{8},
-            networkGroup,
+            Row{enableQodeAssist, Stretch{1}, versionLabel, checkUpdate, resetToDefaults},
             Space{12},
             pipelines,
-            Stretch{1}};
+            Space{12},
+            advancedGroup,
+            Stretch{1},
+            Row{supportLabel, supportLinks, Stretch{1}}};
     });
 }
 

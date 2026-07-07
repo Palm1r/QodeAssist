@@ -4,12 +4,10 @@
 
 #include "AgentDetailPane.hpp"
 
-#include "AgentModelDialog.hpp"
+#include "ModelSelector.hpp"
 #include "SectionBox.hpp"
 #include "SettingsTheme.hpp"
 #include "SettingsUiBuilders.hpp"
-
-#include <optional>
 
 #include <utils/theme/theme.h>
 
@@ -84,6 +82,9 @@ AgentDetailPane::AgentDetailPane(QWidget *parent)
     m_name->setFont(nf);
     m_name->setTextInteractionFlags(Qt::TextSelectableByMouse);
 
+    m_sourceBadge = new QLabel(this);
+    m_sourceBadge->setVisible(false);
+
     m_path = new QLabel(this);
     m_path->setFont(monospaceFont(11));
     m_path->setTextInteractionFlags(Qt::TextSelectableByMouse);
@@ -91,19 +92,19 @@ AgentDetailPane::AgentDetailPane(QWidget *parent)
     pp.setColor(QPalette::WindowText, Utils::creatorColor(Utils::Theme::PanelTextColorMid));
     m_path->setPalette(pp);
 
-    m_openBtn = new QPushButton(tr("Open in editor"), this);
     m_dupBtn = new QPushButton(tr("Customize a copy…"), this);
     m_dupBtn->setToolTip(
         tr("Create an editable user agent that inherits from this one — "
            "override only the fields you want."));
+    m_openBtn = new QPushButton(tr("Open in editor"), this);
     m_deleteBtn = new QPushButton(tr("Delete"), this);
-    connect(m_openBtn, &QPushButton::clicked, this, [this] {
-        if (m_current)
-            emit openInEditorRequested(*m_current);
-    });
     connect(m_dupBtn, &QPushButton::clicked, this, [this] {
         if (m_current)
             emit customizeRequested(*m_current);
+    });
+    connect(m_openBtn, &QPushButton::clicked, this, [this] {
+        if (m_current)
+            emit openInEditorRequested(*m_current);
     });
     connect(m_deleteBtn, &QPushButton::clicked, this, [this] {
         if (m_current)
@@ -114,14 +115,15 @@ AgentDetailPane::AgentDetailPane(QWidget *parent)
     auto *actions = new QHBoxLayout(m_actionsHolder);
     actions->setContentsMargins(0, 0, 0, 0);
     actions->setSpacing(6);
-    actions->addWidget(m_openBtn);
     actions->addWidget(m_dupBtn);
+    actions->addWidget(m_openBtn);
     actions->addWidget(m_deleteBtn);
 
     auto *titleRow = new QHBoxLayout;
     titleRow->setContentsMargins(0, 0, 0, 0);
     titleRow->setSpacing(8);
     titleRow->addWidget(m_name);
+    titleRow->addWidget(m_sourceBadge, 0, Qt::AlignVCenter);
     titleRow->addStretch(1);
 
     auto *headerLeft = new QVBoxLayout;
@@ -144,41 +146,32 @@ AgentDetailPane::AgentDetailPane(QWidget *parent)
     m_description->setWordWrap(true);
     m_description->setTextInteractionFlags(Qt::TextSelectableByMouse);
 
-    auto *identity = new SectionBox(tr("Identity"), this);
-    m_nameValue = makeReadOnlyLine();
-    m_extendsLabel = new QLabel(tr("Extends:"), this);
-    m_extendsLabel->setMinimumWidth(96);
-    m_extendsLabel->setAlignment(Qt::AlignLeft | Qt::AlignTop);
-    m_extendsValue = makeReadOnlyLine();
-    m_descriptionEdit = new QPlainTextEdit(this);
-    m_descriptionEdit->setReadOnly(true);
-    m_descriptionEdit->setMaximumHeight(56);
-    m_tagsValue = makeReadOnlyLine();
+    auto *setup = new SectionBox(tr("Configuration"), this);
 
-    auto *idGrid = new QGridLayout;
-    idGrid->setContentsMargins(0, 0, 0, 0);
-    idGrid->setHorizontalSpacing(8);
-    idGrid->setVerticalSpacing(4);
-    FormBuilder idForm(idGrid);
-    idForm.row(tr("Name:"), m_nameValue);
-    {
-        auto *holder = new QWidget;
-        holder->setLayout(singleField(m_extendsValue));
-        const int row = idForm.currentRow();
-        idGrid->addWidget(m_extendsLabel, row, 0, Qt::AlignTop);
-        idGrid->addWidget(holder, row, 1);
-        m_extendsHolder = holder;
-        idForm = FormBuilder(idGrid, row + 1);
-    }
-    idForm.row(tr("Description:"), m_descriptionEdit);
-    idForm.row(
-        tr("Tags:"),
-        m_tagsValue,
-        tr("Comma-separated. Free-form — used to filter and "
-           "group the agent list."));
-    identity->bodyLayout()->addLayout(idGrid);
+    m_modelSelector = new ModelSelector(this);
+    connect(m_modelSelector, &ModelSelector::modelSubmitted, this, [this](const QString &model) {
+        onModelSubmitted(model);
+    });
 
-    auto *connection = new SectionBox(tr("Connection"), this);
+    m_modelResetBtn = new QPushButton(tr("Reset"), this);
+    m_modelResetBtn->setToolTip(tr("Remove the model override and restore the agent's default"));
+    m_modelResetBtn->setVisible(false);
+    connect(m_modelResetBtn, &QPushButton::clicked, this, [this] { onResetModel(); });
+
+    auto *modelHolder = new QWidget(this);
+    auto *modelRow = new QHBoxLayout(modelHolder);
+    modelRow->setContentsMargins(0, 0, 0, 0);
+    modelRow->setSpacing(6);
+    modelRow->addWidget(m_modelSelector, 1);
+    modelRow->addWidget(m_modelResetBtn);
+
+    m_modelStatus = makeHintLabel(QString(), this);
+    m_modelStatus->setVisible(false);
+    connect(m_modelSelector, &ModelSelector::statusChanged, this, [this](const QString &status) {
+        m_modelStatus->setText(status);
+        m_modelStatus->setVisible(!status.isEmpty());
+    });
+
     m_providerCombo = new QComboBox(this);
     m_providerCombo->setSizeAdjustPolicy(QComboBox::AdjustToContents);
     m_providerCombo->setEnabled(false);
@@ -199,65 +192,6 @@ AgentDetailPane::AgentDetailPane(QWidget *parent)
     providerRow->addWidget(m_providerCombo, 1);
     providerRow->addWidget(m_providerResetBtn);
 
-    m_endpointValue = makeReadOnlyLine(true);
-
-    m_modelValue = makeReadOnlyLine(true);
-    m_modelValue->setPlaceholderText(tr("(set a model)"));
-
-    m_modelChangeBtn = new QPushButton(tr("Change…"), this);
-    m_modelChangeBtn->setToolTip(tr("Pick a model from the provider or type one"));
-    m_modelChangeBtn->setEnabled(false);
-    connect(m_modelChangeBtn, &QPushButton::clicked, this, [this] { onChangeModel(); });
-
-    m_modelResetBtn = new QPushButton(tr("Reset"), this);
-    m_modelResetBtn->setToolTip(tr("Remove the model override and restore the agent's default"));
-    m_modelResetBtn->setVisible(false);
-    connect(m_modelResetBtn, &QPushButton::clicked, this, [this] { onResetModel(); });
-
-    auto *modelHolder = new QWidget(this);
-    auto *modelRow = new QHBoxLayout(modelHolder);
-    modelRow->setContentsMargins(0, 0, 0, 0);
-    modelRow->setSpacing(6);
-    modelRow->addWidget(m_modelValue, 1);
-    modelRow->addWidget(m_modelChangeBtn);
-    modelRow->addWidget(m_modelResetBtn);
-
-    auto *connGrid = new QGridLayout;
-    connGrid->setContentsMargins(0, 0, 0, 0);
-    connGrid->setHorizontalSpacing(8);
-    connGrid->setVerticalSpacing(4);
-    FormBuilder(connGrid)
-        .row(
-            tr("Provider:"),
-            providerHolder,
-            tr("The provider instance this agent uses. URL is "
-               "inherited from the instance. Switching it is saved as a "
-               "per-agent override; Reset restores the agent's default."))
-        .row(
-            tr("Endpoint:"),
-            m_endpointValue,
-            tr("Appended to the provider's URL. Blank uses the "
-               "provider default."))
-        .row(
-            tr("Model:"),
-            modelHolder,
-            tr("Model sent to the provider. Click Change… to pick from the "
-               "provider's available models or type one. The choice is saved "
-               "as a per-agent override in settings; Reset restores the "
-               "agent's default."));
-    connection->bodyLayout()->addLayout(connGrid);
-
-    m_effectiveUrl = new QLabel(this);
-    m_effectiveUrl->setFont(monospaceFont(11));
-    m_effectiveUrl->setTextInteractionFlags(Qt::TextSelectableByMouse);
-    m_effectiveUrl->setWordWrap(true);
-    m_effectiveUrl->setContentsMargins(6, 4, 6, 4);
-    m_effectiveUrl->setAutoFillBackground(true);
-    connection->bodyLayout()->addWidget(m_effectiveUrl);
-
-    auto *capabilities = new SectionBox(tr("Capabilities"), this);
-    m_thinkingValue = new QLabel(this);
-
     m_toolsCheck = new QCheckBox(tr("Allow tool calls"), this);
     m_toolsCheck->setEnabled(false);
     connect(m_toolsCheck, &QCheckBox::clicked, this, [this](bool on) { onToggleTools(on); });
@@ -275,38 +209,46 @@ AgentDetailPane::AgentDetailPane(QWidget *parent)
     toolsRow->addStretch(1);
     toolsRow->addWidget(m_toolsResetBtn);
 
-    auto *capGrid = new QGridLayout;
-    capGrid->setContentsMargins(0, 0, 0, 0);
-    capGrid->setHorizontalSpacing(8);
-    capGrid->setVerticalSpacing(4);
-    FormBuilder(capGrid)
-        .row(
-            tr("Thinking:"),
-            m_thinkingValue,
-            tr("Whether this agent requests extended thinking. Defined by the "
-               "agent template."))
-        .row(
-            tr("Tools:"),
-            toolsHolder,
-            tr("Whether the agent may call tools. Toggle to save a per-agent "
-               "override in settings; Reset restores the agent's default."));
-    capabilities->bodyLayout()->addLayout(capGrid);
+    m_thinkingValue = new QLabel(this);
 
-    auto *match = new SectionBox(tr("Match"), this);
-    auto *matchHint = makeHintLabel(
-        tr("When a feature slot has multiple bound agents, the first whose "
-           "match rules satisfy the current context wins."));
+    auto *setupGrid = new QGridLayout;
+    setupGrid->setContentsMargins(0, 0, 0, 0);
+    setupGrid->setHorizontalSpacing(8);
+    setupGrid->setVerticalSpacing(4);
+    FormBuilder setupForm(setupGrid);
+    setupForm.row(
+        tr("Model:"),
+        modelHolder,
+        tr("Click to pick from the provider's models, or type a name and press Enter."));
+    {
+        const int row = setupForm.currentRow();
+        setupGrid->addWidget(m_modelStatus, row, 1);
+        setupForm = FormBuilder(setupGrid, row + 1);
+    }
+    setupForm.row(tr("Provider:"), providerHolder)
+        .row(tr("Tools:"), toolsHolder)
+        .row(tr("Thinking:"), m_thinkingValue);
+    setup->bodyLayout()->addLayout(setupGrid);
+    setup->bodyLayout()->addWidget(makeHintLabel(
+        tr("Changes apply immediately and are saved as per-agent overrides in settings; "
+           "Reset restores the value from the agent file."),
+        this));
+
+    m_extendsValue = makeReadOnlyLine();
+    m_extendsValue->setPlaceholderText(tr("(none)"));
+    m_tagsValue = makeReadOnlyLine();
+    m_tagsValue->setPlaceholderText(tr("(none)"));
+    m_endpointValue = makeReadOnlyLine(true);
+    m_endpointValue->setPlaceholderText(tr("(provider default)"));
     m_filePatternsValue = makeReadOnlyLine(true);
-    auto *matchGrid = new QGridLayout;
-    matchGrid->setContentsMargins(0, 0, 0, 0);
-    matchGrid->setHorizontalSpacing(8);
-    matchGrid->setVerticalSpacing(4);
-    FormBuilder(matchGrid).row(
-        tr("File patterns:"),
-        m_filePatternsValue,
-        tr("Globs, comma-separated. Empty matches every file."));
-    match->bodyLayout()->addWidget(matchHint);
-    match->bodyLayout()->addLayout(matchGrid);
+    m_filePatternsValue->setPlaceholderText(tr("(matches every file)"));
+
+    m_effectiveUrl = new QLabel(this);
+    m_effectiveUrl->setFont(monospaceFont(11));
+    m_effectiveUrl->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    m_effectiveUrl->setWordWrap(true);
+    m_effectiveUrl->setContentsMargins(6, 4, 6, 4);
+    m_effectiveUrl->setAutoFillBackground(true);
 
     m_rawToggle = new QToolButton(this);
     m_rawToggle->setText(tr("▸ Show raw TOML"));
@@ -338,18 +280,49 @@ AgentDetailPane::AgentDetailPane(QWidget *parent)
         m_baseRawToggle->setText(on ? tr("▾ Hide base agent TOML") : tr("▸ Show base agent TOML"));
     });
 
+    m_detailsBody = new QWidget(this);
+    auto *detailsLayout = new QVBoxLayout(m_detailsBody);
+    detailsLayout->setContentsMargins(0, 0, 0, 0);
+    detailsLayout->setSpacing(10);
+
+    auto *detailsGrid = new QGridLayout;
+    detailsGrid->setContentsMargins(0, 0, 0, 0);
+    detailsGrid->setHorizontalSpacing(8);
+    detailsGrid->setVerticalSpacing(4);
+    FormBuilder(detailsGrid)
+        .row(tr("Extends:"), m_extendsValue)
+        .row(tr("Tags:"), m_tagsValue, tr("Free-form — used to filter and group the agent list."))
+        .row(tr("Endpoint:"), m_endpointValue, tr("Appended to the provider's URL."))
+        .row(
+            tr("File patterns:"),
+            m_filePatternsValue,
+            tr("Globs, comma-separated. When a feature slot has multiple bound "
+               "agents, the first whose match rules satisfy the context wins."));
+    detailsLayout->addLayout(detailsGrid);
+    detailsLayout->addWidget(m_effectiveUrl);
+    detailsLayout->addWidget(m_rawToggle, 0, Qt::AlignLeft);
+    detailsLayout->addWidget(m_rawToml);
+    detailsLayout->addWidget(m_baseRawToggle, 0, Qt::AlignLeft);
+    detailsLayout->addWidget(m_baseRawToml);
+    m_detailsBody->setVisible(false);
+
+    m_detailsToggle = new QToolButton(this);
+    m_detailsToggle->setText(tr("▸ More details"));
+    m_detailsToggle->setCursor(Qt::PointingHandCursor);
+    m_detailsToggle->setAutoRaise(true);
+    m_detailsToggle->setCheckable(true);
+    connect(m_detailsToggle, &QToolButton::toggled, this, [this](bool on) {
+        m_detailsBody->setVisible(on);
+        m_detailsToggle->setText(on ? tr("▾ More details") : tr("▸ More details"));
+    });
+
     m_body = new QWidget(this);
     auto *bodyLayout = new QVBoxLayout(m_body);
     bodyLayout->setContentsMargins(0, 0, 0, 0);
     bodyLayout->setSpacing(10);
-    bodyLayout->addWidget(identity);
-    bodyLayout->addWidget(connection);
-    bodyLayout->addWidget(capabilities);
-    bodyLayout->addWidget(match);
-    bodyLayout->addWidget(m_rawToggle, 0, Qt::AlignLeft);
-    bodyLayout->addWidget(m_rawToml);
-    bodyLayout->addWidget(m_baseRawToggle, 0, Qt::AlignLeft);
-    bodyLayout->addWidget(m_baseRawToml);
+    bodyLayout->addWidget(setup);
+    bodyLayout->addWidget(m_detailsToggle, 0, Qt::AlignLeft);
+    bodyLayout->addWidget(m_detailsBody);
 
     auto *root = new QVBoxLayout(this);
     root->setContentsMargins(12, 12, 12, 12);
@@ -407,25 +380,19 @@ void AgentDetailPane::populateProviderCombo()
     m_providerComboPopulated = true;
 }
 
-void AgentDetailPane::onChangeModel()
+void AgentDetailPane::onModelSubmitted(const QString &model)
 {
     if (!m_agentFactory || !m_current)
         return;
 
     const QString name = m_current->name;
-    AgentModelDialog dialog(m_agentFactory, name, m_current->model, this);
-    if (dialog.exec() != QDialog::Accepted)
-        return;
-
-    const QString model = dialog.selectedModel();
     if (model == m_current->model)
         return;
 
     QString err;
-    if (!m_agentFactory->setAgentModelOverride(name, model, &err)) {
+    const bool ok = m_agentFactory->setAgentModelOverride(name, model, &err);
+    if (!ok)
         QMessageBox::warning(this, tr("Set model"), err);
-        return;
-    }
     if (const AgentConfig *cfg = m_agentFactory->configByName(name))
         setAgent(*cfg);
 }
@@ -540,21 +507,10 @@ void AgentDetailPane::setAgent(const AgentConfig &cfg)
     setDetailsVisible(true);
 
     m_name->setText(cfg.name);
+    m_sourceBadge->setText(user ? tr("User") : tr("Bundled"));
     m_path->setText(cfg.sourcePath);
     m_description->setText(
         cfg.description.isEmpty() ? tr("No description provided.") : cfg.description);
-
-    m_nameValue->setText(cfg.name);
-    if (cfg.extendsName.isEmpty()) {
-        m_extendsLabel->setVisible(false);
-        m_extendsHolder->setVisible(false);
-    } else {
-        m_extendsLabel->setVisible(true);
-        m_extendsHolder->setVisible(true);
-        m_extendsValue->setText(cfg.extendsName);
-    }
-    m_descriptionEdit->setPlainText(cfg.description);
-    m_tagsValue->setText(cfg.tags.join(QStringLiteral(", ")));
 
     populateProviderCombo();
 
@@ -589,14 +545,11 @@ void AgentDetailPane::setAgent(const AgentConfig &cfg)
             ? tr("Overridden in settings. Reset to use the agent's default provider.")
             : QString());
 
-    m_endpointValue->setText(cfg.endpoint);
-    m_endpointValue->setPlaceholderText(tr("(provider default)"));
-    m_modelValue->setText(cfg.model);
-    m_modelChangeBtn->setEnabled(m_agentFactory != nullptr);
+    m_modelSelector->setAgent(m_agentFactory, cfg.name, cfg.providerInstance, cfg.model);
     const bool hasModelOverride = m_agentFactory
                                   && !m_agentFactory->agentModelOverride(cfg.name).isEmpty();
     m_modelResetBtn->setVisible(hasModelOverride);
-    m_modelValue->setToolTip(
+    m_modelSelector->setToolTip(
         hasModelOverride ? tr("Overridden in settings. Reset to use the agent's default model.")
                          : QString());
 
@@ -613,13 +566,15 @@ void AgentDetailPane::setAgent(const AgentConfig &cfg)
         hasToolsOverride ? tr("Overridden in settings. Reset to use the agent's default.")
                          : QString());
 
+    m_extendsValue->setText(cfg.extendsName);
+    m_tagsValue->setText(cfg.tags.join(QStringLiteral(", ")));
+    m_endpointValue->setText(cfg.endpoint);
+    m_filePatternsValue->setText(cfg.match.filePatterns.join(QStringLiteral(", ")));
+
     const QString eff = resolvedUrl + cfg.endpoint;
     m_effectiveUrl->setText(
         eff.isEmpty() ? tr("# effective request line\n(unknown — provider instance not found)")
                       : QStringLiteral("# %1\nPOST %2").arg(tr("effective request line"), eff));
-
-    m_filePatternsValue->setText(cfg.match.filePatterns.join(QStringLiteral(", ")));
-    m_filePatternsValue->setPlaceholderText(tr("(matches every file)"));
 
     fillRawToml(m_rawToml, cfg.sourcePath);
 
@@ -652,11 +607,6 @@ void AgentDetailPane::clear()
     m_name->setText(tr("Select an agent"));
     m_path->clear();
     m_description->setText(tr("Pick an agent from the list to see its details."));
-    m_nameValue->clear();
-    m_extendsLabel->setVisible(false);
-    m_extendsHolder->setVisible(false);
-    m_descriptionEdit->clear();
-    m_tagsValue->clear();
     if (m_providerComboHasSentinel) {
         m_providerCombo->removeItem(0);
         m_providerComboHasSentinel = false;
@@ -664,11 +614,8 @@ void AgentDetailPane::clear()
     m_providerCombo->setCurrentIndex(-1);
     m_providerCombo->setEnabled(false);
     m_providerResetBtn->setVisible(false);
-    m_endpointValue->clear();
-    m_modelValue->clear();
-    m_modelChangeBtn->setEnabled(false);
+    m_modelSelector->clearAgent();
     m_modelResetBtn->setVisible(false);
-    m_effectiveUrl->clear();
     m_thinkingValue->clear();
     {
         QSignalBlocker block(m_toolsCheck);
@@ -676,7 +623,11 @@ void AgentDetailPane::clear()
     }
     m_toolsCheck->setEnabled(false);
     m_toolsResetBtn->setVisible(false);
+    m_extendsValue->clear();
+    m_tagsValue->clear();
+    m_endpointValue->clear();
     m_filePatternsValue->clear();
+    m_effectiveUrl->clear();
     m_rawToml->clear();
     m_baseRawToml->clear();
     m_baseRawToggle->setVisible(false);
@@ -728,6 +679,7 @@ void AgentDetailPane::fillRawToml(QPlainTextEdit *view, const QString &path)
 void AgentDetailPane::setDetailsVisible(bool visible)
 {
     m_headerSep->setVisible(visible);
+    m_sourceBadge->setVisible(visible);
     m_path->setVisible(visible);
     m_actionsHolder->setVisible(visible);
     m_body->setVisible(visible);
@@ -744,6 +696,8 @@ void AgentDetailPane::applyCodePalette()
     m_effectiveUrl->setStyleSheet(
         QStringLiteral("QLabel { background:%1; border:1px solid %2; }")
             .arg(cssColor(codeBg), cssColor(Utils::creatorColor(Utils::Theme::SplitterColor))));
+    if (m_current)
+        styleSourceBadge(m_sourceBadge, m_current->isUserSource());
 }
 
 } // namespace QodeAssist::Settings

@@ -4,21 +4,22 @@
 
 #include "ProviderListItem.hpp"
 
+#include <utils/elidinglabel.h>
 #include <utils/theme/theme.h>
 
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMouseEvent>
 #include <QScopedValueRollback>
-#include <QVBoxLayout>
+#include <QStringList>
 
 #include "ProviderInstance.hpp"
 #include "SettingsTheme.hpp"
+#include "SettingsUiBuilders.hpp"
 
 namespace QodeAssist::Settings {
 
-ProviderListItem::ProviderListItem(
-    const Providers::ProviderInstance &inst, QWidget *parent)
+ProviderListItem::ProviderListItem(const Providers::ProviderInstance &inst, QWidget *parent)
     : QFrame(parent)
     , m_name(inst.name)
 {
@@ -27,35 +28,45 @@ ProviderListItem::ProviderListItem(
     setAutoFillBackground(true);
     setCursor(Qt::PointingHandCursor);
 
-    auto *headerRow = new QHBoxLayout;
-    headerRow->setContentsMargins(0, 0, 0, 0);
-    headerRow->setSpacing(6);
     m_statusDot = new QLabel(QStringLiteral("●"), this);
     QFont df = m_statusDot->font();
     df.setPixelSize(11);
     m_statusDot->setFont(df);
     m_statusDot->setStyleSheet(QStringLiteral("color: %1;").arg(statusColor(Status::Unknown)));
-    m_nameLabel = new QLabel(inst.name, this);
+
+    m_nameLabel = new QLabel(this);
     QFont nf = m_nameLabel->font();
     nf.setBold(true);
     nf.setPixelSize(12);
     m_nameLabel->setFont(nf);
-    headerRow->addWidget(m_statusDot, 0, Qt::AlignVCenter);
-    headerRow->addWidget(m_nameLabel, 1);
+    m_nameLabel->setTextFormat(Qt::RichText);
 
-    m_urlLabel = new QLabel(inst.url, this);
+    m_urlLabel = new Utils::ElidingLabel(this);
+    m_urlLabel->setElideMode(Qt::ElideMiddle);
     m_urlLabel->setFont(monospaceFont(10));
+    m_urlLabel->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
     QPalette up = m_urlLabel->palette();
     up.setColor(QPalette::WindowText, Utils::creatorColor(Utils::Theme::PanelTextColorMid));
     m_urlLabel->setPalette(up);
-    m_urlLabel->setContentsMargins(17, 0, 0, 0);
+    m_urlLabel->setText(inst.url);
+    m_urlLabel->setVisible(!inst.url.isEmpty());
 
-    auto *outer = new QVBoxLayout(this);
-    outer->setContentsMargins(5, 6, 8, 6);
-    outer->setSpacing(2);
-    outer->addLayout(headerRow);
-    outer->addWidget(m_urlLabel);
+    auto *row = new QHBoxLayout(this);
+    row->setContentsMargins(8, 4, 8, 4);
+    row->setSpacing(6);
+    row->addWidget(m_statusDot, 0, Qt::AlignVCenter);
+    row->addWidget(m_nameLabel, 0);
+    row->addWidget(m_urlLabel, 1);
 
+    QStringList tipLines;
+    if (!inst.description.isEmpty())
+        tipLines << inst.description;
+    tipLines << tr("API: %1").arg(inst.clientApi);
+    if (!inst.url.isEmpty())
+        tipLines << tr("URL: %1").arg(inst.url);
+    setToolTip(tipLines.join(QStringLiteral("\n")));
+
+    updateNameText();
     applyTheme();
 }
 
@@ -71,6 +82,19 @@ void ProviderListItem::setSelected(bool s)
         return;
     m_selected = s;
     applyTheme();
+}
+
+void ProviderListItem::setFilterHighlight(const QString &lowerFilter)
+{
+    if (m_filter == lowerFilter)
+        return;
+    m_filter = lowerFilter;
+    updateNameText();
+}
+
+void ProviderListItem::updateNameText()
+{
+    m_nameLabel->setText(filterHighlightedHtml(m_name, m_filter));
 }
 
 void ProviderListItem::mouseReleaseEvent(QMouseEvent *event)
@@ -111,6 +135,7 @@ void ProviderListItem::applyTheme()
                       "#ProvListItem { background:transparent;"
                       " border-top:1px solid %1; border-left:3px solid %2; }")
                       .arg(cssColor(Utils::creatorColor(Utils::Theme::SplitterColor)), accent));
+    updateNameText();
 }
 
 } // namespace QodeAssist::Settings

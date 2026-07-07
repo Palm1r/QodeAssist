@@ -50,21 +50,28 @@ inline bool isDark(const QPalette &p)
 inline Tone toneFor(bool dark)
 {
     return dark
-        ? Tone{"#333333", "#3a3a3a", "#2a4566", "#3a6fb7", "#4a4a4a",
-               "#c2c2c2", "#9a9a9a", "#7a7a7a"}
-        : Tone{"#f6f6f6", "#ececec", "#cfe1f7", "#3a6fb7", "#bdbdbd",
-               "#3a3a3a", "#5a5a5a", "#8a8a8a"};
+               ? Tone{"#333333", "#3a3a3a", "#2a4566", "#3a6fb7", "#4a4a4a", "#c2c2c2", "#9a9a9a", "#7a7a7a"}
+               : Tone{
+                     "#f6f6f6",
+                     "#ececec",
+                     "#cfe1f7",
+                     "#3a6fb7",
+                     "#bdbdbd",
+                     "#3a3a3a",
+                     "#5a5a5a",
+                     "#8a8a8a"};
 }
 
 inline QFont monoFont(int pixelSize)
 {
     QFont f;
-    f.setFamilies({QStringLiteral("SF Mono"),
-                   QStringLiteral("Cascadia Code"),
-                   QStringLiteral("Consolas"),
-                   QStringLiteral("Liberation Mono"),
-                   QStringLiteral("Menlo"),
-                   QStringLiteral("Courier New")});
+    f.setFamilies(
+        {QStringLiteral("SF Mono"),
+         QStringLiteral("Cascadia Code"),
+         QStringLiteral("Consolas"),
+         QStringLiteral("Liberation Mono"),
+         QStringLiteral("Menlo"),
+         QStringLiteral("Courier New")});
     f.setStyleHint(QFont::Monospace);
     f.setPixelSize(pixelSize);
     return f;
@@ -94,6 +101,7 @@ public:
     bool matches(const QString &needle) const;
     bool hasAllTags(const QSet<QString> &activeTags) const;
     void setSelected(bool selected);
+    virtual void setFilterHighlight(const QString &lowerNeedle);
 
 signals:
     void clicked();
@@ -130,6 +138,13 @@ public:
     explicit AgentRowCard(const AgentConfig &cfg, QWidget *parent = nullptr);
 
     QString agentName() const { return itemName(); }
+    void setFilterHighlight(const QString &lowerNeedle) override;
+
+private:
+    QLabel *m_nameLabel = nullptr;
+    QLabel *m_modelLabel = nullptr;
+    QString m_model;
+    QString m_lowerNeedle;
 };
 
 class ProviderSection : public QWidget
@@ -171,11 +186,16 @@ public:
 
     QString selectedName() const { return m_selectedName; }
 
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
 private:
     void rebuild(const QString &currentName);
     void selectCard(ListRowCard *card);
     void applyFilters();
     void setAllExpanded(bool expanded);
+    void moveSelection(int delta);
+    QList<ListRowCard *> filteredCards() const;
 
     QLineEdit *m_filter = nullptr;
     TagFilterStrip *m_tagStrip = nullptr;

@@ -29,6 +29,7 @@ class ProviderInstanceFactory;
 
 namespace QodeAssist::Settings {
 
+class ModelSelector;
 class SectionBox;
 
 class AgentDetailPane : public QWidget
@@ -56,7 +57,7 @@ private:
     void setDetailsVisible(bool visible);
     void applyCodePalette();
     void populateProviderCombo();
-    void onChangeModel();
+    void onModelSubmitted(const QString &model);
     void onResetModel();
     void onChangeProvider(int index);
     void onResetProvider();
@@ -70,7 +71,11 @@ private:
     AgentConfig m_currentStorage;
     const AgentConfig *m_current = nullptr;
 
+    QPointer<Providers::ProviderInstanceFactory> m_instanceFactory;
+    QPointer<AgentFactory> m_agentFactory;
+
     QLabel *m_name = nullptr;
+    QLabel *m_sourceBadge = nullptr;
     QLabel *m_path = nullptr;
     QFrame *m_headerSep = nullptr;
     QWidget *m_actionsHolder = nullptr;
@@ -80,32 +85,25 @@ private:
     QPushButton *m_deleteBtn = nullptr;
     QLabel *m_description = nullptr;
 
-    QLineEdit *m_nameValue = nullptr;
-    QLabel *m_extendsLabel = nullptr;
-    QWidget *m_extendsHolder = nullptr;
-    QLineEdit *m_extendsValue = nullptr;
-    QPlainTextEdit *m_descriptionEdit = nullptr;
-    QLineEdit *m_tagsValue = nullptr;
-
+    ModelSelector *m_modelSelector = nullptr;
+    QPushButton *m_modelResetBtn = nullptr;
+    QLabel *m_modelStatus = nullptr;
     QComboBox *m_providerCombo = nullptr;
     QPushButton *m_providerResetBtn = nullptr;
-    QPointer<Providers::ProviderInstanceFactory> m_instanceFactory;
-    QPointer<AgentFactory> m_agentFactory;
-    QLineEdit *m_endpointValue = nullptr;
-    QLineEdit *m_modelValue = nullptr;
-    QPushButton *m_modelChangeBtn = nullptr;
-    QPushButton *m_modelResetBtn = nullptr;
-    QLabel *m_effectiveUrl = nullptr;
-
-    QLabel *m_thinkingValue = nullptr;
     QCheckBox *m_toolsCheck = nullptr;
     QPushButton *m_toolsResetBtn = nullptr;
+    QLabel *m_thinkingValue = nullptr;
 
+    QToolButton *m_detailsToggle = nullptr;
+    QWidget *m_detailsBody = nullptr;
+    QLineEdit *m_extendsValue = nullptr;
+    QLineEdit *m_tagsValue = nullptr;
+    QLineEdit *m_endpointValue = nullptr;
+    QLabel *m_effectiveUrl = nullptr;
     QLineEdit *m_filePatternsValue = nullptr;
 
     QToolButton *m_rawToggle = nullptr;
     QPlainTextEdit *m_rawToml = nullptr;
-
     QToolButton *m_baseRawToggle = nullptr;
     QPlainTextEdit *m_baseRawToml = nullptr;
 };

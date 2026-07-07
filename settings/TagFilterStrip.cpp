@@ -58,6 +58,15 @@ void TagFilterStrip::setAvailableTags(
         emit activeTagsChanged(m_activeTags);
 }
 
+void TagFilterStrip::setMaxColumns(int columns)
+{
+    const int clamped = qMax(1, columns);
+    if (clamped == m_maxColumns)
+        return;
+    m_maxColumns = clamped;
+    rebuild();
+}
+
 void TagFilterStrip::setVisibleCounts(const QMap<QString, int> &countsByTag)
 {
     for (auto it = m_chipByTag.cbegin(); it != m_chipByTag.cend(); ++it)
@@ -161,14 +170,12 @@ void TagFilterStrip::rebuild()
     sorted.reserve(m_counts.size());
     for (auto it = m_counts.cbegin(); it != m_counts.cend(); ++it)
         sorted.emplace_back(it.key(), it.value());
-    std::sort(sorted.begin(), sorted.end(),
-              [](const auto &a, const auto &b) {
-                  if (a.second != b.second)
-                      return a.second > b.second;
-                  return a.first.localeAwareCompare(b.first) < 0;
-              });
+    std::sort(sorted.begin(), sorted.end(), [](const auto &a, const auto &b) {
+        if (a.second != b.second)
+            return a.second > b.second;
+        return a.first.localeAwareCompare(b.first) < 0;
+    });
 
-    constexpr int kMaxColumns = 3;
     auto *gridHost = new QWidget(this);
     auto *grid = new QGridLayout(gridHost);
     grid->setContentsMargins(0, 0, 0, 0);
@@ -181,7 +188,7 @@ void TagFilterStrip::rebuild()
         connect(chip, &TagChip::clicked, this, &TagFilterStrip::toggleTag);
         grid->addWidget(chip, gridRow, col, Qt::AlignLeft);
         m_chipByTag.insert(tag, chip);
-        if (++col >= kMaxColumns) {
+        if (++col >= m_maxColumns) {
             col = 0;
             ++gridRow;
         }

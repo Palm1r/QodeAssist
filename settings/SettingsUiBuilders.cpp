@@ -28,6 +28,49 @@ void applyMutedSmallCaps(QLabel *label)
     label->setPalette(p);
 }
 
+QString filterHighlightedHtml(const QString &text, const QString &lowerFilter)
+{
+    if (lowerFilter.isEmpty())
+        return text.toHtmlEscaped();
+    QColor mark = Utils::creatorColor(Utils::Theme::TextColorLink);
+    mark.setAlphaF(0.30);
+    const QString markCss
+        = QStringLiteral("background-color:%1;border-radius:2px;").arg(cssColor(mark));
+    const QString lowerText = text.toLower();
+    QString out;
+    int pos = 0;
+    while (true) {
+        const int hit = lowerText.indexOf(lowerFilter, pos);
+        if (hit < 0) {
+            out += text.mid(pos).toHtmlEscaped();
+            break;
+        }
+        out += text.mid(pos, hit - pos).toHtmlEscaped();
+        out += QStringLiteral("<span style=\"%1\">%2</span>")
+                   .arg(markCss, text.mid(hit, lowerFilter.size()).toHtmlEscaped());
+        pos = hit + int(lowerFilter.size());
+    }
+    return out;
+}
+
+void styleSourceBadge(QLabel *label, bool user)
+{
+    QFont f = label->font();
+    f.setBold(true);
+    f.setPixelSize(10);
+    label->setFont(f);
+    const QColor accent = Utils::creatorColor(
+        user ? Utils::Theme::TextColorLink : Utils::Theme::PanelTextColorMid);
+    QColor bg = accent;
+    bg.setAlphaF(0.12);
+    QColor border = accent;
+    border.setAlphaF(0.45);
+    label->setStyleSheet(QStringLiteral(
+                             "QLabel { color:%1; background:%2; border:1px solid %3;"
+                             " border-radius:8px; padding:1px 8px; }")
+                             .arg(cssColor(accent), cssColor(bg), cssColor(border)));
+}
+
 QLabel *makeSectionHeader(const QString &title, QWidget *parent)
 {
     auto *header = new QLabel(title.toUpper(), parent);
