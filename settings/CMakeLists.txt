@@ -16,24 +16,11 @@ add_library(QodeAssistSettings STATIC
     ProjectSettingsPanel.hpp ProjectSettingsPanel.cpp
     ProviderSettings.hpp ProviderSettings.cpp
     ProviderNameMigration.hpp
-    ProvidersSettingsPage.hpp ProvidersSettingsPage.cpp
-    SettingsTheme.hpp
-    SettingsUiBuilders.hpp SettingsUiBuilders.cpp
-    SectionBox.hpp SectionBox.cpp
-    TagChip.hpp TagChip.cpp
-    ProviderListItem.hpp ProviderListItem.cpp
-    ProviderDetailPane.hpp ProviderDetailPane.cpp
     PluginUpdater.hpp PluginUpdater.cpp
     UpdateDialog.hpp UpdateDialog.cpp
     AgentRole.hpp AgentRole.cpp
     AgentRoleDialog.hpp AgentRoleDialog.cpp
     AgentRolesWidget.hpp AgentRolesWidget.cpp
-    AgentsSettingsPage.hpp AgentsSettingsPage.cpp
-    AgentDetailPane.hpp AgentDetailPane.cpp
-    AgentListItem.hpp AgentListItem.cpp
-    AgentListPane.hpp AgentListPane.cpp
-    AgentDuplicator.hpp AgentDuplicator.cpp
-    TagFilterStrip.hpp TagFilterStrip.cpp
 )
 
 target_link_libraries(QodeAssistSettings
@@ -44,8 +31,6 @@ target_link_libraries(QodeAssistSettings
     QtCreator::Core
     QtCreator::Utils
     QodeAssistLogger
-    ProvidersConfig
-    Agents
     Skills
 )
 target_include_directories(QodeAssistSettings PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})

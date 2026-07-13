@@ -1,8 +1,0 @@
-schema_version = 1
-
-name        = "Codestral"
-client_api  = "Codestral"
-description = "Mistral's Codestral FIM-capable code model API."
-
-url         = "https://codestral.mistral.ai"
-api_key_ref = "qodeassist/providers/Codestral"

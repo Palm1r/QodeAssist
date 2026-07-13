@@ -140,12 +140,6 @@ const char QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY[] = "QodeAssist";
 // Provider Settings Page ID
 const char QODE_ASSIST_PROVIDER_SETTINGS_PAGE_ID[] = "QodeAssist.7ProviderSettingsPageId";
 
-// Agents Settings Page ID
-const char QODE_ASSIST_AGENTS_SETTINGS_PAGE_ID[] = "QodeAssist.8AgentsSettingsPageId";
-
-// Agent Pipelines (experimental) settings
-const char QODE_ASSIST_AGENT_PIPELINES_PAGE_ID[] = "QodeAssist.9AgentPipelinesPageId";
-
 // Provider API Keys
 const char OPEN_ROUTER_API_KEY[] = "QodeAssist.openRouterApiKey";
 const char OPEN_ROUTER_API_KEY_HISTORY[] = "QodeAssist.openRouterApiKeyHistory";

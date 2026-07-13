@@ -54,21 +54,9 @@
 #include "settings/ChatAssistantSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProjectSettingsPanel.hpp"
-#ifdef QODEASSIST_EXPERIMENTAL
-#include "settings/AgentsSettingsPage.hpp"
-#include "settings/ProvidersSettingsPage.hpp"
-#include "sources/settings/AgentPipelinesPage.hpp"
-#endif
 #include "settings/QuickRefactorSettings.hpp"
 #include "settings/SettingsConstants.hpp"
 
-#ifdef QODEASSIST_EXPERIMENTAL
-#include "ProviderInstanceFactory.hpp"
-#include "ProviderLauncher.hpp"
-#include "ProviderSecretsStore.hpp"
-
-#include <AgentFactory.hpp>
-#endif
 #include "templates/Templates.hpp"
 #include "widgets/CustomInstructionsManager.hpp"
 #include "widgets/QuickRefactorDialog.hpp"
@@ -208,27 +196,6 @@ public:
 
         Settings::setupProjectPanel();
         ConfigurationManager::instance().init();
-
-#ifdef QODEASSIST_EXPERIMENTAL
-        m_providerInstanceFactory = new Providers::ProviderInstanceFactory(this);
-        m_providerSecretsStore = new Providers::ProviderSecretsStore(this);
-        m_providerLauncher = new Providers::ProviderLauncher(this);
-        m_providersPageNavigator = new Settings::ProvidersPageNavigator(this);
-        m_providersOptionsPage = Settings::createProvidersSettingsPage(
-            m_providerInstanceFactory,
-            m_providerSecretsStore,
-            m_providerLauncher,
-            m_providersPageNavigator);
-
-        m_agentFactory = new AgentFactory(m_providerInstanceFactory, m_providerSecretsStore, this);
-        m_agentsPageNavigator = new Settings::AgentsPageNavigator(this);
-        m_agentsOptionsPage = Settings::createAgentsSettingsPage(
-            m_agentFactory, m_agentsPageNavigator);
-
-        m_agentPipelinesPageNavigator = new Settings::AgentPipelinesPageNavigator(this);
-        m_agentPipelinesOptionsPage = Settings::createAgentPipelinesSettingsPage(
-            m_agentFactory, m_agentPipelinesPageNavigator, m_agentsPageNavigator);
-#endif
 
         m_mcpServerManager = new Mcp::McpServerManager(this);
         m_mcpServerManager->init();
@@ -524,18 +491,6 @@ private:
     QPointer<Mcp::McpServerManager> m_mcpServerManager;
     QPointer<QQmlEngine> m_engine;
     QPointer<Skills::SkillsManager> m_skillsManager;
-#ifdef QODEASSIST_EXPERIMENTAL
-    QPointer<Providers::ProviderInstanceFactory> m_providerInstanceFactory;
-    QPointer<Providers::ProviderSecretsStore> m_providerSecretsStore;
-    QPointer<Providers::ProviderLauncher> m_providerLauncher;
-    QPointer<Settings::ProvidersPageNavigator> m_providersPageNavigator;
-    std::unique_ptr<Core::IOptionsPage> m_providersOptionsPage;
-    QPointer<AgentFactory> m_agentFactory;
-    QPointer<Settings::AgentsPageNavigator> m_agentsPageNavigator;
-    std::unique_ptr<Core::IOptionsPage> m_agentsOptionsPage;
-    QPointer<Settings::AgentPipelinesPageNavigator> m_agentPipelinesPageNavigator;
-    std::unique_ptr<Core::IOptionsPage> m_agentPipelinesOptionsPage;
-#endif
 };
 
 } // namespace QodeAssist::Internal

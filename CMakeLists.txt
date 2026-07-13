@@ -2,10 +2,6 @@ cmake_minimum_required(VERSION 3.16)
 
 project(QodeAssist)
 
-option(QODEASSIST_EXPERIMENTAL
-       "Enable experimental features" OFF)
-message(STATUS "QodeAssist experimental features: ${QODEASSIST_EXPERIMENTAL}")
-
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
 set(CMAKE_AUTOUIC ON)
@@ -70,8 +66,6 @@ add_qtc_plugin(QodeAssist
     QtCreator::CPlusPlus
     LLMQore
     PluginLLMCore
-    ProvidersConfig
-    Agents
     Skills
     QodeAssistChatViewplugin
   SOURCES
@@ -169,11 +163,6 @@ add_qtc_plugin(QodeAssist
     mcp/McpClientsManager.hpp mcp/McpClientsManager.cpp
     settings/McpClientsListAspect.hpp settings/McpClientsListAspect.cpp
 )
-
-if(QODEASSIST_EXPERIMENTAL)
-    target_compile_definitions(QodeAssist PRIVATE QODEASSIST_EXPERIMENTAL)
-    target_link_libraries(QodeAssist PRIVATE QodeAssistAgentPipelines)
-endif()
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)
 find_program(QtCreatorExecutable

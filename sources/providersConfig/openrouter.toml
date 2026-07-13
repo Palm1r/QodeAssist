@@ -1,8 +1,0 @@
-schema_version = 1
-
-name        = "OpenRouter"
-client_api  = "OpenRouter"
-description = "OpenRouter aggregator (https://openrouter.ai)."
-
-url         = "https://openrouter.ai/api"
-api_key_ref = "qodeassist/providers/OpenRouter"

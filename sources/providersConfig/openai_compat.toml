@@ -1,8 +1,0 @@
-schema_version = 1
-
-name        = "OpenAI Compatible"
-client_api  = "OpenAI Compatible"
-description = "Self-hosted OpenAI-compatible server (vLLM, TGI, ...). Edit the URL to match your deployment."
-
-url         = "http://localhost:1234/v1"
-api_key_ref = "qodeassist/providers/OpenAI Compatible"
