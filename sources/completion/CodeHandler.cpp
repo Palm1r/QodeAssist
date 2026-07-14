@@ -1,0 +1,232 @@
+// Copyright (C) 2024-2026 Petr Mironychev
+// Copyright (C) 2025 Povilas Kanapickas <povilas@radix.lt>
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Additional attribution terms under GPLv3 §7(b) apply — see LICENSE
+
+#include "completion/CodeHandler.hpp"
+#include <settings/CodeCompletionSettings.hpp>
+#include <QFileInfo>
+#include <QHash>
+
+namespace QodeAssist {
+
+struct LanguageProperties
+{
+    QString name;
+    QString commentStyle;
+    QVector<QString> namesFromModel;
+    QVector<QString> fileExtensions;
+};
+
+const QVector<LanguageProperties> customLanguagesFromSettings()
+{
+    QVector<LanguageProperties> customLanguages;
+
+    const QStringList customLanguagesList = Settings::codeCompletionSettings().customLanguages();
+    for (const QString &entry : customLanguagesList) {
+        if (entry.trimmed().isEmpty()) {
+            continue;
+        }
+
+        QStringList parts = entry.split(',');
+        if (parts.size() < 4) {
+            continue;
+        }
+
+        QString name = parts[0].trimmed();
+        QString commentStyle = parts[1].trimmed();
+        QStringList modelNamesList = parts[2].trimmed().split(' ', Qt::SkipEmptyParts);
+        QStringList extensionsList = parts[3].trimmed().split(' ', Qt::SkipEmptyParts);
+
+        if (!name.isEmpty() && !commentStyle.isEmpty() && !modelNamesList.isEmpty()
+            && !extensionsList.isEmpty()) {
+            QVector<QString> modelNames;
+            for (const auto &modelName : modelNamesList) {
+                modelNames.append(modelName);
+            }
+
+            QVector<QString> extensions;
+            for (const auto &ext : extensionsList) {
+                extensions.append(ext);
+            }
+
+            customLanguages.append({name, commentStyle, modelNames, extensions});
+        }
+    }
+
+    return customLanguages;
+}
+const QVector<LanguageProperties> &getKnownLanguages()
+{
+    static QVector<LanguageProperties> knownLanguages = {
+        {"python", "#", {"python", "py"}, {"py"}},
+        {"lua", "--", {"lua"}, {"lua"}},
+        {"js", "//", {"js", "javascript"}, {"js", "jsx"}},
+        {"ts", "//", {"ts", "typescript"}, {"ts", "tsx"}},
+        {"c-like", "//", {"c", "c++", "cpp"}, {"c", "h", "cpp", "hpp"}},
+        {"java", "//", {"java"}, {"java"}},
+        {"c#", "//", {"cs", "csharp"}, {"cs"}},
+        {"php", "//", {"php"}, {"php"}},
+        {"ruby", "#", {"rb", "ruby"}, {"rb"}},
+        {"go", "//", {"go"}, {"go"}},
+        {"swift", "//", {"swift"}, {"swift"}},
+        {"kotlin", "//", {"kt", "kotlin"}, {"kt", "kotlin"}},
+        {"scala", "//", {"scala"}, {"scala"}},
+        {"r", "#", {"r"}, {"r"}},
+        {"shell", "#", {"shell", "bash", "sh"}, {"sh", "bash"}},
+        {"perl", "#", {"pl", "perl"}, {"pl"}},
+        {"hs", "--", {"hs", "haskell"}, {"hs"}},
+        {"qml", "//", {"qml"}, {"qml"}},
+    };
+
+    knownLanguages.append(customLanguagesFromSettings());
+
+    return knownLanguages;
+}
+
+bool CodeHandler::hasCodeBlocks(const QString &text)
+{
+    QStringList lines = text.split('\n');
+
+    for (const QString &line : lines) {
+        if (line.trimmed().startsWith("```")) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static QHash<QString, QString> buildLanguageToCommentPrefixMap()
+{
+    QHash<QString, QString> result;
+    for (const auto &languageProps : getKnownLanguages()) {
+        result[languageProps.name] = languageProps.commentStyle;
+    }
+    return result;
+}
+
+static QHash<QString, QString> buildExtensionToLanguageMap()
+{
+    QHash<QString, QString> result;
+    for (const auto &languageProps : getKnownLanguages()) {
+        for (const auto &extension : languageProps.fileExtensions) {
+            result[extension] = languageProps.name;
+        }
+    }
+    return result;
+}
+
+static QHash<QString, QString> buildModelLanguageNameToLanguageMap()
+{
+    QHash<QString, QString> result;
+    for (const auto &languageProps : getKnownLanguages()) {
+        for (const auto &nameFromModel : languageProps.namesFromModel) {
+            result[nameFromModel] = languageProps.name;
+        }
+    }
+    return result;
+}
+
+QString CodeHandler::processText(QString text, QString currentFilePath)
+{
+    QString result;
+    QStringList lines = text.split('\n');
+    bool inCodeBlock = false;
+    QString pendingComments;
+
+    auto currentFileExtension = QFileInfo(currentFilePath).suffix();
+    auto currentLanguage = detectLanguageFromExtension(currentFileExtension);
+
+    auto addPendingCommentsIfAny = [&]() {
+        if (pendingComments.isEmpty()) {
+            return;
+        }
+        QStringList commentLines = pendingComments.split('\n');
+        QString commentPrefix = getCommentPrefix(currentLanguage);
+
+        for (const QString &commentLine : commentLines) {
+            if (!commentLine.trimmed().isEmpty()) {
+                result += commentPrefix + " " + commentLine.trimmed() + "\n";
+            } else {
+                result += "\n";
+            }
+        }
+        pendingComments.clear();
+    };
+
+    for (const QString &line : lines) {
+        if (line.trimmed().startsWith("```")) {
+            if (!inCodeBlock) {
+                auto lineLanguage = detectLanguageFromLine(line);
+                if (!lineLanguage.isEmpty()) {
+                    currentLanguage = lineLanguage;
+                }
+
+                addPendingCommentsIfAny();
+
+                if (lineLanguage.isEmpty()) {
+                    // language not detected, so add direct output from model, if any
+                    result += line.trimmed().mid(3) + "\n"; // add the remainder of line after ```
+                }
+            }
+            inCodeBlock = !inCodeBlock;
+            continue;
+        }
+
+        if (inCodeBlock) {
+            result += line + "\n";
+        } else {
+            QString trimmed = line.trimmed();
+            if (!trimmed.isEmpty()) {
+                pendingComments += trimmed + "\n";
+            } else {
+                pendingComments += "\n";
+            }
+        }
+    }
+
+    addPendingCommentsIfAny();
+
+    return result;
+}
+
+QString CodeHandler::getCommentPrefix(const QString &language)
+{
+    static const auto commentPrefixes = buildLanguageToCommentPrefixMap();
+    return commentPrefixes.value(language, "//");
+}
+
+QString CodeHandler::detectLanguageFromLine(const QString &line)
+{
+    static const auto modelNameToLanguage = buildModelLanguageNameToLanguageMap();
+    return modelNameToLanguage.value(line.trimmed().mid(3).trimmed(), "");
+}
+
+QString CodeHandler::detectLanguageFromExtension(const QString &extension)
+{
+    static const auto extensionToLanguage = buildExtensionToLanguageMap();
+    return extensionToLanguage.value(extension.toLower(), "");
+}
+
+const QRegularExpression &CodeHandler::getFullCodeBlockRegex()
+{
+    static const QRegularExpression
+        regex(R"(```[\w\s]*\n([\s\S]*?)```)", QRegularExpression::MultilineOption);
+    return regex;
+}
+
+const QRegularExpression &CodeHandler::getPartialStartBlockRegex()
+{
+    static const QRegularExpression
+        regex(R"(```[\w\s]*\n([\s\S]*?)$)", QRegularExpression::MultilineOption);
+    return regex;
+}
+
+const QRegularExpression &CodeHandler::getPartialEndBlockRegex()
+{
+    static const QRegularExpression regex(R"(^([\s\S]*?)```)", QRegularExpression::MultilineOption);
+    return regex;
+}
+
+} // namespace QodeAssist

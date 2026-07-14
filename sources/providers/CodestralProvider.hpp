@@ -1,0 +1,22 @@
+// Copyright (C) 2025-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Additional attribution terms under GPLv3 §7(b) apply — see LICENSE
+
+#pragma once
+
+#include "MistralAIProvider.hpp"
+
+namespace QodeAssist::Providers {
+
+class CodestralProvider : public MistralAIProvider
+{
+public:
+    explicit CodestralProvider(QObject *parent = nullptr);
+
+    QString name() const override;
+    QString url() const override;
+    QString apiKey() const override;
+    Providers::ProviderCapabilities capabilities() const override;
+};
+
+} // namespace QodeAssist::Providers

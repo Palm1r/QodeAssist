@@ -285,7 +285,7 @@ jobs:
     - name: Run unit tests
       if: startsWith(matrix.config.os, 'ubuntu')
       run: |
-        xvfb-run ./build/build/test/QodeAssistTest
+        xvfb-run ./build/build/tests/QodeAssistTest
 
   release:
     if: contains(github.ref, 'tags/v')

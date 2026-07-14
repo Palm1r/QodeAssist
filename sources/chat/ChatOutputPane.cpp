@@ -1,0 +1,86 @@
+// Copyright (C) 2024-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Additional attribution terms under GPLv3 §7(b) apply — see LICENSE
+
+#include "ChatOutputPane.h"
+
+#include "plugin/QodeAssisttr.h"
+
+namespace QodeAssist::Chat {
+
+ChatOutputPane::ChatOutputPane(
+    QQmlEngine *engine,
+    SessionFileRegistry *sessionFileRegistry,
+    Skills::SkillsManager *skillsManager,
+    QObject *parent)
+    : Core::IOutputPane(parent)
+    , m_chatWidget{new ChatWidget{engine, sessionFileRegistry, skillsManager}}
+{
+    setId("QodeAssistChat");
+    setDisplayName(Tr::tr("QodeAssist Chat"));
+    setPriorityInStatusBar(-40);
+}
+
+ChatOutputPane::~ChatOutputPane()
+{
+    delete m_chatWidget;
+}
+
+QWidget *ChatOutputPane::outputWidget(QWidget *)
+{
+    return m_chatWidget;
+}
+
+QList<QWidget *> ChatOutputPane::toolBarWidgets() const
+{
+    return {};
+}
+
+void ChatOutputPane::clearContents()
+{
+    m_chatWidget->clear();
+}
+
+void ChatOutputPane::visibilityChanged(bool visible)
+{
+    if (visible) {
+        m_chatWidget->scrollToBottom();
+        m_chatWidget->focusInput();
+    }
+}
+
+void ChatOutputPane::setFocus()
+{
+    m_chatWidget->focusInput();
+}
+
+bool ChatOutputPane::hasFocus() const
+{
+    return m_chatWidget->isChatFocused();
+}
+
+bool ChatOutputPane::canFocus() const
+{
+    return true;
+}
+
+bool ChatOutputPane::canNavigate() const
+{
+    return false;
+}
+
+bool ChatOutputPane::canNext() const
+{
+    return false;
+}
+
+bool ChatOutputPane::canPrevious() const
+{
+    return false;
+}
+
+void ChatOutputPane::goToNext() {}
+
+void ChatOutputPane::goToPrev() {}
+
+} // namespace QodeAssist::Chat

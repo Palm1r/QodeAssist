@@ -1,0 +1,32 @@
+// Copyright (C) 2024-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Additional attribution terms under GPLv3 §7(b) apply — see LICENSE
+
+#include "providers/ProvidersManager.hpp"
+
+namespace QodeAssist::Providers {
+
+ProvidersManager &ProvidersManager::instance()
+{
+    static ProvidersManager instance;
+    return instance;
+}
+
+QStringList ProvidersManager::providersNames() const
+{
+    return m_providers.keys();
+}
+
+ProvidersManager::~ProvidersManager()
+{
+    qDeleteAll(m_providers);
+}
+
+Provider *ProvidersManager::getProviderByName(const QString &providerName)
+{
+    if (!m_providers.contains(providerName))
+        return m_providers.first();
+    return m_providers[providerName];
+}
+
+} // namespace QodeAssist::Providers

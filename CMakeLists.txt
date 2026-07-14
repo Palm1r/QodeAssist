@@ -37,14 +37,8 @@ add_definitions(
 )
 
 add_subdirectory(sources)
-add_subdirectory(logger)
-add_subdirectory(pluginllmcore)
-add_subdirectory(settings)
-add_subdirectory(UIControls)
-add_subdirectory(ChatView)
-add_subdirectory(context)
 if(GTest_FOUND)
-  add_subdirectory(test)
+  add_subdirectory(tests)
 endif()
 
 add_qtc_plugin(QodeAssist
@@ -65,104 +59,117 @@ add_qtc_plugin(QodeAssist
     QtCreator::Utils
     QtCreator::CPlusPlus
     LLMQore
-    PluginLLMCore
     Skills
     QodeAssistChatViewplugin
   SOURCES
     .github/workflows/build_cmake.yml
     .github/workflows/README.md
     README.md
-    qodeassist.cpp
-    QodeAssistConstants.hpp
-    QodeAssisttr.h
-    LLMClientInterface.hpp LLMClientInterface.cpp
-    RefactorContextHelper.hpp
-    templates/Templates.hpp
-    templates/CodeLlamaFim.hpp
-    templates/Ollama.hpp
-    templates/Claude.hpp
-    templates/OpenAI.hpp
-    templates/MistralAI.hpp
-    templates/StarCoder2Fim.hpp
-    templates/Qwen25CoderFIM.hpp
-    templates/OpenAICompatible.hpp
-    templates/Llama3.hpp
-    templates/ChatML.hpp
-    templates/Alpaca.hpp
-    templates/Llama2.hpp
-    templates/CodeLlamaQMLFim.hpp
-    templates/GoogleAI.hpp
-    templates/LlamaCppFim.hpp
-    templates/Qwen3CoderFIM.hpp
-    templates/OpenAIResponses.hpp
-    providers/Providers.hpp
-    providers/ProviderUrlUtils.hpp
-    providers/OllamaProvider.hpp providers/OllamaProvider.cpp
-    providers/OllamaCompatProvider.hpp providers/OllamaCompatProvider.cpp
-    providers/ClaudeProvider.hpp providers/ClaudeProvider.cpp
-    providers/OpenAIProvider.hpp providers/OpenAIProvider.cpp
-    providers/MistralAIProvider.hpp providers/MistralAIProvider.cpp
-    providers/LMStudioProvider.hpp providers/LMStudioProvider.cpp
-    providers/LMStudioResponsesProvider.hpp providers/LMStudioResponsesProvider.cpp
-    providers/OpenAICompatProvider.hpp providers/OpenAICompatProvider.cpp
-    providers/OpenRouterAIProvider.hpp providers/OpenRouterAIProvider.cpp
-    providers/GoogleAIProvider.hpp providers/GoogleAIProvider.cpp
-    providers/LlamaCppProvider.hpp providers/LlamaCppProvider.cpp
-    providers/CodestralProvider.hpp providers/CodestralProvider.cpp
-    providers/OpenAIResponsesProvider.hpp providers/OpenAIResponsesProvider.cpp
-    providers/QwenProvider.hpp providers/QwenProvider.cpp
-    providers/QwenResponsesProvider.hpp providers/QwenResponsesProvider.cpp
-    providers/DeepSeekProvider.hpp providers/DeepSeekProvider.cpp
+    sources/plugin/qodeassist.cpp
+    sources/plugin/QodeAssistConstants.hpp
+    sources/plugin/QodeAssisttr.h
+    sources/plugin/Version.hpp
+    sources/plugin/ConfigurationManager.hpp sources/plugin/ConfigurationManager.cpp
+    sources/plugin/UpdateStatusWidget.hpp sources/plugin/UpdateStatusWidget.cpp
+    sources/llmcore/ContextData.hpp
+    sources/llmcore/RequestType.hpp
+    sources/completion/LLMClientInterface.hpp sources/completion/LLMClientInterface.cpp
+    sources/completion/LSPCompletion.hpp
+    sources/completion/LLMSuggestion.hpp sources/completion/LLMSuggestion.cpp
+    sources/completion/QodeAssistClient.hpp sources/completion/QodeAssistClient.cpp
+    sources/completion/CodeHandler.hpp sources/completion/CodeHandler.cpp
+    sources/refactor/QuickRefactorHandler.hpp sources/refactor/QuickRefactorHandler.cpp
+    sources/refactor/RefactorContextHelper.hpp
+    sources/refactor/RefactorSuggestion.hpp sources/refactor/RefactorSuggestion.cpp
+    sources/refactor/RefactorSuggestionHoverHandler.hpp sources/refactor/RefactorSuggestionHoverHandler.cpp
+    sources/refactor/ResponseCleaner.hpp
+    sources/templates/PromptTemplate.hpp
+    sources/templates/PromptTemplateManager.hpp sources/templates/PromptTemplateManager.cpp
+    sources/templates/IPromptProvider.hpp
+    sources/templates/PromptProviderChat.hpp
+    sources/templates/PromptProviderFim.hpp
+    sources/templates/Templates.hpp
+    sources/templates/CodeLlamaFim.hpp
+    sources/templates/Ollama.hpp
+    sources/templates/Claude.hpp
+    sources/templates/OpenAI.hpp
+    sources/templates/MistralAI.hpp
+    sources/templates/StarCoder2Fim.hpp
+    sources/templates/Qwen25CoderFIM.hpp
+    sources/templates/OpenAICompatible.hpp
+    sources/templates/Llama3.hpp
+    sources/templates/ChatML.hpp
+    sources/templates/Alpaca.hpp
+    sources/templates/Llama2.hpp
+    sources/templates/CodeLlamaQMLFim.hpp
+    sources/templates/GoogleAI.hpp
+    sources/templates/LlamaCppFim.hpp
+    sources/templates/Qwen3CoderFIM.hpp
+    sources/templates/OpenAIResponses.hpp
+    sources/providers/Provider.hpp sources/providers/Provider.cpp
+    sources/providers/ProvidersManager.hpp sources/providers/ProvidersManager.cpp
+    sources/providers/IProviderRegistry.hpp
+    sources/providers/ProviderID.hpp
+    sources/providers/Providers.hpp
+    sources/providers/ProviderUrlUtils.hpp
+    sources/providers/OllamaProvider.hpp sources/providers/OllamaProvider.cpp
+    sources/providers/OllamaCompatProvider.hpp sources/providers/OllamaCompatProvider.cpp
+    sources/providers/ClaudeProvider.hpp sources/providers/ClaudeProvider.cpp
+    sources/providers/OpenAIProvider.hpp sources/providers/OpenAIProvider.cpp
+    sources/providers/MistralAIProvider.hpp sources/providers/MistralAIProvider.cpp
+    sources/providers/LMStudioProvider.hpp sources/providers/LMStudioProvider.cpp
+    sources/providers/LMStudioResponsesProvider.hpp sources/providers/LMStudioResponsesProvider.cpp
+    sources/providers/OpenAICompatProvider.hpp sources/providers/OpenAICompatProvider.cpp
+    sources/providers/OpenRouterAIProvider.hpp sources/providers/OpenRouterAIProvider.cpp
+    sources/providers/GoogleAIProvider.hpp sources/providers/GoogleAIProvider.cpp
+    sources/providers/LlamaCppProvider.hpp sources/providers/LlamaCppProvider.cpp
+    sources/providers/CodestralProvider.hpp sources/providers/CodestralProvider.cpp
+    sources/providers/OpenAIResponsesProvider.hpp sources/providers/OpenAIResponsesProvider.cpp
+    sources/providers/QwenProvider.hpp sources/providers/QwenProvider.cpp
+    sources/providers/QwenResponsesProvider.hpp sources/providers/QwenResponsesProvider.cpp
+    sources/providers/DeepSeekProvider.hpp sources/providers/DeepSeekProvider.cpp
     QodeAssist.qrc
-    LSPCompletion.hpp
-    LLMSuggestion.hpp LLMSuggestion.cpp
-    RefactorSuggestion.hpp RefactorSuggestion.cpp
-    RefactorSuggestionHoverHandler.hpp RefactorSuggestionHoverHandler.cpp
-    QodeAssistClient.hpp QodeAssistClient.cpp
-    chat/ChatOutputPane.h chat/ChatOutputPane.cpp
-    chat/NavigationPanel.hpp chat/NavigationPanel.cpp
-    chat/ChatDocument.hpp chat/ChatDocument.cpp
-    chat/ChatEditor.hpp chat/ChatEditor.cpp
-    chat/ChatEditorFactory.hpp chat/ChatEditorFactory.cpp
-    ConfigurationManager.hpp ConfigurationManager.cpp
-    CodeHandler.hpp CodeHandler.cpp
-    UpdateStatusWidget.hpp UpdateStatusWidget.cpp
-    widgets/CompletionProgressHandler.hpp widgets/CompletionProgressHandler.cpp
-    widgets/CompletionErrorHandler.hpp widgets/CompletionErrorHandler.cpp
-    widgets/CompletionHintWidget.hpp widgets/CompletionHintWidget.cpp
-    widgets/CompletionHintHandler.hpp widgets/CompletionHintHandler.cpp
-    widgets/ProgressWidget.hpp widgets/ProgressWidget.cpp
-    widgets/ErrorWidget.hpp widgets/ErrorWidget.cpp
-    widgets/EditorChatButton.hpp widgets/EditorChatButton.cpp
-    widgets/EditorChatButtonHandler.hpp widgets/EditorChatButtonHandler.cpp
-    widgets/QuickRefactorDialog.hpp widgets/QuickRefactorDialog.cpp
-    widgets/CustomInstructionsManager.hpp widgets/CustomInstructionsManager.cpp
-    widgets/AddCustomInstructionDialog.hpp widgets/AddCustomInstructionDialog.cpp
-    widgets/RefactorWidget.hpp widgets/RefactorWidget.cpp
-    widgets/RefactorWidgetHandler.hpp widgets/RefactorWidgetHandler.cpp
-    widgets/ContextExtractor.hpp
-    widgets/DiffStatistics.hpp
-
-    QuickRefactorHandler.hpp QuickRefactorHandler.cpp
-    tools/ToolsRegistration.hpp tools/ToolsRegistration.cpp
-    tools/ListProjectFilesTool.hpp tools/ListProjectFilesTool.cpp
-    tools/GetIssuesListTool.hpp tools/GetIssuesListTool.cpp
-    tools/CreateNewFileTool.hpp tools/CreateNewFileTool.cpp
-    tools/EditFileTool.hpp tools/EditFileTool.cpp
-    tools/BuildProjectTool.hpp tools/BuildProjectTool.cpp
-    tools/ExecuteTerminalCommandTool.hpp tools/ExecuteTerminalCommandTool.cpp
-    tools/ProjectSearchTool.hpp tools/ProjectSearchTool.cpp
-    tools/FindFileTool.hpp tools/FindFileTool.cpp
-    tools/ReadFileTool.hpp tools/ReadFileTool.cpp
-    tools/FileSearchUtils.hpp tools/FileSearchUtils.cpp
-    tools/TodoTool.hpp tools/TodoTool.cpp
-    tools/ReadOriginalHistoryTool.hpp tools/ReadOriginalHistoryTool.cpp
-    tools/SkillTool.hpp tools/SkillTool.cpp
-    mcp/McpServerManager.hpp mcp/McpServerManager.cpp
-    mcp/McpServerConnection.hpp mcp/McpServerConnection.cpp
-    mcp/McpClientsManager.hpp mcp/McpClientsManager.cpp
-    settings/McpClientsListAspect.hpp settings/McpClientsListAspect.cpp
+    sources/chat/ChatOutputPane.h sources/chat/ChatOutputPane.cpp
+    sources/chat/NavigationPanel.hpp sources/chat/NavigationPanel.cpp
+    sources/chat/ChatDocument.hpp sources/chat/ChatDocument.cpp
+    sources/chat/ChatEditor.hpp sources/chat/ChatEditor.cpp
+    sources/chat/ChatEditorFactory.hpp sources/chat/ChatEditorFactory.cpp
+    sources/widgets/CompletionProgressHandler.hpp sources/widgets/CompletionProgressHandler.cpp
+    sources/widgets/CompletionErrorHandler.hpp sources/widgets/CompletionErrorHandler.cpp
+    sources/widgets/CompletionHintWidget.hpp sources/widgets/CompletionHintWidget.cpp
+    sources/widgets/CompletionHintHandler.hpp sources/widgets/CompletionHintHandler.cpp
+    sources/widgets/ProgressWidget.hpp sources/widgets/ProgressWidget.cpp
+    sources/widgets/ErrorWidget.hpp sources/widgets/ErrorWidget.cpp
+    sources/widgets/EditorChatButton.hpp sources/widgets/EditorChatButton.cpp
+    sources/widgets/EditorChatButtonHandler.hpp sources/widgets/EditorChatButtonHandler.cpp
+    sources/widgets/QuickRefactorDialog.hpp sources/widgets/QuickRefactorDialog.cpp
+    sources/widgets/CustomInstructionsManager.hpp sources/widgets/CustomInstructionsManager.cpp
+    sources/widgets/AddCustomInstructionDialog.hpp sources/widgets/AddCustomInstructionDialog.cpp
+    sources/widgets/RefactorWidget.hpp sources/widgets/RefactorWidget.cpp
+    sources/widgets/RefactorWidgetHandler.hpp sources/widgets/RefactorWidgetHandler.cpp
+    sources/widgets/ContextExtractor.hpp
+    sources/widgets/DiffStatistics.hpp
+    sources/tools/ToolsRegistration.hpp sources/tools/ToolsRegistration.cpp
+    sources/tools/ListProjectFilesTool.hpp sources/tools/ListProjectFilesTool.cpp
+    sources/tools/GetIssuesListTool.hpp sources/tools/GetIssuesListTool.cpp
+    sources/tools/CreateNewFileTool.hpp sources/tools/CreateNewFileTool.cpp
+    sources/tools/EditFileTool.hpp sources/tools/EditFileTool.cpp
+    sources/tools/BuildProjectTool.hpp sources/tools/BuildProjectTool.cpp
+    sources/tools/ExecuteTerminalCommandTool.hpp sources/tools/ExecuteTerminalCommandTool.cpp
+    sources/tools/ProjectSearchTool.hpp sources/tools/ProjectSearchTool.cpp
+    sources/tools/FindFileTool.hpp sources/tools/FindFileTool.cpp
+    sources/tools/ReadFileTool.hpp sources/tools/ReadFileTool.cpp
+    sources/tools/FileSearchUtils.hpp sources/tools/FileSearchUtils.cpp
+    sources/tools/TodoTool.hpp sources/tools/TodoTool.cpp
+    sources/tools/ReadOriginalHistoryTool.hpp sources/tools/ReadOriginalHistoryTool.cpp
+    sources/tools/SkillTool.hpp sources/tools/SkillTool.cpp
+    sources/mcp/McpServerManager.hpp sources/mcp/McpServerManager.cpp
+    sources/mcp/McpServerConnection.hpp sources/mcp/McpServerConnection.cpp
+    sources/mcp/McpClientsManager.hpp sources/mcp/McpClientsManager.cpp
+    sources/settings/McpClientsListAspect.hpp sources/settings/McpClientsListAspect.cpp
 )
+
+target_include_directories(QodeAssist PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/sources)
 
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)
 find_program(QtCreatorExecutable

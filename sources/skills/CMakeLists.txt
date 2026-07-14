@@ -9,4 +9,4 @@ target_link_libraries(Skills
     Qt::Core
 )
 
-target_include_directories(Skills PUBLIC ${CMAKE_SOURCE_DIR})
+target_include_directories(Skills PUBLIC ${CMAKE_SOURCE_DIR}/sources)

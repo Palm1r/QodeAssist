@@ -1,0 +1,228 @@
+// Copyright (C) 2025-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Additional attribution terms under GPLv3 §7(b) apply — see LICENSE
+
+#include "GetIssuesListTool.hpp"
+
+#include "plugin/Version.hpp"
+#include <logger/Logger.hpp>
+#include <projectexplorer/taskhub.h>
+#include <QJsonArray>
+#include <QJsonObject>
+#include <QMutexLocker>
+#include <QtConcurrent>
+
+namespace QodeAssist::Tools {
+
+IssuesTracker &IssuesTracker::instance()
+{
+    static IssuesTracker tracker;
+    return tracker;
+}
+
+IssuesTracker::IssuesTracker(QObject *parent)
+    : QObject(parent)
+{
+
+    auto &hub = ProjectExplorer::taskHub();
+
+    connect(&hub, &ProjectExplorer::TaskHub::taskAdded, this, &IssuesTracker::onTaskAdded);
+    connect(&hub, &ProjectExplorer::TaskHub::taskRemoved, this, &IssuesTracker::onTaskRemoved);
+    connect(&hub, &ProjectExplorer::TaskHub::tasksCleared, this, &IssuesTracker::onTasksCleared);
+
+}
+
+QList<ProjectExplorer::Task> IssuesTracker::getTasks() const
+{
+    QMutexLocker locker(&m_mutex);
+    return m_tasks;
+}
+
+void IssuesTracker::onTaskAdded(const ProjectExplorer::Task &task)
+{
+    QMutexLocker locker(&m_mutex);
+    m_tasks.append(task);
+
+    QString typeStr;
+#if QODEASSIST_QT_CREATOR_VERSION >= QT_VERSION_CHECK(18, 0, 0)
+    auto taskType = task.type();
+    auto taskFile = task.file();
+    auto taskLine = task.line();
+#else
+    auto taskType = task.type;
+    auto taskFile = task.file;
+    auto taskLine = task.line;
+#endif
+    switch (taskType) {
+    case ProjectExplorer::Task::Error:
+        typeStr = "ERROR";
+        break;
+    case ProjectExplorer::Task::Warning:
+        typeStr = "WARNING";
+        break;
+    default:
+        typeStr = "INFO";
+        break;
+    }
+
+}
+
+void IssuesTracker::onTaskRemoved(const ProjectExplorer::Task &task)
+{
+    QMutexLocker locker(&m_mutex);
+    m_tasks.removeOne(task);
+
+}
+
+void IssuesTracker::onTasksCleared(Utils::Id categoryId)
+{
+    QMutexLocker locker(&m_mutex);
+
+    if (categoryId.isValid()) {
+        int beforeCount = m_tasks.size();
+        m_tasks.erase(
+            std::remove_if(
+                m_tasks.begin(),
+                m_tasks.end(),
+                [categoryId](const ProjectExplorer::Task &task) {
+#if QODEASSIST_QT_CREATOR_VERSION >= QT_VERSION_CHECK(18, 0, 0)
+                    return task.category() == categoryId;
+#else
+                    return task.category == categoryId;
+#endif
+                }),
+            m_tasks.end());
+        int removedCount = beforeCount - m_tasks.size();
+
+    } else {
+        int clearedCount = m_tasks.size();
+        m_tasks.clear();
+    }
+}
+
+GetIssuesListTool::GetIssuesListTool(QObject *parent)
+    : BaseTool(parent)
+{
+    IssuesTracker::instance();
+}
+
+QString GetIssuesListTool::id() const
+{
+    return "get_issues_list";
+}
+
+QString GetIssuesListTool::displayName() const
+{
+    return "Getting issues list from Qt Creator";
+}
+
+QString GetIssuesListTool::description() const
+{
+    return "Read diagnostics from Qt Creator's Issues panel, including the latest build output and "
+           "live clang-codemodel warnings/errors for open files. Each issue includes file path, "
+           "line number, severity, and message. Run `build_project` first if you need fresh build "
+           "diagnostics.";
+}
+
+QJsonObject GetIssuesListTool::parametersSchema() const
+{
+    QJsonObject definition;
+    definition["type"] = "object";
+
+    QJsonObject properties;
+    properties["severity"] = QJsonObject{
+        {"type", "string"},
+        {"description", "Filter by severity: 'error', 'warning', or 'all'"},
+        {"enum", QJsonArray{"error", "warning", "all"}}};
+
+    definition["properties"] = properties;
+    definition["required"] = QJsonArray();
+
+    return definition;
+}
+
+QFuture<LLMQore::ToolResult> GetIssuesListTool::executeAsync(const QJsonObject &input)
+{
+    return QtConcurrent::run([input]() -> LLMQore::ToolResult {
+
+        QString severityFilter = input.value("severity").toString("all");
+
+        const auto tasks = IssuesTracker::instance().getTasks();
+
+        if (tasks.isEmpty()) {
+            return LLMQore::ToolResult::text("No issues found in Qt Creator Issues panel.");
+        }
+
+        QStringList results;
+        results.append(QString("Total issues in panel: %1\n").arg(tasks.size()));
+
+        int errorCount = 0;
+        int warningCount = 0;
+        int processedCount = 0;
+
+        for (const ProjectExplorer::Task &task : tasks) {
+
+#if QODEASSIST_QT_CREATOR_VERSION >= QT_VERSION_CHECK(18, 0, 0)
+            auto taskType = task.type();
+            auto taskFile = task.file();
+            auto taskLine = task.line();
+            auto taskColumn = task.column();
+            auto taskCategory = task.category();
+#else
+            auto taskType = task.type;
+            auto taskFile = task.file;
+            auto taskLine = task.line;
+            auto taskColumn = task.column;
+            auto taskCategory = task.category;
+#endif
+            if (severityFilter == "error" && taskType != ProjectExplorer::Task::Error)
+                continue;
+            if (severityFilter == "warning" && taskType != ProjectExplorer::Task::Warning)
+                continue;
+
+            QString typeStr;
+            switch (taskType) {
+            case ProjectExplorer::Task::Error:
+                typeStr = "ERROR";
+                errorCount++;
+                break;
+            case ProjectExplorer::Task::Warning:
+                typeStr = "WARNING";
+                warningCount++;
+                break;
+            default:
+                typeStr = "INFO";
+                break;
+            }
+
+            QString issueText = QString("[%1] %2").arg(typeStr, task.description());
+
+            if (!taskFile.isEmpty()) {
+                issueText += QString("\n  File: %1").arg(taskFile.toUrlishString());
+                if (taskLine > 0) {
+                    issueText += QString(":%1").arg(taskLine);
+                    if (taskColumn > 0) {
+                        issueText += QString(":%1").arg(taskColumn);
+                    }
+                }
+            }
+
+            if (!taskCategory.toString().isEmpty()) {
+                issueText += QString("\n  Category: %1").arg(taskCategory.toString());
+            }
+
+            results.append(issueText);
+            processedCount++;
+        }
+
+        QString summary = QString("\nSummary: %1 errors, %2 warnings (processed %3 tasks)")
+                              .arg(errorCount)
+                              .arg(warningCount)
+                              .arg(processedCount);
+        results.prepend(summary);
+
+        return LLMQore::ToolResult::text(results.join("\n\n"));
+    });
+}
+
+} // namespace QodeAssist::Tools

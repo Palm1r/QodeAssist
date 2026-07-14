@@ -1,0 +1,105 @@
+qt_add_library(QodeAssistChatView STATIC)
+
+qt_policy(SET QTP0001 NEW)
+qt_policy(SET QTP0004 NEW)
+
+qt_add_qml_module(QodeAssistChatView
+    URI ChatView
+    VERSION 1.0
+    DEPENDENCIES
+    QtQuick
+    QML_FILES
+    qml/RootItem.qml
+
+    qml/chatparts/CodeBlock.qml
+    qml/chatparts/FileEditBlock.qml
+    qml/chatparts/TextBlock.qml
+    qml/chatparts/ThinkingBlock.qml
+    qml/chatparts/ToolBlock.qml
+    qml/chatparts/ChatItem.qml
+
+    qml/controls/AttachedFilesPlace.qml
+    qml/controls/BottomBar.qml
+    qml/controls/FileMentionPopup.qml
+    qml/controls/FileEditsActionBar.qml
+    qml/controls/ContextViewer.qml
+    qml/controls/SkillCommandPopup.qml
+    qml/controls/Toast.qml
+    qml/controls/TopBar.qml
+    qml/controls/SplitDropZone.qml
+    qml/controls/MessageNavigator.qml
+
+    RESOURCES
+    icons/attach-file-light.svg
+    icons/attach-file-dark.svg
+    icons/close-dark.svg
+    icons/close-light.svg
+    icons/link-file-light.svg
+    icons/link-file-dark.svg
+    icons/image-dark.svg
+    icons/load-chat-dark.svg
+    icons/save-chat-dark.svg
+    icons/clean-icon-dark.svg
+    icons/file-in-system.svg
+    icons/window-lock.svg
+    icons/window-unlock.svg
+    icons/chat-icon.svg
+    icons/chat-pause-icon.svg
+    icons/warning-icon.svg
+    icons/new-chat-icon.svg
+    icons/rules-icon.svg
+    icons/context-icon.svg
+    icons/open-in-editor.svg
+    icons/open-in-window.svg
+    icons/apply-changes-button.svg
+    icons/undo-changes-button.svg
+    icons/reject-changes-button.svg
+    icons/thinking-icon-on.svg
+    icons/thinking-icon-off.svg
+    icons/tools-icon-on.svg
+    icons/tools-icon-off.svg
+    icons/settings-icon.svg
+    icons/compress-icon.svg
+    icons/open-in-code.svg
+
+    SOURCES
+    ChatWidget.hpp ChatWidget.cpp
+    ChatModel.hpp ChatModel.cpp
+    ChatRootView.hpp ChatRootView.cpp
+    ClientInterface.hpp ClientInterface.cpp
+    MessagePart.hpp
+    ChatUtils.h ChatUtils.cpp
+    ChatSerializer.hpp ChatSerializer.cpp
+    ChatView.hpp ChatView.cpp
+    ChatData.hpp
+    FileItem.hpp FileItem.cpp
+    ChatFileManager.hpp ChatFileManager.cpp
+    ChatCompressor.hpp ChatCompressor.cpp
+    AgentRoleController.hpp AgentRoleController.cpp
+    ChatConfigurationController.hpp ChatConfigurationController.cpp
+    FileEditController.hpp FileEditController.cpp
+    InputTokenCounter.hpp InputTokenCounter.cpp
+    ChatHistoryStore.hpp ChatHistoryStore.cpp
+    FileMentionItem.hpp FileMentionItem.cpp
+    SessionFileRegistry.hpp SessionFileRegistry.cpp
+)
+
+target_link_libraries(QodeAssistChatView
+    PUBLIC
+    Qt::Widgets
+    Qt::Quick
+    Qt::QuickWidgets
+    Qt::Network
+    QtCreator::Core
+    QtCreator::Utils
+    QodeAssistSettings
+    Context
+    QodeAssistUIControlsplugin
+    QodeAssistLogger
+    LLMQore
+    Skills
+)
+
+target_include_directories(QodeAssistChatView
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_SOURCE_DIR}/sources
+)

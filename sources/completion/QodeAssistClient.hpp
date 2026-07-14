@@ -1,0 +1,73 @@
+// Copyright (C) 2023 The Qt Company Ltd.
+// Copyright (C) 2024-2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Additional attribution terms under GPLv3 §7(b) apply — see LICENSE
+
+#pragma once
+
+#include <QObject>
+
+#include "completion/LLMClientInterface.hpp"
+#include "completion/LSPCompletion.hpp"
+#include "refactor/QuickRefactorHandler.hpp"
+#include "refactor/RefactorSuggestionHoverHandler.hpp"
+#include "widgets/CompletionProgressHandler.hpp"
+#include "widgets/CompletionErrorHandler.hpp"
+#include "widgets/EditorChatButtonHandler.hpp"
+#include "widgets/RefactorWidgetHandler.hpp"
+#include <languageclient/client.h>
+#include "templates/IPromptProvider.hpp"
+#include "providers/IProviderRegistry.hpp"
+
+namespace QodeAssist {
+
+class QodeAssistClient : public LanguageClient::Client
+{
+    Q_OBJECT
+public:
+    explicit QodeAssistClient(LLMClientInterface *clientInterface);
+    ~QodeAssistClient() override;
+
+    void openDocument(TextEditor::TextDocument *document) override;
+    bool canOpenProject(ProjectExplorer::Project *project) override;
+
+    void requestCompletions(TextEditor::TextEditorWidget *editor);
+    void requestQuickRefactor(
+        TextEditor::TextEditorWidget *editor, const QString &instructions = QString());
+
+protected:
+    bool eventFilter(QObject *watched, QEvent *event) override;
+
+private:
+    void scheduleRequest(TextEditor::TextEditorWidget *editor);
+    void handleCompletions(
+        const GetCompletionRequest::Response &response, TextEditor::TextEditorWidget *editor);
+    void cancelRunningRequest(TextEditor::TextEditorWidget *editor);
+    bool isEnabled(ProjectExplorer::Project *project) const;
+
+    void setupConnections();
+    void cleanupConnections();
+    void handleRefactoringResult(const RefactorResult &result);
+    void displayRefactoringSuggestion(const RefactorResult &result);
+    void displayRefactoringWidget(const RefactorResult &result);
+    void applyRefactoringEdit(TextEditor::TextEditorWidget *editor, const Utils::Text::Range &range, const QString &text);
+
+    void handleAutoRequestTrigger(TextEditor::TextEditorWidget *widget);
+
+    QHash<TextEditor::TextEditorWidget *, GetCompletionRequest> m_runningRequests;
+    QHash<TextEditor::TextEditorWidget *, QTimer *> m_scheduledRequests;
+    QMetaObject::Connection m_documentOpenedConnection;
+    QMetaObject::Connection m_documentClosedConnection;
+
+    QElapsedTimer m_typingTimer;
+    int m_recentCharCount;
+    CompletionProgressHandler m_progressHandler;
+    CompletionErrorHandler m_errorHandler;
+    EditorChatButtonHandler m_chatButtonHandler;
+    QuickRefactorHandler *m_refactorHandler{nullptr};
+    RefactorSuggestionHoverHandler *m_refactorHoverHandler{nullptr};
+    RefactorWidgetHandler *m_refactorWidgetHandler{nullptr};
+    LLMClientInterface *m_llmClient;
+};
+
+} // namespace QodeAssist

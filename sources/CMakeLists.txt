@@ -1,2 +1,7 @@
 add_subdirectory(external)
 add_subdirectory(skills)
+add_subdirectory(logger)
+add_subdirectory(settings)
+add_subdirectory(context)
+add_subdirectory(UIControls)
+add_subdirectory(ChatView)

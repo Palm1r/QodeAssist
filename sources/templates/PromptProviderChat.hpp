@@ -1,0 +1,38 @@
+// Copyright (C) 2025 Povilas Kanapickas <povilas@radix.lt>
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Additional attribution terms under GPLv3 §7(b) apply — see LICENSE
+
+#pragma once
+
+#include "templates/IPromptProvider.hpp"
+#include "templates/PromptTemplate.hpp"
+#include "templates/PromptTemplateManager.hpp"
+
+namespace QodeAssist::Templates {
+
+class PromptProviderChat : public IPromptProvider
+{
+public:
+    explicit PromptProviderChat(PromptTemplateManager &templateManager)
+        : m_templateManager(templateManager)
+    {}
+
+    ~PromptProviderChat() = default;
+
+    PromptTemplate *getTemplateByName(const QString &templateName) const override
+    {
+        return m_templateManager.getChatTemplateByName(templateName);
+    }
+
+    QStringList templatesNames() const override { return m_templateManager.chatTemplatesNames(); }
+
+    QStringList getTemplatesForProvider(Providers::ProviderID id) const override
+    {
+        return m_templateManager.getChatTemplatesForProvider(id);
+    }
+
+private:
+    PromptTemplateManager &m_templateManager;
+};
+
+} // namespace QodeAssist::Templates
