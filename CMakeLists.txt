@@ -201,6 +201,15 @@ if (QtCreatorExecutable)
     DEPENDS QodeAssist
   )
   set_target_properties(RunQtCreator PROPERTIES FOLDER "qtc_runnable")
+
+  if (WITH_TESTS)
+    add_custom_target(RunQodeAssistTests
+      COMMAND ${QtCreatorExecutable} -pluginpath $<TARGET_FILE_DIR:QodeAssist> -test QodeAssist
+      DEPENDS QodeAssist
+      USES_TERMINAL
+    )
+    set_target_properties(RunQodeAssistTests PROPERTIES FOLDER "qtc_runnable")
+  endif()
 endif()
 
 #TODO change to TS_OUTPUT_DIRECTORY after removing Qt6.8
