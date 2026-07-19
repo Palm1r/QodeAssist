@@ -8,9 +8,9 @@
 #include <QQuickItem>
 #include <QVariantList>
 
+#include "ChatController.hpp"
 #include "ChatFileManager.hpp"
 #include "ChatModel.hpp"
-#include "ClientInterface.hpp"
 #include "templates/PromptProviderChat.hpp"
 #include <coreplugin/editormanager/editormanager.h>
 
@@ -203,6 +203,7 @@ public slots:
     void clearAttachmentFiles();
     void clearLinkedFiles();
     void clearMessages();
+    void resetChatToMessage(int index);
 
 signals:
     void chatModelChanged();
@@ -272,7 +273,7 @@ private:
 
     ChatModel *m_chatModel;
     Templates::PromptProviderChat m_promptProvider;
-    ClientInterface *m_clientInterface;
+    ChatController *m_controller;
     ChatFileManager *m_fileManager;
     QString m_currentTemplate;
     QString m_recentFilePath;

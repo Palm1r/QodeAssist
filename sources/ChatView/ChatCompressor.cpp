@@ -5,16 +5,16 @@
 #include "ChatCompressor.hpp"
 
 #include <LLMQore/BaseClient.hpp>
-#include "ChatModel.hpp"
 #include "GeneralSettings.hpp"
 #include "templates/PromptTemplateManager.hpp"
 #include "providers/ProvidersManager.hpp"
 #include "logger/Logger.hpp"
+#include "session/HistoryProjection.hpp"
+#include "session/HistorySerializer.hpp"
 
 #include <QDateTime>
 #include <QFile>
 #include <QFileInfo>
-#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QUuid>
@@ -25,7 +25,8 @@ ChatCompressor::ChatCompressor(QObject *parent)
     : QObject(parent)
 {}
 
-void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *chatModel)
+void ChatCompressor::startCompression(
+    const QString &chatFilePath, const Session::ConversationHistory &history)
 {
     if (m_isCompressing) {
         emit compressionFailed(tr("Compression already in progress"));
@@ -37,7 +38,8 @@ void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *ch
         return;
     }
 
-    if (!chatModel || chatModel->rowCount() == 0) {
+    const QList<Session::MessageRow> rows = Session::projectToRows(history);
+    if (rows.isEmpty()) {
         emit compressionFailed(tr("Chat is empty, nothing to compress"));
         return;
     }
@@ -60,7 +62,7 @@ void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *ch
     }
 
     m_isCompressing = true;
-    m_chatModel = chatModel;
+    m_rows = rows;
     m_originalChatPath = chatFilePath;
     m_accumulatedSummary.clear();
 
@@ -178,15 +180,14 @@ void ChatCompressor::buildRequestPayload(
         "Your summaries preserve key information, technical details, and the flow of discussion.");
 
     QVector<LLMCore::Message> messages;
-    for (const auto &msg : m_chatModel->getChatHistory()) {
-        if (msg.role == ChatModel::ChatRole::Tool 
-            || msg.role == ChatModel::ChatRole::FileEdit
-            || msg.role == ChatModel::ChatRole::Thinking)
+    for (const Session::MessageRow &row : std::as_const(m_rows)) {
+        if (row.kind == Session::RowKind::Tool || row.kind == Session::RowKind::FileEdit
+            || row.kind == Session::RowKind::Thinking)
             continue;
 
         LLMCore::Message apiMessage;
-        apiMessage.role = (msg.role == ChatModel::ChatRole::User) ? "user" : "assistant";
-        apiMessage.content = msg.content;
+        apiMessage.role = row.kind == Session::RowKind::User ? "user" : "assistant";
+        apiMessage.content = row.content;
         messages.append(apiMessage);
     }
 
@@ -204,33 +205,21 @@ void ChatCompressor::buildRequestPayload(
 bool ChatCompressor::createCompressedChatFile(
     const QString &sourcePath, const QString &destPath, const QString &summary)
 {
-    QFile sourceFile(sourcePath);
-    if (!sourceFile.open(QIODevice::ReadOnly)) {
+    if (!QFileInfo(sourcePath).isReadable()) {
         LOG_MESSAGE(QString("Failed to open source chat file: %1").arg(sourcePath));
         return false;
     }
 
-    QJsonParseError parseError;
-    QJsonDocument doc = QJsonDocument::fromJson(sourceFile.readAll(), &parseError);
-    sourceFile.close();
+    Session::Message summaryMessage;
+    summaryMessage.role = Session::MessageRole::Assistant;
+    summaryMessage.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    summaryMessage.blocks.append(
+        Session::TextBlock{QString("# Chat Summary\n\n%1").arg(summary)});
 
-    if (doc.isNull() || !doc.isObject()) {
-        LOG_MESSAGE(QString("Invalid JSON in chat file: %1 (Error: %2)")
-                        .arg(sourcePath, parseError.errorString()));
-        return false;
-    }
+    Session::ConversationHistory history;
+    history.append(summaryMessage);
 
-    QJsonObject root = doc.object();
-
-    QJsonObject summaryMessage;
-    summaryMessage["role"] = "assistant";
-    summaryMessage["content"] = QString("# Chat Summary\n\n%1").arg(summary);
-    summaryMessage["id"] = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    summaryMessage["isRedacted"] = false;
-    summaryMessage["attachments"] = QJsonArray();
-    summaryMessage["images"] = QJsonArray();
-
-    root["messages"] = QJsonArray{summaryMessage};
+    QJsonObject root = Session::HistorySerializer::toJson(history);
     root["compressedFrom"] = sourcePath;
     root["compressedAt"] = QDateTime::currentDateTime().toString(Qt::ISODate);
 
@@ -243,7 +232,16 @@ bool ChatCompressor::createCompressedChatFile(
         return false;
     }
 
-    destFile.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
+    if (destFile.write(QJsonDocument(root).toJson(QJsonDocument::Indented)) == -1) {
+        LOG_MESSAGE(QString("Failed to write compressed chat file: %1").arg(destFile.errorString()));
+        return false;
+    }
+
+    if (!destFile.flush()) {
+        LOG_MESSAGE(QString("Failed to flush compressed chat file: %1").arg(destFile.errorString()));
+        return false;
+    }
+
     return true;
 }
 
@@ -288,7 +286,7 @@ void ChatCompressor::cleanupState()
     m_currentRequestId.clear();
     m_originalChatPath.clear();
     m_accumulatedSummary.clear();
-    m_chatModel = nullptr;
+    m_rows.clear();
     m_provider = nullptr;
 }
 

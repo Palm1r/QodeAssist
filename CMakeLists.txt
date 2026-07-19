@@ -11,8 +11,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 find_package(QtCreator REQUIRED COMPONENTS Core)
-find_package(Qt6 COMPONENTS Core Gui Quick Widgets Network Svg Test LinguistTools REQUIRED)
-find_package(GTest)
+find_package(Qt6 COMPONENTS Core Gui Quick Widgets Network Svg LinguistTools REQUIRED)
+set(QT_VERSION_MAJOR 6)
+
+option(WITH_TESTS "Builds with tests" NO)
+
+if(WITH_TESTS)
+  find_package(Qt6 REQUIRED COMPONENTS Test)
+endif()
 
 qt_standard_project_setup(I18N_TRANSLATED_LANGUAGES
     en cs zh_CN zh_TW da de fr hr ja pl ru sl sv uk
@@ -37,9 +43,6 @@ add_definitions(
 )
 
 add_subdirectory(sources)
-if(GTest_FOUND)
-  add_subdirectory(tests)
-endif()
 
 add_qtc_plugin(QodeAssist
   PLUGIN_DEPENDS
@@ -60,6 +63,7 @@ add_qtc_plugin(QodeAssist
     QtCreator::CPlusPlus
     LLMQore
     Skills
+    QodeAssistSession
     QodeAssistChatViewplugin
   SOURCES
     .github/workflows/build_cmake.yml
@@ -171,6 +175,17 @@ add_qtc_plugin(QodeAssist
 
 target_include_directories(QodeAssist PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/sources)
 
+extend_qtc_plugin(QodeAssist
+  CONDITION WITH_TESTS
+  DEPENDS Qt::Test
+  SOURCES
+    tests/QodeAssistTest.hpp tests/QodeAssistTest.cpp
+)
+
+if(WITH_TESTS)
+  target_include_directories(QodeAssist PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+endif()
+
 get_target_property(QtCreatorCorePath QtCreator::Core LOCATION)
 find_program(QtCreatorExecutable
   NAMES
@@ -186,6 +201,15 @@ if (QtCreatorExecutable)
     DEPENDS QodeAssist
   )
   set_target_properties(RunQtCreator PROPERTIES FOLDER "qtc_runnable")
+
+  if (WITH_TESTS)
+    add_custom_target(RunQodeAssistTests
+      COMMAND ${QtCreatorExecutable} -pluginpath $<TARGET_FILE_DIR:QodeAssist> -test QodeAssist
+      DEPENDS QodeAssist
+      USES_TERMINAL
+    )
+    set_target_properties(RunQodeAssistTests PROPERTIES FOLDER "qtc_runnable")
+  endif()
 endif()
 
 #TODO change to TS_OUTPUT_DIRECTORY after removing Qt6.8

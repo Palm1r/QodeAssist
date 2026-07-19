@@ -4,16 +4,22 @@
 
 #pragma once
 
+#include <QDateTime>
+#include <QHash>
 #include <QObject>
+#include <QPointer>
 #include <QStringList>
+#include <QTimer>
 
 namespace QodeAssist::Context {
 class ContextManager;
 }
 
-namespace QodeAssist::Chat {
+namespace QodeAssist::Session {
+class Session;
+}
 
-class ChatModel;
+namespace QodeAssist::Chat {
 
 class InputTokenCounter : public QObject
 {
@@ -21,7 +27,9 @@ class InputTokenCounter : public QObject
 
 public:
     InputTokenCounter(
-        ChatModel *chatModel, Context::ContextManager *contextManager, QObject *parent = nullptr);
+        Session::Session *session,
+        Context::ContextManager *contextManager,
+        QObject *parent = nullptr);
 
     int inputTokens() const;
 
@@ -29,6 +37,7 @@ public:
     void setAttachments(const QStringList &attachments);
     void setLinkedFiles(const QStringList &linkedFiles);
     void recompute();
+    void recomputeSoon();
 
     void recordSent();
     void recordServerUsage(int promptTokens);
@@ -37,11 +46,20 @@ signals:
     void inputTokensChanged();
 
 private:
-    void rewireToolsChangedConnection();
+    struct CachedFileTokens
+    {
+        QDateTime modified;
+        int tokens = 0;
+    };
 
-    ChatModel *m_chatModel;
+    void rewireToolsChangedConnection();
+    int estimateFileTokens(const QStringList &paths);
+
+    QPointer<Session::Session> m_session;
     Context::ContextManager *m_contextManager;
     QMetaObject::Connection m_toolsChangedConn;
+    QTimer m_recomputeTimer;
+    QHash<QString, CachedFileTokens> m_fileTokens;
 
     QStringList m_attachments;
     QStringList m_linkedFiles;

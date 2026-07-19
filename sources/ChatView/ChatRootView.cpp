@@ -75,16 +75,16 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     : QQuickItem(parent)
     , m_chatModel(new ChatModel(this))
     , m_promptProvider(Templates::PromptTemplateManager::instance())
-    , m_clientInterface(new ClientInterface(m_chatModel, &m_promptProvider, this))
+    , m_controller(new ChatController(m_chatModel, &m_promptProvider, this))
     , m_fileManager(new ChatFileManager(this))
     , m_isRequestInProgress(false)
     , m_chatCompressor(new ChatCompressor(this))
     , m_agentRoleController(new AgentRoleController(this))
     , m_configurationController(new ChatConfigurationController(this))
-    , m_fileEditController(new FileEditController(m_chatModel, this))
-    , m_tokenCounter(
-          new InputTokenCounter(m_chatModel, m_clientInterface->contextManager(), this))
-    , m_historyStore(new ChatHistoryStore(m_chatModel, this))
+    , m_fileEditController(new FileEditController(this))
+    , m_tokenCounter(new InputTokenCounter(
+          m_controller->session(), m_controller->contextManager(), this))
+    , m_historyStore(new ChatHistoryStore(m_controller->session(), this))
 {
     m_isSyncOpenFiles = Settings::chatAssistantSettings().linkOpenFiles();
     connect(
@@ -126,18 +126,18 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         &ChatRootView::currentConfigurationChanged);
 
     connect(
-        m_clientInterface,
-        &ClientInterface::messageReceivedCompletely,
+        m_controller,
+        &ChatController::messageReceivedCompletely,
         this,
         &ChatRootView::autosave);
 
-    connect(m_clientInterface, &ClientInterface::messageReceivedCompletely, this, [this]() {
+    connect(m_controller, &ChatController::messageReceivedCompletely, this, [this]() {
         this->setRequestProgressStatus(false);
     });
 
     connect(
-        m_clientInterface,
-        &ClientInterface::messageReceivedCompletely,
+        m_controller,
+        &ChatController::messageReceivedCompletely,
         this,
         &ChatRootView::updateInputTokensCount);
 
@@ -156,7 +156,6 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     connect(m_chatModel, &QAbstractItemModel::modelReset, this, maybeEmitTitle);
     connect(m_chatModel, &QAbstractItemModel::rowsInserted, this, maybeEmitTitle);
     connect(m_chatModel, &QAbstractItemModel::rowsRemoved, this, maybeEmitTitle);
-    connect(m_chatModel, &QAbstractItemModel::dataChanged, this, maybeEmitTitle);
     connect(this, &ChatRootView::attachmentFilesChanged, this, [this]() {
         m_tokenCounter->setAttachments(m_attachmentFiles);
     });
@@ -227,21 +226,21 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         &Utils::BaseAspect::changed,
         this,
         &ChatRootView::textFormatChanged);
-    connect(m_clientInterface, &ClientInterface::errorOccurred, this, [this](const QString &error) {
+    connect(m_controller, &ChatController::errorOccurred, this, [this](const QString &error) {
         this->setRequestProgressStatus(false);
         m_lastErrorMessage = error;
         emit lastErrorMessageChanged();
     });
 
     connect(
-        m_clientInterface,
-        &ClientInterface::requestStarted,
+        m_controller,
+        &ChatController::requestStarted,
         this,
         [this](const QString &requestId) { m_fileEditController->setCurrentRequestId(requestId); });
 
     connect(
-        m_clientInterface,
-        &ClientInterface::messageUsageReceived,
+        m_controller,
+        &ChatController::messageUsageReceived,
         this,
         [this](int promptTokens, int /*completionTokens*/, int /*cached*/, int /*reasoning*/) {
             m_tokenCounter->recordServerUsage(promptTokens);
@@ -480,13 +479,13 @@ void ChatRootView::dispatchSend(
     }
 
     m_tokenCounter->recordSent();
+    setRequestProgressStatus(true);
 
-    m_clientInterface->setSkillsManager(skillsManager());
-    m_clientInterface->sendMessage(message, attachments, linkedFiles, useToolsArg, useThinkingArg);
+    m_controller->setSkillsManager(skillsManager());
+    m_controller->sendMessage(message, attachments, linkedFiles, useToolsArg, useThinkingArg);
 
     m_fileManager->clearIntermediateStorage();
     clearAttachmentFiles();
-    setRequestProgressStatus(true);
 }
 
 void ChatRootView::copyToClipboard(const QString &text)
@@ -496,7 +495,7 @@ void ChatRootView::copyToClipboard(const QString &text)
 
 void ChatRootView::cancelRequest()
 {
-    m_clientInterface->cancelRequest();
+    m_controller->cancelRequest();
     setRequestProgressStatus(false);
 }
 
@@ -523,8 +522,14 @@ void ChatRootView::clearLinkedFiles()
 
 void ChatRootView::clearMessages()
 {
-    m_clientInterface->clearMessages();
+    m_controller->clearMessages();
     clearLinkedFiles();
+}
+
+void ChatRootView::resetChatToMessage(int index)
+{
+    m_controller->resetToRow(index);
+    setRequestProgressStatus(false);
 }
 
 QString ChatRootView::currentTemplate() const
@@ -568,6 +573,11 @@ void ChatRootView::loadHistory(const QString &filePath)
         LOG_MESSAGE(QString("Failed to load chat history: %1").arg(result.errorMessage));
     } else {
         setRecentFilePath(filePath);
+        setRequestProgressStatus(false);
+        if (!result.warningMessage.isEmpty()) {
+            m_lastErrorMessage = result.warningMessage;
+            emit lastErrorMessageChanged();
+        }
     }
 
     if (!m_pendingSend.active)
@@ -890,13 +900,10 @@ QString ChatRootView::chatTitle() const
 
 QString ChatRootView::computeChatTitle() const
 {
-    if (!m_chatModel)
-        return {};
-    const auto history = m_chatModel->getChatHistory();
-    for (const auto &msg : history) {
-        if (msg.role != ChatModel::User)
+    for (const Session::MessageRow &row : m_controller->session()->rows()) {
+        if (row.kind != Session::RowKind::User)
             continue;
-        const QString content = msg.content.trimmed();
+        const QString content = row.content.trimmed();
         if (content.isEmpty())
             continue;
         const QString firstLine = content.section(QChar('\n'), 0, 0).trimmed();
@@ -1057,7 +1064,7 @@ void ChatRootView::setRecentFilePath(const QString &filePath)
     }
 
     m_recentFilePath = filePath;
-    m_clientInterface->setChatFilePath(filePath);
+    m_controller->setChatFilePath(filePath);
     m_fileManager->setChatFilePath(filePath);
     emit chatFileNameChanged();
 }
@@ -1066,7 +1073,7 @@ bool ChatRootView::shouldIgnoreFileForAttach(const Utils::FilePath &filePath)
 {
     auto project = ProjectExplorer::ProjectManager::projectForFile(filePath);
     if (project
-        && m_clientInterface->contextManager()
+        && m_controller->contextManager()
                ->ignoreManager()
                ->shouldIgnore(filePath.toFSPathString(), project)) {
         LOG_MESSAGE(QString("Ignoring file for attachment due to .qodeassistignore: %1")
@@ -1349,7 +1356,8 @@ void ChatRootView::compressCurrentChat()
 
     autosave();
 
-    m_chatCompressor->startCompression(m_recentFilePath, m_chatModel);
+    m_chatCompressor->startCompression(
+        m_recentFilePath, m_controller->session()->history());
 }
 
 void ChatRootView::cancelCompression()

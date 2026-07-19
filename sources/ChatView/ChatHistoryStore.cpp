@@ -16,15 +16,15 @@
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectmanager.h>
 
-#include "ChatModel.hpp"
 #include "Logger.hpp"
 #include "ProjectSettings.hpp"
+#include "session/Session.hpp"
 
 namespace QodeAssist::Chat {
 
-ChatHistoryStore::ChatHistoryStore(ChatModel *chatModel, QObject *parent)
+ChatHistoryStore::ChatHistoryStore(Session::Session *session, QObject *parent)
     : QObject(parent)
-    , m_chatModel(chatModel)
+    , m_session(session)
 {}
 
 QString ChatHistoryStore::historyDir() const
@@ -52,18 +52,15 @@ QString ChatHistoryStore::suggestedFileName() const
 {
     QString shortMessage;
 
-    if (m_chatModel->rowCount() > 0) {
-        QString firstMessage
-            = m_chatModel->data(m_chatModel->index(0), ChatModel::Content).toString();
-        shortMessage = firstMessage.split('\n').first().simplified().left(30);
+    if (!m_session)
+        return generateChatFileName(shortMessage, historyDir());
 
-        if (shortMessage.isEmpty()) {
-            QVariantList images
-                = m_chatModel->data(m_chatModel->index(0), ChatModel::Images).toList();
-            if (!images.isEmpty()) {
-                shortMessage = "image_chat";
-            }
-        }
+    const QList<Session::MessageRow> &rows = m_session->rows();
+    if (!rows.isEmpty()) {
+        shortMessage = rows.first().content.split('\n').first().simplified().left(30);
+
+        if (shortMessage.isEmpty() && !rows.first().images.isEmpty())
+            shortMessage = "image_chat";
     }
 
     return generateChatFileName(shortMessage, historyDir());
@@ -107,12 +104,22 @@ QString ChatHistoryStore::autosaveFilePath(
 
 SerializationResult ChatHistoryStore::save(const QString &filePath) const
 {
-    return ChatSerializer::saveToFile(m_chatModel, filePath);
+    if (!m_session)
+        return {false, QString("Chat session is no longer available")};
+
+    return ChatSerializer::saveToFile(m_session->history(), filePath);
 }
 
 SerializationResult ChatHistoryStore::load(const QString &filePath) const
 {
-    return ChatSerializer::loadFromFile(m_chatModel, filePath);
+    if (!m_session)
+        return {false, QString("Chat session is no longer available")};
+
+    Session::ConversationHistory history;
+    const SerializationResult result = ChatSerializer::loadFromFile(history, filePath);
+    if (result.success)
+        m_session->setHistory(history);
+    return result;
 }
 
 void ChatHistoryStore::showSaveDialog()

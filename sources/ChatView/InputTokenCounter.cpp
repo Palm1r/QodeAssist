@@ -7,25 +7,27 @@
 #include <algorithm>
 
 #include <LLMQore/ToolsManager.hpp>
+#include <QDateTime>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 
 #include <utils/aspects.h>
 
 #include "ChatAssistantSettings.hpp"
-#include "ChatModel.hpp"
 #include "GeneralSettings.hpp"
 #include "Logger.hpp"
 #include "providers/ProvidersManager.hpp"
 #include "context/ContextManager.hpp"
 #include "context/TokenUtils.hpp"
+#include "session/Session.hpp"
 
 namespace QodeAssist::Chat {
 
 InputTokenCounter::InputTokenCounter(
-    ChatModel *chatModel, Context::ContextManager *contextManager, QObject *parent)
+    Session::Session *session, Context::ContextManager *contextManager, QObject *parent)
     : QObject(parent)
-    , m_chatModel(chatModel)
+    , m_session(session)
     , m_contextManager(contextManager)
 {
     auto &settings = Settings::chatAssistantSettings();
@@ -47,8 +49,17 @@ InputTokenCounter::InputTokenCounter(
         recompute();
     });
 
+    m_recomputeTimer.setSingleShot(true);
+    m_recomputeTimer.setInterval(150);
+    connect(&m_recomputeTimer, &QTimer::timeout, this, &InputTokenCounter::recompute);
+
     rewireToolsChangedConnection();
     recompute();
+}
+
+void InputTokenCounter::recomputeSoon()
+{
+    m_recomputeTimer.start();
 }
 
 int InputTokenCounter::inputTokens() const
@@ -59,7 +70,7 @@ int InputTokenCounter::inputTokens() const
 void InputTokenCounter::setMessage(const QString &message)
 {
     m_messageTokens = Context::TokenUtils::estimateTokens(message);
-    recompute();
+    recomputeSoon();
 }
 
 void InputTokenCounter::setAttachments(const QStringList &attachments)
@@ -92,6 +103,37 @@ void InputTokenCounter::rewireToolsChangedConnection()
         tm, &::LLMQore::ToolRegistry::toolsChanged, this, &InputTokenCounter::recompute);
 }
 
+int InputTokenCounter::estimateFileTokens(const QStringList &paths)
+{
+    if (paths.isEmpty())
+        return 0;
+
+    int total = 0;
+    QStringList uncached;
+
+    for (const QString &path : paths) {
+        const QDateTime modified = QFileInfo(path).lastModified();
+        const auto cached = m_fileTokens.constFind(path);
+        if (cached != m_fileTokens.constEnd() && cached->modified == modified) {
+            total += cached->tokens;
+            continue;
+        }
+        uncached.append(path);
+    }
+
+    if (m_fileTokens.size() > 256)
+        m_fileTokens.clear();
+
+    for (const QString &path : std::as_const(uncached)) {
+        const int tokens = Context::TokenUtils::estimateFilesTokens(
+            m_contextManager->getContentFiles({path}));
+        total += tokens;
+        m_fileTokens.insert(path, {QFileInfo(path).lastModified(), tokens});
+    }
+
+    return total;
+}
+
 void InputTokenCounter::recompute()
 {
     int inputTokens = m_messageTokens;
@@ -115,25 +157,20 @@ void InputTokenCounter::recompute()
     if (!m_attachments.isEmpty()) {
         QStringList textPaths;
         inputTokens += splitImageEstimate(m_attachments, textPaths);
-        if (!textPaths.isEmpty()) {
-            auto attachFiles = m_contextManager->getContentFiles(textPaths);
-            inputTokens += Context::TokenUtils::estimateFilesTokens(attachFiles);
-        }
+        inputTokens += estimateFileTokens(textPaths);
     }
 
     if (!m_linkedFiles.isEmpty()) {
         QStringList textPaths;
         inputTokens += splitImageEstimate(m_linkedFiles, textPaths);
-        if (!textPaths.isEmpty()) {
-            auto linkFiles = m_contextManager->getContentFiles(textPaths);
-            inputTokens += Context::TokenUtils::estimateFilesTokens(linkFiles);
-        }
+        inputTokens += estimateFileTokens(textPaths);
     }
 
-    const auto &history = m_chatModel->getChatHistory();
-    for (const auto &message : history) {
-        inputTokens += Context::TokenUtils::estimateTokens(message.content);
-        inputTokens += 4; // + role
+    if (m_session) {
+        for (const Session::MessageRow &row : m_session->rows()) {
+            inputTokens += Context::TokenUtils::estimateTokens(row.content);
+            inputTokens += 4; // + role
+        }
     }
 
     if (settings.enableChatTools()) {
@@ -157,6 +194,11 @@ void InputTokenCounter::recompute()
 
 void InputTokenCounter::recordSent()
 {
+    if (m_recomputeTimer.isActive()) {
+        m_recomputeTimer.stop();
+        recompute();
+    }
+
     m_lastSentEstimate = m_calibrationFactor > 0.0
                              ? static_cast<int>(m_inputTokens / m_calibrationFactor)
                              : m_inputTokens;

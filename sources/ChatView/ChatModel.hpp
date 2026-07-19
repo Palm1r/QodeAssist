@@ -4,11 +4,9 @@
 
 #pragma once
 
-#include "llmcore/ContextData.hpp"
 #include "MessagePart.hpp"
 
 #include <QAbstractListModel>
-#include <QJsonArray>
 #include <QJsonObject>
 #include <QtQmlIntegration>
 
@@ -77,62 +75,19 @@ public:
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    Q_INVOKABLE void addMessage(
-        const QString &content,
-        ChatRole role,
-        const QString &id,
-        const QList<Context::ContentFile> &attachments = {},
-        const QList<ImageAttachment> &images = {},
-        bool isRedacted = false,
-        const QString &signature = QString());
-    Q_INVOKABLE void clear();
+    void resetMessages(const QVector<Message> &messages);
+    void appendMessages(const QVector<Message> &messages);
+    void updateMessage(int index, const Message &message);
+    void removeMessages(int first, int count);
+
     Q_INVOKABLE QList<MessagePart> processMessageContent(const QString &content) const;
-
-    QVector<Message> getChatHistory() const;
-    QJsonArray prepareMessagesForRequest(const QString &systemPrompt) const;
-
-    QString currentModel() const;
-    QString lastMessageId() const;
-
-    Q_INVOKABLE void resetModelTo(int index);
     Q_INVOKABLE QVariantList userMessagePreviews(int maxLength = 80) const;
-
-    void addToolExecutionStatus(
-        const QString &requestId,
-        const QString &toolId,
-        const QString &toolName,
-        const QJsonObject &toolArguments);
-    void dropTrailingAssistantMessage(const QString &requestId);
-    void setToolMessageData(
-        const QString &toolId,
-        const QString &toolName,
-        const QJsonObject &toolArguments,
-        const QString &toolResult);
-    void updateToolResult(
-        const QString &requestId,
-        const QString &toolId,
-        const QString &toolName,
-        const QString &result);
-    void addThinkingBlock(
-        const QString &requestId, const QString &thinking, const QString &signature);
-    void addRedactedThinkingBlock(const QString &requestId, const QString &signature);
-    void updateMessageContent(const QString &messageId, const QString &newContent);
-
-    void setMessageUsage(
-        const QString &messageId,
-        int promptTokens,
-        int completionTokens,
-        int cachedPromptTokens,
-        int reasoningTokens);
 
     int sessionPromptTokens() const;
     int sessionCompletionTokens() const;
     int sessionCachedPromptTokens() const;
     int sessionTotalTokens() const;
-    
-    void setLoadingFromHistory(bool loading);
-    bool isLoadingFromHistory() const;
-    
+
     void setChatFilePath(const QString &filePath);
     QString chatFilePath() const;
 
@@ -140,16 +95,8 @@ signals:
     void modelReseted();
     void sessionUsageChanged();
 
-private slots:
-    void onFileEditApplied(const QString &editId);
-    void onFileEditRejected(const QString &editId);
-    void onFileEditArchived(const QString &editId);
-
 private:
-    void updateFileEditStatus(const QString &editId, const QString &status, const QString &statusMessage);
-    
     QVector<Message> m_messages;
-    bool m_loadingFromHistory = false;
     QString m_chatFilePath;
 };
 

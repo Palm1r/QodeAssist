@@ -66,10 +66,13 @@ qt_add_qml_module(QodeAssistChatView
     ChatWidget.hpp ChatWidget.cpp
     ChatModel.hpp ChatModel.cpp
     ChatRootView.hpp ChatRootView.cpp
-    ClientInterface.hpp ClientInterface.cpp
+    ChatController.hpp ChatController.cpp
+    LlmChatBackend.hpp LlmChatBackend.cpp
     MessagePart.hpp
     ChatUtils.h ChatUtils.cpp
     ChatSerializer.hpp ChatSerializer.cpp
+    ChatHistoryBridge.hpp ChatHistoryBridge.cpp
+    TurnContextAdapters.hpp TurnContextAdapters.cpp
     ChatView.hpp ChatView.cpp
     ChatData.hpp
     FileItem.hpp FileItem.cpp
@@ -94,6 +97,7 @@ target_link_libraries(QodeAssistChatView
     QtCreator::Utils
     QodeAssistSettings
     Context
+    QodeAssistSession
     QodeAssistUIControlsplugin
     QodeAssistLogger
     LLMQore

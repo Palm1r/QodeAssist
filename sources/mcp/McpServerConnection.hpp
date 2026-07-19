@@ -16,8 +16,11 @@
 
 namespace LLMQore::Mcp {
 class McpClient;
-class McpTransport;
 } // namespace LLMQore::Mcp
+
+namespace LLMQore::Rpc {
+class Transport;
+} // namespace LLMQore::Rpc
 
 namespace QodeAssist::Providers {
 class Provider;
@@ -77,14 +80,14 @@ private:
     void fetchAndRegisterTools();
     void registerTools(const QList<::LLMQore::Mcp::McpClient *> & /*unused*/);
     void unregisterTools();
-    ::LLMQore::Mcp::McpTransport *createTransport();
+    ::LLMQore::Rpc::Transport *createTransport();
 
     McpServerConfig m_config;
     McpConnectionState m_state = McpConnectionState::Disabled;
     QString m_statusText;
 
     QPointer<::LLMQore::Mcp::McpClient> m_client;
-    QPointer<::LLMQore::Mcp::McpTransport> m_transport;
+    QPointer<::LLMQore::Rpc::Transport> m_transport;
     QPointer<QTimer> m_listToolsWatchdog;
 
     QList<QPointer<Providers::Provider>> m_providers;

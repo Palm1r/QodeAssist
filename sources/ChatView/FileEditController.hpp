@@ -9,14 +9,12 @@
 
 namespace QodeAssist::Chat {
 
-class ChatModel;
-
 class FileEditController : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit FileEditController(ChatModel *chatModel, QObject *parent = nullptr);
+    explicit FileEditController(QObject *parent = nullptr);
 
     void setCurrentRequestId(const QString &requestId);
     void clearCurrentRequestId();
@@ -41,9 +39,6 @@ signals:
     void errorOccurred(const QString &error);
 
 private:
-    void updateFileEditStatus(const QString &editId, const QString &status);
-
-    ChatModel *m_chatModel;
     QString m_currentRequestId;
     int m_totalEdits{0};
     int m_appliedEdits{0};

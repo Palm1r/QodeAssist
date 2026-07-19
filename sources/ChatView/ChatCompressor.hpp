@@ -9,6 +9,8 @@
 #include <QObject>
 #include <QString>
 
+#include "session/HistoryProjection.hpp"
+
 namespace QodeAssist::Providers {
 class Provider;
 } // namespace QodeAssist::Providers
@@ -19,8 +21,6 @@ class PromptTemplate;
 
 namespace QodeAssist::Chat {
 
-class ChatModel;
-
 class ChatCompressor : public QObject
 {
     Q_OBJECT
@@ -28,7 +28,8 @@ class ChatCompressor : public QObject
 public:
     explicit ChatCompressor(QObject *parent = nullptr);
 
-    void startCompression(const QString &chatFilePath, ChatModel *chatModel);
+    void startCompression(
+        const QString &chatFilePath, const Session::ConversationHistory &history);
 
     bool isCompressing() const;
     void cancelCompression();
@@ -59,7 +60,7 @@ private:
     QString m_originalChatPath;
     QString m_accumulatedSummary;
     Providers::Provider *m_provider = nullptr;
-    ChatModel *m_chatModel = nullptr;
+    QList<Session::MessageRow> m_rows;
 
     QList<QMetaObject::Connection> m_connections;
 };
