@@ -343,7 +343,7 @@ ChatRootView {
                     onResetChatToMessage: function(idx) {
                         messageInput.text = model.content
                         messageInput.cursorPosition = model.content.length
-                        root.chatModel.resetModelTo(idx)
+                        root.resetChatToMessage(idx)
                     }
 
                     onOpenFileRequested: function(filePath) {

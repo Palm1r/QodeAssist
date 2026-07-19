@@ -66,7 +66,8 @@ qt_add_qml_module(QodeAssistChatView
     ChatWidget.hpp ChatWidget.cpp
     ChatModel.hpp ChatModel.cpp
     ChatRootView.hpp ChatRootView.cpp
-    ClientInterface.hpp ClientInterface.cpp
+    ChatController.hpp ChatController.cpp
+    LlmChatBackend.hpp LlmChatBackend.cpp
     MessagePart.hpp
     ChatUtils.h ChatUtils.cpp
     ChatSerializer.hpp ChatSerializer.cpp

@@ -93,7 +93,24 @@ private slots:
     void testCompressedChatShapeReloadsAsOneAssistantRow();
     void testHistoryAppliesToChatModel();
     void testAdjacentThinkingBlocksSurviveReload();
-    void testChatModelRoundTripsThroughHistory();
+
+    void testSessionAppendsUserTurnBeforeSending();
+    void testSessionStreamsTextThinkingAndTools();
+    void testSessionTrimsStreamedText();
+    void testSessionAbandoningTheTurnCancelsTheBackend();
+    void testSessionProjectionMatchesHistory();
+    void testSessionAccumulatesStreamedThinking();
+    void testSessionKeepsThinkingAfterToolContinuation();
+    void testSessionDropsPreToolTextWhenAsked();
+    void testSessionToolResultAppendsFileEditRow();
+    void testSessionIgnoresEchoedFileEditMarker();
+    void testSessionTruncationKeepsBlockOrder();
+    void testHistorySnapshotReportsUnreadableBlocks();
+    void testSessionUsageLandsOnTheTurn();
+    void testSessionIgnoresEventsFromOtherTurns();
+    void testSessionReportsFailureWithoutStartedTurn();
+    void testSessionIgnoresFailureFromAbandonedTurn();
+    void testSessionTruncateRowsRewritesHistory();
 
     void testTurnContextCollectsPartsFromPorts();
     void testTurnContextSkillCommandScanning();

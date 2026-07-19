@@ -1,0 +1,100 @@
+// Copyright (C) 2026 Petr Mironychev
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Additional attribution terms under GPLv3 §7(b) apply — see LICENSE
+
+#pragma once
+
+#include <QJsonObject>
+#include <QMetaType>
+#include <QString>
+
+#include <variant>
+
+#include "session/Message.hpp"
+
+namespace QodeAssist::Session {
+
+struct TurnStarted
+{
+    QString turnId;
+
+    bool operator==(const TurnStarted &other) const = default;
+};
+
+struct TextDelta
+{
+    QString turnId;
+    QString text;
+
+    bool operator==(const TextDelta &other) const = default;
+};
+
+struct ThinkingReceived
+{
+    QString turnId;
+    QString text;
+    QString signature;
+    bool redacted = false;
+
+    bool operator==(const ThinkingReceived &other) const = default;
+};
+
+struct ToolCallStarted
+{
+    QString turnId;
+    QString toolId;
+    QString name;
+    QJsonObject arguments;
+    bool dropPrecedingText = false;
+
+    bool operator==(const ToolCallStarted &other) const = default;
+};
+
+struct ToolCallCompleted
+{
+    QString turnId;
+    QString toolId;
+    QString name;
+    QString result;
+
+    bool operator==(const ToolCallCompleted &other) const = default;
+};
+
+struct UsageReported
+{
+    QString turnId;
+    Usage usage;
+
+    bool operator==(const UsageReported &other) const = default;
+};
+
+struct TurnCompleted
+{
+    QString turnId;
+
+    bool operator==(const TurnCompleted &other) const = default;
+};
+
+struct TurnFailed
+{
+    QString turnId;
+    QString error;
+
+    bool operator==(const TurnFailed &other) const = default;
+};
+
+using SessionEvent = std::variant<
+    TurnStarted,
+    TextDelta,
+    ThinkingReceived,
+    ToolCallStarted,
+    ToolCallCompleted,
+    UsageReported,
+    TurnCompleted,
+    TurnFailed>;
+
+QString turnIdOf(const SessionEvent &event);
+
+} // namespace QodeAssist::Session
+
+Q_DECLARE_METATYPE(QodeAssist::Session::SessionEvent)

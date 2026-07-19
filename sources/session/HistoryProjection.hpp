@@ -8,6 +8,8 @@
 #include <QList>
 #include <QString>
 
+#include <optional>
+
 #include "session/ConversationHistory.hpp"
 
 namespace QodeAssist::Session {
@@ -41,6 +43,8 @@ struct MessageRow
     }
 };
 
+std::optional<MessageRow> projectBlockToRow(const Message &message, const ContentBlock &block);
+QList<MessageRow> projectMessageToRows(const Message &message);
 QList<MessageRow> projectToRows(const ConversationHistory &history);
 ConversationHistory buildFromRows(const QList<MessageRow> &rows);
 

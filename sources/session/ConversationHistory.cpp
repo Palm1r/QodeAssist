@@ -26,4 +26,22 @@ const Message &ConversationHistory::at(qsizetype index) const
     return m_messages.at(index);
 }
 
+const Message &ConversationHistory::last() const
+{
+    return m_messages.last();
+}
+
+Message *ConversationHistory::lastMessage()
+{
+    return m_messages.isEmpty() ? nullptr : &m_messages.last();
+}
+
+void ConversationHistory::visitBlocks(const std::function<void(ContentBlock &)> &visit)
+{
+    for (Message &message : m_messages) {
+        for (ContentBlock &block : message.blocks)
+            visit(block);
+    }
+}
+
 } // namespace QodeAssist::Session

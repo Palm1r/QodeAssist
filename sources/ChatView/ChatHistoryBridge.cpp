@@ -5,30 +5,11 @@
 #include "ChatHistoryBridge.hpp"
 
 #include "ChatModel.hpp"
-#include "session/HistoryProjection.hpp"
+#include "session/Session.hpp"
 
 namespace QodeAssist::Chat {
 
 namespace {
-
-Session::RowKind toRowKind(ChatModel::ChatRole role)
-{
-    switch (role) {
-    case ChatModel::ChatRole::System:
-        return Session::RowKind::System;
-    case ChatModel::ChatRole::User:
-        return Session::RowKind::User;
-    case ChatModel::ChatRole::Assistant:
-        return Session::RowKind::Assistant;
-    case ChatModel::ChatRole::Tool:
-        return Session::RowKind::Tool;
-    case ChatModel::ChatRole::FileEdit:
-        return Session::RowKind::FileEdit;
-    case ChatModel::ChatRole::Thinking:
-        return Session::RowKind::Thinking;
-    }
-    return Session::RowKind::Assistant;
-}
 
 ChatModel::ChatRole toChatRole(Session::RowKind kind)
 {
@@ -47,33 +28,6 @@ ChatModel::ChatRole toChatRole(Session::RowKind kind)
         return ChatModel::ChatRole::Thinking;
     }
     return ChatModel::ChatRole::Assistant;
-}
-
-Session::MessageRow toRow(const ChatModel::Message &message)
-{
-    Session::MessageRow row;
-    row.kind = toRowKind(message.role);
-    row.id = message.id;
-    row.content = message.content;
-    row.redacted = message.isRedacted;
-    row.signature = message.signature;
-    row.toolName = message.toolName;
-    row.toolArguments = message.toolArguments;
-    row.toolResult = message.toolResult;
-
-    for (const Context::ContentFile &attachment : message.attachments)
-        row.attachments.append(Session::AttachmentBlock{attachment.filename, attachment.content});
-
-    for (const ChatModel::ImageAttachment &image : message.images)
-        row.images.append(Session::ImageBlock{image.fileName, image.storedPath, image.mediaType});
-
-    row.usage = Session::Usage{
-        message.promptTokens,
-        message.completionTokens,
-        message.cachedPromptTokens,
-        message.reasoningTokens};
-
-    return row;
 }
 
 ChatModel::Message toChatMessage(const Session::MessageRow &row)
@@ -103,28 +57,51 @@ ChatModel::Message toChatMessage(const Session::MessageRow &row)
     return message;
 }
 
-} // namespace
-
-Session::ConversationHistory ChatHistoryBridge::readHistory(const ChatModel *model)
+QVector<ChatModel::Message> toChatMessages(const QList<Session::MessageRow> &rows)
 {
-    QList<Session::MessageRow> rows;
-    for (const ChatModel::Message &message : model->getChatHistory())
-        rows.append(toRow(message));
-
-    return Session::buildFromRows(rows);
+    QVector<ChatModel::Message> messages;
+    messages.reserve(rows.size());
+    for (const Session::MessageRow &row : rows)
+        messages.append(toChatMessage(row));
+    return messages;
 }
 
-void ChatHistoryBridge::applyHistory(ChatModel *model, const Session::ConversationHistory &history)
+} // namespace
+
+ChatHistoryBridge::ChatHistoryBridge(Session::Session *session, ChatModel *model, QObject *parent)
+    : QObject(parent)
+    , m_model(model)
 {
-    const QList<Session::MessageRow> rows = Session::projectToRows(history);
+    connect(session, &Session::Session::rowsReset, this, &ChatHistoryBridge::onRowsReset);
+    connect(session, &Session::Session::rowsAppended, this, &ChatHistoryBridge::onRowsAppended);
+    connect(session, &Session::Session::rowUpdated, this, &ChatHistoryBridge::onRowUpdated);
+    connect(session, &Session::Session::rowsRemoved, this, &ChatHistoryBridge::onRowsRemoved);
 
-    model->clear();
-    model->setLoadingFromHistory(true);
+    onRowsReset(session->rows());
+}
 
-    for (const Session::MessageRow &row : rows)
-        model->appendMessage(toChatMessage(row));
+void ChatHistoryBridge::onRowsReset(const QList<Session::MessageRow> &rows)
+{
+    if (m_model)
+        m_model->resetMessages(toChatMessages(rows));
+}
 
-    model->setLoadingFromHistory(false);
+void ChatHistoryBridge::onRowsAppended(const QList<Session::MessageRow> &rows)
+{
+    if (m_model)
+        m_model->appendMessages(toChatMessages(rows));
+}
+
+void ChatHistoryBridge::onRowUpdated(int index, const Session::MessageRow &row)
+{
+    if (m_model)
+        m_model->updateMessage(index, toChatMessage(row));
+}
+
+void ChatHistoryBridge::onRowsRemoved(int first, int count)
+{
+    if (m_model)
+        m_model->removeMessages(first, count);
 }
 
 } // namespace QodeAssist::Chat

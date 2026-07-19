@@ -4,17 +4,34 @@
 
 #pragma once
 
-#include "session/ConversationHistory.hpp"
+#include <QList>
+#include <QObject>
+#include <QPointer>
+
+#include "session/HistoryProjection.hpp"
+
+namespace QodeAssist::Session {
+class Session;
+}
 
 namespace QodeAssist::Chat {
 
 class ChatModel;
 
-class ChatHistoryBridge
+class ChatHistoryBridge : public QObject
 {
+    Q_OBJECT
+
 public:
-    static Session::ConversationHistory readHistory(const ChatModel *model);
-    static void applyHistory(ChatModel *model, const Session::ConversationHistory &history);
+    ChatHistoryBridge(Session::Session *session, ChatModel *model, QObject *parent = nullptr);
+
+private:
+    void onRowsReset(const QList<Session::MessageRow> &rows);
+    void onRowsAppended(const QList<Session::MessageRow> &rows);
+    void onRowUpdated(int index, const Session::MessageRow &row);
+    void onRowsRemoved(int first, int count);
+
+    QPointer<ChatModel> m_model;
 };
 
 } // namespace QodeAssist::Chat

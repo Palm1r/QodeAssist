@@ -6,6 +6,8 @@
 
 #include <QList>
 
+#include <functional>
+
 #include "session/Message.hpp"
 
 namespace QodeAssist::Session {
@@ -18,6 +20,10 @@ public:
     qsizetype size() const;
     const QList<Message> &messages() const;
     const Message &at(qsizetype index) const;
+    const Message &last() const;
+    Message *lastMessage();
+
+    void visitBlocks(const std::function<void(ContentBlock &)> &visit);
 
     bool operator==(const ConversationHistory &other) const = default;
 

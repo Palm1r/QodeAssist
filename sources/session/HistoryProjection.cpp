@@ -5,6 +5,7 @@
 #include "session/HistoryProjection.hpp"
 
 #include <optional>
+#include <utility>
 
 namespace QodeAssist::Session {
 
@@ -15,20 +16,30 @@ QString signatureSuffix(const QString &signature)
     return QString("\n[Signature: %1...]").arg(signature.left(40));
 }
 
+QString redactedThinkingText()
+{
+    return QStringLiteral("[Thinking content redacted by safety systems]");
+}
+
 QString thinkingDisplayText(const ThinkingBlock &block)
 {
-    return block.signature.isEmpty() ? block.text : block.text + signatureSuffix(block.signature);
+    const QString text = block.redacted && block.text.isEmpty() ? redactedThinkingText()
+                                                                : block.text;
+    return block.signature.isEmpty() ? text : text + signatureSuffix(block.signature);
 }
 
 QString thinkingTextOf(const MessageRow &row)
 {
     QString text = row.content;
-    if (row.signature.isEmpty())
-        return text;
+    if (!row.signature.isEmpty()) {
+        const QString suffix = signatureSuffix(row.signature);
+        if (text.endsWith(suffix))
+            text.chop(suffix.size());
+    }
 
-    const QString suffix = signatureSuffix(row.signature);
-    if (text.endsWith(suffix))
-        text.chop(suffix.size());
+    if (row.redacted && text == redactedThinkingText())
+        return {};
+
     return text;
 }
 
@@ -62,71 +73,95 @@ RowKind textRowKind(MessageRole role)
 
 } // namespace
 
+std::optional<MessageRow> projectBlockToRow(const Message &message, const ContentBlock &block)
+{
+    if (const auto *text = std::get_if<TextBlock>(&block)) {
+        MessageRow row;
+        row.kind = textRowKind(message.role);
+        row.id = message.id;
+        row.content = text->text;
+        return row;
+    }
+
+    if (const auto *thinking = std::get_if<ThinkingBlock>(&block)) {
+        MessageRow row;
+        row.kind = RowKind::Thinking;
+        row.id = message.id;
+        row.content = thinkingDisplayText(*thinking);
+        row.redacted = thinking->redacted;
+        row.signature = thinking->signature;
+        return row;
+    }
+
+    if (const auto *tool = std::get_if<ToolCallBlock>(&block)) {
+        MessageRow row;
+        row.kind = RowKind::Tool;
+        row.id = tool->id;
+        row.content = toolDisplayText(*tool);
+        row.toolName = tool->name;
+        row.toolArguments = tool->arguments;
+        row.toolResult = tool->result;
+        return row;
+    }
+
+    if (const auto *edit = std::get_if<FileEditBlock>(&block)) {
+        MessageRow row;
+        row.kind = RowKind::FileEdit;
+        row.id = edit->id;
+        row.content = edit->payload;
+        return row;
+    }
+
+    return std::nullopt;
+}
+
+QList<MessageRow> projectMessageToRows(const Message &message)
+{
+    QList<MessageRow> rows;
+
+    bool usageAssigned = message.usage.isEmpty();
+    qsizetype textRowIndex = -1;
+
+    auto appendRow = [&](MessageRow row) {
+        if (!usageAssigned && row.id == message.id) {
+            row.usage = message.usage;
+            usageAssigned = true;
+        }
+        rows.append(std::move(row));
+        return rows.size() - 1;
+    };
+
+    auto ensureTextRow = [&] {
+        if (textRowIndex < 0) {
+            MessageRow row;
+            row.kind = textRowKind(message.role);
+            row.id = message.id;
+            textRowIndex = appendRow(row);
+        }
+        return textRowIndex;
+    };
+
+    for (const ContentBlock &block : message.blocks) {
+        if (auto row = projectBlockToRow(message, block)) {
+            const qsizetype index = appendRow(std::move(*row));
+            if (std::holds_alternative<TextBlock>(block))
+                textRowIndex = index;
+        } else if (const auto *attachment = std::get_if<AttachmentBlock>(&block)) {
+            rows[ensureTextRow()].attachments.append(*attachment);
+        } else if (const auto *image = std::get_if<ImageBlock>(&block)) {
+            rows[ensureTextRow()].images.append(*image);
+        }
+    }
+
+    return rows;
+}
+
 QList<MessageRow> projectToRows(const ConversationHistory &history)
 {
     QList<MessageRow> rows;
 
-    for (const Message &message : history.messages()) {
-        const RowKind textKind = textRowKind(message.role);
-        bool usageAssigned = message.usage.isEmpty();
-        qsizetype textRowIndex = -1;
-
-        auto appendRow = [&](MessageRow row) {
-            if (!usageAssigned && row.id == message.id) {
-                row.usage = message.usage;
-                usageAssigned = true;
-            }
-            rows.append(row);
-            return rows.size() - 1;
-        };
-
-        auto ensureTextRow = [&] {
-            if (textRowIndex < 0) {
-                MessageRow row;
-                row.kind = textKind;
-                row.id = message.id;
-                textRowIndex = appendRow(row);
-            }
-            return textRowIndex;
-        };
-
-        for (const ContentBlock &block : message.blocks) {
-            if (const auto *text = std::get_if<TextBlock>(&block)) {
-                MessageRow row;
-                row.kind = textKind;
-                row.id = message.id;
-                row.content = text->text;
-                textRowIndex = appendRow(row);
-            } else if (const auto *thinking = std::get_if<ThinkingBlock>(&block)) {
-                MessageRow row;
-                row.kind = RowKind::Thinking;
-                row.id = message.id;
-                row.content = thinkingDisplayText(*thinking);
-                row.redacted = thinking->redacted;
-                row.signature = thinking->signature;
-                appendRow(row);
-            } else if (const auto *tool = std::get_if<ToolCallBlock>(&block)) {
-                MessageRow row;
-                row.kind = RowKind::Tool;
-                row.id = tool->id;
-                row.content = toolDisplayText(*tool);
-                row.toolName = tool->name;
-                row.toolArguments = tool->arguments;
-                row.toolResult = tool->result;
-                appendRow(row);
-            } else if (const auto *edit = std::get_if<FileEditBlock>(&block)) {
-                MessageRow row;
-                row.kind = RowKind::FileEdit;
-                row.id = edit->id;
-                row.content = edit->payload;
-                appendRow(row);
-            } else if (const auto *attachment = std::get_if<AttachmentBlock>(&block)) {
-                rows[ensureTextRow()].attachments.append(*attachment);
-            } else if (const auto *image = std::get_if<ImageBlock>(&block)) {
-                rows[ensureTextRow()].images.append(*image);
-            }
-        }
-    }
+    for (const Message &message : history.messages())
+        rows.append(projectMessageToRows(message));
 
     return rows;
 }

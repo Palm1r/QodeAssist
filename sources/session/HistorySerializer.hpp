@@ -20,7 +20,8 @@ public:
     static bool isSupportedVersion(const QString &version);
 
     static QJsonObject toJson(const ConversationHistory &history);
-    static std::optional<ConversationHistory> fromJson(const QJsonObject &root);
+    static std::optional<ConversationHistory> fromJson(
+        const QJsonObject &root, int *droppedBlocks = nullptr);
 };
 
 } // namespace QodeAssist::Session

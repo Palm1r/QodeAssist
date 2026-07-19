@@ -13,6 +13,7 @@
 #include "providers/ClaudeCacheControl.hpp"
 #include "session/HistoryProjection.hpp"
 #include "session/HistorySerializer.hpp"
+#include "session/Session.hpp"
 #include "session/TurnContextBuilder.hpp"
 
 #include <QJsonArray>
@@ -72,6 +73,56 @@ Session::ConversationHistory historyWithoutFileEdits()
     history.append(userTurn());
     history.append(assistantTurn());
     return history;
+}
+
+class FakeChatBackend : public Session::ChatBackend
+{
+public:
+    void sendTurn(const Session::TurnRequest &request) override
+    {
+        ++m_turnCount;
+        m_lastOptions = request.options;
+        m_lastUserBlocks = request.userBlocks;
+        m_historySizeAtSend = request.history ? request.history->size() : -1;
+        m_lastContext = request.context;
+    }
+
+    void cancel() override { ++m_cancelCount; }
+
+    void script(const QList<Session::SessionEvent> &events)
+    {
+        for (const Session::SessionEvent &scripted : events)
+            emit sessionEvent(scripted);
+    }
+
+    int turnCount() const { return m_turnCount; }
+    int cancelCount() const { return m_cancelCount; }
+    qsizetype historySizeAtSend() const { return m_historySizeAtSend; }
+    const QList<Session::ContentBlock> &lastUserBlocks() const { return m_lastUserBlocks; }
+    const std::optional<Session::TurnContext> &lastContext() const { return m_lastContext; }
+    Session::TurnOptions lastOptions() const { return m_lastOptions; }
+
+private:
+    int m_turnCount = 0;
+    int m_cancelCount = 0;
+    qsizetype m_historySizeAtSend = -1;
+    QList<Session::ContentBlock> m_lastUserBlocks;
+    std::optional<Session::TurnContext> m_lastContext;
+    Session::TurnOptions m_lastOptions;
+};
+
+QList<Session::SessionEvent> scriptedTurn(const QString &turnId)
+{
+    return {
+        Session::TurnStarted{turnId},
+        Session::ThinkingReceived{turnId, "weighing options", "sig-1", false},
+        Session::TextDelta{turnId, "let me "},
+        Session::TextDelta{turnId, "check"},
+        Session::ToolCallStarted{turnId, "t1", "read_file", QJsonObject{{"path", "main.cpp"}}, false},
+        Session::ToolCallCompleted{turnId, "t1", "read_file", "int main() {}"},
+        Session::TextDelta{turnId, "here is the answer"},
+        Session::UsageReported{turnId, Session::Usage{120, 40, 80, 12}},
+        Session::TurnCompleted{turnId}};
 }
 
 class FakeProjectContext : public Session::IProjectContextPort
@@ -1119,8 +1170,10 @@ void QodeAssistTest::testCompressedChatShapeReloadsAsOneAssistantRow()
 void QodeAssistTest::testHistoryAppliesToChatModel()
 {
     Chat::ChatModel model;
+    Session::Session session;
+    Chat::ChatHistoryBridge bridge(&session, &model);
 
-    Chat::ChatHistoryBridge::applyHistory(&model, historyWithoutFileEdits());
+    session.setHistory(historyWithoutFileEdits());
 
     QCOMPARE(model.rowCount(), 4);
 
@@ -1170,49 +1223,390 @@ void QodeAssistTest::testAdjacentThinkingBlocksSurviveReload()
     Session::ConversationHistory history;
     history.append(assistant);
 
-    Chat::ChatModel model;
-    Chat::ChatHistoryBridge::applyHistory(&model, history);
+    const QList<Session::MessageRow> rows = Session::projectToRows(history);
 
-    QCOMPARE(model.rowCount(), 3);
-    QCOMPARE(
-        model.data(model.index(0), Chat::ChatModel::Content).toString(),
-        QString("first\n[Signature: sig-a...]"));
-    QCOMPARE(
-        model.data(model.index(1), Chat::ChatModel::Content).toString(),
-        QString("second\n[Signature: sig-b...]"));
-    QCOMPARE(Chat::ChatHistoryBridge::readHistory(&model), history);
+    QCOMPARE(rows.size(), 3);
+    QCOMPARE(rows.at(0).content, QString("first\n[Signature: sig-a...]"));
+    QCOMPARE(rows.at(1).content, QString("second\n[Signature: sig-b...]"));
+    QCOMPARE(Session::buildFromRows(rows), history);
 }
 
-void QodeAssistTest::testChatModelRoundTripsThroughHistory()
+void QodeAssistTest::testSessionAppendsUserTurnBeforeSending()
 {
-    Chat::ChatModel source;
-    source.addMessage("explain this", Chat::ChatModel::ChatRole::User, "");
-    source.addThinkingBlock("r1", "weighing options", "sig-1");
-    source.addToolExecutionStatus("r1", "t1", "read_file", QJsonObject{{"path", "main.cpp"}});
-    source.updateToolResult("r1", "t1", "read_file", "int main() {}");
-    source.addMessage("here is the answer", Chat::ChatModel::ChatRole::Assistant, "r1");
-    source.setMessageUsage("r1", 120, 40, 80, 12);
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
 
-    const Session::ConversationHistory history = Chat::ChatHistoryBridge::readHistory(&source);
-    QCOMPARE(history.size(), 2);
+    session.sendTurn(
+        {Session::TextBlock{"explain this"}, Session::AttachmentBlock{"notes.txt", "notes_ab.txt"}},
+        std::nullopt,
+        Session::TurnOptions{true, false});
 
-    Chat::ChatModel restored;
-    Chat::ChatHistoryBridge::applyHistory(&restored, history);
+    QCOMPARE(backend.turnCount(), 1);
+    QCOMPARE(backend.historySizeAtSend(), qsizetype(1));
+    QCOMPARE(backend.lastUserBlocks().size(), 2);
+    QCOMPARE(backend.lastOptions(), (Session::TurnOptions{true, false}));
+    QVERIFY(!backend.lastContext().has_value());
 
-    QCOMPARE(restored.rowCount(), source.rowCount());
-    for (int row = 0; row < source.rowCount(); ++row) {
+    QCOMPARE(session.history().size(), 1);
+    QCOMPARE(session.history().at(0).role, Session::MessageRole::User);
+    QCOMPARE(session.rows().size(), 1);
+    QCOMPARE(session.rows().at(0).content, QString("explain this"));
+    QCOMPARE(session.rows().at(0).attachments.size(), 1);
+}
+
+void QodeAssistTest::testSessionStreamsTextThinkingAndTools()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"explain this"}}, std::nullopt, {});
+    backend.script(scriptedTurn("r1"));
+
+    QCOMPARE(session.history().size(), 2);
+
+    const Session::Message &assistant = session.history().at(1);
+    QCOMPARE(assistant.role, Session::MessageRole::Assistant);
+    QCOMPARE(assistant.id, QString("r1"));
+    QCOMPARE(assistant.usage, (Session::Usage{120, 40, 80, 12}));
+    QCOMPARE(assistant.blocks.size(), 4);
+    QCOMPARE(
+        assistant.blocks.at(0),
+        (Session::ContentBlock{Session::ThinkingBlock{"weighing options", "sig-1", false}}));
+    QCOMPARE(assistant.blocks.at(1), (Session::ContentBlock{Session::TextBlock{"let me check"}}));
+    QCOMPARE(
+        assistant.blocks.at(2),
+        (Session::ContentBlock{Session::ToolCallBlock{
+            "t1", "read_file", QJsonObject{{"path", "main.cpp"}}, "int main() {}"}}));
+    QCOMPARE(
+        assistant.blocks.at(3), (Session::ContentBlock{Session::TextBlock{"here is the answer"}}));
+}
+
+void QodeAssistTest::testSessionTrimsStreamedText()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt, {});
+    backend.script(
+        {Session::TurnStarted{"r1"},
+         Session::TextDelta{"r1", "\n\n"},
+         Session::TextDelta{"r1", "  here is"},
+         Session::TextDelta{"r1", " the answer  \n"}});
+
+    QCOMPARE(session.history().at(1).blocks.size(), 1);
+    QCOMPARE(
+        session.history().at(1).blocks.at(0),
+        (Session::ContentBlock{Session::TextBlock{"here is the answer"}}));
+}
+
+void QodeAssistTest::testSessionAbandoningTheTurnCancelsTheBackend()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt, {});
+    backend.script({Session::TurnStarted{"r1"}, Session::TextDelta{"r1", "partial"}});
+
+    const int cancelsBeforeTruncate = backend.cancelCount();
+    session.truncateRows(0);
+    QCOMPARE(backend.cancelCount(), cancelsBeforeTruncate + 1);
+
+    const int cancelsBeforeLoad = backend.cancelCount();
+    session.setHistory(Session::ConversationHistory{});
+    QCOMPARE(backend.cancelCount(), cancelsBeforeLoad + 1);
+}
+
+void QodeAssistTest::testSessionProjectionMatchesHistory()
+{
+    Chat::ChatModel model;
+    FakeChatBackend backend;
+    Session::Session session;
+    Chat::ChatHistoryBridge bridge(&session, &model);
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"explain this"}}, std::nullopt, {});
+    backend.script(scriptedTurn("r1"));
+
+    const QList<Session::MessageRow> expected = Session::projectToRows(session.history());
+    QCOMPARE(session.rows(), expected);
+    QCOMPARE(model.rowCount(), int(expected.size()));
+
+    for (int row = 0; row < expected.size(); ++row) {
         QCOMPARE(
-            restored.data(restored.index(row), Chat::ChatModel::Content).toString(),
-            source.data(source.index(row), Chat::ChatModel::Content).toString());
-        QCOMPARE(
-            restored.data(restored.index(row), Chat::ChatModel::RoleType)
-                .value<Chat::ChatModel::ChatRole>(),
-            source.data(source.index(row), Chat::ChatModel::RoleType)
-                .value<Chat::ChatModel::ChatRole>());
+            model.data(model.index(row), Chat::ChatModel::Content).toString(),
+            expected.at(row).content);
     }
 
-    QCOMPARE(restored.sessionTotalTokens(), source.sessionTotalTokens());
-    QCOMPARE(Chat::ChatHistoryBridge::readHistory(&restored), history);
+    QCOMPARE(model.sessionPromptTokens(), 120);
+    QCOMPARE(model.sessionCompletionTokens(), 40);
+}
+
+void QodeAssistTest::testSessionAccumulatesStreamedThinking()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt, {});
+    backend.script(
+        {Session::TurnStarted{"r1"},
+         Session::ThinkingReceived{"r1", "step", QString(), false},
+         Session::ThinkingReceived{"r1", "step one", QString(), false},
+         Session::ThinkingReceived{"r1", "step one and two", QString(), false},
+         Session::TextDelta{"r1", "done"}});
+
+    const Session::Message &assistant = session.history().at(1);
+    QCOMPARE(assistant.blocks.size(), 2);
+    QCOMPARE(
+        assistant.blocks.at(0),
+        (Session::ContentBlock{Session::ThinkingBlock{"step one and two", QString(), false}}));
+    QCOMPARE(session.rows().size(), 3);
+}
+
+void QodeAssistTest::testSessionKeepsThinkingAfterToolContinuation()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt, {});
+    backend.script(
+        {Session::TurnStarted{"r1"},
+         Session::ThinkingReceived{"r1", "first thought", "sig-a", false},
+         Session::ToolCallStarted{"r1", "t1", "read_file", QJsonObject{}, false},
+         Session::ToolCallCompleted{"r1", "t1", "read_file", "contents"},
+         Session::ThinkingReceived{"r1", "second thought", "sig-b", false},
+         Session::TextDelta{"r1", "done"}});
+
+    const Session::Message &assistant = session.history().at(1);
+    QCOMPARE(assistant.blocks.size(), 4);
+    QCOMPARE(
+        assistant.blocks.at(0),
+        (Session::ContentBlock{Session::ThinkingBlock{"first thought", "sig-a", false}}));
+    QCOMPARE(
+        assistant.blocks.at(2),
+        (Session::ContentBlock{Session::ThinkingBlock{"second thought", "sig-b", false}}));
+}
+
+void QodeAssistTest::testSessionDropsPreToolTextWhenAsked()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt, {});
+    backend.script(
+        {Session::TurnStarted{"r1"},
+         Session::TextDelta{"r1", "leaked tool preamble"},
+         Session::ToolCallStarted{"r1", "t1", "read_file", QJsonObject{}, true},
+         Session::ToolCallCompleted{"r1", "t1", "read_file", "contents"},
+         Session::TextDelta{"r1", "the answer"}});
+
+    const Session::Message &assistant = session.history().at(1);
+    QCOMPARE(assistant.blocks.size(), 2);
+    QCOMPARE(
+        assistant.blocks.at(0),
+        (Session::ContentBlock{
+            Session::ToolCallBlock{"t1", "read_file", QJsonObject{}, "contents"}}));
+    QCOMPARE(assistant.blocks.at(1), (Session::ContentBlock{Session::TextBlock{"the answer"}}));
+    QCOMPARE(session.rows(), Session::projectToRows(session.history()));
+}
+
+void QodeAssistTest::testSessionToolResultAppendsFileEditRow()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    const QString result
+        = "QODEASSIST_FILE_EDIT:{\"edit_id\":\"e1\",\"file\":\"main.cpp\",\"status\":\"pending\"}";
+
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt, {});
+    backend.script(
+        {Session::TurnStarted{"r1"},
+         Session::ToolCallStarted{"r1", "t1", "edit_file", QJsonObject{}, false},
+         Session::ToolCallCompleted{"r1", "t1", "edit_file", result}});
+
+    const Session::Message &assistant = session.history().at(1);
+    QCOMPARE(assistant.blocks.size(), 2);
+    QCOMPARE(assistant.blocks.at(1), (Session::ContentBlock{Session::FileEditBlock{"e1", result}}));
+
+    QVERIFY(session.updateFileEditStatus("e1", "applied", "Successfully applied"));
+
+    const Session::MessageRow &editRow = session.rows().last();
+    QCOMPARE(editRow.kind, Session::RowKind::FileEdit);
+    QVERIFY(editRow.content.contains("\"status\":\"applied\""));
+    QVERIFY(editRow.content.contains("\"status_message\":\"Successfully applied\""));
+}
+
+void QodeAssistTest::testSessionIgnoresEchoedFileEditMarker()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    const QString echoed
+        = "Pre-compression history (/src): 1 matching message(s)\n\n[#3 assistant]\n"
+          "QODEASSIST_FILE_EDIT:{\"edit_id\":\"e1\",\"file\":\"main.cpp\"}";
+
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt, {});
+    backend.script(
+        {Session::TurnStarted{"r1"},
+         Session::ToolCallStarted{"r1", "t1", "read_original_history", QJsonObject{}, false},
+         Session::ToolCallCompleted{"r1", "t1", "read_original_history", echoed}});
+
+    QCOMPARE(session.history().at(1).blocks.size(), 1);
+    QCOMPARE(session.rows().size(), 2);
+}
+
+void QodeAssistTest::testSessionTruncationKeepsBlockOrder()
+{
+    Session::Message user;
+    user.role = Session::MessageRole::User;
+    user.blocks
+        = {Session::TextBlock{"look at this"},
+           Session::AttachmentBlock{"notes.txt", "notes_ab.txt"},
+           Session::ImageBlock{"shot.png", "shot_cd.png", "image/png"}};
+
+    Session::Message assistant;
+    assistant.role = Session::MessageRole::Assistant;
+    assistant.id = "r1";
+    assistant.blocks = {Session::TextBlock{"sure"}};
+
+    Session::ConversationHistory history;
+    history.append(user);
+    history.append(assistant);
+
+    Session::Session session;
+    session.setHistory(history);
+    session.truncateRows(1);
+
+    QCOMPARE(session.history().size(), 1);
+    QCOMPARE(session.history().at(0).blocks, user.blocks);
+    QCOMPARE(session.rows(), Session::projectToRows(session.history()));
+}
+
+void QodeAssistTest::testHistorySnapshotReportsUnreadableBlocks()
+{
+    QJsonObject block;
+    block["type"] = "from_a_newer_build";
+
+    QJsonObject message;
+    message["role"] = "assistant";
+    message["blocks"] = QJsonArray{block, QJsonObject{{"type", "text"}, {"text", "kept"}}};
+
+    QJsonObject root;
+    root["version"] = Session::HistorySerializer::currentVersion();
+    root["messages"] = QJsonArray{message};
+
+    int dropped = -1;
+    const auto history = Session::HistorySerializer::fromJson(root, &dropped);
+
+    QVERIFY(history.has_value());
+    QCOMPARE(dropped, 1);
+    QCOMPARE(history->at(0).blocks.size(), 1);
+}
+
+void QodeAssistTest::testSessionUsageLandsOnTheTurn()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt, {});
+    backend.script(
+        {Session::TurnStarted{"r1"},
+         Session::ThinkingReceived{"r1", "hmm", "sig", false},
+         Session::TextDelta{"r1", "done"},
+         Session::UsageReported{"r1", Session::Usage{10, 5, 2, 1}},
+         Session::TurnCompleted{"r1"}});
+
+    QCOMPARE(session.history().at(1).usage, (Session::Usage{10, 5, 2, 1}));
+    QCOMPARE(session.rows().at(1).usage, (Session::Usage{10, 5, 2, 1}));
+    QCOMPARE(session.rows().at(2).usage, Session::Usage{});
+}
+
+void QodeAssistTest::testSessionIgnoresEventsFromOtherTurns()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt, {});
+    backend.script(
+        {Session::TurnStarted{"r1"},
+         Session::TextDelta{"r1", "mine"},
+         Session::TextDelta{"other", "not mine"},
+         Session::ToolCallStarted{"other", "t9", "read_file", QJsonObject{}, false}});
+
+    QCOMPARE(session.history().size(), 2);
+    QCOMPARE(session.history().at(1).blocks.size(), 1);
+    QCOMPARE(
+        session.history().at(1).blocks.at(0), (Session::ContentBlock{Session::TextBlock{"mine"}}));
+}
+
+void QodeAssistTest::testSessionReportsFailureWithoutStartedTurn()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    QString reported;
+    QObject::connect(
+        &session, &Session::Session::turnFailed, &session, [&reported](const QString &error) {
+            reported = error;
+        });
+
+    backend.script({Session::TurnFailed{QString(), "no provider configured"}});
+
+    QCOMPARE(reported, QString("no provider configured"));
+}
+
+void QodeAssistTest::testSessionIgnoresFailureFromAbandonedTurn()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    int reported = 0;
+    QObject::connect(&session, &Session::Session::turnFailed, &session, [&reported](const QString &) {
+        ++reported;
+    });
+
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt, {});
+    backend.script({Session::TurnStarted{"r1"}, Session::TextDelta{"r1", "partial"}});
+    session.truncateRows(0);
+
+    backend.script({Session::TurnFailed{"r1", "stale timeout"}});
+
+    QCOMPARE(reported, 0);
+}
+
+void QodeAssistTest::testSessionTruncateRowsRewritesHistory()
+{
+    Chat::ChatModel model;
+    FakeChatBackend backend;
+    Session::Session session;
+    Chat::ChatHistoryBridge bridge(&session, &model);
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"explain this"}}, std::nullopt, {});
+    backend.script(scriptedTurn("r1"));
+
+    const qsizetype before = session.rows().size();
+    QVERIFY(before > 1);
+
+    session.truncateRows(1);
+
+    QCOMPARE(session.rows().size(), qsizetype(1));
+    QCOMPARE(model.rowCount(), 1);
+    QCOMPARE(session.history().size(), 1);
+    QCOMPARE(session.history().at(0).role, Session::MessageRole::User);
+    QCOMPARE(session.rows(), Session::projectToRows(session.history()));
 }
 
 void QodeAssistTest::testTurnContextCollectsPartsFromPorts()

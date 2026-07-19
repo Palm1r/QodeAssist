@@ -5,11 +5,11 @@
 #include "ChatCompressor.hpp"
 
 #include <LLMQore/BaseClient.hpp>
-#include "ChatModel.hpp"
 #include "GeneralSettings.hpp"
 #include "templates/PromptTemplateManager.hpp"
 #include "providers/ProvidersManager.hpp"
 #include "logger/Logger.hpp"
+#include "session/HistoryProjection.hpp"
 #include "session/HistorySerializer.hpp"
 
 #include <QDateTime>
@@ -25,7 +25,8 @@ ChatCompressor::ChatCompressor(QObject *parent)
     : QObject(parent)
 {}
 
-void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *chatModel)
+void ChatCompressor::startCompression(
+    const QString &chatFilePath, const Session::ConversationHistory &history)
 {
     if (m_isCompressing) {
         emit compressionFailed(tr("Compression already in progress"));
@@ -37,7 +38,8 @@ void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *ch
         return;
     }
 
-    if (!chatModel || chatModel->rowCount() == 0) {
+    const QList<Session::MessageRow> rows = Session::projectToRows(history);
+    if (rows.isEmpty()) {
         emit compressionFailed(tr("Chat is empty, nothing to compress"));
         return;
     }
@@ -60,7 +62,7 @@ void ChatCompressor::startCompression(const QString &chatFilePath, ChatModel *ch
     }
 
     m_isCompressing = true;
-    m_chatModel = chatModel;
+    m_rows = rows;
     m_originalChatPath = chatFilePath;
     m_accumulatedSummary.clear();
 
@@ -178,15 +180,14 @@ void ChatCompressor::buildRequestPayload(
         "Your summaries preserve key information, technical details, and the flow of discussion.");
 
     QVector<LLMCore::Message> messages;
-    for (const auto &msg : m_chatModel->getChatHistory()) {
-        if (msg.role == ChatModel::ChatRole::Tool 
-            || msg.role == ChatModel::ChatRole::FileEdit
-            || msg.role == ChatModel::ChatRole::Thinking)
+    for (const Session::MessageRow &row : std::as_const(m_rows)) {
+        if (row.kind == Session::RowKind::Tool || row.kind == Session::RowKind::FileEdit
+            || row.kind == Session::RowKind::Thinking)
             continue;
 
         LLMCore::Message apiMessage;
-        apiMessage.role = (msg.role == ChatModel::ChatRole::User) ? "user" : "assistant";
-        apiMessage.content = msg.content;
+        apiMessage.role = row.kind == Session::RowKind::User ? "user" : "assistant";
+        apiMessage.content = row.content;
         messages.append(apiMessage);
     }
 
@@ -285,7 +286,7 @@ void ChatCompressor::cleanupState()
     m_currentRequestId.clear();
     m_originalChatPath.clear();
     m_accumulatedSummary.clear();
-    m_chatModel = nullptr;
+    m_rows.clear();
     m_provider = nullptr;
 }
 

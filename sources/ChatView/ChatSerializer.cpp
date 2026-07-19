@@ -13,19 +13,18 @@
 #include <QSaveFile>
 #include <QUuid>
 
-#include "ChatHistoryBridge.hpp"
 #include "session/HistorySerializer.hpp"
 
 namespace QodeAssist::Chat {
 
-SerializationResult ChatSerializer::saveToFile(const ChatModel *model, const QString &filePath)
+SerializationResult ChatSerializer::saveToFile(
+    const Session::ConversationHistory &history, const QString &filePath)
 {
     if (!ensureDirectoryExists(filePath)) {
         return {false, "Failed to create directory structure"};
     }
 
-    const QJsonObject root
-        = Session::HistorySerializer::toJson(ChatHistoryBridge::readHistory(model));
+    const QJsonObject root = Session::HistorySerializer::toJson(history);
 
     QSaveFile file(filePath);
     if (!file.open(QIODevice::WriteOnly)) {
@@ -43,7 +42,8 @@ SerializationResult ChatSerializer::saveToFile(const ChatModel *model, const QSt
     return {true, QString()};
 }
 
-SerializationResult ChatSerializer::loadFromFile(ChatModel *model, const QString &filePath)
+SerializationResult ChatSerializer::loadFromFile(
+    Session::ConversationHistory &history, const QString &filePath)
 {
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -63,8 +63,9 @@ SerializationResult ChatSerializer::loadFromFile(ChatModel *model, const QString
         return {false, QString("Unsupported version: %1").arg(version)};
     }
 
-    const auto history = Session::HistorySerializer::fromJson(root);
-    if (!history) {
+    int droppedBlocks = 0;
+    const auto loaded = Session::HistorySerializer::fromJson(root, &droppedBlocks);
+    if (!loaded) {
         return {false, QString("Failed to read chat history from: %1").arg(filePath)};
     }
 
@@ -73,9 +74,19 @@ SerializationResult ChatSerializer::loadFromFile(ChatModel *model, const QString
                         .arg(version, Session::HistorySerializer::currentVersion()));
     }
 
-    ChatHistoryBridge::applyHistory(model, *history);
+    history = *loaded;
 
-    return {true, QString()};
+    if (droppedBlocks > 0) {
+        const QString warning
+            = QString(
+                  "%1 message part(s) in this chat could not be read and will be lost if "
+                  "the chat is saved again")
+                  .arg(droppedBlocks);
+        LOG_MESSAGE(QString("%1: %2").arg(filePath, warning));
+        return {true, QString(), warning};
+    }
+
+    return {true, QString(), QString()};
 }
 
 bool ChatSerializer::ensureDirectoryExists(const QString &filePath)

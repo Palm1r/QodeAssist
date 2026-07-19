@@ -5,20 +5,23 @@
 #pragma once
 
 #include <QObject>
+#include <QPointer>
 #include <QString>
 
 #include "ChatSerializer.hpp"
 
-namespace QodeAssist::Chat {
+namespace QodeAssist::Session {
+class Session;
+}
 
-class ChatModel;
+namespace QodeAssist::Chat {
 
 class ChatHistoryStore : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit ChatHistoryStore(ChatModel *chatModel, QObject *parent = nullptr);
+    explicit ChatHistoryStore(Session::Session *session, QObject *parent = nullptr);
 
     QString historyDir() const;
     QString suggestedFileName() const;
@@ -42,7 +45,7 @@ signals:
 private:
     QString generateChatFileName(const QString &shortMessage, const QString &dir) const;
 
-    ChatModel *m_chatModel;
+    QPointer<Session::Session> m_session;
 };
 
 } // namespace QodeAssist::Chat

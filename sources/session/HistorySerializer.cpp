@@ -170,7 +170,7 @@ QJsonObject messageToJson(const Message &message)
     return json;
 }
 
-Message messageFromJson(const QJsonObject &json)
+Message messageFromJson(const QJsonObject &json, int &droppedBlocks)
 {
     Message message;
     message.role = roleFromString(json["role"].toString());
@@ -180,6 +180,8 @@ Message messageFromJson(const QJsonObject &json)
     for (const QJsonValue &value : blocks) {
         if (auto block = blockFromJson(value.toObject()))
             message.blocks.append(*block);
+        else
+            ++droppedBlocks;
     }
 
     if (json.contains("usage"))
@@ -259,8 +261,12 @@ QJsonObject HistorySerializer::toJson(const ConversationHistory &history)
     return root;
 }
 
-std::optional<ConversationHistory> HistorySerializer::fromJson(const QJsonObject &root)
+std::optional<ConversationHistory> HistorySerializer::fromJson(
+    const QJsonObject &root, int *droppedBlocks)
 {
+    if (droppedBlocks)
+        *droppedBlocks = 0;
+
     const QString version = root["version"].toString();
 
     if (!isSupportedVersion(version) || !root["messages"].isArray())
@@ -269,10 +275,14 @@ std::optional<ConversationHistory> HistorySerializer::fromJson(const QJsonObject
     if (version != currentVersion())
         return historyFromLegacyJson(root);
 
+    int dropped = 0;
     ConversationHistory history;
     const QJsonArray messages = root["messages"].toArray();
     for (const QJsonValue &value : messages)
-        history.append(messageFromJson(value.toObject()));
+        history.append(messageFromJson(value.toObject(), dropped));
+
+    if (droppedBlocks)
+        *droppedBlocks = dropped;
 
     return history;
 }
