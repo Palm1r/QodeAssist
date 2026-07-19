@@ -83,6 +83,18 @@ private slots:
     void testGetContextBetween();
     void testPrepareContext();
 
+    void testHistorySnapshotUsesCurrentVersion();
+    void testHistorySnapshotRoundTrip();
+    void testUnsupportedChatVersionIsRejected();
+    void testChatFileWithoutMessagesArrayIsRejected();
+    void testLegacyChatFileConvertsToHistory();
+    void testLegacyToolRowWithoutMetadataKeepsItsText();
+    void testChatRowsRoundTripThroughHistory();
+    void testCompressedChatShapeReloadsAsOneAssistantRow();
+    void testHistoryAppliesToChatModel();
+    void testAdjacentThinkingBlocksSurviveReload();
+    void testChatModelRoundTripsThroughHistory();
+
 private:
     Context::DocumentContextReader createReader(const QString &text);
     QSharedPointer<Settings::CodeCompletionSettings> createSettingsForWholeFile();

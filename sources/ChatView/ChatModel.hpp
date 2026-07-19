@@ -85,13 +85,13 @@ public:
         const QList<ImageAttachment> &images = {},
         bool isRedacted = false,
         const QString &signature = QString());
+    void appendMessage(const Message &message);
     Q_INVOKABLE void clear();
     Q_INVOKABLE QList<MessagePart> processMessageContent(const QString &content) const;
 
     QVector<Message> getChatHistory() const;
     QJsonArray prepareMessagesForRequest(const QString &systemPrompt) const;
 
-    QString currentModel() const;
     QString lastMessageId() const;
 
     Q_INVOKABLE void resetModelTo(int index);
@@ -103,11 +103,6 @@ public:
         const QString &toolName,
         const QJsonObject &toolArguments);
     void dropTrailingAssistantMessage(const QString &requestId);
-    void setToolMessageData(
-        const QString &toolId,
-        const QString &toolName,
-        const QJsonObject &toolArguments,
-        const QString &toolResult);
     void updateToolResult(
         const QString &requestId,
         const QString &toolId,
@@ -147,7 +142,8 @@ private slots:
 
 private:
     void updateFileEditStatus(const QString &editId, const QString &status, const QString &statusMessage);
-    
+    void registerHistoricalFileEdit(int row);
+
     QVector<Message> m_messages;
     bool m_loadingFromHistory = false;
     QString m_chatFilePath;

@@ -12,28 +12,30 @@
 #include <QJsonObject>
 #include <QtConcurrent>
 
+#include "session/HistoryProjection.hpp"
+#include "session/HistorySerializer.hpp"
+
 namespace QodeAssist::Tools {
 
 namespace {
 
-QString roleName(int role)
+QString roleName(Session::RowKind kind)
 {
-    switch (role) {
-    case 0:
+    switch (kind) {
+    case Session::RowKind::System:
         return QStringLiteral("system");
-    case 1:
+    case Session::RowKind::User:
         return QStringLiteral("user");
-    case 2:
+    case Session::RowKind::Assistant:
         return QStringLiteral("assistant");
-    case 3:
+    case Session::RowKind::Tool:
         return QStringLiteral("tool");
-    case 4:
+    case Session::RowKind::FileEdit:
         return QStringLiteral("file_edit");
-    case 5:
+    case Session::RowKind::Thinking:
         return QStringLiteral("thinking");
-    default:
-        return QStringLiteral("unknown");
     }
+    return QStringLiteral("unknown");
 }
 
 QJsonObject readJsonObject(const QString &path)
@@ -144,8 +146,15 @@ QFuture<LLMQore::ToolResult> ReadOriginalHistoryTool::executeAsync(const QJsonOb
                 "history.");
         }
 
-        const QJsonObject root = readJsonObject(rootPath);
-        const QJsonArray messages = root.value("messages").toArray();
+        const auto history = Session::HistorySerializer::fromJson(readJsonObject(rootPath));
+        if (!history) {
+            return LLMQore::ToolResult::text(
+                QString("Cannot read the pre-compression history at %1: unsupported chat file "
+                        "format.")
+                    .arg(rootPath));
+        }
+
+        const QList<Session::MessageRow> messages = Session::projectToRows(*history);
 
         const QString query = input.value("query").toString().trimmed();
         const QString roleFilter = input.value("role").toString().trimmed().toLower();
@@ -155,9 +164,9 @@ QFuture<LLMQore::ToolResult> ReadOriginalHistoryTool::executeAsync(const QJsonOb
         QStringList matched;
         int matchCount = 0;
         for (int i = 0; i < messages.size(); ++i) {
-            const QJsonObject msg = messages.at(i).toObject();
-            const QString role = roleName(msg.value("role").toInt());
-            const QString content = msg.value("content").toString();
+            const Session::MessageRow &msg = messages.at(i);
+            const QString role = roleName(msg.kind);
+            const QString content = msg.content;
 
             if (!roleFilter.isEmpty() && role != roleFilter)
                 continue;

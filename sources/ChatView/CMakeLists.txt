@@ -70,6 +70,7 @@ qt_add_qml_module(QodeAssistChatView
     MessagePart.hpp
     ChatUtils.h ChatUtils.cpp
     ChatSerializer.hpp ChatSerializer.cpp
+    ChatHistoryBridge.hpp ChatHistoryBridge.cpp
     ChatView.hpp ChatView.cpp
     ChatData.hpp
     FileItem.hpp FileItem.cpp
@@ -94,6 +95,7 @@ target_link_libraries(QodeAssistChatView
     QtCreator::Utils
     QodeAssistSettings
     Context
+    QodeAssistSession
     QodeAssistUIControlsplugin
     QodeAssistLogger
     LLMQore

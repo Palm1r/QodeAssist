@@ -63,6 +63,7 @@ add_qtc_plugin(QodeAssist
     QtCreator::CPlusPlus
     LLMQore
     Skills
+    QodeAssistSession
     QodeAssistChatViewplugin
   SOURCES
     .github/workflows/build_cmake.yml

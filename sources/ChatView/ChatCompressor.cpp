@@ -10,11 +10,11 @@
 #include "templates/PromptTemplateManager.hpp"
 #include "providers/ProvidersManager.hpp"
 #include "logger/Logger.hpp"
+#include "session/HistorySerializer.hpp"
 
 #include <QDateTime>
 #include <QFile>
 #include <QFileInfo>
-#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QUuid>
@@ -204,33 +204,21 @@ void ChatCompressor::buildRequestPayload(
 bool ChatCompressor::createCompressedChatFile(
     const QString &sourcePath, const QString &destPath, const QString &summary)
 {
-    QFile sourceFile(sourcePath);
-    if (!sourceFile.open(QIODevice::ReadOnly)) {
+    if (!QFileInfo(sourcePath).isReadable()) {
         LOG_MESSAGE(QString("Failed to open source chat file: %1").arg(sourcePath));
         return false;
     }
 
-    QJsonParseError parseError;
-    QJsonDocument doc = QJsonDocument::fromJson(sourceFile.readAll(), &parseError);
-    sourceFile.close();
+    Session::Message summaryMessage;
+    summaryMessage.role = Session::MessageRole::Assistant;
+    summaryMessage.id = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    summaryMessage.blocks.append(
+        Session::TextBlock{QString("# Chat Summary\n\n%1").arg(summary)});
 
-    if (doc.isNull() || !doc.isObject()) {
-        LOG_MESSAGE(QString("Invalid JSON in chat file: %1 (Error: %2)")
-                        .arg(sourcePath, parseError.errorString()));
-        return false;
-    }
+    Session::ConversationHistory history;
+    history.append(summaryMessage);
 
-    QJsonObject root = doc.object();
-
-    QJsonObject summaryMessage;
-    summaryMessage["role"] = "assistant";
-    summaryMessage["content"] = QString("# Chat Summary\n\n%1").arg(summary);
-    summaryMessage["id"] = QUuid::createUuid().toString(QUuid::WithoutBraces);
-    summaryMessage["isRedacted"] = false;
-    summaryMessage["attachments"] = QJsonArray();
-    summaryMessage["images"] = QJsonArray();
-
-    root["messages"] = QJsonArray{summaryMessage};
+    QJsonObject root = Session::HistorySerializer::toJson(history);
     root["compressedFrom"] = sourcePath;
     root["compressedAt"] = QDateTime::currentDateTime().toString(Qt::ISODate);
 
@@ -243,7 +231,16 @@ bool ChatCompressor::createCompressedChatFile(
         return false;
     }
 
-    destFile.write(QJsonDocument(root).toJson(QJsonDocument::Indented));
+    if (destFile.write(QJsonDocument(root).toJson(QJsonDocument::Indented)) == -1) {
+        LOG_MESSAGE(QString("Failed to write compressed chat file: %1").arg(destFile.errorString()));
+        return false;
+    }
+
+    if (!destFile.flush()) {
+        LOG_MESSAGE(QString("Failed to flush compressed chat file: %1").arg(destFile.errorString()));
+        return false;
+    }
+
     return true;
 }
 

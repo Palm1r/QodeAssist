@@ -152,55 +152,70 @@ void ChatModel::addMessage(
         lastMessage.isRedacted = isRedacted;
         lastMessage.signature = signature;
         emit dataChanged(index(m_messages.size() - 1), index(m_messages.size() - 1));
-    } else {
-        beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());
-        Message newMessage{role, content, id};
-        newMessage.attachments = attachments;
-        newMessage.images = images;
-        newMessage.isRedacted = isRedacted;
-        newMessage.signature = signature;
-        m_messages.append(newMessage);
-        endInsertRows();
-        
-        if (m_loadingFromHistory && role == ChatRole::FileEdit) {
-            const QString marker = "QODEASSIST_FILE_EDIT:";
-            if (content.contains(marker)) {
-                int markerPos = content.indexOf(marker);
-                int jsonStart = markerPos + marker.length();
-                
-                if (jsonStart < content.length()) {
-                    QString jsonStr = content.mid(jsonStart);
-                    QJsonDocument doc = QJsonDocument::fromJson(jsonStr.toUtf8());
-                    
-                    if (doc.isObject()) {
-                        QJsonObject editData = doc.object();
-                        QString editId = editData.value("edit_id").toString();
-                        QString filePath = editData.value("file").toString();
-                        QString oldContent = editData.value("old_content").toString();
-                        QString newContent = editData.value("new_content").toString();
-                        QString originalStatus = editData.value("status").toString();
-                        
-                        if (!editId.isEmpty() && !filePath.isEmpty()) {
-                            Context::ChangesManager::instance().addFileEdit(
-                                editId, filePath, oldContent, newContent, false, true);
-                            
-                            editData["status"] = "archived";
-                            editData["status_message"] = "Loaded from chat history";
-                            
-                            QString updatedContent = marker 
-                                + QString::fromUtf8(QJsonDocument(editData).toJson(QJsonDocument::Compact));
-                            m_messages.last().content = updatedContent;
-                            
-                            emit dataChanged(index(m_messages.size() - 1), index(m_messages.size() - 1));
-                            
-                            LOG_MESSAGE(QString("Registered historical file edit: %1 (original status: %2, now: archived)")
-                                            .arg(editId, originalStatus));
-                        }
-                    }
-                }
-            }
-        }
+        return;
     }
+
+    Message newMessage{role, content, id};
+    newMessage.attachments = attachments;
+    newMessage.images = images;
+    newMessage.isRedacted = isRedacted;
+    newMessage.signature = signature;
+    appendMessage(newMessage);
+}
+
+void ChatModel::appendMessage(const Message &message)
+{
+    beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size());
+    m_messages.append(message);
+    endInsertRows();
+
+    if (m_loadingFromHistory && message.role == ChatRole::FileEdit)
+        registerHistoricalFileEdit(m_messages.size() - 1);
+}
+
+void ChatModel::registerHistoricalFileEdit(int row)
+{
+    const QString marker = "QODEASSIST_FILE_EDIT:";
+    const QString content = m_messages.at(row).content;
+
+    const int markerPos = content.indexOf(marker);
+    if (markerPos < 0)
+        return;
+
+    const int jsonStart = markerPos + marker.length();
+    if (jsonStart >= content.length())
+        return;
+
+    const QJsonDocument doc = QJsonDocument::fromJson(content.mid(jsonStart).toUtf8());
+    if (!doc.isObject())
+        return;
+
+    QJsonObject editData = doc.object();
+    const QString editId = editData.value("edit_id").toString();
+    const QString filePath = editData.value("file").toString();
+    if (editId.isEmpty() || filePath.isEmpty())
+        return;
+
+    const QString originalStatus = editData.value("status").toString();
+
+    Context::ChangesManager::instance().addFileEdit(
+        editId,
+        filePath,
+        editData.value("old_content").toString(),
+        editData.value("new_content").toString(),
+        false,
+        true);
+
+    editData["status"] = "archived";
+    editData["status_message"] = "Loaded from chat history";
+
+    m_messages[row].content
+        = marker + QString::fromUtf8(QJsonDocument(editData).toJson(QJsonDocument::Compact));
+
+    emit dataChanged(index(row), index(row));
+
+    LOG_MESSAGE(QString("Registered historical file edit: %1 (original status: %2, now: archived)")
+                    .arg(editId, originalStatus));
 }
 
 QVector<ChatModel::Message> ChatModel::getChatHistory() const
@@ -404,22 +419,6 @@ void ChatModel::dropTrailingAssistantMessage(const QString &requestId)
     m_messages.removeLast();
     endRemoveRows();
     LOG_MESSAGE(QString("Dropped leaked pre-tool assistant message at index %1").arg(idx));
-}
-
-void ChatModel::setToolMessageData(
-    const QString &toolId,
-    const QString &toolName,
-    const QJsonObject &toolArguments,
-    const QString &toolResult)
-{
-    for (int i = 0; i < m_messages.size(); ++i) {
-        if (m_messages[i].role == ChatRole::Tool && m_messages[i].id == toolId) {
-            m_messages[i].toolName = toolName;
-            m_messages[i].toolArguments = toolArguments;
-            m_messages[i].toolResult = toolResult;
-            return;
-        }
-    }
 }
 
 void ChatModel::updateToolResult(
@@ -633,6 +632,9 @@ void ChatModel::setLoadingFromHistory(bool loading)
 {
     m_loadingFromHistory = loading;
     LOG_MESSAGE(QString("ChatModel loading from history: %1").arg(loading ? "true" : "false"));
+
+    if (!loading)
+        emit sessionUsageChanged();
 }
 
 bool ChatModel::isLoadingFromHistory() const
