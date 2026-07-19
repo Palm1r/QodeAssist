@@ -74,9 +74,11 @@ CMakeLists.txt.user*
 *.exe
 
 /build
+CMakeUserPresets.json
 /.qodeassist
 /.cursor
 /.vscode
 .qtc_clangd/compile_commands.json
 CLAUDE.md
 /.claude
+/.qtcreator

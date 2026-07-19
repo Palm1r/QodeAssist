@@ -1,0 +1,21 @@
+{
+  "version": 4,
+  "cmakeMinimumRequired": { "major": 3, "minor": 23 },
+  "configurePresets": [
+    {
+      "name": "default",
+      "displayName": "Default (pass CMAKE_PREFIX_PATH to a Qt Creator dev package)",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "default",
+      "configurePreset": "default"
+    }
+  ]
+}
