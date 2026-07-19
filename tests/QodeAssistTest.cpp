@@ -13,6 +13,7 @@
 #include "providers/ClaudeCacheControl.hpp"
 #include "session/HistoryProjection.hpp"
 #include "session/HistorySerializer.hpp"
+#include "session/TurnContextBuilder.hpp"
 
 #include <QJsonArray>
 #include <QTest>
@@ -71,6 +72,79 @@ Session::ConversationHistory historyWithoutFileEdits()
     history.append(userTurn());
     history.append(assistantTurn());
     return history;
+}
+
+class FakeProjectContext : public Session::IProjectContextPort
+{
+public:
+    FakeProjectContext(Session::ProjectInfo info, QString rules)
+        : m_info(std::move(info))
+        , m_rules(std::move(rules))
+    {}
+
+    Session::ProjectInfo projectInfo() const override { return m_info; }
+    QString projectRules() const override { return m_rules; }
+
+private:
+    Session::ProjectInfo m_info;
+    QString m_rules;
+};
+
+class FakeSkillsContext : public Session::ISkillsContextPort
+{
+public:
+    FakeSkillsContext(QString alwaysOn, QString catalog, QList<Session::InvokedSkill> skills)
+        : m_alwaysOn(std::move(alwaysOn))
+        , m_catalog(std::move(catalog))
+        , m_skills(std::move(skills))
+    {}
+
+    QString alwaysOnBodies() const override { return m_alwaysOn; }
+    QString catalogText() const override { return m_catalog; }
+
+    std::optional<Session::InvokedSkill> findSkill(const QString &name) const override
+    {
+        for (const Session::InvokedSkill &skill : m_skills) {
+            if (skill.name == name)
+                return skill;
+        }
+        return std::nullopt;
+    }
+
+private:
+    QString m_alwaysOn;
+    QString m_catalog;
+    QList<Session::InvokedSkill> m_skills;
+};
+
+class FakeLinkedFiles : public Session::ILinkedFilesPort
+{
+public:
+    explicit FakeLinkedFiles(QList<Session::LinkedFile> files)
+        : m_files(std::move(files))
+    {}
+
+    QList<Session::LinkedFile> readFiles(const QList<QString> &paths) const override
+    {
+        m_requestedPaths = paths;
+        return m_files;
+    }
+
+    QList<QString> requestedPaths() const { return m_requestedPaths; }
+
+private:
+    QList<Session::LinkedFile> m_files;
+    mutable QList<QString> m_requestedPaths;
+};
+
+Session::ProjectInfo sampleProject()
+{
+    Session::ProjectInfo info;
+    info.available = true;
+    info.displayName = "QodeAssist";
+    info.sourceRoot = "/src/QodeAssist";
+    info.buildDirectory = "/src/QodeAssist/build";
+    return info;
 }
 
 } // namespace
@@ -1139,6 +1213,140 @@ void QodeAssistTest::testChatModelRoundTripsThroughHistory()
 
     QCOMPARE(restored.sessionTotalTokens(), source.sessionTotalTokens());
     QCOMPARE(Chat::ChatHistoryBridge::readHistory(&restored), history);
+}
+
+void QodeAssistTest::testTurnContextCollectsPartsFromPorts()
+{
+    FakeProjectContext projectPort(sampleProject(), "Always use tabs.");
+    FakeSkillsContext skillsPort(
+        "# Always on", "# Skills catalog", {Session::InvokedSkill{"review", "Review body"}});
+    FakeLinkedFiles filesPort({Session::LinkedFile{"main.cpp", "int main() {}"}});
+
+    Session::TurnContextRequest request;
+    request.message = "please /review this";
+    request.basePrompt = "You are a helpful assistant.";
+    request.rolePrompt = "Act as a reviewer.";
+    request.linkedFilePaths = QList<QString>{"/src/main.cpp"};
+
+    const Session::TurnContext context
+        = Session::TurnContextBuilder(projectPort, &skillsPort, filesPort).build(request);
+
+    QCOMPARE(context.basePrompt, QString("You are a helpful assistant."));
+    QVERIFY(context.rolePrompt.has_value());
+    QCOMPARE(*context.rolePrompt, QString("Act as a reviewer."));
+    QVERIFY(context.project.available);
+    QCOMPARE(context.project.displayName, QString("QodeAssist"));
+    QCOMPARE(context.projectRules, QString("Always use tabs."));
+    QCOMPARE(context.alwaysOnSkills, QString("# Always on"));
+    QCOMPARE(context.skillsCatalog, QString("# Skills catalog"));
+    QCOMPARE(context.invokedSkills.size(), 1);
+    QCOMPARE(context.invokedSkills.at(0).name, QString("review"));
+    QCOMPARE(context.linkedFilePaths, (QList<QString>{"/src/main.cpp"}));
+    QCOMPARE(context.linkedFiles.size(), 1);
+    QCOMPARE(context.linkedFiles.at(0).fileName, QString("main.cpp"));
+    QCOMPARE(filesPort.requestedPaths(), (QList<QString>{"/src/main.cpp"}));
+}
+
+void QodeAssistTest::testTurnContextSkillCommandScanning()
+{
+    FakeProjectContext projectPort({}, QString());
+    FakeSkillsContext skillsPort(
+        QString(),
+        QString(),
+        {Session::InvokedSkill{"review", "Review body"},
+         Session::InvokedSkill{"docs", "Docs body"},
+         Session::InvokedSkill{"blank", QString()}});
+    FakeLinkedFiles filesPort({});
+
+    Session::TurnContextRequest request;
+    request.message = "/review then /docs then /review again /blank /unknown and mid/word";
+
+    const Session::TurnContext context
+        = Session::TurnContextBuilder(projectPort, &skillsPort, filesPort).build(request);
+
+    QCOMPARE(context.invokedSkills.size(), 2);
+    QCOMPARE(context.invokedSkills.at(0).name, QString("review"));
+    QCOMPARE(context.invokedSkills.at(1).name, QString("docs"));
+}
+
+void QodeAssistTest::testTurnContextWithoutSkillsPort()
+{
+    FakeProjectContext projectPort(sampleProject(), QString());
+    FakeLinkedFiles filesPort({Session::LinkedFile{"main.cpp", "int main() {}"}});
+
+    Session::TurnContextRequest request;
+    request.message = "/review this";
+    request.basePrompt = "base";
+
+    const Session::TurnContext context
+        = Session::TurnContextBuilder(projectPort, nullptr, filesPort).build(request);
+
+    QVERIFY(context.alwaysOnSkills.isEmpty());
+    QVERIFY(context.skillsCatalog.isEmpty());
+    QVERIFY(context.invokedSkills.isEmpty());
+    QVERIFY(context.linkedFiles.isEmpty());
+    QVERIFY(filesPort.requestedPaths().isEmpty());
+}
+
+void QodeAssistTest::testLinkedFilesHeaderSurvivesUnreadablePaths()
+{
+    FakeProjectContext projectPort({}, QString());
+    FakeLinkedFiles filesPort({});
+
+    Session::TurnContextRequest request;
+    request.basePrompt = "base";
+    request.linkedFilePaths = QList<QString>{"/src/ignored.cpp"};
+
+    const Session::TurnContext context
+        = Session::TurnContextBuilder(projectPort, nullptr, filesPort).build(request);
+
+    QVERIFY(context.linkedFiles.isEmpty());
+    QCOMPARE(context.linkedFilePaths, (QList<QString>{"/src/ignored.cpp"}));
+    QCOMPARE(
+        Session::renderSystemPrompt(context),
+        QString("base\n# No active project in IDE\n\nLinked files for reference:\n"));
+}
+
+void QodeAssistTest::testSystemPromptRenderingWithProject()
+{
+    Session::TurnContext context;
+    context.basePrompt = "You are helpful.";
+    context.rolePrompt = "Be terse.";
+    context.project = sampleProject();
+    context.projectRules = "Use tabs.";
+    context.alwaysOnSkills = "# Always on";
+    context.skillsCatalog = "# Catalog";
+    context.invokedSkills = {Session::InvokedSkill{"review", "Review body"}};
+    context.linkedFilePaths = QList<QString>{"/src/main.cpp"};
+    context.linkedFiles = {Session::LinkedFile{"main.cpp", "int main() {}"}};
+
+    const QString expected
+        = "You are helpful."
+          "\n\nBe terse."
+          "\n# Active project: QodeAssist"
+          "\n# Project source root: /src/QodeAssist"
+          "\n#   All new source files, headers, QML and CMake edits MUST be created or modified "
+          "under this directory. Use absolute paths rooted here, or project-relative paths."
+          "\n# Build output directory (compiler artifacts only — do NOT create or edit source "
+          "files here): /src/QodeAssist/build"
+          "\n# Project Rules\n\nUse tabs."
+          "\n\n# Always on"
+          "\n\n# Catalog"
+          "\n\n# Invoked Skill: review\n\nReview body"
+          "\n\nLinked files for reference:\n"
+          "\nFile: main.cpp\nContent:\nint main() {}\n";
+
+    QCOMPARE(Session::renderSystemPrompt(context), expected);
+}
+
+void QodeAssistTest::testSystemPromptRenderingWithoutProject()
+{
+    Session::TurnContext context;
+    context.basePrompt = "You are helpful.";
+
+    QCOMPARE(
+        Session::renderSystemPrompt(context),
+        QString("You are helpful.\n# No active project in IDE"));
 }
 
 } // namespace QodeAssist

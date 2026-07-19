@@ -71,6 +71,7 @@ qt_add_qml_module(QodeAssistChatView
     ChatUtils.h ChatUtils.cpp
     ChatSerializer.hpp ChatSerializer.cpp
     ChatHistoryBridge.hpp ChatHistoryBridge.cpp
+    TurnContextAdapters.hpp TurnContextAdapters.cpp
     ChatView.hpp ChatView.cpp
     ChatData.hpp
     FileItem.hpp FileItem.cpp

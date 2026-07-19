@@ -95,6 +95,13 @@ private slots:
     void testAdjacentThinkingBlocksSurviveReload();
     void testChatModelRoundTripsThroughHistory();
 
+    void testTurnContextCollectsPartsFromPorts();
+    void testTurnContextSkillCommandScanning();
+    void testTurnContextWithoutSkillsPort();
+    void testLinkedFilesHeaderSurvivesUnreadablePaths();
+    void testSystemPromptRenderingWithProject();
+    void testSystemPromptRenderingWithoutProject();
+
 private:
     Context::DocumentContextReader createReader(const QString &text);
     QSharedPointer<Settings::CodeCompletionSettings> createSettingsForWholeFile();

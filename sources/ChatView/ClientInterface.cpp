@@ -6,27 +6,9 @@
 
 #include <LLMQore/BaseClient.hpp>
 
-#include <projectexplorer/buildconfiguration.h>
-#include <projectexplorer/target.h>
-#include <texteditor/textdocument.h>
 #include <QFile>
 #include <QFileInfo>
-#include <QImageReader>
-#include <QJsonArray>
-#include <QJsonDocument>
 #include <QMimeDatabase>
-#include <QRegularExpression>
-#include <QUuid>
-
-#include <coreplugin/editormanager/editormanager.h>
-#include <coreplugin/editormanager/ieditor.h>
-#include <coreplugin/idocument.h>
-#include <projectexplorer/project.h>
-#include <projectexplorer/projectexplorer.h>
-#include <projectexplorer/projectmanager.h>
-
-#include <texteditor/textdocument.h>
-#include <texteditor/texteditor.h>
 
 #include <LLMQore/ToolsManager.hpp>
 
@@ -37,13 +19,12 @@
 #include "ChatSerializer.hpp"
 #include "GeneralSettings.hpp"
 #include "Logger.hpp"
-#include "ProjectSettings.hpp"
+#include "TurnContextAdapters.hpp"
 #include "providers/ProvidersManager.hpp"
-#include "SkillsSettings.hpp"
 #include "ToolsSettings.hpp"
 #include "context/RulesLoader.hpp"
 #include <context/ChangesManager.h>
-#include "skills/SkillsManager.hpp"
+#include "session/TurnContextBuilder.hpp"
 
 namespace QodeAssist::Chat {
 
@@ -163,88 +144,28 @@ void ClientInterface::sendMessage(
     const bool isToolsEnabled = useTools;
 
     if (chatAssistantSettings.useSystemPrompt()) {
-        QString systemPrompt = chatAssistantSettings.systemPrompt();
+        Session::TurnContextRequest contextRequest;
+        contextRequest.message = message;
+        contextRequest.basePrompt = chatAssistantSettings.systemPrompt();
+        contextRequest.linkedFilePaths = linkedFiles;
 
         const QString lastRoleId = chatAssistantSettings.lastUsedRoleId();
         if (!lastRoleId.isEmpty()) {
             const Settings::AgentRole role = Settings::AgentRolesManager::loadRole(lastRoleId);
             if (!role.id.isEmpty())
-                systemPrompt = systemPrompt + "\n\n" + role.systemPrompt;
+                contextRequest.rolePrompt = role.systemPrompt;
         }
 
         auto project = Context::RulesLoader::getActiveProject();
 
-        if (project) {
-            systemPrompt += QString("\n# Active project: %1").arg(project->displayName());
-            systemPrompt += QString(
-                                "\n# Project source root: %1"
-                                "\n#   All new source files, headers, QML and CMake edits MUST be "
-                                "created or modified under this directory. Use absolute paths "
-                                "rooted here, or project-relative paths.")
-                                .arg(project->projectDirectory().toUrlishString());
+        ProjectContextQtCreator projectPort(project);
+        LinkedFilesQtCreator linkedFilesPort(m_contextManager);
+        auto skillsPort = makeSkillsContext(m_skillsManager, project);
 
-            if (auto target = project->activeTarget()) {
-                if (auto buildConfig = target->activeBuildConfiguration()) {
-                    systemPrompt
-                        += QString(
-                               "\n# Build output directory (compiler artifacts only — do NOT "
-                               "create or edit source files here): %1")
-                               .arg(buildConfig->buildDirectory().toUrlishString());
-                }
-            }
+        const Session::TurnContextBuilder builder(
+            projectPort, skillsPort.get(), linkedFilesPort);
 
-            QString projectRules
-                = Context::RulesLoader::loadRulesForProject(project, Context::RulesContext::Chat);
-
-            if (!projectRules.isEmpty()) {
-                systemPrompt += QString("\n# Project Rules\n\n") + projectRules;
-            }
-        } else {
-            systemPrompt += QString("\n# No active project in IDE");
-        }
-
-        if (m_skillsManager && Settings::skillsSettings().enableSkills()) {
-            QStringList projectSkillDirs;
-            if (project) {
-                Settings::ProjectSettings projectSettings(project);
-                projectSkillDirs = Settings::SkillsSettings::splitLines(
-                    projectSettings.projectSkillDirs());
-            }
-            m_skillsManager->configure(
-                project ? project->projectDirectory().toFSPathString() : QString(),
-                Settings::SkillsSettings::splitPaths(
-                    Settings::skillsSettings().globalSkillRoots()),
-                projectSkillDirs);
-
-            const QString alwaysOnSkills = m_skillsManager->alwaysOnBodies();
-            if (!alwaysOnSkills.isEmpty())
-                systemPrompt += QString("\n\n") + alwaysOnSkills;
-
-            const QString skillsCatalog = m_skillsManager->catalogText();
-            if (!skillsCatalog.isEmpty())
-                systemPrompt += QString("\n\n") + skillsCatalog;
-
-            static const QRegularExpression skillCommand(
-                QStringLiteral("(?:^|\\s)/([a-z0-9][a-z0-9-]*)"));
-            QStringList invokedSkillNames;
-            auto skillMatch = skillCommand.globalMatch(message);
-            while (skillMatch.hasNext()) {
-                const QString skillName = skillMatch.next().captured(1);
-                if (invokedSkillNames.contains(skillName))
-                    continue;
-                const auto invokedSkill = m_skillsManager->findByName(skillName);
-                if (invokedSkill && !invokedSkill->body.isEmpty()) {
-                    invokedSkillNames << skillName;
-                    systemPrompt += QString("\n\n# Invoked Skill: %1\n\n%2")
-                                        .arg(invokedSkill->name, invokedSkill->body);
-                }
-            }
-        }
-
-        if (!linkedFiles.isEmpty()) {
-            systemPrompt = getSystemPromptWithLinkedFiles(systemPrompt, linkedFiles);
-        }
-        context.systemPrompt = systemPrompt;
+        context.systemPrompt = Session::renderSystemPrompt(builder.build(contextRequest));
     }
 
     const bool toolHistory = promptTemplate->supportsToolHistory();
@@ -460,47 +381,6 @@ void ClientInterface::handleLLMResponse(const QString &response, const QJsonObje
         QString messageId = request["id"].toString();
         m_chatModel->addMessage(message, ChatModel::ChatRole::Assistant, messageId);
     }
-}
-
-QString ClientInterface::getCurrentFileContext() const
-{
-    auto currentEditor = Core::EditorManager::currentEditor();
-    if (!currentEditor) {
-        LOG_MESSAGE("No active editor found");
-        return QString();
-    }
-
-    auto textDocument = qobject_cast<TextEditor::TextDocument *>(currentEditor->document());
-    if (!textDocument) {
-        LOG_MESSAGE("Current document is not a text document");
-        return QString();
-    }
-
-    QString fileInfo = QString("Language: %1\nFile: %2\n\n")
-                           .arg(textDocument->mimeType(), textDocument->filePath().toFSPathString());
-
-    QString content = textDocument->document()->toPlainText();
-
-    LOG_MESSAGE(QString("Got context from file: %1").arg(textDocument->filePath().toFSPathString()));
-
-    return QString("Current file context:\n%1\nFile content:\n%2").arg(fileInfo, content);
-}
-
-QString ClientInterface::getSystemPromptWithLinkedFiles(
-    const QString &basePrompt, const QList<QString> &linkedFiles) const
-{
-    QString updatedPrompt = basePrompt;
-
-    if (!linkedFiles.isEmpty()) {
-        updatedPrompt += "\n\nLinked files for reference:\n";
-
-        auto contentFiles = m_contextManager->getContentFiles(linkedFiles);
-        for (const auto &file : contentFiles) {
-            updatedPrompt += QString("\nFile: %1\nContent:\n%2\n").arg(file.filename, file.content);
-        }
-    }
-
-    return updatedPrompt;
 }
 
 Context::ContextManager *ClientInterface::contextManager() const
