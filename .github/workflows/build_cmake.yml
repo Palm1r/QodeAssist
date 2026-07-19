@@ -94,8 +94,8 @@ jobs:
           execute_process(
             COMMAND sudo apt install
               # build dependencies
-              libgl1-mesa-dev libgtest-dev libgmock-dev
-              # runtime dependencies for tests (Qt is downloaded outside package manager,
+              libgl1-mesa-dev
+              # runtime dependencies (Qt is downloaded outside package manager,
               # thus minimal dependencies must be installed explicitly)
               libsecret-1-0 libxcb-cursor0 libxcb-icccm4 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-render0
               libxcb-shape0 libxcb-shm0 libxcb-sync1 libxcb-xfixes0 libxcb-xkb1 libxkbcommon-x11-0 xvfb
@@ -276,16 +276,44 @@ jobs:
           message(FATAL_ERROR "Build failed")
         endif()
 
+    - name: Build with tests
+      if: startsWith(matrix.config.os, 'ubuntu')
+      shell: cmake -P {0}
+      run: |
+        set(ENV{CC} ${{ matrix.config.cc }})
+        set(ENV{CXX} ${{ matrix.config.cxx }})
+        set(ENV{NINJA_STATUS} "[%f/%t %o/sec] ")
+
+        set(build_plugin_py "scripts/build_plugin.py")
+        foreach(dir "share/qtcreator/scripts" "Qt Creator.sdk/share/qtcreator/scripts" "Qt Creator.app/Contents/Resources/scripts" "Contents/Resources/scripts")
+          if(EXISTS "${{ steps.qt_creator.outputs.qtc_dir }}/${dir}/build_plugin.py")
+            set(build_plugin_py "${dir}/build_plugin.py")
+            break()
+          endif()
+        endforeach()
+
+        execute_process(
+          COMMAND python
+            -u
+            "${{ steps.qt_creator.outputs.qtc_dir }}/${build_plugin_py}"
+            --name "$ENV{PLUGIN_NAME}-tests"
+            --src .
+            --build build-tests
+            --qt-path "${{ steps.qt.outputs.qt_dir }}"
+            --qtc-path "${{ steps.qt_creator.outputs.qtc_dir }}"
+            --output-path "${{ runner.temp }}"
+            --add-config=-DWITH_TESTS=ON
+          RESULT_VARIABLE result
+        )
+        if (NOT result EQUAL 0)
+          message(FATAL_ERROR "Test build failed")
+        endif()
+
     - name: Upload
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         path: ./${{ env.PLUGIN_NAME }}-v${{ steps.git.outputs.tag }}-QtC${{ matrix.qt_config.qt_creator_version }}-${{ matrix.config.artifact }}.7z
         name: ${{ env.PLUGIN_NAME}}-v${{ steps.git.outputs.tag }}-QtC${{ matrix.qt_config.qt_creator_version }}-${{ matrix.config.artifact }}.7z
-
-    - name: Run unit tests
-      if: startsWith(matrix.config.os, 'ubuntu')
-      run: |
-        xvfb-run ./build/build/tests/QodeAssistTest
 
   release:
     if: contains(github.ref, 'tags/v')

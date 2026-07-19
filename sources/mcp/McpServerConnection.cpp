@@ -5,12 +5,11 @@
 #include "McpServerConnection.hpp"
 
 #include <LLMQore/McpClient.hpp>
-#include <LLMQore/McpExceptions.hpp>
 #include <LLMQore/McpHttpTransport.hpp>
 #include <LLMQore/McpRemoteTool.hpp>
-#include <LLMQore/McpStdioTransport.hpp>
-#include <LLMQore/McpTransport.hpp>
 #include <LLMQore/McpTypes.hpp>
+#include <LLMQore/RpcStdioTransport.hpp>
+#include <LLMQore/RpcTransport.hpp>
 #include <LLMQore/ToolsManager.hpp>
 #include <LLMQore/Version.hpp>
 
@@ -21,6 +20,8 @@
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QStandardPaths>
+
+#include <utility>
 
 #include <logger/Logger.hpp>
 #include "providers/Provider.hpp"
@@ -142,7 +143,7 @@ void McpServerConnection::setProviders(const QList<Providers::Provider *> &provi
     }
 }
 
-::LLMQore::Mcp::McpTransport *McpServerConnection::createTransport()
+::LLMQore::Rpc::Transport *McpServerConnection::createTransport()
 {
     if (m_config.transport == McpTransportKind::Http) {
         if (!m_config.url.isValid()) {
@@ -166,7 +167,7 @@ void McpServerConnection::setProviders(const QList<Providers::Provider *> &provi
         return nullptr;
     }
 
-    ::LLMQore::Mcp::StdioLaunchConfig cfg;
+    ::LLMQore::Rpc::StdioLaunchConfig cfg;
     cfg.arguments = m_config.args;
     cfg.workingDirectory = m_config.workingDirectory;
 
@@ -211,7 +212,7 @@ void McpServerConnection::setProviders(const QList<Providers::Provider *> &provi
         env.insert(it.key(), it.value());
     cfg.environment = env;
 
-    return new ::LLMQore::Mcp::McpStdioClientTransport(cfg, this);
+    return new ::LLMQore::Rpc::StdioClientTransport(std::move(cfg), this);
 }
 
 void McpServerConnection::connectToServer()

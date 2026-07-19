@@ -73,6 +73,10 @@
 #include <texteditor/texteditor.h>
 #include <texteditor/texteditorconstants.h>
 
+#ifdef WITH_TESTS
+#include "QodeAssistTest.hpp"
+#endif
+
 using namespace Utils;
 using namespace Core;
 using namespace ProjectExplorer;
@@ -305,6 +309,10 @@ public:
         }
 
         Chat::ChatFileManager::cleanupGlobalIntermediateStorage();
+
+#ifdef WITH_TESTS
+        addTest<QodeAssistTest>();
+#endif
     }
 
     void extensionsInitialized() final {}
