@@ -688,6 +688,30 @@ ChatRootView {
         scrollToBottom()
     }
 
+    onChatTargetSwitchNeedsNewChat: function(targetName) {
+        chatTargetSwitchDialog.targetName = targetName
+        chatTargetSwitchDialog.open()
+    }
+
+    Dialog {
+        id: chatTargetSwitchDialog
+
+        property string targetName: ""
+
+        anchors.centerIn: parent
+        title: qsTr("Start a New Conversation")
+        modal: true
+        standardButtons: Dialog.Yes | Dialog.No
+
+        Label {
+            text: qsTr("A conversation stays with the kind it started with, so switching to %1 needs a new one.\n\nClear this chat and switch?").arg(chatTargetSwitchDialog.targetName)
+            wrapMode: Text.WordWrap
+        }
+
+        onAccepted: root.confirmChatTargetSwitch()
+        onRejected: root.cancelChatTargetSwitch()
+    }
+
     Dialog {
         id: compressConfirmDialog
 

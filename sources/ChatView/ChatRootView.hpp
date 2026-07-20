@@ -163,6 +163,8 @@ public:
 
     Q_INVOKABLE void loadAvailableConfigurations();
     Q_INVOKABLE void applyConfiguration(const QString &configName);
+    Q_INVOKABLE void confirmChatTargetSwitch();
+    Q_INVOKABLE void cancelChatTargetSwitch();
     QStringList availableConfigurations() const;
     QString currentConfiguration() const;
 
@@ -234,6 +236,7 @@ signals:
     void isThinkingSupportChanged();
     void availableConfigurationsChanged();
     void currentConfigurationChanged();
+    void chatTargetSwitchNeedsNewChat(const QString &targetName);
 
     void availableAgentRolesChanged();
     void currentAgentRoleChanged();
@@ -253,6 +256,10 @@ signals:
 private:
     QString computeChatTitle() const;
     void triggerOpenChatCommand(Utils::Id commandId);
+    void handleAgentRequested(const Acp::AgentDefinition &agent);
+    void handleLlmRequested();
+    void bindAgent(const Acp::AgentDefinition &agent);
+    void bindLlm();
     void handOffSession();
     bool deferSendForAutoCompress(
         const QString &message,
@@ -309,6 +316,8 @@ private:
     mutable bool m_sessionFileRegistryResolved = false;
     mutable QPointer<Skills::SkillsManager> m_skillsManager;
     mutable bool m_skillsManagerResolved = false;
+    std::optional<Acp::AgentDefinition> m_pendingAgent;
+    bool m_pendingLlmSwitch = false;
 };
 
 } // namespace QodeAssist::Chat

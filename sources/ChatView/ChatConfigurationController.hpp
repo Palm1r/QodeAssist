@@ -4,8 +4,15 @@
 
 #pragma once
 
+#include <QHash>
 #include <QObject>
 #include <QStringList>
+
+#include "acp/AgentDefinition.hpp"
+
+namespace QodeAssist::Acp {
+class AgentCatalogStore;
+}
 
 namespace QodeAssist::Chat {
 
@@ -22,15 +29,23 @@ public:
     void loadAvailableConfigurations();
     void applyConfiguration(const QString &configName);
 
+    void setBoundAgent(const Acp::AgentDefinition &agent);
+    void clearBoundAgent();
+
 signals:
     void availableConfigurationsChanged();
     void currentConfigurationChanged();
+    void agentRequested(const QodeAssist::Acp::AgentDefinition &agent);
+    void llmRequested();
 
 private:
     void updateCurrentConfiguration();
 
+    Acp::AgentCatalogStore *m_agents = nullptr;
     QStringList m_availableConfigurations;
+    QHash<QString, QString> m_agentIdByEntry;
     QString m_currentConfiguration;
+    QString m_boundAgentName;
 };
 
 } // namespace QodeAssist::Chat

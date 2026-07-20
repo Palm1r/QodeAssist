@@ -8,11 +8,22 @@
 
 #include "ConfigurationManager.hpp"
 #include "GeneralSettings.hpp"
+#include "acp/AgentCatalogStore.hpp"
 
 namespace QodeAssist::Chat {
 
+namespace {
+
+QString agentEntry(const QString &agentName)
+{
+    return ChatConfigurationController::tr("Agent: %1").arg(agentName);
+}
+
+} // namespace
+
 ChatConfigurationController::ChatConfigurationController(QObject *parent)
     : QObject(parent)
+    , m_agents(new Acp::AgentCatalogStore(this))
 {
     auto &settings = Settings::generalSettings();
     connect(
@@ -41,10 +52,31 @@ QString ChatConfigurationController::currentConfiguration() const
 
 void ChatConfigurationController::updateCurrentConfiguration()
 {
+    if (!m_boundAgentName.isEmpty()) {
+        m_currentConfiguration = agentEntry(m_boundAgentName);
+        emit currentConfigurationChanged();
+        return;
+    }
+
     auto &settings = Settings::generalSettings();
     m_currentConfiguration
         = QString("%1 - %2").arg(settings.caProvider.value(), settings.caModel.value());
     emit currentConfigurationChanged();
+}
+
+void ChatConfigurationController::setBoundAgent(const Acp::AgentDefinition &agent)
+{
+    m_boundAgentName = agent.name;
+    updateCurrentConfiguration();
+}
+
+void ChatConfigurationController::clearBoundAgent()
+{
+    if (m_boundAgentName.isEmpty())
+        return;
+
+    m_boundAgentName.clear();
+    updateCurrentConfiguration();
 }
 
 void ChatConfigurationController::loadAvailableConfigurations()
@@ -56,10 +88,18 @@ void ChatConfigurationController::loadAvailableConfigurations()
         Settings::ConfigurationType::Chat);
 
     m_availableConfigurations.clear();
+    m_agentIdByEntry.clear();
     m_availableConfigurations.append(QObject::tr("Current Settings"));
 
     for (const Settings::AIConfiguration &config : configs) {
         m_availableConfigurations.append(config.name);
+    }
+
+    m_agents->reload();
+    for (const Acp::AgentDefinition &agent : m_agents->catalog().launchableAgents()) {
+        const QString entry = agentEntry(agent.name);
+        m_agentIdByEntry.insert(entry, agent.id);
+        m_availableConfigurations.append(entry);
     }
 
     updateCurrentConfiguration();
@@ -69,9 +109,19 @@ void ChatConfigurationController::loadAvailableConfigurations()
 
 void ChatConfigurationController::applyConfiguration(const QString &configName)
 {
-    if (configName == QObject::tr("Current Settings")) {
+    const QString agentId = m_agentIdByEntry.value(configName);
+    if (!agentId.isEmpty()) {
+        if (const auto agent = m_agents->catalog().agent(agentId))
+            emit agentRequested(*agent);
         return;
     }
+
+    if (configName == QObject::tr("Current Settings")) {
+        emit llmRequested();
+        return;
+    }
+
+    emit llmRequested();
 
     auto &manager = Settings::ConfigurationManager::instance();
     QVector<Settings::AIConfiguration> configs = manager.configurations(

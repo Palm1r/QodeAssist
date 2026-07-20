@@ -119,6 +119,23 @@ private slots:
     void testSystemPromptRenderingWithProject();
     void testSystemPromptRenderingWithoutProject();
 
+    void testAgentRegistryParsesEveryDistributionKind();
+    void testAgentRegistryReportsUnusableEntries();
+    void testAgentRegistryParsesSingleAgentUserFile();
+    void testAgentCatalogAppliesMergePriority();
+    void testAgentCatalogUserFileMakesBinaryAgentLaunchable();
+    void testAgentLaunchConfigUsesRunnerConventions();
+    void testAgentSearchPathsSplitting();
+    void testAgentExtraSearchPathsReachTheChildEnvironment();
+    void testAgentForwardedVariablesReachTheChildEnvironment();
+    void testBundledAgentSnapshotParses();
+
+    void testAcpBackendStreamsTextAndThinking();
+    void testAcpBackendStartsSessionInWorkingDirectory();
+    void testAcpBackendAuthenticatesWhenTheAgentAsksForIt();
+    void testAcpBackendReportsPromptFailure();
+    void testAcpBackendCancelInterruptsTheTurn();
+
 private:
     Context::DocumentContextReader createReader(const QString &text);
     QSharedPointer<Settings::CodeCompletionSettings> createSettingsForWholeFile();

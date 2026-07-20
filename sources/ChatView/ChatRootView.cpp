@@ -124,6 +124,16 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         &ChatConfigurationController::currentConfigurationChanged,
         this,
         &ChatRootView::currentConfigurationChanged);
+    connect(
+        m_configurationController,
+        &ChatConfigurationController::agentRequested,
+        this,
+        &ChatRootView::handleAgentRequested);
+    connect(
+        m_configurationController,
+        &ChatConfigurationController::llmRequested,
+        this,
+        &ChatRootView::handleLlmRequested);
 
     connect(
         m_controller,
@@ -1288,6 +1298,74 @@ void ChatRootView::loadAvailableConfigurations()
 void ChatRootView::applyConfiguration(const QString &configName)
 {
     m_configurationController->applyConfiguration(configName);
+}
+
+void ChatRootView::handleAgentRequested(const Acp::AgentDefinition &agent)
+{
+    if (m_controller->boundAgentId() == agent.id)
+        return;
+
+    if (m_controller->conversationStarted()) {
+        m_pendingAgent = agent;
+        m_pendingLlmSwitch = false;
+        emit chatTargetSwitchNeedsNewChat(agent.name);
+        return;
+    }
+
+    bindAgent(agent);
+}
+
+void ChatRootView::handleLlmRequested()
+{
+    if (m_controller->boundAgentId().isEmpty())
+        return;
+
+    if (m_controller->conversationStarted()) {
+        m_pendingAgent.reset();
+        m_pendingLlmSwitch = true;
+        emit chatTargetSwitchNeedsNewChat(tr("direct LLM chat"));
+        return;
+    }
+
+    bindLlm();
+}
+
+void ChatRootView::confirmChatTargetSwitch()
+{
+    const auto agent = m_pendingAgent;
+    const bool toLlm = m_pendingLlmSwitch;
+
+    m_pendingAgent.reset();
+    m_pendingLlmSwitch = false;
+
+    if (!agent && !toLlm)
+        return;
+
+    clearMessages();
+
+    if (agent)
+        bindAgent(*agent);
+    else
+        bindLlm();
+}
+
+void ChatRootView::cancelChatTargetSwitch()
+{
+    m_pendingAgent.reset();
+    m_pendingLlmSwitch = false;
+    emit currentConfigurationChanged();
+}
+
+void ChatRootView::bindAgent(const Acp::AgentDefinition &agent)
+{
+    m_controller->bindToAgent(agent);
+    m_configurationController->setBoundAgent(agent);
+}
+
+void ChatRootView::bindLlm()
+{
+    m_controller->bindToLlm();
+    m_configurationController->clearBoundAgent();
 }
 
 QStringList ChatRootView::availableConfigurations() const

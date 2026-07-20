@@ -98,6 +98,7 @@ target_link_libraries(QodeAssistChatView
     QodeAssistSettings
     Context
     QodeAssistSession
+    QodeAssistAcp
     QodeAssistUIControlsplugin
     QodeAssistLogger
     LLMQore

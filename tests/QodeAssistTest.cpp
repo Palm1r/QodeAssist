@@ -7,6 +7,15 @@
 
 #include "ChatView/ChatHistoryBridge.hpp"
 #include "ChatView/ChatModel.hpp"
+#include "FakeAcpAgent.hpp"
+#include "acp/AcpChatBackend.hpp"
+#include "acp/AgentCatalog.hpp"
+#include "acp/AgentCatalogStore.hpp"
+#include "acp/AgentLaunch.hpp"
+#include "acp/AgentRegistryParser.hpp"
+#include "acp/AgentSpawn.hpp"
+
+#include <LLMQore/AcpClient.hpp>
 #include "completion/CodeHandler.hpp"
 #include "completion/LLMSuggestion.hpp"
 #include "llmcore/ContextData.hpp"
@@ -16,6 +25,8 @@
 #include "session/Session.hpp"
 #include "session/TurnContextBuilder.hpp"
 
+#include <QDir>
+#include <QFile>
 #include <QJsonArray>
 #include <QTest>
 #include <QTextDocument>
@@ -1741,6 +1752,472 @@ void QodeAssistTest::testSystemPromptRenderingWithoutProject()
     QCOMPARE(
         Session::renderSystemPrompt(context),
         QString("You are helpful.\n# No active project in IDE"));
+}
+
+void QodeAssistTest::testAgentRegistryParsesEveryDistributionKind()
+{
+    const QByteArray payload = R"({"version":"1.0.0","agents":[
+        {"id":"npx-agent","name":"Npx Agent","version":"1.2.3","description":"An agent",
+         "authors":["Ada","Grace"],"license":"MIT","repository":"https://example.com/repo",
+         "website":"https://example.com","icon":"https://example.com/icon.svg",
+         "distribution":{"npx":{"package":"pkg@1.2.3","args":["--acp"],"env":{"KEY":"VALUE"}}}},
+        {"id":"uvx-agent","name":"Uvx Agent",
+         "distribution":{"uvx":{"package":"pypkg==1.0","args":["-x"]}}},
+        {"id":"binary-agent","name":"Binary Agent","distribution":{"binary":{
+            "darwin-aarch64":{"archive":"https://example.com/a.tar.gz","sha256":"abc",
+                              "cmd":"./dist/agent","args":["acp"]}}}},
+        {"id":"command-agent","name":"Command Agent",
+         "distribution":{"command":{"cmd":"/usr/local/bin/agent","args":["acp"]}}}
+    ]})";
+
+    const Acp::AgentParseResult result = Acp::AgentRegistryParser::parse(
+        payload, Acp::AgentSource::LiveRegistry, "registry");
+
+    QVERIFY(result.warnings.isEmpty());
+    QCOMPARE(result.agents.size(), 4);
+
+    const Acp::AgentDefinition &npx = result.agents.at(0);
+    QCOMPARE(npx.id, QString("npx-agent"));
+    QCOMPARE(npx.name, QString("Npx Agent"));
+    QCOMPARE(npx.version, QString("1.2.3"));
+    QCOMPARE(npx.description, QString("An agent"));
+    QCOMPARE(npx.authors, (QStringList{"Ada", "Grace"}));
+    QCOMPARE(npx.license, QString("MIT"));
+    QCOMPARE(npx.repository, QString("https://example.com/repo"));
+    QCOMPARE(npx.source, Acp::AgentSource::LiveRegistry);
+    QCOMPARE(npx.origin, QString("registry"));
+    QCOMPARE(npx.distribution.kind, Acp::AgentDistributionKind::Npx);
+    QCOMPARE(npx.distribution.package, QString("pkg@1.2.3"));
+    QCOMPARE(npx.distribution.args, (QStringList{"--acp"}));
+    QCOMPARE(npx.distribution.env.size(), 1);
+    QCOMPARE(npx.distribution.env.at(0).name, QString("KEY"));
+    QCOMPARE(npx.distribution.env.at(0).value, QString("VALUE"));
+    QVERIFY(npx.isLaunchable());
+
+    const Acp::AgentDefinition &uvx = result.agents.at(1);
+    QCOMPARE(uvx.distribution.kind, Acp::AgentDistributionKind::Uvx);
+    QCOMPARE(uvx.distribution.package, QString("pypkg==1.0"));
+    QVERIFY(uvx.isLaunchable());
+
+    const Acp::AgentDefinition &binary = result.agents.at(2);
+    QCOMPARE(binary.distribution.kind, Acp::AgentDistributionKind::Binary);
+    QCOMPARE(binary.distribution.binaryTargets.size(), 1);
+    QCOMPARE(binary.distribution.binaryTargets.at(0).platform, QString("darwin-aarch64"));
+    QCOMPARE(binary.distribution.binaryTargets.at(0).cmd, QString("./dist/agent"));
+    QCOMPARE(binary.distribution.binaryTargets.at(0).sha256, QString("abc"));
+    QVERIFY(!binary.isLaunchable());
+
+    const Acp::AgentDefinition &command = result.agents.at(3);
+    QCOMPARE(command.distribution.kind, Acp::AgentDistributionKind::Command);
+    QCOMPARE(command.distribution.command, QString("/usr/local/bin/agent"));
+    QVERIFY(command.isLaunchable());
+}
+
+void QodeAssistTest::testAgentRegistryReportsUnusableEntries()
+{
+    const QByteArray payload = R"({"agents":[
+        {"name":"No Id","distribution":{"npx":{"package":"p"}}},
+        {"id":"no-distribution","name":"No Distribution"},
+        {"id":"usable","name":"Usable","distribution":{"npx":{"package":"p"}}}
+    ]})";
+
+    const Acp::AgentParseResult result = Acp::AgentRegistryParser::parse(
+        payload, Acp::AgentSource::LiveRegistry, "registry");
+
+    QCOMPARE(result.agents.size(), 2);
+    QCOMPARE(result.warnings.size(), 2);
+    QVERIFY(result.warnings.at(0).contains("entry 0"));
+    QVERIFY(result.warnings.at(1).contains("no-distribution"));
+
+    QCOMPARE(result.agents.at(0).id, QString("no-distribution"));
+    QVERIFY(!result.agents.at(0).isLaunchable());
+    QVERIFY(result.agents.at(1).isLaunchable());
+}
+
+void QodeAssistTest::testAgentRegistryParsesSingleAgentUserFile()
+{
+    const QByteArray payload
+        = R"({"id":"local","distribution":{"command":{"cmd":"/opt/local-agent"}}})";
+
+    const Acp::AgentParseResult result = Acp::AgentRegistryParser::parse(
+        payload, Acp::AgentSource::UserFile, "local.json");
+
+    QCOMPARE(result.agents.size(), 1);
+    QCOMPARE(result.agents.at(0).id, QString("local"));
+    QCOMPARE(result.agents.at(0).name, QString("local"));
+    QCOMPARE(result.agents.at(0).source, Acp::AgentSource::UserFile);
+    QVERIFY(result.agents.at(0).isLaunchable());
+}
+
+void QodeAssistTest::testAgentCatalogAppliesMergePriority()
+{
+    const QByteArray bundled = R"({"agents":[
+        {"id":"alpha","name":"Alpha Bundled","distribution":{"npx":{"package":"alpha@1"}}},
+        {"id":"beta","name":"Beta","distribution":{"npx":{"package":"beta@1"}}}
+    ]})";
+    const QByteArray live = R"({"agents":[
+        {"id":"alpha","name":"Alpha Registry","distribution":{"npx":{"package":"alpha@2"}}},
+        {"id":"gamma","name":"Gamma","distribution":{"uvx":{"package":"gamma"}}}
+    ]})";
+    const QByteArray user
+        = R"({"id":"alpha","name":"Alpha User","distribution":{"command":{"cmd":"/opt/alpha"}}})";
+
+    Acp::AgentCatalog catalog;
+    catalog.setLayer(
+        Acp::AgentSource::BundledSnapshot,
+        Acp::AgentRegistryParser::parse(bundled, Acp::AgentSource::BundledSnapshot, "bundled")
+            .agents);
+    catalog.setLayer(
+        Acp::AgentSource::LiveRegistry,
+        Acp::AgentRegistryParser::parse(live, Acp::AgentSource::LiveRegistry, "registry").agents);
+    catalog.setLayer(
+        Acp::AgentSource::UserFile,
+        Acp::AgentRegistryParser::parse(user, Acp::AgentSource::UserFile, "alpha.json").agents);
+
+    QCOMPARE(catalog.size(), 3);
+
+    QStringList names;
+    for (const Acp::AgentDefinition &agent : catalog.agents())
+        names.append(agent.name);
+    QCOMPARE(names, (QStringList{"Alpha User", "Beta", "Gamma"}));
+
+    auto alpha = catalog.agent("alpha");
+    QVERIFY(alpha.has_value());
+    QCOMPARE(alpha->source, Acp::AgentSource::UserFile);
+    QCOMPARE(alpha->distribution.kind, Acp::AgentDistributionKind::Command);
+
+    catalog.setLayer(Acp::AgentSource::UserFile, {});
+    alpha = catalog.agent("alpha");
+    QVERIFY(alpha.has_value());
+    QCOMPARE(alpha->name, QString("Alpha Registry"));
+    QCOMPARE(alpha->distribution.package, QString("alpha@2"));
+
+    catalog.setLayer(Acp::AgentSource::LiveRegistry, {});
+    alpha = catalog.agent("alpha");
+    QVERIFY(alpha.has_value());
+    QCOMPARE(alpha->name, QString("Alpha Bundled"));
+}
+
+void QodeAssistTest::testAgentCatalogUserFileMakesBinaryAgentLaunchable()
+{
+    const QByteArray live = R"({"agents":[{"id":"cursor","name":"Cursor",
+        "distribution":{"binary":{"darwin-aarch64":{"archive":"https://example.com/a.tar.gz",
+                                                    "cmd":"./cursor-agent","args":["acp"]}}}}]})";
+    const QByteArray user = R"({"id":"cursor","name":"Cursor",
+        "distribution":{"command":{"cmd":"/usr/local/bin/cursor-agent","args":["acp"]}}})";
+
+    Acp::AgentCatalog catalog;
+    catalog.setLayer(
+        Acp::AgentSource::LiveRegistry,
+        Acp::AgentRegistryParser::parse(live, Acp::AgentSource::LiveRegistry, "registry").agents);
+    QVERIFY(catalog.launchableAgents().isEmpty());
+
+    catalog.setLayer(
+        Acp::AgentSource::UserFile,
+        Acp::AgentRegistryParser::parse(user, Acp::AgentSource::UserFile, "cursor.json").agents);
+
+    QCOMPARE(catalog.size(), 1);
+    QCOMPARE(catalog.launchableAgents().size(), 1);
+    QCOMPARE(catalog.agent("cursor")->distribution.command, QString("/usr/local/bin/cursor-agent"));
+}
+
+void QodeAssistTest::testAgentLaunchConfigUsesRunnerConventions()
+{
+    Acp::AgentDefinition npx;
+    npx.id = "npx-agent";
+    npx.distribution.kind = Acp::AgentDistributionKind::Npx;
+    npx.distribution.package = "pkg@1.0";
+    npx.distribution.args = QStringList{"--acp"};
+    npx.distribution.env = {{"KEY", "VALUE"}};
+
+    const auto npxConfig = Acp::agentLaunchConfig(npx, "/tmp/project");
+    QVERIFY(npxConfig.has_value());
+    QCOMPARE(npxConfig->cwd, QString("/tmp/project"));
+    QCOMPARE(npxConfig->command, QString("npx"));
+    QCOMPARE(npxConfig->args, (QStringList{"-y", "pkg@1.0", "--acp"}));
+    QCOMPARE(npxConfig->env.size(), 1);
+    QCOMPARE(npxConfig->env.at(0).name, QString("KEY"));
+
+    Acp::AgentDefinition uvx;
+    uvx.id = "uvx-agent";
+    uvx.distribution.kind = Acp::AgentDistributionKind::Uvx;
+    uvx.distribution.package = "pypkg==1.0";
+    uvx.distribution.args = QStringList{"-x"};
+
+    const auto uvxConfig = Acp::agentLaunchConfig(uvx, QString());
+    QVERIFY(uvxConfig.has_value());
+    QCOMPARE(uvxConfig->command, QString("uvx"));
+    QCOMPARE(uvxConfig->args, (QStringList{"pypkg==1.0", "-x"}));
+
+    Acp::AgentDefinition command;
+    command.id = "command-agent";
+    command.distribution.kind = Acp::AgentDistributionKind::Command;
+    command.distribution.command = "/opt/agent";
+    command.distribution.args = QStringList{"acp"};
+
+    const auto commandConfig = Acp::agentLaunchConfig(command, QString());
+    QVERIFY(commandConfig.has_value());
+    QCOMPARE(commandConfig->command, QString("/opt/agent"));
+    QCOMPARE(commandConfig->args, (QStringList{"acp"}));
+
+    Acp::AgentDefinition binary;
+    binary.id = "binary-agent";
+    binary.distribution.kind = Acp::AgentDistributionKind::Binary;
+    QVERIFY(!Acp::agentLaunchConfig(binary, QString()).has_value());
+}
+
+void QodeAssistTest::testAgentSearchPathsSplitting()
+{
+    const QString separator(QDir::listSeparator());
+
+    QCOMPARE(Acp::splitSearchPaths(QString()), QStringList());
+    QCOMPARE(
+        Acp::splitSearchPaths(" /opt/homebrew/bin " + separator + separator + "/usr/local/bin"),
+        (QStringList{"/opt/homebrew/bin", "/usr/local/bin"}));
+}
+
+void QodeAssistTest::testAgentExtraSearchPathsReachTheChildEnvironment()
+{
+    Acp::AgentDefinition agent;
+    agent.id = "npx-agent";
+    agent.distribution.kind = Acp::AgentDistributionKind::Npx;
+    agent.distribution.package = "pkg";
+
+    auto config = Acp::agentLaunchConfig(agent, QString());
+    QVERIFY(config.has_value());
+
+    Acp::applyExtraSearchPaths(*config, {});
+    QVERIFY(config->env.isEmpty());
+    QCOMPARE(config->command, QString("npx"));
+
+    Acp::applyExtraSearchPaths(*config, QStringList{"/no/such/qodeassist/dir"});
+    QCOMPARE(config->command, QString("npx"));
+    QCOMPARE(config->env.size(), 1);
+    QCOMPARE(config->env.at(0).name, QString("PATH"));
+    QVERIFY(config->env.at(0).value.startsWith("/no/such/qodeassist/dir"));
+
+    Acp::AgentDefinition withOwnPath;
+    withOwnPath.id = "own-path";
+    withOwnPath.distribution.kind = Acp::AgentDistributionKind::Npx;
+    withOwnPath.distribution.package = "pkg";
+    withOwnPath.distribution.env = {{"PATH", "/agent/own"}};
+
+    auto ownPathConfig = Acp::agentLaunchConfig(withOwnPath, QString());
+    QVERIFY(ownPathConfig.has_value());
+    Acp::applyExtraSearchPaths(*ownPathConfig, QStringList{"/extra"});
+
+    QCOMPARE(ownPathConfig->env.size(), 2);
+    QCOMPARE(ownPathConfig->env.at(0).name, QString("PATH"));
+    QCOMPARE(ownPathConfig->env.at(1).value, QString("/agent/own"));
+}
+
+void QodeAssistTest::testAgentForwardedVariablesReachTheChildEnvironment()
+{
+    QCOMPARE(
+        Acp::splitVariableNames(" FOO, BAR\tBAZ "), (QStringList{"FOO", "BAR", "BAZ"}));
+    QCOMPARE(Acp::splitVariableNames(QString()), QStringList());
+
+    qputenv("QODEASSIST_TEST_TOKEN", "from-environment");
+
+    Acp::AgentDefinition agent;
+    agent.id = "npx-agent";
+    agent.distribution.kind = Acp::AgentDistributionKind::Npx;
+    agent.distribution.package = "pkg";
+    agent.distribution.env = {{"QODEASSIST_TEST_TOKEN", "from-definition"}};
+
+    auto config = Acp::agentLaunchConfig(agent, QString());
+    QVERIFY(config.has_value());
+
+    Acp::applyForwardedEnvironment(*config, {});
+    QCOMPARE(config->env.size(), 1);
+
+    Acp::applyForwardedEnvironment(*config, QStringList{"QODEASSIST_TEST_TOKEN"});
+
+    QCOMPARE(config->env.size(), 2);
+    QCOMPARE(config->env.at(0).name, QString("QODEASSIST_TEST_TOKEN"));
+    QCOMPARE(config->env.at(0).value, QString("from-environment"));
+    QCOMPARE(config->env.at(1).value, QString("from-definition"));
+
+    qunsetenv("QODEASSIST_TEST_TOKEN");
+}
+
+void QodeAssistTest::testBundledAgentSnapshotParses()
+{
+    QFile file(Acp::AgentCatalogStore::bundledSnapshotPath());
+    QVERIFY2(file.open(QIODevice::ReadOnly), qPrintable(file.fileName()));
+
+    const Acp::AgentParseResult result = Acp::AgentRegistryParser::parse(
+        file.readAll(), Acp::AgentSource::BundledSnapshot, "bundled snapshot");
+
+    QVERIFY(result.agents.size() > 10);
+    QVERIFY2(result.warnings.isEmpty(), qPrintable(result.warnings.join("; ")));
+
+    Acp::AgentCatalog catalog;
+    catalog.setLayer(Acp::AgentSource::BundledSnapshot, result.agents);
+    QVERIFY(!catalog.launchableAgents().isEmpty());
+}
+
+namespace {
+
+Acp::AgentDefinition fakeAgentDefinition()
+{
+    Acp::AgentDefinition agent;
+    agent.id = "fake-agent";
+    agent.name = "Fake Agent";
+    agent.distribution.kind = Acp::AgentDistributionKind::Command;
+    agent.distribution.command = "/bin/true";
+    return agent;
+}
+
+class AcpBackendFixture
+{
+public:
+    AcpBackendFixture()
+    {
+        backend.setClientFactory(
+            [this](const Acp::AgentDefinition &, const QString &cwd, QObject *parent) {
+                requestedCwd = cwd;
+                agent = new FakeAcpAgent(parent);
+                configure(agent);
+                return Acp::AgentProcess{
+                    new LLMQore::Acp::AcpClient(
+                        agent,
+                        {QStringLiteral("QodeAssistTest"), QStringLiteral("1.0"), QString()},
+                        parent),
+                    QStringLiteral("fake")};
+            });
+
+        QObject::connect(
+            &backend,
+            &Session::ChatBackend::sessionEvent,
+            &backend,
+            [this](const Session::SessionEvent &event) { events.append(event); });
+
+        backend.bindAgent(fakeAgentDefinition());
+    }
+
+    void send(const QString &text)
+    {
+        Session::TurnRequest request;
+        request.userBlocks = {Session::TextBlock{text}};
+        backend.sendTurn(request);
+    }
+
+    template<typename T>
+    QList<T> eventsOfType() const
+    {
+        QList<T> result;
+        for (const Session::SessionEvent &event : events) {
+            if (const auto *typed = std::get_if<T>(&event))
+                result.append(*typed);
+        }
+        return result;
+    }
+
+    std::function<void(FakeAcpAgent *)> configure = [](FakeAcpAgent *) {};
+    Acp::AcpChatBackend backend;
+    FakeAcpAgent *agent = nullptr;
+    QString requestedCwd;
+    QList<Session::SessionEvent> events;
+};
+
+} // namespace
+
+void QodeAssistTest::testAcpBackendStreamsTextAndThinking()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) {
+        agent->setThoughtChunks({"pondering"});
+        agent->setReplyChunks({"Hello", " world"});
+    };
+
+    fixture.send("hi");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    QCOMPARE(fixture.eventsOfType<Session::TurnStarted>().size(), 1);
+    QCOMPARE(fixture.eventsOfType<Session::TurnFailed>().size(), 0);
+
+    const auto deltas = fixture.eventsOfType<Session::TextDelta>();
+    QCOMPARE(deltas.size(), 2);
+    QCOMPARE(deltas.at(0).text, QString("Hello"));
+    QCOMPARE(deltas.at(1).text, QString(" world"));
+
+    const auto thinking = fixture.eventsOfType<Session::ThinkingReceived>();
+    QCOMPARE(thinking.size(), 1);
+    QCOMPARE(thinking.at(0).text, QString("pondering"));
+
+    const QString turnId = fixture.eventsOfType<Session::TurnStarted>().at(0).turnId;
+    QVERIFY(!turnId.isEmpty());
+    QCOMPARE(deltas.at(0).turnId, turnId);
+    QCOMPARE(fixture.eventsOfType<Session::TurnCompleted>().at(0).turnId, turnId);
+
+    QCOMPARE(fixture.agent->prompts().size(), 1);
+    QCOMPARE(fixture.agent->prompts().at(0).size(), 1);
+    QCOMPARE(
+        fixture.agent->prompts().at(0).at(0).toObject().value("text").toString(), QString("hi"));
+}
+
+void QodeAssistTest::testAcpBackendStartsSessionInWorkingDirectory()
+{
+    AcpBackendFixture fixture;
+    fixture.send("hi");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    QCOMPARE(fixture.requestedCwd, Acp::agentWorkingDirectory());
+    QCOMPARE(fixture.agent->newSessionCwd(), Acp::agentWorkingDirectory());
+    QVERIFY(!fixture.agent->newSessionCwd().isEmpty());
+    QCOMPARE(fixture.agent->clientInfo().value("name").toString(), QString("QodeAssistTest"));
+}
+
+void QodeAssistTest::testAcpBackendAuthenticatesWhenTheAgentAsksForIt()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setRequireAuthentication(true); };
+
+    fixture.send("hi");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    QCOMPARE(fixture.eventsOfType<Session::TurnFailed>().size(), 0);
+    QCOMPARE(fixture.agent->authMethodUsed(), QString("login"));
+    QCOMPARE(fixture.agent->methods().count(QStringLiteral("session/new")), 2);
+}
+
+void QodeAssistTest::testAcpBackendReportsPromptFailure()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setPromptFailure("agent exploded"); };
+
+    fixture.send("hi");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnFailed>().size(), 1);
+
+    QCOMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 0);
+    QVERIFY(fixture.eventsOfType<Session::TurnFailed>().at(0).error.contains("agent exploded"));
+    QCOMPARE(
+        fixture.eventsOfType<Session::TurnFailed>().at(0).turnId,
+        fixture.eventsOfType<Session::TurnStarted>().at(0).turnId);
+}
+
+void QodeAssistTest::testAcpBackendCancelInterruptsTheTurn()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) {
+        agent->setHangOnPrompt(true);
+        agent->setReplyChunks({"partial"});
+    };
+
+    fixture.send("hi");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TextDelta>().size(), 1);
+
+    fixture.backend.cancel();
+
+    QTRY_VERIFY(fixture.agent->wasCancelled());
+    QCOMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 0);
+    QCOMPARE(fixture.eventsOfType<Session::TurnFailed>().size(), 0);
 }
 
 } // namespace QodeAssist

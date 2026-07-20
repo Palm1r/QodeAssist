@@ -26,8 +26,8 @@ public:
     void sendTurn(const Session::TurnRequest &request) override;
     void cancel() override;
 
-    void setChatFilePath(const QString &filePath);
-    void clearToolSession(const QString &filePath);
+    void setChatFilePath(const QString &filePath) override;
+    void clearToolSession(const QString &filePath) override;
 
 private:
     void connectClient(Providers::Provider *provider);

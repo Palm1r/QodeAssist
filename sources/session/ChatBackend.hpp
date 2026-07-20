@@ -21,6 +21,9 @@ public:
     virtual void sendTurn(const TurnRequest &request) = 0;
     virtual void cancel() = 0;
 
+    virtual void setChatFilePath(const QString &filePath) { Q_UNUSED(filePath) }
+    virtual void clearToolSession(const QString &filePath) { Q_UNUSED(filePath) }
+
 signals:
     void sessionEvent(const QodeAssist::Session::SessionEvent &event);
 };

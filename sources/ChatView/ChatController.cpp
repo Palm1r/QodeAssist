@@ -17,6 +17,7 @@
 #include "logger/Logger.hpp"
 #include "session/FileEditPayload.hpp"
 #include "session/TurnContextBuilder.hpp"
+#include "acp/AcpChatBackend.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 
 namespace QodeAssist::Chat {
@@ -28,7 +29,9 @@ ChatController::ChatController(
     , m_chatModel(chatModel)
     , m_contextManager(new Context::ContextManager(this))
     , m_session(new Session::Session(this))
-    , m_backend(new LlmChatBackend(promptProvider, this))
+    , m_llmBackend(new LlmChatBackend(promptProvider, this))
+    , m_acpBackend(new Acp::AcpChatBackend(this))
+    , m_backend(m_llmBackend)
 {
     new ChatHistoryBridge(m_session, chatModel, this);
 
@@ -71,6 +74,39 @@ ChatController::ChatController(
 void ChatController::setSkillsManager(Skills::SkillsManager *skillsManager)
 {
     m_skillsManager = skillsManager;
+}
+
+void ChatController::bindToAgent(const Acp::AgentDefinition &agent)
+{
+    m_acpBackend->bindAgent(agent);
+    activateBackend(m_acpBackend);
+}
+
+void ChatController::bindToLlm()
+{
+    activateBackend(m_llmBackend);
+}
+
+QString ChatController::boundAgentId() const
+{
+    return m_backend == m_acpBackend ? m_acpBackend->boundAgentId() : QString();
+}
+
+bool ChatController::conversationStarted() const
+{
+    return !m_session->history().messages().isEmpty();
+}
+
+void ChatController::activateBackend(Session::ChatBackend *backend)
+{
+    if (m_backend == backend)
+        return;
+
+    m_session->cancel();
+
+    m_backend = backend;
+    m_session->setBackend(backend);
+    backend->setChatFilePath(m_chatFilePath);
 }
 
 Session::Session *ChatController::session() const

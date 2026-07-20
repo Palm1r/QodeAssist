@@ -8,12 +8,17 @@
 #include <QString>
 
 #include "ChatModel.hpp"
+#include "acp/AgentDefinition.hpp"
 #include "session/Session.hpp"
 #include "templates/IPromptProvider.hpp"
 #include <context/ContextManager.hpp>
 
 namespace QodeAssist::Skills {
 class SkillsManager;
+}
+
+namespace QodeAssist::Acp {
+class AcpChatBackend;
 }
 
 namespace QodeAssist::Chat {
@@ -47,6 +52,11 @@ public:
     void setChatFilePath(const QString &filePath);
     QString chatFilePath() const;
 
+    void bindToAgent(const Acp::AgentDefinition &agent);
+    void bindToLlm();
+    QString boundAgentId() const;
+    bool conversationStarted() const;
+
 signals:
     void errorOccurred(const QString &error);
     void messageReceivedCompletely();
@@ -62,6 +72,7 @@ private:
     void recordFileEditStatus(
         const QString &editId, const QString &status, const QString &fallbackMessage);
     void registerHistoricalEdits();
+    void activateBackend(Session::ChatBackend *backend);
 
     bool isImageFile(const QString &filePath) const;
     QString getMediaTypeForImage(const QString &filePath) const;
@@ -72,7 +83,9 @@ private:
     Context::ContextManager *m_contextManager = nullptr;
     Skills::SkillsManager *m_skillsManager = nullptr;
     Session::Session *m_session = nullptr;
-    LlmChatBackend *m_backend = nullptr;
+    LlmChatBackend *m_llmBackend = nullptr;
+    Acp::AcpChatBackend *m_acpBackend = nullptr;
+    Session::ChatBackend *m_backend = nullptr;
     QString m_chatFilePath;
 };
 

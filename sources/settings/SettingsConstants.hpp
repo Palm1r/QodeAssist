@@ -122,6 +122,10 @@ const char MCP_SERVER_PORT[] = "QodeAssist.mcpServerPort";
 const char MCP_ENABLE_CLIENTS[] = "QodeAssist.mcpEnableClients";
 const char MCP_CLIENT_EXTRA_PATHS[] = "QodeAssist.mcpClientExtraPaths";
 
+// ACP agent settings
+const char AGENT_EXTRA_PATHS[] = "QodeAssist.agentExtraPaths";
+const char AGENT_FORWARDED_VARIABLES[] = "QodeAssist.agentForwardedVariables";
+
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
 const char QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID[] = "QodeAssist.1GeneralSettingsPageId";
 const char QODE_ASSIST_CODE_COMPLETION_SETTINGS_PAGE_ID[]
@@ -133,6 +137,7 @@ const char QODE_ASSIST_QUICK_REFACTOR_SETTINGS_PAGE_ID[]
 const char QODE_ASSIST_TOOLS_SETTINGS_PAGE_ID[] = "QodeAssist.5ToolsSettingsPageId";
 const char QODE_ASSIST_MCP_SETTINGS_PAGE_ID[] = "QodeAssist.6McpSettingsPageId";
 const char QODE_ASSIST_SKILLS_SETTINGS_PAGE_ID[] = "QodeAssist.8SkillsSettingsPageId";
+const char QODE_ASSIST_AGENTS_SETTINGS_PAGE_ID[] = "QodeAssist.9AgentsSettingsPageId";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_CATEGORY[] = "QodeAssist.Category";
 const char QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY[] = "QodeAssist";
