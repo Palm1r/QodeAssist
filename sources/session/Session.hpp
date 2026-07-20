@@ -7,6 +7,7 @@
 #include <QList>
 #include <QObject>
 #include <QPointer>
+#include <QSet>
 #include <QString>
 
 #include <functional>
@@ -43,6 +44,9 @@ public:
         const TurnOptions &options);
     void cancel();
 
+    void respondPermission(const QString &requestId, const QString &optionId);
+    bool isPermissionPending(const QString &requestId) const;
+
     bool updateFileEditStatus(
         const QString &editId, const QString &status, const QString &statusMessage = {});
 
@@ -58,6 +62,15 @@ signals:
 
 private:
     void handleEvent(const SessionEvent &event);
+    void applyAgentToolCall(const ToolCallUpdated &update);
+    void applyAgentPlan(const PlanUpdated &plan);
+    bool refreshAssistantBlockRow(const ContentBlock &block, RowKind kind, const QString &rowId);
+    void applyPermissionRequest(const PermissionRequested &request);
+    void applyPermissionResolution(const PermissionResolved &resolution);
+    void mutatePermissionBlock(
+        const QString &requestId, const std::function<void(PermissionBlock &)> &mutate);
+    std::optional<PermissionBlock> permissionBlock(const QString &requestId) const;
+    QString autoAnswerOptionFor(const PermissionRequested &request) const;
     void appendMessage(const Message &message);
     Message *activeAssistantMessage();
     void mutateAssistant(const std::function<void(Message &)> &mutate);
@@ -73,6 +86,9 @@ private:
     QString m_activeTurnId;
     QString m_textSegment;
     int m_assistantRowStart = -1;
+    QSet<QString> m_pendingPermissions;
+    QSet<QString> m_alwaysAllowedToolKinds;
+    QSet<QString> m_alwaysRejectedToolKinds;
 };
 
 } // namespace QodeAssist::Session

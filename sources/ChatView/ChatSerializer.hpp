@@ -6,6 +6,7 @@
 
 #include <QString>
 
+#include "acp/AgentBinding.hpp"
 #include "session/ConversationHistory.hpp"
 
 namespace QodeAssist::Chat {
@@ -21,9 +22,13 @@ class ChatSerializer
 {
 public:
     static SerializationResult saveToFile(
-        const Session::ConversationHistory &history, const QString &filePath);
+        const Session::ConversationHistory &history,
+        const Acp::AgentBinding &binding,
+        const QString &filePath);
     static SerializationResult loadFromFile(
-        Session::ConversationHistory &history, const QString &filePath);
+        Session::ConversationHistory &history,
+        Acp::AgentBinding &binding,
+        const QString &filePath);
 
     // Content management (images and text files)
     static QString getChatContentFolder(const QString &chatFilePath);

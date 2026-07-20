@@ -16,6 +16,8 @@ qt_add_qml_module(QodeAssistChatView
     qml/chatparts/TextBlock.qml
     qml/chatparts/ThinkingBlock.qml
     qml/chatparts/ToolBlock.qml
+    qml/chatparts/PermissionBlock.qml
+    qml/chatparts/PlanBlock.qml
     qml/chatparts/ChatItem.qml
 
     qml/controls/AttachedFilesPlace.qml

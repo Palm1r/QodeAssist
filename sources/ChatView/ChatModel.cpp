@@ -91,6 +91,12 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         return message.reasoningTokens;
     case Roles::TotalTokens:
         return message.promptTokens + message.completionTokens;
+    case Roles::ToolKind:
+        return message.toolKind;
+    case Roles::ToolStatus:
+        return message.toolStatus;
+    case Roles::ToolDetails:
+        return message.toolDetails;
     case Roles::Images: {
         QVariantList imagesList;
         for (const auto &image : message.images) {
@@ -134,6 +140,9 @@ QHash<int, QByteArray> ChatModel::roleNames() const
     roles[Roles::CachedPromptTokens] = "cachedPromptTokens";
     roles[Roles::ReasoningTokens] = "reasoningTokens";
     roles[Roles::TotalTokens] = "totalTokens";
+    roles[Roles::ToolKind] = "toolKind";
+    roles[Roles::ToolStatus] = "toolStatus";
+    roles[Roles::ToolDetails] = "toolDetails";
     return roles;
 }
 

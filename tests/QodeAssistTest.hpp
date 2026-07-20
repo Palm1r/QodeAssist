@@ -112,6 +112,29 @@ private slots:
     void testSessionIgnoresFailureFromAbandonedTurn();
     void testSessionTruncateRowsRewritesHistory();
 
+    void testSessionUpsertsAgentToolCalls();
+    void testSessionKeepsOnePlanPerTurn();
+    void testAgentActivityKeepsStreamedTextIntact();
+    void testAgentToolUpdateTouchesOnlyItsOwnRow();
+    void testUsageSkipsRowsThatCannotShowIt();
+    void testAgentActivityBlocksSurviveReload();
+
+    void testSessionRendersPermissionRequestWithItsOptions();
+    void testSessionForwardsPermissionAnswerToTheBackend();
+    void testSessionAllowAlwaysSuppressesRepeatPromptsOfTheSameKind();
+    void testSessionAllowAlwaysDoesNotCoverOtherToolKinds();
+    void testSessionNeverAutoAnswersUnclassifiedTools();
+    void testSessionIgnoresAnswersToUnknownPermissionRequests();
+    void testSessionMarksUnansweredPermissionsCancelled();
+    void testSessionRejectAlwaysSuppressesRepeatPromptsOfTheSameKind();
+    void testSessionAutoAnswerFallsBackToTheAlwaysOption();
+    void testSessionDoesNotAutoAnswerWithoutAMatchingOption();
+    void testSessionAllowAlwaysDoesNotSurviveAnotherConversation();
+    void testSessionAnswersTheLiveRequestWhenAnOldIdIsReused();
+    void testSessionCancelsPermissionsTheBackendNeverResolved();
+    void testSessionCancelsPermissionsTheBackendRefused();
+    void testPermissionBlockReopensAsUnanswerable();
+
     void testTurnContextCollectsPartsFromPorts();
     void testTurnContextSkipsWhatTheBackendDoesNotNeed();
     void testFencedFileBlockOutgrowsBackticksInContent();
@@ -148,6 +171,43 @@ private slots:
     void testAcpBackendTruncatesOversizedAttachments();
     void testAcpBackendRejectsATurnOfUnlinkableFilesOnly();
     void testAcpBackendSendsAttachmentsWithoutAnyMessageText();
+    void testAcpBackendRaisesAgentPermissionRequests();
+    void testAcpBackendSendsThePermissionAnswerToTheAgent();
+    void testAcpBackendCancelsOutstandingPermissionRequests();
+    void testAcpBackendSeedsAHandoverSummaryOnce();
+    void testAcpBackendDropsAHandoverSummaryAfterACancelledTurn();
+    void testAcpBackendDropsAHandoverSummaryWithTheConversation();
+    void testToolSafetyDefaultsToMutating();
+    void testToolsManagerWithoutAGateRunsImmediately();
+    void testToolsManagerGateCanDeclineAToolCall();
+    void testToolsManagerGateCanAllowAToolCall();
+    void testToolsManagerGateResumesTheQueueAfterADenial();
+    void testKnowledgeServerExposesOnlyReadOnlyTools();
+    void testKnowledgeServerBindsLoopbackOnAnEphemeralPort();
+    void testAcpBackendOffersKnowledgeToHttpCapableAgents();
+    void testAcpBackendWithholdsKnowledgeFromAgentsWithoutHttpMcp();
+    void testAcpBackendStopsTheKnowledgeServerWithTheSession();
+    void testAcpBackendSurvivesAKnowledgeServerThatWillNotStart();
+    void testAcpBackendResumesAPersistedSession();
+    void testAcpBackendReportsAnUnresumableSession();
+    void testAcpBackendRefusesToResumeWithoutAgentSupport();
+    void testAcpBackendStartsFreshAfterAFailedResume();
+    void testAgentBindingKeepsTheResumeTargetBeforeTheFirstTurn();
+    void testAcpBackendCarriesTheLiveSessionIntoAResume();
+    void testAcpBackendEstablishesTheSessionOnlyOnce();
+    void testAgentBindingRejectsMalformedRecords();
+    void testMalformedAgentBindingLeavesTheChatUnbound();
+    void testAgentBindingRoundTripsThroughTheChatFile();
+    void testChatFileWithoutAnAgentLoadsUnbound();
+    void testAcpBackendMapsToolCallLifecycle();
+    void testAcpBackendMapsPlanUpdates();
+    void testAcpBackendReportsUsageFromThePromptResult();
+    void testAcpBackendIgnoresTheCumulativeContextGauge();
+    void testAcpBackendForwardsTheAgentSuggestedTitle();
+    void testAcpBackendDeclinesAmbiguousPermissionOptions();
+    void testAcpBackendClampsOversizedPermissionText();
+    void testAcpBackendCancelsPermissionsWhenTheTurnCompletes();
+    void testAcpBackendCancelsPermissionRequestsWhenTheTurnFails();
 
 private:
     Context::DocumentContextReader createReader(const QString &text);

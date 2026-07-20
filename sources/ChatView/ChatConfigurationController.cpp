@@ -107,6 +107,18 @@ void ChatConfigurationController::loadAvailableConfigurations()
     emit availableConfigurationsChanged();
 }
 
+std::optional<Acp::AgentDefinition> ChatConfigurationController::agentById(const QString &agentId)
+{
+    if (agentId.isEmpty())
+        return std::nullopt;
+
+    if (auto agent = m_agents->catalog().agent(agentId))
+        return agent;
+
+    m_agents->reload();
+    return m_agents->catalog().agent(agentId);
+}
+
 void ChatConfigurationController::applyConfiguration(const QString &configName)
 {
     const QString agentId = m_agentIdByEntry.value(configName);

@@ -116,8 +116,13 @@ void LlmChatBackend::cancel()
 
 void LlmChatBackend::releaseRequest()
 {
-    if (m_provider)
+    cancelPendingPermissions();
+
+    if (m_provider) {
         disconnect(m_provider->client(), nullptr, this, nullptr);
+        if (m_provider->toolsManager())
+            m_provider->toolsManager()->setExecutionGate({});
+    }
 
     m_provider = nullptr;
     m_requestId.clear();
@@ -217,6 +222,108 @@ void LlmChatBackend::bindToolSessions(Providers::Provider *provider)
             provider->toolsManager()->tool("read_original_history"))) {
         historyTool->setCurrentSessionId(m_chatFilePath);
     }
+
+    installExecutionGate(provider);
+}
+
+void LlmChatBackend::installExecutionGate(Providers::Provider *provider)
+{
+    provider->toolsManager()->setExecutionGate(
+        [this](
+            const QString &requestId,
+            const QString &toolId,
+            const QString &toolName,
+            const QJsonObject &input) {
+            return gateToolExecution(requestId, toolId, toolName, input);
+        });
+}
+
+QFuture<bool> LlmChatBackend::gateToolExecution(
+    const QString &requestId,
+    const QString &toolId,
+    const QString &toolName,
+    const QJsonObject &input)
+{
+    const auto allow = [] {
+        QPromise<bool> promise;
+        promise.start();
+        promise.addResult(true);
+        promise.finish();
+        return promise.future();
+    };
+
+    if (m_requestId.isEmpty() || requestId != m_requestId)
+        return allow();
+
+    if (!m_provider || !m_provider->toolsManager())
+        return allow();
+
+    auto *tool = m_provider->toolsManager()->tool(toolName);
+    if (tool && tool->safety() == ::LLMQore::ToolSafety::ReadOnly)
+        return allow();
+
+    auto promise = std::make_shared<QPromise<bool>>();
+    promise->start();
+
+    const QString permissionId = QStringLiteral("tool-%1-%2").arg(toolId).arg(++m_permissionCounter);
+    m_pendingPermissions.insert(permissionId, promise);
+
+    QFuture<bool> decision = promise->future();
+
+    const QString title = tool && !tool->displayName().isEmpty()
+                              ? tr("Run %1").arg(tool->displayName())
+                              : tr("Run %1").arg(toolName);
+
+    emit sessionEvent(
+        Session::PermissionRequested{
+            .turnId = m_requestId,
+            .requestId = permissionId,
+            .toolCallId = toolId,
+            .title = title,
+            .toolKind = toolName,
+            .options
+            = {Session::PermissionOption{"allow_once", tr("Allow"), "allow_once"},
+               Session::PermissionOption{
+                   "allow_always", tr("Allow for this conversation"), "allow_always"},
+               Session::PermissionOption{"reject_once", tr("Don't run it"), "reject_once"}}});
+
+    Q_UNUSED(input)
+    return decision;
+}
+
+bool LlmChatBackend::respondPermission(const QString &requestId, const QString &optionId)
+{
+    const auto promise = m_pendingPermissions.take(requestId);
+    if (!promise)
+        return false;
+
+    const bool allowed = optionId == QLatin1String("allow_once")
+                         || optionId == QLatin1String("allow_always");
+
+    promise->addResult(allowed);
+    promise->finish();
+
+    emit sessionEvent(
+        Session::PermissionResolved{
+            .turnId = m_requestId, .requestId = requestId, .optionId = optionId});
+
+    return true;
+}
+
+void LlmChatBackend::cancelPendingPermissions()
+{
+    const auto pending = std::exchange(m_pendingPermissions, {});
+
+    for (const auto &promise : pending) {
+        promise->addResult(false);
+        promise->finish();
+    }
+
+    for (auto it = pending.cbegin(); it != pending.cend(); ++it) {
+        emit sessionEvent(
+            Session::PermissionResolved{
+                .turnId = m_requestId, .requestId = it.key(), .cancelled = true});
+    }
 }
 
 QVector<LLMCore::Message> LlmChatBackend::renderHistory(
@@ -258,7 +365,7 @@ QVector<LLMCore::Message> LlmChatBackend::renderHistory(
 
         toolCallMsgIdx = -1;
 
-        if (row.kind == Session::RowKind::FileEdit)
+        if (Session::isTranscriptOnlyRow(row.kind))
             continue;
 
         LLMCore::Message apiMessage;

@@ -248,6 +248,10 @@ ChatRootView {
                         return fileEditMessageComponent
                     } else if (model.roleType === ChatModel.Thinking) {
                         return thinkingMessageComponent
+                    } else if (model.roleType === ChatModel.Permission) {
+                        return permissionMessageComponent
+                    } else if (model.roleType === ChatModel.Plan) {
+                        return planMessageComponent
                     } else {
                         return chatItemComponent
                     }
@@ -358,6 +362,18 @@ ChatRootView {
                 ToolBlock {
                     width: parent.width
                     toolContent: model.content
+                    toolKind: model.toolKind || ""
+                    toolStatus: model.toolStatus || ""
+                    toolDetails: model.toolDetails || ({})
+                }
+            }
+
+            Component {
+                id: planMessageComponent
+
+                PlanBlock {
+                    width: parent.width
+                    planContent: model.content
                 }
             }
 
@@ -387,6 +403,19 @@ ChatRootView {
             }
 
             Component {
+                id: permissionMessageComponent
+
+                PermissionBlock {
+                    width: parent.width
+                    permissionContent: model.content
+
+                    onRespond: function(requestId, optionId) {
+                        root.respondToPermission(requestId, optionId)
+                    }
+                }
+            }
+
+            Component {
                 id: thinkingMessageComponent
 
                 ThinkingBlock {
@@ -405,12 +434,76 @@ ChatRootView {
         }
         }
 
+        Rectangle {
+            id: agentSessionBanner
+
+            Layout.fillWidth: true
+            Layout.margins: 5
+            visible: root.agentSessionIssue.length > 0
+            implicitHeight: bannerLayout.implicitHeight + 16
+            radius: 4
+            color: palette.base
+            border.width: 1
+            border.color: palette.mid
+
+            ColumnLayout {
+                id: bannerLayout
+
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    top: parent.top
+                    margins: 8
+                }
+                spacing: 6
+
+                Text {
+                    Layout.fillWidth: true
+                    text: root.agentSessionIssue
+                    textFormat: Text.PlainText
+                    color: palette.text
+                    font.pixelSize: 12
+                    wrapMode: Text.WordWrap
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    visible: root.canStartNewAgentSession
+                    spacing: 8
+
+                    QoAButton {
+                        text: qsTr("Continue with a new session")
+                        onClicked: root.startNewAgentSession()
+                    }
+
+                    QoAButton {
+                        id: handoverButton
+
+                        text: qsTr("Continue with a summary")
+                        enabled: root.canHandOverSummary
+
+                        onClicked: root.startNewAgentSessionWithSummary()
+
+                        QoAToolTip {
+                            visible: handoverButton.hovered
+                                     && root.summaryHandoverTooltip.length > 0
+                            text: root.summaryHandoverTooltip
+                            delay: 300
+                        }
+                    }
+
+                    Item { Layout.fillWidth: true }
+                }
+            }
+        }
+
         ScrollView {
             id: view
 
             Layout.fillWidth: true
             Layout.minimumHeight: 30
             Layout.maximumHeight: root.height / 2
+            enabled: root.agentSessionIssue.length === 0
 
             QQC.TextArea {
                 id: messageInput

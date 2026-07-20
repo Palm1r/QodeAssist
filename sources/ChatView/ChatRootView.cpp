@@ -153,6 +153,8 @@ ChatRootView::ChatRootView(QQuickItem *parent)
 
     connect(m_chatModel, &ChatModel::modelReseted, this, [this]() {
         setRecentFilePath(QString{});
+        m_agentSuggestedTitle.clear();
+        setAgentSessionIssue(QString(), false);
         m_fileEditController->clearCurrentRequestId();
     });
     auto maybeEmitTitle = [this] {
@@ -162,6 +164,33 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         m_cachedChatTitle = newTitle;
         emit chatTitleChanged();
     };
+    connect(
+        m_controller,
+        &ChatController::agentTitleSuggested,
+        this,
+        [this, maybeEmitTitle](const QString &title) {
+            m_agentSuggestedTitle = title;
+            maybeEmitTitle();
+        });
+
+    connect(
+        m_controller,
+        &ChatController::agentSessionUnavailable,
+        this,
+        [this](const QString &reason) {
+            LOG_MESSAGE(QString("Agent session could not be reopened: %1").arg(reason));
+            setAgentSessionIssue(
+                tr("The previous session with this agent could not be reopened, so the transcript "
+                   "is read-only. Start a new session to keep working with this agent — it will "
+                   "not have the context above."),
+                true);
+        });
+
+    m_historyStore->setBindingReader([this] {
+        return m_quarantinedBinding.isEmpty() ? m_controller->agentBinding() : m_quarantinedBinding;
+    });
+    m_historyStore->setBindingWriter(
+        [this](const Acp::AgentBinding &binding) { restoreAgentBinding(binding); });
     connect(m_chatModel, &ChatModel::modelReseted, this, maybeEmitTitle);
     connect(m_chatModel, &QAbstractItemModel::modelReset, this, maybeEmitTitle);
     connect(m_chatModel, &QAbstractItemModel::rowsInserted, this, maybeEmitTitle);
@@ -337,6 +366,17 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         }
     });
 
+    connect(
+        m_chatCompressor,
+        &ChatCompressor::compressingChanged,
+        this,
+        &ChatRootView::isCompressingChanged);
+
+    connect(m_chatCompressor, &ChatCompressor::summaryReady, this, [this](const QString &summary) {
+        m_controller->startFreshAgentSession(summary);
+        setAgentSessionIssue(QString(), false);
+    });
+
     connect(m_chatCompressor, &ChatCompressor::compressionFailed, this, [this](const QString &error) {
         emit isCompressingChanged();
         m_lastErrorMessage = error;
@@ -421,8 +461,21 @@ ChatModel *ChatRootView::chatModel() const
     return m_chatModel;
 }
 
+bool ChatRootView::refuseWhileReadOnly()
+{
+    if (m_agentSessionIssue.isEmpty())
+        return false;
+
+    m_lastErrorMessage = m_agentSessionIssue;
+    emit lastErrorMessageChanged();
+    return true;
+}
+
 void ChatRootView::sendMessage(const QString &message)
 {
+    if (refuseWhileReadOnly())
+        return;
+
     const QStringList attachments = m_attachmentFiles;
     const QStringList linkedFiles = m_linkedFiles;
     const bool tools = useTools();
@@ -441,6 +494,9 @@ bool ChatRootView::deferSendForAutoCompress(
     bool useToolsArg,
     bool useThinkingArg)
 {
+    if (isAgentBound())
+        return false;
+
     auto &settings = Settings::chatAssistantSettings();
     if (!settings.autoCompress())
         return false;
@@ -477,6 +533,9 @@ void ChatRootView::dispatchSend(
     bool useToolsArg,
     bool useThinkingArg)
 {
+    if (refuseWhileReadOnly())
+        return;
+
     if (m_recentFilePath.isEmpty()) {
         QString filePath = getAutosaveFilePath(message, attachments);
         if (auto registry = sessionFileRegistry()) {
@@ -538,6 +597,9 @@ void ChatRootView::clearMessages()
 
 void ChatRootView::resetChatToMessage(int index)
 {
+    if (refuseWhileReadOnly())
+        return;
+
     m_controller->resetToRow(index);
     setRequestProgressStatus(false);
 }
@@ -910,6 +972,9 @@ QString ChatRootView::chatTitle() const
 
 QString ChatRootView::computeChatTitle() const
 {
+    if (!m_agentSuggestedTitle.isEmpty())
+        return m_agentSuggestedTitle;
+
     for (const Session::MessageRow &row : m_controller->session()->rows()) {
         if (row.kind != Session::RowKind::User)
             continue;
@@ -1204,18 +1269,32 @@ void ChatRootView::setUseThinking(bool enabled)
     Settings::chatAssistantSettings().writeSettings();
 }
 
+void ChatRootView::respondToPermission(const QString &requestId, const QString &optionId)
+{
+    m_controller->respondToPermission(requestId, optionId);
+}
+
 void ChatRootView::applyFileEdit(const QString &editId)
 {
+    if (refuseWhileReadOnly())
+        return;
+
     m_fileEditController->applyFileEdit(editId);
 }
 
 void ChatRootView::rejectFileEdit(const QString &editId)
 {
+    if (refuseWhileReadOnly())
+        return;
+
     m_fileEditController->rejectFileEdit(editId);
 }
 
 void ChatRootView::undoFileEdit(const QString &editId)
 {
+    if (refuseWhileReadOnly())
+        return;
+
     m_fileEditController->undoFileEdit(editId);
 }
 
@@ -1226,11 +1305,17 @@ void ChatRootView::openFileEditInEditor(const QString &editId)
 
 void ChatRootView::applyAllFileEditsForCurrentMessage()
 {
+    if (refuseWhileReadOnly())
+        return;
+
     m_fileEditController->applyAllForCurrentMessage();
 }
 
 void ChatRootView::undoAllFileEditsForCurrentMessage()
 {
+    if (refuseWhileReadOnly())
+        return;
+
     m_fileEditController->undoAllForCurrentMessage();
 }
 
@@ -1375,6 +1460,115 @@ bool ChatRootView::isAgentBound() const
     return !m_controller->boundAgentId().isEmpty();
 }
 
+QString ChatRootView::agentSessionIssue() const
+{
+    return m_agentSessionIssue;
+}
+
+bool ChatRootView::canStartNewAgentSession() const
+{
+    return m_agentSessionRecoverable;
+}
+
+void ChatRootView::setAgentSessionIssue(const QString &issue, bool recoverable)
+{
+    if (m_agentSessionIssue == issue && m_agentSessionRecoverable == recoverable)
+        return;
+
+    m_agentSessionIssue = issue;
+    m_agentSessionRecoverable = recoverable;
+    emit agentSessionIssueChanged();
+}
+
+void ChatRootView::startNewAgentSession()
+{
+    if (!m_agentSessionRecoverable)
+        return;
+
+    m_controller->startFreshAgentSession();
+    setAgentSessionIssue(QString(), false);
+}
+
+bool ChatRootView::canHandOverSummary() const
+{
+    return m_agentSessionRecoverable && ChatCompressor::configurationIssue().isEmpty()
+           && !m_controller->session()->rows().isEmpty();
+}
+
+QString ChatRootView::summaryHandoverTooltip() const
+{
+    if (!m_agentSessionRecoverable)
+        return {};
+
+    if (m_controller->session()->rows().isEmpty())
+        return tr("There is nothing to summarise yet.");
+
+    const QString issue = ChatCompressor::configurationIssue();
+    if (!issue.isEmpty()) {
+        return tr("A summary cannot be produced because %1. Start a new session without one, or "
+                  "assign the chat feature in the settings.")
+            .arg(issue);
+    }
+
+    return tr("Summarise this transcript and give it to the new session as context.");
+}
+
+void ChatRootView::startNewAgentSessionWithSummary()
+{
+    if (!canHandOverSummary())
+        return;
+
+    if (m_chatCompressor->isCompressing()) {
+        m_lastErrorMessage = tr("A summary is already being prepared");
+        emit lastErrorMessageChanged();
+        return;
+    }
+
+    m_chatCompressor->startSummary(m_controller->session()->history());
+}
+
+void ChatRootView::restoreAgentBinding(const Acp::AgentBinding &binding)
+{
+    setAgentSessionIssue(QString(), false);
+    m_quarantinedBinding = {};
+    m_controller->releaseAgentSession();
+
+    if (binding.isEmpty()) {
+        bindLlm();
+        return;
+    }
+
+    const auto agent = m_configurationController->agentById(binding.agentId);
+    if (!agent || !agent->isLaunchable()) {
+        m_quarantinedBinding = binding;
+        bindLlm();
+        m_configurationController->clearBoundAgent();
+        setAgentSessionIssue(
+            tr("This chat was held with the agent \"%1\", which is not available any more. "
+               "The transcript is read-only, and the agent it names is kept so the chat can be "
+               "continued once that agent is installed again.")
+                .arg(binding.displayId()),
+            false);
+        return;
+    }
+
+    bindAgent(*agent);
+
+    if (!binding.sessionId.isEmpty()) {
+        m_controller->resumeAgentSession(binding.sessionId);
+        return;
+    }
+
+    if (m_controller->conversationStarted()) {
+        setAgentSessionIssue(
+            tr("This chat records the agent \"%1\" but not a session to reopen, so the transcript "
+               "is read-only. Start a new session to keep working with this agent — it will not "
+               "have the context above.")
+                .arg(binding.displayId()),
+            true);
+    }
+}
+
 QStringList ChatRootView::availableConfigurations() const
 {
     return m_configurationController->availableConfigurations();
@@ -1427,6 +1621,17 @@ void ChatRootView::openAgentRolesSettings()
 
 void ChatRootView::compressCurrentChat()
 {
+    if (refuseWhileReadOnly())
+        return;
+
+    if (isAgentBound()) {
+        m_lastErrorMessage
+            = tr("An agent conversation cannot be compressed: the summary would have no agent "
+                 "session behind it.");
+        emit lastErrorMessageChanged();
+        return;
+    }
+
     if (m_chatCompressor->isCompressing()) {
         m_lastErrorMessage = tr("Compression is already in progress");
         emit lastErrorMessageChanged();

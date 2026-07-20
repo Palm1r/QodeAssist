@@ -30,13 +30,22 @@ public:
 
     void startCompression(
         const QString &chatFilePath, const Session::ConversationHistory &history);
+    void startSummary(const Session::ConversationHistory &history);
+
+signals:
+    void compressingChanged();
+
+public:
 
     bool isCompressing() const;
     void cancelCompression();
 
+    static QString configurationIssue();
+
 signals:
     void compressionStarted();
     void compressionCompleted(const QString &compressedChatPath);
+    void summaryReady(const QString &summary);
     void compressionFailed(const QString &error);
 
 private slots:
@@ -54,8 +63,13 @@ private:
     void cleanupState();
     void handleCompressionError(const QString &error);
     void buildRequestPayload(QJsonObject &payload, Templates::PromptTemplate *promptTemplate);
+    void beginCompression(
+        const QString &chatFilePath,
+        const Session::ConversationHistory &history,
+        bool summaryOnly);
 
     bool m_isCompressing = false;
+    bool m_summaryOnly = false;
     QString m_currentRequestId;
     QString m_originalChatPath;
     QString m_accumulatedSummary;

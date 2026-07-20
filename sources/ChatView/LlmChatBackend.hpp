@@ -4,7 +4,11 @@
 
 #pragma once
 
+#include <memory>
+
+#include <QFuture>
 #include <QHash>
+#include <QPromise>
 #include <QString>
 
 #include <LLMQore/BaseClient.hpp>
@@ -25,6 +29,7 @@ public:
 
     void sendTurn(const Session::TurnRequest &request) override;
     void cancel() override;
+    bool respondPermission(const QString &requestId, const QString &optionId) override;
     Session::TurnContextNeeds contextNeeds() const override;
 
     void setChatFilePath(const QString &filePath) override;
@@ -34,6 +39,13 @@ private:
     void connectClient(Providers::Provider *provider);
     void releaseRequest();
     void bindToolSessions(Providers::Provider *provider);
+    void installExecutionGate(Providers::Provider *provider);
+    QFuture<bool> gateToolExecution(
+        const QString &requestId,
+        const QString &toolId,
+        const QString &toolName,
+        const QJsonObject &input);
+    void cancelPendingPermissions();
     QVector<LLMCore::Message> renderHistory(
         const Session::ConversationHistory &history,
         Providers::Provider *provider,
@@ -65,6 +77,8 @@ private:
     Providers::Provider *m_provider = nullptr;
     QString m_requestId;
     bool m_dropPreToolText = false;
+    QHash<QString, std::shared_ptr<QPromise<bool>>> m_pendingPermissions;
+    int m_permissionCounter = 0;
 };
 
 } // namespace QodeAssist::Chat

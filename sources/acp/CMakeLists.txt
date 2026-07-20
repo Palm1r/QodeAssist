@@ -1,4 +1,5 @@
 add_library(QodeAssistAcp STATIC
+    AgentBinding.hpp AgentBinding.cpp
     AgentDefinition.hpp AgentDefinition.cpp
     AgentRegistryParser.hpp AgentRegistryParser.cpp
     AgentCatalog.hpp AgentCatalog.cpp
@@ -6,6 +7,7 @@ add_library(QodeAssistAcp STATIC
     AgentCatalogStore.hpp AgentCatalogStore.cpp
     AgentSpawn.hpp AgentSpawn.cpp
     AgentTester.hpp AgentTester.cpp
+    ChatPermissionProvider.hpp ChatPermissionProvider.cpp
     AcpChatBackend.hpp AcpChatBackend.cpp
 )
 

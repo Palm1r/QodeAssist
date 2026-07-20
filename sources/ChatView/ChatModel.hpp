@@ -24,7 +24,7 @@ class ChatModel : public QAbstractListModel
     QML_ELEMENT
 
 public:
-    enum ChatRole { System, User, Assistant, Tool, FileEdit, Thinking };
+    enum ChatRole { System, User, Assistant, Tool, FileEdit, Thinking, Permission, Plan };
     Q_ENUM(ChatRole)
 
     enum Roles {
@@ -37,7 +37,10 @@ public:
         CompletionTokens,
         CachedPromptTokens,
         ReasoningTokens,
-        TotalTokens
+        TotalTokens,
+        ToolKind,
+        ToolStatus,
+        ToolDetails
     };
     Q_ENUM(Roles)
 
@@ -62,6 +65,9 @@ public:
         QString toolName;
         QJsonObject toolArguments;
         QString toolResult;
+        QString toolKind;
+        QString toolStatus;
+        QVariantMap toolDetails;
 
         int promptTokens = 0;
         int completionTokens = 0;

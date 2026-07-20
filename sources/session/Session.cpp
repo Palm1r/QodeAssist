@@ -91,6 +91,9 @@ const QList<MessageRow> &Session::rows() const
 void Session::setHistory(const ConversationHistory &history)
 {
     cancel();
+    m_pendingPermissions.clear();
+    m_alwaysAllowedToolKinds.clear();
+    m_alwaysRejectedToolKinds.clear();
     m_history = history;
     m_rows = projectToRows(m_history);
     emit rowsReset(m_rows);
@@ -162,6 +165,273 @@ void Session::cancel()
         m_backend->cancel();
 }
 
+bool Session::isPermissionPending(const QString &requestId) const
+{
+    return m_pendingPermissions.contains(requestId);
+}
+
+void Session::respondPermission(const QString &requestId, const QString &optionId)
+{
+    if (!isPermissionPending(requestId)) {
+        qWarning("QodeAssist: ignoring an answer to permission request %s, which is not pending",
+                 qUtf8Printable(requestId));
+        return;
+    }
+
+    const std::optional<PermissionBlock> block = permissionBlock(requestId);
+    if (!block) {
+        qWarning("QodeAssist: permission request %s has no record to answer",
+                 qUtf8Printable(requestId));
+        applyPermissionResolution(
+            PermissionResolved{.turnId = m_activeTurnId, .requestId = requestId, .cancelled = true});
+        return;
+    }
+
+    if (!block->option(optionId)) {
+        qWarning("QodeAssist: permission request %s was not offered option %s",
+                 qUtf8Printable(requestId), qUtf8Printable(optionId));
+        return;
+    }
+
+    if (m_backend && m_backend->respondPermission(requestId, optionId))
+        return;
+
+    qWarning("QodeAssist: no backend accepted the answer to permission request %s",
+             qUtf8Printable(requestId));
+    applyPermissionResolution(
+        PermissionResolved{.turnId = m_activeTurnId, .requestId = requestId, .cancelled = true});
+}
+
+std::optional<PermissionBlock> Session::permissionBlock(const QString &requestId) const
+{
+    const QList<Message> &messages = m_history.messages();
+
+    for (auto message = messages.crbegin(); message != messages.crend(); ++message) {
+        for (auto block = message->blocks.crbegin(); block != message->blocks.crend(); ++block) {
+            if (const auto *permission = std::get_if<PermissionBlock>(&*block);
+                permission && permission->requestId == requestId) {
+                return *permission;
+            }
+        }
+    }
+
+    return std::nullopt;
+}
+
+QString Session::autoAnswerOptionFor(const PermissionRequested &request) const
+{
+    if (request.toolKind.isEmpty())
+        return {};
+
+    const bool rejected = m_alwaysRejectedToolKinds.contains(request.toolKind);
+    if (!rejected && !m_alwaysAllowedToolKinds.contains(request.toolKind))
+        return {};
+
+    const QLatin1StringView once = rejected ? PermissionOptionKind::RejectOnce
+                                            : PermissionOptionKind::AllowOnce;
+    const QLatin1StringView always = rejected ? PermissionOptionKind::RejectAlways
+                                              : PermissionOptionKind::AllowAlways;
+
+    QString fallback;
+    for (const PermissionOption &option : request.options) {
+        if (option.kind == once)
+            return option.id;
+        if (option.kind == always && fallback.isEmpty())
+            fallback = option.id;
+    }
+
+    return fallback;
+}
+
+bool Session::refreshAssistantBlockRow(
+    const ContentBlock &block, RowKind kind, const QString &rowId)
+{
+    const Message *assistant = activeAssistantMessage();
+    if (!assistant || m_assistantRowStart < 0)
+        return false;
+
+    auto fresh = projectBlockToRow(*assistant, block);
+    if (!fresh)
+        return false;
+
+    for (int i = static_cast<int>(m_rows.size()) - 1; i >= m_assistantRowStart; --i) {
+        if (m_rows[i].kind != kind || m_rows[i].id != rowId)
+            continue;
+
+        fresh->usage = m_rows.at(i).usage;
+        if (m_rows.at(i) == *fresh)
+            return true;
+
+        m_rows[i] = *fresh;
+        emit rowUpdated(i, *fresh);
+        return true;
+    }
+
+    return false;
+}
+
+void Session::applyAgentToolCall(const ToolCallUpdated &update)
+{
+    ensureAssistantMessage();
+
+    Message *assistant = activeAssistantMessage();
+    if (!assistant)
+        return;
+
+    for (auto it = assistant->blocks.rbegin(); it != assistant->blocks.rend(); ++it) {
+        auto *tool = std::get_if<ToolCallBlock>(&*it);
+        if (!tool || tool->id != update.toolId)
+            continue;
+
+        if (!update.name.isEmpty())
+            tool->name = update.name;
+        if (!update.kind.isEmpty())
+            tool->kind = update.kind;
+        if (!update.status.isEmpty())
+            tool->status = update.status;
+        if (!update.details.isEmpty())
+            tool->details = update.details;
+        if (!update.result.isEmpty())
+            tool->result = update.result;
+
+        if (!refreshAssistantBlockRow(*it, RowKind::AgentTool, tool->id))
+            syncAssistantRows();
+        return;
+    }
+
+    m_textSegment.clear();
+    assistant->blocks.append(
+        ToolCallBlock{
+            .id = update.toolId,
+            .name = update.name,
+            .arguments = {},
+            .result = update.result,
+            .kind = update.kind,
+            .status = update.status,
+            .details = update.details,
+            .fromAgent = true});
+    syncAssistantRows();
+}
+
+void Session::applyAgentPlan(const PlanUpdated &plan)
+{
+    ensureAssistantMessage();
+
+    Message *assistant = activeAssistantMessage();
+    if (!assistant)
+        return;
+
+    for (ContentBlock &block : assistant->blocks) {
+        auto *existing = std::get_if<PlanBlock>(&block);
+        if (!existing)
+            continue;
+
+        existing->entries = plan.entries;
+        if (!refreshAssistantBlockRow(block, RowKind::Plan, assistant->id))
+            syncAssistantRows();
+        return;
+    }
+
+    if (plan.entries.isEmpty())
+        return;
+
+    m_textSegment.clear();
+    assistant->blocks.append(PlanBlock{plan.entries});
+    syncAssistantRows();
+}
+
+void Session::applyPermissionRequest(const PermissionRequested &request)
+{
+    const QString autoOptionId = autoAnswerOptionFor(request);
+
+    m_textSegment.clear();
+    m_pendingPermissions.insert(request.requestId);
+
+    mutateAssistant([&request, &autoOptionId](Message &message) {
+        message.blocks.append(
+            PermissionBlock{
+                .requestId = request.requestId,
+                .toolCallId = request.toolCallId,
+                .title = request.title,
+                .toolKind = request.toolKind,
+                .options = request.options,
+                .status = PermissionStatus::Pending,
+                .selectedOptionId = {},
+                .automatic = !autoOptionId.isEmpty()});
+    });
+
+    if (autoOptionId.isEmpty())
+        return;
+
+    if (m_backend)
+        m_backend->respondPermission(request.requestId, autoOptionId);
+    else
+        applyPermissionResolution(
+            PermissionResolved{
+                .turnId = request.turnId, .requestId = request.requestId, .cancelled = true});
+}
+
+void Session::applyPermissionResolution(const PermissionResolved &resolution)
+{
+    if (!m_pendingPermissions.remove(resolution.requestId))
+        return;
+
+    QString grantedToolKind;
+    bool grantAllows = false;
+
+    mutatePermissionBlock(resolution.requestId, [&](PermissionBlock &block) {
+        block.status = resolution.cancelled ? PermissionStatus::Cancelled
+                                            : PermissionStatus::Answered;
+        block.selectedOptionId = resolution.cancelled ? QString() : resolution.optionId;
+        if (resolution.cancelled) {
+            block.automatic = false;
+            return;
+        }
+
+        const std::optional<PermissionOption> option = block.option(resolution.optionId);
+        if (option && option->scopesToConversation() && !block.toolKind.isEmpty()) {
+            grantedToolKind = block.toolKind;
+            grantAllows = option->allows();
+        }
+    });
+
+    if (grantedToolKind.isEmpty())
+        return;
+
+    if (grantAllows)
+        m_alwaysAllowedToolKinds.insert(grantedToolKind);
+    else
+        m_alwaysRejectedToolKinds.insert(grantedToolKind);
+}
+
+void Session::mutatePermissionBlock(
+    const QString &requestId, const std::function<void(PermissionBlock &)> &mutate)
+{
+    PermissionBlock *target = nullptr;
+
+    m_history.visitBlocks([&](ContentBlock &block) {
+        if (auto *permission = std::get_if<PermissionBlock>(&block);
+            permission && permission->requestId == requestId) {
+            target = permission;
+        }
+    });
+
+    if (!target)
+        return;
+
+    mutate(*target);
+    const QString encodedPayload = encodePermissionBlock(*target);
+
+    for (int i = static_cast<int>(m_rows.size()) - 1; i >= 0; --i) {
+        if (m_rows[i].kind != RowKind::Permission || m_rows[i].id != requestId)
+            continue;
+        m_rows[i].content = encodedPayload;
+        const MessageRow updated = m_rows.at(i);
+        emit rowUpdated(i, updated);
+        return;
+    }
+}
+
 bool Session::updateFileEditStatus(
     const QString &editId, const QString &status, const QString &statusMessage)
 {
@@ -202,13 +472,18 @@ bool Session::updateFileEditStatus(
 void Session::handleEvent(const SessionEvent &event)
 {
     static_assert(
-        std::variant_size_v<SessionEvent> == 8,
+        std::variant_size_v<SessionEvent> == 12,
         "SessionEvent gained an alternative; extend the dispatch below or it is silently dropped");
 
     if (const auto *started = std::get_if<TurnStarted>(&event)) {
         m_activeTurnId = started->turnId;
         m_assistantRowStart = -1;
         emit turnStarted(started->turnId);
+        return;
+    }
+
+    if (const auto *resolution = std::get_if<PermissionResolved>(&event)) {
+        applyPermissionResolution(*resolution);
         return;
     }
 
@@ -293,6 +568,12 @@ void Session::handleEvent(const SessionEvent &event)
             if (const auto edit = fileEditFromToolResult(toolEnd->result))
                 message.blocks.append(*edit);
         });
+    } else if (const auto *toolUpdate = std::get_if<ToolCallUpdated>(&event)) {
+        applyAgentToolCall(*toolUpdate);
+    } else if (const auto *plan = std::get_if<PlanUpdated>(&event)) {
+        applyAgentPlan(*plan);
+    } else if (const auto *permission = std::get_if<PermissionRequested>(&event)) {
+        applyPermissionRequest(*permission);
     } else if (const auto *usage = std::get_if<UsageReported>(&event)) {
         if (Message *assistant = activeAssistantMessage()) {
             assistant->usage = usage->usage;
@@ -419,6 +700,14 @@ void Session::syncAssistantRows()
 
 void Session::endTurn()
 {
+    const QStringList unanswered(m_pendingPermissions.cbegin(), m_pendingPermissions.cend());
+    for (const QString &requestId : unanswered) {
+        qWarning("QodeAssist: permission request %s outlived its turn and was declined",
+                 qUtf8Printable(requestId));
+        applyPermissionResolution(
+            PermissionResolved{.turnId = m_activeTurnId, .requestId = requestId, .cancelled = true});
+    }
+
     m_activeTurnId.clear();
     m_textSegment.clear();
     m_assistantRowStart = -1;

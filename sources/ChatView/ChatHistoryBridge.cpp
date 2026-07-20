@@ -21,11 +21,16 @@ ChatModel::ChatRole toChatRole(Session::RowKind kind)
     case Session::RowKind::Assistant:
         return ChatModel::ChatRole::Assistant;
     case Session::RowKind::Tool:
+    case Session::RowKind::AgentTool:
         return ChatModel::ChatRole::Tool;
     case Session::RowKind::FileEdit:
         return ChatModel::ChatRole::FileEdit;
     case Session::RowKind::Thinking:
         return ChatModel::ChatRole::Thinking;
+    case Session::RowKind::Permission:
+        return ChatModel::ChatRole::Permission;
+    case Session::RowKind::Plan:
+        return ChatModel::ChatRole::Plan;
     }
     return ChatModel::ChatRole::Assistant;
 }
@@ -41,6 +46,9 @@ ChatModel::Message toChatMessage(const Session::MessageRow &row)
     message.toolName = row.toolName;
     message.toolArguments = row.toolArguments;
     message.toolResult = row.toolResult;
+    message.toolKind = row.toolKind;
+    message.toolStatus = row.toolStatus;
+    message.toolDetails = row.toolDetails.toVariantMap();
 
     for (const Session::AttachmentBlock &attachment : row.attachments)
         message.attachments.append(Context::ContentFile{attachment.fileName, attachment.storedPath});

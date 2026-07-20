@@ -18,13 +18,17 @@
 namespace QodeAssist::Chat {
 
 SerializationResult ChatSerializer::saveToFile(
-    const Session::ConversationHistory &history, const QString &filePath)
+    const Session::ConversationHistory &history,
+    const Acp::AgentBinding &binding,
+    const QString &filePath)
 {
     if (!ensureDirectoryExists(filePath)) {
         return {false, "Failed to create directory structure"};
     }
 
-    const QJsonObject root = Session::HistorySerializer::toJson(history);
+    QJsonObject root = Session::HistorySerializer::toJson(history);
+    if (!binding.isEmpty())
+        root["agent"] = binding.toJson();
 
     QSaveFile file(filePath);
     if (!file.open(QIODevice::WriteOnly)) {
@@ -43,7 +47,7 @@ SerializationResult ChatSerializer::saveToFile(
 }
 
 SerializationResult ChatSerializer::loadFromFile(
-    Session::ConversationHistory &history, const QString &filePath)
+    Session::ConversationHistory &history, Acp::AgentBinding &binding, const QString &filePath)
 {
     QFile file(filePath);
     if (!file.open(QIODevice::ReadOnly)) {
@@ -75,6 +79,16 @@ SerializationResult ChatSerializer::loadFromFile(
     }
 
     history = *loaded;
+
+    QString bindingError;
+    binding = Acp::AgentBinding::fromJson(root["agent"], &bindingError);
+    if (!bindingError.isEmpty()) {
+        const QString warning
+            = QString("This chat records which agent held it, but %1, so it opens unbound")
+                  .arg(bindingError);
+        LOG_MESSAGE(QString("%1: %2").arg(filePath, warning));
+        return {true, QString(), warning};
+    }
 
     if (droppedBlocks > 0) {
         const QString warning

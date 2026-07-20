@@ -58,6 +58,12 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(int currentMessageRejectedEdits READ currentMessageRejectedEdits NOTIFY currentMessageEditsStatsChanged FINAL)
     Q_PROPERTY(bool isThinkingSupport READ isThinkingSupport NOTIFY isThinkingSupportChanged FINAL)
     Q_PROPERTY(bool isAgentBound READ isAgentBound NOTIFY isAgentBoundChanged FINAL)
+    Q_PROPERTY(QString agentSessionIssue READ agentSessionIssue NOTIFY agentSessionIssueChanged FINAL)
+    Q_PROPERTY(bool canStartNewAgentSession READ canStartNewAgentSession NOTIFY
+                   agentSessionIssueChanged FINAL)
+    Q_PROPERTY(bool canHandOverSummary READ canHandOverSummary NOTIFY agentSessionIssueChanged FINAL)
+    Q_PROPERTY(QString summaryHandoverTooltip READ summaryHandoverTooltip NOTIFY
+                   agentSessionIssueChanged FINAL)
     Q_PROPERTY(QStringList availableConfigurations READ availableConfigurations NOTIFY availableConfigurationsChanged FINAL)
     Q_PROPERTY(QString currentConfiguration READ currentConfiguration NOTIFY currentConfigurationChanged FINAL)
     Q_PROPERTY(QStringList availableAgentRoles READ availableAgentRoles NOTIFY availableAgentRolesChanged FINAL)
@@ -153,6 +159,8 @@ public:
     bool useThinking() const;
     void setUseThinking(bool enabled);
 
+    Q_INVOKABLE void respondToPermission(const QString &requestId, const QString &optionId);
+
     Q_INVOKABLE void applyFileEdit(const QString &editId);
     Q_INVOKABLE void rejectFileEdit(const QString &editId);
     Q_INVOKABLE void undoFileEdit(const QString &editId);
@@ -190,6 +198,15 @@ public:
 
     bool isThinkingSupport() const;
     bool isAgentBound() const;
+    QString agentSessionIssue() const;
+    bool canStartNewAgentSession() const;
+    bool canHandOverSummary() const;
+    QString summaryHandoverTooltip() const;
+    Q_INVOKABLE void startNewAgentSession();
+    Q_INVOKABLE void startNewAgentSessionWithSummary();
+    void setAgentSessionIssue(const QString &issue, bool recoverable);
+    void restoreAgentBinding(const Acp::AgentBinding &binding);
+    bool refuseWhileReadOnly();
     
     bool isCompressing() const;
 
@@ -237,6 +254,7 @@ signals:
 
     void isThinkingSupportChanged();
     void isAgentBoundChanged();
+    void agentSessionIssueChanged();
     void availableConfigurationsChanged();
     void currentConfigurationChanged();
     void chatTargetSwitchNeedsNewChat(const QString &targetName);
@@ -302,6 +320,10 @@ private:
     bool m_isSyncOpenFiles;
     bool m_isInEditor = false;
     mutable QString m_cachedChatTitle;
+    QString m_agentSuggestedTitle;
+    QString m_agentSessionIssue;
+    bool m_agentSessionRecoverable = false;
+    Acp::AgentBinding m_quarantinedBinding;
     QList<Core::IEditor *> m_currentEditors;
     bool m_isRequestInProgress;
     QString m_lastErrorMessage;

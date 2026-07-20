@@ -8,6 +8,7 @@
 #include <QString>
 
 #include "ChatModel.hpp"
+#include "acp/AgentBinding.hpp"
 #include "acp/AgentDefinition.hpp"
 #include "session/Session.hpp"
 #include "templates/IPromptProvider.hpp"
@@ -19,6 +20,10 @@ class SkillsManager;
 
 namespace QodeAssist::Acp {
 class AcpChatBackend;
+}
+
+namespace QodeAssist::Mcp {
+class AgentKnowledgeServer;
 }
 
 namespace QodeAssist::Chat {
@@ -45,6 +50,7 @@ public:
     void clearMessages();
     void cancelRequest();
     void resetToRow(int rowIndex);
+    void respondToPermission(const QString &requestId, const QString &optionId);
 
     Session::Session *session() const;
     Context::ContextManager *contextManager() const;
@@ -57,7 +63,15 @@ public:
     QString boundAgentId() const;
     bool conversationStarted() const;
 
+    Acp::AgentBinding agentBinding() const;
+    void resumeAgentSession(const QString &sessionId);
+    void startFreshAgentSession();
+    void startFreshAgentSession(const QString &handoverSummary);
+    void releaseAgentSession();
+
 signals:
+    void agentTitleSuggested(const QString &title);
+    void agentSessionUnavailable(const QString &reason);
     void errorOccurred(const QString &error);
     void messageReceivedCompletely();
     void requestStarted(const QString &requestId);
@@ -85,6 +99,7 @@ private:
     Session::Session *m_session = nullptr;
     LlmChatBackend *m_llmBackend = nullptr;
     Acp::AcpChatBackend *m_acpBackend = nullptr;
+    Mcp::AgentKnowledgeServer *m_agentKnowledge = nullptr;
     Session::ChatBackend *m_backend = nullptr;
     QString m_chatFilePath;
 };

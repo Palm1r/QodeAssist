@@ -25,15 +25,48 @@ ChatCompressor::ChatCompressor(QObject *parent)
     : QObject(parent)
 {}
 
+QString ChatCompressor::configurationIssue()
+{
+    auto &settings = Settings::generalSettings();
+
+    if (settings.caProvider().isEmpty())
+        return tr("no provider is assigned to the chat feature");
+    if (settings.caModel().isEmpty())
+        return tr("no model is assigned to the chat feature");
+    if (settings.caTemplate().isEmpty())
+        return tr("no prompt template is assigned to the chat feature");
+    if (settings.caUrl().isEmpty())
+        return tr("the chat feature has no URL configured");
+
+    if (!Providers::ProvidersManager::instance().getProviderByName(settings.caProvider()))
+        return tr("the provider \"%1\" is not available").arg(settings.caProvider());
+
+    if (!Templates::PromptTemplateManager::instance().getChatTemplateByName(settings.caTemplate()))
+        return tr("the prompt template \"%1\" is not available").arg(settings.caTemplate());
+
+    return {};
+}
+
+void ChatCompressor::startSummary(const Session::ConversationHistory &history)
+{
+    beginCompression(QString(), history, /*summaryOnly*/ true);
+}
+
 void ChatCompressor::startCompression(
     const QString &chatFilePath, const Session::ConversationHistory &history)
+{
+    beginCompression(chatFilePath, history, /*summaryOnly*/ false);
+}
+
+void ChatCompressor::beginCompression(
+    const QString &chatFilePath, const Session::ConversationHistory &history, bool summaryOnly)
 {
     if (m_isCompressing) {
         emit compressionFailed(tr("Compression already in progress"));
         return;
     }
 
-    if (chatFilePath.isEmpty()) {
+    if (!summaryOnly && chatFilePath.isEmpty()) {
         emit compressionFailed(tr("No chat file to compress"));
         return;
     }
@@ -62,11 +95,13 @@ void ChatCompressor::startCompression(
     }
 
     m_isCompressing = true;
+    m_summaryOnly = summaryOnly;
     m_rows = rows;
     m_originalChatPath = chatFilePath;
     m_accumulatedSummary.clear();
 
     emit compressionStarted();
+    emit compressingChanged();
 
     connectProviderSignals();
 
@@ -121,6 +156,19 @@ void ChatCompressor::onFullResponseReceived(const QString &requestId, const QStr
 
     LOG_MESSAGE(
         QString("Received summary, length: %1 characters").arg(m_accumulatedSummary.length()));
+
+    if (m_summaryOnly) {
+        const QString summary = m_accumulatedSummary.trimmed();
+        cleanupState();
+
+        if (summary.isEmpty()) {
+            emit compressionFailed(tr("The summary came back empty"));
+            return;
+        }
+
+        emit summaryReady(summary);
+        return;
+    }
 
     QString compressedPath = createCompressedChatPath(m_originalChatPath);
     if (!createCompressedChatFile(m_originalChatPath, compressedPath, m_accumulatedSummary)) {
@@ -181,7 +229,7 @@ void ChatCompressor::buildRequestPayload(
 
     QVector<LLMCore::Message> messages;
     for (const Session::MessageRow &row : std::as_const(m_rows)) {
-        if (row.kind == Session::RowKind::Tool || row.kind == Session::RowKind::FileEdit
+        if (Session::isTranscriptOnlyRow(row.kind) || row.kind == Session::RowKind::Tool
             || row.kind == Session::RowKind::Thinking)
             continue;
 
@@ -282,12 +330,18 @@ void ChatCompressor::cleanupState()
 {
     disconnectAllSignals();
 
+    const bool wasCompressing = m_isCompressing;
+
     m_isCompressing = false;
+    m_summaryOnly = false;
     m_currentRequestId.clear();
     m_originalChatPath.clear();
     m_accumulatedSummary.clear();
     m_rows.clear();
     m_provider = nullptr;
+
+    if (wasCompressing)
+        emit compressingChanged();
 }
 
 } // namespace QodeAssist::Chat

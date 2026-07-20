@@ -1,4 +1,5 @@
 add_library(QodeAssistSession STATIC
+    AgentPlan.hpp AgentPlan.cpp
     ContentBlock.hpp
     Message.hpp
     ConversationHistory.hpp ConversationHistory.cpp
@@ -6,6 +7,7 @@ add_library(QodeAssistSession STATIC
     FileEditPayload.hpp FileEditPayload.cpp
     HistoryProjection.hpp HistoryProjection.cpp
     HistorySerializer.hpp HistorySerializer.cpp
+    PermissionRequest.hpp PermissionRequest.cpp
     SessionEvent.hpp SessionEvent.cpp
     TurnRequest.hpp
     ChatBackend.hpp

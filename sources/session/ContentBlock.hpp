@@ -10,6 +10,9 @@
 
 #include <variant>
 
+#include "session/AgentPlan.hpp"
+#include "session/PermissionRequest.hpp"
+
 namespace QodeAssist::Session {
 
 struct TextBlock
@@ -45,6 +48,10 @@ struct ToolCallBlock
     QString name;
     QJsonObject arguments;
     QString result;
+    QString kind;
+    QString status;
+    QJsonObject details;
+    bool fromAgent = false;
 
     bool operator==(const ToolCallBlock &other) const = default;
 
@@ -52,7 +59,9 @@ struct ToolCallBlock
     {
         return debug.nospace() << "ToolCall(" << block.id << ", " << block.name
                                << ", args=" << block.arguments << ", result=" << block.result
-                               << ")";
+                               << ", kind=" << block.kind << ", status=" << block.status
+                               << ", details=" << block.details
+                               << ", fromAgent=" << block.fromAgent << ")";
     }
 };
 
@@ -98,8 +107,15 @@ struct FileEditBlock
     }
 };
 
-using ContentBlock = std::
-    variant<TextBlock, ThinkingBlock, ToolCallBlock, AttachmentBlock, ImageBlock, FileEditBlock>;
+using ContentBlock = std::variant<
+    TextBlock,
+    ThinkingBlock,
+    ToolCallBlock,
+    AttachmentBlock,
+    ImageBlock,
+    FileEditBlock,
+    PermissionBlock,
+    PlanBlock>;
 
 inline QDebug operator<<(QDebug debug, const ContentBlock &block)
 {

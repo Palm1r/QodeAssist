@@ -10,7 +10,9 @@
 
 #include <variant>
 
+#include "session/AgentPlan.hpp"
 #include "session/Message.hpp"
+#include "session/PermissionRequest.hpp"
 
 namespace QodeAssist::Session {
 
@@ -60,6 +62,49 @@ struct ToolCallCompleted
     bool operator==(const ToolCallCompleted &other) const = default;
 };
 
+struct ToolCallUpdated
+{
+    QString turnId;
+    QString toolId;
+    QString name;
+    QString kind;
+    QString status;
+    QString result;
+    QJsonObject details;
+
+    bool operator==(const ToolCallUpdated &other) const = default;
+};
+
+struct PlanUpdated
+{
+    QString turnId;
+    QList<PlanEntry> entries;
+
+    bool operator==(const PlanUpdated &other) const = default;
+};
+
+struct PermissionRequested
+{
+    QString turnId;
+    QString requestId;
+    QString toolCallId;
+    QString title;
+    QString toolKind;
+    QList<PermissionOption> options;
+
+    bool operator==(const PermissionRequested &other) const = default;
+};
+
+struct PermissionResolved
+{
+    QString turnId;
+    QString requestId;
+    QString optionId;
+    bool cancelled = false;
+
+    bool operator==(const PermissionResolved &other) const = default;
+};
+
 struct UsageReported
 {
     QString turnId;
@@ -89,6 +134,10 @@ using SessionEvent = std::variant<
     ThinkingReceived,
     ToolCallStarted,
     ToolCallCompleted,
+    ToolCallUpdated,
+    PlanUpdated,
+    PermissionRequested,
+    PermissionResolved,
     UsageReported,
     TurnCompleted,
     TurnFailed>;

@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <functional>
+
 #include <QObject>
 #include <QPointer>
 #include <QString>
@@ -31,6 +33,12 @@ public:
         const QString &firstMessage,
         bool hasImageAttachments) const;
 
+    using BindingReader = std::function<Acp::AgentBinding()>;
+    using BindingWriter = std::function<void(const Acp::AgentBinding &)>;
+
+    void setBindingReader(BindingReader reader);
+    void setBindingWriter(BindingWriter writer);
+
     SerializationResult save(const QString &filePath) const;
     SerializationResult load(const QString &filePath) const;
 
@@ -46,6 +54,8 @@ private:
     QString generateChatFileName(const QString &shortMessage, const QString &dir) const;
 
     QPointer<Session::Session> m_session;
+    BindingReader m_bindingReader;
+    BindingWriter m_bindingWriter;
 };
 
 } // namespace QodeAssist::Chat

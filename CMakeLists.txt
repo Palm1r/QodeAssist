@@ -168,6 +168,8 @@ add_qtc_plugin(QodeAssist
     sources/tools/TodoTool.hpp sources/tools/TodoTool.cpp
     sources/tools/ReadOriginalHistoryTool.hpp sources/tools/ReadOriginalHistoryTool.cpp
     sources/tools/SkillTool.hpp sources/tools/SkillTool.cpp
+    sources/tools/EditorStateTools.hpp sources/tools/EditorStateTools.cpp
+    sources/mcp/AgentKnowledgeServer.hpp sources/mcp/AgentKnowledgeServer.cpp
     sources/mcp/McpServerManager.hpp sources/mcp/McpServerManager.cpp
     sources/mcp/McpServerConnection.hpp sources/mcp/McpServerConnection.cpp
     sources/mcp/McpClientsManager.hpp sources/mcp/McpClientsManager.cpp

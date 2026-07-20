@@ -4,6 +4,8 @@
 
 #pragma once
 
+#include <optional>
+
 #include <QHash>
 #include <QObject>
 #include <QStringList>
@@ -31,6 +33,8 @@ public:
 
     void setBoundAgent(const Acp::AgentDefinition &agent);
     void clearBoundAgent();
+
+    std::optional<Acp::AgentDefinition> agentById(const QString &agentId);
 
 signals:
     void availableConfigurationsChanged();

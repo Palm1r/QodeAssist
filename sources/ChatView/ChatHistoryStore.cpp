@@ -102,12 +102,23 @@ QString ChatHistoryStore::autosaveFilePath(
     return QDir(dir).filePath(fileName + ".json");
 }
 
+void ChatHistoryStore::setBindingReader(BindingReader reader)
+{
+    m_bindingReader = std::move(reader);
+}
+
+void ChatHistoryStore::setBindingWriter(BindingWriter writer)
+{
+    m_bindingWriter = std::move(writer);
+}
+
 SerializationResult ChatHistoryStore::save(const QString &filePath) const
 {
     if (!m_session)
         return {false, QString("Chat session is no longer available")};
 
-    return ChatSerializer::saveToFile(m_session->history(), filePath);
+    const Acp::AgentBinding binding = m_bindingReader ? m_bindingReader() : Acp::AgentBinding{};
+    return ChatSerializer::saveToFile(m_session->history(), binding, filePath);
 }
 
 SerializationResult ChatHistoryStore::load(const QString &filePath) const
@@ -116,9 +127,15 @@ SerializationResult ChatHistoryStore::load(const QString &filePath) const
         return {false, QString("Chat session is no longer available")};
 
     Session::ConversationHistory history;
-    const SerializationResult result = ChatSerializer::loadFromFile(history, filePath);
-    if (result.success)
-        m_session->setHistory(history);
+    Acp::AgentBinding binding;
+    const SerializationResult result = ChatSerializer::loadFromFile(history, binding, filePath);
+    if (!result.success)
+        return result;
+
+    m_session->setHistory(history);
+    if (m_bindingWriter)
+        m_bindingWriter(binding);
+
     return result;
 }
 

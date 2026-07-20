@@ -8,6 +8,9 @@
 #include <QFileInfo>
 #include <QMimeDatabase>
 
+#include <projectexplorer/projectmanager.h>
+#include <utils/filepath.h>
+
 #include "ChatHistoryBridge.hpp"
 #include "ChatSerializer.hpp"
 #include "LlmChatBackend.hpp"
@@ -18,6 +21,7 @@
 #include "session/FileEditPayload.hpp"
 #include "session/TurnContextBuilder.hpp"
 #include "acp/AcpChatBackend.hpp"
+#include "mcp/AgentKnowledgeServer.hpp"
 #include "settings/ChatAssistantSettings.hpp"
 
 namespace QodeAssist::Chat {
@@ -31,11 +35,30 @@ ChatController::ChatController(
     , m_session(new Session::Session(this))
     , m_llmBackend(new LlmChatBackend(promptProvider, this))
     , m_acpBackend(new Acp::AcpChatBackend(this))
+    , m_agentKnowledge(new Mcp::AgentKnowledgeServer(this))
     , m_backend(m_llmBackend)
 {
     new ChatHistoryBridge(m_session, chatModel, this);
 
     m_acpBackend->setStoredContentLoader(&ChatSerializer::loadRawContentFromStorage);
+    m_agentKnowledge->setIgnorePredicate([this](const QString &filePath) {
+        auto *project = ProjectExplorer::ProjectManager::projectForFile(
+            Utils::FilePath::fromString(filePath));
+        return m_contextManager->ignoreManager()->shouldIgnore(filePath, project);
+    });
+    m_acpBackend->setKnowledgeService(m_agentKnowledge);
+
+    connect(
+        m_acpBackend,
+        &Acp::AcpChatBackend::agentTitleSuggested,
+        this,
+        &ChatController::agentTitleSuggested);
+
+    connect(
+        m_acpBackend,
+        &Acp::AcpChatBackend::agentSessionUnavailable,
+        this,
+        &ChatController::agentSessionUnavailable);
 
     m_session->setBackend(m_backend);
 
@@ -94,6 +117,35 @@ QString ChatController::boundAgentId() const
     return m_backend == m_acpBackend ? m_acpBackend->boundAgentId() : QString();
 }
 
+Acp::AgentBinding ChatController::agentBinding() const
+{
+    if (m_backend != m_acpBackend)
+        return {};
+
+    return Acp::AgentBinding{m_acpBackend->boundAgentId(), m_acpBackend->bindingSessionId()};
+}
+
+void ChatController::resumeAgentSession(const QString &sessionId)
+{
+    m_acpBackend->resumeSession(sessionId);
+}
+
+void ChatController::startFreshAgentSession()
+{
+    m_acpBackend->startFreshSession();
+}
+
+void ChatController::startFreshAgentSession(const QString &handoverSummary)
+{
+    m_acpBackend->startFreshSession();
+    m_acpBackend->setHandoverSummary(handoverSummary);
+}
+
+void ChatController::releaseAgentSession()
+{
+    m_acpBackend->clearToolSession(m_chatFilePath);
+}
+
 bool ChatController::conversationStarted() const
 {
     return !m_session->history().messages().isEmpty();
@@ -105,6 +157,9 @@ void ChatController::activateBackend(Session::ChatBackend *backend)
         return;
 
     m_session->cancel();
+
+    if (m_backend)
+        m_backend->clearToolSession(m_chatFilePath);
 
     m_backend = backend;
     m_session->setBackend(backend);
@@ -150,6 +205,11 @@ void ChatController::cancelRequest()
 void ChatController::resetToRow(int rowIndex)
 {
     m_session->truncateRows(rowIndex);
+}
+
+void ChatController::respondToPermission(const QString &requestId, const QString &optionId)
+{
+    m_session->respondPermission(requestId, optionId);
 }
 
 QList<Session::ContentBlock> ChatController::composeUserBlocks(

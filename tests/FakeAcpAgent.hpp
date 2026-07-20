@@ -43,6 +43,15 @@ public:
     void send(const QJsonObject &message) override
     {
         const QString method = message.value("method").toString();
+
+        if (method.isEmpty() && message.contains("id")) {
+            m_permissionOutcomes.append(
+                message.value("result").toObject().value("outcome").toObject());
+            if (!m_hangOnPrompt)
+                finishPrompt();
+            return;
+        }
+
         m_methods.append(method);
 
         if (method == QLatin1String("initialize")) {
@@ -50,10 +59,19 @@ public:
             reply(message, initializeResult());
         } else if (method == QLatin1String("session/new")) {
             m_newSessionCwd = message.value("params").toObject().value("cwd").toString();
+            m_offeredMcpServers = message.value("params").toObject().value("mcpServers").toArray();
+            if (m_hangOnNewSession)
+                return;
             if (m_requireAuthentication && !m_authenticated)
                 replyError(message, -32000, QStringLiteral("Authentication required"));
             else
                 reply(message, QJsonObject{{"sessionId", m_sessionId}});
+        } else if (method == QLatin1String("session/load")) {
+            m_loadedSessionId = message.value("params").toObject().value("sessionId").toString();
+            if (m_loadSessionError.isEmpty())
+                reply(message, QJsonObject{{"sessionId", m_loadedSessionId}});
+            else
+                replyError(message, -32603, m_loadSessionError);
         } else if (method == QLatin1String("authenticate")) {
             m_authenticated = true;
             m_authMethodUsed = message.value("params").toObject().value("methodId").toString();
@@ -75,6 +93,29 @@ public:
     void setReplyChunks(const QStringList &chunks) { m_chunks = chunks; }
     void setThoughtChunks(const QStringList &chunks) { m_thoughts = chunks; }
 
+    void setPermissionRequest(const QJsonObject &toolCall, const QJsonArray &options)
+    {
+        m_permissionToolCall = toolCall;
+        m_permissionOptions = options;
+    }
+
+    void setFinishPromptWithoutWaiting(bool finish) { m_finishPromptWithoutWaiting = finish; }
+
+    void setToolCallUpdates(const QList<QJsonObject> &updates) { m_toolCalls = updates; }
+    void setPlanUpdates(const QList<QJsonArray> &plans) { m_plans = plans; }
+    void setPromptUsage(const QJsonObject &usage) { m_promptUsage = usage; }
+    void setContextGauge(const QJsonObject &gauge) { m_contextGauge = gauge; }
+    void setSuggestedTitle(const QString &title) { m_suggestedTitle = title; }
+    void setLoadSessionError(const QString &error) { m_loadSessionError = error; }
+    void setHangOnNewSession(bool hang) { m_hangOnNewSession = hang; }
+    void setSupportsHttpMcp(bool supports) { m_httpMcp = supports; }
+
+    QJsonArray offeredMcpServers() const { return m_offeredMcpServers; }
+
+    QString loadedSessionId() const { return m_loadedSessionId; }
+
+    QList<QJsonObject> permissionOutcomes() const { return m_permissionOutcomes; }
+
     QStringList methods() const { return m_methods; }
     QString newSessionCwd() const { return m_newSessionCwd; }
     QString authMethodUsed() const { return m_authMethodUsed; }
@@ -88,7 +129,8 @@ private:
         QJsonObject capabilities{
             {"loadSession", m_loadSession},
             {"promptCapabilities",
-             QJsonObject{{"image", m_images}, {"embeddedContext", m_embeddedContext}}}};
+             QJsonObject{{"image", m_images}, {"embeddedContext", m_embeddedContext}}},
+            {"mcpCapabilities", QJsonObject{{"http", m_httpMcp}, {"sse", false}}}};
         QJsonObject result{{"protocolVersion", 1}, {"agentCapabilities", capabilities}};
         result.insert(
             "agentInfo",
@@ -109,25 +151,92 @@ private:
         for (const QString &chunk : m_chunks)
             notifyUpdate(QStringLiteral("agent_message_chunk"), chunk);
 
+        for (int i = 0; i < m_toolCalls.size(); ++i) {
+            QJsonObject update = m_toolCalls.at(i);
+            update.insert(
+                "sessionUpdate",
+                i == 0 ? QStringLiteral("tool_call") : QStringLiteral("tool_call_update"));
+            postUpdate(update);
+        }
+
+        for (const QJsonArray &entries : m_plans)
+            postUpdate(QJsonObject{{"sessionUpdate", QStringLiteral("plan")}, {"entries", entries}});
+
+        if (!m_contextGauge.isEmpty()) {
+            QJsonObject update = m_contextGauge;
+            update.insert("sessionUpdate", QStringLiteral("usage_update"));
+            postUpdate(update);
+        }
+
+        m_activePrompt = request;
+
+        if (!m_permissionToolCall.isEmpty()) {
+            askPermission();
+            if (!m_finishPromptWithoutWaiting)
+                return;
+        }
+
         if (m_hangOnPrompt)
             return;
 
-        if (!m_promptError.isEmpty())
-            replyError(request, -32603, m_promptError);
-        else
-            reply(request, QJsonObject{{"stopReason", QStringLiteral("end_turn")}});
+        finishPrompt();
     }
 
-    void notifyUpdate(const QString &kind, const QString &text)
+    void askPermission()
     {
-        QJsonObject update{
-            {"sessionUpdate", kind},
-            {"content", QJsonObject{{"type", QStringLiteral("text")}, {"text", text}}}};
+        post(
+            QJsonObject{
+                {"jsonrpc", QStringLiteral("2.0")},
+                {"id", ++m_outgoingId},
+                {"method", QStringLiteral("session/request_permission")},
+                {"params",
+                 QJsonObject{
+                     {"sessionId", m_sessionId},
+                     {"toolCall", m_permissionToolCall},
+                     {"options", m_permissionOptions}}}});
+    }
+
+    void finishPrompt()
+    {
+        if (m_activePrompt.isEmpty())
+            return;
+
+        const QJsonObject request = m_activePrompt;
+        m_activePrompt = QJsonObject();
+
+        if (!m_promptError.isEmpty()) {
+            replyError(request, -32603, m_promptError);
+            return;
+        }
+
+        QJsonObject result{{"stopReason", QStringLiteral("end_turn")}};
+        if (!m_promptUsage.isEmpty())
+            result.insert("usage", m_promptUsage);
+        reply(request, result);
+
+        if (!m_suggestedTitle.isEmpty()) {
+            postUpdate(
+                QJsonObject{
+                    {"sessionUpdate", QStringLiteral("session_info_update")},
+                    {"title", m_suggestedTitle}});
+        }
+    }
+
+    void postUpdate(const QJsonObject &update)
+    {
         post(
             QJsonObject{
                 {"jsonrpc", QStringLiteral("2.0")},
                 {"method", QStringLiteral("session/update")},
                 {"params", QJsonObject{{"sessionId", m_sessionId}, {"update", update}}}});
+    }
+
+    void notifyUpdate(const QString &kind, const QString &text)
+    {
+        postUpdate(
+            QJsonObject{
+                {"sessionUpdate", kind},
+                {"content", QJsonObject{{"type", QStringLiteral("text")}, {"text", text}}}});
     }
 
     void reply(const QJsonObject &request, const QJsonObject &result)
@@ -161,15 +270,31 @@ private:
     bool m_requireAuthentication = false;
     bool m_authenticated = false;
     bool m_cancelled = false;
+    bool m_finishPromptWithoutWaiting = false;
+    bool m_hangOnNewSession = false;
+    bool m_httpMcp = false;
+    QJsonArray m_offeredMcpServers;
     QString m_sessionId = QStringLiteral("fake-session");
     QString m_promptError;
     QString m_newSessionCwd;
     QString m_authMethodUsed;
     QJsonObject m_clientInfo;
+    int m_outgoingId = 1000;
     QStringList m_chunks;
     QStringList m_thoughts;
     QStringList m_methods;
     QList<QJsonArray> m_prompts;
+    QJsonObject m_activePrompt;
+    QJsonObject m_permissionToolCall;
+    QJsonArray m_permissionOptions;
+    QList<QJsonObject> m_permissionOutcomes;
+    QList<QJsonObject> m_toolCalls;
+    QList<QJsonArray> m_plans;
+    QJsonObject m_promptUsage;
+    QJsonObject m_contextGauge;
+    QString m_suggestedTitle;
+    QString m_loadSessionError;
+    QString m_loadedSessionId;
 };
 
 } // namespace QodeAssist
