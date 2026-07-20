@@ -44,7 +44,6 @@ public:
     void sendMessage(
         const QString &message,
         const QList<QString> &attachments = {},
-        const QList<QString> &linkedFiles = {},
         bool useTools = false,
         bool useThinking = false);
     void clearMessages();
@@ -81,8 +80,7 @@ signals:
 private:
     QList<Session::ContentBlock> composeUserBlocks(
         const QString &message, const QList<QString> &attachments);
-    Session::TurnContext buildTurnContext(
-        const QString &message, const QList<QString> &linkedFiles) const;
+    Session::TurnContext buildTurnContext(const QString &message) const;
     void recordFileEditStatus(
         const QString &editId, const QString &status, const QString &fallbackMessage);
     void registerHistoricalEdits();

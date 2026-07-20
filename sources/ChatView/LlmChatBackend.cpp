@@ -131,8 +131,7 @@ void LlmChatBackend::releaseRequest()
 
 Session::TurnContextNeeds LlmChatBackend::contextNeeds() const
 {
-    const bool wanted = Settings::chatAssistantSettings().useSystemPrompt();
-    return {wanted, wanted};
+    return {Settings::chatAssistantSettings().useSystemPrompt()};
 }
 
 void LlmChatBackend::setChatFilePath(const QString &filePath)

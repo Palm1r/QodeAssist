@@ -12,10 +12,8 @@ Rectangle {
     id: root
 
     property alias sendButton: sendButtonId
-    property alias syncOpenFiles: syncOpenFilesId
     property alias attachFiles: attachFilesId
     property alias attachImages: attachImagesId
-    property alias linkFiles: linkFilesId
     property alias compressButton: compressButtonId
     property alias cancelCompressButton: cancelCompressButtonId
 
@@ -69,33 +67,6 @@ Rectangle {
                 visible: attachImagesId.hovered
                 delay: 250
                 text: qsTr("Attach image to message")
-            }
-        }
-
-        QoAButton {
-            id: linkFilesId
-
-            icon {
-                source: "qrc:/qt/qml/ChatView/icons/link-file-dark.svg"
-                height: 15
-                width: 8
-            }
-
-            QoAToolTip {
-                visible: linkFilesId.hovered
-                delay: 250
-                text: qsTr("Link file to context")
-            }
-        }
-
-        CheckBox {
-            id: syncOpenFilesId
-
-            text: qsTr("Sync open files")
-
-            QoAToolTip {
-                visible: syncOpenFilesId.hovered
-                text: qsTr("Automatically synchronize currently opened files with the model context")
             }
         }
 

@@ -140,7 +140,6 @@ private slots:
     void testFencedFileBlockOutgrowsBackticksInContent();
     void testTurnContextSkillCommandScanning();
     void testTurnContextWithoutSkillsPort();
-    void testLinkedFilesHeaderSurvivesUnreadablePaths();
     void testSystemPromptRenderingWithProject();
     void testSystemPromptRenderingWithoutProject();
 
@@ -165,11 +164,9 @@ private slots:
     void testAcpBackendReportsAttachmentsItCannotLoad();
     void testAcpBackendSendsImagesWhenTheAgentAcceptsThem();
     void testAcpBackendNamesImagesTheAgentCannotAccept();
-    void testAcpBackendSendsLinkedFilesAsResourceLinks();
-    void testAcpBackendPercentEncodesResourceLinkUris();
     void testAcpBackendFencesAttachmentsThatContainFences();
     void testAcpBackendTruncatesOversizedAttachments();
-    void testAcpBackendRejectsATurnOfUnlinkableFilesOnly();
+    void testAcpBackendRejectsAnEmptyTurn();
     void testAcpBackendSendsAttachmentsWithoutAnyMessageText();
     void testAcpBackendRaisesAgentPermissionRequests();
     void testAcpBackendSendsThePermissionAnswerToTheAgent();

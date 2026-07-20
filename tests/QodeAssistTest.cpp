@@ -246,39 +246,6 @@ private:
     QList<Session::InvokedSkill> m_skills;
 };
 
-class FakeLinkedFiles : public Session::ILinkedFilesPort
-{
-public:
-    explicit FakeLinkedFiles(QList<Session::LinkedFile> files)
-        : m_files(std::move(files))
-    {}
-
-    QList<Session::LinkedFile> readFiles(const QList<QString> &paths) const override
-    {
-        m_requestedPaths = paths;
-        return m_files;
-    }
-
-    QList<Session::LinkedFile> resolvePaths(const QList<QString> &paths) const override
-    {
-        m_resolvedOnly = true;
-        m_requestedPaths = paths;
-
-        QList<Session::LinkedFile> files;
-        for (const Session::LinkedFile &file : m_files)
-            files.append(Session::LinkedFile{file.fileName, {}, file.path});
-        return files;
-    }
-
-    QList<QString> requestedPaths() const { return m_requestedPaths; }
-    bool resolvedWithoutContent() const { return m_resolvedOnly; }
-
-private:
-    QList<Session::LinkedFile> m_files;
-    mutable QList<QString> m_requestedPaths;
-    mutable bool m_resolvedOnly = false;
-};
-
 Session::ProjectInfo sampleProject()
 {
     Session::ProjectInfo info;
@@ -2284,16 +2251,14 @@ void QodeAssistTest::testTurnContextCollectsPartsFromPorts()
     FakeProjectContext projectPort(sampleProject(), "Always use tabs.");
     FakeSkillsContext skillsPort(
         "# Always on", "# Skills catalog", {Session::InvokedSkill{"review", "Review body"}});
-    FakeLinkedFiles filesPort({Session::LinkedFile{"main.cpp", "int main() {}"}});
 
     Session::TurnContextRequest request;
     request.message = "please /review this";
     request.basePrompt = "You are a helpful assistant.";
     request.rolePrompt = "Act as a reviewer.";
-    request.linkedFilePaths = QList<QString>{"/src/main.cpp"};
 
     const Session::TurnContext context
-        = Session::TurnContextBuilder(projectPort, &skillsPort, filesPort).build(request);
+        = Session::TurnContextBuilder(projectPort, &skillsPort).build(request);
 
     QCOMPARE(context.basePrompt, QString("You are a helpful assistant."));
     QVERIFY(context.rolePrompt.has_value());
@@ -2305,10 +2270,6 @@ void QodeAssistTest::testTurnContextCollectsPartsFromPorts()
     QCOMPARE(context.skillsCatalog, QString("# Skills catalog"));
     QCOMPARE(context.invokedSkills.size(), 1);
     QCOMPARE(context.invokedSkills.at(0).name, QString("review"));
-    QCOMPARE(context.linkedFilePaths, (QList<QString>{"/src/main.cpp"}));
-    QCOMPARE(context.linkedFiles.size(), 1);
-    QCOMPARE(context.linkedFiles.at(0).fileName, QString("main.cpp"));
-    QCOMPARE(filesPort.requestedPaths(), (QList<QString>{"/src/main.cpp"}));
 }
 
 void QodeAssistTest::testTurnContextSkipsWhatTheBackendDoesNotNeed()
@@ -2316,26 +2277,18 @@ void QodeAssistTest::testTurnContextSkipsWhatTheBackendDoesNotNeed()
     FakeProjectContext projectPort(sampleProject(), "Always use tabs.");
     FakeSkillsContext skillsPort(
         "# Always on", "# Skills catalog", {Session::InvokedSkill{"review", "Review body"}});
-    FakeLinkedFiles filesPort({Session::LinkedFile{"main.cpp", "int main() {}", "/src/main.cpp"}});
 
     Session::TurnContextRequest request;
     request.message = "please /review this";
-    request.linkedFilePaths = QList<QString>{"/src/main.cpp"};
-    request.needs = Session::TurnContextNeeds{false, false};
+    request.needs = Session::TurnContextNeeds{false};
 
     const Session::TurnContext context
-        = Session::TurnContextBuilder(projectPort, &skillsPort, filesPort).build(request);
+        = Session::TurnContextBuilder(projectPort, &skillsPort).build(request);
 
     QVERIFY(context.projectRules.isEmpty());
     QVERIFY(context.alwaysOnSkills.isEmpty());
     QVERIFY(context.skillsCatalog.isEmpty());
     QVERIFY(context.invokedSkills.isEmpty());
-
-    QVERIFY(filesPort.resolvedWithoutContent());
-    QCOMPARE(context.linkedFiles.size(), 1);
-    QCOMPARE(context.linkedFiles.at(0).fileName, QString("main.cpp"));
-    QCOMPARE(context.linkedFiles.at(0).path, QString("/src/main.cpp"));
-    QVERIFY(context.linkedFiles.at(0).content.isEmpty());
 }
 
 void QodeAssistTest::testFencedFileBlockOutgrowsBackticksInContent()
@@ -2361,13 +2314,12 @@ void QodeAssistTest::testTurnContextSkillCommandScanning()
         {Session::InvokedSkill{"review", "Review body"},
          Session::InvokedSkill{"docs", "Docs body"},
          Session::InvokedSkill{"blank", QString()}});
-    FakeLinkedFiles filesPort({});
 
     Session::TurnContextRequest request;
     request.message = "/review then /docs then /review again /blank /unknown and mid/word";
 
     const Session::TurnContext context
-        = Session::TurnContextBuilder(projectPort, &skillsPort, filesPort).build(request);
+        = Session::TurnContextBuilder(projectPort, &skillsPort).build(request);
 
     QCOMPARE(context.invokedSkills.size(), 2);
     QCOMPARE(context.invokedSkills.at(0).name, QString("review"));
@@ -2377,39 +2329,17 @@ void QodeAssistTest::testTurnContextSkillCommandScanning()
 void QodeAssistTest::testTurnContextWithoutSkillsPort()
 {
     FakeProjectContext projectPort(sampleProject(), QString());
-    FakeLinkedFiles filesPort({Session::LinkedFile{"main.cpp", "int main() {}"}});
 
     Session::TurnContextRequest request;
     request.message = "/review this";
     request.basePrompt = "base";
 
     const Session::TurnContext context
-        = Session::TurnContextBuilder(projectPort, nullptr, filesPort).build(request);
+        = Session::TurnContextBuilder(projectPort, nullptr).build(request);
 
     QVERIFY(context.alwaysOnSkills.isEmpty());
     QVERIFY(context.skillsCatalog.isEmpty());
     QVERIFY(context.invokedSkills.isEmpty());
-    QVERIFY(context.linkedFiles.isEmpty());
-    QVERIFY(filesPort.requestedPaths().isEmpty());
-}
-
-void QodeAssistTest::testLinkedFilesHeaderSurvivesUnreadablePaths()
-{
-    FakeProjectContext projectPort({}, QString());
-    FakeLinkedFiles filesPort({});
-
-    Session::TurnContextRequest request;
-    request.basePrompt = "base";
-    request.linkedFilePaths = QList<QString>{"/src/ignored.cpp"};
-
-    const Session::TurnContext context
-        = Session::TurnContextBuilder(projectPort, nullptr, filesPort).build(request);
-
-    QVERIFY(context.linkedFiles.isEmpty());
-    QCOMPARE(context.linkedFilePaths, (QList<QString>{"/src/ignored.cpp"}));
-    QCOMPARE(
-        Session::renderSystemPrompt(context),
-        QString("base\n# No active project in IDE\n\nLinked files for reference:\n"));
 }
 
 void QodeAssistTest::testSystemPromptRenderingWithProject()
@@ -2422,8 +2352,6 @@ void QodeAssistTest::testSystemPromptRenderingWithProject()
     context.alwaysOnSkills = "# Always on";
     context.skillsCatalog = "# Catalog";
     context.invokedSkills = {Session::InvokedSkill{"review", "Review body"}};
-    context.linkedFilePaths = QList<QString>{"/src/main.cpp"};
-    context.linkedFiles = {Session::LinkedFile{"main.cpp", "int main() {}"}};
 
     const QString expected
         = "You are helpful."
@@ -2437,9 +2365,7 @@ void QodeAssistTest::testSystemPromptRenderingWithProject()
           "\n# Project Rules\n\nUse tabs."
           "\n\n# Always on"
           "\n\n# Catalog"
-          "\n\n# Invoked Skill: review\n\nReview body"
-          "\n\nLinked files for reference:\n"
-          "\nFile: main.cpp\nContent:\nint main() {}\n";
+          "\n\n# Invoked Skill: review\n\nReview body";
 
     QCOMPARE(Session::renderSystemPrompt(context), expected);
 }
@@ -3052,47 +2978,6 @@ void QodeAssistTest::testAcpBackendNamesImagesTheAgentCannotAccept()
     QVERIFY(texts.at(1).value("text").toString().contains("shot.png"));
 }
 
-void QodeAssistTest::testAcpBackendSendsLinkedFilesAsResourceLinks()
-{
-    AcpBackendFixture fixture;
-
-    Session::TurnContext context;
-    context.linkedFilePaths = {"/project/main.cpp", "/project/secret.key"};
-    context.linkedFiles = {Session::LinkedFile{"main.cpp", "int main() {}", "/project/main.cpp"}};
-
-    fixture.sendBlocks({Session::TextBlock{"review this"}}, context);
-
-    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
-
-    const auto links = fixture.promptBlocksOfType("resource_link");
-    QCOMPARE(links.size(), 1);
-    QCOMPARE(links.at(0).value("name").toString(), QString("main.cpp"));
-    QCOMPARE(links.at(0).value("uri").toString(), QString("file:///project/main.cpp"));
-}
-
-void QodeAssistTest::testAcpBackendPercentEncodesResourceLinkUris()
-{
-    AcpBackendFixture fixture;
-
-    Session::TurnContext context;
-    context.linkedFiles
-        = {Session::LinkedFile{"my notes.cpp", QString(), "/project/dir/my notes.cpp"},
-           Session::LinkedFile{"файл.cpp", QString(), "/project/файл.cpp"}};
-
-    fixture.sendBlocks({Session::TextBlock{"review this"}}, context);
-
-    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
-
-    const auto links = fixture.promptBlocksOfType("resource_link");
-    QCOMPARE(links.size(), 2);
-    QCOMPARE(
-        links.at(0).value("uri").toString(), QString("file:///project/dir/my%20notes.cpp"));
-
-    const QString unicodeUri = links.at(1).value("uri").toString();
-    QVERIFY(!unicodeUri.contains(QString::fromUtf8("файл")));
-    QCOMPARE(QUrl(unicodeUri).toLocalFile(), QString::fromUtf8("/project/файл.cpp"));
-}
-
 void QodeAssistTest::testAcpBackendFencesAttachmentsThatContainFences()
 {
     AcpBackendFixture fixture;
@@ -3133,15 +3018,11 @@ void QodeAssistTest::testAcpBackendTruncatesOversizedAttachments()
     QVERIFY(text.contains("truncated by QodeAssist"));
 }
 
-void QodeAssistTest::testAcpBackendRejectsATurnOfUnlinkableFilesOnly()
+void QodeAssistTest::testAcpBackendRejectsAnEmptyTurn()
 {
     AcpBackendFixture fixture;
 
-    Session::TurnContext context;
-    context.linkedFilePaths = {"/project/main.cpp"};
-    context.linkedFiles = {Session::LinkedFile{"main.cpp", "int main() {}", QString()}};
-
-    fixture.sendBlocks({Session::TextBlock{""}}, context);
+    fixture.sendBlocks({Session::TextBlock{""}});
 
     QCOMPARE(fixture.eventsOfType<Session::TurnFailed>().size(), 1);
     QCOMPARE(fixture.eventsOfType<Session::TurnStarted>().size(), 0);

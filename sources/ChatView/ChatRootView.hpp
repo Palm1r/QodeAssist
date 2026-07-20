@@ -12,7 +12,7 @@
 #include "ChatFileManager.hpp"
 #include "ChatModel.hpp"
 #include "templates/PromptProviderChat.hpp"
-#include <coreplugin/editormanager/editormanager.h>
+#include <utils/id.h>
 
 namespace QodeAssist::Skills {
 class SkillsManager;
@@ -33,9 +33,7 @@ class ChatRootView : public QQuickItem
     Q_OBJECT
     Q_PROPERTY(QodeAssist::Chat::ChatModel *chatModel READ chatModel NOTIFY chatModelChanged FINAL)
     Q_PROPERTY(QString currentTemplate READ currentTemplate NOTIFY currentTemplateChanged FINAL)
-    Q_PROPERTY(bool isSyncOpenFiles READ isSyncOpenFiles NOTIFY isSyncOpenFilesChanged FINAL)
     Q_PROPERTY(QStringList attachmentFiles READ attachmentFiles NOTIFY attachmentFilesChanged FINAL)
-    Q_PROPERTY(QStringList linkedFiles READ linkedFiles NOTIFY linkedFilesChanged FINAL)
     Q_PROPERTY(int inputTokensCount READ inputTokensCount NOTIFY inputTokensCountChanged FINAL)
     Q_PROPERTY(QString chatFileName READ chatFileName NOTIFY chatFileNameChanged FINAL)
     Q_PROPERTY(QString textFontFamily READ textFontFamily NOTIFY textFamilyChanged FINAL)
@@ -95,21 +93,16 @@ public:
     QString getAutosaveFilePath(const QString &firstMessage, const QStringList &attachments) const;
 
     QStringList attachmentFiles() const;
-    QStringList linkedFiles() const;
 
     Q_INVOKABLE void showAttachFilesDialog();
     Q_INVOKABLE void addFilesToAttachList(const QStringList &filePaths);
     Q_INVOKABLE void removeFileFromAttachList(int index);
-    Q_INVOKABLE void showLinkFilesDialog();
-    Q_INVOKABLE void addFilesToLinkList(const QStringList &filePaths);
-    Q_INVOKABLE void removeFileFromLinkList(int index);
     Q_INVOKABLE QStringList convertUrlsToLocalPaths(const QVariantList &urls) const;
     Q_INVOKABLE void showAddImageDialog();
     Q_INVOKABLE bool isImageFile(const QString &filePath) const;
     Q_INVOKABLE void calculateMessageTokensCount(const QString &message);
     Q_INVOKABLE bool isSendShortcut(int key, int modifiers) const;
     QString sendShortcutText() const;
-    Q_INVOKABLE void setIsSyncOpenFiles(bool state);
     Q_INVOKABLE void openChatHistoryFolder();
     Q_INVOKABLE void openRulesFolder();
     Q_INVOKABLE void openSettings();
@@ -124,16 +117,9 @@ public:
     Q_INVOKABLE void updateInputTokensCount();
     int inputTokensCount() const;
 
-    bool isSyncOpenFiles() const;
-
-    void onEditorAboutToClose(Core::IEditor *editor);
-    void onAppendLinkFileFromEditor(Core::IEditor *editor);
-    void onEditorCreated(Core::IEditor *editor, const Utils::FilePath &filePath);
-
     QString chatFileName() const;
     Q_INVOKABLE QString chatFilePath() const;
     void setRecentFilePath(const QString &filePath);
-    bool shouldIgnoreFileForAttach(const Utils::FilePath &filePath);
 
     QString textFontFamily() const;
     QString codeFontFamily() const;
@@ -222,7 +208,6 @@ public slots:
     void copyToClipboard(const QString &text);
     void cancelRequest();
     void clearAttachmentFiles();
-    void clearLinkedFiles();
     void clearMessages();
     void resetChatToMessage(int index);
 
@@ -230,9 +215,7 @@ signals:
     void chatModelChanged();
     void currentTemplateChanged();
     void attachmentFilesChanged();
-    void linkedFilesChanged();
     void inputTokensCountChanged();
-    void isSyncOpenFilesChanged();
     void chatFileNameChanged();
     void textFamilyChanged();
     void codeFamilyChanged();
@@ -270,8 +253,6 @@ signals:
     void isInEditorChanged();
     void chatTitleChanged();
 
-    void openFilesChanged();
-
     void closeHostRequested();
 
 private:
@@ -283,17 +264,9 @@ private:
     void bindLlm();
     void handOffSession();
     bool deferSendForAutoCompress(
-        const QString &message,
-        const QStringList &attachments,
-        const QStringList &linkedFiles,
-        bool useTools,
-        bool useThinking);
+        const QString &message, const QStringList &attachments, bool useTools, bool useThinking);
     void dispatchSend(
-        const QString &message,
-        const QStringList &attachments,
-        const QStringList &linkedFiles,
-        bool useTools,
-        bool useThinking);
+        const QString &message, const QStringList &attachments, bool useTools, bool useThinking);
     bool hasImageAttachments(const QStringList &attachments) const;
 
     SessionFileRegistry *sessionFileRegistry() const;
@@ -306,25 +279,21 @@ private:
     QString m_currentTemplate;
     QString m_recentFilePath;
     QStringList m_attachmentFiles;
-    QStringList m_linkedFiles;
 
     struct PendingSend {
         QString message;
         QStringList attachments;
-        QStringList linkedFiles;
         bool useTools = false;
         bool useThinking = false;
         bool active = false;
     };
     PendingSend m_pendingSend;
-    bool m_isSyncOpenFiles;
     bool m_isInEditor = false;
     mutable QString m_cachedChatTitle;
     QString m_agentSuggestedTitle;
     QString m_agentSessionIssue;
     bool m_agentSessionRecoverable = false;
     Acp::AgentBinding m_quarantinedBinding;
-    QList<Core::IEditor *> m_currentEditors;
     bool m_isRequestInProgress;
     QString m_lastErrorMessage;
     QVariantList m_activeRules;

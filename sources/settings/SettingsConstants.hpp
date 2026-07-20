@@ -82,7 +82,6 @@ const char CC_MODEL_OUTPUT_HANDLER[] = "QodeAssist.ccModelOutputHandler";
 const char CA_AUTO_APPLY_FILE_EDITS[] = "QodeAssist.caAutoApplyFileEdits";
 const char CA_AUTO_COMPRESS[] = "QodeAssist.caAutoCompress";
 const char CA_AUTO_COMPRESS_THRESHOLD[] = "QodeAssist.caAutoCompressThreshold";
-const char CA_LINK_OPEN_FILES[] = "QodeAssist.caLinkOpenFiles";
 const char CA_AUTOSAVE[] = "QodeAssist.caAutosave";
 const char CC_CUSTOM_LANGUAGES[] = "QodeAssist.ccCustomLanguages";
 

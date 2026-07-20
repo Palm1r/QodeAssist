@@ -39,16 +39,4 @@ public:
     virtual std::optional<InvokedSkill> findSkill(const QString &name) const = 0;
 };
 
-class ILinkedFilesPort
-{
-    Q_DISABLE_COPY_MOVE(ILinkedFilesPort)
-
-public:
-    ILinkedFilesPort() = default;
-    virtual ~ILinkedFilesPort() = default;
-
-    virtual QList<LinkedFile> readFiles(const QList<QString> &paths) const = 0;
-    virtual QList<LinkedFile> resolvePaths(const QList<QString> &paths) const = 0;
-};
-
 } // namespace QodeAssist::Session

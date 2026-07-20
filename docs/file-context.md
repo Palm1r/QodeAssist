@@ -1,6 +1,6 @@
 # File Context Feature
 
-QodeAssist provides two powerful ways to include source code files in your chat conversations: Attachments and Linked Files. Each serves a distinct purpose and helps provide better context for the AI assistant.
+QodeAssist lets you include source code files in your chat conversations as attachments.
 
 ## Attached Files
 
@@ -14,20 +14,8 @@ Attachments are designed for one-time code analysis and specific queries:
   - Quick implementation questions
 - Files can be attached using the paperclip icon in the chat interface
 - Multiple files can be attached to a single message
+- Files can also be added by dragging them onto the chat panel or with `@` mentions
 
-## Linked Files
-
-Linked files provide persistent context throughout the conversation:
-
-- Files remain accessible for the entire chat session
-- Content is included in every message exchange
-- Files are automatically refreshed - always using latest content from disk
-- Perfect for:
-  - Long-term refactoring discussions
-  - Complex architectural changes
-  - Multi-file implementations
-  - Maintaining context across related questions
-- Can be managed using the link icon in the chat interface
-- Supports automatic syncing with open editor files (can be enabled in settings)
-- Files can be added/removed at any time during the conversation
-
+For persistent, conversation-long context, enable tools (or use an ACP agent): the
+model reads the files it needs from the project itself, always seeing the latest
+content from disk.

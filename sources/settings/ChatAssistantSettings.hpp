@@ -19,7 +19,6 @@ public:
     ButtonAspect resetToDefaults{this};
 
     // Chat settings
-    Utils::BoolAspect linkOpenFiles{this};
     Utils::BoolAspect autosave{this};
     Utils::BoolAspect enableChatInBottomToolBar{this};
     Utils::BoolAspect enableChatInNavigationPanel{this};

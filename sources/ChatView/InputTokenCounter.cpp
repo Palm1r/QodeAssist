@@ -79,12 +79,6 @@ void InputTokenCounter::setAttachments(const QStringList &attachments)
     recompute();
 }
 
-void InputTokenCounter::setLinkedFiles(const QStringList &linkedFiles)
-{
-    m_linkedFiles = linkedFiles;
-    recompute();
-}
-
 void InputTokenCounter::rewireToolsChangedConnection()
 {
     if (m_toolsChangedConn)
@@ -157,12 +151,6 @@ void InputTokenCounter::recompute()
     if (!m_attachments.isEmpty()) {
         QStringList textPaths;
         inputTokens += splitImageEstimate(m_attachments, textPaths);
-        inputTokens += estimateFileTokens(textPaths);
-    }
-
-    if (!m_linkedFiles.isEmpty()) {
-        QStringList textPaths;
-        inputTokens += splitImageEstimate(m_linkedFiles, textPaths);
         inputTokens += estimateFileTokens(textPaths);
     }
 

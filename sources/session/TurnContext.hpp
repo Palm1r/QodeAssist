@@ -29,19 +29,9 @@ struct InvokedSkill
     bool operator==(const InvokedSkill &other) const = default;
 };
 
-struct LinkedFile
-{
-    QString fileName;
-    QString content;
-    QString path;
-
-    bool operator==(const LinkedFile &other) const = default;
-};
-
 struct TurnContextNeeds
 {
     bool systemPrompt = true;
-    bool linkedFileContent = true;
 
     bool operator==(const TurnContextNeeds &other) const = default;
 };
@@ -55,8 +45,6 @@ struct TurnContext
     QString alwaysOnSkills;
     QString skillsCatalog;
     QList<InvokedSkill> invokedSkills;
-    QList<QString> linkedFilePaths;
-    QList<LinkedFile> linkedFiles;
 
     bool operator==(const TurnContext &other) const = default;
 };

@@ -12,10 +12,6 @@ namespace ProjectExplorer {
 class Project;
 }
 
-namespace QodeAssist::Context {
-class ContextManager;
-}
-
 namespace QodeAssist::Skills {
 class SkillsManager;
 }
@@ -45,18 +41,6 @@ public:
 
 private:
     Skills::SkillsManager *m_skillsManager = nullptr;
-};
-
-class LinkedFilesQtCreator : public Session::ILinkedFilesPort
-{
-public:
-    explicit LinkedFilesQtCreator(Context::ContextManager *contextManager);
-
-    QList<Session::LinkedFile> readFiles(const QList<QString> &paths) const override;
-    QList<Session::LinkedFile> resolvePaths(const QList<QString> &paths) const override;
-
-private:
-    Context::ContextManager *m_contextManager = nullptr;
 };
 
 std::unique_ptr<SkillsContextQtCreator> makeSkillsContext(

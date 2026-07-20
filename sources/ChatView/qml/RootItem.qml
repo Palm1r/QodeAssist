@@ -47,21 +47,14 @@ ChatRootView {
         color: palette.window
     }
 
-    SplitDropZone {
+    DropZone {
         anchors.fill: parent
         z: 99
 
-        onFilesDroppedToAttach: (urlStrings) => {
+        onFilesDropped: (urlStrings) => {
             var localPaths = root.convertUrlsToLocalPaths(urlStrings)
             if (localPaths.length > 0) {
                 root.addFilesToAttachList(localPaths)
-            }
-        }
-
-        onFilesDroppedToLink: (urlStrings) => {
-            var localPaths = root.convertUrlsToLocalPaths(urlStrings)
-            if (localPaths.length > 0) {
-                root.addFilesToLinkList(localPaths)
             }
         }
     }
@@ -654,17 +647,6 @@ ChatRootView {
             onRemoveFileFromListByIndex: (index) => root.removeFileFromAttachList(index)
         }
 
-        AttachedFilesPlace {
-            id: linkedFilesPlace
-
-            Layout.fillWidth: true
-            attachedFilesModel: root.linkedFiles
-            iconPath: palette.window.hslLightness > 0.5 ? "qrc:/qt/qml/ChatView/icons/link-file-dark.svg"
-                                                        : "qrc:/qt/qml/ChatView/icons/link-file-light.svg"
-            accentColor: Qt.tint(palette.mid, Qt.rgba(0, 0.3, 0.8, 0.4))
-            onRemoveFileFromListByIndex: (index) => root.removeFileFromLinkList(index)
-        }
-
         FileEditsActionBar {
             id: fileEditsActionBar
 
@@ -702,13 +684,8 @@ ChatRootView {
                                        : qsTr("Send message to LLM %1").arg(root.sendShortcutText))
             compressButton.onClicked: compressConfirmDialog.open()
             cancelCompressButton.onClicked: root.cancelCompression()
-            syncOpenFiles {
-                checked: root.isSyncOpenFiles
-                onCheckedChanged: root.setIsSyncOpenFiles(bottomBar.syncOpenFiles.checked)
-            }
             attachFiles.onClicked: root.showAttachFilesDialog()
             attachImages.onClicked: root.showAddImageDialog()
-            linkFiles.onClicked: root.showLinkFilesDialog()
         }
     }
 

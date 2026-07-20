@@ -128,16 +128,6 @@ LLMQore::Acp::ContentBlock makeResource(
     return block;
 }
 
-LLMQore::Acp::ContentBlock makeResourceLink(const Session::LinkedFile &file)
-{
-    LLMQore::Acp::ContentBlock block;
-    block.type = QStringLiteral("resource_link");
-    block.uri = QUrl::fromLocalFile(file.path).toString(QUrl::FullyEncoded);
-    block.name = file.fileName;
-    block.mimeType = mimeTypeForFileName(file.fileName).name();
-    return block;
-}
-
 LLMQore::Acp::ContentBlock makeImage(const QString &mediaType, const QString &base64Data)
 {
     LLMQore::Acp::ContentBlock block;
@@ -147,23 +137,7 @@ LLMQore::Acp::ContentBlock makeImage(const QString &mediaType, const QString &ba
     return block;
 }
 
-QList<Session::LinkedFile> linkableFiles(const std::optional<Session::TurnContext> &context)
-{
-    if (!context)
-        return {};
-
-    QList<Session::LinkedFile> files;
-    for (const Session::LinkedFile &file : context->linkedFiles) {
-        if (file.path.isEmpty())
-            LOG_MESSAGE(QString("Linked file %1 has no path to link to").arg(file.fileName));
-        else
-            files.append(file);
-    }
-    return files;
-}
-
-bool hasSendableContent(
-    const QList<Session::ContentBlock> &userBlocks, const QList<Session::LinkedFile> &linkedFiles)
+bool hasSendableContent(const QList<Session::ContentBlock> &userBlocks)
 {
     for (const Session::ContentBlock &block : userBlocks) {
         if (const auto *text = std::get_if<Session::TextBlock>(&block)) {
@@ -176,7 +150,7 @@ bool hasSendableContent(
             return true;
         }
     }
-    return !linkedFiles.isEmpty();
+    return false;
 }
 
 QString textOf(const LLMQore::Acp::ContentBlock &block)
@@ -404,14 +378,13 @@ void AcpChatBackend::sendTurn(const Session::TurnRequest &request)
 
     cancel();
 
-    QList<Session::LinkedFile> linkedFiles = linkableFiles(request.context);
-    if (!hasSendableContent(request.userBlocks, linkedFiles)) {
+    if (!hasSendableContent(request.userBlocks)) {
         emit sessionEvent(
             Session::TurnFailed{.turnId = {}, .error = tr("There is nothing to send to the agent.")});
         return;
     }
 
-    m_pendingTurn = PendingTurn{request.userBlocks, std::move(linkedFiles)};
+    m_pendingTurn = PendingTurn{request.userBlocks};
 
     m_activeTurnId = QStringLiteral("acp-%1").arg(++m_turnCounter);
     m_stderr.clear();
@@ -627,9 +600,6 @@ QList<LLMQore::Acp::ContentBlock> AcpChatBackend::buildPrompt() const
             appendImage(blocks, *image);
         }
     }
-
-    for (const Session::LinkedFile &file : m_pendingTurn.linkedFiles)
-        blocks.append(makeResourceLink(file));
 
     return blocks;
 }

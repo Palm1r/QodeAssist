@@ -49,12 +49,6 @@
 namespace QodeAssist::Chat {
 
 namespace {
-bool isChatEditor(Core::IEditor *editor)
-{
-    return editor && editor->document()
-           && editor->document()->id() == Utils::Id(Constants::QODE_ASSIST_CHAT_EDITOR_ID);
-}
-
 QKeySequence sendMessageKeySequence()
 {
     auto command = Core::ActionManager::command(Constants::QODE_ASSIST_CHAT_SEND_MESSAGE);
@@ -86,13 +80,6 @@ ChatRootView::ChatRootView(QQuickItem *parent)
           m_controller->session(), m_controller->contextManager(), this))
     , m_historyStore(new ChatHistoryStore(m_controller->session(), this))
 {
-    m_isSyncOpenFiles = Settings::chatAssistantSettings().linkOpenFiles();
-    connect(
-        &Settings::chatAssistantSettings().linkOpenFiles,
-        &Utils::BaseAspect::changed,
-        this,
-        [this]() { setIsSyncOpenFiles(Settings::chatAssistantSettings().linkOpenFiles()); });
-
     QMetaObject::invokeMethod(
         this,
         [this] {
@@ -198,9 +185,6 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     connect(this, &ChatRootView::attachmentFilesChanged, this, [this]() {
         m_tokenCounter->setAttachments(m_attachmentFiles);
     });
-    connect(this, &ChatRootView::linkedFilesChanged, this, [this]() {
-        m_tokenCounter->setLinkedFiles(m_linkedFiles);
-    });
     connect(this, &ChatRootView::useToolsChanged, this, &ChatRootView::updateInputTokensCount);
 
     connect(
@@ -224,22 +208,6 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         this,
         &ChatRootView::baseSystemPromptChanged);
 
-    auto editors = Core::EditorManager::instance();
-
-    connect(editors, &Core::EditorManager::editorCreated, this, &ChatRootView::onEditorCreated);
-    connect(
-        editors,
-        &Core::EditorManager::editorAboutToClose,
-        this,
-        &ChatRootView::onEditorAboutToClose);
-
-    connect(editors, &Core::EditorManager::currentEditorAboutToChange, this, [this]() {
-        if (m_isSyncOpenFiles) {
-            for (auto editor : std::as_const(m_currentEditors)) {
-                onAppendLinkFileFromEditor(editor);
-            }
-        }
-    });
     connect(
         &Settings::chatAssistantSettings().textFontFamily,
         &Utils::BaseAspect::changed,
@@ -313,18 +281,6 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         &ChatRootView::refreshRules);
 
     connect(
-        ProjectExplorer::ProjectManager::instance(),
-        &ProjectExplorer::ProjectManager::projectAdded,
-        this,
-        &ChatRootView::openFilesChanged);
-
-    connect(
-        ProjectExplorer::ProjectManager::instance(),
-        &ProjectExplorer::ProjectManager::projectRemoved,
-        this,
-        &ChatRootView::openFilesChanged);
-
-    connect(
         &Settings::chatAssistantSettings().enableChatTools,
         &Utils::BaseAspect::changed,
         this,
@@ -362,7 +318,7 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         if (m_pendingSend.active) {
             PendingSend p = m_pendingSend;
             m_pendingSend = {};
-            dispatchSend(p.message, p.attachments, p.linkedFiles, p.useTools, p.useThinking);
+            dispatchSend(p.message, p.attachments, p.useTools, p.useThinking);
         }
     });
 
@@ -386,7 +342,7 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         if (m_pendingSend.active) {
             PendingSend p = m_pendingSend;
             m_pendingSend = {};
-            dispatchSend(p.message, p.attachments, p.linkedFiles, p.useTools, p.useThinking);
+            dispatchSend(p.message, p.attachments, p.useTools, p.useThinking);
         }
     });
 }
@@ -477,22 +433,17 @@ void ChatRootView::sendMessage(const QString &message)
         return;
 
     const QStringList attachments = m_attachmentFiles;
-    const QStringList linkedFiles = m_linkedFiles;
     const bool tools = useTools();
     const bool thinking = useThinking();
 
-    if (deferSendForAutoCompress(message, attachments, linkedFiles, tools, thinking))
+    if (deferSendForAutoCompress(message, attachments, tools, thinking))
         return;
 
-    dispatchSend(message, attachments, linkedFiles, tools, thinking);
+    dispatchSend(message, attachments, tools, thinking);
 }
 
 bool ChatRootView::deferSendForAutoCompress(
-    const QString &message,
-    const QStringList &attachments,
-    const QStringList &linkedFiles,
-    bool useToolsArg,
-    bool useThinkingArg)
+    const QString &message, const QStringList &attachments, bool useToolsArg, bool useThinkingArg)
 {
     if (isAgentBound())
         return false;
@@ -521,17 +472,13 @@ bool ChatRootView::deferSendForAutoCompress(
                     .arg(inputTokens)
                     .arg(threshold));
 
-    m_pendingSend = {message, attachments, linkedFiles, useToolsArg, useThinkingArg, true};
+    m_pendingSend = {message, attachments, useToolsArg, useThinkingArg, true};
     compressCurrentChat();
     return true;
 }
 
 void ChatRootView::dispatchSend(
-    const QString &message,
-    const QStringList &attachments,
-    const QStringList &linkedFiles,
-    bool useToolsArg,
-    bool useThinkingArg)
+    const QString &message, const QStringList &attachments, bool useToolsArg, bool useThinkingArg)
 {
     if (refuseWhileReadOnly())
         return;
@@ -551,7 +498,7 @@ void ChatRootView::dispatchSend(
     setRequestProgressStatus(true);
 
     m_controller->setSkillsManager(skillsManager());
-    m_controller->sendMessage(message, attachments, linkedFiles, useToolsArg, useThinkingArg);
+    m_controller->sendMessage(message, attachments, useToolsArg, useThinkingArg);
 
     m_fileManager->clearIntermediateStorage();
     clearAttachmentFiles();
@@ -579,20 +526,9 @@ void ChatRootView::clearAttachmentFiles()
     m_fileManager->clearIntermediateStorage();
 }
 
-void ChatRootView::clearLinkedFiles()
-{
-    if (m_linkedFiles.isEmpty()) {
-        return;
-    }
-
-    m_linkedFiles.clear();
-    emit linkedFilesChanged();
-}
-
 void ChatRootView::clearMessages()
 {
     m_controller->clearMessages();
-    clearLinkedFiles();
 }
 
 void ChatRootView::resetChatToMessage(int index)
@@ -655,9 +591,7 @@ void ChatRootView::loadHistory(const QString &filePath)
     if (!m_pendingSend.active)
         m_fileManager->clearIntermediateStorage();
     m_attachmentFiles.clear();
-    m_linkedFiles.clear();
     emit attachmentFilesChanged();
-    emit linkedFilesChanged();
 
     m_fileEditController->clearCurrentRequestId();
     updateInputTokensCount();
@@ -710,11 +644,6 @@ QStringList ChatRootView::attachmentFiles() const
     return m_attachmentFiles;
 }
 
-QStringList ChatRootView::linkedFiles() const
-{
-    return m_linkedFiles;
-}
-
 void ChatRootView::showAttachFilesDialog()
 {
     QFileDialog dialog(nullptr, tr("Select Files to Attach"));
@@ -761,66 +690,6 @@ void ChatRootView::removeFileFromAttachList(int index)
     emit attachmentFilesChanged();
 
     LOG_MESSAGE(QString("Removed attachment file: %1").arg(removedFile));
-}
-
-void ChatRootView::showLinkFilesDialog()
-{
-    QFileDialog dialog(nullptr, tr("Select Files to Attach"));
-    dialog.setFileMode(QFileDialog::ExistingFiles);
-
-    if (auto project = ProjectExplorer::ProjectManager::startupProject()) {
-        dialog.setDirectory(project->projectDirectory().toFSPathString());
-    }
-
-    if (dialog.exec() == QDialog::Accepted) {
-        addFilesToLinkList(dialog.selectedFiles());
-    }
-}
-
-void ChatRootView::addFilesToLinkList(const QStringList &filePaths)
-{
-    if (filePaths.isEmpty()) {
-        return;
-    }
-
-    bool filesAdded = false;
-    QStringList imageFiles;
-
-    for (const QString &filePath : filePaths) {
-        if (isImageFile(filePath)) {
-            imageFiles.append(filePath);
-            continue;
-        }
-
-        if (!m_linkedFiles.contains(filePath)) {
-            m_linkedFiles.append(filePath);
-            filesAdded = true;
-        }
-    }
-
-    if (!imageFiles.isEmpty()) {
-        addFilesToAttachList(imageFiles);
-        m_lastInfoMessage
-            = tr("Images automatically moved to Attach zone (%n file(s))", "", imageFiles.size());
-        emit lastInfoMessageChanged();
-    }
-
-    if (filesAdded) {
-        emit linkedFilesChanged();
-    }
-}
-
-void ChatRootView::removeFileFromLinkList(int index)
-{
-    if (index < 0 || index >= m_linkedFiles.size()) {
-        return;
-    }
-
-    const QString removedFile = m_linkedFiles.at(index);
-    m_linkedFiles.removeAt(index);
-    emit linkedFilesChanged();
-
-    LOG_MESSAGE(QString("Removed linked file: %1").arg(removedFile));
 }
 
 void ChatRootView::showAddImageDialog()
@@ -882,20 +751,6 @@ bool ChatRootView::isSendShortcut(int key, int modifiers) const
 QString ChatRootView::sendShortcutText() const
 {
     return sendMessageKeySequence().toString(QKeySequence::NativeText);
-}
-
-void ChatRootView::setIsSyncOpenFiles(bool state)
-{
-    if (m_isSyncOpenFiles != state) {
-        m_isSyncOpenFiles = state;
-        emit isSyncOpenFilesChanged();
-    }
-
-    if (m_isSyncOpenFiles) {
-        for (auto editor : std::as_const(m_currentEditors)) {
-            onAppendLinkFileFromEditor(editor);
-        }
-    }
 }
 
 void ChatRootView::openChatHistoryFolder()
@@ -1062,57 +917,6 @@ int ChatRootView::inputTokensCount() const
     return m_tokenCounter->inputTokens();
 }
 
-bool ChatRootView::isSyncOpenFiles() const
-{
-    return m_isSyncOpenFiles;
-}
-
-void ChatRootView::onEditorAboutToClose(Core::IEditor *editor)
-{
-    if (isChatEditor(editor)) {
-        return;
-    }
-
-    if (auto document = editor->document(); document && isSyncOpenFiles()) {
-        QString filePath = document->filePath().toFSPathString();
-        m_linkedFiles.removeOne(filePath);
-        emit linkedFilesChanged();
-    }
-
-    if (editor) {
-        m_currentEditors.removeOne(editor);
-    }
-
-    emit openFilesChanged();
-}
-
-void ChatRootView::onAppendLinkFileFromEditor(Core::IEditor *editor)
-{
-    if (isChatEditor(editor)) {
-        return;
-    }
-
-    if (auto document = editor->document(); document && isSyncOpenFiles()) {
-        QString filePath = document->filePath().toFSPathString();
-        if (!m_linkedFiles.contains(filePath) && !shouldIgnoreFileForAttach(document->filePath())) {
-            m_linkedFiles.append(filePath);
-            emit linkedFilesChanged();
-        }
-    }
-}
-
-void ChatRootView::onEditorCreated(Core::IEditor *editor, const Utils::FilePath &filePath)
-{
-    if (isChatEditor(editor)) {
-        return;
-    }
-
-    if (editor && editor->document()) {
-        m_currentEditors.append(editor);
-        emit openFilesChanged();
-    }
-}
-
 QString ChatRootView::chatFileName() const
 {
     return QFileInfo(m_recentFilePath).baseName();
@@ -1142,21 +946,6 @@ void ChatRootView::setRecentFilePath(const QString &filePath)
     m_controller->setChatFilePath(filePath);
     m_fileManager->setChatFilePath(filePath);
     emit chatFileNameChanged();
-}
-
-bool ChatRootView::shouldIgnoreFileForAttach(const Utils::FilePath &filePath)
-{
-    auto project = ProjectExplorer::ProjectManager::projectForFile(filePath);
-    if (project
-        && m_controller->contextManager()
-               ->ignoreManager()
-               ->shouldIgnore(filePath.toFSPathString(), project)) {
-        LOG_MESSAGE(QString("Ignoring file for attachment due to .qodeassistignore: %1")
-                        .arg(filePath.toFSPathString()));
-        return true;
-    }
-
-    return false;
 }
 
 QString ChatRootView::textFontFamily() const

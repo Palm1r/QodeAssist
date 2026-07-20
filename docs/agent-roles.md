@@ -140,7 +140,6 @@ When a role is selected, the final system prompt is composed as:
 │ 1. Base System Prompt (from Chat Settings)      │
 │ 2. Agent Role System Prompt                     │
 │ 3. Project Rules (common/ + chat/)              │
-│ 4. Linked Files Context                         │
 └─────────────────────────────────────────────────┘
 ```
 

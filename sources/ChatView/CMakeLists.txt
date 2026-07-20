@@ -28,7 +28,7 @@ qt_add_qml_module(QodeAssistChatView
     qml/controls/SkillCommandPopup.qml
     qml/controls/Toast.qml
     qml/controls/TopBar.qml
-    qml/controls/SplitDropZone.qml
+    qml/controls/DropZone.qml
     qml/controls/MessageNavigator.qml
 
     RESOURCES
@@ -36,8 +36,6 @@ qt_add_qml_module(QodeAssistChatView
     icons/attach-file-dark.svg
     icons/close-dark.svg
     icons/close-light.svg
-    icons/link-file-light.svg
-    icons/link-file-dark.svg
     icons/image-dark.svg
     icons/load-chat-dark.svg
     icons/save-chat-dark.svg

@@ -30,10 +30,6 @@ ChatAssistantSettings::ChatAssistantSettings()
 
     setDisplayName(Tr::tr("Chat Assistant"));
 
-    linkOpenFiles.setSettingsKey(Constants::CA_LINK_OPEN_FILES);
-    linkOpenFiles.setLabelText(Tr::tr("Sync open files with assistant by default"));
-    linkOpenFiles.setDefaultValue(false);
-
     autosave.setSettingsKey(Constants::CA_AUTOSAVE);
     autosave.setDefaultValue(true);
     autosave.setLabelText(Tr::tr("Enable autosave when message received"));
@@ -297,7 +293,6 @@ ChatAssistantSettings::ChatAssistantSettings()
             Group{
                 title(Tr::tr("Chat Settings")),
                 Column{
-                    linkOpenFiles,
                     autosave,
                     Row{autoCompress, autoCompressThreshold, Stretch{1}}}},
             Space{8},
@@ -371,7 +366,6 @@ void ChatAssistantSettings::resetSettingsToDefaults()
         resetAspect(thinkingBudgetTokens);
         resetAspect(thinkingMaxTokens);
         resetAspect(openAIResponsesReasoningEffort);
-        resetAspect(linkOpenFiles);
         resetAspect(enableChatTools);
         resetAspect(textFontFamily);
         resetAspect(codeFontFamily);

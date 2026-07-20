@@ -38,7 +38,7 @@ QodeAssist enhances Qt Creator with AI-powered coding assistance:
 - **Agent Skills** — reusable folders of specialized instructions loaded on demand; discovered from `.qodeassist/skills/` and `.claude/skills/`, invoked automatically, with `/skill`, or always-on
 - **MCP Server** — expose QodeAssist's project-aware tools to external MCP clients (Claude Code, VS Code, Claude Desktop via bridge)
 - **MCP Client Hub** — connect QodeAssist to external MCP servers and use their tools in Chat and Quick Refactor (authenticated MCP servers are not supported yet)
-- **File Context** — attach, link, or auto-sync open editor files for richer prompts
+- **File Context** — attach files and images to your messages for richer prompts
 - **Many Providers** — Ollama, llama.cpp, LM Studio (Chat + Responses), Claude, OpenAI (Chat + Responses), Google AI, Mistral, Codestral, OpenRouter, Qwen (OpenAI + Responses), DeepSeek, any OpenAI-compatible endpoint
 - **Reasoning / Thinking** — streamed chain-of-thought is shown for reasoning models across Claude, Google, OpenAI Responses, and any OpenAI-compatible endpoint that returns `reasoning_content` (DeepSeek, Qwen QwQ/Qwen3-Thinking, LM Studio, OpenRouter, …)
 - **Customizable** — per-project rules (`.qodeassist/rules/`), agent roles, reusable refactor templates, full prompt-template control
@@ -257,8 +257,7 @@ Configure in: `Tools → Options → QodeAssist → Code Completion → General 
 - Token usage monitoring
 - **[Agent Roles](docs/agent-roles.md)** - Switch between AI personas (Developer, Reviewer, custom roles)
 - **[Chat Summarization](docs/chat-summarization.md)** - Compress long conversations into AI-generated summaries
-- **[File Context](docs/file-context.md)** - Attach or link files for better context
-- Automatic syncing with open editor files (optional)
+- **[File Context](docs/file-context.md)** - Attach files for better context
 - Extended thinking / reasoning mode - shows streamed chain-of-thought for reasoning models (Claude, Google, OpenAI Responses, and OpenAI-compatible endpoints returning `reasoning_content` such as DeepSeek, Qwen, LM Studio, OpenRouter)
 
 ### Quick Refactoring
@@ -409,9 +408,7 @@ QodeAssist uses a flexible prompt composition system that adapts to different co
 │     ├─ .qodeassist/rules/common/*.md                                       │
 │     └─ .qodeassist/rules/chat/*.md                                         │
 │  4. File Context (optional):                                               │
-│     ├─ Attached files (manual)                                             │
-│     ├─ Linked files (persistent)                                           │
-│     └─ Open editor files (if auto-sync enabled)                            │
+│     └─ Attached files (manual)                                             │
 │  5. Tool Definitions (if enabled):                                         │
 │     ├─ ReadProjectFileByName                                               │
 │     ├─ ListProjectFiles                                                    │

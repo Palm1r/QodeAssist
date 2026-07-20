@@ -172,11 +172,7 @@ Session::Session *ChatController::session() const
 }
 
 void ChatController::sendMessage(
-    const QString &message,
-    const QList<QString> &attachments,
-    const QList<QString> &linkedFiles,
-    bool useTools,
-    bool useThinking)
+    const QString &message, const QList<QString> &attachments, bool useTools, bool useThinking)
 {
     if (message.trimmed().isEmpty() && attachments.isEmpty()) {
         LOG_MESSAGE("Ignoring empty chat message");
@@ -187,7 +183,7 @@ void ChatController::sendMessage(
 
     m_session->sendTurn(
         composeUserBlocks(message, attachments),
-        buildTurnContext(message, linkedFiles),
+        buildTurnContext(message),
         Session::TurnOptions{useTools, useThinking});
 }
 
@@ -267,14 +263,12 @@ QList<Session::ContentBlock> ChatController::composeUserBlocks(
     return blocks;
 }
 
-Session::TurnContext ChatController::buildTurnContext(
-    const QString &message, const QList<QString> &linkedFiles) const
+Session::TurnContext ChatController::buildTurnContext(const QString &message) const
 {
     auto &chatAssistantSettings = Settings::chatAssistantSettings();
 
     Session::TurnContextRequest contextRequest;
     contextRequest.message = message;
-    contextRequest.linkedFilePaths = linkedFiles;
     contextRequest.needs = m_backend->contextNeeds();
 
     if (contextRequest.needs.systemPrompt) {
@@ -291,10 +285,9 @@ Session::TurnContext ChatController::buildTurnContext(
     auto *project = Context::RulesLoader::getActiveProject();
 
     ProjectContextQtCreator projectPort(project);
-    LinkedFilesQtCreator linkedFilesPort(m_contextManager);
     auto skillsPort = makeSkillsContext(m_skillsManager, project);
 
-    const Session::TurnContextBuilder builder(projectPort, skillsPort.get(), linkedFilesPort);
+    const Session::TurnContextBuilder builder(projectPort, skillsPort.get());
 
     return builder.build(contextRequest);
 }

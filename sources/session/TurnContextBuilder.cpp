@@ -10,12 +10,9 @@
 namespace QodeAssist::Session {
 
 TurnContextBuilder::TurnContextBuilder(
-    const IProjectContextPort &project,
-    const ISkillsContextPort *skills,
-    const ILinkedFilesPort &linkedFiles)
+    const IProjectContextPort &project, const ISkillsContextPort *skills)
     : m_project(project)
     , m_skills(skills)
-    , m_linkedFiles(linkedFiles)
 {}
 
 TurnContext TurnContextBuilder::build(const TurnContextRequest &request) const
@@ -46,13 +43,6 @@ TurnContext TurnContextBuilder::build(const TurnContextRequest &request) const
                 context.invokedSkills.append(*invokedSkill);
             }
         }
-    }
-
-    context.linkedFilePaths = request.linkedFilePaths;
-    if (!request.linkedFilePaths.isEmpty()) {
-        context.linkedFiles = request.needs.linkedFileContent
-                                  ? m_linkedFiles.readFiles(request.linkedFilePaths)
-                                  : m_linkedFiles.resolvePaths(request.linkedFilePaths);
     }
 
     return context;

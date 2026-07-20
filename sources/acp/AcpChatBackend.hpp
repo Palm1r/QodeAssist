@@ -54,7 +54,7 @@ public:
     void sendTurn(const Session::TurnRequest &request) override;
     void cancel() override;
     bool respondPermission(const QString &requestId, const QString &optionId) override;
-    Session::TurnContextNeeds contextNeeds() const override { return {false, false}; }
+    Session::TurnContextNeeds contextNeeds() const override { return {false}; }
     void setChatFilePath(const QString &filePath) override;
     void clearToolSession(const QString &filePath) override;
 
@@ -67,7 +67,6 @@ private:
     struct PendingTurn
     {
         QList<Session::ContentBlock> userBlocks;
-        QList<Session::LinkedFile> linkedFiles;
     };
 
     void startClient();

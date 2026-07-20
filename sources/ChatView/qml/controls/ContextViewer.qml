@@ -448,7 +448,7 @@ Popup {
         }
 
         Text {
-            text: qsTr("Final prompt: Base System Prompt + Agent Role + Project Info + Project Rules + Linked Files")
+            text: qsTr("Final prompt: Base System Prompt + Agent Role + Project Info + Project Rules")
             font.pixelSize: 9
             color: palette.mid
             wrapMode: Text.WordWrap
