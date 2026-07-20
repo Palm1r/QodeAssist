@@ -10,9 +10,6 @@ QString renderSystemPrompt(const TurnContext &context)
 {
     QString prompt = context.basePrompt;
 
-    if (context.rolePrompt)
-        prompt += "\n\n" + *context.rolePrompt;
-
     if (context.project.available) {
         prompt += QString("\n# Active project: %1").arg(context.project.displayName);
         prompt += QString(
@@ -28,9 +25,6 @@ QString renderSystemPrompt(const TurnContext &context)
                           "create or edit source files here): %1")
                           .arg(*context.project.buildDirectory);
         }
-
-        if (!context.projectRules.isEmpty())
-            prompt += QString("\n# Project Rules\n\n") + context.projectRules;
     } else {
         prompt += QString("\n# No active project in IDE");
     }

@@ -4,10 +4,7 @@
 
 #pragma once
 
-#include <QList>
 #include <QString>
-
-#include <optional>
 
 #include "session/TurnContext.hpp"
 #include "session/TurnContextPorts.hpp"
@@ -18,7 +15,6 @@ struct TurnContextRequest
 {
     QString message;
     QString basePrompt;
-    std::optional<QString> rolePrompt;
     TurnContextNeeds needs;
 };
 

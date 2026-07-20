@@ -158,18 +158,6 @@ ChatRootView {
                     root.loadAvailableConfigurations()
                 }
             }
-
-            roleSelector {
-                model: root.availableAgentRoles
-                displayText: root.currentAgentRole
-                onActivated: function(index) {
-                    root.applyAgentRole(root.availableAgentRoles[index])
-                }
-
-                popup.onAboutToShow: {
-                    root.loadAvailableAgentRoles()
-                }
-            }
         }
 
         RowLayout {
@@ -934,19 +922,8 @@ ChatRootView {
         y: (parent.height - height) / 2
 
         baseSystemPrompt: root.baseSystemPrompt
-        currentAgentRole: root.currentAgentRole
-        currentAgentRoleDescription: root.currentAgentRoleDescription
-        currentAgentRoleSystemPrompt: root.currentAgentRoleSystemPrompt
-        activeRules: root.activeRules
-        activeRulesCount: root.activeRulesCount
 
         onOpenSettings: root.openSettings()
-        onOpenAgentRolesSettings: root.openAgentRolesSettings()
-        onOpenRulesFolder: root.openRulesFolder()
-        onRefreshRules: root.refreshRules()
-        onRuleSelected: function(index) {
-            contextViewer.selectedRuleContent = root.getRuleContent(index)
-        }
     }
 
     Connections {

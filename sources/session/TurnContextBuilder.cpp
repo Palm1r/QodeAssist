@@ -19,11 +19,7 @@ TurnContext TurnContextBuilder::build(const TurnContextRequest &request) const
 {
     TurnContext context;
     context.basePrompt = request.basePrompt;
-    context.rolePrompt = request.rolePrompt;
-
     context.project = m_project.projectInfo();
-    if (context.project.available && request.needs.systemPrompt)
-        context.projectRules = m_project.projectRules();
 
     if (m_skills && request.needs.systemPrompt) {
         context.alwaysOnSkills = m_skills->alwaysOnBodies();

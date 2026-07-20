@@ -39,9 +39,7 @@ struct TurnContextNeeds
 struct TurnContext
 {
     QString basePrompt;
-    std::optional<QString> rolePrompt;
     ProjectInfo project;
-    QString projectRules;
     QString alwaysOnSkills;
     QString skillsCatalog;
     QList<InvokedSkill> invokedSkills;

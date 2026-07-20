@@ -14,7 +14,6 @@
 #include "SettingsConstants.hpp"
 #include "SettingsTr.hpp"
 #include "SettingsUtils.hpp"
-#include "AgentRolesWidget.hpp"
 
 namespace QodeAssist::Settings {
 
@@ -248,9 +247,6 @@ ChatAssistantSettings::ChatAssistantSettings()
     chatRenderer.setDefaultValue("rhi");
 #endif
 
-    lastUsedRoleId.setSettingsKey(Constants::CA_LAST_USED_ROLE);
-    lastUsedRoleId.setDefaultValue("");
-
     resetToDefaults.m_buttonText = TrConstants::RESET_TO_DEFAULTS;
 
     readSettings();
@@ -390,19 +386,5 @@ public:
 };
 
 const ChatAssistantSettingsPage chatAssistantSettingsPage;
-
-class AgentRolesSettingsPage : public Core::IOptionsPage
-{
-public:
-    AgentRolesSettingsPage()
-    {
-        setId("QodeAssist.AgentRoles");
-        setDisplayName(Tr::tr("Agent Roles"));
-        setCategory(Constants::QODE_ASSIST_GENERAL_OPTIONS_CATEGORY);
-        setWidgetCreator([]() { return new AgentRolesWidget(); });
-    }
-};
-
-const AgentRolesSettingsPage agentRolesSettingsPage;
 
 } // namespace QodeAssist::Settings

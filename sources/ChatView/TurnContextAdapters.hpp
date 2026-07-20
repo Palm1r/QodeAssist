@@ -18,13 +18,14 @@ class SkillsManager;
 
 namespace QodeAssist::Chat {
 
+ProjectExplorer::Project *activeProject();
+
 class ProjectContextQtCreator : public Session::IProjectContextPort
 {
 public:
     explicit ProjectContextQtCreator(ProjectExplorer::Project *project);
 
     Session::ProjectInfo projectInfo() const override;
-    QString projectRules() const override;
 
 private:
     ProjectExplorer::Project *m_project = nullptr;

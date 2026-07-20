@@ -21,7 +21,6 @@ class SkillsManager;
 namespace QodeAssist::Chat {
 
 class ChatCompressor;
-class AgentRoleController;
 class ChatConfigurationController;
 class FileEditController;
 class InputTokenCounter;
@@ -44,8 +43,6 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(bool isRequestInProgress READ isRequestInProgress NOTIFY isRequestInProgressChanged FINAL)
     Q_PROPERTY(QString lastErrorMessage READ lastErrorMessage NOTIFY lastErrorMessageChanged FINAL)
     Q_PROPERTY(QString lastInfoMessage READ lastInfoMessage NOTIFY lastInfoMessageChanged FINAL)
-    Q_PROPERTY(QVariantList activeRules READ activeRules NOTIFY activeRulesChanged FINAL)
-    Q_PROPERTY(int activeRulesCount READ activeRulesCount NOTIFY activeRulesCountChanged FINAL)
     Q_PROPERTY(bool useTools READ useTools WRITE setUseTools NOTIFY useToolsChanged FINAL)
     Q_PROPERTY(bool useThinking READ useThinking WRITE setUseThinking NOTIFY useThinkingChanged FINAL)
     Q_PROPERTY(QString sendShortcutText READ sendShortcutText NOTIFY sendShortcutTextChanged FINAL)
@@ -64,11 +61,7 @@ class ChatRootView : public QQuickItem
                    agentSessionIssueChanged FINAL)
     Q_PROPERTY(QStringList availableConfigurations READ availableConfigurations NOTIFY availableConfigurationsChanged FINAL)
     Q_PROPERTY(QString currentConfiguration READ currentConfiguration NOTIFY currentConfigurationChanged FINAL)
-    Q_PROPERTY(QStringList availableAgentRoles READ availableAgentRoles NOTIFY availableAgentRolesChanged FINAL)
-    Q_PROPERTY(QString currentAgentRole READ currentAgentRole NOTIFY currentAgentRoleChanged FINAL)
     Q_PROPERTY(QString baseSystemPrompt READ baseSystemPrompt NOTIFY baseSystemPromptChanged FINAL)
-    Q_PROPERTY(QString currentAgentRoleDescription READ currentAgentRoleDescription NOTIFY currentAgentRoleChanged FINAL)
-    Q_PROPERTY(QString currentAgentRoleSystemPrompt READ currentAgentRoleSystemPrompt NOTIFY currentAgentRoleChanged FINAL)
     Q_PROPERTY(bool isCompressing READ isCompressing NOTIFY isCompressingChanged FINAL)
     Q_PROPERTY(bool isInEditor READ isInEditor NOTIFY isInEditorChanged FINAL)
     Q_PROPERTY(QString chatTitle READ chatTitle NOTIFY chatTitleChanged FINAL)
@@ -104,7 +97,6 @@ public:
     Q_INVOKABLE bool isSendShortcut(int key, int modifiers) const;
     QString sendShortcutText() const;
     Q_INVOKABLE void openChatHistoryFolder();
-    Q_INVOKABLE void openRulesFolder();
     Q_INVOKABLE void openSettings();
 
     Q_INVOKABLE void openFileInEditor(const QString &filePath);
@@ -132,11 +124,6 @@ public:
     void setRequestProgressStatus(bool state);
 
     QString lastErrorMessage() const;
-    
-    QVariantList activeRules() const;
-    int activeRulesCount() const;
-    Q_INVOKABLE QString getRuleContent(int index);
-    Q_INVOKABLE void refreshRules();
 
     Q_INVOKABLE QVariantList searchSkills(const QString &query) const;
 
@@ -166,15 +153,8 @@ public:
     Q_INVOKABLE void compressCurrentChat();
     Q_INVOKABLE void cancelCompression();
 
-    Q_INVOKABLE void loadAvailableAgentRoles();
-    Q_INVOKABLE void applyAgentRole(const QString &roleId);
-    Q_INVOKABLE void openAgentRolesSettings();
-    QStringList availableAgentRoles() const;
-    QString currentAgentRole() const;
     QString baseSystemPrompt() const;
-    QString currentAgentRoleDescription() const;
-    QString currentAgentRoleSystemPrompt() const;
-    
+
     int currentMessageTotalEdits() const;
     int currentMessageAppliedEdits() const;
     int currentMessagePendingEdits() const;
@@ -228,8 +208,6 @@ signals:
     void lastErrorMessageChanged();
     void lastInfoMessageChanged();
     void sendShortcutTextChanged();
-    void activeRulesChanged();
-    void activeRulesCountChanged();
 
     void useToolsChanged();
     void useThinkingChanged();
@@ -242,8 +220,6 @@ signals:
     void currentConfigurationChanged();
     void chatTargetSwitchNeedsNewChat(const QString &targetName);
 
-    void availableAgentRolesChanged();
-    void currentAgentRoleChanged();
     void baseSystemPromptChanged();
 
     void isCompressingChanged();
@@ -296,12 +272,10 @@ private:
     Acp::AgentBinding m_quarantinedBinding;
     bool m_isRequestInProgress;
     QString m_lastErrorMessage;
-    QVariantList m_activeRules;
-    
+
     QString m_lastInfoMessage;
 
     ChatCompressor *m_chatCompressor;
-    AgentRoleController *m_agentRoleController;
     ChatConfigurationController *m_configurationController;
     FileEditController *m_fileEditController;
     InputTokenCounter *m_tokenCounter;

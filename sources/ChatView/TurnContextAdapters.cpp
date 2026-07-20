@@ -4,16 +4,30 @@
 
 #include "TurnContextAdapters.hpp"
 
+#include <coreplugin/editormanager/editormanager.h>
 #include <projectexplorer/buildconfiguration.h>
 #include <projectexplorer/project.h>
+#include <projectexplorer/projectmanager.h>
 #include <projectexplorer/target.h>
 
 #include "ProjectSettings.hpp"
 #include "SkillsSettings.hpp"
-#include "context/RulesLoader.hpp"
 #include "skills/SkillsManager.hpp"
 
 namespace QodeAssist::Chat {
+
+ProjectExplorer::Project *activeProject()
+{
+    auto currentEditor = Core::EditorManager::currentEditor();
+    if (currentEditor && currentEditor->document()) {
+        auto project = ProjectExplorer::ProjectManager::projectForFile(
+            currentEditor->document()->filePath());
+        if (project)
+            return project;
+    }
+
+    return ProjectExplorer::ProjectManager::startupProject();
+}
 
 ProjectContextQtCreator::ProjectContextQtCreator(ProjectExplorer::Project *project)
     : m_project(project)
@@ -35,14 +49,6 @@ Session::ProjectInfo ProjectContextQtCreator::projectInfo() const
     }
 
     return info;
-}
-
-QString ProjectContextQtCreator::projectRules() const
-{
-    if (!m_project)
-        return {};
-
-    return Context::RulesLoader::loadRulesForProject(m_project, Context::RulesContext::Chat);
 }
 
 SkillsContextQtCreator::SkillsContextQtCreator(

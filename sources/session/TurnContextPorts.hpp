@@ -23,7 +23,6 @@ public:
     virtual ~IProjectContextPort() = default;
 
     virtual ProjectInfo projectInfo() const = 0;
-    virtual QString projectRules() const = 0;
 };
 
 class ISkillsContextPort

@@ -6,8 +6,6 @@
 
 #include <QAction>
 #include <QClipboard>
-#include <QDesktopServices>
-#include <QDir>
 #include <QFile>
 #include <QFileDialog>
 #include <QFileInfo>
@@ -16,6 +14,7 @@
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QTextStream>
+#include <QUrl>
 
 #include <coreplugin/actionmanager/actionmanager.h>
 #include <coreplugin/actionmanager/command.h>
@@ -28,7 +27,6 @@
 
 #include "plugin/QodeAssistConstants.hpp"
 
-#include "AgentRoleController.hpp"
 #include "ChatAssistantSettings.hpp"
 #include "ChatConfigurationController.hpp"
 #include "ChatCompressor.hpp"
@@ -41,7 +39,7 @@
 #include "providers/ProvidersManager.hpp"
 #include "SessionFileRegistry.hpp"
 #include "context/ContextManager.hpp"
-#include "context/RulesLoader.hpp"
+#include "TurnContextAdapters.hpp"
 #include "ProjectSettings.hpp"
 #include "SkillsSettings.hpp"
 #include "skills/SkillsManager.hpp"
@@ -73,7 +71,6 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     , m_fileManager(new ChatFileManager(this))
     , m_isRequestInProgress(false)
     , m_chatCompressor(new ChatCompressor(this))
-    , m_agentRoleController(new AgentRoleController(this))
     , m_configurationController(new ChatConfigurationController(this))
     , m_fileEditController(new FileEditController(this))
     , m_tokenCounter(new InputTokenCounter(
@@ -193,18 +190,8 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         this,
         &ChatRootView::inputTokensCountChanged);
     connect(
-        m_agentRoleController,
-        &AgentRoleController::availableRolesChanged,
-        this,
-        &ChatRootView::availableAgentRolesChanged);
-    connect(
-        m_agentRoleController,
-        &AgentRoleController::currentRoleChanged,
-        this,
-        &ChatRootView::currentAgentRoleChanged);
-    connect(
-        m_agentRoleController,
-        &AgentRoleController::baseSystemPromptChanged,
+        &Settings::chatAssistantSettings().systemPrompt,
+        &Utils::BaseAspect::changed,
         this,
         &ChatRootView::baseSystemPromptChanged);
 
@@ -271,14 +258,6 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         m_historyStore, &ChatHistoryStore::saveRequested, this, &ChatRootView::saveHistory);
     connect(
         m_historyStore, &ChatHistoryStore::loadRequested, this, &ChatRootView::loadHistory);
-
-    refreshRules();
-
-    connect(
-        ProjectExplorer::ProjectManager::instance(),
-        &ProjectExplorer::ProjectManager::startupProjectChanged,
-        this,
-        &ChatRootView::refreshRules);
 
     connect(
         &Settings::chatAssistantSettings().enableChatTools,
@@ -385,7 +364,7 @@ QVariantList ChatRootView::searchSkills(const QString &query) const
     if (!manager || !Settings::skillsSettings().enableSkills())
         return results;
 
-    auto *project = Context::RulesLoader::getActiveProject();
+    auto *project = activeProject();
     QStringList projectSkillDirs;
     if (project) {
         Settings::ProjectSettings projectSettings(project);
@@ -758,25 +737,6 @@ void ChatRootView::openChatHistoryFolder()
     m_historyStore->openHistoryFolder();
 }
 
-void ChatRootView::openRulesFolder()
-{
-    auto project = ProjectExplorer::ProjectManager::startupProject();
-    if (!project) {
-        return;
-    }
-
-    QString projectPath = project->projectDirectory().toFSPathString();
-    QString rulesPath = QDir(projectPath).filePath(".qodeassist/rules");
-
-    QDir dir(rulesPath);
-    if (!dir.exists()) {
-        dir.mkpath(".");
-    }
-
-    QUrl url = QUrl::fromLocalFile(dir.absolutePath());
-    QDesktopServices::openUrl(url);
-}
-
 void ChatRootView::openSettings()
 {
     QMetaObject::invokeMethod(
@@ -989,51 +949,6 @@ void ChatRootView::setRequestProgressStatus(bool state)
 QString ChatRootView::lastErrorMessage() const
 {
     return m_lastErrorMessage;
-}
-
-QVariantList ChatRootView::activeRules() const
-{
-    return m_activeRules;
-}
-
-int ChatRootView::activeRulesCount() const
-{
-    return m_activeRules.size();
-}
-
-QString ChatRootView::getRuleContent(int index)
-{
-    if (index < 0 || index >= m_activeRules.size())
-        return QString();
-
-    return Context::RulesLoader::loadRuleFileContent(
-        m_activeRules[index].toMap()["filePath"].toString());
-}
-
-void ChatRootView::refreshRules()
-{
-    m_activeRules.clear();
-
-    auto project = Context::RulesLoader::getActiveProject();
-    if (!project) {
-        emit activeRulesChanged();
-        emit activeRulesCountChanged();
-        return;
-    }
-
-    auto ruleFiles
-        = Context::RulesLoader::getRuleFilesForProject(project, Context::RulesContext::Chat);
-
-    for (const auto &ruleFile : ruleFiles) {
-        QVariantMap ruleMap;
-        ruleMap["filePath"] = ruleFile.filePath;
-        ruleMap["fileName"] = ruleFile.fileName;
-        ruleMap["category"] = ruleFile.category;
-        m_activeRules.append(ruleMap);
-    }
-
-    emit activeRulesChanged();
-    emit activeRulesCountChanged();
 }
 
 bool ChatRootView::useTools() const
@@ -1368,44 +1283,9 @@ QString ChatRootView::currentConfiguration() const
     return m_configurationController->currentConfiguration();
 }
 
-void ChatRootView::loadAvailableAgentRoles()
-{
-    m_agentRoleController->loadAvailableRoles();
-}
-
-void ChatRootView::applyAgentRole(const QString &roleName)
-{
-    m_agentRoleController->applyRole(roleName);
-}
-
-QStringList ChatRootView::availableAgentRoles() const
-{
-    return m_agentRoleController->availableRoles();
-}
-
-QString ChatRootView::currentAgentRole() const
-{
-    return m_agentRoleController->currentRole();
-}
-
 QString ChatRootView::baseSystemPrompt() const
 {
-    return m_agentRoleController->baseSystemPrompt();
-}
-
-QString ChatRootView::currentAgentRoleDescription() const
-{
-    return m_agentRoleController->currentRoleDescription();
-}
-
-QString ChatRootView::currentAgentRoleSystemPrompt() const
-{
-    return m_agentRoleController->currentRoleSystemPrompt();
-}
-
-void ChatRootView::openAgentRolesSettings()
-{
-    m_agentRoleController->openSettings();
+    return Settings::chatAssistantSettings().systemPrompt();
 }
 
 void ChatRootView::compressCurrentChat()

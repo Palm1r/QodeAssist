@@ -10,7 +10,6 @@ add_library(Context STATIC
     IContextManager.hpp
     IgnoreManager.hpp IgnoreManager.cpp
     ProjectUtils.hpp ProjectUtils.cpp
-    RulesLoader.hpp RulesLoader.cpp
 )
 
 target_link_libraries(Context

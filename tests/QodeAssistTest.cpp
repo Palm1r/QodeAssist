@@ -206,17 +206,14 @@ QList<Session::SessionEvent> scriptedTurn(const QString &turnId)
 class FakeProjectContext : public Session::IProjectContextPort
 {
 public:
-    FakeProjectContext(Session::ProjectInfo info, QString rules)
+    explicit FakeProjectContext(Session::ProjectInfo info)
         : m_info(std::move(info))
-        , m_rules(std::move(rules))
     {}
 
     Session::ProjectInfo projectInfo() const override { return m_info; }
-    QString projectRules() const override { return m_rules; }
 
 private:
     Session::ProjectInfo m_info;
-    QString m_rules;
 };
 
 class FakeSkillsContext : public Session::ISkillsContextPort
@@ -2248,24 +2245,20 @@ void QodeAssistTest::testPermissionBlockReopensAsUnanswerable()
 
 void QodeAssistTest::testTurnContextCollectsPartsFromPorts()
 {
-    FakeProjectContext projectPort(sampleProject(), "Always use tabs.");
+    FakeProjectContext projectPort(sampleProject());
     FakeSkillsContext skillsPort(
         "# Always on", "# Skills catalog", {Session::InvokedSkill{"review", "Review body"}});
 
     Session::TurnContextRequest request;
     request.message = "please /review this";
     request.basePrompt = "You are a helpful assistant.";
-    request.rolePrompt = "Act as a reviewer.";
 
     const Session::TurnContext context
         = Session::TurnContextBuilder(projectPort, &skillsPort).build(request);
 
     QCOMPARE(context.basePrompt, QString("You are a helpful assistant."));
-    QVERIFY(context.rolePrompt.has_value());
-    QCOMPARE(*context.rolePrompt, QString("Act as a reviewer."));
     QVERIFY(context.project.available);
     QCOMPARE(context.project.displayName, QString("QodeAssist"));
-    QCOMPARE(context.projectRules, QString("Always use tabs."));
     QCOMPARE(context.alwaysOnSkills, QString("# Always on"));
     QCOMPARE(context.skillsCatalog, QString("# Skills catalog"));
     QCOMPARE(context.invokedSkills.size(), 1);
@@ -2274,7 +2267,7 @@ void QodeAssistTest::testTurnContextCollectsPartsFromPorts()
 
 void QodeAssistTest::testTurnContextSkipsWhatTheBackendDoesNotNeed()
 {
-    FakeProjectContext projectPort(sampleProject(), "Always use tabs.");
+    FakeProjectContext projectPort(sampleProject());
     FakeSkillsContext skillsPort(
         "# Always on", "# Skills catalog", {Session::InvokedSkill{"review", "Review body"}});
 
@@ -2285,7 +2278,6 @@ void QodeAssistTest::testTurnContextSkipsWhatTheBackendDoesNotNeed()
     const Session::TurnContext context
         = Session::TurnContextBuilder(projectPort, &skillsPort).build(request);
 
-    QVERIFY(context.projectRules.isEmpty());
     QVERIFY(context.alwaysOnSkills.isEmpty());
     QVERIFY(context.skillsCatalog.isEmpty());
     QVERIFY(context.invokedSkills.isEmpty());
@@ -2307,7 +2299,7 @@ void QodeAssistTest::testFencedFileBlockOutgrowsBackticksInContent()
 
 void QodeAssistTest::testTurnContextSkillCommandScanning()
 {
-    FakeProjectContext projectPort({}, QString());
+    FakeProjectContext projectPort({});
     FakeSkillsContext skillsPort(
         QString(),
         QString(),
@@ -2328,7 +2320,7 @@ void QodeAssistTest::testTurnContextSkillCommandScanning()
 
 void QodeAssistTest::testTurnContextWithoutSkillsPort()
 {
-    FakeProjectContext projectPort(sampleProject(), QString());
+    FakeProjectContext projectPort(sampleProject());
 
     Session::TurnContextRequest request;
     request.message = "/review this";
@@ -2346,23 +2338,19 @@ void QodeAssistTest::testSystemPromptRenderingWithProject()
 {
     Session::TurnContext context;
     context.basePrompt = "You are helpful.";
-    context.rolePrompt = "Be terse.";
     context.project = sampleProject();
-    context.projectRules = "Use tabs.";
     context.alwaysOnSkills = "# Always on";
     context.skillsCatalog = "# Catalog";
     context.invokedSkills = {Session::InvokedSkill{"review", "Review body"}};
 
     const QString expected
         = "You are helpful."
-          "\n\nBe terse."
           "\n# Active project: QodeAssist"
           "\n# Project source root: /src/QodeAssist"
           "\n#   All new source files, headers, QML and CMake edits MUST be created or modified "
           "under this directory. Use absolute paths rooted here, or project-relative paths."
           "\n# Build output directory (compiler artifacts only — do NOT create or edit source "
           "files here): /src/QodeAssist/build"
-          "\n# Project Rules\n\nUse tabs."
           "\n\n# Always on"
           "\n\n# Catalog"
           "\n\n# Invoked Skill: review\n\nReview body";

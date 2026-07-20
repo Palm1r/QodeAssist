@@ -16,7 +16,6 @@
 #include "LlmChatBackend.hpp"
 #include "TurnContextAdapters.hpp"
 #include "context/ChangesManager.h"
-#include "context/RulesLoader.hpp"
 #include "logger/Logger.hpp"
 #include "session/FileEditPayload.hpp"
 #include "session/TurnContextBuilder.hpp"
@@ -271,18 +270,10 @@ Session::TurnContext ChatController::buildTurnContext(const QString &message) co
     contextRequest.message = message;
     contextRequest.needs = m_backend->contextNeeds();
 
-    if (contextRequest.needs.systemPrompt) {
+    if (contextRequest.needs.systemPrompt)
         contextRequest.basePrompt = chatAssistantSettings.systemPrompt();
 
-        const QString lastRoleId = chatAssistantSettings.lastUsedRoleId();
-        if (!lastRoleId.isEmpty()) {
-            const Settings::AgentRole role = Settings::AgentRolesManager::loadRole(lastRoleId);
-            if (!role.id.isEmpty())
-                contextRequest.rolePrompt = role.systemPrompt;
-        }
-    }
-
-    auto *project = Context::RulesLoader::getActiveProject();
+    auto *project = activeProject();
 
     ProjectContextQtCreator projectPort(project);
     auto skillsPort = makeSkillsContext(m_skillsManager, project);
