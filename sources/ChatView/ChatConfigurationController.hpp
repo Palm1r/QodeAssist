@@ -28,6 +28,8 @@ public:
     QStringList availableConfigurations() const;
     QString currentConfiguration() const;
 
+    void setAgentCatalog(Acp::AgentCatalogStore *store);
+
     void loadAvailableConfigurations();
     void applyConfiguration(const QString &configName);
 

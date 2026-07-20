@@ -282,7 +282,7 @@ QJsonObject toolDetailsOf(const LLMQore::Acp::ToolCall &toolCall)
 AcpChatBackend::AcpChatBackend(QObject *parent)
     : Session::ChatBackend(parent)
     , m_clientFactory(&spawnAgent)
-    , m_permissions(new ChatPermissionProvider(this))
+    , m_permissions(new ChatPermissionProvider(&m_ledger, this))
 {
     m_permissions->setRequestHandler(
         [this](
@@ -386,9 +386,9 @@ void AcpChatBackend::sendTurn(const Session::TurnRequest &request)
 
     m_pendingTurn = PendingTurn{request.userBlocks};
 
-    m_activeTurnId = QStringLiteral("acp-%1").arg(++m_turnCounter);
+    const QString turnId = m_ledger.beginTurn(QStringLiteral("acp-%1").arg(++m_turnCounter));
     m_stderr.clear();
-    emit sessionEvent(Session::TurnStarted{.turnId = m_activeTurnId});
+    emit sessionEvent(Session::TurnStarted{.turnId = turnId});
 
     if (!m_client) {
         startClient();
@@ -429,7 +429,7 @@ void AcpChatBackend::startClient()
                 if (generation != m_clientGeneration)
                     return;
                 m_agentInfo = result;
-                if (!m_activeTurnId.isEmpty())
+                if (m_ledger.hasActiveTurn())
                     resumeOrStartSession();
             })
         .onFailed(this, [this, generation](const std::exception &e) {
@@ -492,8 +492,7 @@ void AcpChatBackend::resumeOrStartSession()
                 m_establishingSession = false;
                 m_resumeSessionId.clear();
                 m_sessionId = result.sessionId.isEmpty() ? resumed : result.sessionId;
-                emit agentSessionStarted(m_sessionId);
-                if (!m_activeTurnId.isEmpty())
+                if (m_ledger.hasActiveTurn())
                     sendPrompt();
             })
         .onFailed(this, [this, generation](const std::exception &e) {
@@ -529,8 +528,7 @@ void AcpChatBackend::startSession()
                     return;
                 m_establishingSession = false;
                 m_sessionId = result.sessionId;
-                emit agentSessionStarted(m_sessionId);
-                if (!m_activeTurnId.isEmpty())
+                if (m_ledger.hasActiveTurn())
                     sendPrompt();
             })
         .onFailed(
@@ -562,14 +560,20 @@ void AcpChatBackend::authenticateAndRetry()
 
     m_authenticated = true;
 
+    const int generation = m_clientGeneration;
+    const QString turnId = m_ledger.activeTurnId();
+
     m_client->authenticate(method.id, std::chrono::minutes(5))
         .then(
             this,
-            [this]() {
-                if (!m_activeTurnId.isEmpty())
-                    resumeOrStartSession();
+            [this, generation, turnId]() {
+                if (generation != m_clientGeneration || !m_ledger.isActiveTurn(turnId))
+                    return;
+                resumeOrStartSession();
             })
-        .onFailed(this, [this, method](const std::exception &e) {
+        .onFailed(this, [this, generation, turnId, method](const std::exception &e) {
+            if (generation != m_clientGeneration || !m_ledger.isActiveTurn(turnId))
+                return;
             failTurn(
                 tr("Authentication (%1) failed: %2")
                     .arg(method.name.isEmpty() ? method.id : method.name)
@@ -686,13 +690,13 @@ void AcpChatBackend::appendImage(
 
 void AcpChatBackend::sendPrompt()
 {
-    const QString turnId = m_activeTurnId;
+    const QString turnId = m_ledger.activeTurnId();
 
     m_client->prompt(m_sessionId, buildPrompt(), std::chrono::minutes(30))
         .then(
             this,
             [this, turnId](const LLMQore::Acp::PromptResult &result) {
-                if (turnId != m_activeTurnId)
+                if (!m_ledger.isActiveTurn(turnId))
                     return;
 
                 m_handoverSummary.clear();
@@ -702,13 +706,12 @@ void AcpChatBackend::sendPrompt()
                     emit sessionEvent(
                         Session::UsageReported{.turnId = turnId, .usage = usage});
 
-                m_activeTurnId.clear();
                 m_pendingTurn = {};
-                cancelPendingPermissions(turnId);
+                finishTurn(turnId);
                 emit sessionEvent(Session::TurnCompleted{.turnId = turnId});
             })
         .onFailed(this, [this, turnId](const std::exception &e) {
-            if (turnId != m_activeTurnId)
+            if (!m_ledger.isActiveTurn(turnId))
                 return;
             failTurn(QString::fromUtf8(e.what()), false);
         });
@@ -722,9 +725,9 @@ void AcpChatBackend::connectClient()
         this,
         [this](const QString &, const LLMQore::Acp::ContentBlock &content) {
             const QString text = textOf(content);
-            if (m_activeTurnId.isEmpty() || text.isEmpty())
+            if (!m_ledger.hasActiveTurn() || text.isEmpty())
                 return;
-            emit sessionEvent(Session::TextDelta{.turnId = m_activeTurnId, .text = text});
+            emit sessionEvent(Session::TextDelta{.turnId = m_ledger.activeTurnId(), .text = text});
         });
 
     connect(
@@ -733,18 +736,19 @@ void AcpChatBackend::connectClient()
         this,
         [this](const QString &, const LLMQore::Acp::ContentBlock &content) {
             const QString text = textOf(content);
-            if (m_activeTurnId.isEmpty() || text.isEmpty())
+            if (!m_ledger.hasActiveTurn() || text.isEmpty())
                 return;
-            emit sessionEvent(Session::ThinkingReceived{.turnId = m_activeTurnId, .text = text});
+            emit sessionEvent(
+                Session::ThinkingReceived{.turnId = m_ledger.activeTurnId(), .text = text});
         });
 
     const auto onToolCall
         = [this](const QString &sessionId, const LLMQore::Acp::ToolCall &toolCall) {
-              if (m_activeTurnId.isEmpty() || sessionId != m_sessionId)
+              if (!m_ledger.hasActiveTurn() || sessionId != m_sessionId)
                   return;
               emit sessionEvent(
                   Session::ToolCallUpdated{
-                      .turnId = m_activeTurnId,
+                      .turnId = m_ledger.activeTurnId(),
                       .toolId = toolCall.toolCallId,
                       .name = singleLineAgentText(toolCall.title, maxPermissionTitleLength),
                       .kind = singleLineAgentText(toolCall.kind, maxPermissionKindLength),
@@ -761,7 +765,7 @@ void AcpChatBackend::connectClient()
         &LLMQore::Acp::AcpClient::planUpdated,
         this,
         [this](const QString &, const LLMQore::Acp::Plan &plan) {
-            if (m_activeTurnId.isEmpty())
+            if (!m_ledger.hasActiveTurn())
                 return;
 
             QList<Session::PlanEntry> entries;
@@ -770,7 +774,7 @@ void AcpChatBackend::connectClient()
                 entries.append(Session::PlanEntry{entry.content, entry.priority, entry.status});
 
             emit sessionEvent(
-                Session::PlanUpdated{.turnId = m_activeTurnId, .entries = entries});
+                Session::PlanUpdated{.turnId = m_ledger.activeTurnId(), .entries = entries});
         });
 
     connect(
@@ -791,7 +795,7 @@ void AcpChatBackend::connectClient()
     });
 
     connect(m_client, &LLMQore::Acp::AcpClient::errorOccurred, this, [this](const QString &error) {
-        if (m_activeTurnId.isEmpty()) {
+        if (!m_ledger.hasActiveTurn()) {
             LOG_MESSAGE(QString("Agent reported an error outside a turn: %1").arg(error));
             releaseClient();
             return;
@@ -805,15 +809,15 @@ void AcpChatBackend::requestPermission(
     const LLMQore::Acp::ToolCall &toolCall,
     const QList<LLMQore::Acp::PermissionOption> &options)
 {
-    if (m_activeTurnId.isEmpty()) {
+    if (!m_ledger.hasActiveTurn()) {
         LOG_MESSAGE(
             QString("Cancelling agent permission request %1 that arrived outside a turn")
                 .arg(requestId));
-        m_permissions->cancel(requestId);
+        m_ledger.cancelPermission(requestId);
         return;
     }
 
-    const QString turnId = m_activeTurnId;
+    const QString turnId = m_ledger.activeTurnId();
     const QString title = clampAgentText(toolCall.title, maxPermissionTitleLength);
 
     QList<Session::PermissionOption> offered;
@@ -844,7 +848,7 @@ void AcpChatBackend::requestPermission(
             .options = offered});
 
     if (!rejection.isEmpty()) {
-        m_permissions->cancel(requestId);
+        m_ledger.cancelPermission(requestId);
         emit sessionEvent(
             Session::PermissionResolved{
                 .turnId = turnId, .requestId = requestId, .cancelled = true});
@@ -853,37 +857,45 @@ void AcpChatBackend::requestPermission(
 
 bool AcpChatBackend::respondPermission(const QString &requestId, const QString &optionId)
 {
-    if (!m_permissions->respond(requestId, optionId))
+    if (!m_ledger.resolvePermission(requestId, optionId))
         return false;
 
     emit sessionEvent(
         Session::PermissionResolved{
-            .turnId = m_activeTurnId, .requestId = requestId, .optionId = optionId});
+            .turnId = m_ledger.activeTurnId(), .requestId = requestId, .optionId = optionId});
     return true;
 }
 
-void AcpChatBackend::cancelPendingPermissions(const QString &turnId)
+void AcpChatBackend::emitPermissionsCancelled(const QString &turnId, const QStringList &requestIds)
 {
-    const QStringList cancelled = m_permissions->cancelAll();
-    for (const QString &requestId : cancelled) {
+    for (const QString &requestId : requestIds) {
         emit sessionEvent(
             Session::PermissionResolved{
                 .turnId = turnId, .requestId = requestId, .cancelled = true});
     }
 }
 
+void AcpChatBackend::cancelPendingPermissions(const QString &turnId)
+{
+    emitPermissionsCancelled(turnId, m_ledger.drainPermissions());
+}
+
+void AcpChatBackend::finishTurn(const QString &turnId)
+{
+    emitPermissionsCancelled(turnId, m_ledger.endTurn());
+}
+
 void AcpChatBackend::cancel()
 {
-    const QString turnId = m_activeTurnId;
-    const bool hadTurn = !turnId.isEmpty();
+    const QString turnId = m_ledger.activeTurnId();
+    const bool hadTurn = m_ledger.hasActiveTurn();
 
-    m_activeTurnId.clear();
     m_pendingTurn = {};
 
     if (hadTurn && !m_sessionId.isEmpty())
         m_handoverSummary.clear();
 
-    cancelPendingPermissions(turnId);
+    finishTurn(turnId);
 
     if (hadTurn && m_client && !m_sessionId.isEmpty())
         m_client->cancel(m_sessionId);
@@ -901,14 +913,13 @@ void AcpChatBackend::clearToolSession(const QString &filePath)
 
 void AcpChatBackend::failTurn(const QString &error, bool dropProcess)
 {
-    if (m_activeTurnId.isEmpty())
+    if (!m_ledger.hasActiveTurn())
         return;
 
-    const QString turnId = m_activeTurnId;
-    m_activeTurnId.clear();
+    const QString turnId = m_ledger.activeTurnId();
     m_pendingTurn = {};
 
-    cancelPendingPermissions(turnId);
+    finishTurn(turnId);
 
     QString details = error;
 
@@ -941,7 +952,7 @@ void AcpChatBackend::releaseClient()
     m_authenticated = false;
     stopKnowledgeServer();
 
-    cancelPendingPermissions(m_activeTurnId);
+    cancelPendingPermissions(m_ledger.activeTurnId());
 
     if (!client)
         return;

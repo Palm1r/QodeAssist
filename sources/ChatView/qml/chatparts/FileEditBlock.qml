@@ -8,6 +8,7 @@ import QtQuick.Layouts
 import UIControls
 import ChatView
 import Qt.labs.platform as Platform
+import "BlockPayload.js" as BlockPayload
 
 Rectangle {
     id: root
@@ -84,23 +85,15 @@ Rectangle {
     readonly property int removedLines: countLines(oldContent)
 
     function parseEditData(content) {
-        try {
-            const marker = "QODEASSIST_FILE_EDIT:";
-            let jsonStr = content;
-            if (content.indexOf(marker) >= 0) {
-                jsonStr = content.substring(content.indexOf(marker) + marker.length);
-            }
-            return JSON.parse(jsonStr);
-        } catch (e) {
-            return {
-                edit_id: "",
-                file: "",
-                old_content: "",
-                new_content: "",
-                status: "error",
-                status_message: ""
-            };
-        }
+        const parsed = BlockPayload.parseFileEdit(content);
+        return parsed !== null ? parsed : {
+            edit_id: "",
+            file: "",
+            old_content: "",
+            new_content: "",
+            status: "error",
+            status_message: ""
+        };
     }
 
     function getFileName(path) {

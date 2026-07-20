@@ -19,6 +19,7 @@
 #include "session/ChatBackend.hpp"
 #include "session/ContentBlock.hpp"
 #include "session/TurnContext.hpp"
+#include "session/TurnLedger.hpp"
 
 namespace QodeAssist::Acp {
 
@@ -59,7 +60,6 @@ public:
     void clearToolSession(const QString &filePath) override;
 
 signals:
-    void agentSessionStarted(const QString &sessionId);
     void agentTitleSuggested(const QString &title);
     void agentSessionUnavailable(const QString &reason);
 
@@ -87,7 +87,9 @@ private:
         const QString &requestId,
         const LLMQore::Acp::ToolCall &toolCall,
         const QList<LLMQore::Acp::PermissionOption> &options);
+    void emitPermissionsCancelled(const QString &turnId, const QStringList &requestIds);
     void cancelPendingPermissions(const QString &turnId);
+    void finishTurn(const QString &turnId);
     void failTurn(const QString &error, bool dropProcess);
     void releaseClient();
 
@@ -110,7 +112,7 @@ private:
     QString m_chatFilePath;
     QString m_resumeSessionId;
     QString m_handoverSummary;
-    QString m_activeTurnId;
+    Session::TurnLedger m_ledger;
     int m_clientGeneration = 0;
     bool m_establishingSession = false;
     PendingTurn m_pendingTurn;

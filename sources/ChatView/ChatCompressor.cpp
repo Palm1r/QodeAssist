@@ -229,12 +229,13 @@ void ChatCompressor::buildRequestPayload(
 
     QVector<LLMCore::Message> messages;
     for (const Session::MessageRow &row : std::as_const(m_rows)) {
-        if (Session::isTranscriptOnlyRow(row.kind) || row.kind == Session::RowKind::Tool
-            || row.kind == Session::RowKind::Thinking)
+        const Session::RowTreatment treatment
+            = Session::rowTreatmentFor(Session::RowAudience::Compression, row.kind);
+        if (treatment == Session::RowTreatment::Omit)
             continue;
 
         LLMCore::Message apiMessage;
-        apiMessage.role = row.kind == Session::RowKind::User ? "user" : "assistant";
+        apiMessage.role = treatment == Session::RowTreatment::UserText ? "user" : "assistant";
         apiMessage.content = row.content;
         messages.append(apiMessage);
     }

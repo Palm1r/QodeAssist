@@ -2,13 +2,12 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Additional attribution terms under GPLv3 §7(b) apply — see LICENSE
 
-#include "ChatFileManager.hpp"
+#include "AttachmentStaging.hpp"
 #include "Logger.hpp"
 
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QStandardPaths>
 #include <QUuid>
 #include <QDateTime>
 #include <QRegularExpression>
@@ -17,14 +16,14 @@
 
 namespace QodeAssist::Chat {
 
-ChatFileManager::ChatFileManager(QObject *parent)
+AttachmentStaging::AttachmentStaging(QObject *parent)
     : QObject(parent)
     , m_intermediateStorageDir(getIntermediateStorageDir())
 {}
 
-ChatFileManager::~ChatFileManager() = default;
+AttachmentStaging::~AttachmentStaging() = default;
 
-QStringList ChatFileManager::processDroppedFiles(const QStringList &filePaths)
+QStringList AttachmentStaging::processDroppedFiles(const QStringList &filePaths)
 {
     QStringList processedPaths;
     processedPaths.reserve(filePaths.size());
@@ -52,17 +51,17 @@ QStringList ChatFileManager::processDroppedFiles(const QStringList &filePaths)
     return processedPaths;
 }
 
-void ChatFileManager::setChatFilePath(const QString &chatFilePath)
+void AttachmentStaging::setChatFilePath(const QString &chatFilePath)
 {
     m_chatFilePath = chatFilePath;
 }
 
-QString ChatFileManager::chatFilePath() const
+QString AttachmentStaging::chatFilePath() const
 {
     return m_chatFilePath;
 }
 
-void ChatFileManager::clearIntermediateStorage()
+void AttachmentStaging::clearIntermediateStorage()
 {
     QDir dir(m_intermediateStorageDir);
     if (!dir.exists()) {
@@ -82,13 +81,13 @@ void ChatFileManager::clearIntermediateStorage()
     }
 }
 
-bool ChatFileManager::isFileAccessible(const QString &filePath)
+bool AttachmentStaging::isFileAccessible(const QString &filePath)
 {
     QFileInfo fileInfo(filePath);
     return fileInfo.exists() && fileInfo.isFile() && fileInfo.isReadable();
 }
 
-void ChatFileManager::cleanupGlobalIntermediateStorage()
+void AttachmentStaging::cleanupGlobalIntermediateStorage()
 {
     const QString basePath = Core::ICore::userResourcePath().toFSPathString();
     const QString intermediatePath = QDir(basePath).filePath("qodeassist/chat_temp_files");
@@ -113,13 +112,13 @@ void ChatFileManager::cleanupGlobalIntermediateStorage()
     }
 
     if (removedCount > 0 || failedCount > 0) {
-        LOG_MESSAGE(QString("ChatFileManager global cleanup: removed=%1, failed=%2")
+        LOG_MESSAGE(QString("AttachmentStaging global cleanup: removed=%1, failed=%2")
                         .arg(removedCount)
                         .arg(failedCount));
     }
 }
 
-QString ChatFileManager::copyToIntermediateStorage(const QString &filePath)
+QString AttachmentStaging::copyToIntermediateStorage(const QString &filePath)
 {
     QFileInfo fileInfo(filePath);
     if (!fileInfo.exists() || !fileInfo.isFile()) {
@@ -154,7 +153,7 @@ QString ChatFileManager::copyToIntermediateStorage(const QString &filePath)
     return destinationPath;
 }
 
-QString ChatFileManager::getIntermediateStorageDir()
+QString AttachmentStaging::getIntermediateStorageDir()
 {
     const QString basePath = Core::ICore::userResourcePath().toFSPathString();
     const QString intermediatePath = QDir(basePath).filePath("qodeassist/chat_temp_files");
@@ -168,7 +167,7 @@ QString ChatFileManager::getIntermediateStorageDir()
     return intermediatePath;
 }
 
-QString ChatFileManager::generateIntermediateFileName(const QString &originalPath)
+QString AttachmentStaging::generateIntermediateFileName(const QString &originalPath)
 {
     const QFileInfo fileInfo(originalPath);
     const QString extension = fileInfo.suffix();

@@ -76,8 +76,8 @@ QString unavailableGuidance(const Acp::AgentDefinition &agent)
 
 } // namespace
 
-AgentsWidget::AgentsWidget()
-    : m_store(new Acp::AgentCatalogStore(this))
+AgentsWidget::AgentsWidget(Acp::AgentCatalogStore *store)
+    : m_store(store)
     , m_tester(new Acp::AgentTester(this))
 {
     setupUI();
@@ -337,18 +337,12 @@ QString AgentsWidget::testWorkingDirectory()
     return QDir::homePath();
 }
 
-class AgentsSettingsPage : public Core::IOptionsPage
+AgentsSettingsPage::AgentsSettingsPage(Acp::AgentCatalogStore *store)
 {
-public:
-    AgentsSettingsPage()
-    {
-        setId(Constants::QODE_ASSIST_AGENTS_SETTINGS_PAGE_ID);
-        setDisplayName(Tr::tr("Agents"));
-        setCategory(Constants::QODE_ASSIST_GENERAL_OPTIONS_CATEGORY);
-        setWidgetCreator([]() { return new AgentsWidget(); });
-    }
-};
-
-const AgentsSettingsPage agentsSettingsPage;
+    setId(Constants::QODE_ASSIST_AGENTS_SETTINGS_PAGE_ID);
+    setDisplayName(Tr::tr("Agents"));
+    setCategory(Constants::QODE_ASSIST_GENERAL_OPTIONS_CATEGORY);
+    setWidgetCreator([store]() { return new AgentsWidget(store); });
+}
 
 } // namespace QodeAssist::Settings

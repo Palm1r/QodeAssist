@@ -10,7 +10,6 @@
 #include <QUrl>
 
 #include <algorithm>
-#include <tuple>
 
 #include "logger/Logger.hpp"
 
@@ -18,19 +17,33 @@ namespace QodeAssist::Chat {
 
 namespace {
 
-auto usageOf(const ChatModel::Message &message)
+ChatModel::ChatRole toChatRole(Session::RowKind kind)
 {
-    return std::tie(
-        message.promptTokens,
-        message.completionTokens,
-        message.cachedPromptTokens,
-        message.reasoningTokens);
+    switch (kind) {
+    case Session::RowKind::System:
+        return ChatModel::ChatRole::System;
+    case Session::RowKind::User:
+        return ChatModel::ChatRole::User;
+    case Session::RowKind::Assistant:
+        return ChatModel::ChatRole::Assistant;
+    case Session::RowKind::Tool:
+    case Session::RowKind::AgentTool:
+        return ChatModel::ChatRole::Tool;
+    case Session::RowKind::FileEdit:
+        return ChatModel::ChatRole::FileEdit;
+    case Session::RowKind::Thinking:
+        return ChatModel::ChatRole::Thinking;
+    case Session::RowKind::Permission:
+        return ChatModel::ChatRole::Permission;
+    case Session::RowKind::Plan:
+        return ChatModel::ChatRole::Plan;
+    }
+    return ChatModel::ChatRole::Assistant;
 }
 
-bool carriesUsage(const ChatModel::Message &message)
+bool carriesUsage(const Session::MessageRow &row)
 {
-    return message.promptTokens != 0 || message.completionTokens != 0
-           || message.cachedPromptTokens != 0 || message.reasoningTokens != 0;
+    return !row.usage.isEmpty();
 }
 
 } // namespace
@@ -49,10 +62,10 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
     if (!index.isValid() || index.row() >= m_messages.size())
         return QVariant();
 
-    const Message &message = m_messages[index.row()];
+    const Session::MessageRow &message = m_messages[index.row()];
     switch (static_cast<Roles>(role)) {
     case Roles::RoleType:
-        return QVariant::fromValue(message.role);
+        return QVariant::fromValue(toChatRole(message.kind));
     case Roles::Content: {
         return message.content;
     }
@@ -60,43 +73,47 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
         QVariantList attachmentsList;
         for (const auto &attachment : message.attachments) {
             QVariantMap attachmentMap;
-            attachmentMap["fileName"] = attachment.filename;
-            attachmentMap["storedPath"] = attachment.content;
-            
+            attachmentMap["fileName"] = attachment.fileName;
+            attachmentMap["storedPath"] = attachment.storedPath;
+
             if (!m_chatFilePath.isEmpty()) {
                 QFileInfo fileInfo(m_chatFilePath);
                 QString baseName = fileInfo.completeBaseName();
                 QString dirPath = fileInfo.absolutePath();
                 QString contentFolder = QDir(dirPath).filePath(baseName + "_content");
-                QString fullPath = QDir(contentFolder).filePath(attachment.content);
+                QString fullPath = QDir(contentFolder).filePath(attachment.storedPath);
                 attachmentMap["filePath"] = fullPath;
             } else {
                 attachmentMap["filePath"] = QString();
             }
-            
+
             attachmentsList.append(attachmentMap);
         }
         return attachmentsList;
     }
     case Roles::IsRedacted: {
-        return message.isRedacted;
+        return message.redacted;
     }
     case Roles::PromptTokens:
-        return message.promptTokens;
+        return message.usage.promptTokens;
     case Roles::CompletionTokens:
-        return message.completionTokens;
+        return message.usage.completionTokens;
     case Roles::CachedPromptTokens:
-        return message.cachedPromptTokens;
+        return message.usage.cachedPromptTokens;
     case Roles::ReasoningTokens:
-        return message.reasoningTokens;
+        return message.usage.reasoningTokens;
     case Roles::TotalTokens:
-        return message.promptTokens + message.completionTokens;
+        return message.usage.promptTokens + message.usage.completionTokens;
     case Roles::ToolKind:
         return message.toolKind;
     case Roles::ToolStatus:
         return message.toolStatus;
+    case Roles::ToolName:
+        return message.toolName;
+    case Roles::ToolResult:
+        return message.toolResult;
     case Roles::ToolDetails:
-        return message.toolDetails;
+        return QVariant::fromValue(message.toolDetails);
     case Roles::Images: {
         QVariantList imagesList;
         for (const auto &image : message.images) {
@@ -104,7 +121,7 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
             imageMap["fileName"] = image.fileName;
             imageMap["storedPath"] = image.storedPath;
             imageMap["mediaType"] = image.mediaType;
-            
+
             if (!m_chatFilePath.isEmpty()) {
                 QFileInfo fileInfo(m_chatFilePath);
                 QString baseName = fileInfo.completeBaseName();
@@ -117,7 +134,7 @@ QVariant ChatModel::data(const QModelIndex &index, int role) const
                 imageMap["imageUrl"] = QString();
                 imageMap["filePath"] = QString();
             }
-            
+
             imagesList.append(imageMap);
         }
         return imagesList;
@@ -143,32 +160,34 @@ QHash<int, QByteArray> ChatModel::roleNames() const
     roles[Roles::ToolKind] = "toolKind";
     roles[Roles::ToolStatus] = "toolStatus";
     roles[Roles::ToolDetails] = "toolDetails";
+    roles[Roles::ToolName] = "toolName";
+    roles[Roles::ToolResult] = "toolResult";
     return roles;
 }
 
-void ChatModel::resetMessages(const QVector<Message> &messages)
+void ChatModel::resetMessages(const QList<Session::MessageRow> &rows)
 {
     beginResetModel();
-    m_messages = messages;
+    m_messages = rows;
     endResetModel();
     emit modelReseted();
     emit sessionUsageChanged();
 }
 
-void ChatModel::appendMessages(const QVector<Message> &messages)
+void ChatModel::appendMessages(const QList<Session::MessageRow> &rows)
 {
-    if (messages.isEmpty())
+    if (rows.isEmpty())
         return;
 
-    beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size() + messages.size() - 1);
-    m_messages.append(messages);
+    beginInsertRows(QModelIndex(), m_messages.size(), m_messages.size() + rows.size() - 1);
+    m_messages.append(rows);
     endInsertRows();
 
-    if (std::any_of(messages.cbegin(), messages.cend(), carriesUsage))
+    if (std::any_of(rows.cbegin(), rows.cend(), carriesUsage))
         emit sessionUsageChanged();
 }
 
-void ChatModel::updateMessage(int index, const Message &message)
+void ChatModel::updateMessage(int index, const Session::MessageRow &row)
 {
     if (index < 0 || index >= m_messages.size()) {
         LOG_MESSAGE(QString("Session/model desync: update of row %1 with %2 rows present")
@@ -177,8 +196,8 @@ void ChatModel::updateMessage(int index, const Message &message)
         return;
     }
 
-    const bool usageChanged = usageOf(m_messages[index]) != usageOf(message);
-    m_messages[index] = message;
+    const bool usageChanged = m_messages[index].usage != row.usage;
+    m_messages[index] = row;
     emit dataChanged(this->index(index), this->index(index));
 
     if (usageChanged)
@@ -271,7 +290,7 @@ QVariantList ChatModel::userMessagePreviews(int maxLength) const
     QVariantList result;
     const int limit = maxLength > 4 ? maxLength : 80;
     for (int i = 0; i < m_messages.size(); ++i) {
-        if (m_messages[i].role != ChatRole::User)
+        if (m_messages[i].kind != Session::RowKind::User)
             continue;
         QString preview = m_messages[i].content;
         preview.replace(QLatin1Char('\n'), QLatin1Char(' '));
@@ -292,7 +311,7 @@ int ChatModel::sessionPromptTokens() const
 {
     int total = 0;
     for (const auto &m : m_messages)
-        total += m.promptTokens;
+        total += m.usage.promptTokens;
     return total;
 }
 
@@ -300,7 +319,7 @@ int ChatModel::sessionCompletionTokens() const
 {
     int total = 0;
     for (const auto &m : m_messages)
-        total += m.completionTokens;
+        total += m.usage.completionTokens;
     return total;
 }
 
@@ -308,7 +327,7 @@ int ChatModel::sessionCachedPromptTokens() const
 {
     int total = 0;
     for (const auto &m : m_messages)
-        total += m.cachedPromptTokens;
+        total += m.usage.cachedPromptTokens;
     return total;
 }
 

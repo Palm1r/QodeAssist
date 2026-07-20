@@ -7,6 +7,12 @@
 #include <optional>
 #include <utility>
 
+#if defined(Q_CC_MSVC)
+#pragma warning(error : 4062)
+#else
+#pragma GCC diagnostic error "-Wswitch"
+#endif
+
 namespace QodeAssist::Session {
 
 namespace {
@@ -97,6 +103,49 @@ bool isTranscriptOnlyRow(RowKind kind)
         return false;
     }
     return false;
+}
+
+RowTreatment rowTreatmentFor(RowAudience audience, RowKind kind)
+{
+    switch (audience) {
+    case RowAudience::Prompt:
+        switch (kind) {
+        case RowKind::User:
+            return RowTreatment::UserText;
+        case RowKind::Assistant:
+        case RowKind::System:
+            return RowTreatment::AssistantText;
+        case RowKind::Thinking:
+            return RowTreatment::AssistantThinking;
+        case RowKind::Tool:
+            return RowTreatment::ToolExchange;
+        case RowKind::AgentTool:
+        case RowKind::FileEdit:
+        case RowKind::Permission:
+        case RowKind::Plan:
+            return RowTreatment::Omit;
+        }
+        break;
+    case RowAudience::Compression:
+        switch (kind) {
+        case RowKind::User:
+            return RowTreatment::UserText;
+        case RowKind::Assistant:
+        case RowKind::System:
+            return RowTreatment::AssistantText;
+        case RowKind::Thinking:
+        case RowKind::Tool:
+        case RowKind::AgentTool:
+        case RowKind::FileEdit:
+        case RowKind::Permission:
+        case RowKind::Plan:
+            return RowTreatment::Omit;
+        }
+        break;
+    case RowAudience::TokenCount:
+        return rowTreatmentFor(RowAudience::Prompt, kind);
+    }
+    return RowTreatment::Omit;
 }
 
 std::optional<MessageRow> projectBlockToRow(const Message &message, const ContentBlock &block)

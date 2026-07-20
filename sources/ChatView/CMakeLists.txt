@@ -19,6 +19,7 @@ qt_add_qml_module(QodeAssistChatView
     qml/chatparts/PermissionBlock.qml
     qml/chatparts/PlanBlock.qml
     qml/chatparts/ChatItem.qml
+    qml/chatparts/BlockPayload.js
 
     qml/controls/AttachedFilesPlace.qml
     qml/controls/BottomBar.qml
@@ -67,21 +68,21 @@ qt_add_qml_module(QodeAssistChatView
     ChatModel.hpp ChatModel.cpp
     ChatRootView.hpp ChatRootView.cpp
     ChatController.hpp ChatController.cpp
+    ConversationPorts.hpp
+    ConversationCoordinator.hpp ConversationCoordinator.cpp
     LlmChatBackend.hpp LlmChatBackend.cpp
     MessagePart.hpp
     ChatUtils.h ChatUtils.cpp
-    ChatSerializer.hpp ChatSerializer.cpp
-    ChatHistoryBridge.hpp ChatHistoryBridge.cpp
+    ChatFileStore.hpp ChatFileStore.cpp
     TurnContextAdapters.hpp TurnContextAdapters.cpp
     ChatView.hpp ChatView.cpp
     ChatData.hpp
     FileItem.hpp FileItem.cpp
-    ChatFileManager.hpp ChatFileManager.cpp
+    AttachmentStaging.hpp AttachmentStaging.cpp
     ChatCompressor.hpp ChatCompressor.cpp
     ChatConfigurationController.hpp ChatConfigurationController.cpp
     FileEditController.hpp FileEditController.cpp
     InputTokenCounter.hpp InputTokenCounter.cpp
-    ChatHistoryStore.hpp ChatHistoryStore.cpp
     FileMentionItem.hpp FileMentionItem.cpp
     SessionFileRegistry.hpp SessionFileRegistry.cpp
 )

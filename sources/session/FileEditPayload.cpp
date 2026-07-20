@@ -4,46 +4,23 @@
 
 #include "session/FileEditPayload.hpp"
 
-#include <QJsonDocument>
+#include "session/BlockCodec.hpp"
 
 namespace QodeAssist::Session {
 
-namespace {
-
-QString fileEditMarker()
-{
-    return QStringLiteral("QODEASSIST_FILE_EDIT:");
-}
-
-} // namespace
-
 bool isFileEditPayload(const QString &text)
 {
-    return text.startsWith(fileEditMarker());
+    return hasPayloadMarker(fileEditPayloadMarker, text);
 }
 
 std::optional<QJsonObject> parseFileEditPayload(const QString &text)
 {
-    const QString marker = fileEditMarker();
-    const int markerPos = text.indexOf(marker);
-    if (markerPos < 0)
-        return std::nullopt;
-
-    const int jsonStart = markerPos + marker.length();
-    if (jsonStart >= text.length())
-        return std::nullopt;
-
-    const QJsonDocument document = QJsonDocument::fromJson(text.mid(jsonStart).toUtf8());
-    if (!document.isObject())
-        return std::nullopt;
-
-    return document.object();
+    return decodeMarkerPayload(fileEditPayloadMarker, text);
 }
 
 QString encodeFileEditPayload(const QJsonObject &payload)
 {
-    return fileEditMarker()
-           + QString::fromUtf8(QJsonDocument(payload).toJson(QJsonDocument::Compact));
+    return encodeMarkerPayload(fileEditPayloadMarker, payload);
 }
 
 } // namespace QodeAssist::Session

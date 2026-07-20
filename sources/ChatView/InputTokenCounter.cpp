@@ -156,7 +156,8 @@ void InputTokenCounter::recompute()
 
     if (m_session) {
         for (const Session::MessageRow &row : m_session->rows()) {
-            if (Session::isTranscriptOnlyRow(row.kind))
+            if (Session::rowTreatmentFor(Session::RowAudience::TokenCount, row.kind)
+                == Session::RowTreatment::Omit)
                 continue;
             inputTokens += Context::TokenUtils::estimateTokens(row.content);
             inputTokens += 4; // + role

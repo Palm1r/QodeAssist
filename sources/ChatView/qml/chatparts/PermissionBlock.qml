@@ -5,6 +5,7 @@
 import QtQuick
 import QtQuick.Layouts
 import UIControls
+import "BlockPayload.js" as BlockPayload
 
 Rectangle {
     id: root
@@ -29,7 +30,7 @@ Rectangle {
 
     readonly property var selectedOption: findOption(selectedOptionId)
     readonly property bool wasAllowed: selectedOption !== null
-                                       && optionIsAllowing(selectedOption.kind)
+                                       && selectedOption.allows === true
 
     readonly property int borderRadius: 6
     readonly property int contentMargin: 10
@@ -92,16 +93,7 @@ Rectangle {
     border.color: statusColor
 
     function parsePermissionData(content) {
-        const marker = "QODEASSIST_PERMISSION:";
-        if (!content.startsWith(marker))
-            return null;
-
-        try {
-            const parsed = JSON.parse(content.substring(marker.length));
-            return (parsed && typeof parsed === "object") ? parsed : null;
-        } catch (e) {
-            return null;
-        }
+        return BlockPayload.parsePermission(content);
     }
 
     function findOption(optionId) {
@@ -112,10 +104,6 @@ Rectangle {
                 return root.options[i];
         }
         return null;
-    }
-
-    function optionIsAllowing(kind) {
-        return kind === "allow_once" || kind === "allow_always";
     }
 
     ColumnLayout {
@@ -199,7 +187,7 @@ Rectangle {
                     required property var modelData
 
                     text: optionButton.modelData.name || optionButton.modelData.id
-                    accentColor: root.optionIsAllowing(optionButton.modelData.kind)
+                    accentColor: optionButton.modelData.allows === true
                                  ? root.allowedColor
                                  : root.deniedColor
 

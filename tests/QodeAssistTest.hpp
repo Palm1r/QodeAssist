@@ -119,6 +119,11 @@ private slots:
     void testUsageSkipsRowsThatCannotShowIt();
     void testAgentActivityBlocksSurviveReload();
 
+    void testEveryRowKindProjectsInOrder();
+    void testPromptAudienceKeepsToolsAndThinking();
+    void testCompressionAudienceDropsToolsAndThinking();
+    void testTokenCountAudienceCountsToolsAndThinking();
+
     void testSessionRendersPermissionRequestWithItsOptions();
     void testSessionForwardsPermissionAnswerToTheBackend();
     void testSessionAllowAlwaysSuppressesRepeatPromptsOfTheSameKind();
@@ -171,6 +176,30 @@ private slots:
     void testAcpBackendRaisesAgentPermissionRequests();
     void testAcpBackendSendsThePermissionAnswerToTheAgent();
     void testAcpBackendCancelsOutstandingPermissionRequests();
+
+    void testTurnLedgerTracksTheActiveTurn();
+    void testTurnLedgerDrainsPermissionsOnTurnEnd();
+    void testLlmBackendStreamsThroughAFakeClient();
+    void testLlmBackendIgnoresEventsFromOtherRequests();
+    void testLlmBackendPermissionRoundTrip();
+    void testLlmBackendDrainsPermissionsWhenTheTurnEnds();
+
+    void testCoordinatorSwitchConfirmAndCancelRoundTrip();
+    void testCoordinatorQuarantinesAndRestoresAgentBindings();
+    void testCoordinatorRefusesIntentsWhileReadOnly();
+    void testCoordinatorDefersTheSendForAutoCompress();
+    void testCoordinatorGatesTheSummaryHandover();
+
+    void testChatModelExposesSessionRowsDirectly();
+
+    void testBlockCodecRejectsForgedMarkers();
+    void testFileEditParsingRequiresTheMarkerAtTheStart();
+    void testPermissionOptionsCarryAllowsAcrossTheSeam();
+
+    void testChatFileStoreRoundTripsStoredContent();
+    void testLegacyChatFileLoadsThroughTheFileStore();
+
+    void testPickerObservesTheSharedAgentCatalog();
     void testAcpBackendSeedsAHandoverSummaryOnce();
     void testAcpBackendDropsAHandoverSummaryAfterACancelledTurn();
     void testAcpBackendDropsAHandoverSummaryWithTheConversation();

@@ -7,17 +7,16 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
-#include <QMap>
 
 namespace QodeAssist::Chat {
 
-class ChatFileManager : public QObject
+class AttachmentStaging : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit ChatFileManager(QObject *parent = nullptr);
-    ~ChatFileManager();
+    explicit AttachmentStaging(QObject *parent = nullptr);
+    ~AttachmentStaging();
 
     QStringList processDroppedFiles(const QStringList &filePaths);
     void setChatFilePath(const QString &chatFilePath);

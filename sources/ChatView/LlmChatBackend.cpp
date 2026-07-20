@@ -6,9 +6,11 @@
 
 #include <LLMQore/ToolsManager.hpp>
 
-#include <algorithm>
+#include <QPromise>
 
-#include "ChatSerializer.hpp"
+#include <memory>
+
+#include "ChatFileStore.hpp"
 #include "llmcore/ContextData.hpp"
 #include "logger/Logger.hpp"
 #include "providers/ProvidersManager.hpp"
@@ -26,7 +28,15 @@ namespace QodeAssist::Chat {
 LlmChatBackend::LlmChatBackend(Templates::IPromptProvider *promptProvider, QObject *parent)
     : Session::ChatBackend(parent)
     , m_promptProvider(promptProvider)
+    , m_providerResolver([](const QString &name) {
+        return Providers::ProvidersManager::instance().getProviderByName(name);
+    })
 {}
+
+void LlmChatBackend::setProviderResolver(ProviderResolver resolver)
+{
+    m_providerResolver = std::move(resolver);
+}
 
 LlmChatBackend::~LlmChatBackend()
 {
@@ -44,7 +54,7 @@ void LlmChatBackend::sendTurn(const Session::TurnRequest &request)
     }
 
     const auto providerName = Settings::generalSettings().caProvider();
-    auto *provider = Providers::ProvidersManager::instance().getProviderByName(providerName);
+    auto *provider = m_providerResolver(providerName);
 
     if (!provider) {
         const QString error = tr("No provider found with name: %1").arg(providerName);
@@ -90,10 +100,10 @@ void LlmChatBackend::sendTurn(const Session::TurnRequest &request)
 
     m_provider = provider;
     m_dropPreToolText = !promptTemplate->supportsToolHistory();
-    m_requestId
-        = provider->sendRequest(QUrl(Settings::generalSettings().caUrl()), payload, endpoint);
+    const QString requestId = m_ledger.beginTurn(
+        provider->sendRequest(QUrl(Settings::generalSettings().caUrl()), payload, endpoint));
 
-    emit sessionEvent(Session::TurnStarted{.turnId = m_requestId});
+    emit sessionEvent(Session::TurnStarted{.turnId = requestId});
 
     bindToolSessions(provider);
 }
@@ -104,7 +114,7 @@ void LlmChatBackend::cancel()
         return;
 
     auto *provider = m_provider;
-    const QString requestId = m_requestId;
+    const QString requestId = m_ledger.activeTurnId();
 
     releaseRequest();
 
@@ -125,7 +135,6 @@ void LlmChatBackend::releaseRequest()
     }
 
     m_provider = nullptr;
-    m_requestId.clear();
     m_dropPreToolText = false;
 }
 
@@ -145,7 +154,7 @@ void LlmChatBackend::clearToolSession(const QString &filePath)
         return;
 
     const auto providerName = Settings::generalSettings().caProvider();
-    auto *provider = Providers::ProvidersManager::instance().getProviderByName(providerName);
+    auto *provider = m_providerResolver(providerName);
 
     if (!provider || !provider->capabilities().testFlag(Providers::ProviderCapability::Tools)
         || !provider->toolsManager()) {
@@ -251,7 +260,7 @@ QFuture<bool> LlmChatBackend::gateToolExecution(
         return promise.future();
     };
 
-    if (m_requestId.isEmpty() || requestId != m_requestId)
+    if (!m_ledger.isActiveTurn(requestId))
         return allow();
 
     if (!m_provider || !m_provider->toolsManager())
@@ -264,8 +273,17 @@ QFuture<bool> LlmChatBackend::gateToolExecution(
     auto promise = std::make_shared<QPromise<bool>>();
     promise->start();
 
-    const QString permissionId = QStringLiteral("tool-%1-%2").arg(toolId).arg(++m_permissionCounter);
-    m_pendingPermissions.insert(permissionId, promise);
+    const QString permissionId = m_ledger.registerPermission(
+        [promise](const QString &optionId) {
+            const bool allowed = optionId == Session::PermissionOptionKind::AllowOnce
+                                 || optionId == Session::PermissionOptionKind::AllowAlways;
+            promise->addResult(allowed);
+            promise->finish();
+        },
+        [promise] {
+            promise->addResult(false);
+            promise->finish();
+        });
 
     QFuture<bool> decision = promise->future();
 
@@ -275,7 +293,7 @@ QFuture<bool> LlmChatBackend::gateToolExecution(
 
     emit sessionEvent(
         Session::PermissionRequested{
-            .turnId = m_requestId,
+            .turnId = requestId,
             .requestId = permissionId,
             .toolCallId = toolId,
             .title = title,
@@ -292,36 +310,25 @@ QFuture<bool> LlmChatBackend::gateToolExecution(
 
 bool LlmChatBackend::respondPermission(const QString &requestId, const QString &optionId)
 {
-    const auto promise = m_pendingPermissions.take(requestId);
-    if (!promise)
+    if (!m_ledger.resolvePermission(requestId, optionId))
         return false;
-
-    const bool allowed = optionId == QLatin1String("allow_once")
-                         || optionId == QLatin1String("allow_always");
-
-    promise->addResult(allowed);
-    promise->finish();
 
     emit sessionEvent(
         Session::PermissionResolved{
-            .turnId = m_requestId, .requestId = requestId, .optionId = optionId});
+            .turnId = m_ledger.activeTurnId(), .requestId = requestId, .optionId = optionId});
 
     return true;
 }
 
 void LlmChatBackend::cancelPendingPermissions()
 {
-    const auto pending = std::exchange(m_pendingPermissions, {});
+    const QString turnId = m_ledger.activeTurnId();
+    const QStringList cancelled = m_ledger.endTurn();
 
-    for (const auto &promise : pending) {
-        promise->addResult(false);
-        promise->finish();
-    }
-
-    for (auto it = pending.cbegin(); it != pending.cend(); ++it) {
+    for (const QString &requestId : cancelled) {
         emit sessionEvent(
             Session::PermissionResolved{
-                .turnId = m_requestId, .requestId = it.key(), .cancelled = true});
+                .turnId = turnId, .requestId = requestId, .cancelled = true});
     }
 }
 
@@ -336,7 +343,10 @@ QVector<LLMCore::Message> LlmChatBackend::renderHistory(
     int toolCallMsgIdx = -1;
 
     for (const Session::MessageRow &row : Session::projectToRows(history)) {
-        if (row.kind == Session::RowKind::Tool) {
+        const Session::RowTreatment treatment
+            = Session::rowTreatmentFor(Session::RowAudience::Prompt, row.kind);
+
+        if (treatment == Session::RowTreatment::ToolExchange) {
             if (!toolHistory || row.toolName.isEmpty())
                 continue;
 
@@ -364,17 +374,17 @@ QVector<LLMCore::Message> LlmChatBackend::renderHistory(
 
         toolCallMsgIdx = -1;
 
-        if (Session::isTranscriptOnlyRow(row.kind))
+        if (treatment == Session::RowTreatment::Omit)
             continue;
 
         LLMCore::Message apiMessage;
-        apiMessage.role = row.kind == Session::RowKind::User ? "user" : "assistant";
+        apiMessage.role = treatment == Session::RowTreatment::UserText ? "user" : "assistant";
         apiMessage.content = row.content;
 
         if (!row.attachments.isEmpty() && !m_chatFilePath.isEmpty()) {
             apiMessage.content += "\n\nAttached files:";
             for (const Session::AttachmentBlock &attachment : row.attachments) {
-                const QByteArray fileContent = ChatSerializer::loadRawContentFromStorage(
+                const QByteArray fileContent = ChatFileStore::loadRawContentFromStorage(
                     m_chatFilePath, attachment.storedPath);
                 if (fileContent.isEmpty())
                     continue;
@@ -386,7 +396,7 @@ QVector<LLMCore::Message> LlmChatBackend::renderHistory(
             }
         }
 
-        apiMessage.isThinking = row.kind == Session::RowKind::Thinking;
+        apiMessage.isThinking = treatment == Session::RowTreatment::AssistantThinking;
         apiMessage.isRedacted = row.redacted;
         apiMessage.signature = row.signature;
 
@@ -410,7 +420,7 @@ QVector<LLMCore::ImageAttachment> LlmChatBackend::loadImagesFromStorage(
 
     for (const Session::ImageBlock &storedImage : storedImages) {
         const QString base64Data
-            = ChatSerializer::loadContentFromStorage(m_chatFilePath, storedImage.storedPath);
+            = ChatFileStore::loadContentFromStorage(m_chatFilePath, storedImage.storedPath);
         if (base64Data.isEmpty()) {
             LOG_MESSAGE(QString("Warning: Failed to load image: %1").arg(storedImage.storedPath));
             continue;
@@ -429,7 +439,7 @@ QVector<LLMCore::ImageAttachment> LlmChatBackend::loadImagesFromStorage(
 
 void LlmChatBackend::handleChunk(const QString &requestId, const QString &chunk)
 {
-    if (requestId != m_requestId)
+    if (!m_ledger.isActiveTurn(requestId))
         return;
 
     emit sessionEvent(Session::TextDelta{.turnId = requestId, .text = chunk});
@@ -437,7 +447,7 @@ void LlmChatBackend::handleChunk(const QString &requestId, const QString &chunk)
 
 void LlmChatBackend::handleCompleted(const QString &requestId, const QString &fullText)
 {
-    if (requestId != m_requestId)
+    if (!m_ledger.isActiveTurn(requestId))
         return;
 
     LOG_MESSAGE(
@@ -451,7 +461,7 @@ void LlmChatBackend::handleCompleted(const QString &requestId, const QString &fu
 void LlmChatBackend::handleFinalized(
     const ::LLMQore::RequestID &requestId, const ::LLMQore::CompletionInfo &info)
 {
-    if (requestId != m_requestId || !info.usage)
+    if (!m_ledger.isActiveTurn(requestId) || !info.usage)
         return;
 
     const auto &usage = *info.usage;
@@ -475,7 +485,7 @@ void LlmChatBackend::handleFinalized(
 
 void LlmChatBackend::handleFailed(const QString &requestId, const QString &error)
 {
-    if (requestId != m_requestId)
+    if (!m_ledger.isActiveTurn(requestId))
         return;
 
     LOG_MESSAGE(QString("Chat request %1 failed: %2").arg(requestId, error));
@@ -488,7 +498,7 @@ void LlmChatBackend::handleFailed(const QString &requestId, const QString &error
 void LlmChatBackend::handleThinkingBlock(
     const QString &requestId, const QString &thinking, const QString &signature)
 {
-    if (requestId != m_requestId)
+    if (!m_ledger.isActiveTurn(requestId))
         return;
 
     emit sessionEvent(
@@ -505,7 +515,7 @@ void LlmChatBackend::handleToolStarted(
     const QString &toolName,
     const QJsonObject &arguments)
 {
-    if (requestId != m_requestId)
+    if (!m_ledger.isActiveTurn(requestId))
         return;
 
     emit sessionEvent(
@@ -523,7 +533,7 @@ void LlmChatBackend::handleToolResult(
     const QString &toolName,
     const QString &toolOutput)
 {
-    if (requestId != m_requestId)
+    if (!m_ledger.isActiveTurn(requestId))
         return;
 
     emit sessionEvent(

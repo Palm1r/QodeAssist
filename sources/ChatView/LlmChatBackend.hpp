@@ -4,17 +4,16 @@
 
 #pragma once
 
-#include <memory>
+#include <functional>
 
 #include <QFuture>
-#include <QHash>
-#include <QPromise>
 #include <QString>
 
 #include <LLMQore/BaseClient.hpp>
 
 #include "providers/Provider.hpp"
 #include "session/ChatBackend.hpp"
+#include "session/TurnLedger.hpp"
 #include "templates/IPromptProvider.hpp"
 
 namespace QodeAssist::Chat {
@@ -24,8 +23,12 @@ class LlmChatBackend : public Session::ChatBackend
     Q_OBJECT
 
 public:
+    using ProviderResolver = std::function<Providers::Provider *(const QString &name)>;
+
     explicit LlmChatBackend(Templates::IPromptProvider *promptProvider, QObject *parent = nullptr);
     ~LlmChatBackend() override;
+
+    void setProviderResolver(ProviderResolver resolver);
 
     void sendTurn(const Session::TurnRequest &request) override;
     void cancel() override;
@@ -72,13 +75,12 @@ private:
         const QString &toolOutput);
 
     Templates::IPromptProvider *m_promptProvider = nullptr;
+    ProviderResolver m_providerResolver;
     QString m_chatFilePath;
 
     Providers::Provider *m_provider = nullptr;
-    QString m_requestId;
+    Session::TurnLedger m_ledger;
     bool m_dropPreToolText = false;
-    QHash<QString, std::shared_ptr<QPromise<bool>>> m_pendingPermissions;
-    int m_permissionCounter = 0;
 };
 
 } // namespace QodeAssist::Chat

@@ -4,20 +4,17 @@
 
 #include "ChatPermissionProvider.hpp"
 
+#include <memory>
 #include <utility>
 
-#include <QUuid>
+#include <QPromise>
 
 namespace QodeAssist::Acp {
 
-ChatPermissionProvider::ChatPermissionProvider(QObject *parent)
+ChatPermissionProvider::ChatPermissionProvider(Session::TurnLedger *ledger, QObject *parent)
     : LLMQore::Acp::AcpPermissionProvider(parent)
+    , m_ledger(ledger)
 {}
-
-ChatPermissionProvider::~ChatPermissionProvider()
-{
-    cancelAll();
-}
 
 void ChatPermissionProvider::setRequestHandler(RequestHandler handler)
 {
@@ -34,56 +31,26 @@ QFuture<LLMQore::Acp::RequestPermissionResult> ChatPermissionProvider::requestPe
     auto promise = std::make_shared<QPromise<LLMQore::Acp::RequestPermissionResult>>();
     promise->start();
 
+    const auto finish = [promise](const LLMQore::Acp::RequestPermissionResult &result) {
+        promise->addResult(result);
+        promise->finish();
+    };
+
     if (!m_requestHandler) {
-        resolve(promise, LLMQore::Acp::RequestPermissionResult::cancelled());
+        finish(LLMQore::Acp::RequestPermissionResult::cancelled());
         return promise->future();
     }
 
-    const QString requestId = QStringLiteral("perm-%1").arg(
-        QUuid::createUuid().toString(QUuid::WithoutBraces));
-    m_pending.insert(requestId, promise);
+    const QString requestId = m_ledger->registerPermission(
+        [finish](const QString &optionId) {
+            finish(LLMQore::Acp::RequestPermissionResult::selected(optionId));
+        },
+        [finish] { finish(LLMQore::Acp::RequestPermissionResult::cancelled()); });
 
     QFuture<LLMQore::Acp::RequestPermissionResult> future = promise->future();
     m_requestHandler(requestId, toolCall, options);
 
     return future;
-}
-
-bool ChatPermissionProvider::respond(const QString &requestId, const QString &optionId)
-{
-    const Promise promise = m_pending.take(requestId);
-    if (!promise)
-        return false;
-
-    resolve(promise, LLMQore::Acp::RequestPermissionResult::selected(optionId));
-    return true;
-}
-
-bool ChatPermissionProvider::cancel(const QString &requestId)
-{
-    const Promise promise = m_pending.take(requestId);
-    if (!promise)
-        return false;
-
-    resolve(promise, LLMQore::Acp::RequestPermissionResult::cancelled());
-    return true;
-}
-
-QStringList ChatPermissionProvider::cancelAll()
-{
-    const QHash<QString, Promise> pending = std::exchange(m_pending, {});
-
-    for (const Promise &promise : pending)
-        resolve(promise, LLMQore::Acp::RequestPermissionResult::cancelled());
-
-    return pending.keys();
-}
-
-void ChatPermissionProvider::resolve(
-    const Promise &promise, const LLMQore::Acp::RequestPermissionResult &result)
-{
-    promise->addResult(result);
-    promise->finish();
 }
 
 } // namespace QodeAssist::Acp

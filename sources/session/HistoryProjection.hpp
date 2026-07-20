@@ -58,7 +58,12 @@ struct MessageRow
     }
 };
 
+enum class RowAudience { Prompt, Compression, TokenCount };
+
+enum class RowTreatment { Omit, UserText, AssistantText, AssistantThinking, ToolExchange };
+
 bool isTranscriptOnlyRow(RowKind kind);
+RowTreatment rowTreatmentFor(RowAudience audience, RowKind kind);
 
 std::optional<MessageRow> projectBlockToRow(const Message &message, const ContentBlock &block);
 QList<MessageRow> projectMessageToRows(const Message &message);

@@ -5,23 +5,10 @@
 #include "session/PermissionRequest.hpp"
 
 #include <QJsonArray>
-#include <QJsonDocument>
+
+#include "session/BlockCodec.hpp"
 
 namespace QodeAssist::Session {
-
-namespace {
-
-QString permissionMarker()
-{
-    return QStringLiteral("QODEASSIST_PERMISSION:");
-}
-
-bool isPermissionPayload(const QString &text)
-{
-    return text.startsWith(permissionMarker());
-}
-
-} // namespace
 
 QString permissionStatusToString(PermissionStatus status)
 {
@@ -59,7 +46,11 @@ QJsonObject permissionBlockToJson(const PermissionBlock &block)
     QJsonArray options;
     for (const PermissionOption &option : block.options) {
         options.append(
-            QJsonObject{{"id", option.id}, {"name", option.name}, {"kind", option.kind}});
+            QJsonObject{
+                {"id", option.id},
+                {"name", option.name},
+                {"kind", option.kind},
+                {"allows", option.allows()}});
     }
 
     QJsonObject json;
@@ -110,22 +101,16 @@ PermissionBlock restoredPermissionBlock(PermissionBlock block)
 
 QString encodePermissionBlock(const PermissionBlock &block)
 {
-    return permissionMarker()
-           + QString::fromUtf8(
-               QJsonDocument(permissionBlockToJson(block)).toJson(QJsonDocument::Compact));
+    return encodeMarkerPayload(permissionPayloadMarker, permissionBlockToJson(block));
 }
 
 std::optional<PermissionBlock> decodePermissionBlock(const QString &text)
 {
-    if (!isPermissionPayload(text))
+    const auto payload = decodeMarkerPayload(permissionPayloadMarker, text);
+    if (!payload)
         return std::nullopt;
 
-    const QJsonDocument document
-        = QJsonDocument::fromJson(text.mid(permissionMarker().size()).toUtf8());
-    if (!document.isObject())
-        return std::nullopt;
-
-    return permissionBlockFromJson(document.object());
+    return permissionBlockFromJson(*payload);
 }
 
 } // namespace QodeAssist::Session

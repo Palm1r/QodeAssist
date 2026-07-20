@@ -4,6 +4,7 @@
 
 import QtQuick
 import QtQuick.Layouts
+import "BlockPayload.js" as BlockPayload
 
 Rectangle {
     id: root
@@ -31,16 +32,7 @@ Rectangle {
     border.color: isComplete ? completedColor : palette.mid
 
     function parsePlanData(content) {
-        const marker = "QODEASSIST_PLAN:";
-        if (!content.startsWith(marker))
-            return null;
-
-        try {
-            const parsed = JSON.parse(content.substring(marker.length));
-            return (parsed && typeof parsed === "object") ? parsed : null;
-        } catch (e) {
-            return null;
-        }
+        return BlockPayload.parsePlan(content);
     }
 
     function countCompleted() {

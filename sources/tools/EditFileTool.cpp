@@ -9,12 +9,12 @@
 #include <context/ChangesManager.h>
 #include <context/ProjectUtils.hpp>
 #include <logger/Logger.hpp>
+#include <session/FileEditPayload.hpp>
 #include <settings/GeneralSettings.hpp>
 #include <settings/ToolsSettings.hpp>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QJsonDocument>
 #include <QJsonObject>
 #include <QUuid>
 #include <QtConcurrent>
@@ -214,9 +214,7 @@ QFuture<LLMQore::ToolResult> EditFileTool::executeAsync(const QJsonObject &input
         LOG_MESSAGE(QString("File edit created: %1 (ID: %2, Status: %3, Deferred: %4)")
                         .arg(filePath, editId, status, requestId.isEmpty() ? QString("no") : QString("yes")));
 
-        QString resultStr = "QODEASSIST_FILE_EDIT:"
-                            + QString::fromUtf8(QJsonDocument(result).toJson(QJsonDocument::Compact));
-        return LLMQore::ToolResult::text(resultStr);
+        return LLMQore::ToolResult::text(Session::encodeFileEditPayload(result));
     });
 }
 

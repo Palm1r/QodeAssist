@@ -23,7 +23,6 @@ QString agentEntry(const QString &agentName)
 
 ChatConfigurationController::ChatConfigurationController(QObject *parent)
     : QObject(parent)
-    , m_agents(new Acp::AgentCatalogStore(this))
 {
     auto &settings = Settings::generalSettings();
     connect(
@@ -36,6 +35,26 @@ ChatConfigurationController::ChatConfigurationController(QObject *parent)
         &Utils::BaseAspect::changed,
         this,
         &ChatConfigurationController::updateCurrentConfiguration);
+
+    loadAvailableConfigurations();
+}
+
+void ChatConfigurationController::setAgentCatalog(Acp::AgentCatalogStore *store)
+{
+    if (m_agents == store)
+        return;
+
+    if (m_agents)
+        disconnect(m_agents, nullptr, this, nullptr);
+
+    m_agents = store;
+    if (m_agents) {
+        connect(
+            m_agents,
+            &Acp::AgentCatalogStore::catalogChanged,
+            this,
+            &ChatConfigurationController::loadAvailableConfigurations);
+    }
 
     loadAvailableConfigurations();
 }
@@ -95,11 +114,12 @@ void ChatConfigurationController::loadAvailableConfigurations()
         m_availableConfigurations.append(config.name);
     }
 
-    m_agents->reload();
-    for (const Acp::AgentDefinition &agent : m_agents->catalog().launchableAgents()) {
-        const QString entry = agentEntry(agent.name);
-        m_agentIdByEntry.insert(entry, agent.id);
-        m_availableConfigurations.append(entry);
+    if (m_agents) {
+        for (const Acp::AgentDefinition &agent : m_agents->catalog().launchableAgents()) {
+            const QString entry = agentEntry(agent.name);
+            m_agentIdByEntry.insert(entry, agent.id);
+            m_availableConfigurations.append(entry);
+        }
     }
 
     updateCurrentConfiguration();
@@ -109,7 +129,7 @@ void ChatConfigurationController::loadAvailableConfigurations()
 
 std::optional<Acp::AgentDefinition> ChatConfigurationController::agentById(const QString &agentId)
 {
-    if (agentId.isEmpty())
+    if (agentId.isEmpty() || !m_agents)
         return std::nullopt;
 
     if (auto agent = m_agents->catalog().agent(agentId))
@@ -123,6 +143,8 @@ void ChatConfigurationController::applyConfiguration(const QString &configName)
 {
     const QString agentId = m_agentIdByEntry.value(configName);
     if (!agentId.isEmpty()) {
+        if (!m_agents)
+            return;
         if (const auto agent = m_agents->catalog().agent(agentId))
             emit agentRequested(*agent);
         return;

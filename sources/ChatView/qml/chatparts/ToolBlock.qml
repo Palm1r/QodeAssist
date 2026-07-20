@@ -8,7 +8,8 @@ import Qt.labs.platform as Platform
 Rectangle {
     id: root
 
-    property string toolContent: ""
+    property string toolName: ""
+    property string toolResult: ""
     property string toolKind: ""
     property string toolStatus: ""
     property var toolDetails: ({})
@@ -16,9 +17,17 @@ Rectangle {
 
     property alias headerOpacity: headerRow.opacity
 
-    readonly property int firstNewline: toolContent.indexOf('\n')
-    readonly property string toolName: firstNewline > 0 ? toolContent.substring(0, firstNewline) : toolContent
-    readonly property string toolResult: firstNewline > 0 ? toolContent.substring(firstNewline + 1) : ""
+    readonly property int legacyNewline: toolName === "" ? toolResult.indexOf('\n') : -1
+    readonly property string headerName: {
+        if (toolName !== "")
+            return toolName;
+        return legacyNewline > 0 ? toolResult.substring(0, legacyNewline) : toolResult;
+    }
+    readonly property string resultText: {
+        if (toolName !== "")
+            return toolResult;
+        return legacyNewline > 0 ? toolResult.substring(legacyNewline + 1) : "";
+    }
 
     readonly property var locations: (toolDetails && toolDetails.locations) ? toolDetails.locations : []
     readonly property var diffs: (toolDetails && toolDetails.diffs) ? toolDetails.diffs : []
@@ -87,8 +96,8 @@ Rectangle {
 
                 width: headerRow.width - x - 30
                 text: root.toolKind.length > 0
-                          ? root.toolKind + ": " + root.toolName
-                          : qsTr("Tool: %1").arg(root.toolName)
+                          ? root.toolKind + ": " + root.headerName
+                          : qsTr("Tool: %1").arg(root.headerName)
                 textFormat: Text.PlainText
                 font.pixelSize: 13
                 font.bold: true
@@ -122,7 +131,7 @@ Rectangle {
         id: contentComponent
 
         Column {
-            property alias resultEditor: resultText
+            property alias resultEditor: resultEditorItem
 
             spacing: 8
 
@@ -182,11 +191,11 @@ Rectangle {
             }
 
             TextEdit {
-                id: resultText
+                id: resultEditorItem
 
                 width: parent.width
                 visible: text.length > 0
-                text: root.toolResult
+                text: root.resultText
                 textFormat: TextEdit.PlainText
                 readOnly: true
                 selectByMouse: true

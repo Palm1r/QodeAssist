@@ -32,7 +32,7 @@ class AgentsWidget : public Core::IOptionsPageWidget
     Q_OBJECT
 
 public:
-    AgentsWidget();
+    explicit AgentsWidget(Acp::AgentCatalogStore *store);
 
     void apply() override;
 
@@ -63,6 +63,12 @@ private:
     QPushButton *m_testButton = nullptr;
     QPushButton *m_reloadButton = nullptr;
     QPushButton *m_refreshButton = nullptr;
+};
+
+class AgentsSettingsPage : public Core::IOptionsPage
+{
+public:
+    explicit AgentsSettingsPage(Acp::AgentCatalogStore *store);
 };
 
 } // namespace QodeAssist::Settings

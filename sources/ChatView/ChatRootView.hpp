@@ -9,8 +9,9 @@
 #include <QVariantList>
 
 #include "ChatController.hpp"
-#include "ChatFileManager.hpp"
+#include "AttachmentStaging.hpp"
 #include "ChatModel.hpp"
+#include "ConversationCoordinator.hpp"
 #include "templates/PromptProviderChat.hpp"
 #include <utils/id.h>
 
@@ -24,10 +25,13 @@ class ChatCompressor;
 class ChatConfigurationController;
 class FileEditController;
 class InputTokenCounter;
-class ChatHistoryStore;
+class ChatFileStore;
 class SessionFileRegistry;
 
-class ChatRootView : public QQuickItem
+class ChatRootView : public QQuickItem,
+                     private IAgentCatalogPort,
+                     private ICompressionPort,
+                     private ISendPort
 {
     Q_OBJECT
     Q_PROPERTY(QodeAssist::Chat::ChatModel *chatModel READ chatModel NOTIFY chatModelChanged FINAL)
@@ -170,10 +174,7 @@ public:
     QString summaryHandoverTooltip() const;
     Q_INVOKABLE void startNewAgentSession();
     Q_INVOKABLE void startNewAgentSessionWithSummary();
-    void setAgentSessionIssue(const QString &issue, bool recoverable);
-    void restoreAgentBinding(const Acp::AgentBinding &binding);
-    bool refuseWhileReadOnly();
-    
+
     bool isCompressing() const;
 
     bool isInEditor() const;
@@ -231,19 +232,30 @@ signals:
 
     void closeHostRequested();
 
+protected:
+    void componentComplete() override;
+
 private:
     QString computeChatTitle() const;
     void triggerOpenChatCommand(Utils::Id commandId);
-    void handleAgentRequested(const Acp::AgentDefinition &agent);
-    void handleLlmRequested();
-    void bindAgent(const Acp::AgentDefinition &agent);
-    void bindLlm();
     void handOffSession();
-    bool deferSendForAutoCompress(
-        const QString &message, const QStringList &attachments, bool useTools, bool useThinking);
-    void dispatchSend(
-        const QString &message, const QStringList &attachments, bool useTools, bool useThinking);
     bool hasImageAttachments(const QStringList &attachments) const;
+
+    std::optional<Acp::AgentDefinition> agentById(const QString &agentId) const override;
+    QString compressionConfigurationIssue() const override;
+    bool isCompressionRunning() const override;
+    void startTranscriptSummary() override;
+    void startCompression() override;
+    bool autoCompressEnabled() const override;
+    int autoCompressThreshold() const override;
+    int estimatedNextTokens() const override;
+    bool prepareChatFileForCompression(
+        const QString &message, const QStringList &attachments) override;
+    void dispatch(
+        const QString &message,
+        const QStringList &attachments,
+        bool useTools,
+        bool useThinking) override;
 
     SessionFileRegistry *sessionFileRegistry() const;
     Skills::SkillsManager *skillsManager() const;
@@ -251,25 +263,13 @@ private:
     ChatModel *m_chatModel;
     Templates::PromptProviderChat m_promptProvider;
     ChatController *m_controller;
-    ChatFileManager *m_fileManager;
+    AttachmentStaging *m_attachmentStaging;
     QString m_currentTemplate;
     QString m_recentFilePath;
     QStringList m_attachmentFiles;
 
-    struct PendingSend {
-        QString message;
-        QStringList attachments;
-        bool useTools = false;
-        bool useThinking = false;
-        bool active = false;
-    };
-    PendingSend m_pendingSend;
     bool m_isInEditor = false;
     mutable QString m_cachedChatTitle;
-    QString m_agentSuggestedTitle;
-    QString m_agentSessionIssue;
-    bool m_agentSessionRecoverable = false;
-    Acp::AgentBinding m_quarantinedBinding;
     bool m_isRequestInProgress;
     QString m_lastErrorMessage;
 
@@ -279,13 +279,12 @@ private:
     ChatConfigurationController *m_configurationController;
     FileEditController *m_fileEditController;
     InputTokenCounter *m_tokenCounter;
-    ChatHistoryStore *m_historyStore;
+    ChatFileStore *m_historyStore;
     mutable QPointer<SessionFileRegistry> m_sessionFileRegistry;
     mutable bool m_sessionFileRegistryResolved = false;
     mutable QPointer<Skills::SkillsManager> m_skillsManager;
     mutable bool m_skillsManagerResolved = false;
-    std::optional<Acp::AgentDefinition> m_pendingAgent;
-    bool m_pendingLlmSwitch = false;
+    ConversationCoordinator *m_coordinator = nullptr;
 };
 
 } // namespace QodeAssist::Chat

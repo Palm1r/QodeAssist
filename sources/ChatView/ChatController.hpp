@@ -8,6 +8,7 @@
 #include <QString>
 
 #include "ChatModel.hpp"
+#include "ConversationPorts.hpp"
 #include "acp/AgentBinding.hpp"
 #include "acp/AgentDefinition.hpp"
 #include "session/Session.hpp"
@@ -28,10 +29,9 @@ class AgentKnowledgeServer;
 
 namespace QodeAssist::Chat {
 
-class ChatHistoryBridge;
 class LlmChatBackend;
 
-class ChatController : public QObject
+class ChatController : public QObject, public IConversationPort
 {
     Q_OBJECT
 
@@ -46,7 +46,6 @@ public:
         const QList<QString> &attachments = {},
         bool useTools = false,
         bool useThinking = false);
-    void clearMessages();
     void cancelRequest();
     void resetToRow(int rowIndex);
     void respondToPermission(const QString &requestId, const QString &optionId);
@@ -57,16 +56,19 @@ public:
     void setChatFilePath(const QString &filePath);
     QString chatFilePath() const;
 
-    void bindToAgent(const Acp::AgentDefinition &agent);
-    void bindToLlm();
-    QString boundAgentId() const;
-    bool conversationStarted() const;
+    QString boundAgentId() const override;
+    bool conversationStarted() const override;
+    bool transcriptEmpty() const override;
+    Acp::AgentBinding agentBinding() const override;
 
-    Acp::AgentBinding agentBinding() const;
-    void resumeAgentSession(const QString &sessionId);
-    void startFreshAgentSession();
-    void startFreshAgentSession(const QString &handoverSummary);
-    void releaseAgentSession();
+    void bindAgent(const Acp::AgentDefinition &agent) override;
+    void bindLlm() override;
+    void clearConversation() override;
+
+    void resumeAgentSession(const QString &sessionId) override;
+    void startFreshAgentSession() override;
+    void startFreshAgentSession(const QString &handoverSummary) override;
+    void releaseAgentSession() override;
 
 signals:
     void agentTitleSuggested(const QString &title);

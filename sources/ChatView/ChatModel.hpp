@@ -7,10 +7,9 @@
 #include "MessagePart.hpp"
 
 #include <QAbstractListModel>
-#include <QJsonObject>
 #include <QtQmlIntegration>
 
-#include "context/ContentFile.hpp"
+#include "session/HistoryProjection.hpp"
 
 namespace QodeAssist::Chat {
 
@@ -40,40 +39,11 @@ public:
         TotalTokens,
         ToolKind,
         ToolStatus,
-        ToolDetails
+        ToolDetails,
+        ToolName,
+        ToolResult
     };
     Q_ENUM(Roles)
-
-    struct ImageAttachment
-    {
-        QString fileName;      // Original filename
-        QString storedPath;    // Path to stored image file (relative to chat folder)
-        QString mediaType;     // MIME type
-    };
-
-    struct Message
-    {
-        ChatRole role;
-        QString content;
-        QString id;
-        bool isRedacted = false;
-        QString signature = QString();
-
-        QList<Context::ContentFile> attachments;
-        QList<ImageAttachment> images;
-
-        QString toolName;
-        QJsonObject toolArguments;
-        QString toolResult;
-        QString toolKind;
-        QString toolStatus;
-        QVariantMap toolDetails;
-
-        int promptTokens = 0;
-        int completionTokens = 0;
-        int cachedPromptTokens = 0;
-        int reasoningTokens = 0;
-    };
 
     explicit ChatModel(QObject *parent = nullptr);
 
@@ -81,9 +51,9 @@ public:
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     QHash<int, QByteArray> roleNames() const override;
 
-    void resetMessages(const QVector<Message> &messages);
-    void appendMessages(const QVector<Message> &messages);
-    void updateMessage(int index, const Message &message);
+    void resetMessages(const QList<Session::MessageRow> &rows);
+    void appendMessages(const QList<Session::MessageRow> &rows);
+    void updateMessage(int index, const Session::MessageRow &row);
     void removeMessages(int first, int count);
 
     Q_INVOKABLE QList<MessagePart> processMessageContent(const QString &content) const;
@@ -102,10 +72,9 @@ signals:
     void sessionUsageChanged();
 
 private:
-    QVector<Message> m_messages;
+    QList<Session::MessageRow> m_messages;
     QString m_chatFilePath;
 };
 
 } // namespace QodeAssist::Chat
-Q_DECLARE_METATYPE(QodeAssist::Chat::ChatModel::Message)
 Q_DECLARE_METATYPE(QodeAssist::Chat::MessagePart)

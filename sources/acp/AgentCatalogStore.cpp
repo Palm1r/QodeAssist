@@ -35,9 +35,7 @@ QByteArray readFile(const QString &path)
 AgentCatalogStore::AgentCatalogStore(QObject *parent)
     : QObject(parent)
     , m_network(new QNetworkAccessManager(this))
-{
-    reload();
-}
+{}
 
 QString AgentCatalogStore::userAgentsDirectory()
 {

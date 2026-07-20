@@ -186,6 +186,7 @@ extend_qtc_plugin(QodeAssist
   SOURCES
     tests/QodeAssistTest.hpp tests/QodeAssistTest.cpp
     tests/FakeAcpAgent.hpp
+    tests/FakeLlmProvider.hpp
 )
 
 if(WITH_TESTS)

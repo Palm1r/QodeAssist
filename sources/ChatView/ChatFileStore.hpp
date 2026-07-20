@@ -10,7 +10,8 @@
 #include <QPointer>
 #include <QString>
 
-#include "ChatSerializer.hpp"
+#include "acp/AgentBinding.hpp"
+#include "session/ConversationHistory.hpp"
 
 namespace QodeAssist::Session {
 class Session;
@@ -18,12 +19,19 @@ class Session;
 
 namespace QodeAssist::Chat {
 
-class ChatHistoryStore : public QObject
+struct SerializationResult
+{
+    bool success{false};
+    QString errorMessage;
+    QString warningMessage;
+};
+
+class ChatFileStore : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit ChatHistoryStore(Session::Session *session, QObject *parent = nullptr);
+    explicit ChatFileStore(Session::Session *session, QObject *parent = nullptr);
 
     QString historyDir() const;
     QString suggestedFileName() const;
@@ -46,12 +54,32 @@ public:
     void showLoadDialog();
     void openHistoryFolder() const;
 
+    static SerializationResult saveToFile(
+        const Session::ConversationHistory &history,
+        const Acp::AgentBinding &binding,
+        const QString &filePath);
+    static SerializationResult loadFromFile(
+        Session::ConversationHistory &history,
+        Acp::AgentBinding &binding,
+        const QString &filePath);
+
+    static QString getChatContentFolder(const QString &chatFilePath);
+    static bool saveContentToStorage(
+        const QString &chatFilePath,
+        const QString &fileName,
+        const QString &base64Data,
+        QString &storedPath);
+    static QString loadContentFromStorage(const QString &chatFilePath, const QString &storedPath);
+    static QByteArray loadRawContentFromStorage(
+        const QString &chatFilePath, const QString &storedPath);
+
 signals:
     void saveRequested(const QString &filePath);
     void loadRequested(const QString &filePath);
 
 private:
     QString generateChatFileName(const QString &shortMessage, const QString &dir) const;
+    static bool ensureDirectoryExists(const QString &filePath);
 
     QPointer<Session::Session> m_session;
     BindingReader m_bindingReader;

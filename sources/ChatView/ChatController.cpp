@@ -11,8 +11,7 @@
 #include <projectexplorer/projectmanager.h>
 #include <utils/filepath.h>
 
-#include "ChatHistoryBridge.hpp"
-#include "ChatSerializer.hpp"
+#include "ChatFileStore.hpp"
 #include "LlmChatBackend.hpp"
 #include "TurnContextAdapters.hpp"
 #include "context/ChangesManager.h"
@@ -37,9 +36,13 @@ ChatController::ChatController(
     , m_agentKnowledge(new Mcp::AgentKnowledgeServer(this))
     , m_backend(m_llmBackend)
 {
-    new ChatHistoryBridge(m_session, chatModel, this);
+    connect(m_session, &Session::Session::rowsReset, m_chatModel, &ChatModel::resetMessages);
+    connect(m_session, &Session::Session::rowsAppended, m_chatModel, &ChatModel::appendMessages);
+    connect(m_session, &Session::Session::rowUpdated, m_chatModel, &ChatModel::updateMessage);
+    connect(m_session, &Session::Session::rowsRemoved, m_chatModel, &ChatModel::removeMessages);
+    m_chatModel->resetMessages(m_session->rows());
 
-    m_acpBackend->setStoredContentLoader(&ChatSerializer::loadRawContentFromStorage);
+    m_acpBackend->setStoredContentLoader(&ChatFileStore::loadRawContentFromStorage);
     m_agentKnowledge->setIgnorePredicate([this](const QString &filePath) {
         auto *project = ProjectExplorer::ProjectManager::projectForFile(
             Utils::FilePath::fromString(filePath));
@@ -100,13 +103,13 @@ void ChatController::setSkillsManager(Skills::SkillsManager *skillsManager)
     m_skillsManager = skillsManager;
 }
 
-void ChatController::bindToAgent(const Acp::AgentDefinition &agent)
+void ChatController::bindAgent(const Acp::AgentDefinition &agent)
 {
     m_acpBackend->bindAgent(agent);
     activateBackend(m_acpBackend);
 }
 
-void ChatController::bindToLlm()
+void ChatController::bindLlm()
 {
     activateBackend(m_llmBackend);
 }
@@ -114,6 +117,11 @@ void ChatController::bindToLlm()
 QString ChatController::boundAgentId() const
 {
     return m_backend == m_acpBackend ? m_acpBackend->boundAgentId() : QString();
+}
+
+bool ChatController::transcriptEmpty() const
+{
+    return m_session->rows().isEmpty();
 }
 
 Acp::AgentBinding ChatController::agentBinding() const
@@ -186,7 +194,7 @@ void ChatController::sendMessage(
         Session::TurnOptions{useTools, useThinking});
 }
 
-void ChatController::clearMessages()
+void ChatController::clearConversation()
 {
     m_backend->clearToolSession(m_chatFilePath);
     m_session->clear();
@@ -225,7 +233,7 @@ QList<Session::ContentBlock> ChatController::composeUserBlocks(
     if (!textFiles.isEmpty() && !m_chatFilePath.isEmpty()) {
         for (const auto &file : m_contextManager->getContentFiles(textFiles)) {
             QString storedPath;
-            if (!ChatSerializer::saveContentToStorage(
+            if (!ChatFileStore::saveContentToStorage(
                     m_chatFilePath, file.filename, file.content.toUtf8().toBase64(), storedPath)) {
                 continue;
             }
@@ -245,7 +253,7 @@ QList<Session::ContentBlock> ChatController::composeUserBlocks(
 
             const QFileInfo fileInfo(imagePath);
             QString storedPath;
-            if (!ChatSerializer::saveContentToStorage(
+            if (!ChatFileStore::saveContentToStorage(
                     m_chatFilePath, fileInfo.fileName(), base64Data, storedPath)) {
                 continue;
             }

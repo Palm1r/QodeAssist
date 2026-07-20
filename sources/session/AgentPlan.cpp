@@ -5,18 +5,10 @@
 #include "session/AgentPlan.hpp"
 
 #include <QJsonArray>
-#include <QJsonDocument>
+
+#include "session/BlockCodec.hpp"
 
 namespace QodeAssist::Session {
-
-namespace {
-
-QString planMarker()
-{
-    return QStringLiteral("QODEASSIST_PLAN:");
-}
-
-} // namespace
 
 QJsonObject planBlockToJson(const PlanBlock &block)
 {
@@ -50,20 +42,16 @@ PlanBlock planBlockFromJson(const QJsonObject &json)
 
 QString encodePlanBlock(const PlanBlock &block)
 {
-    return planMarker()
-           + QString::fromUtf8(QJsonDocument(planBlockToJson(block)).toJson(QJsonDocument::Compact));
+    return encodeMarkerPayload(planPayloadMarker, planBlockToJson(block));
 }
 
 std::optional<PlanBlock> decodePlanBlock(const QString &text)
 {
-    if (!text.startsWith(planMarker()))
+    const auto payload = decodeMarkerPayload(planPayloadMarker, text);
+    if (!payload)
         return std::nullopt;
 
-    const QJsonDocument document = QJsonDocument::fromJson(text.mid(planMarker().size()).toUtf8());
-    if (!document.isObject())
-        return std::nullopt;
-
-    return planBlockFromJson(document.object());
+    return planBlockFromJson(*payload);
 }
 
 } // namespace QodeAssist::Session

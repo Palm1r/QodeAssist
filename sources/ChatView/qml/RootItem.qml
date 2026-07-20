@@ -342,7 +342,8 @@ ChatRootView {
 
                 ToolBlock {
                     width: parent.width
-                    toolContent: model.content
+                    toolName: model.toolName || ""
+                    toolResult: model.toolResult || ""
                     toolKind: model.toolKind || ""
                     toolStatus: model.toolStatus || ""
                     toolDetails: model.toolDetails || ({})
