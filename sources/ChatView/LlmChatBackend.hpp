@@ -25,6 +25,7 @@ public:
 
     void sendTurn(const Session::TurnRequest &request) override;
     void cancel() override;
+    Session::TurnContextNeeds contextNeeds() const override;
 
     void setChatFilePath(const QString &filePath) override;
     void clearToolSession(const QString &filePath) override;

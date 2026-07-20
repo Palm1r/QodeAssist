@@ -67,7 +67,7 @@ signals:
 private:
     QList<Session::ContentBlock> composeUserBlocks(
         const QString &message, const QList<QString> &attachments);
-    std::optional<Session::TurnContext> buildTurnContext(
+    Session::TurnContext buildTurnContext(
         const QString &message, const QList<QString> &linkedFiles) const;
     void recordFileEditStatus(
         const QString &editId, const QString &status, const QString &fallbackMessage);

@@ -57,6 +57,7 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(int currentMessagePendingEdits READ currentMessagePendingEdits NOTIFY currentMessageEditsStatsChanged FINAL)
     Q_PROPERTY(int currentMessageRejectedEdits READ currentMessageRejectedEdits NOTIFY currentMessageEditsStatsChanged FINAL)
     Q_PROPERTY(bool isThinkingSupport READ isThinkingSupport NOTIFY isThinkingSupportChanged FINAL)
+    Q_PROPERTY(bool isAgentBound READ isAgentBound NOTIFY isAgentBoundChanged FINAL)
     Q_PROPERTY(QStringList availableConfigurations READ availableConfigurations NOTIFY availableConfigurationsChanged FINAL)
     Q_PROPERTY(QString currentConfiguration READ currentConfiguration NOTIFY currentConfigurationChanged FINAL)
     Q_PROPERTY(QStringList availableAgentRoles READ availableAgentRoles NOTIFY availableAgentRolesChanged FINAL)
@@ -188,6 +189,7 @@ public:
     QString lastInfoMessage() const;
 
     bool isThinkingSupport() const;
+    bool isAgentBound() const;
     
     bool isCompressing() const;
 
@@ -234,6 +236,7 @@ signals:
     void currentMessageEditsStatsChanged();
 
     void isThinkingSupportChanged();
+    void isAgentBoundChanged();
     void availableConfigurationsChanged();
     void currentConfigurationChanged();
     void chatTargetSwitchNeedsNewChat(const QString &targetName);

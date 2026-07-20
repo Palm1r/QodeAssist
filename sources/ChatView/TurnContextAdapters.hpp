@@ -53,6 +53,7 @@ public:
     explicit LinkedFilesQtCreator(Context::ContextManager *contextManager);
 
     QList<Session::LinkedFile> readFiles(const QList<QString> &paths) const override;
+    QList<Session::LinkedFile> resolvePaths(const QList<QString> &paths) const override;
 
 private:
     Context::ContextManager *m_contextManager = nullptr;

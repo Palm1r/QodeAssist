@@ -1360,12 +1360,19 @@ void ChatRootView::bindAgent(const Acp::AgentDefinition &agent)
 {
     m_controller->bindToAgent(agent);
     m_configurationController->setBoundAgent(agent);
+    emit isAgentBoundChanged();
 }
 
 void ChatRootView::bindLlm()
 {
     m_controller->bindToLlm();
     m_configurationController->clearBoundAgent();
+    emit isAgentBoundChanged();
+}
+
+bool ChatRootView::isAgentBound() const
+{
+    return !m_controller->boundAgentId().isEmpty();
 }
 
 QStringList ChatRootView::availableConfigurations() const

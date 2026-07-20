@@ -20,6 +20,7 @@ struct TurnContextRequest
     QString basePrompt;
     std::optional<QString> rolePrompt;
     QList<QString> linkedFilePaths;
+    TurnContextNeeds needs;
 };
 
 class TurnContextBuilder

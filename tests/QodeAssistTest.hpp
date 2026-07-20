@@ -113,6 +113,8 @@ private slots:
     void testSessionTruncateRowsRewritesHistory();
 
     void testTurnContextCollectsPartsFromPorts();
+    void testTurnContextSkipsWhatTheBackendDoesNotNeed();
+    void testFencedFileBlockOutgrowsBackticksInContent();
     void testTurnContextSkillCommandScanning();
     void testTurnContextWithoutSkillsPort();
     void testLinkedFilesHeaderSurvivesUnreadablePaths();
@@ -135,6 +137,17 @@ private slots:
     void testAcpBackendAuthenticatesWhenTheAgentAsksForIt();
     void testAcpBackendReportsPromptFailure();
     void testAcpBackendCancelInterruptsTheTurn();
+    void testAcpBackendSendsAttachmentsAsEmbeddedResources();
+    void testAcpBackendInlinesAttachmentsWithoutEmbeddedContextSupport();
+    void testAcpBackendReportsAttachmentsItCannotLoad();
+    void testAcpBackendSendsImagesWhenTheAgentAcceptsThem();
+    void testAcpBackendNamesImagesTheAgentCannotAccept();
+    void testAcpBackendSendsLinkedFilesAsResourceLinks();
+    void testAcpBackendPercentEncodesResourceLinkUris();
+    void testAcpBackendFencesAttachmentsThatContainFences();
+    void testAcpBackendTruncatesOversizedAttachments();
+    void testAcpBackendRejectsATurnOfUnlinkableFilesOnly();
+    void testAcpBackendSendsAttachmentsWithoutAnyMessageText();
 
 private:
     Context::DocumentContextReader createReader(const QString &text);

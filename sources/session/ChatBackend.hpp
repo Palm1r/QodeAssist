@@ -21,6 +21,8 @@ public:
     virtual void sendTurn(const TurnRequest &request) = 0;
     virtual void cancel() = 0;
 
+    virtual TurnContextNeeds contextNeeds() const { return {}; }
+
     virtual void setChatFilePath(const QString &filePath) { Q_UNUSED(filePath) }
     virtual void clearToolSession(const QString &filePath) { Q_UNUSED(filePath) }
 

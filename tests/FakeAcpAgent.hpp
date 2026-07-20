@@ -68,6 +68,8 @@ public:
 
     void setRequireAuthentication(bool require) { m_requireAuthentication = require; }
     void setSupportsLoadSession(bool supports) { m_loadSession = supports; }
+    void setSupportsEmbeddedContext(bool supports) { m_embeddedContext = supports; }
+    void setSupportsImages(bool supports) { m_images = supports; }
     void setPromptFailure(const QString &error) { m_promptError = error; }
     void setHangOnPrompt(bool hang) { m_hangOnPrompt = hang; }
     void setReplyChunks(const QStringList &chunks) { m_chunks = chunks; }
@@ -83,7 +85,10 @@ public:
 private:
     QJsonObject initializeResult() const
     {
-        QJsonObject capabilities{{"loadSession", m_loadSession}};
+        QJsonObject capabilities{
+            {"loadSession", m_loadSession},
+            {"promptCapabilities",
+             QJsonObject{{"image", m_images}, {"embeddedContext", m_embeddedContext}}}};
         QJsonObject result{{"protocolVersion", 1}, {"agentCapabilities", capabilities}};
         result.insert(
             "agentInfo",
@@ -151,6 +156,8 @@ private:
     bool m_open = false;
     bool m_hangOnPrompt = false;
     bool m_loadSession = false;
+    bool m_embeddedContext = false;
+    bool m_images = false;
     bool m_requireAuthentication = false;
     bool m_authenticated = false;
     bool m_cancelled = false;

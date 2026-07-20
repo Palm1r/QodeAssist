@@ -53,8 +53,11 @@ AgentProcess spawnAgent(const AgentDefinition &agent, const QString &cwd, QObjec
     applyForwardedEnvironment(
         *config, splitVariableNames(settings.agentForwardedVariables.volatileValue()));
 
-    auto *transport = config->createTransport(parent);
-    return {new LLMQore::Acp::AcpClient(transport, clientIdentity(), parent), config->command};
+    auto *transport = config->createTransport(nullptr);
+    auto *client = new LLMQore::Acp::AcpClient(transport, clientIdentity(), parent);
+    transport->setParent(client);
+
+    return {client, config->command};
 }
 
 QString runnerHint(const QString &command)

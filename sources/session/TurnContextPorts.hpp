@@ -48,6 +48,7 @@ public:
     virtual ~ILinkedFilesPort() = default;
 
     virtual QList<LinkedFile> readFiles(const QList<QString> &paths) const = 0;
+    virtual QList<LinkedFile> resolvePaths(const QList<QString> &paths) const = 0;
 };
 
 } // namespace QodeAssist::Session

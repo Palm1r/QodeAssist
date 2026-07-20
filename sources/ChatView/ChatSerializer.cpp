@@ -149,7 +149,8 @@ bool ChatSerializer::saveContentToStorage(
     return true;
 }
 
-QString ChatSerializer::loadContentFromStorage(const QString &chatFilePath, const QString &storedPath)
+QByteArray ChatSerializer::loadRawContentFromStorage(
+    const QString &chatFilePath, const QString &storedPath)
 {
     QString contentFolder = getChatContentFolder(chatFilePath);
     QString fullPath = QDir(contentFolder).filePath(storedPath);
@@ -157,13 +158,19 @@ QString ChatSerializer::loadContentFromStorage(const QString &chatFilePath, cons
     QFile file(fullPath);
     if (!file.open(QIODevice::ReadOnly)) {
         LOG_MESSAGE(QString("Failed to open content file: %1").arg(fullPath));
-        return QString();
+        return QByteArray();
     }
 
     QByteArray contentData = file.readAll();
     file.close();
 
-    return contentData.toBase64();
+    return contentData;
+}
+
+QString ChatSerializer::loadContentFromStorage(
+    const QString &chatFilePath, const QString &storedPath)
+{
+    return QString::fromLatin1(loadRawContentFromStorage(chatFilePath, storedPath).toBase64());
 }
 
 } // namespace QodeAssist::Chat

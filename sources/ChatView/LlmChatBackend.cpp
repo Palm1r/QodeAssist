@@ -12,8 +12,10 @@
 #include "llmcore/ContextData.hpp"
 #include "logger/Logger.hpp"
 #include "providers/ProvidersManager.hpp"
+#include "session/FencedText.hpp"
 #include "session/FileEditPayload.hpp"
 #include "session/HistoryProjection.hpp"
+#include "settings/ChatAssistantSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ToolsSettings.hpp"
 #include "tools/ReadOriginalHistoryTool.hpp"
@@ -62,7 +64,7 @@ void LlmChatBackend::sendTurn(const Session::TurnRequest &request)
     }
 
     LLMCore::ContextData context;
-    if (request.context)
+    if (request.context && Settings::chatAssistantSettings().useSystemPrompt())
         context.systemPrompt = Session::renderSystemPrompt(*request.context);
     context.history = renderHistory(*request.history, provider, promptTemplate);
 
@@ -120,6 +122,12 @@ void LlmChatBackend::releaseRequest()
     m_provider = nullptr;
     m_requestId.clear();
     m_dropPreToolText = false;
+}
+
+Session::TurnContextNeeds LlmChatBackend::contextNeeds() const
+{
+    const bool wanted = Settings::chatAssistantSettings().useSystemPrompt();
+    return {wanted, wanted};
 }
 
 void LlmChatBackend::setChatFilePath(const QString &filePath)
@@ -260,15 +268,15 @@ QVector<LLMCore::Message> LlmChatBackend::renderHistory(
         if (!row.attachments.isEmpty() && !m_chatFilePath.isEmpty()) {
             apiMessage.content += "\n\nAttached files:";
             for (const Session::AttachmentBlock &attachment : row.attachments) {
-                const QString fileContent
-                    = ChatSerializer::loadContentFromStorage(m_chatFilePath, attachment.storedPath);
+                const QByteArray fileContent = ChatSerializer::loadRawContentFromStorage(
+                    m_chatFilePath, attachment.storedPath);
                 if (fileContent.isEmpty())
                     continue;
 
-                const QString decodedContent = QString::fromUtf8(
-                    QByteArray::fromBase64(fileContent.toUtf8()));
-                apiMessage.content += QString("\n\nFile: %1\n```\n%2\n```")
-                                          .arg(attachment.fileName, decodedContent);
+                apiMessage.content
+                    += "\n\n"
+                       + Session::fencedFileBlock(
+                           attachment.fileName, QString::fromUtf8(fileContent));
             }
         }
 

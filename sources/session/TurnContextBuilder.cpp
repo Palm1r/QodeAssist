@@ -25,10 +25,10 @@ TurnContext TurnContextBuilder::build(const TurnContextRequest &request) const
     context.rolePrompt = request.rolePrompt;
 
     context.project = m_project.projectInfo();
-    if (context.project.available)
+    if (context.project.available && request.needs.systemPrompt)
         context.projectRules = m_project.projectRules();
 
-    if (m_skills) {
+    if (m_skills && request.needs.systemPrompt) {
         context.alwaysOnSkills = m_skills->alwaysOnBodies();
         context.skillsCatalog = m_skills->catalogText();
 
@@ -49,8 +49,11 @@ TurnContext TurnContextBuilder::build(const TurnContextRequest &request) const
     }
 
     context.linkedFilePaths = request.linkedFilePaths;
-    if (!request.linkedFilePaths.isEmpty())
-        context.linkedFiles = m_linkedFiles.readFiles(request.linkedFilePaths);
+    if (!request.linkedFilePaths.isEmpty()) {
+        context.linkedFiles = request.needs.linkedFileContent
+                                  ? m_linkedFiles.readFiles(request.linkedFilePaths)
+                                  : m_linkedFiles.resolvePaths(request.linkedFilePaths);
+    }
 
     return context;
 }

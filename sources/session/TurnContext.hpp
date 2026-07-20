@@ -33,8 +33,17 @@ struct LinkedFile
 {
     QString fileName;
     QString content;
+    QString path;
 
     bool operator==(const LinkedFile &other) const = default;
+};
+
+struct TurnContextNeeds
+{
+    bool systemPrompt = true;
+    bool linkedFileContent = true;
+
+    bool operator==(const TurnContextNeeds &other) const = default;
 };
 
 struct TurnContext

@@ -4,6 +4,8 @@
 
 #include "TurnContextAdapters.hpp"
 
+#include <QFileInfo>
+
 #include <projectexplorer/buildconfiguration.h>
 #include <projectexplorer/project.h>
 #include <projectexplorer/target.h>
@@ -89,7 +91,18 @@ QList<Session::LinkedFile> LinkedFilesQtCreator::readFiles(const QList<QString> 
 {
     QList<Session::LinkedFile> files;
     for (const auto &file : m_contextManager->getContentFiles(paths))
-        files.append(Session::LinkedFile{file.filename, file.content});
+        files.append(Session::LinkedFile{file.filename, file.content, file.path});
+
+    return files;
+}
+
+QList<Session::LinkedFile> LinkedFilesQtCreator::resolvePaths(const QList<QString> &paths) const
+{
+    QList<Session::LinkedFile> files;
+    for (const QString &path : m_contextManager->allowedPaths(paths)) {
+        const QFileInfo fileInfo(path);
+        files.append(Session::LinkedFile{fileInfo.fileName(), {}, fileInfo.absoluteFilePath()});
+    }
 
     return files;
 }

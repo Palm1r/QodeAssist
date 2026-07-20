@@ -2,6 +2,7 @@ add_library(QodeAssistSession STATIC
     ContentBlock.hpp
     Message.hpp
     ConversationHistory.hpp ConversationHistory.cpp
+    FencedText.hpp FencedText.cpp
     FileEditPayload.hpp FileEditPayload.cpp
     HistoryProjection.hpp HistoryProjection.cpp
     HistorySerializer.hpp HistorySerializer.cpp

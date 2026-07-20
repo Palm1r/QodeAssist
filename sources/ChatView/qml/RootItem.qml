@@ -453,7 +453,7 @@ ChatRootView {
                     }
                     fileMentionPopup.dismiss()
 
-                    const slashIndex = textBefore.lastIndexOf('/')
+                    const slashIndex = root.isAgentBound ? -1 : textBefore.lastIndexOf('/')
                     if (slashIndex >= 0) {
                         const beforeSlash = slashIndex === 0
                                             ? ' '

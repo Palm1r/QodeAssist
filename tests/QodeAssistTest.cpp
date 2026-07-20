@@ -20,6 +20,7 @@
 #include "completion/LLMSuggestion.hpp"
 #include "llmcore/ContextData.hpp"
 #include "providers/ClaudeCacheControl.hpp"
+#include "session/FencedText.hpp"
 #include "session/HistoryProjection.hpp"
 #include "session/HistorySerializer.hpp"
 #include "session/Session.hpp"
@@ -30,6 +31,7 @@
 #include <QJsonArray>
 #include <QTest>
 #include <QTextDocument>
+#include <QUrl>
 
 namespace QodeAssist {
 
@@ -192,11 +194,24 @@ public:
         return m_files;
     }
 
+    QList<Session::LinkedFile> resolvePaths(const QList<QString> &paths) const override
+    {
+        m_resolvedOnly = true;
+        m_requestedPaths = paths;
+
+        QList<Session::LinkedFile> files;
+        for (const Session::LinkedFile &file : m_files)
+            files.append(Session::LinkedFile{file.fileName, {}, file.path});
+        return files;
+    }
+
     QList<QString> requestedPaths() const { return m_requestedPaths; }
+    bool resolvedWithoutContent() const { return m_resolvedOnly; }
 
 private:
     QList<Session::LinkedFile> m_files;
     mutable QList<QString> m_requestedPaths;
+    mutable bool m_resolvedOnly = false;
 };
 
 Session::ProjectInfo sampleProject()
@@ -1652,6 +1667,47 @@ void QodeAssistTest::testTurnContextCollectsPartsFromPorts()
     QCOMPARE(filesPort.requestedPaths(), (QList<QString>{"/src/main.cpp"}));
 }
 
+void QodeAssistTest::testTurnContextSkipsWhatTheBackendDoesNotNeed()
+{
+    FakeProjectContext projectPort(sampleProject(), "Always use tabs.");
+    FakeSkillsContext skillsPort(
+        "# Always on", "# Skills catalog", {Session::InvokedSkill{"review", "Review body"}});
+    FakeLinkedFiles filesPort({Session::LinkedFile{"main.cpp", "int main() {}", "/src/main.cpp"}});
+
+    Session::TurnContextRequest request;
+    request.message = "please /review this";
+    request.linkedFilePaths = QList<QString>{"/src/main.cpp"};
+    request.needs = Session::TurnContextNeeds{false, false};
+
+    const Session::TurnContext context
+        = Session::TurnContextBuilder(projectPort, &skillsPort, filesPort).build(request);
+
+    QVERIFY(context.projectRules.isEmpty());
+    QVERIFY(context.alwaysOnSkills.isEmpty());
+    QVERIFY(context.skillsCatalog.isEmpty());
+    QVERIFY(context.invokedSkills.isEmpty());
+
+    QVERIFY(filesPort.resolvedWithoutContent());
+    QCOMPARE(context.linkedFiles.size(), 1);
+    QCOMPARE(context.linkedFiles.at(0).fileName, QString("main.cpp"));
+    QCOMPARE(context.linkedFiles.at(0).path, QString("/src/main.cpp"));
+    QVERIFY(context.linkedFiles.at(0).content.isEmpty());
+}
+
+void QodeAssistTest::testFencedFileBlockOutgrowsBackticksInContent()
+{
+    const QString plain = Session::fencedFileBlock("notes.txt", "hello");
+    QCOMPARE(plain, QString("File: notes.txt\n```\nhello\n```"));
+
+    const QString fenced = Session::fencedFileBlock("readme.md", "text\n```\ncode\n```\nmore");
+    QVERIFY(fenced.startsWith("File: readme.md\n````\n"));
+    QVERIFY(fenced.endsWith("\n````"));
+    QVERIFY(fenced.contains("```\ncode\n```"));
+
+    const QString nested = Session::fencedFileBlock("deep.md", "`````");
+    QVERIFY(nested.contains("``````"));
+}
+
 void QodeAssistTest::testTurnContextSkillCommandScanning()
 {
     FakeProjectContext projectPort({}, QString());
@@ -2093,6 +2149,10 @@ public:
             &backend,
             [this](const Session::SessionEvent &event) { events.append(event); });
 
+        backend.setStoredContentLoader([this](const QString &, const QString &storedPath) {
+            return storage.value(storedPath);
+        });
+
         backend.bindAgent(fakeAgentDefinition());
     }
 
@@ -2101,6 +2161,33 @@ public:
         Session::TurnRequest request;
         request.userBlocks = {Session::TextBlock{text}};
         backend.sendTurn(request);
+    }
+
+    void sendBlocks(
+        const QList<Session::ContentBlock> &blocks,
+        const std::optional<Session::TurnContext> &context = std::nullopt)
+    {
+        Session::TurnRequest request;
+        request.userBlocks = blocks;
+        request.context = context;
+        backend.sendTurn(request);
+    }
+
+    QList<QJsonObject> promptBlocksOfType(const QString &type) const
+    {
+        QList<QJsonObject> matching;
+        if (!agent)
+            return matching;
+
+        const QList<QJsonArray> sent = agent->prompts();
+        if (sent.isEmpty())
+            return matching;
+
+        for (const QJsonValue &block : sent.constLast()) {
+            if (block.toObject().value("type").toString() == type)
+                matching.append(block.toObject());
+        }
+        return matching;
     }
 
     template<typename T>
@@ -2115,10 +2202,11 @@ public:
     }
 
     std::function<void(FakeAcpAgent *)> configure = [](FakeAcpAgent *) {};
-    Acp::AcpChatBackend backend;
+    QHash<QString, QByteArray> storage;
     FakeAcpAgent *agent = nullptr;
     QString requestedCwd;
     QList<Session::SessionEvent> events;
+    Acp::AcpChatBackend backend;
 };
 
 } // namespace
@@ -2218,6 +2306,217 @@ void QodeAssistTest::testAcpBackendCancelInterruptsTheTurn()
     QTRY_VERIFY(fixture.agent->wasCancelled());
     QCOMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 0);
     QCOMPARE(fixture.eventsOfType<Session::TurnFailed>().size(), 0);
+}
+
+void QodeAssistTest::testAcpBackendSendsAttachmentsAsEmbeddedResources()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setSupportsEmbeddedContext(true); };
+    fixture.storage.insert("notes_ab12.txt", QByteArray("remember the milk"));
+
+    fixture.sendBlocks(
+        {Session::TextBlock{"summarise this"},
+         Session::AttachmentBlock{"notes.txt", "notes_ab12.txt"}});
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    const auto resources = fixture.promptBlocksOfType("resource");
+    QCOMPARE(resources.size(), 1);
+
+    const QJsonObject resource = resources.at(0).value("resource").toObject();
+    QCOMPARE(resource.value("text").toString(), QString("remember the milk"));
+    QCOMPARE(resource.value("mimeType").toString(), QString("text/plain"));
+    QVERIFY(resource.value("uri").toString().endsWith("notes.txt"));
+
+    QCOMPARE(fixture.promptBlocksOfType("text").size(), 1);
+}
+
+void QodeAssistTest::testAcpBackendInlinesAttachmentsWithoutEmbeddedContextSupport()
+{
+    AcpBackendFixture fixture;
+    fixture.storage.insert("notes_ab12.txt", QByteArray("remember the milk"));
+
+    fixture.sendBlocks(
+        {Session::TextBlock{"summarise this"},
+         Session::AttachmentBlock{"notes.txt", "notes_ab12.txt"}});
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    QCOMPARE(fixture.promptBlocksOfType("resource").size(), 0);
+
+    const auto texts = fixture.promptBlocksOfType("text");
+    QCOMPARE(texts.size(), 2);
+
+    const QString inlined = texts.at(1).value("text").toString();
+    QVERIFY(inlined.contains("notes.txt"));
+    QVERIFY(inlined.contains("remember the milk"));
+}
+
+void QodeAssistTest::testAcpBackendReportsAttachmentsItCannotLoad()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setSupportsEmbeddedContext(true); };
+
+    fixture.sendBlocks(
+        {Session::TextBlock{"summarise this"},
+         Session::AttachmentBlock{"notes.txt", "missing.txt"}});
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    QCOMPARE(fixture.promptBlocksOfType("resource").size(), 0);
+
+    const auto texts = fixture.promptBlocksOfType("text");
+    QCOMPARE(texts.size(), 2);
+    QVERIFY(texts.at(1).value("text").toString().contains("notes.txt"));
+}
+
+void QodeAssistTest::testAcpBackendSendsImagesWhenTheAgentAcceptsThem()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setSupportsImages(true); };
+    fixture.storage.insert("shot_cd34.png", QByteArray("\x89PNG-bytes"));
+
+    fixture.sendBlocks(
+        {Session::TextBlock{"what is this"},
+         Session::ImageBlock{"shot.png", "shot_cd34.png", "image/png"}});
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    const auto images = fixture.promptBlocksOfType("image");
+    QCOMPARE(images.size(), 1);
+    QCOMPARE(images.at(0).value("mimeType").toString(), QString("image/png"));
+    QCOMPARE(
+        images.at(0).value("data").toString(),
+        QString::fromLatin1(QByteArray("\x89PNG-bytes").toBase64()));
+}
+
+void QodeAssistTest::testAcpBackendNamesImagesTheAgentCannotAccept()
+{
+    AcpBackendFixture fixture;
+    fixture.storage.insert("shot_cd34.png", QByteArray("\x89PNG-bytes"));
+
+    fixture.sendBlocks(
+        {Session::TextBlock{"what is this"},
+         Session::ImageBlock{"shot.png", "shot_cd34.png", "image/png"}});
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    QCOMPARE(fixture.promptBlocksOfType("image").size(), 0);
+
+    const auto texts = fixture.promptBlocksOfType("text");
+    QCOMPARE(texts.size(), 2);
+    QVERIFY(texts.at(1).value("text").toString().contains("shot.png"));
+}
+
+void QodeAssistTest::testAcpBackendSendsLinkedFilesAsResourceLinks()
+{
+    AcpBackendFixture fixture;
+
+    Session::TurnContext context;
+    context.linkedFilePaths = {"/project/main.cpp", "/project/secret.key"};
+    context.linkedFiles = {Session::LinkedFile{"main.cpp", "int main() {}", "/project/main.cpp"}};
+
+    fixture.sendBlocks({Session::TextBlock{"review this"}}, context);
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    const auto links = fixture.promptBlocksOfType("resource_link");
+    QCOMPARE(links.size(), 1);
+    QCOMPARE(links.at(0).value("name").toString(), QString("main.cpp"));
+    QCOMPARE(links.at(0).value("uri").toString(), QString("file:///project/main.cpp"));
+}
+
+void QodeAssistTest::testAcpBackendPercentEncodesResourceLinkUris()
+{
+    AcpBackendFixture fixture;
+
+    Session::TurnContext context;
+    context.linkedFiles
+        = {Session::LinkedFile{"my notes.cpp", QString(), "/project/dir/my notes.cpp"},
+           Session::LinkedFile{"файл.cpp", QString(), "/project/файл.cpp"}};
+
+    fixture.sendBlocks({Session::TextBlock{"review this"}}, context);
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    const auto links = fixture.promptBlocksOfType("resource_link");
+    QCOMPARE(links.size(), 2);
+    QCOMPARE(
+        links.at(0).value("uri").toString(), QString("file:///project/dir/my%20notes.cpp"));
+
+    const QString unicodeUri = links.at(1).value("uri").toString();
+    QVERIFY(!unicodeUri.contains(QString::fromUtf8("файл")));
+    QCOMPARE(QUrl(unicodeUri).toLocalFile(), QString::fromUtf8("/project/файл.cpp"));
+}
+
+void QodeAssistTest::testAcpBackendFencesAttachmentsThatContainFences()
+{
+    AcpBackendFixture fixture;
+    fixture.storage.insert("readme_ab12.md", QByteArray("intro\n```\ncode\n```\noutro"));
+
+    fixture.sendBlocks(
+        {Session::TextBlock{"read it"}, Session::AttachmentBlock{"readme.md", "readme_ab12.md"}});
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    const auto texts = fixture.promptBlocksOfType("text");
+    QCOMPARE(texts.size(), 2);
+
+    const QString inlined = texts.at(1).value("text").toString();
+    QVERIFY(inlined.startsWith("File: readme.md\n````\n"));
+    QVERIFY(inlined.endsWith("\n````"));
+    QVERIFY(inlined.contains("```\ncode\n```"));
+}
+
+void QodeAssistTest::testAcpBackendTruncatesOversizedAttachments()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setSupportsEmbeddedContext(true); };
+
+    const QByteArray huge(700 * 1024, 'x');
+    fixture.storage.insert("dump_ab12.log", huge);
+
+    fixture.sendBlocks(
+        {Session::TextBlock{"summarise"}, Session::AttachmentBlock{"dump.log", "dump_ab12.log"}});
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    const auto resources = fixture.promptBlocksOfType("resource");
+    QCOMPARE(resources.size(), 1);
+
+    const QString text = resources.at(0).value("resource").toObject().value("text").toString();
+    QVERIFY(text.size() < huge.size());
+    QVERIFY(text.contains("truncated by QodeAssist"));
+}
+
+void QodeAssistTest::testAcpBackendRejectsATurnOfUnlinkableFilesOnly()
+{
+    AcpBackendFixture fixture;
+
+    Session::TurnContext context;
+    context.linkedFilePaths = {"/project/main.cpp"};
+    context.linkedFiles = {Session::LinkedFile{"main.cpp", "int main() {}", QString()}};
+
+    fixture.sendBlocks({Session::TextBlock{""}}, context);
+
+    QCOMPARE(fixture.eventsOfType<Session::TurnFailed>().size(), 1);
+    QCOMPARE(fixture.eventsOfType<Session::TurnStarted>().size(), 0);
+    QVERIFY(fixture.agent == nullptr);
+}
+
+void QodeAssistTest::testAcpBackendSendsAttachmentsWithoutAnyMessageText()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setSupportsEmbeddedContext(true); };
+    fixture.storage.insert("notes_ab12.txt", QByteArray("remember the milk"));
+
+    fixture.sendBlocks(
+        {Session::TextBlock{""}, Session::AttachmentBlock{"notes.txt", "notes_ab12.txt"}});
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    QCOMPARE(fixture.eventsOfType<Session::TurnFailed>().size(), 0);
+    QCOMPARE(fixture.promptBlocksOfType("resource").size(), 1);
 }
 
 } // namespace QodeAssist

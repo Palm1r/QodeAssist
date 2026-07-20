@@ -35,6 +35,8 @@ ChatController::ChatController(
 {
     new ChatHistoryBridge(m_session, chatModel, this);
 
+    m_acpBackend->setStoredContentLoader(&ChatSerializer::loadRawContentFromStorage);
+
     m_session->setBackend(m_backend);
 
     connect(m_session, &Session::Session::turnStarted, this, &ChatController::requestStarted);
@@ -205,23 +207,25 @@ QList<Session::ContentBlock> ChatController::composeUserBlocks(
     return blocks;
 }
 
-std::optional<Session::TurnContext> ChatController::buildTurnContext(
+Session::TurnContext ChatController::buildTurnContext(
     const QString &message, const QList<QString> &linkedFiles) const
 {
     auto &chatAssistantSettings = Settings::chatAssistantSettings();
-    if (!chatAssistantSettings.useSystemPrompt())
-        return std::nullopt;
 
     Session::TurnContextRequest contextRequest;
     contextRequest.message = message;
-    contextRequest.basePrompt = chatAssistantSettings.systemPrompt();
     contextRequest.linkedFilePaths = linkedFiles;
+    contextRequest.needs = m_backend->contextNeeds();
 
-    const QString lastRoleId = chatAssistantSettings.lastUsedRoleId();
-    if (!lastRoleId.isEmpty()) {
-        const Settings::AgentRole role = Settings::AgentRolesManager::loadRole(lastRoleId);
-        if (!role.id.isEmpty())
-            contextRequest.rolePrompt = role.systemPrompt;
+    if (contextRequest.needs.systemPrompt) {
+        contextRequest.basePrompt = chatAssistantSettings.systemPrompt();
+
+        const QString lastRoleId = chatAssistantSettings.lastUsedRoleId();
+        if (!lastRoleId.isEmpty()) {
+            const Settings::AgentRole role = Settings::AgentRolesManager::loadRole(lastRoleId);
+            if (!role.id.isEmpty())
+                contextRequest.rolePrompt = role.systemPrompt;
+        }
     }
 
     auto *project = Context::RulesLoader::getActiveProject();

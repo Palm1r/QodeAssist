@@ -32,6 +32,8 @@ public:
                                       const QString &base64Data,
                                       QString &storedPath);
     static QString loadContentFromStorage(const QString &chatFilePath, const QString &storedPath);
+    static QByteArray loadRawContentFromStorage(
+        const QString &chatFilePath, const QString &storedPath);
 
 private:
     static bool ensureDirectoryExists(const QString &filePath);
