@@ -4,28 +4,22 @@
 
 #pragma once
 
-#include <texteditor/textdocument.h>
 #include <QDateTime>
 #include <QHash>
+#include <QList>
 #include <QMutex>
-#include <QQueue>
-#include <QTimer>
+#include <QObject>
+#include <QString>
+#include <QStringList>
 #include <QUndoStack>
 
 namespace QodeAssist::Context {
 
-class ChangesManager : public QObject
+class FileEditManager : public QObject
 {
     Q_OBJECT
 
 public:
-    struct ChangeInfo
-    {
-        QString fileName;
-        int lineNumber;
-        QString lineContent;
-    };
-
     enum FileEditStatus { Pending, Applied, Rejected, Archived };
 
     struct DiffHunk
@@ -63,11 +57,7 @@ public:
         QString statusMessage;
     };
 
-    static ChangesManager &instance();
-
-    void addChange(
-        TextEditor::TextDocument *document, int position, int charsRemoved, int charsAdded);
-    QString getRecentChangesContext(const TextEditor::TextDocument *currentDocument) const;
+    static FileEditManager &instance();
 
     void addFileEdit(
         const QString &editId,
@@ -88,15 +78,15 @@ public:
     bool undoFileEdit(const QString &editId);
     FileEdit getFileEdit(const QString &editId) const;
     QList<FileEdit> getPendingEdits() const;
-    
+
     bool applyPendingEditsForRequest(const QString &requestId, QString *errorMsg = nullptr);
-    
+
     QList<FileEdit> getEditsForRequest(const QString &requestId) const;
-    
+
     bool undoAllEditsForRequest(const QString &requestId, QString *errorMsg = nullptr);
-    
+
     bool reapplyAllEditsForRequest(const QString &requestId, QString *errorMsg = nullptr);
-    
+
     void archiveAllNonArchivedEdits();
 
 signals:
@@ -107,19 +97,19 @@ signals:
     void fileEditArchived(const QString &editId);
 
 private:
-    ChangesManager();
-    ~ChangesManager();
-    ChangesManager(const ChangesManager &) = delete;
-    ChangesManager &operator=(const ChangesManager &) = delete;
+    FileEditManager();
+    ~FileEditManager();
+    FileEditManager(const FileEditManager &) = delete;
+    FileEditManager &operator=(const FileEditManager &) = delete;
 
     bool performFileEdit(const QString &filePath, const QString &oldContent, const QString &newContent, QString *errorMsg = nullptr);
     bool performFileEditWithDiff(const QString &filePath, const DiffInfo &diffInfo, bool reverse, QString *errorMsg = nullptr);
     QString readFileContent(const QString &filePath) const;
-    
+
     DiffInfo createDiffInfo(const QString &originalContent, const QString &modifiedContent, const QString &filePath);
     bool applyDiffToContent(QString &content, const DiffInfo &diffInfo, bool reverse, QString *errorMsg = nullptr);
     bool findHunkLocation(const QStringList &fileLines, const DiffHunk &hunk, int &actualStartLine, QString *debugInfo = nullptr) const;
-    
+
     // Helper method for fragment-based apply/undo operations
     bool performFragmentReplacement(
         const QString &filePath,
@@ -128,7 +118,7 @@ private:
         bool isAppendOperation,
         QString *errorMsg = nullptr,
         bool isUndo = false);
-    
+
     int levenshteinDistance(const QString &s1, const QString &s2) const;
     QString findBestMatch(const QString &fileContent, const QString &searchContent, double threshold = 0.82, double *outSimilarity = nullptr) const;
     QString findBestMatchLineBased(const QString &fileContent, const QString &searchContent, double threshold = 0.82, double *outSimilarity = nullptr) const;
@@ -140,7 +130,6 @@ private:
         bool autoApplyPending = false;
     };
 
-    QHash<TextEditor::TextDocument *, QQueue<ChangeInfo>> m_documentChanges;
     QHash<QString, FileEdit> m_fileEdits;
     QHash<QString, RequestEdits> m_requestEdits;  // requestId → ordered edits
     QUndoStack *m_undoStack;

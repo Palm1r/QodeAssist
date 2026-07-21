@@ -15,7 +15,7 @@
 #include "ChatFileStore.hpp"
 #include "LlmChatBackend.hpp"
 #include "TurnContextAdapters.hpp"
-#include "context/ChangesManager.h"
+#include "context/FileEditManager.hpp"
 #include "logger/Logger.hpp"
 #include "session/FileEditPayload.hpp"
 #include "session/TurnContextBuilder.hpp"
@@ -76,7 +76,7 @@ ChatController::ChatController(
 
     connect(m_session, &Session::Session::turnFinished, this, [this](const QString &turnId) {
         QString applyError;
-        if (!Context::ChangesManager::instance().applyPendingEditsForRequest(turnId, &applyError)) {
+        if (!Context::FileEditManager::instance().applyPendingEditsForRequest(turnId, &applyError)) {
             LOG_MESSAGE(QString("Some edits for request %1 were not auto-applied: %2")
                             .arg(turnId, applyError));
         }
@@ -125,21 +125,21 @@ ChatController::ChatController(
                 return;
             }
 
-            Context::ChangesManager::instance().registerAppliedFileEdit(
+            Context::FileEditManager::instance().registerAppliedFileEdit(
                 editId, target.toUrlishString(), oldContent, newContent, turnId);
         });
 
-    auto &changes = Context::ChangesManager::instance();
-    connect(&changes, &Context::ChangesManager::fileEditApplied, this, [this](const QString &id) {
+    auto &changes = Context::FileEditManager::instance();
+    connect(&changes, &Context::FileEditManager::fileEditApplied, this, [this](const QString &id) {
         m_session->updateFileEditStatus(id, "applied", "Successfully applied");
     });
-    connect(&changes, &Context::ChangesManager::fileEditRejected, this, [this](const QString &id) {
+    connect(&changes, &Context::FileEditManager::fileEditRejected, this, [this](const QString &id) {
         m_session->updateFileEditStatus(id, "rejected", "Rejected by user");
     });
-    connect(&changes, &Context::ChangesManager::fileEditUndone, this, [this](const QString &id) {
+    connect(&changes, &Context::FileEditManager::fileEditUndone, this, [this](const QString &id) {
         recordFileEditStatus(id, "rejected", "Successfully undone");
     });
-    connect(&changes, &Context::ChangesManager::fileEditArchived, this, [this](const QString &id) {
+    connect(&changes, &Context::FileEditManager::fileEditArchived, this, [this](const QString &id) {
         m_session->updateFileEditStatus(id, "archived", "Archived (from previous conversation turn)");
     });
 }
@@ -244,7 +244,7 @@ void ChatController::sendMessage(const QString &message, const QList<QString> &a
         return;
     }
 
-    Context::ChangesManager::instance().archiveAllNonArchivedEdits();
+    Context::FileEditManager::instance().archiveAllNonArchivedEdits();
 
     m_session->sendTurn(composeUserBlocks(message, attachments), buildTurnContext(message));
 }
@@ -349,7 +349,7 @@ Session::TurnContext ChatController::buildTurnContext(const QString &message) co
 void ChatController::recordFileEditStatus(
     const QString &editId, const QString &status, const QString &fallbackMessage)
 {
-    const auto edit = Context::ChangesManager::instance().getFileEdit(editId);
+    const auto edit = Context::FileEditManager::instance().getFileEdit(editId);
     const QString message = edit.statusMessage.isEmpty() ? fallbackMessage : edit.statusMessage;
     m_session->updateFileEditStatus(editId, status, message);
 }
@@ -379,7 +379,7 @@ void ChatController::registerHistoricalEdits()
             continue;
         }
 
-        Context::ChangesManager::instance().addFileEdit(
+        Context::FileEditManager::instance().addFileEdit(
             editId,
             filePath,
             payload->value("old_content").toString(),

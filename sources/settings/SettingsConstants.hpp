@@ -180,8 +180,6 @@ const char CC_SYSTEM_PROMPT[] = "QodeAssist.ccSystemPrompt";
 const char CC_SYSTEM_PROMPT_FOR_NON_FIM[] = "QodeAssist.ccSystemPromptForNonFim";
 const char CC_USE_USER_TEMPLATE[] = "QodeAssist.ccUseUserTemplate";
 const char CC_USER_TEMPLATE[] = "QodeAssist.ccUserTemplate";
-const char CC_USE_PROJECT_CHANGES_CACHE[] = "QodeAssist.ccUseProjectChangesCache";
-const char CC_MAX_CHANGES_CACHE_SIZE[] = "QodeAssist.ccMaxChangesCacheSize";
 const char CA_USE_SYSTEM_PROMPT[] = "QodeAssist.useChatSystemPrompt";
 const char CA_SYSTEM_PROMPT[] = "QodeAssist.chatSystemPrompt";
 

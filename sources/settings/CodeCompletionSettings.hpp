@@ -68,8 +68,6 @@ public:
     Utils::BoolAspect useUserMessageTemplateForCC{this};
     Utils::StringAspect systemPromptForNonFimModels{this};
     Utils::StringAspect userMessageTemplateForCC{this};
-    Utils::BoolAspect useProjectChangesCache{this};
-    Utils::IntegerAspect maxChangesCacheSize{this};
 
     // Ollama Settings
     Utils::StringAspect ollamaLivetime{this};

@@ -39,7 +39,7 @@
 #include <LLMQore/AcpClient.hpp>
 #include "completion/CodeHandler.hpp"
 #include "completion/LLMSuggestion.hpp"
-#include "context/ChangesManager.h"
+#include "context/FileEditManager.hpp"
 #include "llmcore/ContextData.hpp"
 #include "providers/ClaudeCacheControl.hpp"
 #include "session/FencedText.hpp"
@@ -366,7 +366,6 @@ QSharedPointer<Settings::CodeCompletionSettings> QodeAssistTest::createSettingsF
 {
     auto settings = QSharedPointer<Settings::CodeCompletionSettings>::create();
     settings->readFullFile.setValue(true, Utils::BaseAspect::BeQuiet);
-    settings->useProjectChangesCache.setValue(false, Utils::BaseAspect::BeQuiet);
     return settings;
 }
 
@@ -377,7 +376,6 @@ QSharedPointer<Settings::CodeCompletionSettings> QodeAssistTest::createSettingsF
     settings->readFullFile.setValue(false, Utils::BaseAspect::BeQuiet);
     settings->readStringsBeforeCursor.setValue(linesBefore, Utils::BaseAspect::BeQuiet);
     settings->readStringsAfterCursor.setValue(linesAfter, Utils::BaseAspect::BeQuiet);
-    settings->useProjectChangesCache.setValue(false, Utils::BaseAspect::BeQuiet);
     return settings;
 }
 
@@ -1880,16 +1878,16 @@ void QodeAssistTest::testAgentFileEditRevertRoundTrip()
     const QString requestId
         = "req-" + QUuid::createUuid().toString(QUuid::WithoutBraces);
 
-    auto &changes = Context::ChangesManager::instance();
+    auto &changes = Context::FileEditManager::instance();
     changes.registerAppliedFileEdit(editId, filePath, oldContent, newContent, requestId);
 
     const auto registered = changes.getFileEdit(editId);
-    QCOMPARE(registered.status, Context::ChangesManager::Applied);
+    QCOMPARE(registered.status, Context::FileEditManager::Applied);
     QCOMPARE(registered.filePath, filePath);
 
     QVERIFY(changes.applyPendingEditsForRequest(requestId));
 
-    QSignalSpy undoneSpy(&changes, &Context::ChangesManager::fileEditUndone);
+    QSignalSpy undoneSpy(&changes, &Context::FileEditManager::fileEditUndone);
     QVERIFY(changes.undoFileEdit(editId));
     QCOMPARE(undoneSpy.count(), 1);
     QCOMPARE(undoneSpy.at(0).at(0).toString(), editId);
@@ -1898,7 +1896,7 @@ void QodeAssistTest::testAgentFileEditRevertRoundTrip()
     QVERIFY(file.open(QIODevice::ReadOnly | QIODevice::Text));
     QCOMPARE(QString::fromUtf8(file.readAll()), oldContent);
 
-    QCOMPARE(changes.getFileEdit(editId).status, Context::ChangesManager::Rejected);
+    QCOMPARE(changes.getFileEdit(editId).status, Context::FileEditManager::Rejected);
 }
 
 void QodeAssistTest::testSessionIgnoresEchoedFileEditMarker()

@@ -10,8 +10,6 @@
 
 #include "CodeCompletionSettings.hpp"
 
-#include "ChangesManager.h"
-
 const QRegularExpression &getYearRegex()
 {
     static const QRegularExpression yearRegex("\\b(19|20)\\d{2}\\b");
@@ -273,10 +271,6 @@ LLMCore::ContextData DocumentContextReader::prepareContext(
 
     QString fileContext;
     fileContext.append("\n ").append(getLanguageAndFileInfo());
-
-    if (settings.useProjectChangesCache())
-        fileContext.append("Recent Project Changes Context:\n ")
-            .append(ChangesManager::instance().getRecentChangesContext(m_textDocument));
 
     return {.prefix = contextBefore, .suffix = contextAfter, .fileContext = fileContext};
 }

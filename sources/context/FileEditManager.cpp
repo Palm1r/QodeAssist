@@ -2,11 +2,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // Additional attribution terms under GPLv3 §7(b) apply — see LICENSE
 
-#include "ChangesManager.h"
-#include "CodeCompletionSettings.hpp"
+#include "FileEditManager.hpp"
 
 #include <coreplugin/editormanager/editormanager.h>
 #include <coreplugin/editormanager/ieditor.h>
+#include <texteditor/textdocument.h>
 #include <logger/Logger.hpp>
 #include <algorithm>
 #include <QFile>
@@ -15,61 +15,20 @@
 
 namespace QodeAssist::Context {
 
-ChangesManager &ChangesManager::instance()
+FileEditManager &FileEditManager::instance()
 {
-    static ChangesManager instance;
+    static FileEditManager instance;
     return instance;
 }
 
-ChangesManager::ChangesManager()
+FileEditManager::FileEditManager()
     : QObject(nullptr)
     , m_undoStack(new QUndoStack(this))
 {}
 
-ChangesManager::~ChangesManager() {}
+FileEditManager::~FileEditManager() {}
 
-void ChangesManager::addChange(
-    TextEditor::TextDocument *document, int position, int charsRemoved, int charsAdded)
-{
-    auto &documentQueue = m_documentChanges[document];
-
-    QTextBlock block = document->document()->findBlock(position);
-    int lineNumber = block.blockNumber();
-    QString lineContent = block.text();
-    QString fileName = document->filePath().fileName();
-
-    ChangeInfo change{fileName, lineNumber, lineContent};
-
-    auto it
-        = std::find_if(documentQueue.begin(), documentQueue.end(), [lineNumber](const ChangeInfo &c) {
-              return c.lineNumber == lineNumber;
-          });
-
-    if (it != documentQueue.end()) {
-        it->lineContent = lineContent;
-    } else {
-        documentQueue.enqueue(change);
-
-        if (documentQueue.size() > Settings::codeCompletionSettings().maxChangesCacheSize()) {
-            documentQueue.dequeue();
-        }
-    }
-}
-
-QString ChangesManager::getRecentChangesContext(const TextEditor::TextDocument *currentDocument) const
-{
-    QString context;
-    for (auto it = m_documentChanges.constBegin(); it != m_documentChanges.constEnd(); ++it) {
-        if (it.key() != currentDocument) {
-            for (const auto &change : it.value()) {
-                context += change.lineContent + "\n";
-            }
-        }
-    }
-    return context;
-}
-
-void ChangesManager::addFileEdit(
+void FileEditManager::addFileEdit(
     const QString &editId,
     const QString &filePath,
     const QString &oldContent,
@@ -139,7 +98,7 @@ void ChangesManager::addFileEdit(
     }
 }
 
-void ChangesManager::registerAppliedFileEdit(
+void FileEditManager::registerAppliedFileEdit(
     const QString &editId,
     const QString &filePath,
     const QString &oldContent,
@@ -176,7 +135,7 @@ void ChangesManager::registerAppliedFileEdit(
                     .arg(editId, filePath));
 }
 
-bool ChangesManager::applyFileEdit(const QString &editId)
+bool FileEditManager::applyFileEdit(const QString &editId)
 {
     QMutexLocker locker(&m_mutex);
     
@@ -230,7 +189,7 @@ bool ChangesManager::applyFileEdit(const QString &editId)
     return false;
 }
 
-bool ChangesManager::rejectFileEdit(const QString &editId)
+bool FileEditManager::rejectFileEdit(const QString &editId)
 {
     QMutexLocker locker(&m_mutex);
     
@@ -257,7 +216,7 @@ bool ChangesManager::rejectFileEdit(const QString &editId)
     return true;
 }
 
-bool ChangesManager::undoFileEdit(const QString &editId)
+bool FileEditManager::undoFileEdit(const QString &editId)
 {
     QMutexLocker locker(&m_mutex);
     
@@ -313,13 +272,13 @@ bool ChangesManager::undoFileEdit(const QString &editId)
     return false;
 }
 
-ChangesManager::FileEdit ChangesManager::getFileEdit(const QString &editId) const
+FileEditManager::FileEdit FileEditManager::getFileEdit(const QString &editId) const
 {
     QMutexLocker locker(&m_mutex);
     return m_fileEdits.value(editId);
 }
 
-QList<ChangesManager::FileEdit> ChangesManager::getPendingEdits() const
+QList<FileEditManager::FileEdit> FileEditManager::getPendingEdits() const
 {
     QMutexLocker locker(&m_mutex);
     
@@ -332,7 +291,7 @@ QList<ChangesManager::FileEdit> ChangesManager::getPendingEdits() const
     return pendingEdits;
 }
 
-bool ChangesManager::performFileEdit(
+bool FileEditManager::performFileEdit(
     const QString &filePath, const QString &oldContent, const QString &newContent, QString *errorMsg)
 {
     auto setError = [errorMsg](const QString &msg) {
@@ -488,7 +447,7 @@ bool ChangesManager::performFileEdit(
     return true;
 }
 
-int ChangesManager::levenshteinDistance(const QString &s1, const QString &s2) const
+int FileEditManager::levenshteinDistance(const QString &s1, const QString &s2) const
 {
     const int len1 = s1.length();
     const int len2 = s2.length();
@@ -521,7 +480,7 @@ int ChangesManager::levenshteinDistance(const QString &s1, const QString &s2) co
     return d[len1][len2];
 }
 
-QString ChangesManager::findBestMatchLineBased(
+QString FileEditManager::findBestMatchLineBased(
     const QString &fileContent,
     const QString &searchContent,
     double threshold,
@@ -587,7 +546,7 @@ QString ChangesManager::findBestMatchLineBased(
     return bestMatch;
 }
 
-QString ChangesManager::findBestMatch(const QString &fileContent, const QString &searchContent, double threshold, double *outSimilarity) const
+QString FileEditManager::findBestMatch(const QString &fileContent, const QString &searchContent, double threshold, double *outSimilarity) const
 {
     if (searchContent.isEmpty() || fileContent.isEmpty()) {
         if (outSimilarity) *outSimilarity = 0.0;
@@ -668,7 +627,7 @@ QString ChangesManager::findBestMatch(const QString &fileContent, const QString 
     return bestMatch;
 }
 
-QString ChangesManager::findBestMatchWithNormalization(
+QString FileEditManager::findBestMatchWithNormalization(
     const QString &fileContent, 
     const QString &searchContent, 
     double *outSimilarity,
@@ -714,7 +673,7 @@ QString ChangesManager::findBestMatchWithNormalization(
     return QString();
 }
 
-bool ChangesManager::performFragmentReplacement(
+bool FileEditManager::performFragmentReplacement(
     const QString &filePath,
     const QString &searchContent,
     const QString &replaceContent,
@@ -858,7 +817,7 @@ bool ChangesManager::performFragmentReplacement(
     return true;
 }
 
-bool ChangesManager::applyPendingEditsForRequest(const QString &requestId, QString *errorMsg)
+bool FileEditManager::applyPendingEditsForRequest(const QString &requestId, QString *errorMsg)
 {
     QMutexLocker locker(&m_mutex);
     
@@ -894,7 +853,7 @@ bool ChangesManager::applyPendingEditsForRequest(const QString &requestId, QStri
     return true;
 }
 
-QList<ChangesManager::FileEdit> ChangesManager::getEditsForRequest(const QString &requestId) const
+QList<FileEditManager::FileEdit> FileEditManager::getEditsForRequest(const QString &requestId) const
 {
     QMutexLocker locker(&m_mutex);
     
@@ -914,7 +873,7 @@ QList<ChangesManager::FileEdit> ChangesManager::getEditsForRequest(const QString
     return edits;
 }
 
-bool ChangesManager::undoAllEditsForRequest(const QString &requestId, QString *errorMsg)
+bool FileEditManager::undoAllEditsForRequest(const QString &requestId, QString *errorMsg)
 {
     QMutexLocker locker(&m_mutex);
     
@@ -999,7 +958,7 @@ bool ChangesManager::undoAllEditsForRequest(const QString &requestId, QString *e
     return true;
 }
 
-bool ChangesManager::reapplyAllEditsForRequest(const QString &requestId, QString *errorMsg)
+bool FileEditManager::reapplyAllEditsForRequest(const QString &requestId, QString *errorMsg)
 {
     QMutexLocker locker(&m_mutex);
     
@@ -1083,7 +1042,7 @@ bool ChangesManager::reapplyAllEditsForRequest(const QString &requestId, QString
     return true;
 }
 
-void ChangesManager::archiveAllNonArchivedEdits()
+void FileEditManager::archiveAllNonArchivedEdits()
 {
     QMutexLocker locker(&m_mutex);
     
@@ -1117,7 +1076,7 @@ void ChangesManager::archiveAllNonArchivedEdits()
     }
 }
 
-QString ChangesManager::readFileContent(const QString &filePath) const
+QString FileEditManager::readFileContent(const QString &filePath) const
 {
     LOG_MESSAGE(QString("Reading current file content: %1").arg(filePath));
     
@@ -1149,7 +1108,7 @@ QString ChangesManager::readFileContent(const QString &filePath) const
     return content;
 }
 
-bool ChangesManager::performFileEditWithDiff(
+bool FileEditManager::performFileEditWithDiff(
     const QString &filePath, 
     const DiffInfo &diffInfo, 
     bool reverse,
@@ -1281,7 +1240,7 @@ bool ChangesManager::performFileEditWithDiff(
     return true;
 }
 
-ChangesManager::DiffInfo ChangesManager::createDiffInfo(
+FileEditManager::DiffInfo FileEditManager::createDiffInfo(
     const QString &originalContent, 
     const QString &modifiedContent,
     const QString &filePath)
@@ -1427,7 +1386,7 @@ ChangesManager::DiffInfo ChangesManager::createDiffInfo(
     return diffInfo;
 }
 
-bool ChangesManager::findHunkLocation(
+bool FileEditManager::findHunkLocation(
     const QStringList &fileLines, 
     const DiffHunk &hunk, 
     int &actualStartLine,
@@ -1574,7 +1533,7 @@ bool ChangesManager::findHunkLocation(
     return false;
 }
 
-bool ChangesManager::applyDiffToContent(
+bool FileEditManager::applyDiffToContent(
     QString &content, 
     const DiffInfo &diffInfo, 
     bool reverse,

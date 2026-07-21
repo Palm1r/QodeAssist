@@ -6,7 +6,7 @@
 
 #include <LLMQore/ToolExceptions.hpp>
 
-#include <context/ChangesManager.h>
+#include <context/FileEditManager.hpp>
 #include <context/ProjectUtils.hpp>
 #include <logger/Logger.hpp>
 #include <session/FileEditPayload.hpp>
@@ -181,7 +181,7 @@ QFuture<LLMQore::ToolResult> EditFileTool::executeAsync(const QJsonObject &input
                            .arg(newContent.left(200)));
         }
 
-        Context::ChangesManager::instance().addFileEdit(
+        Context::FileEditManager::instance().addFileEdit(
             editId,
             filePath,
             oldContent,
@@ -191,13 +191,13 @@ QFuture<LLMQore::ToolResult> EditFileTool::executeAsync(const QJsonObject &input
             requestId
         );
 
-        auto edit = Context::ChangesManager::instance().getFileEdit(editId);
+        auto edit = Context::FileEditManager::instance().getFileEdit(editId);
         QString status = "pending";
-        if (edit.status == Context::ChangesManager::Applied) {
+        if (edit.status == Context::FileEditManager::Applied) {
             status = "applied";
-        } else if (edit.status == Context::ChangesManager::Rejected) {
+        } else if (edit.status == Context::FileEditManager::Rejected) {
             status = "rejected";
-        } else if (edit.status == Context::ChangesManager::Archived) {
+        } else if (edit.status == Context::FileEditManager::Archived) {
             status = "archived";
         }
 
