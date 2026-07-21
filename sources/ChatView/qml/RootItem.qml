@@ -47,21 +47,14 @@ ChatRootView {
         color: palette.window
     }
 
-    SplitDropZone {
+    DropZone {
         anchors.fill: parent
         z: 99
 
-        onFilesDroppedToAttach: (urlStrings) => {
+        onFilesDropped: (urlStrings) => {
             var localPaths = root.convertUrlsToLocalPaths(urlStrings)
             if (localPaths.length > 0) {
                 root.addFilesToAttachList(localPaths)
-            }
-        }
-
-        onFilesDroppedToLink: (urlStrings) => {
-            var localPaths = root.convertUrlsToLocalPaths(urlStrings)
-            if (localPaths.length > 0) {
-                root.addFilesToLinkList(localPaths)
             }
         }
     }
@@ -76,7 +69,7 @@ ChatRootView {
         anchors.bottomMargin: bottomBar.height
 
         active: root.isCompressing
-        text: qsTr("Compressing chat…")
+        text: root.isAgentBound ? qsTr("Preparing the handover summary…") : qsTr("Compressing chat…")
     }
 
     ColumnLayout {
@@ -138,19 +131,6 @@ ChatRootView {
             relocateTooltip.text: (typeof _chatview !== 'undefined')
                                    ? qsTr("Move this chat to an editor tab")
                                    : qsTr("Move this chat to a separate window")
-            toolsButton {
-                checked: root.useTools
-                onCheckedChanged: {
-                    root.useTools = toolsButton.checked
-                }
-            }
-            thinkingMode {
-                checked: root.useThinking
-                enabled: root.isThinkingSupport
-                onCheckedChanged: {
-                    root.useThinking = thinkingMode.checked
-                }
-            }
             settingsButton.onClicked: root.openSettings()
             configSelector {
                 model: root.availableConfigurations
@@ -163,18 +143,6 @@ ChatRootView {
 
                 popup.onAboutToShow: {
                     root.loadAvailableConfigurations()
-                }
-            }
-
-            roleSelector {
-                model: root.availableAgentRoles
-                displayText: root.currentAgentRole
-                onActivated: function(index) {
-                    root.applyAgentRole(root.availableAgentRoles[index])
-                }
-
-                popup.onAboutToShow: {
-                    root.loadAvailableAgentRoles()
                 }
             }
         }
@@ -248,6 +216,10 @@ ChatRootView {
                         return fileEditMessageComponent
                     } else if (model.roleType === ChatModel.Thinking) {
                         return thinkingMessageComponent
+                    } else if (model.roleType === ChatModel.Permission) {
+                        return permissionMessageComponent
+                    } else if (model.roleType === ChatModel.Plan) {
+                        return planMessageComponent
                     } else {
                         return chatItemComponent
                     }
@@ -357,7 +329,20 @@ ChatRootView {
 
                 ToolBlock {
                     width: parent.width
-                    toolContent: model.content
+                    toolName: model.toolName || ""
+                    toolResult: model.toolResult || ""
+                    toolKind: model.toolKind || ""
+                    toolStatus: model.toolStatus || ""
+                    toolDetails: model.toolDetails || ({})
+                }
+            }
+
+            Component {
+                id: planMessageComponent
+
+                PlanBlock {
+                    width: parent.width
+                    planContent: model.content
                 }
             }
 
@@ -387,6 +372,19 @@ ChatRootView {
             }
 
             Component {
+                id: permissionMessageComponent
+
+                PermissionBlock {
+                    width: parent.width
+                    permissionContent: model.content
+
+                    onRespond: function(requestId, optionId) {
+                        root.respondToPermission(requestId, optionId)
+                    }
+                }
+            }
+
+            Component {
                 id: thinkingMessageComponent
 
                 ThinkingBlock {
@@ -405,12 +403,76 @@ ChatRootView {
         }
         }
 
+        Rectangle {
+            id: agentSessionBanner
+
+            Layout.fillWidth: true
+            Layout.margins: 5
+            visible: root.agentSessionIssue.length > 0
+            implicitHeight: bannerLayout.implicitHeight + 16
+            radius: 4
+            color: palette.base
+            border.width: 1
+            border.color: palette.mid
+
+            ColumnLayout {
+                id: bannerLayout
+
+                anchors {
+                    left: parent.left
+                    right: parent.right
+                    top: parent.top
+                    margins: 8
+                }
+                spacing: 6
+
+                Text {
+                    Layout.fillWidth: true
+                    text: root.agentSessionIssue
+                    textFormat: Text.PlainText
+                    color: palette.text
+                    font.pixelSize: 12
+                    wrapMode: Text.WordWrap
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    visible: root.canStartNewAgentSession
+                    spacing: 8
+
+                    QoAButton {
+                        text: qsTr("Continue with a new session")
+                        onClicked: root.startNewAgentSession()
+                    }
+
+                    QoAButton {
+                        id: handoverButton
+
+                        text: qsTr("Continue with a summary")
+                        enabled: root.canHandOverSummary
+
+                        onClicked: root.startNewAgentSessionWithSummary()
+
+                        QoAToolTip {
+                            visible: handoverButton.hovered
+                                     && root.summaryHandoverTooltip.length > 0
+                            text: root.summaryHandoverTooltip
+                            delay: 300
+                        }
+                    }
+
+                    Item { Layout.fillWidth: true }
+                }
+            }
+        }
+
         ScrollView {
             id: view
 
             Layout.fillWidth: true
             Layout.minimumHeight: 30
             Layout.maximumHeight: root.height / 2
+            enabled: root.agentSessionIssue.length === 0
 
             QQC.TextArea {
                 id: messageInput
@@ -452,20 +514,7 @@ ChatRootView {
                         }
                     }
                     fileMentionPopup.dismiss()
-
-                    const slashIndex = textBefore.lastIndexOf('/')
-                    if (slashIndex >= 0) {
-                        const beforeSlash = slashIndex === 0
-                                            ? ' '
-                                            : textBefore.charAt(slashIndex - 1)
-                        const skillQuery = textBefore.substring(slashIndex + 1)
-                        if ((beforeSlash === ' ' || beforeSlash === '\n')
-                                && /^[a-z0-9-]*$/.test(skillQuery)) {
-                            skillCommandPopup.updateSearch(skillQuery)
-                            return
-                        }
-                    }
-                    skillCommandPopup.dismiss()
+                    root.refreshSlashPopup()
                 }
 
                 Keys.onPressed: function(event) {
@@ -561,17 +610,6 @@ ChatRootView {
             onRemoveFileFromListByIndex: (index) => root.removeFileFromAttachList(index)
         }
 
-        AttachedFilesPlace {
-            id: linkedFilesPlace
-
-            Layout.fillWidth: true
-            attachedFilesModel: root.linkedFiles
-            iconPath: palette.window.hslLightness > 0.5 ? "qrc:/qt/qml/ChatView/icons/link-file-dark.svg"
-                                                        : "qrc:/qt/qml/ChatView/icons/link-file-light.svg"
-            accentColor: Qt.tint(palette.mid, Qt.rgba(0, 0.3, 0.8, 0.4))
-            onRemoveFileFromListByIndex: (index) => root.removeFileFromLinkList(index)
-        }
-
         FileEditsActionBar {
             id: fileEditsActionBar
 
@@ -593,6 +631,7 @@ ChatRootView {
 
             isCompressing: root.isCompressing
             isProcessing: root.isRequestInProgress
+            agentMode: root.isAgentBound
             sendButton.onClicked: !root.isRequestInProgress ? root.sendChatMessage()
                                                             : root.cancelRequest()
             sendButton.icon.source: root.isRequestInProgress
@@ -608,14 +647,12 @@ ChatRootView {
                                        ? root.lastErrorMessage
                                        : qsTr("Send message to LLM %1").arg(root.sendShortcutText))
             compressButton.onClicked: compressConfirmDialog.open()
+            compressButton.enabled: root.canShrinkContext
+            compressButton.text: root.isAgentBound ? qsTr("Hand over") : qsTr("Compress")
+            compressTooltip.text: root.shrinkContextTooltip
             cancelCompressButton.onClicked: root.cancelCompression()
-            syncOpenFiles {
-                checked: root.isSyncOpenFiles
-                onCheckedChanged: root.setIsSyncOpenFiles(bottomBar.syncOpenFiles.checked)
-            }
             attachFiles.onClicked: root.showAttachFilesDialog()
             attachImages.onClicked: root.showAddImageDialog()
-            linkFiles.onClicked: root.showLinkFilesDialog()
         }
     }
 
@@ -656,11 +693,34 @@ ChatRootView {
 
     function applyMentionSelection() {
         var result = fileMentionPopup.applyCurrentSelection(
-            messageInput.text, messageInput.cursorPosition, root.useTools)
+            messageInput.text, messageInput.cursorPosition)
         if (result.text !== undefined) {
             messageInput.text = result.text
             messageInput.cursorPosition = result.cursorPosition
         }
+    }
+
+    onSlashCommandsChanged: {
+        if (skillCommandPopup.visible)
+            refreshSlashPopup()
+    }
+
+    function refreshSlashPopup() {
+        const cursorPos = messageInput.cursorPosition
+        const textBefore = messageInput.text.substring(0, cursorPos)
+        const slashIndex = textBefore.lastIndexOf('/')
+        if (slashIndex >= 0) {
+            const beforeSlash = slashIndex === 0
+                                ? ' '
+                                : textBefore.charAt(slashIndex - 1)
+            const skillQuery = textBefore.substring(slashIndex + 1)
+            if ((beforeSlash === ' ' || beforeSlash === '\n')
+                    && /^\S*$/.test(skillQuery)) {
+                skillCommandPopup.updateSearch(skillQuery)
+                return
+            }
+        }
+        skillCommandPopup.dismiss()
     }
 
     function applySkillSelection() {
@@ -688,16 +748,42 @@ ChatRootView {
         scrollToBottom()
     }
 
+    onChatTargetSwitchNeedsNewChat: function(targetName) {
+        chatTargetSwitchDialog.targetName = targetName
+        chatTargetSwitchDialog.open()
+    }
+
     Dialog {
-        id: compressConfirmDialog
+        id: chatTargetSwitchDialog
+
+        property string targetName: ""
 
         anchors.centerIn: parent
-        title: qsTr("Compress Chat")
+        title: qsTr("Start a New Conversation")
         modal: true
         standardButtons: Dialog.Yes | Dialog.No
 
         Label {
-            text: qsTr("Create a summarized copy of this chat?\n\nThe summary will be generated by LLM and saved as a new chat file.")
+            text: qsTr("A conversation stays with the kind it started with, so switching to %1 needs a new one.\n\nClear this chat and switch?").arg(chatTargetSwitchDialog.targetName)
+            wrapMode: Text.WordWrap
+        }
+
+        onAccepted: root.confirmChatTargetSwitch()
+        onRejected: root.cancelChatTargetSwitch()
+    }
+
+    Dialog {
+        id: compressConfirmDialog
+
+        anchors.centerIn: parent
+        title: root.isAgentBound ? qsTr("Hand Over Session") : qsTr("Compress Chat")
+        modal: true
+        standardButtons: Dialog.Yes | Dialog.No
+
+        Label {
+            text: root.isAgentBound
+                  ? qsTr("Summarise this conversation and continue in a fresh agent session?\n\nThe summary will be generated by the LLM chat configuration and given to the new session as context.")
+                  : qsTr("Create a summarized copy of this chat?\n\nThe summary will be generated by LLM and saved as a new chat file.")
             wrapMode: Text.WordWrap
         }
 
@@ -840,19 +926,8 @@ ChatRootView {
         y: (parent.height - height) / 2
 
         baseSystemPrompt: root.baseSystemPrompt
-        currentAgentRole: root.currentAgentRole
-        currentAgentRoleDescription: root.currentAgentRoleDescription
-        currentAgentRoleSystemPrompt: root.currentAgentRoleSystemPrompt
-        activeRules: root.activeRules
-        activeRulesCount: root.activeRulesCount
 
         onOpenSettings: root.openSettings()
-        onOpenAgentRolesSettings: root.openAgentRolesSettings()
-        onOpenRulesFolder: root.openRulesFolder()
-        onRefreshRules: root.refreshRules()
-        onRuleSelected: function(index) {
-            contextViewer.selectedRuleContent = root.getRuleContent(index)
-        }
     }
 
     Connections {

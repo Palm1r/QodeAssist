@@ -303,14 +303,6 @@ CodeCompletionSettings::CodeCompletionSettings()
     useOpenFilesContext.setLabelText(Tr::tr("Include context from open files"));
     useOpenFilesContext.setDefaultValue(false);
 
-    useProjectChangesCache.setSettingsKey(Constants::CC_USE_PROJECT_CHANGES_CACHE);
-    useProjectChangesCache.setDefaultValue(true);
-    useProjectChangesCache.setLabelText(Tr::tr("Max Changes Cache Size:"));
-
-    maxChangesCacheSize.setSettingsKey(Constants::CC_MAX_CHANGES_CACHE_SIZE);
-    maxChangesCacheSize.setRange(2, 1000);
-    maxChangesCacheSize.setDefaultValue(10);
-
     // Ollama Settings
     ollamaLivetime.setSettingsKey(Constants::CC_OLLAMA_LIVETIME);
     ollamaLivetime.setToolTip(
@@ -389,8 +381,7 @@ CodeCompletionSettings::CodeCompletionSettings()
                     systemPromptForNonFimModels,
                     userMessageTemplateForCC,
                     customLanguages,
-                }},
-            Row{useProjectChangesCache, maxChangesCacheSize, Stretch{1}}};
+                }}};
 
         auto generalSettings = Column{
             autoCompletion,
@@ -486,8 +477,6 @@ void CodeCompletionSettings::resetSettingsToDefaults()
         resetAspect(readStringsAfterCursor);
         resetAspect(useSystemPrompt);
         resetAspect(systemPrompt);
-        resetAspect(useProjectChangesCache);
-        resetAspect(maxChangesCacheSize);
         resetAspect(ollamaLivetime);
         resetAspect(contextWindow);
         resetAspect(openAIResponsesReasoningEffort);

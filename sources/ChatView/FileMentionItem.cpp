@@ -4,6 +4,8 @@
 
 #include "FileMentionItem.hpp"
 
+#include "settings/ChatAssistantSettings.hpp"
+
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -11,6 +13,7 @@
 
 #include <coreplugin/editormanager/documentmodel.h>
 #include <coreplugin/editormanager/editormanager.h>
+
 #include <projectexplorer/project.h>
 #include <projectexplorer/projectmanager.h>
 
@@ -113,8 +116,7 @@ void FileMentionItem::dismiss()
     emit dismissed();
 }
 
-QVariantMap FileMentionItem::applyCurrentSelection(
-    const QString &text, int cursorPosition, bool useTools)
+QVariantMap FileMentionItem::applyCurrentSelection(const QString &text, int cursorPosition)
 {
     if (m_currentIndex < 0 || m_currentIndex >= m_searchResults.size()) {
         dismiss();
@@ -139,8 +141,7 @@ QVariantMap FileMentionItem::applyCurrentSelection(
             item.value("absolutePath").toString(),
             item.value("relativePath").toString(),
             item.value("projectName").toString(),
-            currentQuery,
-            useTools);
+            currentQuery);
 
         if (result.value("mode").toString() == "mention")
             replacement = result.value("mentionText").toString();
@@ -158,8 +159,7 @@ QVariantMap FileMentionItem::handleFileSelection(
     const QString &absolutePath,
     const QString &relativePath,
     const QString &projectName,
-    const QString &currentQuery,
-    bool useTools)
+    const QString &currentQuery)
 {
     QVariantMap result;
     const QString fileName = relativePath.section('/', -1);
@@ -172,7 +172,7 @@ QVariantMap FileMentionItem::handleFileSelection(
             mentionKey = projPrefix + ":" + fileName;
     }
 
-    if (useTools) {
+    if (Settings::chatAssistantSettings().enableChatTools()) {
         registerMention(mentionKey, absolutePath);
         result["mode"] = QStringLiteral("mention");
         result["mentionText"] = "@" + mentionKey + " ";

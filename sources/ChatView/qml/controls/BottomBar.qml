@@ -12,15 +12,15 @@ Rectangle {
     id: root
 
     property alias sendButton: sendButtonId
-    property alias syncOpenFiles: syncOpenFilesId
     property alias attachFiles: attachFilesId
     property alias attachImages: attachImagesId
-    property alias linkFiles: linkFilesId
     property alias compressButton: compressButtonId
+    property alias compressTooltip: compressTooltipId
     property alias cancelCompressButton: cancelCompressButtonId
 
     property bool isCompressing: false
     property bool isProcessing: false
+    property bool agentMode: false
     property alias sendButtonTooltip: sendButtonTooltipId
 
     color: palette.window.hslLightness > 0.5 ?
@@ -72,33 +72,6 @@ Rectangle {
             }
         }
 
-        QoAButton {
-            id: linkFilesId
-
-            icon {
-                source: "qrc:/qt/qml/ChatView/icons/link-file-dark.svg"
-                height: 15
-                width: 8
-            }
-
-            QoAToolTip {
-                visible: linkFilesId.hovered
-                delay: 250
-                text: qsTr("Link file to context")
-            }
-        }
-
-        CheckBox {
-            id: syncOpenFilesId
-
-            text: qsTr("Sync open files")
-
-            QoAToolTip {
-                visible: syncOpenFilesId.hovered
-                text: qsTr("Automatically synchronize currently opened files with the model context")
-            }
-        }
-
         Item {
             Layout.fillWidth: true
         }
@@ -119,7 +92,7 @@ Rectangle {
             }
 
             Text {
-                text: qsTr("Compressing...")
+                text: root.agentMode ? qsTr("Preparing summary...") : qsTr("Compressing...")
                 anchors.verticalCenter: parent.verticalCenter
                 color: palette.text
                 font.pixelSize: 12
@@ -134,7 +107,7 @@ Rectangle {
                 QoAToolTip {
                     visible: cancelCompressButtonId.hovered
                     delay: 250
-                    text: qsTr("Cancel compression")
+                    text: root.agentMode ? qsTr("Cancel the summary") : qsTr("Cancel compression")
                 }
             }
         }
@@ -143,6 +116,7 @@ Rectangle {
             id: compressButtonId
 
             visible: !root.isCompressing
+            opacity: enabled ? 1.0 : 0.4
             text: qsTr("Compress")
 
             icon {
@@ -152,9 +126,10 @@ Rectangle {
             }
 
             QoAToolTip {
+                id: compressTooltipId
+
                 visible: compressButtonId.hovered
                 delay: 250
-                text: qsTr("Compress chat (create summarized copy using LLM)")
             }
         }
 

@@ -4,13 +4,16 @@
 
 #pragma once
 
-#include <QHash>
+#include <functional>
+
+#include <QFuture>
 #include <QString>
 
 #include <LLMQore/BaseClient.hpp>
 
 #include "providers/Provider.hpp"
 #include "session/ChatBackend.hpp"
+#include "session/TurnLedger.hpp"
 #include "templates/IPromptProvider.hpp"
 
 namespace QodeAssist::Chat {
@@ -20,19 +23,32 @@ class LlmChatBackend : public Session::ChatBackend
     Q_OBJECT
 
 public:
+    using ProviderResolver = std::function<Providers::Provider *(const QString &name)>;
+
     explicit LlmChatBackend(Templates::IPromptProvider *promptProvider, QObject *parent = nullptr);
     ~LlmChatBackend() override;
 
+    void setProviderResolver(ProviderResolver resolver);
+
     void sendTurn(const Session::TurnRequest &request) override;
     void cancel() override;
+    bool respondPermission(const QString &requestId, const QString &optionId) override;
+    Session::TurnContextNeeds contextNeeds() const override;
 
-    void setChatFilePath(const QString &filePath);
-    void clearToolSession(const QString &filePath);
+    void setChatFilePath(const QString &filePath) override;
+    void clearToolSession(const QString &filePath) override;
 
 private:
     void connectClient(Providers::Provider *provider);
     void releaseRequest();
     void bindToolSessions(Providers::Provider *provider);
+    void installExecutionGate(Providers::Provider *provider);
+    QFuture<bool> gateToolExecution(
+        const QString &requestId,
+        const QString &toolId,
+        const QString &toolName,
+        const QJsonObject &input);
+    void cancelPendingPermissions();
     QVector<LLMCore::Message> renderHistory(
         const Session::ConversationHistory &history,
         Providers::Provider *provider,
@@ -59,10 +75,11 @@ private:
         const QString &toolOutput);
 
     Templates::IPromptProvider *m_promptProvider = nullptr;
+    ProviderResolver m_providerResolver;
     QString m_chatFilePath;
 
     Providers::Provider *m_provider = nullptr;
-    QString m_requestId;
+    Session::TurnLedger m_ledger;
     bool m_dropPreToolText = false;
 };
 

@@ -78,6 +78,11 @@ Usage usageFromJson(const QJsonObject &json)
 
 QJsonObject blockToJson(const ContentBlock &block)
 {
+    static_assert(
+        std::variant_size_v<ContentBlock> == 8,
+        "ContentBlock gained an alternative; extend blockToJson and blockFromJson below or it is "
+        "written without a type and dropped on the next load");
+
     QJsonObject json;
 
     if (const auto *text = std::get_if<TextBlock>(&block)) {
@@ -98,6 +103,14 @@ QJsonObject blockToJson(const ContentBlock &block)
             json["arguments"] = tool->arguments;
         if (!tool->result.isEmpty())
             json["result"] = tool->result;
+        if (!tool->kind.isEmpty())
+            json["kind"] = tool->kind;
+        if (!tool->status.isEmpty())
+            json["status"] = tool->status;
+        if (!tool->details.isEmpty())
+            json["details"] = tool->details;
+        if (tool->fromAgent)
+            json["fromAgent"] = true;
     } else if (const auto *attachment = std::get_if<AttachmentBlock>(&block)) {
         json["type"] = "attachment";
         json["fileName"] = attachment->fileName;
@@ -111,6 +124,12 @@ QJsonObject blockToJson(const ContentBlock &block)
         json["type"] = "file_edit";
         json["id"] = edit->id;
         json["payload"] = edit->payload;
+    } else if (const auto *permission = std::get_if<PermissionBlock>(&block)) {
+        json = permissionBlockToJson(*permission);
+        json["type"] = "permission";
+    } else if (const auto *plan = std::get_if<PlanBlock>(&block)) {
+        json = planBlockToJson(*plan);
+        json["type"] = "plan";
     }
 
     return json;
@@ -133,7 +152,11 @@ std::optional<ContentBlock> blockFromJson(const QJsonObject &json)
             json["id"].toString(),
             json["name"].toString(),
             json["arguments"].toObject(),
-            json["result"].toString()}};
+            json["result"].toString(),
+            json["kind"].toString(),
+            restoredToolStatus(json["status"].toString()),
+            json["details"].toObject(),
+            json["fromAgent"].toBool(false)}};
     }
 
     if (type == QLatin1String("attachment"))
@@ -149,6 +172,12 @@ std::optional<ContentBlock> blockFromJson(const QJsonObject &json)
 
     if (type == QLatin1String("file_edit"))
         return ContentBlock{FileEditBlock{json["id"].toString(), json["payload"].toString()}};
+
+    if (type == QLatin1String("permission"))
+        return ContentBlock{restoredPermissionBlock(permissionBlockFromJson(json))};
+
+    if (type == QLatin1String("plan"))
+        return ContentBlock{planBlockFromJson(json)};
 
     return std::nullopt;
 }

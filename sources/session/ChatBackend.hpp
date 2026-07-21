@@ -21,6 +21,18 @@ public:
     virtual void sendTurn(const TurnRequest &request) = 0;
     virtual void cancel() = 0;
 
+    virtual bool respondPermission(const QString &requestId, const QString &optionId)
+    {
+        Q_UNUSED(requestId)
+        Q_UNUSED(optionId)
+        return false;
+    }
+
+    virtual TurnContextNeeds contextNeeds() const { return {}; }
+
+    virtual void setChatFilePath(const QString &filePath) { Q_UNUSED(filePath) }
+    virtual void clearToolSession(const QString &filePath) { Q_UNUSED(filePath) }
+
 signals:
     void sessionEvent(const QodeAssist::Session::SessionEvent &event);
 };

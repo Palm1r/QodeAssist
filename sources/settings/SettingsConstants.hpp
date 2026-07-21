@@ -82,7 +82,6 @@ const char CC_MODEL_OUTPUT_HANDLER[] = "QodeAssist.ccModelOutputHandler";
 const char CA_AUTO_APPLY_FILE_EDITS[] = "QodeAssist.caAutoApplyFileEdits";
 const char CA_AUTO_COMPRESS[] = "QodeAssist.caAutoCompress";
 const char CA_AUTO_COMPRESS_THRESHOLD[] = "QodeAssist.caAutoCompressThreshold";
-const char CA_LINK_OPEN_FILES[] = "QodeAssist.caLinkOpenFiles";
 const char CA_AUTOSAVE[] = "QodeAssist.caAutosave";
 const char CC_CUSTOM_LANGUAGES[] = "QodeAssist.ccCustomLanguages";
 
@@ -122,6 +121,10 @@ const char MCP_SERVER_PORT[] = "QodeAssist.mcpServerPort";
 const char MCP_ENABLE_CLIENTS[] = "QodeAssist.mcpEnableClients";
 const char MCP_CLIENT_EXTRA_PATHS[] = "QodeAssist.mcpClientExtraPaths";
 
+// ACP agent settings
+const char AGENT_EXTRA_PATHS[] = "QodeAssist.agentExtraPaths";
+const char AGENT_FORWARDED_VARIABLES[] = "QodeAssist.agentForwardedVariables";
+
 const char QODE_ASSIST_GENERAL_OPTIONS_ID[] = "QodeAssist.GeneralOptions";
 const char QODE_ASSIST_GENERAL_SETTINGS_PAGE_ID[] = "QodeAssist.1GeneralSettingsPageId";
 const char QODE_ASSIST_CODE_COMPLETION_SETTINGS_PAGE_ID[]
@@ -133,6 +136,7 @@ const char QODE_ASSIST_QUICK_REFACTOR_SETTINGS_PAGE_ID[]
 const char QODE_ASSIST_TOOLS_SETTINGS_PAGE_ID[] = "QodeAssist.5ToolsSettingsPageId";
 const char QODE_ASSIST_MCP_SETTINGS_PAGE_ID[] = "QodeAssist.6McpSettingsPageId";
 const char QODE_ASSIST_SKILLS_SETTINGS_PAGE_ID[] = "QodeAssist.8SkillsSettingsPageId";
+const char QODE_ASSIST_AGENTS_SETTINGS_PAGE_ID[] = "QodeAssist.9AgentsSettingsPageId";
 
 const char QODE_ASSIST_GENERAL_OPTIONS_CATEGORY[] = "QodeAssist.Category";
 const char QODE_ASSIST_GENERAL_OPTIONS_DISPLAY_CATEGORY[] = "QodeAssist";
@@ -176,8 +180,6 @@ const char CC_SYSTEM_PROMPT[] = "QodeAssist.ccSystemPrompt";
 const char CC_SYSTEM_PROMPT_FOR_NON_FIM[] = "QodeAssist.ccSystemPromptForNonFim";
 const char CC_USE_USER_TEMPLATE[] = "QodeAssist.ccUseUserTemplate";
 const char CC_USER_TEMPLATE[] = "QodeAssist.ccUserTemplate";
-const char CC_USE_PROJECT_CHANGES_CACHE[] = "QodeAssist.ccUseProjectChangesCache";
-const char CC_MAX_CHANGES_CACHE_SIZE[] = "QodeAssist.ccMaxChangesCacheSize";
 const char CA_USE_SYSTEM_PROMPT[] = "QodeAssist.useChatSystemPrompt";
 const char CA_SYSTEM_PROMPT[] = "QodeAssist.chatSystemPrompt";
 
@@ -224,7 +226,6 @@ const char CA_CODE_FONT_SIZE[] = "QodeAssist.caCodeFontSize";
 const char CA_TEXT_FORMAT[] = "QodeAssist.caTextFormat";
 const char CA_CHAT_RENDERER[] = "QodeAssist.caChatRenderer";
 
-const char CA_LAST_USED_ROLE[] = "QodeAssist.caLastUsedRole";
 
 // quick refactor preset prompt settings
 const char QR_TEMPERATURE[] = "QodeAssist.qrTemperature";

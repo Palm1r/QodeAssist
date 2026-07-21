@@ -11,27 +11,27 @@
 #include <texteditor/texteditor.h>
 
 #include "Logger.hpp"
-#include "context/ChangesManager.h"
+#include "context/FileEditManager.hpp"
 
 namespace QodeAssist::Chat {
 
 FileEditController::FileEditController(QObject *parent)
     : QObject(parent)
 {
-    auto &changes = Context::ChangesManager::instance();
-    connect(&changes, &Context::ChangesManager::fileEditAdded, this, [this](const QString &) {
+    auto &changes = Context::FileEditManager::instance();
+    connect(&changes, &Context::FileEditManager::fileEditAdded, this, [this](const QString &) {
         updateStats();
     });
-    connect(&changes, &Context::ChangesManager::fileEditApplied, this, [this](const QString &) {
+    connect(&changes, &Context::FileEditManager::fileEditApplied, this, [this](const QString &) {
         updateStats();
     });
-    connect(&changes, &Context::ChangesManager::fileEditRejected, this, [this](const QString &) {
+    connect(&changes, &Context::FileEditManager::fileEditRejected, this, [this](const QString &) {
         updateStats();
     });
-    connect(&changes, &Context::ChangesManager::fileEditUndone, this, [this](const QString &) {
+    connect(&changes, &Context::FileEditManager::fileEditUndone, this, [this](const QString &) {
         updateStats();
     });
-    connect(&changes, &Context::ChangesManager::fileEditArchived, this, [this](const QString &) {
+    connect(&changes, &Context::FileEditManager::fileEditArchived, this, [this](const QString &) {
         updateStats();
     });
 }
@@ -76,11 +76,11 @@ int FileEditController::rejectedEdits() const
 void FileEditController::applyFileEdit(const QString &editId)
 {
     LOG_MESSAGE(QString("Applying file edit: %1").arg(editId));
-    if (Context::ChangesManager::instance().applyFileEdit(editId)) {
+    if (Context::FileEditManager::instance().applyFileEdit(editId)) {
         emit infoMessage(QString("File edit applied successfully"));
         updateStats();
     } else {
-        auto edit = Context::ChangesManager::instance().getFileEdit(editId);
+        auto edit = Context::FileEditManager::instance().getFileEdit(editId);
         emit errorOccurred(
             edit.statusMessage.isEmpty()
                 ? QString("Failed to apply file edit")
@@ -91,11 +91,11 @@ void FileEditController::applyFileEdit(const QString &editId)
 void FileEditController::rejectFileEdit(const QString &editId)
 {
     LOG_MESSAGE(QString("Rejecting file edit: %1").arg(editId));
-    if (Context::ChangesManager::instance().rejectFileEdit(editId)) {
+    if (Context::FileEditManager::instance().rejectFileEdit(editId)) {
         emit infoMessage(QString("File edit rejected"));
         updateStats();
     } else {
-        auto edit = Context::ChangesManager::instance().getFileEdit(editId);
+        auto edit = Context::FileEditManager::instance().getFileEdit(editId);
         emit errorOccurred(
             edit.statusMessage.isEmpty()
                 ? QString("Failed to reject file edit")
@@ -106,11 +106,11 @@ void FileEditController::rejectFileEdit(const QString &editId)
 void FileEditController::undoFileEdit(const QString &editId)
 {
     LOG_MESSAGE(QString("Undoing file edit: %1").arg(editId));
-    if (Context::ChangesManager::instance().undoFileEdit(editId)) {
+    if (Context::FileEditManager::instance().undoFileEdit(editId)) {
         emit infoMessage(QString("File edit undone successfully"));
         updateStats();
     } else {
-        auto edit = Context::ChangesManager::instance().getFileEdit(editId);
+        auto edit = Context::FileEditManager::instance().getFileEdit(editId);
         emit errorOccurred(
             edit.statusMessage.isEmpty()
                 ? QString("Failed to undo file edit")
@@ -122,7 +122,7 @@ void FileEditController::openFileEditInEditor(const QString &editId)
 {
     LOG_MESSAGE(QString("Opening file edit in editor: %1").arg(editId));
 
-    auto edit = Context::ChangesManager::instance().getFileEdit(editId);
+    auto edit = Context::FileEditManager::instance().getFileEdit(editId);
     if (edit.editId.isEmpty()) {
         emit errorOccurred(QString("File edit not found: %1").arg(editId));
         return;
@@ -143,7 +143,7 @@ void FileEditController::openFileEditInEditor(const QString &editId)
             QString currentContent = doc->toPlainText();
             int position = -1;
 
-            if (edit.status == Context::ChangesManager::Applied && !edit.newContent.isEmpty()) {
+            if (edit.status == Context::FileEditManager::Applied && !edit.newContent.isEmpty()) {
                 position = currentContent.indexOf(edit.newContent);
             } else if (!edit.oldContent.isEmpty()) {
                 position = currentContent.indexOf(edit.oldContent);
@@ -171,7 +171,7 @@ void FileEditController::applyAllForCurrentMessage()
     LOG_MESSAGE(QString("Applying all file edits for message: %1").arg(m_currentRequestId));
 
     QString errorMsg;
-    bool success = Context::ChangesManager::instance()
+    bool success = Context::FileEditManager::instance()
                        .reapplyAllEditsForRequest(m_currentRequestId, &errorMsg);
 
     if (success) {
@@ -196,7 +196,7 @@ void FileEditController::undoAllForCurrentMessage()
     LOG_MESSAGE(QString("Undoing all file edits for message: %1").arg(m_currentRequestId));
 
     QString errorMsg;
-    bool success = Context::ChangesManager::instance()
+    bool success = Context::FileEditManager::instance()
                        .undoAllEditsForRequest(m_currentRequestId, &errorMsg);
 
     if (success) {
@@ -225,7 +225,7 @@ void FileEditController::updateStats()
         return;
     }
 
-    auto edits = Context::ChangesManager::instance().getEditsForRequest(m_currentRequestId);
+    auto edits = Context::FileEditManager::instance().getEditsForRequest(m_currentRequestId);
 
     int total = edits.size();
     int applied = 0;
@@ -234,16 +234,16 @@ void FileEditController::updateStats()
 
     for (const auto &edit : edits) {
         switch (edit.status) {
-        case Context::ChangesManager::Applied:
+        case Context::FileEditManager::Applied:
             applied++;
             break;
-        case Context::ChangesManager::Pending:
+        case Context::FileEditManager::Pending:
             pending++;
             break;
-        case Context::ChangesManager::Rejected:
+        case Context::FileEditManager::Rejected:
             rejected++;
             break;
-        case Context::ChangesManager::Archived:
+        case Context::FileEditManager::Archived:
             total--;
             break;
         }

@@ -10,25 +10,18 @@
 namespace QodeAssist::Session {
 
 TurnContextBuilder::TurnContextBuilder(
-    const IProjectContextPort &project,
-    const ISkillsContextPort *skills,
-    const ILinkedFilesPort &linkedFiles)
+    const IProjectContextPort &project, const ISkillsContextPort *skills)
     : m_project(project)
     , m_skills(skills)
-    , m_linkedFiles(linkedFiles)
 {}
 
 TurnContext TurnContextBuilder::build(const TurnContextRequest &request) const
 {
     TurnContext context;
     context.basePrompt = request.basePrompt;
-    context.rolePrompt = request.rolePrompt;
-
     context.project = m_project.projectInfo();
-    if (context.project.available)
-        context.projectRules = m_project.projectRules();
 
-    if (m_skills) {
+    if (m_skills && request.needs.systemPrompt) {
         context.alwaysOnSkills = m_skills->alwaysOnBodies();
         context.skillsCatalog = m_skills->catalogText();
 
@@ -47,10 +40,6 @@ TurnContext TurnContextBuilder::build(const TurnContextRequest &request) const
             }
         }
     }
-
-    context.linkedFilePaths = request.linkedFilePaths;
-    if (!request.linkedFilePaths.isEmpty())
-        context.linkedFiles = m_linkedFiles.readFiles(request.linkedFilePaths);
 
     return context;
 }

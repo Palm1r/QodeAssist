@@ -7,6 +7,7 @@
 #include <QList>
 #include <QObject>
 #include <QPointer>
+#include <QSet>
 #include <QString>
 
 #include <functional>
@@ -38,10 +39,11 @@ public:
     void truncateRows(int rowIndex);
 
     void sendTurn(
-        const QList<ContentBlock> &userBlocks,
-        const std::optional<TurnContext> &context,
-        const TurnOptions &options);
+        const QList<ContentBlock> &userBlocks, const std::optional<TurnContext> &context);
     void cancel();
+
+    void respondPermission(const QString &requestId, const QString &optionId);
+    bool isPermissionPending(const QString &requestId) const;
 
     bool updateFileEditStatus(
         const QString &editId, const QString &status, const QString &statusMessage = {});
@@ -55,9 +57,25 @@ signals:
     void turnFinished(const QString &turnId);
     void turnFailed(const QString &error);
     void usageReceived(const QodeAssist::Session::Usage &usage);
+    void sessionInfoReceived(const QString &title);
+    void agentFileEditRecorded(
+        const QString &turnId,
+        const QString &editId,
+        const QString &filePath,
+        const QString &oldContent,
+        const QString &newContent);
 
 private:
     void handleEvent(const SessionEvent &event);
+    void applyToolCall(const ToolCallUpdated &update);
+    void applyAgentPlan(const PlanUpdated &plan);
+    bool refreshAssistantBlockRow(const ContentBlock &block, RowKind kind, const QString &rowId);
+    void applyPermissionRequest(const PermissionRequested &request);
+    void applyPermissionResolution(const PermissionResolved &resolution);
+    void mutatePermissionBlock(
+        const QString &requestId, const std::function<void(PermissionBlock &)> &mutate);
+    std::optional<PermissionBlock> permissionBlock(const QString &requestId) const;
+    QString autoAnswerOptionFor(const PermissionRequested &request) const;
     void appendMessage(const Message &message);
     Message *activeAssistantMessage();
     void mutateAssistant(const std::function<void(Message &)> &mutate);
@@ -73,6 +91,9 @@ private:
     QString m_activeTurnId;
     QString m_textSegment;
     int m_assistantRowStart = -1;
+    QSet<QString> m_pendingPermissions;
+    QSet<QString> m_alwaysAllowedToolKinds;
+    QSet<QString> m_alwaysRejectedToolKinds;
 };
 
 } // namespace QodeAssist::Session

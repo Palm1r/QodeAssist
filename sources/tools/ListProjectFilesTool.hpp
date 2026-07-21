@@ -21,6 +21,7 @@ public:
     QString description() const override;
     QJsonObject parametersSchema() const override;
 
+    ::LLMQore::ToolSafety safety() const override { return ::LLMQore::ToolSafety::ReadOnly; }
     QFuture<LLMQore::ToolResult> executeAsync(const QJsonObject &input = QJsonObject()) override;
 
 private:

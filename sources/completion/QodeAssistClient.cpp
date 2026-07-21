@@ -45,7 +45,6 @@
 #include "settings/QuickRefactorSettings.hpp"
 #include "widgets/RefactorWidgetHandler.hpp"
 #include "refactor/RefactorContextHelper.hpp"
-#include <context/ChangesManager.h>
 #include <logger/Logger.hpp>
 
 using namespace LanguageServerProtocol;
@@ -200,10 +199,6 @@ void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
             auto textEditor = BaseTextEditor::currentTextEditor();
             if (!textEditor || textEditor->document() != document)
                 return;
-
-            if (Settings::codeCompletionSettings().useProjectChangesCache())
-                Context::ChangesManager::instance()
-                    .addChange(document, position, charsRemoved, charsAdded);
 
             TextEditorWidget *widget = textEditor->editorWidget();
             if (widget->isReadOnly() || widget->multiTextCursor().hasMultipleCursors())

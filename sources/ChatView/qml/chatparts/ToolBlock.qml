@@ -8,14 +8,52 @@ import Qt.labs.platform as Platform
 Rectangle {
     id: root
 
-    property string toolContent: ""
+    property string toolName: ""
+    property string toolResult: ""
+    property string toolKind: ""
+    property string toolStatus: ""
+    property var toolDetails: ({})
     property bool expanded: false
 
     property alias headerOpacity: headerRow.opacity
 
-    readonly property int firstNewline: toolContent.indexOf('\n')
-    readonly property string toolName: firstNewline > 0 ? toolContent.substring(0, firstNewline) : toolContent
-    readonly property string toolResult: firstNewline > 0 ? toolContent.substring(firstNewline + 1) : ""
+    readonly property int legacyNewline: toolName === "" ? toolResult.indexOf('\n') : -1
+    readonly property string headerName: {
+        if (toolName !== "")
+            return toolName;
+        return legacyNewline > 0 ? toolResult.substring(0, legacyNewline) : toolResult;
+    }
+    readonly property string resultText: {
+        if (toolName !== "")
+            return toolResult;
+        return legacyNewline > 0 ? toolResult.substring(legacyNewline + 1) : "";
+    }
+
+    readonly property var locations: (toolDetails && toolDetails.locations) ? toolDetails.locations : []
+    readonly property var diffs: (toolDetails && toolDetails.diffs) ? toolDetails.diffs : []
+
+    readonly property bool isRunning: toolStatus === "pending" || toolStatus === "in_progress"
+    readonly property bool hasFailed: toolStatus === "failed"
+
+    readonly property color statusColor: {
+        if (hasFailed)
+            return Qt.rgba(0.8, 0.2, 0.2, 0.9);
+        if (isRunning)
+            return palette.highlight;
+        if (toolStatus === "completed")
+            return Qt.rgba(0.2, 0.8, 0.2, 0.9);
+        return palette.mid;
+    }
+
+    readonly property string statusMarker: {
+        if (hasFailed)
+            return "✗";
+        if (toolStatus === "completed")
+            return "✓";
+        if (isRunning)
+            return "…";
+        return "";
+    }
 
     radius: 6
     color: palette.base
@@ -45,10 +83,26 @@ Rectangle {
             spacing: 8
 
             Text {
-                text: qsTr("Tool: %1").arg(root.toolName)
+                anchors.verticalCenter: parent.verticalCenter
+                text: root.statusMarker
+                textFormat: Text.PlainText
+                visible: text.length > 0
+                font.pixelSize: 12
+                color: root.statusColor
+            }
+
+            Text {
+                id: headerTitle
+
+                width: headerRow.width - x - 30
+                text: root.toolKind.length > 0
+                          ? root.toolKind + ": " + root.headerName
+                          : qsTr("Tool: %1").arg(root.headerName)
+                textFormat: Text.PlainText
                 font.pixelSize: 13
                 font.bold: true
-                color: palette.text
+                color: root.hasFailed ? root.statusColor : palette.text
+                elide: Text.ElideRight
             }
 
             Text {
@@ -60,8 +114,8 @@ Rectangle {
         }
     }
 
-    Column {
-        id: contentColumn
+    Loader {
+        id: contentLoader
 
         anchors {
             left: parent.left
@@ -69,20 +123,88 @@ Rectangle {
             top: header.bottom
             margins: 10
         }
-        spacing: 8
+        active: root.expanded
+        sourceComponent: contentComponent
+    }
 
-        TextEdit {
-            id: resultText
+    Component {
+        id: contentComponent
 
-            width: parent.width
-            text: root.toolResult
-            readOnly: true
-            selectByMouse: true
-            color: palette.text
-            wrapMode: Text.WordWrap
-            font.family: "monospace"
-            font.pixelSize: 11
-            selectionColor: palette.highlight
+        Column {
+            property alias resultEditor: resultEditorItem
+
+            spacing: 8
+
+            Repeater {
+                model: root.locations
+
+                delegate: Text {
+                    id: locationEntry
+
+                    required property var modelData
+
+                    width: contentLoader.width
+                    text: locationEntry.modelData.line !== undefined
+                              ? "→ " + locationEntry.modelData.path + ":" + locationEntry.modelData.line
+                              : "→ " + locationEntry.modelData.path
+                    textFormat: Text.PlainText
+                    color: palette.placeholderText
+                    font.pixelSize: 11
+                    elide: Text.ElideMiddle
+                }
+            }
+
+            Repeater {
+                model: root.diffs
+
+                delegate: Column {
+                    id: diffEntry
+
+                    required property var modelData
+
+                    width: contentLoader.width
+                    spacing: 2
+
+                    Text {
+                        width: parent.width
+                        text: qsTr("Diff") + ": " + (diffEntry.modelData.path || "")
+                        textFormat: Text.PlainText
+                        color: palette.text
+                        font.pixelSize: 11
+                        font.bold: true
+                        elide: Text.ElideMiddle
+                    }
+
+                    TextEdit {
+                        width: parent.width
+                        text: (diffEntry.modelData.oldText || "") + "\n" + (diffEntry.modelData.newText || "")
+                        textFormat: TextEdit.PlainText
+                        readOnly: true
+                        selectByMouse: true
+                        color: palette.text
+                        wrapMode: Text.WordWrap
+                        font.family: "monospace"
+                        font.pixelSize: 11
+                        selectionColor: palette.highlight
+                    }
+                }
+            }
+
+            TextEdit {
+                id: resultEditorItem
+
+                width: parent.width
+                visible: text.length > 0
+                text: root.resultText
+                textFormat: TextEdit.PlainText
+                readOnly: true
+                selectByMouse: true
+                color: palette.text
+                wrapMode: Text.WordWrap
+                font.family: "monospace"
+                font.pixelSize: 11
+                selectionColor: palette.highlight
+            }
         }
     }
 
@@ -98,14 +220,14 @@ Rectangle {
 
         Platform.MenuItem {
             text: qsTr("Copy")
-            enabled: resultText.selectedText.length > 0
-            onTriggered: resultText.copy()
+            enabled: contentLoader.item && contentLoader.item.resultEditor.selectedText.length > 0
+            onTriggered: contentLoader.item.resultEditor.copy()
         }
 
         Platform.MenuItem {
             text: qsTr("Select All")
-            enabled: resultText.text.length > 0
-            onTriggered: resultText.selectAll()
+            enabled: contentLoader.item && contentLoader.item.resultEditor.text.length > 0
+            onTriggered: contentLoader.item.resultEditor.selectAll()
         }
 
         Platform.MenuSeparator {}
@@ -140,7 +262,7 @@ Rectangle {
             when: root.expanded
             PropertyChanges {
                 target: root
-                implicitHeight: header.height + contentColumn.height + 20
+                implicitHeight: header.height + contentLoader.height + 20
             }
         }
     ]

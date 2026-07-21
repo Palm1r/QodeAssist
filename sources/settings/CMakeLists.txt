@@ -18,9 +18,6 @@ add_library(QodeAssistSettings STATIC
     ProviderNameMigration.hpp
     PluginUpdater.hpp PluginUpdater.cpp
     UpdateDialog.hpp UpdateDialog.cpp
-    AgentRole.hpp AgentRole.cpp
-    AgentRoleDialog.hpp AgentRoleDialog.cpp
-    AgentRolesWidget.hpp AgentRolesWidget.cpp
 )
 
 target_link_libraries(QodeAssistSettings

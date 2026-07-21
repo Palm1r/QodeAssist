@@ -27,6 +27,7 @@ public:
     ~ContextManager() override = default;
 
     QString readFile(const QString &filePath) const override;
+    QStringList allowedPaths(const QStringList &filePaths) const override;
     QList<ContentFile> getContentFiles(const QStringList &filePaths) const override;
     QStringList getProjectSourceFiles(ProjectExplorer::Project *project) const override;
     ContentFile createContentFile(const QString &filePath) const override;

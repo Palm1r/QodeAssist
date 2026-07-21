@@ -35,7 +35,6 @@ public:
 
     void setMessage(const QString &message);
     void setAttachments(const QStringList &attachments);
-    void setLinkedFiles(const QStringList &linkedFiles);
     void recompute();
     void recomputeSoon();
 
@@ -62,7 +61,6 @@ private:
     QHash<QString, CachedFileTokens> m_fileTokens;
 
     QStringList m_attachments;
-    QStringList m_linkedFiles;
     int m_messageTokens{0};
     int m_inputTokens{0};
     int m_lastSentEstimate{0};

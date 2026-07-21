@@ -10,7 +10,9 @@
 
 #include <variant>
 
+#include "session/AgentPlan.hpp"
 #include "session/Message.hpp"
+#include "session/PermissionRequest.hpp"
 
 namespace QodeAssist::Session {
 
@@ -39,25 +41,50 @@ struct ThinkingReceived
     bool operator==(const ThinkingReceived &other) const = default;
 };
 
-struct ToolCallStarted
+struct ToolCallUpdated
 {
     QString turnId;
     QString toolId;
     QString name;
+    QString kind;
+    QString status;
     QJsonObject arguments;
+    QString result;
+    QJsonObject details;
     bool dropPrecedingText = false;
+    bool fromAgent = false;
 
-    bool operator==(const ToolCallStarted &other) const = default;
+    bool operator==(const ToolCallUpdated &other) const = default;
 };
 
-struct ToolCallCompleted
+struct PlanUpdated
 {
     QString turnId;
-    QString toolId;
-    QString name;
-    QString result;
+    QList<PlanEntry> entries;
 
-    bool operator==(const ToolCallCompleted &other) const = default;
+    bool operator==(const PlanUpdated &other) const = default;
+};
+
+struct PermissionRequested
+{
+    QString turnId;
+    QString requestId;
+    QString toolCallId;
+    QString title;
+    QString toolKind;
+    QList<PermissionOption> options;
+
+    bool operator==(const PermissionRequested &other) const = default;
+};
+
+struct PermissionResolved
+{
+    QString turnId;
+    QString requestId;
+    QString optionId;
+    bool cancelled = false;
+
+    bool operator==(const PermissionResolved &other) const = default;
 };
 
 struct UsageReported
@@ -66,6 +93,13 @@ struct UsageReported
     Usage usage;
 
     bool operator==(const UsageReported &other) const = default;
+};
+
+struct SessionInfo
+{
+    QString title;
+
+    bool operator==(const SessionInfo &other) const = default;
 };
 
 struct TurnCompleted
@@ -87,9 +121,12 @@ using SessionEvent = std::variant<
     TurnStarted,
     TextDelta,
     ThinkingReceived,
-    ToolCallStarted,
-    ToolCallCompleted,
+    ToolCallUpdated,
+    PlanUpdated,
+    PermissionRequested,
+    PermissionResolved,
     UsageReported,
+    SessionInfo,
     TurnCompleted,
     TurnFailed>;
 

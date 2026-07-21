@@ -15,7 +15,6 @@
 #include <context/Utils.hpp>
 #include "templates/PromptTemplateManager.hpp"
 #include "providers/ProvidersManager.hpp"
-#include "context/RulesLoader.hpp"
 #include <logger/Logger.hpp>
 #include <settings/ChatAssistantSettings.hpp>
 #include <settings/GeneralSettings.hpp>
@@ -269,17 +268,6 @@ LLMCore::ContextData QuickRefactorHandler::prepareContext(
     }
 
     QString systemPrompt = Settings::quickRefactorSettings().systemPrompt();
-
-    auto project = Context::RulesLoader::getActiveProject();
-    if (project) {
-        QString projectRules = Context::RulesLoader::loadRulesForProject(
-            project, Context::RulesContext::QuickRefactor);
-
-        if (!projectRules.isEmpty()) {
-            systemPrompt += "\n\n# Project Rules\n\n" + projectRules;
-            LOG_MESSAGE("Loaded project rules for quick refactor");
-        }
-    }
 
     systemPrompt += "\n\nFile information:";
     systemPrompt += "\nLanguage: " + documentInfo.mimeType;

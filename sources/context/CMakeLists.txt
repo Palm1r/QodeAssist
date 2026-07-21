@@ -1,6 +1,6 @@
 add_library(Context STATIC
     DocumentContextReader.hpp DocumentContextReader.cpp
-    ChangesManager.h ChangesManager.cpp
+    FileEditManager.hpp FileEditManager.cpp
     ContextManager.hpp ContextManager.cpp
     ContentFile.hpp
     DocumentReaderQtCreator.hpp
@@ -10,7 +10,6 @@ add_library(Context STATIC
     IContextManager.hpp
     IgnoreManager.hpp IgnoreManager.cpp
     ProjectUtils.hpp ProjectUtils.cpp
-    RulesLoader.hpp RulesLoader.cpp
 )
 
 target_link_libraries(Context

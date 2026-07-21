@@ -4,17 +4,30 @@
 
 #include "TurnContextAdapters.hpp"
 
+#include <coreplugin/editormanager/editormanager.h>
 #include <projectexplorer/buildconfiguration.h>
 #include <projectexplorer/project.h>
+#include <projectexplorer/projectmanager.h>
 #include <projectexplorer/target.h>
 
 #include "ProjectSettings.hpp"
 #include "SkillsSettings.hpp"
-#include "context/ContextManager.hpp"
-#include "context/RulesLoader.hpp"
 #include "skills/SkillsManager.hpp"
 
 namespace QodeAssist::Chat {
+
+ProjectExplorer::Project *activeProject()
+{
+    auto currentEditor = Core::EditorManager::currentEditor();
+    if (currentEditor && currentEditor->document()) {
+        auto project = ProjectExplorer::ProjectManager::projectForFile(
+            currentEditor->document()->filePath());
+        if (project)
+            return project;
+    }
+
+    return ProjectExplorer::ProjectManager::startupProject();
+}
 
 ProjectContextQtCreator::ProjectContextQtCreator(ProjectExplorer::Project *project)
     : m_project(project)
@@ -36,14 +49,6 @@ Session::ProjectInfo ProjectContextQtCreator::projectInfo() const
     }
 
     return info;
-}
-
-QString ProjectContextQtCreator::projectRules() const
-{
-    if (!m_project)
-        return {};
-
-    return Context::RulesLoader::loadRulesForProject(m_project, Context::RulesContext::Chat);
 }
 
 SkillsContextQtCreator::SkillsContextQtCreator(
@@ -79,19 +84,6 @@ std::optional<Session::InvokedSkill> SkillsContextQtCreator::findSkill(const QSt
         return std::nullopt;
 
     return Session::InvokedSkill{skill->name, skill->body};
-}
-
-LinkedFilesQtCreator::LinkedFilesQtCreator(Context::ContextManager *contextManager)
-    : m_contextManager(contextManager)
-{}
-
-QList<Session::LinkedFile> LinkedFilesQtCreator::readFiles(const QList<QString> &paths) const
-{
-    QList<Session::LinkedFile> files;
-    for (const auto &file : m_contextManager->getContentFiles(paths))
-        files.append(Session::LinkedFile{file.filename, file.content});
-
-    return files;
 }
 
 std::unique_ptr<SkillsContextQtCreator> makeSkillsContext(

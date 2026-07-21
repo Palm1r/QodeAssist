@@ -29,25 +29,20 @@ struct InvokedSkill
     bool operator==(const InvokedSkill &other) const = default;
 };
 
-struct LinkedFile
+struct TurnContextNeeds
 {
-    QString fileName;
-    QString content;
+    bool systemPrompt = true;
 
-    bool operator==(const LinkedFile &other) const = default;
+    bool operator==(const TurnContextNeeds &other) const = default;
 };
 
 struct TurnContext
 {
     QString basePrompt;
-    std::optional<QString> rolePrompt;
     ProjectInfo project;
-    QString projectRules;
     QString alwaysOnSkills;
     QString skillsCatalog;
     QList<InvokedSkill> invokedSkills;
-    QList<QString> linkedFilePaths;
-    QList<LinkedFile> linkedFiles;
 
     bool operator==(const TurnContext &other) const = default;
 };

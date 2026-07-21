@@ -64,6 +64,7 @@ add_qtc_plugin(QodeAssist
     LLMQore
     Skills
     QodeAssistSession
+    QodeAssistAcp
     QodeAssistChatViewplugin
   SOURCES
     .github/workflows/build_cmake.yml
@@ -167,10 +168,14 @@ add_qtc_plugin(QodeAssist
     sources/tools/TodoTool.hpp sources/tools/TodoTool.cpp
     sources/tools/ReadOriginalHistoryTool.hpp sources/tools/ReadOriginalHistoryTool.cpp
     sources/tools/SkillTool.hpp sources/tools/SkillTool.cpp
+    sources/tools/EditorStateTools.hpp sources/tools/EditorStateTools.cpp
+    sources/mcp/AgentKnowledgeServer.hpp sources/mcp/AgentKnowledgeServer.cpp
     sources/mcp/McpServerManager.hpp sources/mcp/McpServerManager.cpp
     sources/mcp/McpServerConnection.hpp sources/mcp/McpServerConnection.cpp
     sources/mcp/McpClientsManager.hpp sources/mcp/McpClientsManager.cpp
     sources/settings/McpClientsListAspect.hpp sources/settings/McpClientsListAspect.cpp
+    sources/settings/AgentsSettings.hpp sources/settings/AgentsSettings.cpp
+    sources/settings/AgentsWidget.hpp sources/settings/AgentsWidget.cpp
 )
 
 target_include_directories(QodeAssist PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/sources)
@@ -180,6 +185,8 @@ extend_qtc_plugin(QodeAssist
   DEPENDS Qt::Test
   SOURCES
     tests/QodeAssistTest.hpp tests/QodeAssistTest.cpp
+    tests/FakeAcpAgent.hpp
+    tests/FakeLlmProvider.hpp
 )
 
 if(WITH_TESTS)

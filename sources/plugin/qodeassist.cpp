@@ -60,8 +60,12 @@
 #include "templates/Templates.hpp"
 #include "widgets/CustomInstructionsManager.hpp"
 #include "widgets/QuickRefactorDialog.hpp"
+#include <QQmlContext>
+
 #include <ChatView/ChatView.hpp>
-#include <ChatView/ChatFileManager.hpp>
+#include <acp/AgentCatalogStore.hpp>
+#include <settings/AgentsWidget.hpp>
+#include <ChatView/AttachmentStaging.hpp>
 #include <ChatView/ChatRootView.hpp>
 #include <ChatView/ChatWidget.hpp>
 #include <ChatView/SessionFileRegistry.hpp>
@@ -96,7 +100,7 @@ public:
 
     ~QodeAssistPlugin() final
     {
-        Chat::ChatFileManager::cleanupGlobalIntermediateStorage();
+        Chat::AttachmentStaging::cleanupGlobalIntermediateStorage();
         
         delete m_qodeAssistClient;
         if (m_chatOutputPane) {
@@ -176,6 +180,10 @@ public:
         m_engine = new QQmlEngine{this};
         m_sessionFileRegistry = new Chat::SessionFileRegistry{this};
         m_skillsManager = new Skills::SkillsManager{this};
+        m_agentCatalog = new Acp::AgentCatalogStore{this};
+        m_agentCatalog->reload();
+        m_engine->rootContext()->setContextProperty("agentCatalog", m_agentCatalog);
+        m_agentsSettingsPage = std::make_unique<Settings::AgentsSettingsPage>(m_agentCatalog);
 
         {
             auto &providers = Providers::ProvidersManager::instance();
@@ -308,7 +316,7 @@ public:
                                          Core::Constants::G_DEFAULT_THREE);
         }
 
-        Chat::ChatFileManager::cleanupGlobalIntermediateStorage();
+        Chat::AttachmentStaging::cleanupGlobalIntermediateStorage();
 
 #ifdef WITH_TESTS
         addTest<QodeAssistTest>();
@@ -499,6 +507,8 @@ private:
     QPointer<Mcp::McpServerManager> m_mcpServerManager;
     QPointer<QQmlEngine> m_engine;
     QPointer<Skills::SkillsManager> m_skillsManager;
+    QPointer<Acp::AgentCatalogStore> m_agentCatalog;
+    std::unique_ptr<Settings::AgentsSettingsPage> m_agentsSettingsPage;
 };
 
 } // namespace QodeAssist::Internal

@@ -41,9 +41,9 @@ QString ContextManager::readFile(const QString &filePath) const
     return content;
 }
 
-QList<ContentFile> ContextManager::getContentFiles(const QStringList &filePaths) const
+QStringList ContextManager::allowedPaths(const QStringList &filePaths) const
 {
-    QList<ContentFile> files;
+    QStringList allowed;
     for (const QString &path : filePaths) {
         auto project = ProjectExplorer::ProjectManager::projectForFile(
             Utils::FilePath::fromString(path));
@@ -52,9 +52,16 @@ QList<ContentFile> ContextManager::getContentFiles(const QStringList &filePaths)
             continue;
         }
 
-        ContentFile contentFile = createContentFile(path);
-        files.append(contentFile);
+        allowed.append(path);
     }
+    return allowed;
+}
+
+QList<ContentFile> ContextManager::getContentFiles(const QStringList &filePaths) const
+{
+    QList<ContentFile> files;
+    for (const QString &path : allowedPaths(filePaths))
+        files.append(createContentFile(path));
     return files;
 }
 
@@ -85,6 +92,7 @@ ContentFile ContextManager::createContentFile(const QString &filePath) const
     QFileInfo fileInfo(filePath);
     contentFile.filename = fileInfo.fileName();
     contentFile.content = readFile(filePath);
+    contentFile.path = fileInfo.absoluteFilePath();
     return contentFile;
 }
 

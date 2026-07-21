@@ -6,15 +6,15 @@
 
 #include <LLMQore/ToolExceptions.hpp>
 
-#include <context/ChangesManager.h>
+#include <context/FileEditManager.hpp>
 #include <context/ProjectUtils.hpp>
 #include <logger/Logger.hpp>
+#include <session/FileEditPayload.hpp>
 #include <settings/GeneralSettings.hpp>
 #include <settings/ToolsSettings.hpp>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QJsonDocument>
 #include <QJsonObject>
 #include <QUuid>
 #include <QtConcurrent>
@@ -181,7 +181,7 @@ QFuture<LLMQore::ToolResult> EditFileTool::executeAsync(const QJsonObject &input
                            .arg(newContent.left(200)));
         }
 
-        Context::ChangesManager::instance().addFileEdit(
+        Context::FileEditManager::instance().addFileEdit(
             editId,
             filePath,
             oldContent,
@@ -191,13 +191,13 @@ QFuture<LLMQore::ToolResult> EditFileTool::executeAsync(const QJsonObject &input
             requestId
         );
 
-        auto edit = Context::ChangesManager::instance().getFileEdit(editId);
+        auto edit = Context::FileEditManager::instance().getFileEdit(editId);
         QString status = "pending";
-        if (edit.status == Context::ChangesManager::Applied) {
+        if (edit.status == Context::FileEditManager::Applied) {
             status = "applied";
-        } else if (edit.status == Context::ChangesManager::Rejected) {
+        } else if (edit.status == Context::FileEditManager::Rejected) {
             status = "rejected";
-        } else if (edit.status == Context::ChangesManager::Archived) {
+        } else if (edit.status == Context::FileEditManager::Archived) {
             status = "archived";
         }
 
@@ -214,9 +214,7 @@ QFuture<LLMQore::ToolResult> EditFileTool::executeAsync(const QJsonObject &input
         LOG_MESSAGE(QString("File edit created: %1 (ID: %2, Status: %3, Deferred: %4)")
                         .arg(filePath, editId, status, requestId.isEmpty() ? QString("no") : QString("yes")));
 
-        QString resultStr = "QODEASSIST_FILE_EDIT:"
-                            + QString::fromUtf8(QJsonDocument(result).toJson(QJsonDocument::Compact));
-        return LLMQore::ToolResult::text(resultStr);
+        return LLMQore::ToolResult::text(Session::encodeFileEditPayload(result));
     });
 }
 

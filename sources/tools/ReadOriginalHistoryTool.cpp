@@ -30,10 +30,16 @@ QString roleName(Session::RowKind kind)
         return QStringLiteral("assistant");
     case Session::RowKind::Tool:
         return QStringLiteral("tool");
+    case Session::RowKind::AgentTool:
+        return QStringLiteral("agent_tool");
     case Session::RowKind::FileEdit:
         return QStringLiteral("file_edit");
     case Session::RowKind::Thinking:
         return QStringLiteral("thinking");
+    case Session::RowKind::Permission:
+        return QStringLiteral("permission");
+    case Session::RowKind::Plan:
+        return QStringLiteral("plan");
     }
     return QStringLiteral("unknown");
 }

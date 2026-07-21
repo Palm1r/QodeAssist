@@ -12,6 +12,7 @@ struct ContentFile
 {
     QString filename;
     QString content;
+    QString path;
 };
 
 } // namespace QodeAssist::Context

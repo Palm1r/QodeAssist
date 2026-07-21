@@ -6,7 +6,6 @@
 
 #include <utils/aspects.h>
 
-#include "AgentRole.hpp"
 #include "ButtonAspect.hpp"
 
 namespace QodeAssist::Settings {
@@ -19,7 +18,6 @@ public:
     ButtonAspect resetToDefaults{this};
 
     // Chat settings
-    Utils::BoolAspect linkOpenFiles{this};
     Utils::BoolAspect autosave{this};
     Utils::BoolAspect enableChatInBottomToolBar{this};
     Utils::BoolAspect enableChatInNavigationPanel{this};
@@ -68,8 +66,6 @@ public:
     Utils::SelectionAspect textFormat{this};
 
     Utils::SelectionAspect chatRenderer{this};
-
-    Utils::StringAspect lastUsedRoleId{this};
 
 private:
     void setupConnections();

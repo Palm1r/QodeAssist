@@ -7,6 +7,12 @@
 #include <optional>
 #include <utility>
 
+#if defined(Q_CC_MSVC)
+#pragma warning(error : 4062)
+#else
+#pragma GCC diagnostic error "-Wswitch"
+#endif
+
 namespace QodeAssist::Session {
 
 namespace {
@@ -52,7 +58,15 @@ QString toolDisplayText(const ToolCallBlock &block)
 
 ToolCallBlock toolCallOf(const MessageRow &row)
 {
-    ToolCallBlock block{row.id, row.toolName, row.toolArguments, row.toolResult};
+    ToolCallBlock block{
+        row.id,
+        row.toolName,
+        row.toolArguments,
+        row.toolResult,
+        row.toolKind,
+        restoredToolStatus(row.toolStatus),
+        row.toolDetails,
+        row.kind == RowKind::AgentTool};
     if (block.name.isEmpty() && block.result.isEmpty())
         block.result = row.content;
     return block;
@@ -73,8 +87,87 @@ RowKind textRowKind(MessageRole role)
 
 } // namespace
 
+bool isTerminalToolStatus(const QString &status)
+{
+    return status.isEmpty() || status == QLatin1String("completed")
+           || status == QLatin1String("failed") || status == QLatin1String("interrupted");
+}
+
+QString restoredToolStatus(QString status)
+{
+    if (!isTerminalToolStatus(status))
+        return QStringLiteral("interrupted");
+    return status;
+}
+
+bool isTranscriptOnlyRow(RowKind kind)
+{
+    switch (kind) {
+    case RowKind::AgentTool:
+    case RowKind::FileEdit:
+    case RowKind::Permission:
+    case RowKind::Plan:
+        return true;
+    case RowKind::User:
+    case RowKind::Assistant:
+    case RowKind::System:
+    case RowKind::Tool:
+    case RowKind::Thinking:
+        return false;
+    }
+    return false;
+}
+
+RowTreatment rowTreatmentFor(RowAudience audience, RowKind kind)
+{
+    switch (audience) {
+    case RowAudience::Prompt:
+        switch (kind) {
+        case RowKind::User:
+            return RowTreatment::UserText;
+        case RowKind::Assistant:
+        case RowKind::System:
+            return RowTreatment::AssistantText;
+        case RowKind::Thinking:
+            return RowTreatment::AssistantThinking;
+        case RowKind::Tool:
+            return RowTreatment::ToolExchange;
+        case RowKind::AgentTool:
+        case RowKind::FileEdit:
+        case RowKind::Permission:
+        case RowKind::Plan:
+            return RowTreatment::Omit;
+        }
+        break;
+    case RowAudience::Compression:
+        switch (kind) {
+        case RowKind::User:
+            return RowTreatment::UserText;
+        case RowKind::Assistant:
+        case RowKind::System:
+            return RowTreatment::AssistantText;
+        case RowKind::Thinking:
+        case RowKind::Tool:
+        case RowKind::AgentTool:
+        case RowKind::FileEdit:
+        case RowKind::Permission:
+        case RowKind::Plan:
+            return RowTreatment::Omit;
+        }
+        break;
+    case RowAudience::TokenCount:
+        return rowTreatmentFor(RowAudience::Prompt, kind);
+    }
+    return RowTreatment::Omit;
+}
+
 std::optional<MessageRow> projectBlockToRow(const Message &message, const ContentBlock &block)
 {
+    static_assert(
+        std::variant_size_v<ContentBlock> == 8,
+        "ContentBlock gained an alternative; extend the projection below or the block lives in the "
+        "history without ever rendering");
+
     if (const auto *text = std::get_if<TextBlock>(&block)) {
         MessageRow row;
         row.kind = textRowKind(message.role);
@@ -95,12 +188,15 @@ std::optional<MessageRow> projectBlockToRow(const Message &message, const Conten
 
     if (const auto *tool = std::get_if<ToolCallBlock>(&block)) {
         MessageRow row;
-        row.kind = RowKind::Tool;
+        row.kind = tool->fromAgent ? RowKind::AgentTool : RowKind::Tool;
         row.id = tool->id;
         row.content = toolDisplayText(*tool);
         row.toolName = tool->name;
         row.toolArguments = tool->arguments;
         row.toolResult = tool->result;
+        row.toolKind = tool->kind;
+        row.toolStatus = tool->status;
+        row.toolDetails = tool->details;
         return row;
     }
 
@@ -109,6 +205,22 @@ std::optional<MessageRow> projectBlockToRow(const Message &message, const Conten
         row.kind = RowKind::FileEdit;
         row.id = edit->id;
         row.content = edit->payload;
+        return row;
+    }
+
+    if (const auto *permission = std::get_if<PermissionBlock>(&block)) {
+        MessageRow row;
+        row.kind = RowKind::Permission;
+        row.id = permission->requestId;
+        row.content = encodePermissionBlock(*permission);
+        return row;
+    }
+
+    if (const auto *plan = std::get_if<PlanBlock>(&block)) {
+        MessageRow row;
+        row.kind = RowKind::Plan;
+        row.id = message.id;
+        row.content = encodePlanBlock(*plan);
         return row;
     }
 
@@ -123,7 +235,7 @@ QList<MessageRow> projectMessageToRows(const Message &message)
     qsizetype textRowIndex = -1;
 
     auto appendRow = [&](MessageRow row) {
-        if (!usageAssigned && row.id == message.id) {
+        if (!usageAssigned && row.id == message.id && !isTranscriptOnlyRow(row.kind)) {
             row.usage = message.usage;
             usageAssigned = true;
         }
@@ -223,7 +335,8 @@ ConversationHistory buildFromRows(const QList<MessageRow> &rows)
                 message.usage = row.usage;
             break;
         }
-        case RowKind::Tool: {
+        case RowKind::Tool:
+        case RowKind::AgentTool: {
             Message &message = openAssistant();
             message.blocks.append(toolCallOf(row));
             break;
@@ -231,6 +344,26 @@ ConversationHistory buildFromRows(const QList<MessageRow> &rows)
         case RowKind::FileEdit: {
             Message &message = openAssistant();
             message.blocks.append(FileEditBlock{row.id, row.content});
+            break;
+        }
+        case RowKind::Permission: {
+            Message &message = openAssistant();
+            if (auto permission = decodePermissionBlock(row.content))
+                message.blocks.append(restoredPermissionBlock(*permission));
+            else
+                message.blocks.append(TextBlock{row.content});
+            break;
+        }
+        case RowKind::Plan: {
+            Message &message = openAssistant();
+            if (message.id.isEmpty())
+                message.id = row.id;
+            if (!row.usage.isEmpty())
+                message.usage = row.usage;
+            if (auto plan = decodePlanBlock(row.content))
+                message.blocks.append(*plan);
+            else
+                message.blocks.append(TextBlock{row.content});
             break;
         }
         }

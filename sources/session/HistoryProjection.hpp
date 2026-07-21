@@ -14,7 +14,17 @@
 
 namespace QodeAssist::Session {
 
-enum class RowKind { User, Assistant, System, Tool, FileEdit, Thinking };
+enum class RowKind {
+    User,
+    Assistant,
+    System,
+    Tool,
+    AgentTool,
+    FileEdit,
+    Thinking,
+    Permission,
+    Plan
+};
 
 struct MessageRow
 {
@@ -26,6 +36,9 @@ struct MessageRow
     QString toolName;
     QJsonObject toolArguments;
     QString toolResult;
+    QString toolKind;
+    QString toolStatus;
+    QJsonObject toolDetails;
     QList<AttachmentBlock> attachments;
     QList<ImageBlock> images;
     Usage usage;
@@ -38,10 +51,22 @@ struct MessageRow
                                << ", content=" << row.content << ", sig=" << row.signature
                                << ", redacted=" << row.redacted << ", tool=" << row.toolName
                                << ", args=" << row.toolArguments << ", result=" << row.toolResult
+                               << ", toolKind=" << row.toolKind << ", toolStatus=" << row.toolStatus
+                               << ", toolDetails=" << row.toolDetails
                                << ", attachments=" << row.attachments << ", images=" << row.images
                                << ", " << row.usage << ")";
     }
 };
+
+enum class RowAudience { Prompt, Compression, TokenCount };
+
+enum class RowTreatment { Omit, UserText, AssistantText, AssistantThinking, ToolExchange };
+
+bool isTranscriptOnlyRow(RowKind kind);
+RowTreatment rowTreatmentFor(RowAudience audience, RowKind kind);
+
+bool isTerminalToolStatus(const QString &status);
+QString restoredToolStatus(QString status);
 
 std::optional<MessageRow> projectBlockToRow(const Message &message, const ContentBlock &block);
 QList<MessageRow> projectMessageToRows(const Message &message);

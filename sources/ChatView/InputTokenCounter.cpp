@@ -79,12 +79,6 @@ void InputTokenCounter::setAttachments(const QStringList &attachments)
     recompute();
 }
 
-void InputTokenCounter::setLinkedFiles(const QStringList &linkedFiles)
-{
-    m_linkedFiles = linkedFiles;
-    recompute();
-}
-
 void InputTokenCounter::rewireToolsChangedConnection()
 {
     if (m_toolsChangedConn)
@@ -160,14 +154,11 @@ void InputTokenCounter::recompute()
         inputTokens += estimateFileTokens(textPaths);
     }
 
-    if (!m_linkedFiles.isEmpty()) {
-        QStringList textPaths;
-        inputTokens += splitImageEstimate(m_linkedFiles, textPaths);
-        inputTokens += estimateFileTokens(textPaths);
-    }
-
     if (m_session) {
         for (const Session::MessageRow &row : m_session->rows()) {
+            if (Session::rowTreatmentFor(Session::RowAudience::TokenCount, row.kind)
+                == Session::RowTreatment::Omit)
+                continue;
             inputTokens += Context::TokenUtils::estimateTokens(row.content);
             inputTokens += 4; // + role
         }

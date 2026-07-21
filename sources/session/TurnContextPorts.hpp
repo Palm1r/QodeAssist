@@ -23,7 +23,6 @@ public:
     virtual ~IProjectContextPort() = default;
 
     virtual ProjectInfo projectInfo() const = 0;
-    virtual QString projectRules() const = 0;
 };
 
 class ISkillsContextPort
@@ -37,17 +36,6 @@ public:
     virtual QString alwaysOnBodies() const = 0;
     virtual QString catalogText() const = 0;
     virtual std::optional<InvokedSkill> findSkill(const QString &name) const = 0;
-};
-
-class ILinkedFilesPort
-{
-    Q_DISABLE_COPY_MOVE(ILinkedFilesPort)
-
-public:
-    ILinkedFilesPort() = default;
-    virtual ~ILinkedFilesPort() = default;
-
-    virtual QList<LinkedFile> readFiles(const QList<QString> &paths) const = 0;
 };
 
 } // namespace QodeAssist::Session

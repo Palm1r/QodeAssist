@@ -8,7 +8,14 @@ namespace QodeAssist::Session {
 
 QString turnIdOf(const SessionEvent &event)
 {
-    return std::visit([](const auto &alternative) { return alternative.turnId; }, event);
+    return std::visit(
+        [](const auto &alternative) -> QString {
+            if constexpr (requires { alternative.turnId; })
+                return alternative.turnId;
+            else
+                return {};
+        },
+        event);
 }
 
 } // namespace QodeAssist::Session

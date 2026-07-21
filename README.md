@@ -38,10 +38,10 @@ QodeAssist enhances Qt Creator with AI-powered coding assistance:
 - **Agent Skills** — reusable folders of specialized instructions loaded on demand; discovered from `.qodeassist/skills/` and `.claude/skills/`, invoked automatically, with `/skill`, or always-on
 - **MCP Server** — expose QodeAssist's project-aware tools to external MCP clients (Claude Code, VS Code, Claude Desktop via bridge)
 - **MCP Client Hub** — connect QodeAssist to external MCP servers and use their tools in Chat and Quick Refactor (authenticated MCP servers are not supported yet)
-- **File Context** — attach, link, or auto-sync open editor files for richer prompts
+- **File Context** — attach files and images to your messages for richer prompts
 - **Many Providers** — Ollama, llama.cpp, LM Studio (Chat + Responses), Claude, OpenAI (Chat + Responses), Google AI, Mistral, Codestral, OpenRouter, Qwen (OpenAI + Responses), DeepSeek, any OpenAI-compatible endpoint
 - **Reasoning / Thinking** — streamed chain-of-thought is shown for reasoning models across Claude, Google, OpenAI Responses, and any OpenAI-compatible endpoint that returns `reasoning_content` (DeepSeek, Qwen QwQ/Qwen3-Thinking, LM Studio, OpenRouter, …)
-- **Customizable** — per-project rules (`.qodeassist/rules/`), agent roles, reusable refactor templates, full prompt-template control
+- **Customizable** — per-project and global agent skills, reusable refactor templates, full prompt-template control
 
 **Join our [Discord Community](https://discord.gg/BGMkUsXUgf)** to get support and connect with other users!
 
@@ -217,9 +217,7 @@ For optimal coding assistance, we recommend using these top-tier models:
 
 ### Additional Configuration
 
-- **[Agent Roles](docs/agent-roles.md)** - Create AI personas with specialized system prompts
 - **[Chat Summarization](docs/chat-summarization.md)** - Compress conversations to save context tokens
-- **[Project Rules](docs/project-rules.md)** - Customize AI behavior for your project
 - **[Ignoring Files](docs/ignoring-files.md)** - Exclude files from context using `.qodeassistignore`
 
 ## Features
@@ -255,10 +253,8 @@ Configure in: `Tools → Options → QodeAssist → Code Completion → General 
 - Multiple chat panels: side panel, bottom panel, and popup window
 - Chat history with auto-save and restore
 - Token usage monitoring
-- **[Agent Roles](docs/agent-roles.md)** - Switch between AI personas (Developer, Reviewer, custom roles)
 - **[Chat Summarization](docs/chat-summarization.md)** - Compress long conversations into AI-generated summaries
-- **[File Context](docs/file-context.md)** - Attach or link files for better context
-- Automatic syncing with open editor files (optional)
+- **[File Context](docs/file-context.md)** - Attach files for better context
 - Extended thinking / reasoning mode - shows streamed chain-of-thought for reasoning models (Claude, Google, OpenAI Responses, and OpenAI-compatible endpoints returning `reasoning_content` such as DeepSeek, Qwen, LM Studio, OpenRouter)
 
 ### Quick Refactoring
@@ -350,15 +346,13 @@ QodeAssist uses a flexible prompt composition system that adapts to different co
 │  Examples: Codestral, Qwen2.5-Coder, DeepSeek-Coder                        │
 │                                                                              │
 │  1. System Prompt (from Code Completion Settings - FIM variant)            │
-│  2. Project Rules:                                                          │
-│     └─ .qodeassist/rules/completion/*.md                                   │
-│  3. Open Files Context (optional, if enabled):                             │
+│  2. Open Files Context (optional, if enabled):                             │
 │     └─ Currently open editor files                                         │
-│  4. Code Context:                                                           │
+│  3. Code Context:                                                           │
 │     ├─ Code before cursor (prefix)                                         │
 │     └─ Code after cursor (suffix)                                          │
 │                                                                              │
-│  Final Prompt: FIM_Template(Prefix: SystemPrompt + Rules + OpenFiles +     │
+│  Final Prompt: FIM_Template(Prefix: SystemPrompt + OpenFiles +             │
 │                                     CodeBefore,                             │
 │                             Suffix: CodeAfter)                              │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -377,18 +371,16 @@ QodeAssist uses a flexible prompt composition system that adapts to different co
 │                                                                              │
 │  1. System Prompt (from Code Completion Settings - Non-FIM variant)        │
 │     └─ Includes response formatting instructions                           │
-│  2. Project Rules:                                                          │
-│     └─ .qodeassist/rules/completion/*.md                                   │
-│  3. Open Files Context (optional, if enabled):                             │
+│  2. Open Files Context (optional, if enabled):                             │
 │     └─ Currently open editor files                                         │
-│  4. Code Context:                                                           │
+│  3. Code Context:                                                           │
 │     ├─ File information (language, path)                                   │
 │     ├─ Code before cursor                                                  │
 │     ├─ <cursor> marker                                                     │
 │     └─ Code after cursor                                                   │
-│  5. User Message: "Complete the code at cursor position"                   │
+│  4. User Message: "Complete the code at cursor position"                   │
 │                                                                              │
-│  Final Prompt: [System: SystemPrompt + Rules]                              │
+│  Final Prompt: [System: SystemPrompt]                                      │
 │                [User: OpenFiles + Context + CompletionRequest]              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -403,15 +395,10 @@ QodeAssist uses a flexible prompt composition system that adapts to different co
 │                            CHAT ASSISTANT                                   │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  1. System Prompt (from Chat Assistant Settings)                           │
-│  2. Agent Role (optional, from role selector):                             │
-│     └─ Role-specific system prompt (Developer, Reviewer, custom)           │
-│  3. Project Rules:                                                          │
-│     ├─ .qodeassist/rules/common/*.md                                       │
-│     └─ .qodeassist/rules/chat/*.md                                         │
+│  2. Project Info (active project name, source root, build directory)       │
+│  3. Skills (always-on bodies + catalog + /invoked skills)                  │
 │  4. File Context (optional):                                               │
-│     ├─ Attached files (manual)                                             │
-│     ├─ Linked files (persistent)                                           │
-│     └─ Open editor files (if auto-sync enabled)                            │
+│     └─ Attached files (manual)                                             │
 │  5. Tool Definitions (if enabled):                                         │
 │     ├─ ReadProjectFileByName                                               │
 │     ├─ ListProjectFiles                                                    │
@@ -420,7 +407,7 @@ QodeAssist uses a flexible prompt composition system that adapts to different co
 │  6. Conversation History                                                    │
 │  7. User Message                                                            │
 │                                                                              │
-│  Final Prompt: [System: SystemPrompt + AgentRole + Rules + Tools]          │
+│  Final Prompt: [System: SystemPrompt + ProjectInfo + Skills + Tools]       │
 │                [History: Previous messages]                                 │
 │                [User: FileContext + UserMessage]                            │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -436,10 +423,7 @@ QodeAssist uses a flexible prompt composition system that adapts to different co
 │                         QUICK REFACTORING                                   │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │  1. System Prompt (from Quick Refactor Settings)                           │
-│  2. Project Rules:                                                          │
-│     ├─ .qodeassist/rules/common/*.md                                       │
-│     └─ .qodeassist/rules/quickrefactor/*.md                                │
-│  3. Code Context:                                                           │
+│  2. Code Context:                                                           │
 │     ├─ File information (language, path)                                   │
 │     ├─ Code before selection (configurable amount)                         │
 │     ├─ <selection_start> marker                                            │
@@ -447,15 +431,15 @@ QodeAssist uses a flexible prompt composition system that adapts to different co
 │     ├─ <selection_end> marker                                              │
 │     ├─ <cursor> marker (position within selection)                         │
 │     └─ Code after selection (configurable amount)                          │
-│  4. Refactor Instruction:                                                   │
+│  3. Refactor Instruction:                                                   │
 │     ├─ Built-in (e.g., "Improve Code", "Alternative Solution")             │
 │     ├─ Custom Instruction (from library)                                   │
 │     │  └─ ~/.config/QtProject/qtcreator/qodeassist/                        │
 │     │      quick_refactor/instructions/*.json                              │
 │     └─ Additional Details (optional user input)                            │
-│  5. Tool Definitions (if enabled)                                          │
+│  4. Tool Definitions (if enabled)                                          │
 │                                                                              │
-│  Final Prompt: [System: SystemPrompt + Rules]                              │
+│  Final Prompt: [System: SystemPrompt]                                      │
 │                [User: Context + Markers + Instruction + Details]            │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -464,9 +448,8 @@ QodeAssist uses a flexible prompt composition system that adapts to different co
 
 ### Key Points
 
-- **Project Rules** are automatically loaded from `.qodeassist/rules/` directory structure
 - **System Prompts** are configured independently for each feature in Settings
-- **Agent Roles** add role-specific prompts on top of the base system prompt (Chat only)
+- **Skills** provide reusable, project- or globally-scoped instructions for Chat: always-on skills are injected into the system prompt, others are invoked with `/skill-name`
 - **FIM vs Non-FIM models** for code completion use different System Prompts:
   - FIM models: Direct completion prompt
   - Non-FIM models: Prompt includes response formatting instructions
@@ -474,7 +457,7 @@ QodeAssist uses a flexible prompt composition system that adapts to different co
 - **Custom Instructions** provide reusable templates that can be augmented with specific details
 - **Tool Calling** is available for Chat and Quick Refactor when enabled
 
-See [Project Rules Documentation](docs/project-rules.md), [Agent Roles Guide](docs/agent-roles.md), and [Quick Refactoring Guide](docs/quick-refactoring.md) for more details.
+See the [Quick Refactoring Guide](docs/quick-refactoring.md) for more details.
 
 ## QtCreator Version Compatibility
 
@@ -522,7 +505,6 @@ For additional support, join our [Discord Community](https://discord.gg/BGMkUsXU
 - [x] Diff sharing with models
 - [x] Tools / function calling (file I/O, build, terminal, diagnostics)
 - [x] Agent Skills (project + global directories, `/skill` commands, always-on, `load_skill` tool)
-- [x] Project-specific rules (`.qodeassist/rules/`)
 - [x] MCP (Model Context Protocol) — QodeAssist as a server
 - [x] MCP — QodeAssist as a client (consume external MCP tools; authenticated MCP servers not yet supported)
 - [ ] Full project source sharing

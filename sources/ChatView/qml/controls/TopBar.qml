@@ -23,11 +23,8 @@ Rectangle {
     property alias pinButton: pinButtonId
     property alias relocateButton: relocateButtonId
     property alias contextButton: contextButtonId
-    property alias toolsButton: toolsButtonId
-    property alias thinkingMode: thinkingModeId
     property alias settingsButton: settingsButtonId
     property alias configSelector: configSelectorId
-    property alias roleSelector: roleSelector
     property alias relocateTooltip: relocateTooltipId
 
     color: palette.window.hslLightness > 0.5 ?
@@ -147,81 +144,10 @@ Rectangle {
                     text: qsTr("Switch saved AI configuration")
                 }
             }
-
-            QoAComboBox {
-                id: roleSelector
-
-                implicitHeight: 25
-
-                model: []
-                currentIndex: 0
-
-                QoAToolTip {
-                    visible: roleSelector.hovered
-                    delay: 250
-                    text: qsTr("Switch agent role (different system prompts)")
-                }
-            }
         }
 
         Row {
             spacing: 10
-
-            QoAButton {
-                id: toolsButtonId
-
-                anchors.verticalCenter: parent.verticalCenter
-
-                checkable: true
-                opacity: enabled ? 1.0 : 0.2
-
-                icon {
-                    source: checked ? "qrc:/qt/qml/ChatView/icons/tools-icon-on.svg"
-                                    : "qrc:/qt/qml/ChatView/icons/tools-icon-off.svg"
-                    color: palette.window.hslLightness > 0.5 ? "#000000" : "#FFFFFF"
-                    height: 15
-                    width: 15
-                }
-
-                QoAToolTip {
-                    visible: toolsButtonId.hovered
-                    delay: 250
-                    text: {
-                        if (!toolsButtonId.enabled) {
-                            return qsTr("Tools are disabled in General Settings")
-                        }
-                        return toolsButtonId.checked
-                                ? qsTr("Tools enabled: AI can use tools to read files, search project, and build code")
-                                : qsTr("Tools disabled: Simple conversation without tool access")
-                    }
-                }
-            }
-
-            QoAButton {
-                id: thinkingModeId
-
-                anchors.verticalCenter: parent.verticalCenter
-
-                checkable: true
-                opacity: enabled ? 1.0 : 0.2
-
-                icon {
-                    source: checked ? "qrc:/qt/qml/ChatView/icons/thinking-icon-on.svg"
-                                    : "qrc:/qt/qml/ChatView/icons/thinking-icon-off.svg"
-                    color: palette.window.hslLightness > 0.5 ? "#000000" : "#FFFFFF"
-                    height: 15
-                    width: 15
-                }
-
-                QoAToolTip {
-                    visible: thinkingModeId.hovered
-                    delay: 250
-                    text: thinkingModeId.enabled
-                        ? (thinkingModeId.checked ? qsTr("Thinking Mode enabled (Check model list support it)")
-                                                  : qsTr("Thinking Mode disabled"))
-                        : qsTr("Thinking Mode is not available for this provider")
-                }
-            }
 
             QoAButton {
                 id: settingsButtonId
@@ -345,7 +271,7 @@ Rectangle {
                 QoAToolTip {
                     visible: contextButtonId.hovered
                     delay: 250
-                    text: qsTr("View chat context (system prompt, role, rules)")
+                    text: qsTr("View chat context (system prompt)")
                 }
             }
 

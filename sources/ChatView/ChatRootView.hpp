@@ -9,10 +9,11 @@
 #include <QVariantList>
 
 #include "ChatController.hpp"
-#include "ChatFileManager.hpp"
+#include "AttachmentStaging.hpp"
 #include "ChatModel.hpp"
+#include "ConversationCoordinator.hpp"
 #include "templates/PromptProviderChat.hpp"
-#include <coreplugin/editormanager/editormanager.h>
+#include <utils/id.h>
 
 namespace QodeAssist::Skills {
 class SkillsManager;
@@ -21,21 +22,21 @@ class SkillsManager;
 namespace QodeAssist::Chat {
 
 class ChatCompressor;
-class AgentRoleController;
 class ChatConfigurationController;
 class FileEditController;
 class InputTokenCounter;
-class ChatHistoryStore;
+class ChatFileStore;
 class SessionFileRegistry;
 
-class ChatRootView : public QQuickItem
+class ChatRootView : public QQuickItem,
+                     private IAgentCatalogPort,
+                     private ICompressionPort,
+                     private ISendPort
 {
     Q_OBJECT
     Q_PROPERTY(QodeAssist::Chat::ChatModel *chatModel READ chatModel NOTIFY chatModelChanged FINAL)
     Q_PROPERTY(QString currentTemplate READ currentTemplate NOTIFY currentTemplateChanged FINAL)
-    Q_PROPERTY(bool isSyncOpenFiles READ isSyncOpenFiles NOTIFY isSyncOpenFilesChanged FINAL)
     Q_PROPERTY(QStringList attachmentFiles READ attachmentFiles NOTIFY attachmentFilesChanged FINAL)
-    Q_PROPERTY(QStringList linkedFiles READ linkedFiles NOTIFY linkedFilesChanged FINAL)
     Q_PROPERTY(int inputTokensCount READ inputTokensCount NOTIFY inputTokensCountChanged FINAL)
     Q_PROPERTY(QString chatFileName READ chatFileName NOTIFY chatFileNameChanged FINAL)
     Q_PROPERTY(QString textFontFamily READ textFontFamily NOTIFY textFamilyChanged FINAL)
@@ -46,24 +47,25 @@ class ChatRootView : public QQuickItem
     Q_PROPERTY(bool isRequestInProgress READ isRequestInProgress NOTIFY isRequestInProgressChanged FINAL)
     Q_PROPERTY(QString lastErrorMessage READ lastErrorMessage NOTIFY lastErrorMessageChanged FINAL)
     Q_PROPERTY(QString lastInfoMessage READ lastInfoMessage NOTIFY lastInfoMessageChanged FINAL)
-    Q_PROPERTY(QVariantList activeRules READ activeRules NOTIFY activeRulesChanged FINAL)
-    Q_PROPERTY(int activeRulesCount READ activeRulesCount NOTIFY activeRulesCountChanged FINAL)
-    Q_PROPERTY(bool useTools READ useTools WRITE setUseTools NOTIFY useToolsChanged FINAL)
-    Q_PROPERTY(bool useThinking READ useThinking WRITE setUseThinking NOTIFY useThinkingChanged FINAL)
     Q_PROPERTY(QString sendShortcutText READ sendShortcutText NOTIFY sendShortcutTextChanged FINAL)
     
     Q_PROPERTY(int currentMessageTotalEdits READ currentMessageTotalEdits NOTIFY currentMessageEditsStatsChanged FINAL)
     Q_PROPERTY(int currentMessageAppliedEdits READ currentMessageAppliedEdits NOTIFY currentMessageEditsStatsChanged FINAL)
     Q_PROPERTY(int currentMessagePendingEdits READ currentMessagePendingEdits NOTIFY currentMessageEditsStatsChanged FINAL)
     Q_PROPERTY(int currentMessageRejectedEdits READ currentMessageRejectedEdits NOTIFY currentMessageEditsStatsChanged FINAL)
-    Q_PROPERTY(bool isThinkingSupport READ isThinkingSupport NOTIFY isThinkingSupportChanged FINAL)
+    Q_PROPERTY(bool isAgentBound READ isAgentBound NOTIFY isAgentBoundChanged FINAL)
+    Q_PROPERTY(QString agentSessionIssue READ agentSessionIssue NOTIFY agentSessionIssueChanged FINAL)
+    Q_PROPERTY(bool canStartNewAgentSession READ canStartNewAgentSession NOTIFY
+                   agentSessionIssueChanged FINAL)
+    Q_PROPERTY(bool canHandOverSummary READ canHandOverSummary NOTIFY agentSessionIssueChanged FINAL)
+    Q_PROPERTY(QString summaryHandoverTooltip READ summaryHandoverTooltip NOTIFY
+                   agentSessionIssueChanged FINAL)
+    Q_PROPERTY(bool canShrinkContext READ canShrinkContext NOTIFY shrinkContextStateChanged FINAL)
+    Q_PROPERTY(QString shrinkContextTooltip READ shrinkContextTooltip NOTIFY
+                   shrinkContextStateChanged FINAL)
     Q_PROPERTY(QStringList availableConfigurations READ availableConfigurations NOTIFY availableConfigurationsChanged FINAL)
     Q_PROPERTY(QString currentConfiguration READ currentConfiguration NOTIFY currentConfigurationChanged FINAL)
-    Q_PROPERTY(QStringList availableAgentRoles READ availableAgentRoles NOTIFY availableAgentRolesChanged FINAL)
-    Q_PROPERTY(QString currentAgentRole READ currentAgentRole NOTIFY currentAgentRoleChanged FINAL)
     Q_PROPERTY(QString baseSystemPrompt READ baseSystemPrompt NOTIFY baseSystemPromptChanged FINAL)
-    Q_PROPERTY(QString currentAgentRoleDescription READ currentAgentRoleDescription NOTIFY currentAgentRoleChanged FINAL)
-    Q_PROPERTY(QString currentAgentRoleSystemPrompt READ currentAgentRoleSystemPrompt NOTIFY currentAgentRoleChanged FINAL)
     Q_PROPERTY(bool isCompressing READ isCompressing NOTIFY isCompressingChanged FINAL)
     Q_PROPERTY(bool isInEditor READ isInEditor NOTIFY isInEditorChanged FINAL)
     Q_PROPERTY(QString chatTitle READ chatTitle NOTIFY chatTitleChanged FINAL)
@@ -88,23 +90,17 @@ public:
     QString getAutosaveFilePath(const QString &firstMessage, const QStringList &attachments) const;
 
     QStringList attachmentFiles() const;
-    QStringList linkedFiles() const;
 
     Q_INVOKABLE void showAttachFilesDialog();
     Q_INVOKABLE void addFilesToAttachList(const QStringList &filePaths);
     Q_INVOKABLE void removeFileFromAttachList(int index);
-    Q_INVOKABLE void showLinkFilesDialog();
-    Q_INVOKABLE void addFilesToLinkList(const QStringList &filePaths);
-    Q_INVOKABLE void removeFileFromLinkList(int index);
     Q_INVOKABLE QStringList convertUrlsToLocalPaths(const QVariantList &urls) const;
     Q_INVOKABLE void showAddImageDialog();
     Q_INVOKABLE bool isImageFile(const QString &filePath) const;
     Q_INVOKABLE void calculateMessageTokensCount(const QString &message);
     Q_INVOKABLE bool isSendShortcut(int key, int modifiers) const;
     QString sendShortcutText() const;
-    Q_INVOKABLE void setIsSyncOpenFiles(bool state);
     Q_INVOKABLE void openChatHistoryFolder();
-    Q_INVOKABLE void openRulesFolder();
     Q_INVOKABLE void openSettings();
 
     Q_INVOKABLE void openFileInEditor(const QString &filePath);
@@ -117,16 +113,9 @@ public:
     Q_INVOKABLE void updateInputTokensCount();
     int inputTokensCount() const;
 
-    bool isSyncOpenFiles() const;
-
-    void onEditorAboutToClose(Core::IEditor *editor);
-    void onAppendLinkFileFromEditor(Core::IEditor *editor);
-    void onEditorCreated(Core::IEditor *editor, const Utils::FilePath &filePath);
-
     QString chatFileName() const;
     Q_INVOKABLE QString chatFilePath() const;
     void setRecentFilePath(const QString &filePath);
-    bool shouldIgnoreFileForAttach(const Utils::FilePath &filePath);
 
     QString textFontFamily() const;
     QString codeFontFamily() const;
@@ -139,18 +128,10 @@ public:
     void setRequestProgressStatus(bool state);
 
     QString lastErrorMessage() const;
-    
-    QVariantList activeRules() const;
-    int activeRulesCount() const;
-    Q_INVOKABLE QString getRuleContent(int index);
-    Q_INVOKABLE void refreshRules();
 
-    Q_INVOKABLE QVariantList searchSkills(const QString &query) const;
+    Q_INVOKABLE QVariantList searchSlashCommands(const QString &query) const;
 
-    bool useTools() const;
-    void setUseTools(bool enabled);
-    bool useThinking() const;
-    void setUseThinking(bool enabled);
+    Q_INVOKABLE void respondToPermission(const QString &requestId, const QString &optionId);
 
     Q_INVOKABLE void applyFileEdit(const QString &editId);
     Q_INVOKABLE void rejectFileEdit(const QString &editId);
@@ -163,21 +144,16 @@ public:
 
     Q_INVOKABLE void loadAvailableConfigurations();
     Q_INVOKABLE void applyConfiguration(const QString &configName);
+    Q_INVOKABLE void confirmChatTargetSwitch();
+    Q_INVOKABLE void cancelChatTargetSwitch();
     QStringList availableConfigurations() const;
     QString currentConfiguration() const;
 
     Q_INVOKABLE void compressCurrentChat();
     Q_INVOKABLE void cancelCompression();
 
-    Q_INVOKABLE void loadAvailableAgentRoles();
-    Q_INVOKABLE void applyAgentRole(const QString &roleId);
-    Q_INVOKABLE void openAgentRolesSettings();
-    QStringList availableAgentRoles() const;
-    QString currentAgentRole() const;
     QString baseSystemPrompt() const;
-    QString currentAgentRoleDescription() const;
-    QString currentAgentRoleSystemPrompt() const;
-    
+
     int currentMessageTotalEdits() const;
     int currentMessageAppliedEdits() const;
     int currentMessagePendingEdits() const;
@@ -185,8 +161,16 @@ public:
 
     QString lastInfoMessage() const;
 
-    bool isThinkingSupport() const;
-    
+    bool isAgentBound() const;
+    QString agentSessionIssue() const;
+    bool canStartNewAgentSession() const;
+    bool canHandOverSummary() const;
+    QString summaryHandoverTooltip() const;
+    bool canShrinkContext() const;
+    QString shrinkContextTooltip() const;
+    Q_INVOKABLE void startNewAgentSession();
+    Q_INVOKABLE void startNewAgentSessionWithSummary();
+
     bool isCompressing() const;
 
     bool isInEditor() const;
@@ -201,7 +185,6 @@ public slots:
     void copyToClipboard(const QString &text);
     void cancelRequest();
     void clearAttachmentFiles();
-    void clearLinkedFiles();
     void clearMessages();
     void resetChatToMessage(int index);
 
@@ -209,9 +192,7 @@ signals:
     void chatModelChanged();
     void currentTemplateChanged();
     void attachmentFilesChanged();
-    void linkedFilesChanged();
     void inputTokensCountChanged();
-    void isSyncOpenFilesChanged();
     void chatFileNameChanged();
     void textFamilyChanged();
     void codeFamilyChanged();
@@ -224,19 +205,17 @@ signals:
     void lastErrorMessageChanged();
     void lastInfoMessageChanged();
     void sendShortcutTextChanged();
-    void activeRulesChanged();
-    void activeRulesCountChanged();
 
-    void useToolsChanged();
-    void useThinkingChanged();
     void currentMessageEditsStatsChanged();
 
-    void isThinkingSupportChanged();
+    void isAgentBoundChanged();
+    void agentSessionIssueChanged();
+    void shrinkContextStateChanged();
+    void slashCommandsChanged();
     void availableConfigurationsChanged();
     void currentConfigurationChanged();
+    void chatTargetSwitchNeedsNewChat(const QString &targetName);
 
-    void availableAgentRolesChanged();
-    void currentAgentRoleChanged();
     void baseSystemPromptChanged();
 
     void isCompressingChanged();
@@ -246,27 +225,30 @@ signals:
     void isInEditorChanged();
     void chatTitleChanged();
 
-    void openFilesChanged();
-
     void closeHostRequested();
 
+protected:
+    void componentComplete() override;
+
 private:
+    QVariantList searchSkills(const QString &query) const;
+    QVariantList searchAgentCommands(const QString &query) const;
     QString computeChatTitle() const;
     void triggerOpenChatCommand(Utils::Id commandId);
     void handOffSession();
-    bool deferSendForAutoCompress(
-        const QString &message,
-        const QStringList &attachments,
-        const QStringList &linkedFiles,
-        bool useTools,
-        bool useThinking);
-    void dispatchSend(
-        const QString &message,
-        const QStringList &attachments,
-        const QStringList &linkedFiles,
-        bool useTools,
-        bool useThinking);
     bool hasImageAttachments(const QStringList &attachments) const;
+
+    std::optional<Acp::AgentDefinition> agentById(const QString &agentId) const override;
+    QString compressionConfigurationIssue() const override;
+    bool isCompressionRunning() const override;
+    void startTranscriptSummary() override;
+    void startCompression() override;
+    bool autoCompressEnabled() const override;
+    int autoCompressThreshold() const override;
+    int estimatedNextTokens() const override;
+    bool prepareChatFileForCompression(
+        const QString &message, const QStringList &attachments) override;
+    void dispatch(const QString &message, const QStringList &attachments) override;
 
     SessionFileRegistry *sessionFileRegistry() const;
     Skills::SkillsManager *skillsManager() const;
@@ -274,41 +256,28 @@ private:
     ChatModel *m_chatModel;
     Templates::PromptProviderChat m_promptProvider;
     ChatController *m_controller;
-    ChatFileManager *m_fileManager;
+    AttachmentStaging *m_attachmentStaging;
     QString m_currentTemplate;
     QString m_recentFilePath;
     QStringList m_attachmentFiles;
-    QStringList m_linkedFiles;
 
-    struct PendingSend {
-        QString message;
-        QStringList attachments;
-        QStringList linkedFiles;
-        bool useTools = false;
-        bool useThinking = false;
-        bool active = false;
-    };
-    PendingSend m_pendingSend;
-    bool m_isSyncOpenFiles;
     bool m_isInEditor = false;
     mutable QString m_cachedChatTitle;
-    QList<Core::IEditor *> m_currentEditors;
     bool m_isRequestInProgress;
     QString m_lastErrorMessage;
-    QVariantList m_activeRules;
-    
+
     QString m_lastInfoMessage;
 
     ChatCompressor *m_chatCompressor;
-    AgentRoleController *m_agentRoleController;
     ChatConfigurationController *m_configurationController;
     FileEditController *m_fileEditController;
     InputTokenCounter *m_tokenCounter;
-    ChatHistoryStore *m_historyStore;
+    ChatFileStore *m_historyStore;
     mutable QPointer<SessionFileRegistry> m_sessionFileRegistry;
     mutable bool m_sessionFileRegistryResolved = false;
     mutable QPointer<Skills::SkillsManager> m_skillsManager;
     mutable bool m_skillsManagerResolved = false;
+    ConversationCoordinator *m_coordinator = nullptr;
 };
 
 } // namespace QodeAssist::Chat

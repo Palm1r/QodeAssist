@@ -5,20 +5,63 @@
 
 #include "QodeAssistTest.hpp"
 
-#include "ChatView/ChatHistoryBridge.hpp"
 #include "ChatView/ChatModel.hpp"
+#include "ChatView/ChatFileStore.hpp"
+#include "FakeAcpAgent.hpp"
+#include "FakeLlmProvider.hpp"
+#include "ChatView/ChatConfigurationController.hpp"
+#include "ChatView/ConversationCoordinator.hpp"
+#include "ChatView/FileMentionItem.hpp"
+#include "ChatView/LlmChatBackend.hpp"
+#include "settings/ChatAssistantSettings.hpp"
+#include "session/BlockCodec.hpp"
+#include "session/FileEditPayload.hpp"
+#include "session/TurnLedger.hpp"
+#include "acp/AcpChatBackend.hpp"
+#include "acp/AgentBinding.hpp"
+#include "acp/AgentKnowledgeService.hpp"
+#include "mcp/AgentKnowledgeServer.hpp"
+#include "tools/BuildProjectTool.hpp"
+#include "tools/CreateNewFileTool.hpp"
+#include "tools/EditFileTool.hpp"
+#include "tools/ExecuteTerminalCommandTool.hpp"
+#include "tools/EditorStateTools.hpp"
+#include "tools/GetIssuesListTool.hpp"
+#include "tools/ReadFileTool.hpp"
+
+#include <LLMQore/ToolsManager.hpp>
+#include "acp/AgentCatalog.hpp"
+#include "acp/AgentCatalogStore.hpp"
+#include "acp/AgentLaunch.hpp"
+#include "acp/AgentRegistryParser.hpp"
+#include "acp/AgentSpawn.hpp"
+
+#include <LLMQore/AcpClient.hpp>
 #include "completion/CodeHandler.hpp"
 #include "completion/LLMSuggestion.hpp"
+#include "context/FileEditManager.hpp"
 #include "llmcore/ContextData.hpp"
 #include "providers/ClaudeCacheControl.hpp"
+#include "session/FencedText.hpp"
 #include "session/HistoryProjection.hpp"
 #include "session/HistorySerializer.hpp"
 #include "session/Session.hpp"
 #include "session/TurnContextBuilder.hpp"
 
+#include <QDir>
+#include <QFile>
+#include <QFileInfo>
+#include <QScopeGuard>
+#include <QSignalSpy>
+#include <QUuid>
+#include <QHostAddress>
 #include <QJsonArray>
+#include <QJsonDocument>
+#include <QSet>
+#include <QTemporaryDir>
 #include <QTest>
 #include <QTextDocument>
+#include <QUrl>
 
 namespace QodeAssist {
 
@@ -81,7 +124,6 @@ public:
     void sendTurn(const Session::TurnRequest &request) override
     {
         ++m_turnCount;
-        m_lastOptions = request.options;
         m_lastUserBlocks = request.userBlocks;
         m_historySizeAtSend = request.history ? request.history->size() : -1;
         m_lastContext = request.context;
@@ -89,27 +131,100 @@ public:
 
     void cancel() override { ++m_cancelCount; }
 
+    bool respondPermission(const QString &requestId, const QString &optionId) override
+    {
+        m_permissionAnswers.append({requestId, optionId});
+        if (!m_acceptPermissionAnswers)
+            return false;
+        if (m_autoResolvePermissions)
+            emit sessionEvent(Session::PermissionResolved{m_turnId, requestId, optionId, false});
+        return true;
+    }
+
     void script(const QList<Session::SessionEvent> &events)
     {
-        for (const Session::SessionEvent &scripted : events)
+        for (const Session::SessionEvent &scripted : events) {
+            if (const auto *started = std::get_if<Session::TurnStarted>(&scripted))
+                m_turnId = started->turnId;
             emit sessionEvent(scripted);
+        }
     }
+
+    void setAutoResolvePermissions(bool automatic) { m_autoResolvePermissions = automatic; }
+    void setAcceptPermissionAnswers(bool accept) { m_acceptPermissionAnswers = accept; }
+
+    QList<QPair<QString, QString>> permissionAnswers() const { return m_permissionAnswers; }
 
     int turnCount() const { return m_turnCount; }
     int cancelCount() const { return m_cancelCount; }
     qsizetype historySizeAtSend() const { return m_historySizeAtSend; }
     const QList<Session::ContentBlock> &lastUserBlocks() const { return m_lastUserBlocks; }
     const std::optional<Session::TurnContext> &lastContext() const { return m_lastContext; }
-    Session::TurnOptions lastOptions() const { return m_lastOptions; }
 
 private:
     int m_turnCount = 0;
     int m_cancelCount = 0;
+    bool m_autoResolvePermissions = true;
+    bool m_acceptPermissionAnswers = true;
     qsizetype m_historySizeAtSend = -1;
+    QString m_turnId;
+    QList<QPair<QString, QString>> m_permissionAnswers;
     QList<Session::ContentBlock> m_lastUserBlocks;
     std::optional<Session::TurnContext> m_lastContext;
-    Session::TurnOptions m_lastOptions;
 };
+
+QList<Session::PermissionOption> editPermissionOptions()
+{
+    return {
+        Session::PermissionOption{"opt-once", "Yes", "allow_once"},
+        Session::PermissionOption{"opt-always", "Yes, and don't ask again", "allow_always"},
+        Session::PermissionOption{"opt-no", "No", "reject_once"}};
+}
+
+Session::PermissionRequested editPermissionRequest(
+    const QString &turnId, const QString &requestId, const QString &toolKind = QStringLiteral("edit"))
+{
+    return Session::PermissionRequested{
+        .turnId = turnId,
+        .requestId = requestId,
+        .toolCallId = "tool-" + requestId,
+        .title = "Edit main.cpp",
+        .toolKind = toolKind,
+        .options = editPermissionOptions()};
+}
+
+Session::PermissionBlock permissionRowAt(const Session::Session &session, int index)
+{
+    return Session::decodePermissionBlock(session.rows().at(index).content)
+        .value_or(Session::PermissionBlock{});
+}
+
+Session::ToolCallUpdated llmToolStarted(
+    const QString &turnId,
+    const QString &toolId,
+    const QString &name,
+    const QJsonObject &arguments = {},
+    bool dropPrecedingText = false)
+{
+    return Session::ToolCallUpdated{
+        .turnId = turnId,
+        .toolId = toolId,
+        .name = name,
+        .status = "in_progress",
+        .arguments = arguments,
+        .dropPrecedingText = dropPrecedingText};
+}
+
+Session::ToolCallUpdated llmToolCompleted(
+    const QString &turnId, const QString &toolId, const QString &name, const QString &result)
+{
+    return Session::ToolCallUpdated{
+        .turnId = turnId,
+        .toolId = toolId,
+        .name = name,
+        .status = "completed",
+        .result = result};
+}
 
 QList<Session::SessionEvent> scriptedTurn(const QString &turnId)
 {
@@ -118,8 +233,8 @@ QList<Session::SessionEvent> scriptedTurn(const QString &turnId)
         Session::ThinkingReceived{turnId, "weighing options", "sig-1", false},
         Session::TextDelta{turnId, "let me "},
         Session::TextDelta{turnId, "check"},
-        Session::ToolCallStarted{turnId, "t1", "read_file", QJsonObject{{"path", "main.cpp"}}, false},
-        Session::ToolCallCompleted{turnId, "t1", "read_file", "int main() {}"},
+        llmToolStarted(turnId, "t1", "read_file", QJsonObject{{"path", "main.cpp"}}),
+        llmToolCompleted(turnId, "t1", "read_file", "int main() {}"),
         Session::TextDelta{turnId, "here is the answer"},
         Session::UsageReported{turnId, Session::Usage{120, 40, 80, 12}},
         Session::TurnCompleted{turnId}};
@@ -128,17 +243,14 @@ QList<Session::SessionEvent> scriptedTurn(const QString &turnId)
 class FakeProjectContext : public Session::IProjectContextPort
 {
 public:
-    FakeProjectContext(Session::ProjectInfo info, QString rules)
+    explicit FakeProjectContext(Session::ProjectInfo info)
         : m_info(std::move(info))
-        , m_rules(std::move(rules))
     {}
 
     Session::ProjectInfo projectInfo() const override { return m_info; }
-    QString projectRules() const override { return m_rules; }
 
 private:
     Session::ProjectInfo m_info;
-    QString m_rules;
 };
 
 class FakeSkillsContext : public Session::ISkillsContextPort
@@ -168,25 +280,18 @@ private:
     QList<Session::InvokedSkill> m_skills;
 };
 
-class FakeLinkedFiles : public Session::ILinkedFilesPort
+void attachModelToSession(Session::Session &session, Chat::ChatModel &model)
 {
-public:
-    explicit FakeLinkedFiles(QList<Session::LinkedFile> files)
-        : m_files(std::move(files))
-    {}
-
-    QList<Session::LinkedFile> readFiles(const QList<QString> &paths) const override
-    {
-        m_requestedPaths = paths;
-        return m_files;
-    }
-
-    QList<QString> requestedPaths() const { return m_requestedPaths; }
-
-private:
-    QList<Session::LinkedFile> m_files;
-    mutable QList<QString> m_requestedPaths;
-};
+    QObject::connect(
+        &session, &Session::Session::rowsReset, &model, &Chat::ChatModel::resetMessages);
+    QObject::connect(
+        &session, &Session::Session::rowsAppended, &model, &Chat::ChatModel::appendMessages);
+    QObject::connect(
+        &session, &Session::Session::rowUpdated, &model, &Chat::ChatModel::updateMessage);
+    QObject::connect(
+        &session, &Session::Session::rowsRemoved, &model, &Chat::ChatModel::removeMessages);
+    model.resetMessages(session.rows());
+}
 
 Session::ProjectInfo sampleProject()
 {
@@ -196,6 +301,56 @@ Session::ProjectInfo sampleProject()
     info.sourceRoot = "/src/QodeAssist";
     info.buildDirectory = "/src/QodeAssist/build";
     return info;
+}
+
+Session::ConversationHistory historyWithEveryRowKind()
+{
+    Session::Message system;
+    system.role = Session::MessageRole::System;
+    system.id = "s1";
+    system.blocks = {Session::TextBlock{"system"}};
+
+    Session::Message user;
+    user.role = Session::MessageRole::User;
+    user.id = "u1";
+    user.blocks = {Session::TextBlock{"question"}};
+
+    Session::Message assistant;
+    assistant.role = Session::MessageRole::Assistant;
+    assistant.id = "a1";
+    assistant.blocks
+        = {Session::TextBlock{"answer"},
+           Session::ThinkingBlock{"thinking", {}, false},
+           Session::ToolCallBlock{"call-1", "read_file", {}, "int main() {}", {}, {}, {}, false},
+           Session::ToolCallBlock{
+               "call-2", "Edit main.cpp", {}, "done", "edit", "completed", {}, true},
+           Session::FileEditBlock{"edit-1", "payload"},
+           Session::PermissionBlock{"p1", "tool-p1", "Edit main.cpp", "edit", {}},
+           Session::PlanBlock{{Session::PlanEntry{"Step", "high", "pending"}}}};
+
+    Session::ConversationHistory history;
+    history.append(system);
+    history.append(user);
+    history.append(assistant);
+    return history;
+}
+
+QList<Session::RowKind> projectedKinds()
+{
+    QList<Session::RowKind> kinds;
+    for (const Session::MessageRow &row : Session::projectToRows(historyWithEveryRowKind()))
+        kinds.append(row.kind);
+    return kinds;
+}
+
+QList<Session::RowKind> survivingKinds(Session::RowAudience audience)
+{
+    QList<Session::RowKind> kept;
+    for (const Session::MessageRow &row : Session::projectToRows(historyWithEveryRowKind())) {
+        if (Session::rowTreatmentFor(audience, row.kind) != Session::RowTreatment::Omit)
+            kept.append(row.kind);
+    }
+    return kept;
 }
 
 } // namespace
@@ -211,7 +366,6 @@ QSharedPointer<Settings::CodeCompletionSettings> QodeAssistTest::createSettingsF
 {
     auto settings = QSharedPointer<Settings::CodeCompletionSettings>::create();
     settings->readFullFile.setValue(true, Utils::BaseAspect::BeQuiet);
-    settings->useProjectChangesCache.setValue(false, Utils::BaseAspect::BeQuiet);
     return settings;
 }
 
@@ -222,7 +376,6 @@ QSharedPointer<Settings::CodeCompletionSettings> QodeAssistTest::createSettingsF
     settings->readFullFile.setValue(false, Utils::BaseAspect::BeQuiet);
     settings->readStringsBeforeCursor.setValue(linesBefore, Utils::BaseAspect::BeQuiet);
     settings->readStringsAfterCursor.setValue(linesAfter, Utils::BaseAspect::BeQuiet);
-    settings->useProjectChangesCache.setValue(false, Utils::BaseAspect::BeQuiet);
     return settings;
 }
 
@@ -1171,7 +1324,7 @@ void QodeAssistTest::testHistoryAppliesToChatModel()
 {
     Chat::ChatModel model;
     Session::Session session;
-    Chat::ChatHistoryBridge bridge(&session, &model);
+    attachModelToSession(session, model);
 
     session.setHistory(historyWithoutFileEdits());
 
@@ -1239,13 +1392,11 @@ void QodeAssistTest::testSessionAppendsUserTurnBeforeSending()
 
     session.sendTurn(
         {Session::TextBlock{"explain this"}, Session::AttachmentBlock{"notes.txt", "notes_ab.txt"}},
-        std::nullopt,
-        Session::TurnOptions{true, false});
+        std::nullopt);
 
     QCOMPARE(backend.turnCount(), 1);
     QCOMPARE(backend.historySizeAtSend(), qsizetype(1));
     QCOMPARE(backend.lastUserBlocks().size(), 2);
-    QCOMPARE(backend.lastOptions(), (Session::TurnOptions{true, false}));
     QVERIFY(!backend.lastContext().has_value());
 
     QCOMPARE(session.history().size(), 1);
@@ -1261,7 +1412,7 @@ void QodeAssistTest::testSessionStreamsTextThinkingAndTools()
     Session::Session session;
     session.setBackend(&backend);
 
-    session.sendTurn({Session::TextBlock{"explain this"}}, std::nullopt, {});
+    session.sendTurn({Session::TextBlock{"explain this"}}, std::nullopt);
     backend.script(scriptedTurn("r1"));
 
     QCOMPARE(session.history().size(), 2);
@@ -1278,7 +1429,12 @@ void QodeAssistTest::testSessionStreamsTextThinkingAndTools()
     QCOMPARE(
         assistant.blocks.at(2),
         (Session::ContentBlock{Session::ToolCallBlock{
-            "t1", "read_file", QJsonObject{{"path", "main.cpp"}}, "int main() {}"}}));
+            "t1",
+            "read_file",
+            QJsonObject{{"path", "main.cpp"}},
+            "int main() {}",
+            {},
+            "completed"}}));
     QCOMPARE(
         assistant.blocks.at(3), (Session::ContentBlock{Session::TextBlock{"here is the answer"}}));
 }
@@ -1289,7 +1445,7 @@ void QodeAssistTest::testSessionTrimsStreamedText()
     Session::Session session;
     session.setBackend(&backend);
 
-    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt, {});
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt);
     backend.script(
         {Session::TurnStarted{"r1"},
          Session::TextDelta{"r1", "\n\n"},
@@ -1308,7 +1464,7 @@ void QodeAssistTest::testSessionAbandoningTheTurnCancelsTheBackend()
     Session::Session session;
     session.setBackend(&backend);
 
-    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt, {});
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt);
     backend.script({Session::TurnStarted{"r1"}, Session::TextDelta{"r1", "partial"}});
 
     const int cancelsBeforeTruncate = backend.cancelCount();
@@ -1320,15 +1476,62 @@ void QodeAssistTest::testSessionAbandoningTheTurnCancelsTheBackend()
     QCOMPARE(backend.cancelCount(), cancelsBeforeLoad + 1);
 }
 
+void QodeAssistTest::testSwitchingBackendsCancelsTheActiveTurn()
+{
+    FakeChatBackend first;
+    FakeChatBackend second;
+    Session::Session session;
+    session.setBackend(&first);
+
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt);
+    first.script({Session::TurnStarted{"r1"}, Session::TextDelta{"r1", "partial"}});
+
+    const int cancelsBeforeSwap = first.cancelCount();
+    session.setBackend(&second);
+    QCOMPARE(first.cancelCount(), cancelsBeforeSwap + 1);
+
+    const qsizetype rowsAfterSwap = session.rows().size();
+    first.script({Session::TextDelta{"r1", " stale"}});
+    QCOMPARE(session.rows().size(), rowsAfterSwap);
+    QCOMPARE(session.rows().at(1).content, QString("partial"));
+}
+
+void QodeAssistTest::testSessionForwardsTitleFromTheEventStream()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    QStringList titles;
+    connect(
+        &session,
+        &Session::Session::sessionInfoReceived,
+        this,
+        [&titles](const QString &title) { titles.append(title); });
+
+    session.sendTurn({Session::TextBlock{"hi"}}, std::nullopt);
+    backend.script(
+        {Session::TurnStarted{"r1"},
+         Session::TextDelta{"r1", "hello"},
+         Session::SessionInfo{.title = "Working title"},
+         Session::TurnCompleted{"r1"},
+         Session::SessionInfo{.title = "Chat about parsers"}});
+
+    QCOMPARE(titles, (QStringList{"Working title", "Chat about parsers"}));
+
+    backend.script({Session::SessionInfo{.title = QString()}});
+    QCOMPARE(titles.size(), 2);
+}
+
 void QodeAssistTest::testSessionProjectionMatchesHistory()
 {
     Chat::ChatModel model;
     FakeChatBackend backend;
     Session::Session session;
-    Chat::ChatHistoryBridge bridge(&session, &model);
+    attachModelToSession(session, model);
     session.setBackend(&backend);
 
-    session.sendTurn({Session::TextBlock{"explain this"}}, std::nullopt, {});
+    session.sendTurn({Session::TextBlock{"explain this"}}, std::nullopt);
     backend.script(scriptedTurn("r1"));
 
     const QList<Session::MessageRow> expected = Session::projectToRows(session.history());
@@ -1351,7 +1554,7 @@ void QodeAssistTest::testSessionAccumulatesStreamedThinking()
     Session::Session session;
     session.setBackend(&backend);
 
-    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt, {});
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt);
     backend.script(
         {Session::TurnStarted{"r1"},
          Session::ThinkingReceived{"r1", "step", QString(), false},
@@ -1373,12 +1576,12 @@ void QodeAssistTest::testSessionKeepsThinkingAfterToolContinuation()
     Session::Session session;
     session.setBackend(&backend);
 
-    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt, {});
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt);
     backend.script(
         {Session::TurnStarted{"r1"},
          Session::ThinkingReceived{"r1", "first thought", "sig-a", false},
-         Session::ToolCallStarted{"r1", "t1", "read_file", QJsonObject{}, false},
-         Session::ToolCallCompleted{"r1", "t1", "read_file", "contents"},
+         llmToolStarted("r1", "t1", "read_file"),
+         llmToolCompleted("r1", "t1", "read_file", "contents"),
          Session::ThinkingReceived{"r1", "second thought", "sig-b", false},
          Session::TextDelta{"r1", "done"}});
 
@@ -1398,20 +1601,20 @@ void QodeAssistTest::testSessionDropsPreToolTextWhenAsked()
     Session::Session session;
     session.setBackend(&backend);
 
-    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt, {});
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt);
     backend.script(
         {Session::TurnStarted{"r1"},
          Session::TextDelta{"r1", "leaked tool preamble"},
-         Session::ToolCallStarted{"r1", "t1", "read_file", QJsonObject{}, true},
-         Session::ToolCallCompleted{"r1", "t1", "read_file", "contents"},
+         llmToolStarted("r1", "t1", "read_file", {}, true),
+         llmToolCompleted("r1", "t1", "read_file", "contents"),
          Session::TextDelta{"r1", "the answer"}});
 
     const Session::Message &assistant = session.history().at(1);
     QCOMPARE(assistant.blocks.size(), 2);
     QCOMPARE(
         assistant.blocks.at(0),
-        (Session::ContentBlock{
-            Session::ToolCallBlock{"t1", "read_file", QJsonObject{}, "contents"}}));
+        (Session::ContentBlock{Session::ToolCallBlock{
+            "t1", "read_file", QJsonObject{}, "contents", {}, "completed"}}));
     QCOMPARE(assistant.blocks.at(1), (Session::ContentBlock{Session::TextBlock{"the answer"}}));
     QCOMPARE(session.rows(), Session::projectToRows(session.history()));
 }
@@ -1425,11 +1628,11 @@ void QodeAssistTest::testSessionToolResultAppendsFileEditRow()
     const QString result
         = "QODEASSIST_FILE_EDIT:{\"edit_id\":\"e1\",\"file\":\"main.cpp\",\"status\":\"pending\"}";
 
-    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt, {});
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt);
     backend.script(
         {Session::TurnStarted{"r1"},
-         Session::ToolCallStarted{"r1", "t1", "edit_file", QJsonObject{}, false},
-         Session::ToolCallCompleted{"r1", "t1", "edit_file", result}});
+         llmToolStarted("r1", "t1", "edit_file"),
+         llmToolCompleted("r1", "t1", "edit_file", result)});
 
     const Session::Message &assistant = session.history().at(1);
     QCOMPARE(assistant.blocks.size(), 2);
@@ -1443,6 +1646,259 @@ void QodeAssistTest::testSessionToolResultAppendsFileEditRow()
     QVERIFY(editRow.content.contains("\"status_message\":\"Successfully applied\""));
 }
 
+void QodeAssistTest::testSessionRepeatedToolResultKeepsOneFileEdit()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    const QString result
+        = "QODEASSIST_FILE_EDIT:{\"edit_id\":\"e1\",\"file\":\"main.cpp\",\"status\":\"pending\"}";
+
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt);
+    backend.script(
+        {Session::TurnStarted{"r1"},
+         llmToolStarted("r1", "t1", "edit_file"),
+         llmToolCompleted("r1", "t1", "edit_file", result),
+         llmToolCompleted("r1", "t1", "edit_file", result)});
+
+    const Session::Message &assistant = session.history().at(1);
+    QCOMPARE(assistant.blocks.size(), 2);
+
+    qsizetype editBlocks = 0;
+    for (const Session::ContentBlock &block : assistant.blocks) {
+        if (std::holds_alternative<Session::FileEditBlock>(block))
+            ++editBlocks;
+    }
+    QCOMPARE(editBlocks, qsizetype(1));
+    QCOMPARE(session.rows(), Session::projectToRows(session.history()));
+}
+
+void QodeAssistTest::testRunningToolStatusInterruptsOnTurnEnd()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt);
+    backend.script({Session::TurnStarted{"r1"}, llmToolStarted("r1", "t1", "read_file")});
+    QCOMPARE(session.rows().at(1).toolStatus, QString("in_progress"));
+
+    session.cancel();
+
+    QCOMPARE(session.rows().at(1).toolStatus, QString("interrupted"));
+
+    const auto *tool
+        = std::get_if<Session::ToolCallBlock>(&session.history().at(1).blocks.at(0));
+    QVERIFY(tool);
+    QCOMPARE(tool->status, QString("interrupted"));
+}
+
+void QodeAssistTest::testRunningToolStatusInterruptsOnLoad()
+{
+    Session::Message assistant;
+    assistant.role = Session::MessageRole::Assistant;
+    assistant.id = "r1";
+    assistant.blocks
+        = {Session::ToolCallBlock{
+            "call-1", "Edit main.cpp", QJsonObject{}, {}, "edit", "in_progress", {}, true}};
+
+    Session::ConversationHistory history;
+    history.append(assistant);
+
+    const auto reloaded
+        = Session::HistorySerializer::fromJson(Session::HistorySerializer::toJson(history));
+    QVERIFY(reloaded.has_value());
+
+    const auto *tool = std::get_if<Session::ToolCallBlock>(&reloaded->at(0).blocks.at(0));
+    QVERIFY(tool);
+    QCOMPARE(tool->status, QString("interrupted"));
+
+    const auto rebuilt = Session::buildFromRows(Session::projectToRows(history));
+    const auto *rowTool = std::get_if<Session::ToolCallBlock>(&rebuilt.at(0).blocks.at(0));
+    QVERIFY(rowTool);
+    QCOMPARE(rowTool->status, QString("interrupted"));
+
+    QCOMPARE(Session::restoredToolStatus("completed"), QString("completed"));
+    QCOMPARE(Session::restoredToolStatus("failed"), QString("failed"));
+    QCOMPARE(Session::restoredToolStatus(QString()), QString());
+}
+
+void QodeAssistTest::testAgentDiffBecomesAppliedFileEdit()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    struct Recorded
+    {
+        QString turnId;
+        QString editId;
+        QString filePath;
+        QString oldContent;
+        QString newContent;
+    };
+    QList<Recorded> recorded;
+    connect(
+        &session,
+        &Session::Session::agentFileEditRecorded,
+        this,
+        [&recorded](
+            const QString &turnId,
+            const QString &editId,
+            const QString &filePath,
+            const QString &oldContent,
+            const QString &newContent) {
+            recorded.append({turnId, editId, filePath, oldContent, newContent});
+        });
+
+    const QJsonObject details{
+        {"diffs",
+         QJsonArray{QJsonObject{
+             {"path", "/proj/main.cpp"}, {"oldText", "int a;"}, {"newText", "int b;"}}}}};
+
+    session.sendTurn({Session::TextBlock{"edit it"}}, std::nullopt);
+    backend.script(
+        {Session::TurnStarted{"r1"},
+         Session::ToolCallUpdated{
+             .turnId = "r1",
+             .toolId = "call-1",
+             .name = "Edit main.cpp",
+             .kind = "edit",
+             .status = "in_progress",
+             .fromAgent = true},
+         Session::ToolCallUpdated{
+             .turnId = "r1",
+             .toolId = "call-1",
+             .name = "Edit main.cpp",
+             .kind = "edit",
+             .status = "completed",
+             .details = details,
+             .fromAgent = true},
+         Session::ToolCallUpdated{
+             .turnId = "r1",
+             .toolId = "call-1",
+             .name = "Edit main.cpp",
+             .kind = "edit",
+             .status = "completed",
+             .details = details,
+             .fromAgent = true}});
+
+    QCOMPARE(recorded.size(), 1);
+    QCOMPARE(recorded.at(0).turnId, QString("r1"));
+    QCOMPARE(recorded.at(0).editId, QString("agent-call-1-0"));
+    QCOMPARE(recorded.at(0).filePath, QString("/proj/main.cpp"));
+    QCOMPARE(recorded.at(0).oldContent, QString("int a;"));
+    QCOMPARE(recorded.at(0).newContent, QString("int b;"));
+
+    const Session::Message &assistant = session.history().at(1);
+    QCOMPARE(assistant.blocks.size(), 2);
+
+    const auto *edit = std::get_if<Session::FileEditBlock>(&assistant.blocks.at(1));
+    QVERIFY(edit);
+    QCOMPARE(edit->id, QString("agent-call-1-0"));
+
+    const auto payload = Session::parseFileEditPayload(edit->payload);
+    QVERIFY(payload.has_value());
+    QCOMPARE(payload->value("status").toString(), QString("applied"));
+    QCOMPARE(payload->value("file").toString(), QString("/proj/main.cpp"));
+    QCOMPARE(payload->value("old_content").toString(), QString("int a;"));
+    QCOMPARE(payload->value("new_content").toString(), QString("int b;"));
+
+    const Session::MessageRow &editRow = session.rows().last();
+    QCOMPARE(editRow.kind, Session::RowKind::FileEdit);
+    QVERIFY(editRow.content.contains("\"status\":\"applied\""));
+    QCOMPARE(session.rows(), Session::projectToRows(session.history()));
+}
+
+void QodeAssistTest::testAgentDiffSkipsUnrevertableRegistrations()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    int recorded = 0;
+    connect(
+        &session,
+        &Session::Session::agentFileEditRecorded,
+        this,
+        [&recorded](
+            const QString &, const QString &, const QString &, const QString &, const QString &) {
+            ++recorded;
+        });
+
+    const QJsonObject details{
+        {"diffs",
+         QJsonArray{
+             QJsonObject{{"path", "/proj/deleted.cpp"}, {"oldText", "gone"}, {"newText", ""}},
+             QJsonObject{
+                 {"path", "/proj/big.cpp"},
+                 {"oldText", "int a;"},
+                 {"newText", "int b;"},
+                 {"truncated", true}}}}};
+
+    session.sendTurn({Session::TextBlock{"edit it"}}, std::nullopt);
+    backend.script(
+        {Session::TurnStarted{"r1"},
+         Session::ToolCallUpdated{
+             .turnId = "r1",
+             .toolId = "call-1",
+             .name = "Edit files",
+             .kind = "edit",
+             .status = "completed",
+             .details = details,
+             .fromAgent = true}});
+
+    QCOMPARE(recorded, 0);
+
+    const Session::Message &assistant = session.history().at(1);
+    QCOMPARE(assistant.blocks.size(), 3);
+    QVERIFY(std::get_if<Session::FileEditBlock>(&assistant.blocks.at(1)));
+    QVERIFY(std::get_if<Session::FileEditBlock>(&assistant.blocks.at(2)));
+    QCOMPARE(session.rows(), Session::projectToRows(session.history()));
+}
+
+void QodeAssistTest::testAgentFileEditRevertRoundTrip()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+
+    const QString filePath = dir.filePath("edited.cpp");
+    const QString oldContent = "int a;\n";
+    const QString newContent = "int b;\n";
+
+    {
+        QFile file(filePath);
+        QVERIFY(file.open(QIODevice::WriteOnly | QIODevice::Text));
+        file.write(newContent.toUtf8());
+    }
+
+    const QString editId
+        = "agent-test-" + QUuid::createUuid().toString(QUuid::WithoutBraces);
+    const QString requestId
+        = "req-" + QUuid::createUuid().toString(QUuid::WithoutBraces);
+
+    auto &changes = Context::FileEditManager::instance();
+    changes.registerAppliedFileEdit(editId, filePath, oldContent, newContent, requestId);
+
+    const auto registered = changes.getFileEdit(editId);
+    QCOMPARE(registered.status, Context::FileEditManager::Applied);
+    QCOMPARE(registered.filePath, filePath);
+
+    QVERIFY(changes.applyPendingEditsForRequest(requestId));
+
+    QSignalSpy undoneSpy(&changes, &Context::FileEditManager::fileEditUndone);
+    QVERIFY(changes.undoFileEdit(editId));
+    QCOMPARE(undoneSpy.count(), 1);
+    QCOMPARE(undoneSpy.at(0).at(0).toString(), editId);
+
+    QFile file(filePath);
+    QVERIFY(file.open(QIODevice::ReadOnly | QIODevice::Text));
+    QCOMPARE(QString::fromUtf8(file.readAll()), oldContent);
+
+    QCOMPARE(changes.getFileEdit(editId).status, Context::FileEditManager::Rejected);
+}
+
 void QodeAssistTest::testSessionIgnoresEchoedFileEditMarker()
 {
     FakeChatBackend backend;
@@ -1453,11 +1909,11 @@ void QodeAssistTest::testSessionIgnoresEchoedFileEditMarker()
         = "Pre-compression history (/src): 1 matching message(s)\n\n[#3 assistant]\n"
           "QODEASSIST_FILE_EDIT:{\"edit_id\":\"e1\",\"file\":\"main.cpp\"}";
 
-    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt, {});
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt);
     backend.script(
         {Session::TurnStarted{"r1"},
-         Session::ToolCallStarted{"r1", "t1", "read_original_history", QJsonObject{}, false},
-         Session::ToolCallCompleted{"r1", "t1", "read_original_history", echoed}});
+         llmToolStarted("r1", "t1", "read_original_history"),
+         llmToolCompleted("r1", "t1", "read_original_history", echoed)});
 
     QCOMPARE(session.history().at(1).blocks.size(), 1);
     QCOMPARE(session.rows().size(), 2);
@@ -1517,7 +1973,7 @@ void QodeAssistTest::testSessionUsageLandsOnTheTurn()
     Session::Session session;
     session.setBackend(&backend);
 
-    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt, {});
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt);
     backend.script(
         {Session::TurnStarted{"r1"},
          Session::ThinkingReceived{"r1", "hmm", "sig", false},
@@ -1536,12 +1992,12 @@ void QodeAssistTest::testSessionIgnoresEventsFromOtherTurns()
     Session::Session session;
     session.setBackend(&backend);
 
-    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt, {});
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt);
     backend.script(
         {Session::TurnStarted{"r1"},
          Session::TextDelta{"r1", "mine"},
          Session::TextDelta{"other", "not mine"},
-         Session::ToolCallStarted{"other", "t9", "read_file", QJsonObject{}, false}});
+         llmToolStarted("other", "t9", "read_file")});
 
     QCOMPARE(session.history().size(), 2);
     QCOMPARE(session.history().at(1).blocks.size(), 1);
@@ -1577,7 +2033,7 @@ void QodeAssistTest::testSessionIgnoresFailureFromAbandonedTurn()
         ++reported;
     });
 
-    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt, {});
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt);
     backend.script({Session::TurnStarted{"r1"}, Session::TextDelta{"r1", "partial"}});
     session.truncateRows(0);
 
@@ -1591,10 +2047,10 @@ void QodeAssistTest::testSessionTruncateRowsRewritesHistory()
     Chat::ChatModel model;
     FakeChatBackend backend;
     Session::Session session;
-    Chat::ChatHistoryBridge bridge(&session, &model);
+    attachModelToSession(session, model);
     session.setBackend(&backend);
 
-    session.sendTurn({Session::TextBlock{"explain this"}}, std::nullopt, {});
+    session.sendTurn({Session::TextBlock{"explain this"}}, std::nullopt);
     backend.script(scriptedTurn("r1"));
 
     const qsizetype before = session.rows().size();
@@ -1609,54 +2065,773 @@ void QodeAssistTest::testSessionTruncateRowsRewritesHistory()
     QCOMPARE(session.rows(), Session::projectToRows(session.history()));
 }
 
+void QodeAssistTest::testSessionUpsertsAgentToolCalls()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"edit it"}}, std::nullopt);
+    backend.script(
+        {Session::TurnStarted{"r1"},
+         Session::ToolCallUpdated{
+             .turnId = "r1",
+             .toolId = "call-1",
+             .name = "Edit main.cpp",
+             .kind = "edit",
+             .status = "pending",
+             .fromAgent = true},
+         Session::ToolCallUpdated{
+             .turnId = "r1",
+             .toolId = "call-1",
+             .name = "Edit main.cpp",
+             .kind = "edit",
+             .status = "completed",
+             .result = "done",
+             .details = QJsonObject{{"locations", QJsonArray{QJsonObject{{"path", "/p/main.cpp"}}}}},
+             .fromAgent = true}});
+
+    QCOMPARE(session.history().size(), 2);
+
+    const Session::Message &assistant = session.history().at(1);
+    QCOMPARE(assistant.blocks.size(), 1);
+
+    const auto *tool = std::get_if<Session::ToolCallBlock>(&assistant.blocks.at(0));
+    QVERIFY(tool);
+    QCOMPARE(tool->id, QString("call-1"));
+    QCOMPARE(tool->name, QString("Edit main.cpp"));
+    QCOMPARE(tool->kind, QString("edit"));
+    QCOMPARE(tool->status, QString("completed"));
+    QCOMPARE(tool->result, QString("done"));
+    QVERIFY(tool->details.contains("locations"));
+
+    QCOMPARE(session.rows().size(), 2);
+    QCOMPARE(session.rows().at(1).kind, Session::RowKind::AgentTool);
+    QCOMPARE(session.rows().at(1).toolStatus, QString("completed"));
+    QCOMPARE(session.rows().at(1).toolKind, QString("edit"));
+    QCOMPARE(session.rows().at(1).toolDetails, tool->details);
+    QVERIFY(tool->fromAgent);
+}
+
+void QodeAssistTest::testLlmToolLifecycleFlowsThroughOneEvent()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt);
+    backend.script(
+        {Session::TurnStarted{"r1"},
+         llmToolStarted("r1", "t1", "read_file", QJsonObject{{"path", "main.cpp"}})});
+
+    QCOMPARE(session.rows().size(), 2);
+    QCOMPARE(session.rows().at(1).kind, Session::RowKind::Tool);
+    QCOMPARE(session.rows().at(1).toolStatus, QString("in_progress"));
+
+    backend.script(
+        {Session::TextDelta{"r1", "working"},
+         llmToolCompleted("r1", "t1", "read_file", "int main() {}"),
+         Session::TextDelta{"r1", " still"}});
+
+    const Session::Message &assistant = session.history().at(1);
+    QCOMPARE(assistant.blocks.size(), 2);
+
+    const auto *tool = std::get_if<Session::ToolCallBlock>(&assistant.blocks.at(0));
+    QVERIFY(tool);
+    QCOMPARE(tool->status, QString("completed"));
+    QCOMPARE(tool->result, QString("int main() {}"));
+    QCOMPARE(tool->arguments, (QJsonObject{{"path", "main.cpp"}}));
+    QVERIFY(!tool->fromAgent);
+
+    QCOMPARE(
+        assistant.blocks.at(1), (Session::ContentBlock{Session::TextBlock{"working still"}}));
+    QCOMPARE(session.rows().at(1).toolStatus, QString("completed"));
+    QCOMPARE(session.rows(), Session::projectToRows(session.history()));
+}
+
+void QodeAssistTest::testSessionKeepsOnePlanPerTurn()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"fix it"}}, std::nullopt);
+    backend.script(
+        {Session::TurnStarted{"r1"},
+         Session::PlanUpdated{
+             .turnId = "r1",
+             .entries = {Session::PlanEntry{"Read", "high", "in_progress"},
+                         Session::PlanEntry{"Fix", "medium", "pending"}}},
+         Session::TextDelta{"r1", "working"},
+         Session::PlanUpdated{
+             .turnId = "r1",
+             .entries = {Session::PlanEntry{"Read", "high", "completed"},
+                         Session::PlanEntry{"Fix", "medium", "in_progress"}}}});
+
+    const Session::Message &assistant = session.history().at(1);
+
+    qsizetype planBlocks = 0;
+    const Session::PlanBlock *plan = nullptr;
+    for (const Session::ContentBlock &block : assistant.blocks) {
+        if (const auto *candidate = std::get_if<Session::PlanBlock>(&block)) {
+            ++planBlocks;
+            plan = candidate;
+        }
+    }
+
+    QCOMPARE(planBlocks, qsizetype(1));
+    QVERIFY(plan);
+    QCOMPARE(plan->entries.size(), 2);
+    QCOMPARE(plan->entries.at(0).status, QString("completed"));
+    QCOMPARE(plan->entries.at(1).status, QString("in_progress"));
+
+    qsizetype planRows = 0;
+    for (const Session::MessageRow &row : session.rows()) {
+        if (row.kind == Session::RowKind::Plan)
+            ++planRows;
+    }
+    QCOMPARE(planRows, qsizetype(1));
+}
+
+void QodeAssistTest::testAgentActivityKeepsStreamedTextIntact()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt);
+    backend.script(
+        {Session::TurnStarted{"r1"},
+         Session::ToolCallUpdated{
+             .turnId = "r1",
+             .toolId = "call-1",
+             .name = "Read main.cpp",
+             .status = "pending",
+             .fromAgent = true},
+         Session::TextDelta{"r1", "Reading the file"},
+         Session::ToolCallUpdated{
+             .turnId = "r1",
+             .toolId = "call-1",
+             .name = "Read main.cpp",
+             .status = "completed",
+             .fromAgent = true},
+         Session::TextDelta{"r1", " and it is done."}});
+
+    const Session::Message &assistant = session.history().at(1);
+
+    QStringList streamed;
+    for (const Session::ContentBlock &block : assistant.blocks) {
+        if (const auto *text = std::get_if<Session::TextBlock>(&block))
+            streamed.append(text->text);
+    }
+
+    QCOMPARE(streamed, QStringList{"Reading the file and it is done."});
+}
+
+void QodeAssistTest::testAgentToolUpdateTouchesOnlyItsOwnRow()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt);
+    backend.script(
+        {Session::TurnStarted{"r1"},
+         Session::ToolCallUpdated{
+             .turnId = "r1",
+             .toolId = "call-1",
+             .name = "Read a",
+             .status = "pending",
+             .fromAgent = true},
+         Session::ToolCallUpdated{
+             .turnId = "r1",
+             .toolId = "call-2",
+             .name = "Read b",
+             .status = "pending",
+             .fromAgent = true}});
+
+    QList<int> updatedRows;
+    QObject::connect(
+        &session,
+        &Session::Session::rowUpdated,
+        &session,
+        [&updatedRows](int index, const Session::MessageRow &) { updatedRows.append(index); });
+
+    backend.script(
+        {Session::ToolCallUpdated{
+            .turnId = "r1",
+            .toolId = "call-1",
+            .name = "Read a",
+            .status = "completed",
+            .fromAgent = true}});
+
+    QCOMPARE(updatedRows, QList<int>{1});
+    QCOMPARE(session.rows().at(1).toolStatus, QString("completed"));
+    QCOMPARE(session.rows().at(2).toolStatus, QString("pending"));
+}
+
+void QodeAssistTest::testUsageSkipsRowsThatCannotShowIt()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"go"}}, std::nullopt);
+    backend.script(
+        {Session::TurnStarted{"r1"},
+         Session::PlanUpdated{
+             .turnId = "r1", .entries = {Session::PlanEntry{"Read", "high", "in_progress"}}},
+         Session::TextDelta{"r1", "here is the answer"},
+         Session::UsageReported{"r1", Session::Usage{120, 40, 80, 12}}});
+
+    const Session::MessageRow &planRow = session.rows().at(1);
+    const Session::MessageRow &textRow = session.rows().at(2);
+
+    QCOMPARE(planRow.kind, Session::RowKind::Plan);
+    QVERIFY(planRow.usage.isEmpty());
+
+    QCOMPARE(textRow.kind, Session::RowKind::Assistant);
+    QCOMPARE(textRow.usage, (Session::Usage{120, 40, 80, 12}));
+}
+
+void QodeAssistTest::testAgentActivityBlocksSurviveReload()
+{
+    Session::Message assistant;
+    assistant.role = Session::MessageRole::Assistant;
+    assistant.id = "r1";
+    assistant.blocks
+        = {Session::PlanBlock{
+               {Session::PlanEntry{"Read", "high", "completed"},
+                Session::PlanEntry{"Fix", "medium", "in_progress"}}},
+           Session::ToolCallBlock{
+               "call-1",
+               "Edit main.cpp",
+               QJsonObject{},
+               "done",
+               "edit",
+               "completed",
+               QJsonObject{{"diffs", QJsonArray{QJsonObject{{"path", "/p/main.cpp"}}}}},
+               true}};
+
+    Session::ConversationHistory history;
+    history.append(assistant);
+
+    const auto reloaded = Session::HistorySerializer::fromJson(
+        Session::HistorySerializer::toJson(history));
+    QVERIFY(reloaded.has_value());
+    QCOMPARE(*reloaded, history);
+
+    const QList<Session::MessageRow> rows = Session::projectToRows(history);
+    QCOMPARE(rows.size(), 2);
+    QCOMPARE(rows.at(0).kind, Session::RowKind::Plan);
+    QCOMPARE(rows.at(1).kind, Session::RowKind::AgentTool);
+    QVERIFY(Session::isTranscriptOnlyRow(rows.at(0).kind));
+    QVERIFY(Session::isTranscriptOnlyRow(rows.at(1).kind));
+    QCOMPARE(Session::buildFromRows(rows), history);
+}
+
+void QodeAssistTest::testEveryRowKindProjectsInOrder()
+{
+    QCOMPARE(
+        projectedKinds(),
+        (QList<Session::RowKind>{
+            Session::RowKind::System,
+            Session::RowKind::User,
+            Session::RowKind::Assistant,
+            Session::RowKind::Thinking,
+            Session::RowKind::Tool,
+            Session::RowKind::AgentTool,
+            Session::RowKind::FileEdit,
+            Session::RowKind::Permission,
+            Session::RowKind::Plan}));
+}
+
+void QodeAssistTest::testPromptAudienceKeepsToolsAndThinking()
+{
+    QCOMPARE(
+        survivingKinds(Session::RowAudience::Prompt),
+        (QList<Session::RowKind>{
+            Session::RowKind::System,
+            Session::RowKind::User,
+            Session::RowKind::Assistant,
+            Session::RowKind::Thinking,
+            Session::RowKind::Tool}));
+
+    QCOMPARE(
+        Session::rowTreatmentFor(Session::RowAudience::Prompt, Session::RowKind::User),
+        Session::RowTreatment::UserText);
+    QCOMPARE(
+        Session::rowTreatmentFor(Session::RowAudience::Prompt, Session::RowKind::System),
+        Session::RowTreatment::AssistantText);
+    QCOMPARE(
+        Session::rowTreatmentFor(Session::RowAudience::Prompt, Session::RowKind::Thinking),
+        Session::RowTreatment::AssistantThinking);
+    QCOMPARE(
+        Session::rowTreatmentFor(Session::RowAudience::Prompt, Session::RowKind::Tool),
+        Session::RowTreatment::ToolExchange);
+}
+
+void QodeAssistTest::testCompressionAudienceDropsToolsAndThinking()
+{
+    QCOMPARE(
+        survivingKinds(Session::RowAudience::Compression),
+        (QList<Session::RowKind>{
+            Session::RowKind::System, Session::RowKind::User, Session::RowKind::Assistant}));
+}
+
+void QodeAssistTest::testTokenCountAudienceCountsToolsAndThinking()
+{
+    QCOMPARE(
+        survivingKinds(Session::RowAudience::TokenCount),
+        (QList<Session::RowKind>{
+            Session::RowKind::System,
+            Session::RowKind::User,
+            Session::RowKind::Assistant,
+            Session::RowKind::Thinking,
+            Session::RowKind::Tool}));
+}
+
+void QodeAssistTest::testSessionRendersPermissionRequestWithItsOptions()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"edit it"}}, std::nullopt);
+    backend.script({Session::TurnStarted{"r1"}, editPermissionRequest("r1", "p1")});
+
+    QCOMPARE(session.rows().size(), 2);
+    QCOMPARE(session.rows().at(1).kind, Session::RowKind::Permission);
+    QCOMPARE(session.rows().at(1).id, QString("p1"));
+
+    const Session::PermissionBlock block = permissionRowAt(session, 1);
+    QCOMPARE(block.requestId, QString("p1"));
+    QCOMPARE(block.toolCallId, QString("tool-p1"));
+    QCOMPARE(block.title, QString("Edit main.cpp"));
+    QCOMPARE(block.toolKind, QString("edit"));
+    QCOMPARE(block.options, editPermissionOptions());
+    QCOMPARE(block.status, Session::PermissionStatus::Pending);
+    QVERIFY(!block.automatic);
+    QVERIFY(session.isPermissionPending("p1"));
+
+    QVERIFY(backend.permissionAnswers().isEmpty());
+}
+
+void QodeAssistTest::testSessionForwardsPermissionAnswerToTheBackend()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"edit it"}}, std::nullopt);
+    backend.script({Session::TurnStarted{"r1"}, editPermissionRequest("r1", "p1")});
+
+    session.respondPermission("p1", "opt-no");
+
+    QCOMPARE(backend.permissionAnswers().size(), 1);
+    QCOMPARE(backend.permissionAnswers().at(0).first, QString("p1"));
+    QCOMPARE(backend.permissionAnswers().at(0).second, QString("opt-no"));
+
+    const Session::PermissionBlock block = permissionRowAt(session, 1);
+    QCOMPARE(block.status, Session::PermissionStatus::Answered);
+    QCOMPARE(block.selectedOptionId, QString("opt-no"));
+    QVERIFY(!block.automatic);
+    QVERIFY(!session.isPermissionPending("p1"));
+}
+
+void QodeAssistTest::testSessionAllowAlwaysSuppressesRepeatPromptsOfTheSameKind()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"edit them"}}, std::nullopt);
+    backend.script({Session::TurnStarted{"r1"}, editPermissionRequest("r1", "p1")});
+
+    session.respondPermission("p1", "opt-always");
+
+    backend.script({editPermissionRequest("r1", "p2")});
+
+    QCOMPARE(backend.permissionAnswers().size(), 2);
+    QCOMPARE(backend.permissionAnswers().at(1).first, QString("p2"));
+    QCOMPARE(backend.permissionAnswers().at(1).second, QString("opt-once"));
+
+    const Session::PermissionBlock block = permissionRowAt(session, 2);
+    QCOMPARE(block.requestId, QString("p2"));
+    QCOMPARE(block.status, Session::PermissionStatus::Answered);
+    QCOMPARE(block.selectedOptionId, QString("opt-once"));
+    QVERIFY(block.automatic);
+    QVERIFY(!session.isPermissionPending("p2"));
+}
+
+void QodeAssistTest::testSessionAllowAlwaysDoesNotCoverOtherToolKinds()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"work"}}, std::nullopt);
+    backend.script({Session::TurnStarted{"r1"}, editPermissionRequest("r1", "p1", "edit")});
+
+    session.respondPermission("p1", "opt-always");
+
+    backend.script({editPermissionRequest("r1", "p2", "execute")});
+
+    QCOMPARE(backend.permissionAnswers().size(), 1);
+    QCOMPARE(permissionRowAt(session, 2).status, Session::PermissionStatus::Pending);
+    QVERIFY(session.isPermissionPending("p2"));
+}
+
+void QodeAssistTest::testSessionNeverAutoAnswersUnclassifiedTools()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"work"}}, std::nullopt);
+    backend.script({Session::TurnStarted{"r1"}, editPermissionRequest("r1", "p1", QString())});
+
+    session.respondPermission("p1", "opt-always");
+
+    backend.script({editPermissionRequest("r1", "p2", QString())});
+
+    QCOMPARE(backend.permissionAnswers().size(), 1);
+    QCOMPARE(permissionRowAt(session, 2).status, Session::PermissionStatus::Pending);
+}
+
+void QodeAssistTest::testSessionIgnoresAnswersToUnknownPermissionRequests()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"edit it"}}, std::nullopt);
+    backend.script({Session::TurnStarted{"r1"}, editPermissionRequest("r1", "p1")});
+
+    session.respondPermission("nonexistent", "opt-once");
+    session.respondPermission("p1", "no-such-option");
+    session.respondPermission("p1", "opt-once");
+    session.respondPermission("p1", "opt-no");
+
+    QCOMPARE(backend.permissionAnswers().size(), 1);
+    QCOMPARE(backend.permissionAnswers().at(0).second, QString("opt-once"));
+    QCOMPARE(permissionRowAt(session, 1).selectedOptionId, QString("opt-once"));
+}
+
+void QodeAssistTest::testSessionMarksUnansweredPermissionsCancelled()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"edit it"}}, std::nullopt);
+    backend.script({Session::TurnStarted{"r1"}, editPermissionRequest("r1", "p1")});
+
+    backend.script(
+        {Session::PermissionResolved{.turnId = "r1", .requestId = "p1", .cancelled = true},
+         Session::TurnFailed{"r1", "the agent went away"}});
+
+    const Session::PermissionBlock block = permissionRowAt(session, 1);
+    QCOMPARE(block.status, Session::PermissionStatus::Cancelled);
+    QVERIFY(block.selectedOptionId.isEmpty());
+    QVERIFY(!session.isPermissionPending("p1"));
+
+    session.respondPermission("p1", "opt-once");
+    QVERIFY(backend.permissionAnswers().isEmpty());
+}
+
+void QodeAssistTest::testSessionRejectAlwaysSuppressesRepeatPromptsOfTheSameKind()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    Session::PermissionRequested first = editPermissionRequest("r1", "p1");
+    first.options.append(
+        Session::PermissionOption{"opt-never", "No, and don't ask again", "reject_always"});
+
+    session.sendTurn({Session::TextBlock{"work"}}, std::nullopt);
+    backend.script({Session::TurnStarted{"r1"}, first});
+
+    session.respondPermission("p1", "opt-never");
+
+    Session::PermissionRequested second = editPermissionRequest("r1", "p2");
+    second.options.append(
+        Session::PermissionOption{"opt-never", "No, and don't ask again", "reject_always"});
+    backend.script({second});
+
+    QCOMPARE(backend.permissionAnswers().size(), 2);
+    QCOMPARE(backend.permissionAnswers().at(1).second, QString("opt-no"));
+
+    const Session::PermissionBlock block = permissionRowAt(session, 2);
+    QCOMPARE(block.status, Session::PermissionStatus::Answered);
+    QCOMPARE(block.selectedOptionId, QString("opt-no"));
+    QVERIFY(block.automatic);
+}
+
+void QodeAssistTest::testSessionAutoAnswerFallsBackToTheAlwaysOption()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"work"}}, std::nullopt);
+    backend.script({Session::TurnStarted{"r1"}, editPermissionRequest("r1", "p1")});
+    session.respondPermission("p1", "opt-always");
+
+    Session::PermissionRequested withoutOnce = editPermissionRequest("r1", "p2");
+    withoutOnce.options = {
+        Session::PermissionOption{"opt-always", "Yes, always", "allow_always"},
+        Session::PermissionOption{"opt-no", "No", "reject_once"}};
+    backend.script({withoutOnce});
+
+    QCOMPARE(backend.permissionAnswers().size(), 2);
+    QCOMPARE(backend.permissionAnswers().at(1).second, QString("opt-always"));
+}
+
+void QodeAssistTest::testSessionDoesNotAutoAnswerWithoutAMatchingOption()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"work"}}, std::nullopt);
+    backend.script({Session::TurnStarted{"r1"}, editPermissionRequest("r1", "p1")});
+    session.respondPermission("p1", "opt-always");
+
+    Session::PermissionRequested rejectOnly = editPermissionRequest("r1", "p2");
+    rejectOnly.options = {Session::PermissionOption{"opt-no", "No", "reject_once"}};
+    backend.script({rejectOnly});
+
+    QCOMPARE(backend.permissionAnswers().size(), 1);
+    QCOMPARE(permissionRowAt(session, 2).status, Session::PermissionStatus::Pending);
+    QVERIFY(session.isPermissionPending("p2"));
+}
+
+void QodeAssistTest::testSessionAllowAlwaysDoesNotSurviveAnotherConversation()
+{
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"work"}}, std::nullopt);
+    backend.script({Session::TurnStarted{"r1"}, editPermissionRequest("r1", "p1")});
+    session.respondPermission("p1", "opt-always");
+    QCOMPARE(backend.permissionAnswers().size(), 1);
+
+    session.setHistory(Session::ConversationHistory{});
+
+    session.sendTurn({Session::TextBlock{"work again"}}, std::nullopt);
+    backend.script({Session::TurnStarted{"r2"}, editPermissionRequest("r2", "p2")});
+
+    QCOMPARE(backend.permissionAnswers().size(), 1);
+    QCOMPARE(permissionRowAt(session, 1).status, Session::PermissionStatus::Pending);
+}
+
+void QodeAssistTest::testSessionAnswersTheLiveRequestWhenAnOldIdIsReused()
+{
+    Session::Message assistant;
+    assistant.role = Session::MessageRole::Assistant;
+    assistant.id = "old";
+    assistant.blocks
+        = {Session::PermissionBlock{
+            .requestId = "p1",
+            .toolCallId = "tool-old",
+            .title = "Run make",
+            .toolKind = "execute",
+            .options = editPermissionOptions(),
+            .status = Session::PermissionStatus::Cancelled}};
+
+    Session::ConversationHistory history;
+    history.append(assistant);
+
+    FakeChatBackend backend;
+    Session::Session session;
+    session.setBackend(&backend);
+    session.setHistory(history);
+
+    session.sendTurn({Session::TextBlock{"edit it"}}, std::nullopt);
+    backend.script({Session::TurnStarted{"r1"}, editPermissionRequest("r1", "p1", "edit")});
+
+    session.respondPermission("p1", "opt-always");
+
+    QCOMPARE(backend.permissionAnswers().size(), 1);
+
+    const Session::PermissionBlock stale = permissionRowAt(session, 0);
+    QCOMPARE(stale.status, Session::PermissionStatus::Cancelled);
+    QVERIFY(stale.selectedOptionId.isEmpty());
+
+    const Session::PermissionBlock live = permissionRowAt(session, 2);
+    QCOMPARE(live.status, Session::PermissionStatus::Answered);
+    QCOMPARE(live.selectedOptionId, QString("opt-always"));
+
+    backend.script({editPermissionRequest("r1", "p3", "edit")});
+    QCOMPARE(backend.permissionAnswers().size(), 2);
+
+    backend.script({editPermissionRequest("r1", "p4", "execute")});
+    QCOMPARE(backend.permissionAnswers().size(), 2);
+}
+
+void QodeAssistTest::testSessionCancelsPermissionsTheBackendNeverResolved()
+{
+    FakeChatBackend backend;
+    backend.setAutoResolvePermissions(false);
+
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"edit it"}}, std::nullopt);
+    backend.script(
+        {Session::TurnStarted{"r1"},
+         editPermissionRequest("r1", "p1"),
+         Session::TurnCompleted{"r1"}});
+
+    QCOMPARE(permissionRowAt(session, 1).status, Session::PermissionStatus::Cancelled);
+    QVERIFY(!session.isPermissionPending("p1"));
+}
+
+void QodeAssistTest::testSessionCancelsPermissionsTheBackendRefused()
+{
+    FakeChatBackend backend;
+    backend.setAcceptPermissionAnswers(false);
+
+    Session::Session session;
+    session.setBackend(&backend);
+
+    session.sendTurn({Session::TextBlock{"edit it"}}, std::nullopt);
+    backend.script({Session::TurnStarted{"r1"}, editPermissionRequest("r1", "p1")});
+
+    session.respondPermission("p1", "opt-always");
+
+    const Session::PermissionBlock block = permissionRowAt(session, 1);
+    QCOMPARE(block.status, Session::PermissionStatus::Cancelled);
+    QVERIFY(block.selectedOptionId.isEmpty());
+    QVERIFY(!session.isPermissionPending("p1"));
+
+    backend.script({editPermissionRequest("r1", "p2")});
+    QCOMPARE(backend.permissionAnswers().size(), 1);
+    QCOMPARE(permissionRowAt(session, 2).status, Session::PermissionStatus::Pending);
+}
+
+void QodeAssistTest::testPermissionBlockReopensAsUnanswerable()
+{
+    Session::Message assistant;
+    assistant.role = Session::MessageRole::Assistant;
+    assistant.id = "r1";
+    assistant.blocks
+        = {Session::PermissionBlock{
+               .requestId = "p1",
+               .toolCallId = "tool-1",
+               .title = "Edit main.cpp",
+               .toolKind = "edit",
+               .options = editPermissionOptions(),
+               .status = Session::PermissionStatus::Answered,
+               .selectedOptionId = "opt-once",
+               .automatic = false},
+           Session::PermissionBlock{
+               .requestId = "p2",
+               .toolCallId = "tool-2",
+               .title = "Run make",
+               .toolKind = "execute",
+               .options = editPermissionOptions(),
+               .status = Session::PermissionStatus::Pending}};
+
+    Session::ConversationHistory history;
+    history.append(assistant);
+
+    const QJsonObject json = Session::HistorySerializer::toJson(history);
+    const auto reloaded = Session::HistorySerializer::fromJson(json);
+    QVERIFY(reloaded.has_value());
+    QCOMPARE(reloaded->size(), 1);
+    QCOMPARE(reloaded->at(0).blocks.size(), 2);
+
+    const auto *answered = std::get_if<Session::PermissionBlock>(&reloaded->at(0).blocks.at(0));
+    QVERIFY(answered);
+    QCOMPARE(*answered, std::get<Session::PermissionBlock>(assistant.blocks.at(0)));
+
+    const auto *stale = std::get_if<Session::PermissionBlock>(&reloaded->at(0).blocks.at(1));
+    QVERIFY(stale);
+    QCOMPARE(stale->status, Session::PermissionStatus::Cancelled);
+    QCOMPARE(stale->options, editPermissionOptions());
+
+    const QList<Session::MessageRow> rows = Session::projectToRows(*reloaded);
+    QCOMPARE(rows.size(), 2);
+    QCOMPARE(rows.at(0).kind, Session::RowKind::Permission);
+
+    const Session::ConversationHistory rebuilt = Session::buildFromRows(rows);
+    QCOMPARE(rebuilt.size(), 1);
+    QCOMPARE(rebuilt.at(0).blocks, reloaded->at(0).blocks);
+}
+
 void QodeAssistTest::testTurnContextCollectsPartsFromPorts()
 {
-    FakeProjectContext projectPort(sampleProject(), "Always use tabs.");
+    FakeProjectContext projectPort(sampleProject());
     FakeSkillsContext skillsPort(
         "# Always on", "# Skills catalog", {Session::InvokedSkill{"review", "Review body"}});
-    FakeLinkedFiles filesPort({Session::LinkedFile{"main.cpp", "int main() {}"}});
 
     Session::TurnContextRequest request;
     request.message = "please /review this";
     request.basePrompt = "You are a helpful assistant.";
-    request.rolePrompt = "Act as a reviewer.";
-    request.linkedFilePaths = QList<QString>{"/src/main.cpp"};
 
     const Session::TurnContext context
-        = Session::TurnContextBuilder(projectPort, &skillsPort, filesPort).build(request);
+        = Session::TurnContextBuilder(projectPort, &skillsPort).build(request);
 
     QCOMPARE(context.basePrompt, QString("You are a helpful assistant."));
-    QVERIFY(context.rolePrompt.has_value());
-    QCOMPARE(*context.rolePrompt, QString("Act as a reviewer."));
     QVERIFY(context.project.available);
     QCOMPARE(context.project.displayName, QString("QodeAssist"));
-    QCOMPARE(context.projectRules, QString("Always use tabs."));
     QCOMPARE(context.alwaysOnSkills, QString("# Always on"));
     QCOMPARE(context.skillsCatalog, QString("# Skills catalog"));
     QCOMPARE(context.invokedSkills.size(), 1);
     QCOMPARE(context.invokedSkills.at(0).name, QString("review"));
-    QCOMPARE(context.linkedFilePaths, (QList<QString>{"/src/main.cpp"}));
-    QCOMPARE(context.linkedFiles.size(), 1);
-    QCOMPARE(context.linkedFiles.at(0).fileName, QString("main.cpp"));
-    QCOMPARE(filesPort.requestedPaths(), (QList<QString>{"/src/main.cpp"}));
+}
+
+void QodeAssistTest::testTurnContextSkipsWhatTheBackendDoesNotNeed()
+{
+    FakeProjectContext projectPort(sampleProject());
+    FakeSkillsContext skillsPort(
+        "# Always on", "# Skills catalog", {Session::InvokedSkill{"review", "Review body"}});
+
+    Session::TurnContextRequest request;
+    request.message = "please /review this";
+    request.needs = Session::TurnContextNeeds{false};
+
+    const Session::TurnContext context
+        = Session::TurnContextBuilder(projectPort, &skillsPort).build(request);
+
+    QVERIFY(context.alwaysOnSkills.isEmpty());
+    QVERIFY(context.skillsCatalog.isEmpty());
+    QVERIFY(context.invokedSkills.isEmpty());
+}
+
+void QodeAssistTest::testFencedFileBlockOutgrowsBackticksInContent()
+{
+    const QString plain = Session::fencedFileBlock("notes.txt", "hello");
+    QCOMPARE(plain, QString("File: notes.txt\n```\nhello\n```"));
+
+    const QString fenced = Session::fencedFileBlock("readme.md", "text\n```\ncode\n```\nmore");
+    QVERIFY(fenced.startsWith("File: readme.md\n````\n"));
+    QVERIFY(fenced.endsWith("\n````"));
+    QVERIFY(fenced.contains("```\ncode\n```"));
+
+    const QString nested = Session::fencedFileBlock("deep.md", "`````");
+    QVERIFY(nested.contains("``````"));
 }
 
 void QodeAssistTest::testTurnContextSkillCommandScanning()
 {
-    FakeProjectContext projectPort({}, QString());
+    FakeProjectContext projectPort({});
     FakeSkillsContext skillsPort(
         QString(),
         QString(),
         {Session::InvokedSkill{"review", "Review body"},
          Session::InvokedSkill{"docs", "Docs body"},
          Session::InvokedSkill{"blank", QString()}});
-    FakeLinkedFiles filesPort({});
 
     Session::TurnContextRequest request;
     request.message = "/review then /docs then /review again /blank /unknown and mid/word";
 
     const Session::TurnContext context
-        = Session::TurnContextBuilder(projectPort, &skillsPort, filesPort).build(request);
+        = Session::TurnContextBuilder(projectPort, &skillsPort).build(request);
 
     QCOMPARE(context.invokedSkills.size(), 2);
     QCOMPARE(context.invokedSkills.at(0).name, QString("review"));
@@ -1665,70 +2840,40 @@ void QodeAssistTest::testTurnContextSkillCommandScanning()
 
 void QodeAssistTest::testTurnContextWithoutSkillsPort()
 {
-    FakeProjectContext projectPort(sampleProject(), QString());
-    FakeLinkedFiles filesPort({Session::LinkedFile{"main.cpp", "int main() {}"}});
+    FakeProjectContext projectPort(sampleProject());
 
     Session::TurnContextRequest request;
     request.message = "/review this";
     request.basePrompt = "base";
 
     const Session::TurnContext context
-        = Session::TurnContextBuilder(projectPort, nullptr, filesPort).build(request);
+        = Session::TurnContextBuilder(projectPort, nullptr).build(request);
 
     QVERIFY(context.alwaysOnSkills.isEmpty());
     QVERIFY(context.skillsCatalog.isEmpty());
     QVERIFY(context.invokedSkills.isEmpty());
-    QVERIFY(context.linkedFiles.isEmpty());
-    QVERIFY(filesPort.requestedPaths().isEmpty());
-}
-
-void QodeAssistTest::testLinkedFilesHeaderSurvivesUnreadablePaths()
-{
-    FakeProjectContext projectPort({}, QString());
-    FakeLinkedFiles filesPort({});
-
-    Session::TurnContextRequest request;
-    request.basePrompt = "base";
-    request.linkedFilePaths = QList<QString>{"/src/ignored.cpp"};
-
-    const Session::TurnContext context
-        = Session::TurnContextBuilder(projectPort, nullptr, filesPort).build(request);
-
-    QVERIFY(context.linkedFiles.isEmpty());
-    QCOMPARE(context.linkedFilePaths, (QList<QString>{"/src/ignored.cpp"}));
-    QCOMPARE(
-        Session::renderSystemPrompt(context),
-        QString("base\n# No active project in IDE\n\nLinked files for reference:\n"));
 }
 
 void QodeAssistTest::testSystemPromptRenderingWithProject()
 {
     Session::TurnContext context;
     context.basePrompt = "You are helpful.";
-    context.rolePrompt = "Be terse.";
     context.project = sampleProject();
-    context.projectRules = "Use tabs.";
     context.alwaysOnSkills = "# Always on";
     context.skillsCatalog = "# Catalog";
     context.invokedSkills = {Session::InvokedSkill{"review", "Review body"}};
-    context.linkedFilePaths = QList<QString>{"/src/main.cpp"};
-    context.linkedFiles = {Session::LinkedFile{"main.cpp", "int main() {}"}};
 
     const QString expected
         = "You are helpful."
-          "\n\nBe terse."
           "\n# Active project: QodeAssist"
           "\n# Project source root: /src/QodeAssist"
           "\n#   All new source files, headers, QML and CMake edits MUST be created or modified "
           "under this directory. Use absolute paths rooted here, or project-relative paths."
           "\n# Build output directory (compiler artifacts only — do NOT create or edit source "
           "files here): /src/QodeAssist/build"
-          "\n# Project Rules\n\nUse tabs."
           "\n\n# Always on"
           "\n\n# Catalog"
-          "\n\n# Invoked Skill: review\n\nReview body"
-          "\n\nLinked files for reference:\n"
-          "\nFile: main.cpp\nContent:\nint main() {}\n";
+          "\n\n# Invoked Skill: review\n\nReview body";
 
     QCOMPARE(Session::renderSystemPrompt(context), expected);
 }
@@ -1741,6 +2886,2551 @@ void QodeAssistTest::testSystemPromptRenderingWithoutProject()
     QCOMPARE(
         Session::renderSystemPrompt(context),
         QString("You are helpful.\n# No active project in IDE"));
+}
+
+void QodeAssistTest::testAgentRegistryParsesEveryDistributionKind()
+{
+    const QByteArray payload = R"({"version":"1.0.0","agents":[
+        {"id":"npx-agent","name":"Npx Agent","version":"1.2.3","description":"An agent",
+         "authors":["Ada","Grace"],"license":"MIT","repository":"https://example.com/repo",
+         "website":"https://example.com","icon":"https://example.com/icon.svg",
+         "distribution":{"npx":{"package":"pkg@1.2.3","args":["--acp"],"env":{"KEY":"VALUE"}}}},
+        {"id":"uvx-agent","name":"Uvx Agent",
+         "distribution":{"uvx":{"package":"pypkg==1.0","args":["-x"]}}},
+        {"id":"binary-agent","name":"Binary Agent","distribution":{"binary":{
+            "darwin-aarch64":{"archive":"https://example.com/a.tar.gz","sha256":"abc",
+                              "cmd":"./dist/agent","args":["acp"]}}}},
+        {"id":"command-agent","name":"Command Agent",
+         "distribution":{"command":{"cmd":"/usr/local/bin/agent","args":["acp"]}}}
+    ]})";
+
+    const Acp::AgentParseResult result = Acp::AgentRegistryParser::parse(
+        payload, Acp::AgentSource::LiveRegistry, "registry");
+
+    QVERIFY(result.warnings.isEmpty());
+    QCOMPARE(result.agents.size(), 4);
+
+    const Acp::AgentDefinition &npx = result.agents.at(0);
+    QCOMPARE(npx.id, QString("npx-agent"));
+    QCOMPARE(npx.name, QString("Npx Agent"));
+    QCOMPARE(npx.version, QString("1.2.3"));
+    QCOMPARE(npx.description, QString("An agent"));
+    QCOMPARE(npx.authors, (QStringList{"Ada", "Grace"}));
+    QCOMPARE(npx.license, QString("MIT"));
+    QCOMPARE(npx.repository, QString("https://example.com/repo"));
+    QCOMPARE(npx.source, Acp::AgentSource::LiveRegistry);
+    QCOMPARE(npx.origin, QString("registry"));
+    QCOMPARE(npx.distribution.kind, Acp::AgentDistributionKind::Npx);
+    QCOMPARE(npx.distribution.package, QString("pkg@1.2.3"));
+    QCOMPARE(npx.distribution.args, (QStringList{"--acp"}));
+    QCOMPARE(npx.distribution.env.size(), 1);
+    QCOMPARE(npx.distribution.env.at(0).name, QString("KEY"));
+    QCOMPARE(npx.distribution.env.at(0).value, QString("VALUE"));
+    QVERIFY(npx.isLaunchable());
+
+    const Acp::AgentDefinition &uvx = result.agents.at(1);
+    QCOMPARE(uvx.distribution.kind, Acp::AgentDistributionKind::Uvx);
+    QCOMPARE(uvx.distribution.package, QString("pypkg==1.0"));
+    QVERIFY(uvx.isLaunchable());
+
+    const Acp::AgentDefinition &binary = result.agents.at(2);
+    QCOMPARE(binary.distribution.kind, Acp::AgentDistributionKind::Binary);
+    QCOMPARE(binary.distribution.binaryTargets.size(), 1);
+    QCOMPARE(binary.distribution.binaryTargets.at(0).platform, QString("darwin-aarch64"));
+    QCOMPARE(binary.distribution.binaryTargets.at(0).cmd, QString("./dist/agent"));
+    QCOMPARE(binary.distribution.binaryTargets.at(0).sha256, QString("abc"));
+    QVERIFY(!binary.isLaunchable());
+
+    const Acp::AgentDefinition &command = result.agents.at(3);
+    QCOMPARE(command.distribution.kind, Acp::AgentDistributionKind::Command);
+    QCOMPARE(command.distribution.command, QString("/usr/local/bin/agent"));
+    QVERIFY(command.isLaunchable());
+}
+
+void QodeAssistTest::testAgentRegistryReportsUnusableEntries()
+{
+    const QByteArray payload = R"({"agents":[
+        {"name":"No Id","distribution":{"npx":{"package":"p"}}},
+        {"id":"no-distribution","name":"No Distribution"},
+        {"id":"usable","name":"Usable","distribution":{"npx":{"package":"p"}}}
+    ]})";
+
+    const Acp::AgentParseResult result = Acp::AgentRegistryParser::parse(
+        payload, Acp::AgentSource::LiveRegistry, "registry");
+
+    QCOMPARE(result.agents.size(), 2);
+    QCOMPARE(result.warnings.size(), 2);
+    QVERIFY(result.warnings.at(0).contains("entry 0"));
+    QVERIFY(result.warnings.at(1).contains("no-distribution"));
+
+    QCOMPARE(result.agents.at(0).id, QString("no-distribution"));
+    QVERIFY(!result.agents.at(0).isLaunchable());
+    QVERIFY(result.agents.at(1).isLaunchable());
+}
+
+void QodeAssistTest::testAgentRegistryParsesSingleAgentUserFile()
+{
+    const QByteArray payload
+        = R"({"id":"local","distribution":{"command":{"cmd":"/opt/local-agent"}}})";
+
+    const Acp::AgentParseResult result = Acp::AgentRegistryParser::parse(
+        payload, Acp::AgentSource::UserFile, "local.json");
+
+    QCOMPARE(result.agents.size(), 1);
+    QCOMPARE(result.agents.at(0).id, QString("local"));
+    QCOMPARE(result.agents.at(0).name, QString("local"));
+    QCOMPARE(result.agents.at(0).source, Acp::AgentSource::UserFile);
+    QVERIFY(result.agents.at(0).isLaunchable());
+}
+
+void QodeAssistTest::testAgentCatalogAppliesMergePriority()
+{
+    const QByteArray bundled = R"({"agents":[
+        {"id":"alpha","name":"Alpha Bundled","distribution":{"npx":{"package":"alpha@1"}}},
+        {"id":"beta","name":"Beta","distribution":{"npx":{"package":"beta@1"}}}
+    ]})";
+    const QByteArray live = R"({"agents":[
+        {"id":"alpha","name":"Alpha Registry","distribution":{"npx":{"package":"alpha@2"}}},
+        {"id":"gamma","name":"Gamma","distribution":{"uvx":{"package":"gamma"}}}
+    ]})";
+    const QByteArray user
+        = R"({"id":"alpha","name":"Alpha User","distribution":{"command":{"cmd":"/opt/alpha"}}})";
+
+    Acp::AgentCatalog catalog;
+    catalog.setLayer(
+        Acp::AgentSource::BundledSnapshot,
+        Acp::AgentRegistryParser::parse(bundled, Acp::AgentSource::BundledSnapshot, "bundled")
+            .agents);
+    catalog.setLayer(
+        Acp::AgentSource::LiveRegistry,
+        Acp::AgentRegistryParser::parse(live, Acp::AgentSource::LiveRegistry, "registry").agents);
+    catalog.setLayer(
+        Acp::AgentSource::UserFile,
+        Acp::AgentRegistryParser::parse(user, Acp::AgentSource::UserFile, "alpha.json").agents);
+
+    QCOMPARE(catalog.size(), 3);
+
+    QStringList names;
+    for (const Acp::AgentDefinition &agent : catalog.agents())
+        names.append(agent.name);
+    QCOMPARE(names, (QStringList{"Alpha User", "Beta", "Gamma"}));
+
+    auto alpha = catalog.agent("alpha");
+    QVERIFY(alpha.has_value());
+    QCOMPARE(alpha->source, Acp::AgentSource::UserFile);
+    QCOMPARE(alpha->distribution.kind, Acp::AgentDistributionKind::Command);
+
+    catalog.setLayer(Acp::AgentSource::UserFile, {});
+    alpha = catalog.agent("alpha");
+    QVERIFY(alpha.has_value());
+    QCOMPARE(alpha->name, QString("Alpha Registry"));
+    QCOMPARE(alpha->distribution.package, QString("alpha@2"));
+
+    catalog.setLayer(Acp::AgentSource::LiveRegistry, {});
+    alpha = catalog.agent("alpha");
+    QVERIFY(alpha.has_value());
+    QCOMPARE(alpha->name, QString("Alpha Bundled"));
+}
+
+void QodeAssistTest::testAgentCatalogUserFileMakesBinaryAgentLaunchable()
+{
+    const QByteArray live = R"({"agents":[{"id":"cursor","name":"Cursor",
+        "distribution":{"binary":{"darwin-aarch64":{"archive":"https://example.com/a.tar.gz",
+                                                    "cmd":"./cursor-agent","args":["acp"]}}}}]})";
+    const QByteArray user = R"({"id":"cursor","name":"Cursor",
+        "distribution":{"command":{"cmd":"/usr/local/bin/cursor-agent","args":["acp"]}}})";
+
+    Acp::AgentCatalog catalog;
+    catalog.setLayer(
+        Acp::AgentSource::LiveRegistry,
+        Acp::AgentRegistryParser::parse(live, Acp::AgentSource::LiveRegistry, "registry").agents);
+    QVERIFY(catalog.launchableAgents().isEmpty());
+
+    catalog.setLayer(
+        Acp::AgentSource::UserFile,
+        Acp::AgentRegistryParser::parse(user, Acp::AgentSource::UserFile, "cursor.json").agents);
+
+    QCOMPARE(catalog.size(), 1);
+    QCOMPARE(catalog.launchableAgents().size(), 1);
+    QCOMPARE(catalog.agent("cursor")->distribution.command, QString("/usr/local/bin/cursor-agent"));
+}
+
+void QodeAssistTest::testAgentLaunchConfigUsesRunnerConventions()
+{
+    Acp::AgentDefinition npx;
+    npx.id = "npx-agent";
+    npx.distribution.kind = Acp::AgentDistributionKind::Npx;
+    npx.distribution.package = "pkg@1.0";
+    npx.distribution.args = QStringList{"--acp"};
+    npx.distribution.env = {{"KEY", "VALUE"}};
+
+    const auto npxConfig = Acp::agentLaunchConfig(npx, "/tmp/project");
+    QVERIFY(npxConfig.has_value());
+    QCOMPARE(npxConfig->cwd, QString("/tmp/project"));
+    QCOMPARE(npxConfig->command, QString("npx"));
+    QCOMPARE(npxConfig->args, (QStringList{"-y", "pkg@1.0", "--acp"}));
+    QCOMPARE(npxConfig->env.size(), 1);
+    QCOMPARE(npxConfig->env.at(0).name, QString("KEY"));
+
+    Acp::AgentDefinition uvx;
+    uvx.id = "uvx-agent";
+    uvx.distribution.kind = Acp::AgentDistributionKind::Uvx;
+    uvx.distribution.package = "pypkg==1.0";
+    uvx.distribution.args = QStringList{"-x"};
+
+    const auto uvxConfig = Acp::agentLaunchConfig(uvx, QString());
+    QVERIFY(uvxConfig.has_value());
+    QCOMPARE(uvxConfig->command, QString("uvx"));
+    QCOMPARE(uvxConfig->args, (QStringList{"pypkg==1.0", "-x"}));
+
+    Acp::AgentDefinition command;
+    command.id = "command-agent";
+    command.distribution.kind = Acp::AgentDistributionKind::Command;
+    command.distribution.command = "/opt/agent";
+    command.distribution.args = QStringList{"acp"};
+
+    const auto commandConfig = Acp::agentLaunchConfig(command, QString());
+    QVERIFY(commandConfig.has_value());
+    QCOMPARE(commandConfig->command, QString("/opt/agent"));
+    QCOMPARE(commandConfig->args, (QStringList{"acp"}));
+
+    Acp::AgentDefinition binary;
+    binary.id = "binary-agent";
+    binary.distribution.kind = Acp::AgentDistributionKind::Binary;
+    QVERIFY(!Acp::agentLaunchConfig(binary, QString()).has_value());
+}
+
+void QodeAssistTest::testAgentSearchPathsSplitting()
+{
+    const QString separator(QDir::listSeparator());
+
+    QCOMPARE(Acp::splitSearchPaths(QString()), QStringList());
+    QCOMPARE(
+        Acp::splitSearchPaths(" /opt/homebrew/bin " + separator + separator + "/usr/local/bin"),
+        (QStringList{"/opt/homebrew/bin", "/usr/local/bin"}));
+}
+
+void QodeAssistTest::testAgentExtraSearchPathsReachTheChildEnvironment()
+{
+    Acp::AgentDefinition agent;
+    agent.id = "npx-agent";
+    agent.distribution.kind = Acp::AgentDistributionKind::Npx;
+    agent.distribution.package = "pkg";
+
+    auto config = Acp::agentLaunchConfig(agent, QString());
+    QVERIFY(config.has_value());
+
+    Acp::applyExtraSearchPaths(*config, {});
+    QVERIFY(config->env.isEmpty());
+    QCOMPARE(config->command, QString("npx"));
+
+    Acp::applyExtraSearchPaths(*config, QStringList{"/no/such/qodeassist/dir"});
+    QCOMPARE(config->command, QString("npx"));
+    QCOMPARE(config->env.size(), 1);
+    QCOMPARE(config->env.at(0).name, QString("PATH"));
+    QVERIFY(config->env.at(0).value.startsWith("/no/such/qodeassist/dir"));
+
+    Acp::AgentDefinition withOwnPath;
+    withOwnPath.id = "own-path";
+    withOwnPath.distribution.kind = Acp::AgentDistributionKind::Npx;
+    withOwnPath.distribution.package = "pkg";
+    withOwnPath.distribution.env = {{"PATH", "/agent/own"}};
+
+    auto ownPathConfig = Acp::agentLaunchConfig(withOwnPath, QString());
+    QVERIFY(ownPathConfig.has_value());
+    Acp::applyExtraSearchPaths(*ownPathConfig, QStringList{"/extra"});
+
+    QCOMPARE(ownPathConfig->env.size(), 2);
+    QCOMPARE(ownPathConfig->env.at(0).name, QString("PATH"));
+    QCOMPARE(ownPathConfig->env.at(1).value, QString("/agent/own"));
+}
+
+void QodeAssistTest::testAgentForwardedVariablesReachTheChildEnvironment()
+{
+    QCOMPARE(
+        Acp::splitVariableNames(" FOO, BAR\tBAZ "), (QStringList{"FOO", "BAR", "BAZ"}));
+    QCOMPARE(Acp::splitVariableNames(QString()), QStringList());
+
+    qputenv("QODEASSIST_TEST_TOKEN", "from-environment");
+
+    Acp::AgentDefinition agent;
+    agent.id = "npx-agent";
+    agent.distribution.kind = Acp::AgentDistributionKind::Npx;
+    agent.distribution.package = "pkg";
+    agent.distribution.env = {{"QODEASSIST_TEST_TOKEN", "from-definition"}};
+
+    auto config = Acp::agentLaunchConfig(agent, QString());
+    QVERIFY(config.has_value());
+
+    Acp::applyForwardedEnvironment(*config, {});
+    QCOMPARE(config->env.size(), 1);
+
+    Acp::applyForwardedEnvironment(*config, QStringList{"QODEASSIST_TEST_TOKEN"});
+
+    QCOMPARE(config->env.size(), 2);
+    QCOMPARE(config->env.at(0).name, QString("QODEASSIST_TEST_TOKEN"));
+    QCOMPARE(config->env.at(0).value, QString("from-environment"));
+    QCOMPARE(config->env.at(1).value, QString("from-definition"));
+
+    qunsetenv("QODEASSIST_TEST_TOKEN");
+}
+
+void QodeAssistTest::testBundledAgentSnapshotParses()
+{
+    QFile file(Acp::AgentCatalogStore::bundledSnapshotPath());
+    QVERIFY2(file.open(QIODevice::ReadOnly), qPrintable(file.fileName()));
+
+    const Acp::AgentParseResult result = Acp::AgentRegistryParser::parse(
+        file.readAll(), Acp::AgentSource::BundledSnapshot, "bundled snapshot");
+
+    QVERIFY(result.agents.size() > 10);
+    QVERIFY2(result.warnings.isEmpty(), qPrintable(result.warnings.join("; ")));
+
+    Acp::AgentCatalog catalog;
+    catalog.setLayer(Acp::AgentSource::BundledSnapshot, result.agents);
+    QVERIFY(!catalog.launchableAgents().isEmpty());
+}
+
+namespace {
+
+Acp::AgentDefinition fakeAgentDefinition()
+{
+    Acp::AgentDefinition agent;
+    agent.id = "fake-agent";
+    agent.name = "Fake Agent";
+    agent.distribution.kind = Acp::AgentDistributionKind::Command;
+    agent.distribution.command = "/bin/true";
+    return agent;
+}
+
+class AcpBackendFixture
+{
+public:
+    AcpBackendFixture()
+    {
+        backend.setClientFactory(
+            [this](const Acp::AgentDefinition &, const QString &cwd, QObject *parent) {
+                requestedCwd = cwd;
+                agent = new FakeAcpAgent(parent);
+                configure(agent);
+                return Acp::AgentProcess{
+                    new LLMQore::Acp::AcpClient(
+                        agent,
+                        {QStringLiteral("QodeAssistTest"), QStringLiteral("1.0"), QString()},
+                        parent),
+                    QStringLiteral("fake")};
+            });
+
+        QObject::connect(
+            &backend,
+            &Session::ChatBackend::sessionEvent,
+            &backend,
+            [this](const Session::SessionEvent &event) { events.append(event); });
+
+        backend.setStoredContentLoader([this](const QString &, const QString &storedPath) {
+            return storage.value(storedPath);
+        });
+
+        backend.bindAgent(fakeAgentDefinition());
+    }
+
+    void send(const QString &text)
+    {
+        Session::TurnRequest request;
+        request.userBlocks = {Session::TextBlock{text}};
+        backend.sendTurn(request);
+    }
+
+    void sendBlocks(
+        const QList<Session::ContentBlock> &blocks,
+        const std::optional<Session::TurnContext> &context = std::nullopt)
+    {
+        Session::TurnRequest request;
+        request.userBlocks = blocks;
+        request.context = context;
+        backend.sendTurn(request);
+    }
+
+    QList<QJsonObject> promptBlocksOfType(const QString &type) const
+    {
+        QList<QJsonObject> matching;
+        if (!agent)
+            return matching;
+
+        const QList<QJsonArray> sent = agent->prompts();
+        if (sent.isEmpty())
+            return matching;
+
+        for (const QJsonValue &block : sent.constLast()) {
+            if (block.toObject().value("type").toString() == type)
+                matching.append(block.toObject());
+        }
+        return matching;
+    }
+
+    template<typename T>
+    QList<T> eventsOfType() const
+    {
+        QList<T> result;
+        for (const Session::SessionEvent &event : events) {
+            if (const auto *typed = std::get_if<T>(&event))
+                result.append(*typed);
+        }
+        return result;
+    }
+
+    std::function<void(FakeAcpAgent *)> configure = [](FakeAcpAgent *) {};
+    QHash<QString, QByteArray> storage;
+    FakeAcpAgent *agent = nullptr;
+    QString requestedCwd;
+    QList<Session::SessionEvent> events;
+    Acp::AcpChatBackend backend;
+};
+
+} // namespace
+
+void QodeAssistTest::testAcpBackendStreamsTextAndThinking()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) {
+        agent->setThoughtChunks({"pondering"});
+        agent->setReplyChunks({"Hello", " world"});
+    };
+
+    fixture.send("hi");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    QCOMPARE(fixture.eventsOfType<Session::TurnStarted>().size(), 1);
+    QCOMPARE(fixture.eventsOfType<Session::TurnFailed>().size(), 0);
+
+    const auto deltas = fixture.eventsOfType<Session::TextDelta>();
+    QCOMPARE(deltas.size(), 2);
+    QCOMPARE(deltas.at(0).text, QString("Hello"));
+    QCOMPARE(deltas.at(1).text, QString(" world"));
+
+    const auto thinking = fixture.eventsOfType<Session::ThinkingReceived>();
+    QCOMPARE(thinking.size(), 1);
+    QCOMPARE(thinking.at(0).text, QString("pondering"));
+
+    const QString turnId = fixture.eventsOfType<Session::TurnStarted>().at(0).turnId;
+    QVERIFY(!turnId.isEmpty());
+    QCOMPARE(deltas.at(0).turnId, turnId);
+    QCOMPARE(fixture.eventsOfType<Session::TurnCompleted>().at(0).turnId, turnId);
+
+    QCOMPARE(fixture.agent->prompts().size(), 1);
+    QCOMPARE(fixture.agent->prompts().at(0).size(), 1);
+    QCOMPARE(
+        fixture.agent->prompts().at(0).at(0).toObject().value("text").toString(), QString("hi"));
+}
+
+void QodeAssistTest::testAcpBackendStartsSessionInWorkingDirectory()
+{
+    AcpBackendFixture fixture;
+    fixture.send("hi");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    QCOMPARE(fixture.requestedCwd, Acp::agentWorkingDirectory());
+    QCOMPARE(fixture.agent->newSessionCwd(), Acp::agentWorkingDirectory());
+    QVERIFY(!fixture.agent->newSessionCwd().isEmpty());
+    QCOMPARE(fixture.agent->clientInfo().value("name").toString(), QString("QodeAssistTest"));
+}
+
+void QodeAssistTest::testAcpBackendAuthenticatesWhenTheAgentAsksForIt()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setRequireAuthentication(true); };
+
+    fixture.send("hi");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    QCOMPARE(fixture.eventsOfType<Session::TurnFailed>().size(), 0);
+    QCOMPARE(fixture.agent->authMethodUsed(), QString("login"));
+    QCOMPARE(fixture.agent->methods().count(QStringLiteral("session/new")), 2);
+}
+
+void QodeAssistTest::testAcpBackendReportsPromptFailure()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setPromptFailure("agent exploded"); };
+
+    fixture.send("hi");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnFailed>().size(), 1);
+
+    QCOMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 0);
+    QVERIFY(fixture.eventsOfType<Session::TurnFailed>().at(0).error.contains("agent exploded"));
+    QCOMPARE(
+        fixture.eventsOfType<Session::TurnFailed>().at(0).turnId,
+        fixture.eventsOfType<Session::TurnStarted>().at(0).turnId);
+}
+
+void QodeAssistTest::testAcpBackendCancelInterruptsTheTurn()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) {
+        agent->setHangOnPrompt(true);
+        agent->setReplyChunks({"partial"});
+    };
+
+    fixture.send("hi");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TextDelta>().size(), 1);
+
+    fixture.backend.cancel();
+
+    QTRY_VERIFY(fixture.agent->wasCancelled());
+    QCOMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 0);
+    QCOMPARE(fixture.eventsOfType<Session::TurnFailed>().size(), 0);
+}
+
+void QodeAssistTest::testAcpBackendSendsAttachmentsAsEmbeddedResources()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setSupportsEmbeddedContext(true); };
+    fixture.storage.insert("notes_ab12.txt", QByteArray("remember the milk"));
+
+    fixture.sendBlocks(
+        {Session::TextBlock{"summarise this"},
+         Session::AttachmentBlock{"notes.txt", "notes_ab12.txt"}});
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    const auto resources = fixture.promptBlocksOfType("resource");
+    QCOMPARE(resources.size(), 1);
+
+    const QJsonObject resource = resources.at(0).value("resource").toObject();
+    QCOMPARE(resource.value("text").toString(), QString("remember the milk"));
+    QCOMPARE(resource.value("mimeType").toString(), QString("text/plain"));
+    QVERIFY(resource.value("uri").toString().endsWith("notes.txt"));
+
+    QCOMPARE(fixture.promptBlocksOfType("text").size(), 1);
+}
+
+void QodeAssistTest::testAcpBackendInlinesAttachmentsWithoutEmbeddedContextSupport()
+{
+    AcpBackendFixture fixture;
+    fixture.storage.insert("notes_ab12.txt", QByteArray("remember the milk"));
+
+    fixture.sendBlocks(
+        {Session::TextBlock{"summarise this"},
+         Session::AttachmentBlock{"notes.txt", "notes_ab12.txt"}});
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    QCOMPARE(fixture.promptBlocksOfType("resource").size(), 0);
+
+    const auto texts = fixture.promptBlocksOfType("text");
+    QCOMPARE(texts.size(), 2);
+
+    const QString inlined = texts.at(1).value("text").toString();
+    QVERIFY(inlined.contains("notes.txt"));
+    QVERIFY(inlined.contains("remember the milk"));
+}
+
+void QodeAssistTest::testAcpBackendReportsAttachmentsItCannotLoad()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setSupportsEmbeddedContext(true); };
+
+    fixture.sendBlocks(
+        {Session::TextBlock{"summarise this"},
+         Session::AttachmentBlock{"notes.txt", "missing.txt"}});
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    QCOMPARE(fixture.promptBlocksOfType("resource").size(), 0);
+
+    const auto texts = fixture.promptBlocksOfType("text");
+    QCOMPARE(texts.size(), 2);
+    QVERIFY(texts.at(1).value("text").toString().contains("notes.txt"));
+}
+
+void QodeAssistTest::testAcpBackendSendsImagesWhenTheAgentAcceptsThem()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setSupportsImages(true); };
+    fixture.storage.insert("shot_cd34.png", QByteArray("\x89PNG-bytes"));
+
+    fixture.sendBlocks(
+        {Session::TextBlock{"what is this"},
+         Session::ImageBlock{"shot.png", "shot_cd34.png", "image/png"}});
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    const auto images = fixture.promptBlocksOfType("image");
+    QCOMPARE(images.size(), 1);
+    QCOMPARE(images.at(0).value("mimeType").toString(), QString("image/png"));
+    QCOMPARE(
+        images.at(0).value("data").toString(),
+        QString::fromLatin1(QByteArray("\x89PNG-bytes").toBase64()));
+}
+
+void QodeAssistTest::testAcpBackendNamesImagesTheAgentCannotAccept()
+{
+    AcpBackendFixture fixture;
+    fixture.storage.insert("shot_cd34.png", QByteArray("\x89PNG-bytes"));
+
+    fixture.sendBlocks(
+        {Session::TextBlock{"what is this"},
+         Session::ImageBlock{"shot.png", "shot_cd34.png", "image/png"}});
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    QCOMPARE(fixture.promptBlocksOfType("image").size(), 0);
+
+    const auto texts = fixture.promptBlocksOfType("text");
+    QCOMPARE(texts.size(), 2);
+    QVERIFY(texts.at(1).value("text").toString().contains("shot.png"));
+}
+
+void QodeAssistTest::testAcpBackendFencesAttachmentsThatContainFences()
+{
+    AcpBackendFixture fixture;
+    fixture.storage.insert("readme_ab12.md", QByteArray("intro\n```\ncode\n```\noutro"));
+
+    fixture.sendBlocks(
+        {Session::TextBlock{"read it"}, Session::AttachmentBlock{"readme.md", "readme_ab12.md"}});
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    const auto texts = fixture.promptBlocksOfType("text");
+    QCOMPARE(texts.size(), 2);
+
+    const QString inlined = texts.at(1).value("text").toString();
+    QVERIFY(inlined.startsWith("File: readme.md\n````\n"));
+    QVERIFY(inlined.endsWith("\n````"));
+    QVERIFY(inlined.contains("```\ncode\n```"));
+}
+
+void QodeAssistTest::testAcpBackendTruncatesOversizedAttachments()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setSupportsEmbeddedContext(true); };
+
+    const QByteArray huge(700 * 1024, 'x');
+    fixture.storage.insert("dump_ab12.log", huge);
+
+    fixture.sendBlocks(
+        {Session::TextBlock{"summarise"}, Session::AttachmentBlock{"dump.log", "dump_ab12.log"}});
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    const auto resources = fixture.promptBlocksOfType("resource");
+    QCOMPARE(resources.size(), 1);
+
+    const QString text = resources.at(0).value("resource").toObject().value("text").toString();
+    QVERIFY(text.size() < huge.size());
+    QVERIFY(text.contains("truncated by QodeAssist"));
+}
+
+void QodeAssistTest::testAcpBackendRejectsAnEmptyTurn()
+{
+    AcpBackendFixture fixture;
+
+    fixture.sendBlocks({Session::TextBlock{""}});
+
+    QCOMPARE(fixture.eventsOfType<Session::TurnFailed>().size(), 1);
+    QCOMPARE(fixture.eventsOfType<Session::TurnStarted>().size(), 0);
+    QVERIFY(fixture.agent == nullptr);
+}
+
+void QodeAssistTest::testAcpBackendSendsAttachmentsWithoutAnyMessageText()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setSupportsEmbeddedContext(true); };
+    fixture.storage.insert("notes_ab12.txt", QByteArray("remember the milk"));
+
+    fixture.sendBlocks(
+        {Session::TextBlock{""}, Session::AttachmentBlock{"notes.txt", "notes_ab12.txt"}});
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    QCOMPARE(fixture.eventsOfType<Session::TurnFailed>().size(), 0);
+    QCOMPARE(fixture.promptBlocksOfType("resource").size(), 1);
+}
+
+namespace {
+
+QJsonObject writeToolCall()
+{
+    return QJsonObject{
+        {"toolCallId", QStringLiteral("call-1")},
+        {"title", QStringLiteral("Write main.cpp")},
+        {"kind", QStringLiteral("edit")},
+        {"status", QStringLiteral("pending")}};
+}
+
+QJsonArray writePermissionOptions()
+{
+    return QJsonArray{
+        QJsonObject{
+            {"optionId", QStringLiteral("allow")},
+            {"name", QStringLiteral("Allow")},
+            {"kind", QStringLiteral("allow_once")}},
+        QJsonObject{
+            {"optionId", QStringLiteral("deny")},
+            {"name", QStringLiteral("Deny")},
+            {"kind", QStringLiteral("reject_once")}}};
+}
+
+} // namespace
+
+void QodeAssistTest::testAcpBackendRaisesAgentPermissionRequests()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) {
+        agent->setPermissionRequest(writeToolCall(), writePermissionOptions());
+    };
+
+    fixture.send("edit main.cpp");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::PermissionRequested>().size(), 1);
+
+    const Session::PermissionRequested request
+        = fixture.eventsOfType<Session::PermissionRequested>().at(0);
+    QCOMPARE(request.turnId, fixture.eventsOfType<Session::TurnStarted>().at(0).turnId);
+    QVERIFY(!request.requestId.isEmpty());
+    QCOMPARE(request.toolCallId, QString("call-1"));
+    QCOMPARE(request.title, QString("Write main.cpp"));
+    QCOMPARE(request.toolKind, QString("edit"));
+    QCOMPARE(request.options.size(), 2);
+    QCOMPARE(request.options.at(0), (Session::PermissionOption{"allow", "Allow", "allow_once"}));
+    QCOMPARE(request.options.at(1), (Session::PermissionOption{"deny", "Deny", "reject_once"}));
+
+    QCOMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 0);
+    QVERIFY(fixture.agent->permissionOutcomes().isEmpty());
+}
+
+void QodeAssistTest::testAcpBackendSendsThePermissionAnswerToTheAgent()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) {
+        agent->setPermissionRequest(writeToolCall(), writePermissionOptions());
+    };
+
+    fixture.send("edit main.cpp");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::PermissionRequested>().size(), 1);
+
+    const QString requestId = fixture.eventsOfType<Session::PermissionRequested>().at(0).requestId;
+    fixture.backend.respondPermission(requestId, "allow");
+
+    QTRY_COMPARE(fixture.agent->permissionOutcomes().size(), 1);
+    QCOMPARE(
+        fixture.agent->permissionOutcomes().at(0).value("outcome").toString(), QString("selected"));
+    QCOMPARE(fixture.agent->permissionOutcomes().at(0).value("optionId").toString(), QString("allow"));
+
+    const auto resolutions = fixture.eventsOfType<Session::PermissionResolved>();
+    QCOMPARE(resolutions.size(), 1);
+    QCOMPARE(resolutions.at(0).requestId, requestId);
+    QCOMPARE(resolutions.at(0).optionId, QString("allow"));
+    QVERIFY(!resolutions.at(0).cancelled);
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+}
+
+void QodeAssistTest::testAcpBackendCancelsOutstandingPermissionRequests()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) {
+        agent->setPermissionRequest(writeToolCall(), writePermissionOptions());
+    };
+
+    fixture.send("edit main.cpp");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::PermissionRequested>().size(), 1);
+
+    const QString requestId = fixture.eventsOfType<Session::PermissionRequested>().at(0).requestId;
+    fixture.backend.cancel();
+
+    QTRY_COMPARE(fixture.agent->permissionOutcomes().size(), 1);
+    QCOMPARE(
+        fixture.agent->permissionOutcomes().at(0).value("outcome").toString(), QString("cancelled"));
+
+    const auto resolutions = fixture.eventsOfType<Session::PermissionResolved>();
+    QCOMPARE(resolutions.size(), 1);
+    QCOMPARE(resolutions.at(0).requestId, requestId);
+    QVERIFY(resolutions.at(0).cancelled);
+    QVERIFY(resolutions.at(0).optionId.isEmpty());
+
+    QTRY_VERIFY(fixture.agent->wasCancelled());
+    QCOMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 0);
+}
+
+namespace {
+
+class FakeKnowledgeService : public Acp::AgentKnowledgeService
+{
+public:
+    QString start() override
+    {
+        ++startCount;
+        running = true;
+        return url;
+    }
+
+    void stop() override
+    {
+        ++stopCount;
+        running = false;
+    }
+
+    QString serverName() const override { return QStringLiteral("qodeassist"); }
+
+    QString url = QStringLiteral("http://127.0.0.1:54321/mcp");
+    int startCount = 0;
+    int stopCount = 0;
+    bool running = false;
+};
+
+} // namespace
+
+namespace {
+
+class FakeGatedTool : public ::LLMQore::BaseTool
+{
+public:
+    FakeGatedTool(QString toolId, ::LLMQore::ToolSafety safety, QObject *parent = nullptr)
+        : ::LLMQore::BaseTool(parent)
+        , m_id(std::move(toolId))
+        , m_safety(safety)
+    {}
+
+    QString id() const override { return m_id; }
+    QString displayName() const override { return m_id; }
+    QString description() const override { return m_id; }
+    QJsonObject parametersSchema() const override { return {}; }
+    ::LLMQore::ToolSafety safety() const override { return m_safety; }
+
+    QFuture<LLMQore::ToolResult> executeAsync(const QJsonObject &) override
+    {
+        ++executions;
+        QPromise<LLMQore::ToolResult> promise;
+        promise.start();
+        promise.addResult(LLMQore::ToolResult::text(QStringLiteral("ran ") + m_id));
+        promise.finish();
+        return promise.future();
+    }
+
+    int executions = 0;
+
+private:
+    QString m_id;
+    ::LLMQore::ToolSafety m_safety;
+};
+
+} // namespace
+
+void QodeAssistTest::testAcpBackendSeedsAHandoverSummaryOnce()
+{
+    AcpBackendFixture fixture;
+
+    fixture.backend.setHandoverSummary("Earlier the user asked about parsing.");
+
+    fixture.send("carry on");
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    const QList<QJsonObject> first = fixture.promptBlocksOfType("text");
+    QCOMPARE(first.size(), 2);
+    QVERIFY(first.at(0).value("text").toString().contains("Earlier the user asked about parsing."));
+    QVERIFY(first.at(0).value("text").toString().contains("summary"));
+    QCOMPARE(first.at(1).value("text").toString(), QString("carry on"));
+
+    fixture.send("and now this");
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 2);
+
+    const QList<QJsonObject> second = fixture.promptBlocksOfType("text");
+    QCOMPARE(second.size(), 1);
+    QCOMPARE(second.at(0).value("text").toString(), QString("and now this"));
+}
+
+void QodeAssistTest::testAcpBackendDropsAHandoverSummaryAfterACancelledTurn()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setHangOnPrompt(true); };
+
+    fixture.backend.setHandoverSummary("Earlier context.");
+
+    fixture.send("carry on");
+    QTRY_COMPARE(fixture.agent->prompts().size(), 1);
+
+    QVERIFY(
+        fixture.agent->prompts().at(0).at(0).toObject().value("text").toString().contains(
+            "Earlier context."));
+
+    fixture.backend.cancel();
+
+    fixture.configure = [](FakeAcpAgent *) {};
+    fixture.send("actually this");
+
+    QTRY_COMPARE(fixture.agent->prompts().size(), 2);
+
+    const QJsonArray second = fixture.agent->prompts().at(1);
+    QCOMPARE(second.size(), 1);
+    QCOMPARE(second.at(0).toObject().value("text").toString(), QString("actually this"));
+}
+
+void QodeAssistTest::testAcpBackendDropsAHandoverSummaryWithTheConversation()
+{
+    AcpBackendFixture fixture;
+
+    fixture.backend.setHandoverSummary("stale summary");
+    fixture.backend.clearToolSession(QString());
+
+    fixture.send("fresh start");
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    const QList<QJsonObject> texts = fixture.promptBlocksOfType("text");
+    QCOMPARE(texts.size(), 1);
+    QCOMPARE(texts.at(0).value("text").toString(), QString("fresh start"));
+}
+
+void QodeAssistTest::testToolSafetyDefaultsToMutating()
+{
+    FakeGatedTool undeclared("undeclared", ::LLMQore::ToolSafety::Mutating);
+    QCOMPARE(undeclared.safety(), ::LLMQore::ToolSafety::Mutating);
+
+    QCOMPARE(Tools::ReadFileTool().safety(), ::LLMQore::ToolSafety::ReadOnly);
+    QCOMPARE(Tools::GetIssuesListTool().safety(), ::LLMQore::ToolSafety::ReadOnly);
+    QCOMPARE(Tools::ListOpenEditorsTool().safety(), ::LLMQore::ToolSafety::ReadOnly);
+
+    QCOMPARE(Tools::EditFileTool().safety(), ::LLMQore::ToolSafety::Mutating);
+    QCOMPARE(Tools::CreateNewFileTool().safety(), ::LLMQore::ToolSafety::Mutating);
+    QCOMPARE(Tools::ExecuteTerminalCommandTool().safety(), ::LLMQore::ToolSafety::Mutating);
+    QCOMPARE(Tools::BuildProjectTool().safety(), ::LLMQore::ToolSafety::Mutating);
+}
+
+void QodeAssistTest::testToolsManagerWithoutAGateRunsImmediately()
+{
+    ::LLMQore::ToolsManager manager(::LLMQore::ToolSchemaFormat::OpenAI);
+    auto *tool = new FakeGatedTool("edit_thing", ::LLMQore::ToolSafety::Mutating, &manager);
+    manager.addTool(tool);
+
+    manager.executeToolCall("req-1", "call-1", "edit_thing", QJsonObject{});
+
+    QTRY_COMPARE(tool->executions, 1);
+}
+
+void QodeAssistTest::testToolsManagerGateCanDeclineAToolCall()
+{
+    ::LLMQore::ToolsManager manager(::LLMQore::ToolSchemaFormat::OpenAI);
+    auto *tool = new FakeGatedTool("edit_thing", ::LLMQore::ToolSafety::Mutating, &manager);
+    manager.addTool(tool);
+
+    QStringList gated;
+    manager.setExecutionGate(
+        [&gated](
+            const QString &, const QString &, const QString &toolName, const QJsonObject &) {
+            gated.append(toolName);
+            QPromise<bool> promise;
+            promise.start();
+            promise.addResult(false);
+            promise.finish();
+            return promise.future();
+        });
+
+    QString resultText;
+    QObject::connect(
+        &manager,
+        &::LLMQore::ToolsManager::toolExecutionResult,
+        &manager,
+        [&resultText](const QString &, const QString &, const QString &, const QString &result) {
+            resultText = result;
+        });
+
+    manager.executeToolCall("req-1", "call-1", "edit_thing", QJsonObject{});
+
+    QTRY_VERIFY(!resultText.isEmpty());
+
+    QCOMPARE(gated, QStringList{"edit_thing"});
+    QCOMPARE(tool->executions, 0);
+    QVERIFY2(resultText.contains("declined"), qPrintable(resultText));
+}
+
+void QodeAssistTest::testToolsManagerGateCanAllowAToolCall()
+{
+    ::LLMQore::ToolsManager manager(::LLMQore::ToolSchemaFormat::OpenAI);
+    auto *tool = new FakeGatedTool("edit_thing", ::LLMQore::ToolSafety::Mutating, &manager);
+    manager.addTool(tool);
+
+    manager.setExecutionGate(
+        [](const QString &, const QString &, const QString &, const QJsonObject &) {
+            QPromise<bool> promise;
+            promise.start();
+            promise.addResult(true);
+            promise.finish();
+            return promise.future();
+        });
+
+    manager.executeToolCall("req-1", "call-1", "edit_thing", QJsonObject{});
+
+    QTRY_COMPARE(tool->executions, 1);
+}
+
+void QodeAssistTest::testToolsManagerGateResumesTheQueueAfterADenial()
+{
+    ::LLMQore::ToolsManager manager(::LLMQore::ToolSchemaFormat::OpenAI);
+    auto *denied = new FakeGatedTool("edit_thing", ::LLMQore::ToolSafety::Mutating, &manager);
+    auto *allowed = new FakeGatedTool("read_thing", ::LLMQore::ToolSafety::ReadOnly, &manager);
+    manager.addTool(denied);
+    manager.addTool(allowed);
+
+    manager.setExecutionGate(
+        [](const QString &, const QString &, const QString &toolName, const QJsonObject &) {
+            QPromise<bool> promise;
+            promise.start();
+            promise.addResult(toolName != QLatin1String("edit_thing"));
+            promise.finish();
+            return promise.future();
+        });
+
+    bool finished = false;
+    QObject::connect(
+        &manager,
+        &::LLMQore::ToolsManager::toolExecutionComplete,
+        &manager,
+        [&finished](const QString &, const QHash<QString, LLMQore::ToolResult> &) {
+            finished = true;
+        });
+
+    manager.executeToolCall("req-1", "call-1", "edit_thing", QJsonObject{});
+    manager.executeToolCall("req-1", "call-2", "read_thing", QJsonObject{});
+
+    QTRY_VERIFY(finished);
+    QCOMPARE(denied->executions, 0);
+    QCOMPARE(allowed->executions, 1);
+}
+
+void QodeAssistTest::testKnowledgeServerExposesOnlyReadOnlyTools()
+{
+    const QStringList exposed = Mcp::AgentKnowledgeServer::toolIds();
+
+    QCOMPARE(
+        QSet<QString>(exposed.cbegin(), exposed.cend()),
+        (QSet<QString>{
+            "list_open_editors", "get_editor_selection", "get_project_model", "get_issues_list"}));
+
+    const QStringList mutating{
+        Tools::EditFileTool().id(),
+        Tools::CreateNewFileTool().id(),
+        Tools::ExecuteTerminalCommandTool().id(),
+        Tools::BuildProjectTool().id()};
+
+    for (const QString &tool : mutating)
+        QVERIFY2(!exposed.contains(tool), qPrintable(tool));
+}
+
+void QodeAssistTest::testKnowledgeServerBindsLoopbackOnAnEphemeralPort()
+{
+    Mcp::AgentKnowledgeServer server;
+
+    const QString url = server.start();
+    QVERIFY(!url.isEmpty());
+    QVERIFY(server.runningPort() != 0);
+
+    const QUrl parsed(url);
+    QVERIFY(QHostAddress(parsed.host()).isLoopback());
+    QCOMPARE(parsed.port(), int(server.runningPort()));
+
+    QVERIFY2(
+        parsed.path().length() > QStringLiteral("/mcp/").length(),
+        qPrintable(parsed.path()));
+
+    QCOMPARE(server.start(), url);
+
+    server.stop();
+    QCOMPARE(server.runningPort(), quint16(0));
+    server.stop();
+}
+
+void QodeAssistTest::testAcpBackendOffersKnowledgeToHttpCapableAgents()
+{
+    AcpBackendFixture fixture;
+    FakeKnowledgeService knowledge;
+    fixture.backend.setKnowledgeService(&knowledge);
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setSupportsHttpMcp(true); };
+
+    fixture.send("what am I looking at");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    QCOMPARE(knowledge.startCount, 1);
+    QVERIFY(knowledge.running);
+
+    const QJsonArray offered = fixture.agent->offeredMcpServers();
+    QCOMPARE(offered.size(), 1);
+    QCOMPARE(offered.at(0).toObject().value("name").toString(), QString("qodeassist"));
+    QCOMPARE(offered.at(0).toObject().value("type").toString(), QString("http"));
+    QCOMPARE(offered.at(0).toObject().value("url").toString(), knowledge.url);
+}
+
+void QodeAssistTest::testAcpBackendWithholdsKnowledgeFromAgentsWithoutHttpMcp()
+{
+    AcpBackendFixture fixture;
+    FakeKnowledgeService knowledge;
+    fixture.backend.setKnowledgeService(&knowledge);
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setSupportsHttpMcp(false); };
+
+    fixture.send("what am I looking at");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    QCOMPARE(knowledge.startCount, 0);
+    QVERIFY(!knowledge.running);
+    QVERIFY(fixture.agent->offeredMcpServers().isEmpty());
+}
+
+void QodeAssistTest::testAcpBackendStopsTheKnowledgeServerWithTheSession()
+{
+    AcpBackendFixture fixture;
+    FakeKnowledgeService knowledge;
+    fixture.backend.setKnowledgeService(&knowledge);
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setSupportsHttpMcp(true); };
+
+    fixture.send("hello");
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+    QVERIFY(knowledge.running);
+
+    fixture.backend.clearToolSession(QString());
+
+    QCOMPARE(knowledge.stopCount, 1);
+    QVERIFY(!knowledge.running);
+}
+
+void QodeAssistTest::testAcpBackendSurvivesAKnowledgeServerThatWillNotStart()
+{
+    AcpBackendFixture fixture;
+    FakeKnowledgeService knowledge;
+    knowledge.url.clear();
+    fixture.backend.setKnowledgeService(&knowledge);
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setSupportsHttpMcp(true); };
+
+    fixture.send("hello");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    QCOMPARE(knowledge.startCount, 1);
+    QVERIFY(fixture.agent->offeredMcpServers().isEmpty());
+    QCOMPARE(fixture.eventsOfType<Session::TurnFailed>().size(), 0);
+}
+
+void QodeAssistTest::testAcpBackendResumesAPersistedSession()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setSupportsLoadSession(true); };
+
+    fixture.backend.resumeSession("previous-session");
+    QVERIFY(fixture.backend.isResumePending());
+
+    fixture.send("carry on");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    QCOMPARE(fixture.agent->loadedSessionId(), QString("previous-session"));
+    QCOMPARE(fixture.agent->methods().count(QStringLiteral("session/new")), 0);
+    QCOMPARE(fixture.backend.acpSessionId(), QString("previous-session"));
+    QVERIFY(!fixture.backend.isResumePending());
+    QCOMPARE(fixture.eventsOfType<Session::TurnFailed>().size(), 0);
+}
+
+void QodeAssistTest::testAcpBackendReportsAnUnresumableSession()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) {
+        agent->setSupportsLoadSession(true);
+        agent->setLoadSessionError("session expired");
+    };
+
+    QStringList unavailable;
+    QObject::connect(
+        &fixture.backend,
+        &Acp::AcpChatBackend::agentSessionUnavailable,
+        &fixture.backend,
+        [&unavailable](const QString &reason) { unavailable.append(reason); });
+
+    fixture.backend.resumeSession("previous-session");
+    fixture.send("carry on");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnFailed>().size(), 1);
+
+    QCOMPARE(unavailable.size(), 1);
+    QVERIFY(unavailable.at(0).contains("session expired"));
+    QCOMPARE(fixture.agent->methods().count(QStringLiteral("session/new")), 0);
+    QVERIFY(fixture.backend.acpSessionId().isEmpty());
+    QVERIFY(!fixture.backend.isResumePending());
+    QVERIFY(fixture.eventsOfType<Session::TurnFailed>().at(0).error.contains("read-only"));
+}
+
+void QodeAssistTest::testAcpBackendRefusesToResumeWithoutAgentSupport()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setSupportsLoadSession(false); };
+
+    QStringList unavailable;
+    QObject::connect(
+        &fixture.backend,
+        &Acp::AcpChatBackend::agentSessionUnavailable,
+        &fixture.backend,
+        [&unavailable](const QString &reason) { unavailable.append(reason); });
+
+    fixture.backend.resumeSession("previous-session");
+    fixture.send("carry on");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnFailed>().size(), 1);
+
+    QCOMPARE(unavailable.size(), 1);
+    QCOMPARE(fixture.agent->methods().count(QStringLiteral("session/load")), 0);
+    QCOMPARE(fixture.agent->methods().count(QStringLiteral("session/new")), 0);
+    QVERIFY(fixture.backend.acpSessionId().isEmpty());
+}
+
+void QodeAssistTest::testAcpBackendStartsFreshAfterAFailedResume()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) {
+        agent->setSupportsLoadSession(true);
+        agent->setLoadSessionError("session expired");
+    };
+
+    fixture.backend.resumeSession("previous-session");
+    fixture.send("carry on");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnFailed>().size(), 1);
+
+    fixture.backend.startFreshSession();
+    fixture.send("start over");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    QCOMPARE(fixture.agent->methods().count(QStringLiteral("session/new")), 1);
+    QCOMPARE(fixture.backend.acpSessionId(), QString("fake-session"));
+    QCOMPARE(fixture.agent->prompts().size(), 1);
+    QCOMPARE(
+        fixture.agent->prompts().at(0).at(0).toObject().value("text").toString(),
+        QString("start over"));
+}
+
+void QodeAssistTest::testAgentBindingKeepsTheResumeTargetBeforeTheFirstTurn()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setSupportsLoadSession(true); };
+
+    QVERIFY(fixture.backend.bindingSessionId().isEmpty());
+
+    fixture.backend.resumeSession("sess-from-file");
+    QCOMPARE(fixture.backend.bindingSessionId(), QString("sess-from-file"));
+    QVERIFY(fixture.backend.acpSessionId().isEmpty());
+
+    fixture.send("carry on");
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    QCOMPARE(fixture.backend.acpSessionId(), QString("sess-from-file"));
+    QCOMPARE(fixture.backend.bindingSessionId(), QString("sess-from-file"));
+}
+
+void QodeAssistTest::testAcpBackendCarriesTheLiveSessionIntoAResume()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setSupportsLoadSession(true); };
+
+    fixture.send("hello");
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+    QCOMPARE(fixture.backend.acpSessionId(), QString("fake-session"));
+
+    fixture.backend.setChatFilePath("/somewhere/else.json");
+    QCOMPARE(fixture.backend.bindingSessionId(), QString("fake-session"));
+
+    fixture.backend.clearToolSession(QString());
+    QVERIFY(fixture.backend.bindingSessionId().isEmpty());
+}
+
+void QodeAssistTest::testAcpBackendEstablishesTheSessionOnlyOnce()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) { agent->setHangOnNewSession(true); };
+
+    fixture.send("first");
+    QTRY_COMPARE(fixture.agent->methods().count(QStringLiteral("session/new")), 1);
+
+    fixture.backend.cancel();
+    fixture.send("second");
+    QTest::qWait(50);
+
+    QCOMPARE(fixture.agent->methods().count(QStringLiteral("session/new")), 1);
+    QCOMPARE(fixture.agent->prompts().size(), 0);
+}
+
+void QodeAssistTest::testAgentBindingRejectsMalformedRecords()
+{
+    const auto rejected = [](const QJsonValue &value) {
+        QString error;
+        const Acp::AgentBinding binding = Acp::AgentBinding::fromJson(value, &error);
+        return binding.isEmpty() && !error.isEmpty();
+    };
+
+    QVERIFY(rejected(QJsonValue(QStringLiteral("claude"))));
+    QVERIFY(rejected(QJsonValue(42)));
+    QVERIFY(rejected(QJsonObject{{"agentId", 7}}));
+    QVERIFY(rejected(QJsonObject{{"agentId", "claude"}, {"sessionId", QJsonArray{}}}));
+    QVERIFY(rejected(QJsonObject{{"sessionId", "orphan"}}));
+    QVERIFY(rejected(QJsonObject{{"agentId", QString(4096, QChar('a'))}}));
+    QVERIFY(rejected(QJsonObject{{"agentId", QStringLiteral("clau‮de")}}));
+
+    QString error;
+    QVERIFY(Acp::AgentBinding::fromJson(QJsonValue(), &error).isEmpty());
+    QVERIFY(error.isEmpty());
+
+    const Acp::AgentBinding good = Acp::AgentBinding::fromJson(
+        QJsonObject{{"agentId", "claude"}, {"sessionId", "sess-1"}}, &error);
+    QCOMPARE(good, (Acp::AgentBinding{"claude", "sess-1"}));
+    QVERIFY(error.isEmpty());
+}
+
+void QodeAssistTest::testMalformedAgentBindingLeavesTheChatUnbound()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+
+    const QString filePath = dir.filePath("broken_agent.json");
+
+    Session::Message user;
+    user.role = Session::MessageRole::User;
+    user.blocks = {Session::TextBlock{"hello"}};
+
+    Session::ConversationHistory history;
+    history.append(user);
+
+    QVERIFY(Chat::ChatFileStore::saveToFile(history, Acp::AgentBinding{}, filePath).success);
+
+    QFile file(filePath);
+    QVERIFY(file.open(QIODevice::ReadWrite));
+    QJsonObject root = QJsonDocument::fromJson(file.readAll()).object();
+    root["agent"] = QStringLiteral("claude");
+    file.resize(0);
+    file.write(QJsonDocument(root).toJson());
+    file.close();
+
+    Session::ConversationHistory reloaded;
+    Acp::AgentBinding binding;
+    const Chat::SerializationResult result
+        = Chat::ChatFileStore::loadFromFile(reloaded, binding, filePath);
+
+    QVERIFY(result.success);
+    QVERIFY(binding.isEmpty());
+    QVERIFY(!result.warningMessage.isEmpty());
+}
+
+void QodeAssistTest::testAgentBindingRoundTripsThroughTheChatFile()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+
+    const QString filePath = dir.filePath("agent_chat.json");
+
+    Session::Message user;
+    user.role = Session::MessageRole::User;
+    user.blocks = {Session::TextBlock{"hello agent"}};
+
+    Session::ConversationHistory history;
+    history.append(user);
+
+    const Acp::AgentBinding binding{"claude-code-acp", "sess-42"};
+    QVERIFY(Chat::ChatFileStore::saveToFile(history, binding, filePath).success);
+
+    Session::ConversationHistory reloaded;
+    Acp::AgentBinding reloadedBinding;
+    QVERIFY(Chat::ChatFileStore::loadFromFile(reloaded, reloadedBinding, filePath).success);
+
+    QCOMPARE(reloaded, history);
+    QCOMPARE(reloadedBinding, binding);
+}
+
+void QodeAssistTest::testChatFileWithoutAnAgentLoadsUnbound()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+
+    const QString filePath = dir.filePath("llm_chat.json");
+
+    Session::Message user;
+    user.role = Session::MessageRole::User;
+    user.blocks = {Session::TextBlock{"hello"}};
+
+    Session::ConversationHistory history;
+    history.append(user);
+
+    QVERIFY(Chat::ChatFileStore::saveToFile(history, Acp::AgentBinding{}, filePath).success);
+
+    QFile file(filePath);
+    QVERIFY(file.open(QIODevice::ReadOnly));
+    const QJsonObject root = QJsonDocument::fromJson(file.readAll()).object();
+    QVERIFY(!root.contains("agent"));
+    file.close();
+
+    Session::ConversationHistory reloaded;
+    Acp::AgentBinding reloadedBinding;
+    QVERIFY(Chat::ChatFileStore::loadFromFile(reloaded, reloadedBinding, filePath).success);
+    QVERIFY(reloadedBinding.isEmpty());
+}
+
+void QodeAssistTest::testAcpBackendMapsToolCallLifecycle()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) {
+        agent->setToolCallUpdates(
+            {QJsonObject{
+                 {"toolCallId", QStringLiteral("call-1")},
+                 {"title", QStringLiteral("Edit main.cpp")},
+                 {"kind", QStringLiteral("edit")},
+                 {"status", QStringLiteral("pending")}},
+             QJsonObject{
+                 {"toolCallId", QStringLiteral("call-1")},
+                 {"status", QStringLiteral("completed")},
+                 {"locations",
+                  QJsonArray{QJsonObject{{"path", QStringLiteral("/p/main.cpp")}, {"line", 12}}}},
+                 {"content",
+                  QJsonArray{
+                      QJsonObject{
+                          {"type", QStringLiteral("diff")},
+                          {"path", QStringLiteral("/p/main.cpp")},
+                          {"oldText", QStringLiteral("int a;")},
+                          {"newText", QStringLiteral("int b;")}}}}}});
+    };
+
+    fixture.send("edit it");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    const auto updates = fixture.eventsOfType<Session::ToolCallUpdated>();
+    QCOMPARE(updates.size(), 2);
+
+    QCOMPARE(updates.at(0).toolId, QString("call-1"));
+    QCOMPARE(updates.at(0).name, QString("Edit main.cpp"));
+    QCOMPARE(updates.at(0).kind, QString("edit"));
+    QCOMPARE(updates.at(0).status, QString("pending"));
+    QVERIFY(updates.at(0).details.isEmpty());
+    QVERIFY(updates.at(0).fromAgent);
+    QVERIFY(updates.at(1).fromAgent);
+
+    QCOMPARE(updates.at(1).status, QString("completed"));
+    QCOMPARE(updates.at(1).name, QString("Edit main.cpp"));
+
+    const QJsonArray locations = updates.at(1).details.value("locations").toArray();
+    QCOMPARE(locations.size(), 1);
+    QCOMPARE(locations.at(0).toObject().value("path").toString(), QString("/p/main.cpp"));
+    QCOMPARE(locations.at(0).toObject().value("line").toInt(), 12);
+
+    const QJsonArray diffs = updates.at(1).details.value("diffs").toArray();
+    QCOMPARE(diffs.size(), 1);
+    QCOMPARE(diffs.at(0).toObject().value("oldText").toString(), QString("int a;"));
+    QCOMPARE(diffs.at(0).toObject().value("newText").toString(), QString("int b;"));
+}
+
+void QodeAssistTest::testAcpBackendMapsPlanUpdates()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) {
+        agent->setPlanUpdates(
+            {QJsonArray{
+                 QJsonObject{
+                     {"content", QStringLiteral("Read the file")},
+                     {"priority", QStringLiteral("high")},
+                     {"status", QStringLiteral("in_progress")}},
+                 QJsonObject{
+                     {"content", QStringLiteral("Apply the fix")},
+                     {"priority", QStringLiteral("medium")},
+                     {"status", QStringLiteral("pending")}}},
+             QJsonArray{
+                 QJsonObject{
+                     {"content", QStringLiteral("Read the file")},
+                     {"priority", QStringLiteral("high")},
+                     {"status", QStringLiteral("completed")}},
+                 QJsonObject{
+                     {"content", QStringLiteral("Apply the fix")},
+                     {"priority", QStringLiteral("medium")},
+                     {"status", QStringLiteral("in_progress")}}}});
+    };
+
+    fixture.send("fix it");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    const auto plans = fixture.eventsOfType<Session::PlanUpdated>();
+    QCOMPARE(plans.size(), 2);
+    QCOMPARE(plans.at(0).entries.size(), 2);
+    QCOMPARE(
+        plans.at(0).entries.at(0),
+        (Session::PlanEntry{"Read the file", "high", "in_progress"}));
+    QCOMPARE(
+        plans.at(1).entries.at(0), (Session::PlanEntry{"Read the file", "high", "completed"}));
+}
+
+void QodeAssistTest::testAcpBackendReportsUsageFromThePromptResult()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) {
+        agent->setPromptUsage(
+            QJsonObject{
+                {"cachedReadTokens", 23119},
+                {"cachedWriteTokens", 12271},
+                {"inputTokens", 2},
+                {"outputTokens", 13},
+                {"totalTokens", 35405}});
+    };
+
+    fixture.send("hi");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    const auto usage = fixture.eventsOfType<Session::UsageReported>();
+    QCOMPARE(usage.size(), 1);
+    QCOMPARE(usage.at(0).usage.promptTokens, 2);
+    QCOMPARE(usage.at(0).usage.completionTokens, 13);
+    QCOMPARE(usage.at(0).usage.cachedPromptTokens, 23119);
+    QCOMPARE(usage.at(0).usage.reasoningTokens, 0);
+}
+
+void QodeAssistTest::testAcpBackendIgnoresTheCumulativeContextGauge()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) {
+        agent->setContextGauge(
+            QJsonObject{
+                {"size", 967000},
+                {"used", 35395},
+                {"cost", QJsonObject{{"amount", 0.0807}, {"currency", QStringLiteral("USD")}}}});
+    };
+
+    fixture.send("hi");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+    QCOMPARE(fixture.eventsOfType<Session::UsageReported>().size(), 0);
+}
+
+void QodeAssistTest::testAcpBackendForwardsTheAgentSuggestedTitle()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) {
+        agent->setSuggestedTitle("  Refactor\nthe   parser  ");
+    };
+
+    fixture.send("hi");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+    QTRY_COMPARE(fixture.eventsOfType<Session::SessionInfo>().size(), 1);
+    QCOMPARE(
+        fixture.eventsOfType<Session::SessionInfo>().at(0).title,
+        QString("Refactor the parser"));
+}
+
+void QodeAssistTest::testAcpBackendDeclinesAmbiguousPermissionOptions()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) {
+        agent->setPermissionRequest(
+            writeToolCall(),
+            QJsonArray{
+                QJsonObject{
+                    {"optionId", QStringLiteral("x")},
+                    {"name", QStringLiteral("Yes, and don't ask again")},
+                    {"kind", QStringLiteral("allow_always")}},
+                QJsonObject{
+                    {"optionId", QStringLiteral("x")},
+                    {"name", QStringLiteral("No")},
+                    {"kind", QStringLiteral("reject_once")}}});
+    };
+
+    fixture.send("edit main.cpp");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::PermissionResolved>().size(), 1);
+
+    const auto requests = fixture.eventsOfType<Session::PermissionRequested>();
+    QCOMPARE(requests.size(), 1);
+    QVERIFY(requests.at(0).options.isEmpty());
+
+    QVERIFY(fixture.eventsOfType<Session::PermissionResolved>().at(0).cancelled);
+    QTRY_COMPARE(fixture.agent->permissionOutcomes().size(), 1);
+    QCOMPARE(
+        fixture.agent->permissionOutcomes().at(0).value("outcome").toString(), QString("cancelled"));
+}
+
+void QodeAssistTest::testAcpBackendClampsOversizedPermissionText()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) {
+        QJsonObject toolCall = writeToolCall();
+        toolCall["title"] = QString(5000, QChar('A'));
+        agent->setPermissionRequest(toolCall, writePermissionOptions());
+    };
+
+    fixture.send("edit main.cpp");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::PermissionRequested>().size(), 1);
+
+    const Session::PermissionRequested request
+        = fixture.eventsOfType<Session::PermissionRequested>().at(0);
+    QVERIFY(request.title.size() < 5000);
+    QVERIFY(request.title.endsWith(QChar(0x2026)));
+    QCOMPARE(request.options.size(), 2);
+}
+
+void QodeAssistTest::testAcpBackendCancelsPermissionsWhenTheTurnCompletes()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) {
+        agent->setPermissionRequest(writeToolCall(), writePermissionOptions());
+        agent->setFinishPromptWithoutWaiting(true);
+    };
+
+    fixture.send("edit main.cpp");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+
+    const auto resolutions = fixture.eventsOfType<Session::PermissionResolved>();
+    QCOMPARE(resolutions.size(), 1);
+    QVERIFY(resolutions.at(0).cancelled);
+
+    const QString requestId = fixture.eventsOfType<Session::PermissionRequested>().at(0).requestId;
+    QVERIFY(!fixture.backend.respondPermission(requestId, "allow"));
+}
+
+void QodeAssistTest::testAcpBackendCancelsPermissionRequestsWhenTheTurnFails()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) {
+        agent->setPermissionRequest(writeToolCall(), writePermissionOptions());
+    };
+
+    fixture.send("edit main.cpp");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::PermissionRequested>().size(), 1);
+
+    fixture.backend.clearToolSession(QString());
+
+    QCOMPARE(fixture.eventsOfType<Session::PermissionResolved>().size(), 1);
+    QVERIFY(fixture.eventsOfType<Session::PermissionResolved>().at(0).cancelled);
+}
+
+namespace {
+
+class LlmBackendFixture
+{
+public:
+    LlmBackendFixture()
+        : backend(&promptProvider)
+    {
+        backend.setProviderResolver([this](const QString &) { return &provider; });
+
+        QObject::connect(
+            &backend,
+            &Session::ChatBackend::sessionEvent,
+            &backend,
+            [this](const Session::SessionEvent &event) { events.append(event); });
+
+        Session::Message user;
+        user.role = Session::MessageRole::User;
+        user.id = "u1";
+        user.blocks = {Session::TextBlock{"hello"}};
+        history.append(user);
+    }
+
+    QString send()
+    {
+        Session::TurnRequest request;
+        request.userBlocks = {Session::TextBlock{"hello"}};
+        request.history = &history;
+        backend.sendTurn(request);
+
+        const auto started = eventsOfType<Session::TurnStarted>();
+        return started.isEmpty() ? QString() : started.constLast().turnId;
+    }
+
+    template<typename T>
+    QList<T> eventsOfType() const
+    {
+        QList<T> result;
+        for (const Session::SessionEvent &event : events) {
+            if (const auto *typed = std::get_if<T>(&event))
+                result.append(*typed);
+        }
+        return result;
+    }
+
+    FakeChatPromptProvider promptProvider;
+    FakeLlmProvider provider;
+    Session::ConversationHistory history;
+    QList<Session::SessionEvent> events;
+    Chat::LlmChatBackend backend;
+};
+
+} // namespace
+
+void QodeAssistTest::testTurnLedgerTracksTheActiveTurn()
+{
+    Session::TurnLedger ledger;
+
+    QVERIFY(!ledger.hasActiveTurn());
+    QVERIFY(!ledger.isActiveTurn(QString()));
+    QVERIFY(!ledger.isActiveTurn("t1"));
+
+    QCOMPARE(ledger.beginTurn("t1"), QString("t1"));
+    QVERIFY(ledger.hasActiveTurn());
+    QVERIFY(ledger.isActiveTurn("t1"));
+    QVERIFY(!ledger.isActiveTurn("t2"));
+    QVERIFY(!ledger.isActiveTurn(QString()));
+
+    ledger.endTurn();
+    QVERIFY(!ledger.hasActiveTurn());
+    QVERIFY(!ledger.isActiveTurn("t1"));
+}
+
+void QodeAssistTest::testTurnLedgerDrainsPermissionsOnTurnEnd()
+{
+    Session::TurnLedger ledger;
+    ledger.beginTurn("t1");
+
+    QStringList resolved;
+    int cancelled = 0;
+
+    const QString first = ledger.registerPermission(
+        [&resolved](const QString &optionId) { resolved.append(optionId); },
+        [&cancelled] { ++cancelled; });
+    const QString second = ledger.registerPermission(
+        [&resolved](const QString &optionId) { resolved.append(optionId); },
+        [&cancelled] { ++cancelled; });
+
+    QVERIFY(first.startsWith("perm-"));
+    QVERIFY(second.startsWith("perm-"));
+    QVERIFY(first != second);
+    QCOMPARE(ledger.pendingPermissionCount(), 2);
+
+    QVERIFY(ledger.resolvePermission(first, "allow_once"));
+    QCOMPARE(resolved, QStringList{"allow_once"});
+    QVERIFY(!ledger.resolvePermission(first, "allow_once"));
+    QVERIFY(!ledger.hasPendingPermission(first));
+    QVERIFY(ledger.hasPendingPermission(second));
+
+    const QStringList drained = ledger.endTurn();
+    QCOMPARE(drained, QStringList{second});
+    QCOMPARE(cancelled, 1);
+    QCOMPARE(ledger.pendingPermissionCount(), 0);
+    QVERIFY(!ledger.resolvePermission(second, "allow_once"));
+    QCOMPARE(resolved, QStringList{"allow_once"});
+}
+
+void QodeAssistTest::testLlmBackendStreamsThroughAFakeClient()
+{
+    LlmBackendFixture fixture;
+
+    const QString turnId = fixture.send();
+    QCOMPARE(turnId, QString("fake-req-1"));
+    QVERIFY(fixture.provider.fakeClient()->lastPayload.contains("model"));
+    QVERIFY(fixture.provider.fakeClient()->lastPayload.contains("stream"));
+
+    emit fixture.provider.fakeClient()->chunkReceived(turnId, "hel");
+    emit fixture.provider.fakeClient()->chunkReceived(turnId, "lo");
+    emit fixture.provider.fakeClient()->requestCompleted(turnId, "hello");
+
+    const auto deltas = fixture.eventsOfType<Session::TextDelta>();
+    QCOMPARE(deltas.size(), 2);
+    QCOMPARE(deltas.at(0).text, QString("hel"));
+    QCOMPARE(deltas.at(1).text, QString("lo"));
+    QCOMPARE(deltas.at(0).turnId, turnId);
+
+    QCOMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+    QCOMPARE(fixture.eventsOfType<Session::TurnCompleted>().at(0).turnId, turnId);
+    QCOMPARE(fixture.eventsOfType<Session::TurnFailed>().size(), 0);
+}
+
+void QodeAssistTest::testRenderHistoryKeepsToolExchangePairs()
+{
+    LlmBackendFixture fixture;
+
+    Session::Message assistant;
+    assistant.role = Session::MessageRole::Assistant;
+    assistant.id = "r0";
+    assistant.blocks
+        = {Session::ToolCallBlock{
+               "t1",
+               "read_file",
+               QJsonObject{{"path", "main.cpp"}},
+               "int main() {}",
+               {},
+               "completed"},
+           Session::ToolCallBlock{
+               "call-9",
+               "Edit main.cpp",
+               QJsonObject{},
+               "done",
+               "edit",
+               "completed",
+               QJsonObject{},
+               true},
+           Session::TextBlock{"the answer"}};
+    fixture.history.append(assistant);
+
+    fixture.send();
+
+    QVERIFY(fixture.provider.lastContext.history.has_value());
+    const QVector<LLMCore::Message> &messages = *fixture.provider.lastContext.history;
+
+    QCOMPARE(messages.size(), 4);
+    QCOMPARE(messages.at(0).role, QString("user"));
+    QCOMPARE(messages.at(1).role, QString("assistant"));
+    QCOMPARE(messages.at(1).toolCalls.size(), 1);
+    QCOMPARE(messages.at(1).toolCalls.at(0).id, QString("t1"));
+    QCOMPARE(messages.at(1).toolCalls.at(0).name, QString("read_file"));
+    QCOMPARE(
+        messages.at(1).toolCalls.at(0).arguments, (QJsonObject{{"path", "main.cpp"}}));
+    QCOMPARE(messages.at(2).role, QString("tool"));
+    QCOMPARE(messages.at(2).toolCallId, QString("t1"));
+    QCOMPARE(messages.at(2).content, QString("int main() {}"));
+    QCOMPARE(messages.at(3).role, QString("assistant"));
+    QCOMPARE(messages.at(3).content, QString("the answer"));
+}
+
+void QodeAssistTest::testLlmBackendIgnoresEventsFromOtherRequests()
+{
+    LlmBackendFixture fixture;
+
+    const QString turnId = fixture.send();
+    QVERIFY(!turnId.isEmpty());
+
+    emit fixture.provider.fakeClient()->chunkReceived("stale-req", "ignored");
+    QCOMPARE(fixture.eventsOfType<Session::TextDelta>().size(), 0);
+
+    fixture.backend.cancel();
+
+    emit fixture.provider.fakeClient()->chunkReceived(turnId, "late");
+    QCOMPARE(fixture.eventsOfType<Session::TextDelta>().size(), 0);
+    QCOMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 0);
+}
+
+void QodeAssistTest::testLlmBackendPermissionRoundTrip()
+{
+    LlmBackendFixture fixture;
+    auto *tool = new FakeMutatingTool(&fixture.backend);
+    fixture.provider.toolsManager()->addTool(tool);
+
+    const QString turnId = fixture.send();
+
+    fixture.provider.toolsManager()->executeToolCall(turnId, "t1", "fake_write", {});
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::PermissionRequested>().size(), 1);
+    const Session::PermissionRequested request
+        = fixture.eventsOfType<Session::PermissionRequested>().at(0);
+    QCOMPARE(request.turnId, turnId);
+    QVERIFY(request.requestId.startsWith("perm-"));
+    QCOMPARE(request.toolKind, QString("fake_write"));
+    QCOMPARE(request.options.size(), 3);
+
+    QVERIFY(fixture.backend.respondPermission(request.requestId, "allow_once"));
+    QTRY_COMPARE(tool->executions, 1);
+
+    auto resolutions = fixture.eventsOfType<Session::PermissionResolved>();
+    QCOMPARE(resolutions.size(), 1);
+    QCOMPARE(resolutions.at(0).requestId, request.requestId);
+    QCOMPARE(resolutions.at(0).optionId, QString("allow_once"));
+    QVERIFY(!resolutions.at(0).cancelled);
+
+    fixture.provider.toolsManager()->executeToolCall(turnId, "t2", "fake_write", {});
+    QTRY_COMPARE(fixture.eventsOfType<Session::PermissionRequested>().size(), 2);
+    const QString second = fixture.eventsOfType<Session::PermissionRequested>().at(1).requestId;
+    QVERIFY(second != request.requestId);
+
+    QVERIFY(fixture.backend.respondPermission(second, "reject_once"));
+    QTRY_COMPARE(fixture.eventsOfType<Session::PermissionResolved>().size(), 2);
+    QCOMPARE(tool->executions, 1);
+
+    QTRY_VERIFY(
+        !fixture.eventsOfType<Session::ToolCallUpdated>().isEmpty()
+        && fixture.eventsOfType<Session::ToolCallUpdated>().constLast().toolId == QString("t2"));
+    const Session::ToolCallUpdated declined
+        = fixture.eventsOfType<Session::ToolCallUpdated>().constLast();
+    QCOMPARE(declined.toolId, QString("t2"));
+    QCOMPARE(declined.status, QString("failed"));
+    QVERIFY(declined.result.startsWith("Error: "));
+}
+
+void QodeAssistTest::testLlmBackendDrainsPermissionsWhenTheTurnEnds()
+{
+    LlmBackendFixture fixture;
+    auto *tool = new FakeMutatingTool(&fixture.backend);
+    fixture.provider.toolsManager()->addTool(tool);
+
+    QString turnId = fixture.send();
+    fixture.provider.toolsManager()->executeToolCall(turnId, "t1", "fake_write", {});
+    QTRY_COMPARE(fixture.eventsOfType<Session::PermissionRequested>().size(), 1);
+    QString requestId = fixture.eventsOfType<Session::PermissionRequested>().at(0).requestId;
+
+    emit fixture.provider.fakeClient()->requestCompleted(turnId, "done");
+
+    auto resolutions = fixture.eventsOfType<Session::PermissionResolved>();
+    QCOMPARE(resolutions.size(), 1);
+    QCOMPARE(resolutions.at(0).requestId, requestId);
+    QVERIFY(resolutions.at(0).cancelled);
+    QVERIFY(!fixture.backend.respondPermission(requestId, "allow_once"));
+    QCOMPARE(tool->executions, 0);
+
+    fixture.events.clear();
+    turnId = fixture.send();
+    fixture.provider.toolsManager()->executeToolCall(turnId, "t2", "fake_write", {});
+    QTRY_COMPARE(fixture.eventsOfType<Session::PermissionRequested>().size(), 1);
+    requestId = fixture.eventsOfType<Session::PermissionRequested>().at(0).requestId;
+
+    emit fixture.provider.fakeClient()->requestFailed(turnId, "boom");
+
+    resolutions = fixture.eventsOfType<Session::PermissionResolved>();
+    QCOMPARE(resolutions.size(), 1);
+    QVERIFY(resolutions.at(0).cancelled);
+    QVERIFY(!fixture.backend.respondPermission(requestId, "allow_once"));
+    QCOMPARE(fixture.eventsOfType<Session::TurnFailed>().size(), 1);
+
+    fixture.events.clear();
+    turnId = fixture.send();
+    fixture.provider.toolsManager()->executeToolCall(turnId, "t3", "fake_write", {});
+    QTRY_COMPARE(fixture.eventsOfType<Session::PermissionRequested>().size(), 1);
+    requestId = fixture.eventsOfType<Session::PermissionRequested>().at(0).requestId;
+
+    fixture.backend.cancel();
+
+    resolutions = fixture.eventsOfType<Session::PermissionResolved>();
+    QCOMPARE(resolutions.size(), 1);
+    QVERIFY(resolutions.at(0).cancelled);
+    QVERIFY(!fixture.backend.respondPermission(requestId, "allow_once"));
+    QCOMPARE(tool->executions, 0);
+}
+
+namespace {
+
+Acp::AgentDefinition launchableAgent(const QString &id)
+{
+    Acp::AgentDefinition agent;
+    agent.id = id;
+    agent.name = id;
+    agent.distribution.kind = Acp::AgentDistributionKind::Command;
+    agent.distribution.command = "/bin/true";
+    return agent;
+}
+
+class FakeConversationOps : public Chat::IConversationPort
+{
+public:
+    QString boundAgentId() const override { return boundId; }
+    bool conversationStarted() const override { return started; }
+    bool transcriptEmpty() const override { return transcriptIsEmpty; }
+    Acp::AgentBinding agentBinding() const override { return liveBinding; }
+
+    void bindAgent(const Acp::AgentDefinition &agent) override
+    {
+        boundId = agent.id;
+        calls.append("bindAgent:" + agent.id);
+    }
+
+    void bindLlm() override
+    {
+        boundId.clear();
+        calls.append("bindLlm");
+    }
+
+    void clearConversation() override
+    {
+        started = false;
+        calls.append("clear");
+    }
+
+    void resumeAgentSession(const QString &sessionId) override
+    {
+        calls.append("resume:" + sessionId);
+    }
+
+    void startFreshAgentSession() override { calls.append("fresh"); }
+
+    void startFreshAgentSession(const QString &handoverSummary) override
+    {
+        calls.append("freshWithSummary:" + handoverSummary);
+    }
+
+    void releaseAgentSession() override { calls.append("release"); }
+
+    QString boundId;
+    bool started = false;
+    bool transcriptIsEmpty = true;
+    Acp::AgentBinding liveBinding;
+    QStringList calls;
+};
+
+class FakeAgentCatalog : public Chat::IAgentCatalogPort
+{
+public:
+    std::optional<Acp::AgentDefinition> agentById(const QString &agentId) const override
+    {
+        const auto it = agents.constFind(agentId);
+        if (it == agents.constEnd())
+            return std::nullopt;
+        return *it;
+    }
+
+    QHash<QString, Acp::AgentDefinition> agents;
+};
+
+class FakeCompressionPort : public Chat::ICompressionPort
+{
+public:
+    QString compressionConfigurationIssue() const override { return configurationIssue; }
+    bool isCompressionRunning() const override { return running; }
+    void startTranscriptSummary() override { ++summaryStarts; }
+    void startCompression() override { ++compressionStarts; }
+
+    QString configurationIssue;
+    bool running = false;
+    int summaryStarts = 0;
+    int compressionStarts = 0;
+};
+
+class FakeSendPort : public Chat::ISendPort
+{
+public:
+    bool autoCompressEnabled() const override { return autoCompress; }
+    int autoCompressThreshold() const override { return threshold; }
+    int estimatedNextTokens() const override { return tokens; }
+
+    bool prepareChatFileForCompression(const QString &, const QStringList &) override
+    {
+        return chatFileAvailable;
+    }
+
+    void dispatch(const QString &message, const QStringList &) override
+    {
+        dispatched.append(message);
+    }
+
+    bool autoCompress = false;
+    int threshold = 1000;
+    int tokens = 0;
+    bool chatFileAvailable = true;
+    QStringList dispatched;
+};
+
+class CoordinatorFixture
+{
+public:
+    CoordinatorFixture()
+        : coordinator({&ops, &catalog, &compression, &send})
+    {
+        QObject::connect(
+            &coordinator,
+            &Chat::ConversationCoordinator::errorSurfaced,
+            &coordinator,
+            [this](const QString &message) { errors.append(message); });
+        QObject::connect(
+            &coordinator,
+            &Chat::ConversationCoordinator::switchConfirmationNeeded,
+            &coordinator,
+            [this](const QString &targetName) { confirmations.append(targetName); });
+    }
+
+    FakeConversationOps ops;
+    FakeAgentCatalog catalog;
+    FakeCompressionPort compression;
+    FakeSendPort send;
+    QStringList errors;
+    QStringList confirmations;
+    Chat::ConversationCoordinator coordinator;
+};
+
+} // namespace
+
+void QodeAssistTest::testCoordinatorSwitchConfirmAndCancelRoundTrip()
+{
+    CoordinatorFixture fixture;
+
+    fixture.coordinator.chooseAgent(launchableAgent("agent-a"));
+    QVERIFY(!fixture.coordinator.switchPending());
+    QCOMPARE(fixture.ops.calls, QStringList{"bindAgent:agent-a"});
+
+    fixture.ops.started = true;
+    fixture.ops.calls.clear();
+
+    fixture.coordinator.chooseLlm();
+    QVERIFY(fixture.coordinator.switchPending());
+    QCOMPARE(fixture.confirmations.size(), 1);
+    QVERIFY(fixture.ops.calls.isEmpty());
+
+    fixture.coordinator.cancelSwitch();
+    QVERIFY(!fixture.coordinator.switchPending());
+    QVERIFY(fixture.ops.calls.isEmpty());
+    QCOMPARE(fixture.ops.boundId, QString("agent-a"));
+
+    fixture.coordinator.chooseAgent(launchableAgent("agent-b"));
+    QVERIFY(fixture.coordinator.switchPending());
+    QCOMPARE(fixture.confirmations.size(), 2);
+
+    fixture.coordinator.confirmSwitch();
+    QVERIFY(!fixture.coordinator.switchPending());
+    QCOMPARE(fixture.ops.calls, (QStringList{"clear", "bindAgent:agent-b"}));
+    QVERIFY(!fixture.ops.started);
+
+    fixture.coordinator.confirmSwitch();
+    QCOMPARE(fixture.ops.calls, (QStringList{"clear", "bindAgent:agent-b"}));
+}
+
+void QodeAssistTest::testCoordinatorQuarantinesAndRestoresAgentBindings()
+{
+    CoordinatorFixture fixture;
+    const Acp::AgentBinding binding{"ghost-agent", "sess-1"};
+
+    fixture.coordinator.restoreAgentBinding(binding);
+
+    QVERIFY(fixture.coordinator.readOnly());
+    QVERIFY(!fixture.coordinator.canStartFreshSession());
+    QCOMPARE(fixture.coordinator.bindingForSave(), binding);
+    QCOMPARE(fixture.ops.calls, (QStringList{"release", "bindLlm"}));
+
+    fixture.ops.calls.clear();
+    fixture.catalog.agents.insert("ghost-agent", launchableAgent("ghost-agent"));
+
+    fixture.coordinator.restoreAgentBinding(binding);
+
+    QVERIFY(!fixture.coordinator.readOnly());
+    QCOMPARE(fixture.ops.calls, (QStringList{"release", "bindAgent:ghost-agent", "resume:sess-1"}));
+    fixture.ops.liveBinding = Acp::AgentBinding{"ghost-agent", "sess-1"};
+    QCOMPARE(fixture.coordinator.bindingForSave(), fixture.ops.liveBinding);
+
+    fixture.ops.calls.clear();
+    fixture.ops.started = true;
+
+    fixture.coordinator.restoreAgentBinding(Acp::AgentBinding{"ghost-agent", QString()});
+
+    QVERIFY(fixture.coordinator.readOnly());
+    QVERIFY(fixture.coordinator.canStartFreshSession());
+    QCOMPARE(fixture.ops.calls, (QStringList{"release", "bindAgent:ghost-agent"}));
+
+    fixture.coordinator.startFreshSession();
+    QVERIFY(!fixture.coordinator.readOnly());
+    QVERIFY(fixture.ops.calls.contains("fresh"));
+}
+
+void QodeAssistTest::testCoordinatorRefusesIntentsWhileReadOnly()
+{
+    CoordinatorFixture fixture;
+    fixture.coordinator.agentSessionUnavailable("gone");
+    QVERIFY(fixture.coordinator.readOnly());
+
+    fixture.coordinator.requestSend("hi", {});
+    QCOMPARE(fixture.send.dispatched.size(), 0);
+    QCOMPARE(fixture.errors.size(), 1);
+
+    QVERIFY(fixture.coordinator.refuseWhileReadOnly());
+    QCOMPARE(fixture.errors.size(), 2);
+
+    fixture.coordinator.compressionSettled();
+    QCOMPARE(fixture.send.dispatched.size(), 0);
+
+    fixture.coordinator.startFreshSession();
+    QVERIFY(!fixture.coordinator.readOnly());
+    QVERIFY(!fixture.coordinator.refuseWhileReadOnly());
+
+    fixture.coordinator.requestSend("hi again", {});
+    QCOMPARE(fixture.send.dispatched, QStringList{"hi again"});
+}
+
+void QodeAssistTest::testCoordinatorDefersTheSendForAutoCompress()
+{
+    CoordinatorFixture fixture;
+    fixture.send.autoCompress = true;
+    fixture.send.threshold = 100;
+    fixture.send.tokens = 150;
+
+    fixture.coordinator.requestSend("big message", {});
+    QCOMPARE(fixture.send.dispatched.size(), 0);
+    QCOMPARE(fixture.compression.compressionStarts, 1);
+    QVERIFY(fixture.coordinator.hasDeferredSend());
+
+    fixture.coordinator.requestSend("while compressing", {});
+    QCOMPARE(fixture.send.dispatched, QStringList{"while compressing"});
+    QCOMPARE(fixture.compression.compressionStarts, 1);
+
+    fixture.coordinator.compressionSettled();
+    QCOMPARE(fixture.send.dispatched, (QStringList{"while compressing", "big message"}));
+    QVERIFY(!fixture.coordinator.hasDeferredSend());
+
+    fixture.send.tokens = 50;
+    fixture.coordinator.requestSend("small", {});
+    QCOMPARE(fixture.send.dispatched.size(), 3);
+    QCOMPARE(fixture.compression.compressionStarts, 1);
+
+    fixture.send.tokens = 150;
+    fixture.ops.boundId = "agent-a";
+    fixture.coordinator.requestSend("agent bound", {});
+    QCOMPARE(fixture.send.dispatched.size(), 4);
+    QCOMPARE(fixture.compression.compressionStarts, 1);
+
+    fixture.ops.boundId.clear();
+    fixture.send.chatFileAvailable = false;
+    fixture.coordinator.requestSend("no chat file", {});
+    QCOMPARE(fixture.send.dispatched.size(), 5);
+    QCOMPARE(fixture.compression.compressionStarts, 1);
+}
+
+void QodeAssistTest::testCoordinatorGatesTheSummaryHandover()
+{
+    CoordinatorFixture fixture;
+    fixture.coordinator.agentSessionUnavailable("gone");
+    fixture.ops.transcriptIsEmpty = false;
+
+    QVERIFY(fixture.coordinator.canHandOverSummary());
+    fixture.coordinator.handOverSummary();
+    QCOMPARE(fixture.compression.summaryStarts, 1);
+
+    fixture.coordinator.summaryProduced("the summary");
+    QVERIFY(fixture.ops.calls.contains("freshWithSummary:the summary"));
+    QVERIFY(!fixture.coordinator.readOnly());
+
+    fixture.coordinator.agentSessionUnavailable("gone again");
+    fixture.compression.configurationIssue = "no chat configuration is assigned";
+    QVERIFY(!fixture.coordinator.canHandOverSummary());
+    QVERIFY(fixture.coordinator.summaryHandoverTooltip().contains("cannot be produced"));
+    fixture.coordinator.handOverSummary();
+    QCOMPARE(fixture.compression.summaryStarts, 1);
+
+    fixture.compression.configurationIssue.clear();
+    fixture.ops.transcriptIsEmpty = true;
+    QVERIFY(!fixture.coordinator.canHandOverSummary());
+
+    fixture.ops.transcriptIsEmpty = false;
+    fixture.compression.running = true;
+    QVERIFY(fixture.coordinator.canHandOverSummary());
+    fixture.coordinator.handOverSummary();
+    QCOMPARE(fixture.compression.summaryStarts, 1);
+    QVERIFY(!fixture.errors.isEmpty());
+}
+
+void QodeAssistTest::testCoordinatorShrinkContextRoutesByBackendKind()
+{
+    CoordinatorFixture fixture;
+    fixture.ops.transcriptIsEmpty = false;
+
+    fixture.coordinator.shrinkContext();
+    QCOMPARE(fixture.compression.compressionStarts, 1);
+    QCOMPARE(fixture.compression.summaryStarts, 0);
+
+    fixture.compression.configurationIssue = "no chat configuration is assigned";
+    QVERIFY(!fixture.coordinator.canShrinkContext());
+    fixture.coordinator.shrinkContext();
+    QCOMPARE(fixture.compression.compressionStarts, 1);
+    QCOMPARE(fixture.errors.size(), 1);
+    QVERIFY(fixture.coordinator.shrinkContextTooltip().contains("Unavailable"));
+    fixture.compression.configurationIssue.clear();
+
+    fixture.ops.boundId = "agent-a";
+    QVERIFY(fixture.coordinator.canShrinkContext());
+    fixture.coordinator.shrinkContext();
+    QCOMPARE(fixture.compression.compressionStarts, 1);
+    QCOMPARE(fixture.compression.summaryStarts, 1);
+
+    fixture.ops.transcriptIsEmpty = true;
+    QVERIFY(!fixture.coordinator.canShrinkContext());
+    fixture.coordinator.shrinkContext();
+    QCOMPARE(fixture.compression.summaryStarts, 1);
+    QVERIFY(fixture.coordinator.shrinkContextTooltip().contains("nothing to summarise"));
+
+    fixture.ops.transcriptIsEmpty = false;
+    fixture.compression.configurationIssue = "no chat configuration is assigned";
+    QVERIFY(!fixture.coordinator.canShrinkContext());
+    fixture.coordinator.shrinkContext();
+    QCOMPARE(fixture.compression.summaryStarts, 1);
+    fixture.compression.configurationIssue.clear();
+
+    fixture.compression.running = true;
+    const int errorsBeforeBusy = fixture.errors.size();
+    fixture.coordinator.shrinkContext();
+    QCOMPARE(fixture.compression.summaryStarts, 1);
+    QCOMPARE(fixture.errors.size(), errorsBeforeBusy + 1);
+
+    const int dispatchedBeforeBusySend = fixture.send.dispatched.size();
+    fixture.coordinator.requestSend("while summarising", {});
+    QCOMPARE(fixture.send.dispatched.size(), dispatchedBeforeBusySend);
+    QCOMPARE(fixture.errors.size(), errorsBeforeBusy + 2);
+    fixture.compression.running = false;
+
+    fixture.coordinator.agentSessionUnavailable("gone");
+    QVERIFY(!fixture.coordinator.canShrinkContext());
+    const int errorsBeforeReadOnly = fixture.errors.size();
+    fixture.coordinator.shrinkContext();
+    QCOMPARE(fixture.errors.size(), errorsBeforeReadOnly + 1);
+    QCOMPARE(fixture.compression.summaryStarts, 1);
+    QCOMPARE(fixture.compression.compressionStarts, 1);
+}
+
+void QodeAssistTest::testAcpBackendTracksAgentSlashCommands()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) {
+        agent->setAvailableCommandUpdates(
+            {QJsonArray{
+                 QJsonObject{
+                     {"name", QStringLiteral("help")},
+                     {"description", QStringLiteral("Show help")},
+                     {"input", QJsonObject{{"hint", QStringLiteral("topic")}}}},
+                 QJsonObject{
+                     {"name", QStringLiteral("review")},
+                     {"description", QStringLiteral("Review\nthe   diff")}}},
+             QJsonArray{
+                 QJsonObject{
+                     {"name", QStringLiteral("help")},
+                     {"description", QStringLiteral("Show help")}}}});
+    };
+
+    int changes = 0;
+    QObject::connect(
+        &fixture.backend,
+        &Acp::AcpChatBackend::availableCommandsChanged,
+        &fixture.backend,
+        [&changes] { ++changes; });
+
+    fixture.send("hi");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+    QTRY_COMPARE(fixture.backend.availableCommands().size(), 1);
+    QCOMPARE(fixture.backend.availableCommands().at(0).name, QString("help"));
+    QCOMPARE(changes, 2);
+
+    fixture.backend.clearToolSession("chat.json");
+    QCOMPARE(fixture.backend.availableCommands().size(), 0);
+    QCOMPARE(changes, 3);
+}
+
+void QodeAssistTest::testEarlyAgentCommandsSurviveEstablishment()
+{
+    AcpBackendFixture fixture;
+    fixture.configure = [](FakeAcpAgent *agent) {
+        agent->setCommandsBeforeSessionReply(
+            QJsonArray{QJsonObject{
+                {"name", QStringLiteral("help")},
+                {"description", QStringLiteral("Show help")}}});
+    };
+
+    fixture.send("hi");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+    QCOMPARE(fixture.backend.availableCommands().size(), 1);
+    QCOMPARE(fixture.backend.availableCommands().at(0).name, QString("help"));
+}
+
+void QodeAssistTest::testAgentCommandInvocationSendsPlainPrompt()
+{
+    AcpBackendFixture fixture;
+
+    fixture.send("/review src/main.cpp");
+
+    QTRY_COMPARE(fixture.eventsOfType<Session::TurnCompleted>().size(), 1);
+    QCOMPARE(fixture.agent->prompts().size(), 1);
+
+    const QJsonArray prompt = fixture.agent->prompts().at(0);
+    QCOMPARE(prompt.size(), 1);
+    QCOMPARE(prompt.at(0).toObject().value("type").toString(), QString("text"));
+    QCOMPARE(
+        prompt.at(0).toObject().value("text").toString(), QString("/review src/main.cpp"));
+}
+
+void QodeAssistTest::testFileMentionSelectionFollowsChatToolsSetting()
+{
+    auto &enableChatTools = Settings::chatAssistantSettings().enableChatTools;
+    const bool originalValue = enableChatTools();
+    const auto restore = qScopeGuard(
+        [&] { enableChatTools.setValue(originalValue, Utils::BaseAspect::BeQuiet); });
+
+    Chat::FileMentionItem item;
+    QStringList attachRequests;
+    connect(
+        &item,
+        &Chat::FileMentionItem::fileAttachRequested,
+        this,
+        [&attachRequests](const QStringList &paths) { attachRequests += paths; });
+
+    enableChatTools.setValue(true, Utils::BaseAspect::BeQuiet);
+    QVariantMap result = item.handleFileSelection("/proj/src/main.cpp", "src/main.cpp", "proj", "main");
+    QCOMPARE(result.value("mode").toString(), QString("mention"));
+    QCOMPARE(result.value("mentionText").toString(), QString("@main.cpp "));
+    QVERIFY(attachRequests.isEmpty());
+
+    enableChatTools.setValue(false, Utils::BaseAspect::BeQuiet);
+    result = item.handleFileSelection("/proj/src/main.cpp", "src/main.cpp", "proj", "main");
+    QCOMPARE(result.value("mode").toString(), QString("attach"));
+    QCOMPARE(attachRequests, QStringList{"/proj/src/main.cpp"});
+}
+
+void QodeAssistTest::testChatModelExposesSessionRowsDirectly()
+{
+    Chat::ChatModel model;
+
+    Session::MessageRow tool;
+    tool.kind = Session::RowKind::AgentTool;
+    tool.id = "t1";
+    tool.toolKind = "edit";
+    tool.toolStatus = "completed";
+    tool.toolDetails = QJsonObject{{"diffs", QJsonArray{QJsonObject{{"path", "/p/main.cpp"}}}}};
+    tool.usage = Session::Usage{10, 5, 0, 0};
+
+    model.resetMessages({tool});
+
+    QCOMPARE(model.rowCount(), 1);
+    QCOMPARE(
+        model.data(model.index(0), Chat::ChatModel::RoleType).value<Chat::ChatModel::ChatRole>(),
+        Chat::ChatModel::ChatRole::Tool);
+    QCOMPARE(model.data(model.index(0), Chat::ChatModel::ToolKind).toString(), QString("edit"));
+
+    const QVariant details = model.data(model.index(0), Chat::ChatModel::ToolDetails);
+    QCOMPARE(details.value<QJsonObject>(), tool.toolDetails);
+    QVERIFY(details.toMap().contains("diffs"));
+
+    QCOMPARE(model.data(model.index(0), Chat::ChatModel::PromptTokens).toInt(), 10);
+    QCOMPARE(model.data(model.index(0), Chat::ChatModel::TotalTokens).toInt(), 15);
+
+    Session::MessageRow updated = tool;
+    updated.toolStatus = "failed";
+    model.updateMessage(0, updated);
+    QCOMPARE(model.data(model.index(0), Chat::ChatModel::ToolStatus).toString(), QString("failed"));
+}
+
+void QodeAssistTest::testBlockCodecRejectsForgedMarkers()
+{
+    const QJsonObject payload{{"key", "value"}};
+
+    for (const QLatin1StringView marker : Session::knownPayloadMarkers()) {
+        const QString encoded = Session::encodeMarkerPayload(marker, payload);
+        QVERIFY(encoded.startsWith(marker));
+        QVERIFY(Session::hasPayloadMarker(marker, encoded));
+
+        const auto decoded = Session::decodeMarkerPayload(marker, encoded);
+        QVERIFY(decoded.has_value());
+        QCOMPARE(*decoded, payload);
+
+        QVERIFY(!Session::hasPayloadMarker(marker, QStringLiteral(" ") + encoded));
+        QVERIFY(!Session::decodeMarkerPayload(marker, QStringLiteral(" ") + encoded));
+        QVERIFY(!Session::decodeMarkerPayload(marker, QStringLiteral("echoed: ") + encoded));
+        QVERIFY(!Session::decodeMarkerPayload(marker, QString(marker)));
+        QVERIFY(!Session::decodeMarkerPayload(marker, marker + QStringLiteral("not json")));
+        QVERIFY(!Session::decodeMarkerPayload(marker, marker + QStringLiteral("[1, 2]")));
+    }
+}
+
+void QodeAssistTest::testFileEditParsingRequiresTheMarkerAtTheStart()
+{
+    const QString encoded = Session::encodeFileEditPayload(QJsonObject{{"edit_id", "e1"}});
+
+    QVERIFY(Session::isFileEditPayload(encoded));
+    const auto parsed = Session::parseFileEditPayload(encoded);
+    QVERIFY(parsed.has_value());
+    QCOMPARE(parsed->value("edit_id").toString(), QString("e1"));
+
+    const QString echoed = QStringLiteral("tool result quoting ") + encoded;
+    QVERIFY(!Session::isFileEditPayload(echoed));
+    QVERIFY(!Session::parseFileEditPayload(echoed));
+}
+
+void QodeAssistTest::testPermissionOptionsCarryAllowsAcrossTheSeam()
+{
+    Session::PermissionBlock block;
+    block.requestId = "p1";
+    block.title = "Edit main.cpp";
+    block.options
+        = {Session::PermissionOption{"a", "Allow", "allow_once"},
+           Session::PermissionOption{"b", "Always", "allow_always"},
+           Session::PermissionOption{"c", "Deny", "reject_once"}};
+
+    const QString encoded = Session::encodePermissionBlock(block);
+    const auto payload = Session::decodeMarkerPayload(Session::permissionPayloadMarker, encoded);
+    QVERIFY(payload.has_value());
+
+    const QJsonArray options = payload->value("options").toArray();
+    QCOMPARE(options.size(), 3);
+    QCOMPARE(options.at(0).toObject().value("allows").toBool(), true);
+    QCOMPARE(options.at(1).toObject().value("allows").toBool(), true);
+    QCOMPARE(options.at(2).toObject().value("allows").toBool(), false);
+
+    const auto decoded = Session::decodePermissionBlock(encoded);
+    QVERIFY(decoded.has_value());
+    QCOMPARE(decoded->options, block.options);
+}
+
+void QodeAssistTest::testChatFileStoreRoundTripsStoredContent()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+
+    const QString chatFilePath = dir.filePath("chat.json");
+    const QByteArray original = QByteArrayLiteral("int main() { return 0; }\n");
+
+    QString storedPath;
+    QVERIFY(Chat::ChatFileStore::saveContentToStorage(
+        chatFilePath, "main.cpp", QString::fromLatin1(original.toBase64()), storedPath));
+    QVERIFY(!storedPath.isEmpty());
+
+    QCOMPARE(Chat::ChatFileStore::loadRawContentFromStorage(chatFilePath, storedPath), original);
+    QCOMPARE(
+        Chat::ChatFileStore::loadContentFromStorage(chatFilePath, storedPath),
+        QString::fromLatin1(original.toBase64()));
+
+    const QString contentFolder = Chat::ChatFileStore::getChatContentFolder(chatFilePath);
+    QVERIFY(QFileInfo(QDir(contentFolder).filePath(storedPath)).exists());
+}
+
+void QodeAssistTest::testLegacyChatFileLoadsThroughTheFileStore()
+{
+    QTemporaryDir dir;
+    QVERIFY(dir.isValid());
+
+    QJsonObject root;
+    root["version"] = "0.2";
+    root["messages"] = QJsonArray{
+        QJsonObject{{"role", 1}, {"content", "explain this"}, {"id", "u1"}},
+        QJsonObject{{"role", 2}, {"content", "here is the answer"}, {"id", "r1"}}};
+
+    const QString filePath = dir.filePath("legacy.json");
+    QFile file(filePath);
+    QVERIFY(file.open(QIODevice::WriteOnly));
+    file.write(QJsonDocument(root).toJson());
+    file.close();
+
+    Session::ConversationHistory history;
+    Acp::AgentBinding binding;
+    const Chat::SerializationResult result
+        = Chat::ChatFileStore::loadFromFile(history, binding, filePath);
+
+    QVERIFY(result.success);
+    QVERIFY(result.warningMessage.isEmpty());
+    QVERIFY(binding.isEmpty());
+    QCOMPARE(history.size(), 2);
+    QCOMPARE(history.at(0).role, Session::MessageRole::User);
+    QCOMPARE(
+        std::get<Session::TextBlock>(history.at(0).blocks.at(0)),
+        (Session::TextBlock{"explain this"}));
+    QCOMPARE(history.at(1).role, Session::MessageRole::Assistant);
+}
+
+void QodeAssistTest::testPickerObservesTheSharedAgentCatalog()
+{
+    Acp::AgentCatalogStore store;
+    Chat::ChatConfigurationController controller;
+
+    QSignalSpy listChanged(
+        &controller, &Chat::ChatConfigurationController::availableConfigurationsChanged);
+
+    controller.setAgentCatalog(&store);
+    QVERIFY(listChanged.count() >= 1);
+    QVERIFY(!controller.availableConfigurations().isEmpty());
+
+    const int before = listChanged.count();
+    emit store.catalogChanged();
+    QCOMPARE(listChanged.count(), before + 1);
+
+    controller.setAgentCatalog(&store);
+    QCOMPARE(listChanged.count(), before + 1);
 }
 
 } // namespace QodeAssist
