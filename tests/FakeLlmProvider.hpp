@@ -150,11 +150,15 @@ public:
     void prepareRequest(
         QJsonObject &,
         Templates::PromptTemplate *,
-        LLMCore::ContextData,
+        LLMCore::ContextData context,
         LLMCore::RequestType,
         bool,
         bool) override
-    {}
+    {
+        lastContext = context;
+    }
+
+    LLMCore::ContextData lastContext;
 
     QFuture<QList<QString>> getInstalledModels(const QString &) override
     {

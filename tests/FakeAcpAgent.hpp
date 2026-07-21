@@ -62,10 +62,17 @@ public:
             m_offeredMcpServers = message.value("params").toObject().value("mcpServers").toArray();
             if (m_hangOnNewSession)
                 return;
-            if (m_requireAuthentication && !m_authenticated)
+            if (m_requireAuthentication && !m_authenticated) {
                 replyError(message, -32000, QStringLiteral("Authentication required"));
-            else
+            } else {
+                if (!m_commandsBeforeSessionReply.isEmpty()) {
+                    postUpdate(
+                        QJsonObject{
+                            {"sessionUpdate", QStringLiteral("available_commands_update")},
+                            {"availableCommands", m_commandsBeforeSessionReply}});
+                }
                 reply(message, QJsonObject{{"sessionId", m_sessionId}});
+            }
         } else if (method == QLatin1String("session/load")) {
             m_loadedSessionId = message.value("params").toObject().value("sessionId").toString();
             if (m_loadSessionError.isEmpty())
@@ -103,6 +110,14 @@ public:
 
     void setToolCallUpdates(const QList<QJsonObject> &updates) { m_toolCalls = updates; }
     void setPlanUpdates(const QList<QJsonArray> &plans) { m_plans = plans; }
+    void setAvailableCommandUpdates(const QList<QJsonArray> &updates)
+    {
+        m_availableCommandUpdates = updates;
+    }
+    void setCommandsBeforeSessionReply(const QJsonArray &commands)
+    {
+        m_commandsBeforeSessionReply = commands;
+    }
     void setPromptUsage(const QJsonObject &usage) { m_promptUsage = usage; }
     void setContextGauge(const QJsonObject &gauge) { m_contextGauge = gauge; }
     void setSuggestedTitle(const QString &title) { m_suggestedTitle = title; }
@@ -161,6 +176,13 @@ private:
 
         for (const QJsonArray &entries : m_plans)
             postUpdate(QJsonObject{{"sessionUpdate", QStringLiteral("plan")}, {"entries", entries}});
+
+        for (const QJsonArray &commands : m_availableCommandUpdates) {
+            postUpdate(
+                QJsonObject{
+                    {"sessionUpdate", QStringLiteral("available_commands_update")},
+                    {"availableCommands", commands}});
+        }
 
         if (!m_contextGauge.isEmpty()) {
             QJsonObject update = m_contextGauge;
@@ -290,6 +312,8 @@ private:
     QList<QJsonObject> m_permissionOutcomes;
     QList<QJsonObject> m_toolCalls;
     QList<QJsonArray> m_plans;
+    QList<QJsonArray> m_availableCommandUpdates;
+    QJsonArray m_commandsBeforeSessionReply;
     QJsonObject m_promptUsage;
     QJsonObject m_contextGauge;
     QString m_suggestedTitle;

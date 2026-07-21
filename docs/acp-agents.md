@@ -104,3 +104,11 @@ Select an agent and press **Test**. QodeAssist starts the process, runs the ACP
 whether it supports session persistence (`loadSession`), its prompt and MCP
 capabilities, and its authentication methods. On failure it shows the error together
 with the agent's own output.
+
+## Long conversations and reopened sessions
+
+When an agent conversation grows long, the **Hand over** button in the chat bottom
+bar summarizes the transcript with your Chat Assistant configuration and continues in
+a fresh agent session seeded with that summary — see
+[chat-summarization.md](chat-summarization.md) for details. The same handover is
+offered on the read-only banner when a saved agent session can no longer be resumed.

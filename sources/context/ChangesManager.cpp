@@ -139,6 +139,43 @@ void ChangesManager::addFileEdit(
     }
 }
 
+void ChangesManager::registerAppliedFileEdit(
+    const QString &editId,
+    const QString &filePath,
+    const QString &oldContent,
+    const QString &newContent,
+    const QString &requestId)
+{
+    QMutexLocker locker(&m_mutex);
+
+    if (m_fileEdits.contains(editId)) {
+        LOG_MESSAGE(QString("File edit already exists, skipping: %1").arg(editId));
+        return;
+    }
+
+    FileEdit edit;
+    edit.editId = editId;
+    edit.filePath = filePath;
+    edit.oldContent = oldContent;
+    edit.newContent = newContent;
+    edit.timestamp = QDateTime::currentDateTime();
+    edit.wasAutoApplied = true;
+    edit.isFromHistory = false;
+    edit.status = Applied;
+    edit.statusMessage = "Applied by agent";
+
+    m_fileEdits.insert(editId, edit);
+
+    if (!requestId.isEmpty())
+        m_requestEdits[requestId].editIds.append(editId);
+
+    locker.unlock();
+    emit fileEditAdded(editId);
+
+    LOG_MESSAGE(QString("Agent file edit registered as applied: %1 for file %2")
+                    .arg(editId, filePath));
+}
+
 bool ChangesManager::applyFileEdit(const QString &editId)
 {
     QMutexLocker locker(&m_mutex);

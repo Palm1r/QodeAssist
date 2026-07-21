@@ -40,13 +40,11 @@ Rectangle {
     readonly property bool isArchived: editStatus === "archived"
 
     readonly property color appliedColor: Qt.rgba(0.2, 0.8, 0.2, 0.8)
-    readonly property color revertedColor: Qt.rgba(0.8, 0.6, 0.2, 0.8)
     readonly property color rejectedColor: Qt.rgba(0.8, 0.2, 0.2, 0.8)
     readonly property color archivedColor: Qt.rgba(0.5, 0.5, 0.5, 0.8)
     readonly property color pendingColor: palette.highlight
 
     readonly property color appliedBgColor: Qt.rgba(0.2, 0.8, 0.2, 0.3)
-    readonly property color revertedBgColor: Qt.rgba(0.8, 0.6, 0.2, 0.3)
     readonly property color rejectedBgColor: Qt.rgba(0.8, 0.2, 0.2, 0.3)
     readonly property color archivedBgColor: Qt.rgba(0.5, 0.5, 0.5, 0.3)
 

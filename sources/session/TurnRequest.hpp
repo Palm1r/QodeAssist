@@ -14,20 +14,11 @@
 
 namespace QodeAssist::Session {
 
-struct TurnOptions
-{
-    bool useTools = false;
-    bool useThinking = false;
-
-    bool operator==(const TurnOptions &other) const = default;
-};
-
 struct TurnRequest
 {
     QList<ContentBlock> userBlocks;
     const ConversationHistory *history = nullptr;
     std::optional<TurnContext> context;
-    TurnOptions options;
 };
 
 } // namespace QodeAssist::Session

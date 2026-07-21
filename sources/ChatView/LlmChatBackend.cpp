@@ -85,8 +85,8 @@ void LlmChatBackend::sendTurn(const Session::TurnRequest &request)
         promptTemplate,
         context,
         LLMCore::RequestType::Chat,
-        request.options.useTools,
-        request.options.useThinking);
+        Settings::chatAssistantSettings().enableChatTools(),
+        Settings::chatAssistantSettings().enableThinkingMode());
 
     provider->client()->setMaxToolContinuations(Settings::toolsSettings().maxToolContinuations());
     provider->client()->setTransferTimeout(
@@ -519,10 +519,11 @@ void LlmChatBackend::handleToolStarted(
         return;
 
     emit sessionEvent(
-        Session::ToolCallStarted{
+        Session::ToolCallUpdated{
             .turnId = requestId,
             .toolId = toolId,
             .name = toolName,
+            .status = QStringLiteral("in_progress"),
             .arguments = arguments,
             .dropPrecedingText = m_dropPreToolText});
 }
@@ -536,9 +537,14 @@ void LlmChatBackend::handleToolResult(
     if (!m_ledger.isActiveTurn(requestId))
         return;
 
+    const bool failed = toolOutput.startsWith(QLatin1String("Error: "));
     emit sessionEvent(
-        Session::ToolCallCompleted{
-            .turnId = requestId, .toolId = toolId, .name = toolName, .result = toolOutput});
+        Session::ToolCallUpdated{
+            .turnId = requestId,
+            .toolId = toolId,
+            .name = toolName,
+            .status = failed ? QStringLiteral("failed") : QStringLiteral("completed"),
+            .result = toolOutput});
 }
 
 } // namespace QodeAssist::Chat

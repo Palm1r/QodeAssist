@@ -64,7 +64,7 @@ ToolCallBlock toolCallOf(const MessageRow &row)
         row.toolArguments,
         row.toolResult,
         row.toolKind,
-        row.toolStatus,
+        restoredToolStatus(row.toolStatus),
         row.toolDetails,
         row.kind == RowKind::AgentTool};
     if (block.name.isEmpty() && block.result.isEmpty())
@@ -86,6 +86,19 @@ RowKind textRowKind(MessageRole role)
 }
 
 } // namespace
+
+bool isTerminalToolStatus(const QString &status)
+{
+    return status.isEmpty() || status == QLatin1String("completed")
+           || status == QLatin1String("failed") || status == QLatin1String("interrupted");
+}
+
+QString restoredToolStatus(QString status)
+{
+    if (!isTerminalToolStatus(status))
+        return QStringLiteral("interrupted");
+    return status;
+}
 
 bool isTranscriptOnlyRow(RowKind kind)
 {

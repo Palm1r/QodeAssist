@@ -154,7 +154,7 @@ std::optional<ContentBlock> blockFromJson(const QJsonObject &json)
             json["arguments"].toObject(),
             json["result"].toString(),
             json["kind"].toString(),
-            json["status"].toString(),
+            restoredToolStatus(json["status"].toString()),
             json["details"].toObject(),
             json["fromAgent"].toBool(false)}};
     }

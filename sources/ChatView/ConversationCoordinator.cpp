@@ -13,16 +13,22 @@ ConversationCoordinator::ConversationCoordinator(const Ports &ports, QObject *pa
     , m_ports(ports)
 {}
 
-void ConversationCoordinator::requestSend(
-    const QString &message, const QStringList &attachments, bool useTools, bool useThinking)
+void ConversationCoordinator::requestSend(const QString &message, const QStringList &attachments)
 {
     if (refuseWhileReadOnly())
         return;
 
-    if (deferSendForAutoCompress(message, attachments, useTools, useThinking))
+    if (!m_ports.ops->boundAgentId().isEmpty()
+        && m_ports.compression->isCompressionRunning()) {
+        emit errorSurfaced(
+            tr("A handover summary is being prepared; wait for it to finish before sending"));
+        return;
+    }
+
+    if (deferSendForAutoCompress(message, attachments))
         return;
 
-    m_ports.send->dispatch(message, attachments, useTools, useThinking);
+    m_ports.send->dispatch(message, attachments);
 }
 
 bool ConversationCoordinator::refuseWhileReadOnly()
@@ -40,7 +46,7 @@ bool ConversationCoordinator::hasDeferredSend() const
 }
 
 bool ConversationCoordinator::deferSendForAutoCompress(
-    const QString &message, const QStringList &attachments, bool useTools, bool useThinking)
+    const QString &message, const QStringList &attachments)
 {
     if (!m_ports.ops->boundAgentId().isEmpty())
         return false;
@@ -63,7 +69,7 @@ bool ConversationCoordinator::deferSendForAutoCompress(
                     .arg(inputTokens)
                     .arg(threshold));
 
-    m_deferredSend = {message, attachments, useTools, useThinking, true};
+    m_deferredSend = {message, attachments, true};
     m_ports.compression->startCompression();
     return true;
 }
@@ -79,8 +85,7 @@ void ConversationCoordinator::compressionSettled()
     if (refuseWhileReadOnly())
         return;
 
-    m_ports.send->dispatch(
-        deferred.message, deferred.attachments, deferred.useTools, deferred.useThinking);
+    m_ports.send->dispatch(deferred.message, deferred.attachments);
 }
 
 void ConversationCoordinator::chooseAgent(const Acp::AgentDefinition &agent)
@@ -263,6 +268,59 @@ void ConversationCoordinator::handOverSummary()
     m_ports.compression->startTranscriptSummary();
 }
 
+void ConversationCoordinator::shrinkContext()
+{
+    if (refuseWhileReadOnly())
+        return;
+
+    if (!canShrinkContext()) {
+        emit errorSurfaced(shrinkContextTooltip());
+        return;
+    }
+
+    if (m_ports.ops->boundAgentId().isEmpty()) {
+        m_ports.compression->startCompression();
+        return;
+    }
+
+    if (m_ports.compression->isCompressionRunning()) {
+        emit errorSurfaced(tr("A summary is already being prepared"));
+        return;
+    }
+
+    m_ports.compression->startTranscriptSummary();
+}
+
+bool ConversationCoordinator::canShrinkContext() const
+{
+    if (readOnly())
+        return false;
+
+    if (!m_ports.compression->compressionConfigurationIssue().isEmpty())
+        return false;
+
+    if (m_ports.ops->boundAgentId().isEmpty())
+        return true;
+
+    return !m_ports.ops->transcriptEmpty();
+}
+
+QString ConversationCoordinator::shrinkContextTooltip() const
+{
+    const QString issue = m_ports.compression->compressionConfigurationIssue();
+    if (!issue.isEmpty()) {
+        return tr("Unavailable because %1. Assign the chat feature in the settings.").arg(issue);
+    }
+
+    if (m_ports.ops->boundAgentId().isEmpty())
+        return tr("Compress chat (create summarized copy using LLM)");
+
+    if (m_ports.ops->transcriptEmpty())
+        return tr("There is nothing to summarise yet.");
+
+    return tr("Summarise this conversation and hand it to a fresh agent session as context.");
+}
+
 void ConversationCoordinator::summaryProduced(const QString &summary)
 {
     m_ports.ops->startFreshAgentSession(summary);
@@ -274,7 +332,7 @@ QString ConversationCoordinator::agentTitle() const
     return m_agentTitle;
 }
 
-void ConversationCoordinator::agentTitleSuggested(const QString &title)
+void ConversationCoordinator::titleSuggested(const QString &title)
 {
     if (m_agentTitle == title)
         return;

@@ -29,8 +29,7 @@ public:
 
     explicit ConversationCoordinator(const Ports &ports, QObject *parent = nullptr);
 
-    void requestSend(
-        const QString &message, const QStringList &attachments, bool useTools, bool useThinking);
+    void requestSend(const QString &message, const QStringList &attachments);
     bool refuseWhileReadOnly();
     bool hasDeferredSend() const;
 
@@ -52,12 +51,16 @@ public:
     void startFreshSession();
     void handOverSummary();
 
+    void shrinkContext();
+    bool canShrinkContext() const;
+    QString shrinkContextTooltip() const;
+
     QString agentTitle() const;
 
     void conversationReset();
 
 public slots:
-    void agentTitleSuggested(const QString &title);
+    void titleSuggested(const QString &title);
     void agentSessionUnavailable(const QString &reason);
     void summaryProduced(const QString &summary);
     void compressionSettled();
@@ -76,14 +79,11 @@ private:
     {
         QString message;
         QStringList attachments;
-        bool useTools = false;
-        bool useThinking = false;
         bool active = false;
     };
 
     void setSessionIssue(const QString &issue, bool recoverable);
-    bool deferSendForAutoCompress(
-        const QString &message, const QStringList &attachments, bool useTools, bool useThinking);
+    bool deferSendForAutoCompress(const QString &message, const QStringList &attachments);
     void bindAgentNow(const Acp::AgentDefinition &agent);
     void bindLlmNow();
 

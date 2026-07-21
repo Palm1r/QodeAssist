@@ -9,7 +9,6 @@ import QtQuick.Layouts
 Rectangle {
     id: root
 
-    // Object exposing Q_INVOKABLE QVariantList searchSkills(query).
     property var skillProvider: null
     property var searchResults: []
     property int currentIndex: 0
@@ -25,7 +24,7 @@ Rectangle {
     radius: 4
 
     function updateSearch(query) {
-        searchResults = skillProvider ? skillProvider.searchSkills(query) : []
+        searchResults = skillProvider ? skillProvider.searchSlashCommands(query) : []
         currentIndex = 0
     }
 
@@ -87,19 +86,55 @@ Rectangle {
                 anchors.bottomMargin: 4
                 spacing: 1
 
-                Text {
+                RowLayout {
                     Layout.fillWidth: true
-                    text: "/" + delegateItem.modelData.name
-                    color: delegateItem.index === root.currentIndex
-                           ? palette.highlightedText
-                           : palette.text
-                    font.bold: true
-                    elide: Text.ElideRight
+                    spacing: 6
+
+                    Text {
+                        Layout.fillWidth: true
+                        text: "/" + delegateItem.modelData.name
+                        textFormat: Text.PlainText
+                        color: delegateItem.index === root.currentIndex
+                               ? palette.highlightedText
+                               : palette.text
+                        font.bold: true
+                        elide: Text.ElideRight
+                    }
+
+                    Rectangle {
+                        visible: sourceBadge.text.length > 0
+                        implicitWidth: Math.min(sourceBadge.implicitWidth + 10, 140)
+                        implicitHeight: sourceBadge.implicitHeight + 2
+                        radius: height / 2
+                        color: delegateItem.index === root.currentIndex
+                               ? Qt.rgba(palette.highlightedText.r,
+                                         palette.highlightedText.g,
+                                         palette.highlightedText.b, 0.2)
+                               : palette.alternateBase
+
+                        Text {
+                            id: sourceBadge
+
+                            anchors.fill: parent
+                            anchors.leftMargin: 5
+                            anchors.rightMargin: 5
+                            verticalAlignment: Text.AlignVCenter
+                            horizontalAlignment: Text.AlignHCenter
+                            text: delegateItem.modelData.source || ""
+                            textFormat: Text.PlainText
+                            elide: Text.ElideRight
+                            color: delegateItem.index === root.currentIndex
+                                   ? palette.highlightedText
+                                   : palette.mid
+                            font.pixelSize: 10
+                        }
+                    }
                 }
 
                 Text {
                     Layout.fillWidth: true
                     text: delegateItem.modelData.description
+                    textFormat: Text.PlainText
                     color: delegateItem.index === root.currentIndex
                            ? Qt.rgba(palette.highlightedText.r,
                                      palette.highlightedText.g,

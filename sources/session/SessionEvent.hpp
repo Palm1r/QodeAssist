@@ -41,27 +41,6 @@ struct ThinkingReceived
     bool operator==(const ThinkingReceived &other) const = default;
 };
 
-struct ToolCallStarted
-{
-    QString turnId;
-    QString toolId;
-    QString name;
-    QJsonObject arguments;
-    bool dropPrecedingText = false;
-
-    bool operator==(const ToolCallStarted &other) const = default;
-};
-
-struct ToolCallCompleted
-{
-    QString turnId;
-    QString toolId;
-    QString name;
-    QString result;
-
-    bool operator==(const ToolCallCompleted &other) const = default;
-};
-
 struct ToolCallUpdated
 {
     QString turnId;
@@ -69,8 +48,11 @@ struct ToolCallUpdated
     QString name;
     QString kind;
     QString status;
+    QJsonObject arguments;
     QString result;
     QJsonObject details;
+    bool dropPrecedingText = false;
+    bool fromAgent = false;
 
     bool operator==(const ToolCallUpdated &other) const = default;
 };
@@ -113,6 +95,13 @@ struct UsageReported
     bool operator==(const UsageReported &other) const = default;
 };
 
+struct SessionInfo
+{
+    QString title;
+
+    bool operator==(const SessionInfo &other) const = default;
+};
+
 struct TurnCompleted
 {
     QString turnId;
@@ -132,13 +121,12 @@ using SessionEvent = std::variant<
     TurnStarted,
     TextDelta,
     ThinkingReceived,
-    ToolCallStarted,
-    ToolCallCompleted,
     ToolCallUpdated,
     PlanUpdated,
     PermissionRequested,
     PermissionResolved,
     UsageReported,
+    SessionInfo,
     TurnCompleted,
     TurnFailed>;
 

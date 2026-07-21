@@ -69,7 +69,7 @@ ChatRootView {
         anchors.bottomMargin: bottomBar.height
 
         active: root.isCompressing
-        text: qsTr("Compressing chat…")
+        text: root.isAgentBound ? qsTr("Preparing the handover summary…") : qsTr("Compressing chat…")
     }
 
     ColumnLayout {
@@ -131,19 +131,6 @@ ChatRootView {
             relocateTooltip.text: (typeof _chatview !== 'undefined')
                                    ? qsTr("Move this chat to an editor tab")
                                    : qsTr("Move this chat to a separate window")
-            toolsButton {
-                checked: root.useTools
-                onCheckedChanged: {
-                    root.useTools = toolsButton.checked
-                }
-            }
-            thinkingMode {
-                checked: root.useThinking
-                enabled: root.isThinkingSupport
-                onCheckedChanged: {
-                    root.useThinking = thinkingMode.checked
-                }
-            }
             settingsButton.onClicked: root.openSettings()
             configSelector {
                 model: root.availableConfigurations
@@ -527,20 +514,7 @@ ChatRootView {
                         }
                     }
                     fileMentionPopup.dismiss()
-
-                    const slashIndex = root.isAgentBound ? -1 : textBefore.lastIndexOf('/')
-                    if (slashIndex >= 0) {
-                        const beforeSlash = slashIndex === 0
-                                            ? ' '
-                                            : textBefore.charAt(slashIndex - 1)
-                        const skillQuery = textBefore.substring(slashIndex + 1)
-                        if ((beforeSlash === ' ' || beforeSlash === '\n')
-                                && /^[a-z0-9-]*$/.test(skillQuery)) {
-                            skillCommandPopup.updateSearch(skillQuery)
-                            return
-                        }
-                    }
-                    skillCommandPopup.dismiss()
+                    root.refreshSlashPopup()
                 }
 
                 Keys.onPressed: function(event) {
@@ -657,6 +631,7 @@ ChatRootView {
 
             isCompressing: root.isCompressing
             isProcessing: root.isRequestInProgress
+            agentMode: root.isAgentBound
             sendButton.onClicked: !root.isRequestInProgress ? root.sendChatMessage()
                                                             : root.cancelRequest()
             sendButton.icon.source: root.isRequestInProgress
@@ -672,6 +647,9 @@ ChatRootView {
                                        ? root.lastErrorMessage
                                        : qsTr("Send message to LLM %1").arg(root.sendShortcutText))
             compressButton.onClicked: compressConfirmDialog.open()
+            compressButton.enabled: root.canShrinkContext
+            compressButton.text: root.isAgentBound ? qsTr("Hand over") : qsTr("Compress")
+            compressTooltip.text: root.shrinkContextTooltip
             cancelCompressButton.onClicked: root.cancelCompression()
             attachFiles.onClicked: root.showAttachFilesDialog()
             attachImages.onClicked: root.showAddImageDialog()
@@ -715,11 +693,34 @@ ChatRootView {
 
     function applyMentionSelection() {
         var result = fileMentionPopup.applyCurrentSelection(
-            messageInput.text, messageInput.cursorPosition, root.useTools)
+            messageInput.text, messageInput.cursorPosition)
         if (result.text !== undefined) {
             messageInput.text = result.text
             messageInput.cursorPosition = result.cursorPosition
         }
+    }
+
+    onSlashCommandsChanged: {
+        if (skillCommandPopup.visible)
+            refreshSlashPopup()
+    }
+
+    function refreshSlashPopup() {
+        const cursorPos = messageInput.cursorPosition
+        const textBefore = messageInput.text.substring(0, cursorPos)
+        const slashIndex = textBefore.lastIndexOf('/')
+        if (slashIndex >= 0) {
+            const beforeSlash = slashIndex === 0
+                                ? ' '
+                                : textBefore.charAt(slashIndex - 1)
+            const skillQuery = textBefore.substring(slashIndex + 1)
+            if ((beforeSlash === ' ' || beforeSlash === '\n')
+                    && /^\S*$/.test(skillQuery)) {
+                skillCommandPopup.updateSearch(skillQuery)
+                return
+            }
+        }
+        skillCommandPopup.dismiss()
     }
 
     function applySkillSelection() {
@@ -775,12 +776,14 @@ ChatRootView {
         id: compressConfirmDialog
 
         anchors.centerIn: parent
-        title: qsTr("Compress Chat")
+        title: root.isAgentBound ? qsTr("Hand Over Session") : qsTr("Compress Chat")
         modal: true
         standardButtons: Dialog.Yes | Dialog.No
 
         Label {
-            text: qsTr("Create a summarized copy of this chat?\n\nThe summary will be generated by LLM and saved as a new chat file.")
+            text: root.isAgentBound
+                  ? qsTr("Summarise this conversation and continue in a fresh agent session?\n\nThe summary will be generated by the LLM chat configuration and given to the new session as context.")
+                  : qsTr("Create a summarized copy of this chat?\n\nThe summary will be generated by LLM and saved as a new chat file.")
             wrapMode: Text.WordWrap
         }
 

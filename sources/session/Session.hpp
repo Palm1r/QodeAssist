@@ -39,9 +39,7 @@ public:
     void truncateRows(int rowIndex);
 
     void sendTurn(
-        const QList<ContentBlock> &userBlocks,
-        const std::optional<TurnContext> &context,
-        const TurnOptions &options);
+        const QList<ContentBlock> &userBlocks, const std::optional<TurnContext> &context);
     void cancel();
 
     void respondPermission(const QString &requestId, const QString &optionId);
@@ -59,10 +57,17 @@ signals:
     void turnFinished(const QString &turnId);
     void turnFailed(const QString &error);
     void usageReceived(const QodeAssist::Session::Usage &usage);
+    void sessionInfoReceived(const QString &title);
+    void agentFileEditRecorded(
+        const QString &turnId,
+        const QString &editId,
+        const QString &filePath,
+        const QString &oldContent,
+        const QString &newContent);
 
 private:
     void handleEvent(const SessionEvent &event);
-    void applyAgentToolCall(const ToolCallUpdated &update);
+    void applyToolCall(const ToolCallUpdated &update);
     void applyAgentPlan(const PlanUpdated &plan);
     bool refreshAssistantBlockRow(const ContentBlock &block, RowKind kind, const QString &rowId);
     void applyPermissionRequest(const PermissionRequested &request);

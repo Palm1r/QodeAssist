@@ -8,6 +8,7 @@
 #include <QFileInfo>
 #include <QMimeDatabase>
 
+#include <projectexplorer/project.h>
 #include <projectexplorer/projectmanager.h>
 #include <utils/filepath.h>
 
@@ -51,16 +52,22 @@ ChatController::ChatController(
     m_acpBackend->setKnowledgeService(m_agentKnowledge);
 
     connect(
-        m_acpBackend,
-        &Acp::AcpChatBackend::agentTitleSuggested,
+        m_session,
+        &Session::Session::sessionInfoReceived,
         this,
-        &ChatController::agentTitleSuggested);
+        &ChatController::sessionInfoReceived);
 
     connect(
         m_acpBackend,
         &Acp::AcpChatBackend::agentSessionUnavailable,
         this,
         &ChatController::agentSessionUnavailable);
+
+    connect(
+        m_acpBackend,
+        &Acp::AcpChatBackend::availableCommandsChanged,
+        this,
+        &ChatController::agentCommandsChanged);
 
     m_session->setBackend(m_backend);
 
@@ -86,12 +93,51 @@ ChatController::ChatController(
 
     connect(m_session, &Session::Session::rowsReset, this, [this] { registerHistoricalEdits(); });
 
+    connect(
+        m_session,
+        &Session::Session::agentFileEditRecorded,
+        this,
+        [](const QString &turnId,
+           const QString &editId,
+           const QString &filePath,
+           const QString &oldContent,
+           const QString &newContent) {
+            const QFileInfo info(filePath);
+            const QString canonical = info.canonicalFilePath();
+            const Utils::FilePath target = Utils::FilePath::fromString(
+                canonical.isEmpty() ? info.absoluteFilePath() : canonical);
+
+            bool insideProject = false;
+            const QList<ProjectExplorer::Project *> projects
+                = ProjectExplorer::ProjectManager::projects();
+            for (const ProjectExplorer::Project *project : projects) {
+                if (target.isChildOf(project->projectDirectory())) {
+                    insideProject = true;
+                    break;
+                }
+            }
+
+            if (!insideProject) {
+                LOG_MESSAGE(
+                    QString("Agent edit %1 targets %2 outside every open project; recorded "
+                            "in the transcript only, without apply/undo actions")
+                        .arg(editId, filePath));
+                return;
+            }
+
+            Context::ChangesManager::instance().registerAppliedFileEdit(
+                editId, target.toUrlishString(), oldContent, newContent, turnId);
+        });
+
     auto &changes = Context::ChangesManager::instance();
     connect(&changes, &Context::ChangesManager::fileEditApplied, this, [this](const QString &id) {
         m_session->updateFileEditStatus(id, "applied", "Successfully applied");
     });
     connect(&changes, &Context::ChangesManager::fileEditRejected, this, [this](const QString &id) {
         m_session->updateFileEditStatus(id, "rejected", "Rejected by user");
+    });
+    connect(&changes, &Context::ChangesManager::fileEditUndone, this, [this](const QString &id) {
+        recordFileEditStatus(id, "rejected", "Successfully undone");
     });
     connect(&changes, &Context::ChangesManager::fileEditArchived, this, [this](const QString &id) {
         m_session->updateFileEditStatus(id, "archived", "Archived (from previous conversation turn)");
@@ -119,6 +165,18 @@ QString ChatController::boundAgentId() const
     return m_backend == m_acpBackend ? m_acpBackend->boundAgentId() : QString();
 }
 
+QString ChatController::boundAgentName() const
+{
+    return m_backend == m_acpBackend ? m_acpBackend->boundAgentName() : QString();
+}
+
+QList<LLMQore::Acp::AvailableCommand> ChatController::agentCommands() const
+{
+    if (m_backend != m_acpBackend)
+        return {};
+    return m_acpBackend->availableCommands();
+}
+
 bool ChatController::transcriptEmpty() const
 {
     return m_session->rows().isEmpty();
@@ -144,6 +202,7 @@ void ChatController::startFreshAgentSession()
 
 void ChatController::startFreshAgentSession(const QString &handoverSummary)
 {
+    m_acpBackend->clearToolSession(m_chatFilePath);
     m_acpBackend->startFreshSession();
     m_acpBackend->setHandoverSummary(handoverSummary);
 }
@@ -178,8 +237,7 @@ Session::Session *ChatController::session() const
     return m_session;
 }
 
-void ChatController::sendMessage(
-    const QString &message, const QList<QString> &attachments, bool useTools, bool useThinking)
+void ChatController::sendMessage(const QString &message, const QList<QString> &attachments)
 {
     if (message.trimmed().isEmpty() && attachments.isEmpty()) {
         LOG_MESSAGE("Ignoring empty chat message");
@@ -188,10 +246,7 @@ void ChatController::sendMessage(
 
     Context::ChangesManager::instance().archiveAllNonArchivedEdits();
 
-    m_session->sendTurn(
-        composeUserBlocks(message, attachments),
-        buildTurnContext(message),
-        Session::TurnOptions{useTools, useThinking});
+    m_session->sendTurn(composeUserBlocks(message, attachments), buildTurnContext(message));
 }
 
 void ChatController::clearConversation()

@@ -65,6 +65,9 @@ enum class RowTreatment { Omit, UserText, AssistantText, AssistantThinking, Tool
 bool isTranscriptOnlyRow(RowKind kind);
 RowTreatment rowTreatmentFor(RowAudience audience, RowKind kind);
 
+bool isTerminalToolStatus(const QString &status);
+QString restoredToolStatus(QString status);
+
 std::optional<MessageRow> projectBlockToRow(const Message &message, const ContentBlock &block);
 QList<MessageRow> projectMessageToRows(const Message &message);
 QList<MessageRow> projectToRows(const ConversationHistory &history);

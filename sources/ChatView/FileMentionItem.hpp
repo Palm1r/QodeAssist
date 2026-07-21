@@ -36,11 +36,9 @@ public:
         const QString &absolutePath,
         const QString &relativePath,
         const QString &projectName,
-        const QString &currentQuery,
-        bool useTools);
+        const QString &currentQuery);
 
-    Q_INVOKABLE QVariantMap applyCurrentSelection(
-        const QString &text, int cursorPosition, bool useTools);
+    Q_INVOKABLE QVariantMap applyCurrentSelection(const QString &text, int cursorPosition);
 
     Q_INVOKABLE void registerMention(const QString &mentionKey, const QString &absolutePath);
     Q_INVOKABLE void clearMentions();

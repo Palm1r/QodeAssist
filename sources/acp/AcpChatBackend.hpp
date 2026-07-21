@@ -41,6 +41,11 @@ public:
 
     void bindAgent(const AgentDefinition &agent);
     QString boundAgentId() const;
+    QString boundAgentName() const;
+    const QList<LLMQore::Acp::AvailableCommand> &availableCommands() const
+    {
+        return m_availableCommands;
+    }
     QString acpSessionId() const { return m_sessionId; }
     QString bindingSessionId() const
     {
@@ -60,8 +65,8 @@ public:
     void clearToolSession(const QString &filePath) override;
 
 signals:
-    void agentTitleSuggested(const QString &title);
     void agentSessionUnavailable(const QString &reason);
+    void availableCommandsChanged();
 
 private:
     struct PendingTurn
@@ -70,6 +75,7 @@ private:
     };
 
     void startClient();
+    void adoptEarlyCommands();
     void startSession();
     void resumeOrStartSession();
     void sendPrompt();
@@ -112,6 +118,11 @@ private:
     QString m_chatFilePath;
     QString m_resumeSessionId;
     QString m_handoverSummary;
+    QList<LLMQore::Acp::AvailableCommand> m_availableCommands;
+    QList<LLMQore::Acp::AvailableCommand> m_earlyCommands;
+    QString m_earlyCommandsSessionId;
+    QString m_earlyTitle;
+    QString m_earlyTitleSessionId;
     Session::TurnLedger m_ledger;
     int m_clientGeneration = 0;
     bool m_establishingSession = false;

@@ -77,6 +77,12 @@ public:
         bool autoApply = true,
         bool isFromHistory = false,
         const QString &requestId = QString());
+    void registerAppliedFileEdit(
+        const QString &editId,
+        const QString &filePath,
+        const QString &oldContent,
+        const QString &newContent,
+        const QString &requestId = QString());
     bool applyFileEdit(const QString &editId);
     bool rejectFileEdit(const QString &editId);
     bool undoFileEdit(const QString &editId);

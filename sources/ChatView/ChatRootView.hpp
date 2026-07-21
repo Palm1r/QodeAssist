@@ -47,15 +47,12 @@ class ChatRootView : public QQuickItem,
     Q_PROPERTY(bool isRequestInProgress READ isRequestInProgress NOTIFY isRequestInProgressChanged FINAL)
     Q_PROPERTY(QString lastErrorMessage READ lastErrorMessage NOTIFY lastErrorMessageChanged FINAL)
     Q_PROPERTY(QString lastInfoMessage READ lastInfoMessage NOTIFY lastInfoMessageChanged FINAL)
-    Q_PROPERTY(bool useTools READ useTools WRITE setUseTools NOTIFY useToolsChanged FINAL)
-    Q_PROPERTY(bool useThinking READ useThinking WRITE setUseThinking NOTIFY useThinkingChanged FINAL)
     Q_PROPERTY(QString sendShortcutText READ sendShortcutText NOTIFY sendShortcutTextChanged FINAL)
     
     Q_PROPERTY(int currentMessageTotalEdits READ currentMessageTotalEdits NOTIFY currentMessageEditsStatsChanged FINAL)
     Q_PROPERTY(int currentMessageAppliedEdits READ currentMessageAppliedEdits NOTIFY currentMessageEditsStatsChanged FINAL)
     Q_PROPERTY(int currentMessagePendingEdits READ currentMessagePendingEdits NOTIFY currentMessageEditsStatsChanged FINAL)
     Q_PROPERTY(int currentMessageRejectedEdits READ currentMessageRejectedEdits NOTIFY currentMessageEditsStatsChanged FINAL)
-    Q_PROPERTY(bool isThinkingSupport READ isThinkingSupport NOTIFY isThinkingSupportChanged FINAL)
     Q_PROPERTY(bool isAgentBound READ isAgentBound NOTIFY isAgentBoundChanged FINAL)
     Q_PROPERTY(QString agentSessionIssue READ agentSessionIssue NOTIFY agentSessionIssueChanged FINAL)
     Q_PROPERTY(bool canStartNewAgentSession READ canStartNewAgentSession NOTIFY
@@ -63,6 +60,9 @@ class ChatRootView : public QQuickItem,
     Q_PROPERTY(bool canHandOverSummary READ canHandOverSummary NOTIFY agentSessionIssueChanged FINAL)
     Q_PROPERTY(QString summaryHandoverTooltip READ summaryHandoverTooltip NOTIFY
                    agentSessionIssueChanged FINAL)
+    Q_PROPERTY(bool canShrinkContext READ canShrinkContext NOTIFY shrinkContextStateChanged FINAL)
+    Q_PROPERTY(QString shrinkContextTooltip READ shrinkContextTooltip NOTIFY
+                   shrinkContextStateChanged FINAL)
     Q_PROPERTY(QStringList availableConfigurations READ availableConfigurations NOTIFY availableConfigurationsChanged FINAL)
     Q_PROPERTY(QString currentConfiguration READ currentConfiguration NOTIFY currentConfigurationChanged FINAL)
     Q_PROPERTY(QString baseSystemPrompt READ baseSystemPrompt NOTIFY baseSystemPromptChanged FINAL)
@@ -129,12 +129,7 @@ public:
 
     QString lastErrorMessage() const;
 
-    Q_INVOKABLE QVariantList searchSkills(const QString &query) const;
-
-    bool useTools() const;
-    void setUseTools(bool enabled);
-    bool useThinking() const;
-    void setUseThinking(bool enabled);
+    Q_INVOKABLE QVariantList searchSlashCommands(const QString &query) const;
 
     Q_INVOKABLE void respondToPermission(const QString &requestId, const QString &optionId);
 
@@ -166,12 +161,13 @@ public:
 
     QString lastInfoMessage() const;
 
-    bool isThinkingSupport() const;
     bool isAgentBound() const;
     QString agentSessionIssue() const;
     bool canStartNewAgentSession() const;
     bool canHandOverSummary() const;
     QString summaryHandoverTooltip() const;
+    bool canShrinkContext() const;
+    QString shrinkContextTooltip() const;
     Q_INVOKABLE void startNewAgentSession();
     Q_INVOKABLE void startNewAgentSessionWithSummary();
 
@@ -210,13 +206,12 @@ signals:
     void lastInfoMessageChanged();
     void sendShortcutTextChanged();
 
-    void useToolsChanged();
-    void useThinkingChanged();
     void currentMessageEditsStatsChanged();
 
-    void isThinkingSupportChanged();
     void isAgentBoundChanged();
     void agentSessionIssueChanged();
+    void shrinkContextStateChanged();
+    void slashCommandsChanged();
     void availableConfigurationsChanged();
     void currentConfigurationChanged();
     void chatTargetSwitchNeedsNewChat(const QString &targetName);
@@ -236,6 +231,8 @@ protected:
     void componentComplete() override;
 
 private:
+    QVariantList searchSkills(const QString &query) const;
+    QVariantList searchAgentCommands(const QString &query) const;
     QString computeChatTitle() const;
     void triggerOpenChatCommand(Utils::Id commandId);
     void handOffSession();
@@ -251,11 +248,7 @@ private:
     int estimatedNextTokens() const override;
     bool prepareChatFileForCompression(
         const QString &message, const QStringList &attachments) override;
-    void dispatch(
-        const QString &message,
-        const QStringList &attachments,
-        bool useTools,
-        bool useThinking) override;
+    void dispatch(const QString &message, const QStringList &attachments) override;
 
     SessionFileRegistry *sessionFileRegistry() const;
     Skills::SkillsManager *skillsManager() const;

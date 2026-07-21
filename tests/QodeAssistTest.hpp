@@ -98,11 +98,19 @@ private slots:
     void testSessionStreamsTextThinkingAndTools();
     void testSessionTrimsStreamedText();
     void testSessionAbandoningTheTurnCancelsTheBackend();
+    void testSwitchingBackendsCancelsTheActiveTurn();
+    void testSessionForwardsTitleFromTheEventStream();
     void testSessionProjectionMatchesHistory();
     void testSessionAccumulatesStreamedThinking();
     void testSessionKeepsThinkingAfterToolContinuation();
     void testSessionDropsPreToolTextWhenAsked();
     void testSessionToolResultAppendsFileEditRow();
+    void testSessionRepeatedToolResultKeepsOneFileEdit();
+    void testRunningToolStatusInterruptsOnTurnEnd();
+    void testRunningToolStatusInterruptsOnLoad();
+    void testAgentDiffBecomesAppliedFileEdit();
+    void testAgentDiffSkipsUnrevertableRegistrations();
+    void testAgentFileEditRevertRoundTrip();
     void testSessionIgnoresEchoedFileEditMarker();
     void testSessionTruncationKeepsBlockOrder();
     void testHistorySnapshotReportsUnreadableBlocks();
@@ -113,6 +121,7 @@ private slots:
     void testSessionTruncateRowsRewritesHistory();
 
     void testSessionUpsertsAgentToolCalls();
+    void testLlmToolLifecycleFlowsThroughOneEvent();
     void testSessionKeepsOnePlanPerTurn();
     void testAgentActivityKeepsStreamedTextIntact();
     void testAgentToolUpdateTouchesOnlyItsOwnRow();
@@ -180,6 +189,7 @@ private slots:
     void testTurnLedgerTracksTheActiveTurn();
     void testTurnLedgerDrainsPermissionsOnTurnEnd();
     void testLlmBackendStreamsThroughAFakeClient();
+    void testRenderHistoryKeepsToolExchangePairs();
     void testLlmBackendIgnoresEventsFromOtherRequests();
     void testLlmBackendPermissionRoundTrip();
     void testLlmBackendDrainsPermissionsWhenTheTurnEnds();
@@ -189,6 +199,13 @@ private slots:
     void testCoordinatorRefusesIntentsWhileReadOnly();
     void testCoordinatorDefersTheSendForAutoCompress();
     void testCoordinatorGatesTheSummaryHandover();
+    void testCoordinatorShrinkContextRoutesByBackendKind();
+
+    void testAcpBackendTracksAgentSlashCommands();
+    void testEarlyAgentCommandsSurviveEstablishment();
+    void testAgentCommandInvocationSendsPlainPrompt();
+
+    void testFileMentionSelectionFollowsChatToolsSetting();
 
     void testChatModelExposesSessionRowsDirectly();
 

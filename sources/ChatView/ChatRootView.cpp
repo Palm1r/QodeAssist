@@ -37,7 +37,6 @@
 #include "InputTokenCounter.hpp"
 #include "SettingsConstants.hpp"
 #include "Logger.hpp"
-#include "providers/ProvidersManager.hpp"
 #include "SessionFileRegistry.hpp"
 #include "context/ContextManager.hpp"
 #include "TurnContextAdapters.hpp"
@@ -188,9 +187,9 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     };
     connect(
         m_controller,
-        &ChatController::agentTitleSuggested,
+        &ChatController::sessionInfoReceived,
         m_coordinator,
-        &ConversationCoordinator::agentTitleSuggested);
+        &ConversationCoordinator::titleSuggested);
     connect(m_coordinator, &ConversationCoordinator::agentTitleChanged, this, maybeEmitTitle);
 
     connect(
@@ -205,11 +204,53 @@ ChatRootView::ChatRootView(QQuickItem *parent)
     connect(m_chatModel, &QAbstractItemModel::modelReset, this, maybeEmitTitle);
     connect(m_chatModel, &QAbstractItemModel::rowsInserted, this, maybeEmitTitle);
     connect(m_chatModel, &QAbstractItemModel::rowsRemoved, this, maybeEmitTitle);
+
+    connect(this, &ChatRootView::isAgentBoundChanged, this, &ChatRootView::shrinkContextStateChanged);
+    connect(
+        m_controller,
+        &ChatController::agentCommandsChanged,
+        this,
+        &ChatRootView::slashCommandsChanged);
+    connect(
+        this, &ChatRootView::agentSessionIssueChanged, this, &ChatRootView::shrinkContextStateChanged);
+    connect(
+        m_chatModel,
+        &QAbstractItemModel::modelReset,
+        this,
+        &ChatRootView::shrinkContextStateChanged);
+    connect(
+        m_chatModel,
+        &QAbstractItemModel::rowsInserted,
+        this,
+        &ChatRootView::shrinkContextStateChanged);
+    connect(
+        m_chatModel,
+        &QAbstractItemModel::rowsRemoved,
+        this,
+        &ChatRootView::shrinkContextStateChanged);
+    connect(
+        &Settings::generalSettings().caProvider,
+        &Utils::BaseAspect::changed,
+        this,
+        &ChatRootView::shrinkContextStateChanged);
+    connect(
+        &Settings::generalSettings().caModel,
+        &Utils::BaseAspect::changed,
+        this,
+        &ChatRootView::shrinkContextStateChanged);
+    connect(
+        &Settings::generalSettings().caTemplate,
+        &Utils::BaseAspect::changed,
+        this,
+        &ChatRootView::shrinkContextStateChanged);
+    connect(
+        &Settings::generalSettings().caUrl,
+        &Utils::BaseAspect::changed,
+        this,
+        &ChatRootView::shrinkContextStateChanged);
     connect(this, &ChatRootView::attachmentFilesChanged, this, [this]() {
         m_tokenCounter->setAttachments(m_attachmentFiles);
     });
-    connect(this, &ChatRootView::useToolsChanged, this, &ChatRootView::updateInputTokensCount);
-
     connect(
         m_tokenCounter,
         &InputTokenCounter::inputTokensChanged,
@@ -284,24 +325,6 @@ ChatRootView::ChatRootView(QQuickItem *parent)
         m_historyStore, &ChatFileStore::saveRequested, this, &ChatRootView::saveHistory);
     connect(
         m_historyStore, &ChatFileStore::loadRequested, this, &ChatRootView::loadHistory);
-
-    connect(
-        &Settings::chatAssistantSettings().enableChatTools,
-        &Utils::BaseAspect::changed,
-        this,
-        &ChatRootView::useToolsChanged);
-
-    connect(
-        &Settings::chatAssistantSettings().enableThinkingMode,
-        &Utils::BaseAspect::changed,
-        this,
-        &ChatRootView::useThinkingChanged);
-
-    connect(
-        &Settings::generalSettings().caProvider,
-        &Utils::BaseAspect::changed,
-        this,
-        &ChatRootView::isThinkingSupportChanged);
 
     connect(m_attachmentStaging, &AttachmentStaging::fileOperationFailed, this, [this](const QString &error) {
         m_lastErrorMessage = error;
@@ -388,6 +411,35 @@ Skills::SkillsManager *ChatRootView::skillsManager() const
     return m_skillsManager;
 }
 
+QVariantList ChatRootView::searchSlashCommands(const QString &query) const
+{
+    if (isAgentBound())
+        return searchAgentCommands(query);
+    return searchSkills(query);
+}
+
+QVariantList ChatRootView::searchAgentCommands(const QString &query) const
+{
+    QVariantList results;
+    const QString source = m_controller->boundAgentName();
+    const QString needle = query.trimmed().toLower();
+
+    const QList<LLMQore::Acp::AvailableCommand> commands = m_controller->agentCommands();
+    for (const LLMQore::Acp::AvailableCommand &command : commands) {
+        if (!needle.isEmpty() && !command.name.toLower().contains(needle)
+            && !command.description.toLower().contains(needle)) {
+            continue;
+        }
+        results.append(
+            QVariantMap{
+                {QStringLiteral("name"), command.name},
+                {QStringLiteral("description"), command.description},
+                {QStringLiteral("inputHint"), command.inputHint},
+                {QStringLiteral("source"), source}});
+    }
+    return results;
+}
+
 QVariantList ChatRootView::searchSkills(const QString &query) const
 {
     QVariantList results;
@@ -415,9 +467,12 @@ QVariantList ChatRootView::searchSkills(const QString &query) const
             && !skill.description.toLower().contains(needle)) {
             continue;
         }
-        results.append(QVariantMap{
-            {QStringLiteral("name"), skill.name},
-            {QStringLiteral("description"), skill.description}});
+        results.append(
+            QVariantMap{
+                {QStringLiteral("name"), skill.name},
+                {QStringLiteral("description"), skill.description},
+                {QStringLiteral("inputHint"), QString()},
+                {QStringLiteral("source"), tr("QodeAssist")}});
     }
     return results;
 }
@@ -430,7 +485,7 @@ ChatModel *ChatRootView::chatModel() const
 void ChatRootView::sendMessage(const QString &message)
 {
     const QStringList attachments = m_attachmentFiles;
-    m_coordinator->requestSend(message, attachments, useTools(), useThinking());
+    m_coordinator->requestSend(message, attachments);
 }
 
 bool ChatRootView::autoCompressEnabled() const
@@ -463,8 +518,7 @@ bool ChatRootView::prepareChatFileForCompression(
     return true;
 }
 
-void ChatRootView::dispatch(
-    const QString &message, const QStringList &attachments, bool useToolsArg, bool useThinkingArg)
+void ChatRootView::dispatch(const QString &message, const QStringList &attachments)
 {
     if (m_recentFilePath.isEmpty()) {
         QString filePath = getAutosaveFilePath(message, attachments);
@@ -481,7 +535,7 @@ void ChatRootView::dispatch(
     setRequestProgressStatus(true);
 
     m_controller->setSkillsManager(skillsManager());
-    m_controller->sendMessage(message, attachments, useToolsArg, useThinkingArg);
+    m_controller->sendMessage(message, attachments);
 
     m_attachmentStaging->clearIntermediateStorage();
     clearAttachmentFiles();
@@ -955,28 +1009,6 @@ QString ChatRootView::lastErrorMessage() const
     return m_lastErrorMessage;
 }
 
-bool ChatRootView::useTools() const
-{
-    return Settings::chatAssistantSettings().enableChatTools();
-}
-
-void ChatRootView::setUseTools(bool enabled)
-{
-    Settings::chatAssistantSettings().enableChatTools.setValue(enabled);
-    Settings::chatAssistantSettings().writeSettings();
-}
-
-bool ChatRootView::useThinking() const
-{
-    return Settings::chatAssistantSettings().enableThinkingMode();
-}
-
-void ChatRootView::setUseThinking(bool enabled)
-{
-    Settings::chatAssistantSettings().enableThinkingMode.setValue(enabled);
-    Settings::chatAssistantSettings().writeSettings();
-}
-
 void ChatRootView::respondToPermission(const QString &requestId, const QString &optionId)
 {
     m_controller->respondToPermission(requestId, optionId);
@@ -1055,14 +1087,6 @@ int ChatRootView::currentMessageRejectedEdits() const
 QString ChatRootView::lastInfoMessage() const
 {
     return m_lastInfoMessage;
-}
-
-bool ChatRootView::isThinkingSupport() const
-{
-    auto providerName = Settings::generalSettings().caProvider();
-    auto provider = Providers::ProvidersManager::instance().getProviderByName(providerName);
-
-    return provider && provider->capabilities().testFlag(Providers::ProviderCapability::Thinking);
 }
 
 bool ChatRootView::hasImageAttachments(const QStringList &attachments) const
@@ -1160,7 +1184,21 @@ void ChatRootView::startTranscriptSummary()
 
 void ChatRootView::startCompression()
 {
-    compressCurrentChat();
+    if (m_chatCompressor->isCompressing()) {
+        m_lastErrorMessage = tr("Compression is already in progress");
+        emit lastErrorMessageChanged();
+        return;
+    }
+
+    if (m_recentFilePath.isEmpty()) {
+        m_lastErrorMessage = tr("No chat file to compress. Please save the chat first.");
+        emit lastErrorMessageChanged();
+        return;
+    }
+
+    autosave();
+
+    m_chatCompressor->startCompression(m_recentFilePath, m_controller->session()->history());
 }
 
 QStringList ChatRootView::availableConfigurations() const
@@ -1180,33 +1218,17 @@ QString ChatRootView::baseSystemPrompt() const
 
 void ChatRootView::compressCurrentChat()
 {
-    if (m_coordinator->refuseWhileReadOnly())
-        return;
+    m_coordinator->shrinkContext();
+}
 
-    if (isAgentBound()) {
-        m_lastErrorMessage
-            = tr("An agent conversation cannot be compressed: the summary would have no agent "
-                 "session behind it.");
-        emit lastErrorMessageChanged();
-        return;
-    }
+bool ChatRootView::canShrinkContext() const
+{
+    return m_coordinator->canShrinkContext();
+}
 
-    if (m_chatCompressor->isCompressing()) {
-        m_lastErrorMessage = tr("Compression is already in progress");
-        emit lastErrorMessageChanged();
-        return;
-    }
-
-    if (m_recentFilePath.isEmpty()) {
-        m_lastErrorMessage = tr("No chat file to compress. Please save the chat first.");
-        emit lastErrorMessageChanged();
-        return;
-    }
-
-    autosave();
-
-    m_chatCompressor->startCompression(
-        m_recentFilePath, m_controller->session()->history());
+QString ChatRootView::shrinkContextTooltip() const
+{
+    return m_coordinator->shrinkContextTooltip();
 }
 
 void ChatRootView::cancelCompression()

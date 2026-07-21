@@ -29,6 +29,8 @@ constexpr qsizetype maxPermissionOptions = 16;
 constexpr qsizetype maxPermissionTitleLength = 300;
 constexpr qsizetype maxPermissionKindLength = 40;
 constexpr qsizetype maxPermissionOptionNameLength = 120;
+constexpr qsizetype maxAgentCommands = 128;
+constexpr qsizetype maxAgentCommandNameLength = 64;
 constexpr qsizetype maxToolResultLength = 64 * 1024;
 constexpr qsizetype maxToolDiffLength = 64 * 1024;
 constexpr qsizetype maxToolLocations = 64;
@@ -262,11 +264,15 @@ QJsonObject toolDetailsOf(const LLMQore::Acp::ToolCall &toolCall)
                 QString("Dropping extra diffs reported by tool call %1").arg(toolCall.toolCallId));
             break;
         }
-        diffs.append(
-            QJsonObject{
-                {"path", singleLineAgentText(content.path, maxPermissionTitleLength)},
-                {"oldText", clampAgentBody(content.oldText, maxToolDiffLength)},
-                {"newText", clampAgentBody(content.newText, maxToolDiffLength)}});
+        QJsonObject diff{
+            {"path", singleLineAgentText(content.path, maxPermissionTitleLength)},
+            {"oldText", clampAgentBody(content.oldText, maxToolDiffLength)},
+            {"newText", clampAgentBody(content.newText, maxToolDiffLength)}};
+        if (content.oldText.size() > maxToolDiffLength
+            || content.newText.size() > maxToolDiffLength) {
+            diff["truncated"] = true;
+        }
+        diffs.append(diff);
     }
 
     QJsonObject details;
@@ -366,6 +372,28 @@ void AcpChatBackend::bindAgent(const AgentDefinition &agent)
 QString AcpChatBackend::boundAgentId() const
 {
     return m_agent ? m_agent->id : QString();
+}
+
+void AcpChatBackend::adoptEarlyCommands()
+{
+    if (!m_earlyCommandsSessionId.isEmpty() && m_earlyCommandsSessionId == m_sessionId) {
+        m_availableCommands = m_earlyCommands;
+        emit availableCommandsChanged();
+    }
+    m_earlyCommands.clear();
+    m_earlyCommandsSessionId.clear();
+
+    if (!m_earlyTitleSessionId.isEmpty() && m_earlyTitleSessionId == m_sessionId
+        && !m_earlyTitle.isEmpty()) {
+        emit sessionEvent(Session::SessionInfo{.title = m_earlyTitle});
+    }
+    m_earlyTitle.clear();
+    m_earlyTitleSessionId.clear();
+}
+
+QString AcpChatBackend::boundAgentName() const
+{
+    return m_agent ? singleLineAgentText(m_agent->name, maxPermissionKindLength) : QString();
 }
 
 void AcpChatBackend::sendTurn(const Session::TurnRequest &request)
@@ -492,6 +520,7 @@ void AcpChatBackend::resumeOrStartSession()
                 m_establishingSession = false;
                 m_resumeSessionId.clear();
                 m_sessionId = result.sessionId.isEmpty() ? resumed : result.sessionId;
+                adoptEarlyCommands();
                 if (m_ledger.hasActiveTurn())
                     sendPrompt();
             })
@@ -528,6 +557,7 @@ void AcpChatBackend::startSession()
                     return;
                 m_establishingSession = false;
                 m_sessionId = result.sessionId;
+                adoptEarlyCommands();
                 if (m_ledger.hasActiveTurn())
                     sendPrompt();
             })
@@ -749,12 +779,13 @@ void AcpChatBackend::connectClient()
               emit sessionEvent(
                   Session::ToolCallUpdated{
                       .turnId = m_ledger.activeTurnId(),
-                      .toolId = toolCall.toolCallId,
+                      .toolId = singleLineAgentText(toolCall.toolCallId, maxPermissionTitleLength),
                       .name = singleLineAgentText(toolCall.title, maxPermissionTitleLength),
                       .kind = singleLineAgentText(toolCall.kind, maxPermissionKindLength),
                       .status = singleLineAgentText(toolCall.status, maxPermissionKindLength),
                       .result = toolResultText(toolCall),
-                      .details = toolDetailsOf(toolCall)});
+                      .details = toolDetailsOf(toolCall),
+                      .fromAgent = true});
           };
 
     connect(m_client, &LLMQore::Acp::AcpClient::toolCallStarted, this, onToolCall);
@@ -782,16 +813,72 @@ void AcpChatBackend::connectClient()
         &LLMQore::Acp::AcpClient::sessionInfoUpdated,
         this,
         [this](const QString &sessionId, const QString &title) {
-            if (sessionId != m_sessionId)
-                return;
             const QString suggested = singleLineAgentText(title, maxAgentTitleLength);
-            if (!suggested.isEmpty())
-                emit agentTitleSuggested(suggested);
+            if (suggested.isEmpty())
+                return;
+
+            if (sessionId == m_sessionId) {
+                emit sessionEvent(Session::SessionInfo{.title = suggested});
+                return;
+            }
+
+            if (m_establishingSession) {
+                m_earlyTitleSessionId = sessionId;
+                m_earlyTitle = suggested;
+            }
+        });
+
+    connect(
+        m_client,
+        &LLMQore::Acp::AcpClient::availableCommandsUpdated,
+        this,
+        [this](const QString &sessionId, const QList<LLMQore::Acp::AvailableCommand> &commands) {
+            QList<LLMQore::Acp::AvailableCommand> clamped;
+            clamped.reserve(qMin(commands.size(), maxAgentCommands));
+            for (const LLMQore::Acp::AvailableCommand &command : commands) {
+                if (clamped.size() >= maxAgentCommands) {
+                    LOG_MESSAGE(
+                        QString("Dropping %1 extra agent slash commands")
+                            .arg(commands.size() - maxAgentCommands));
+                    break;
+                }
+                static const QRegularExpression commandNamePattern(
+                    QStringLiteral("^[A-Za-z0-9._:-]{1,64}$"));
+                if (!commandNamePattern.match(command.name).hasMatch()) {
+                    LOG_MESSAGE(
+                        QString("Skipping agent slash command with an unusable name: %1")
+                            .arg(singleLineAgentText(command.name, maxAgentCommandNameLength)));
+                    continue;
+                }
+
+                LLMQore::Acp::AvailableCommand entry;
+                entry.name = command.name;
+                entry.description
+                    = singleLineAgentText(command.description, maxPermissionTitleLength);
+                entry.inputHint = singleLineAgentText(command.inputHint, maxPermissionTitleLength);
+                clamped.append(entry);
+            }
+
+            if (sessionId == m_sessionId) {
+                m_availableCommands = clamped;
+                emit availableCommandsChanged();
+                return;
+            }
+
+            if (m_establishingSession) {
+                m_earlyCommandsSessionId = sessionId;
+                m_earlyCommands = clamped;
+            }
         });
 
     connect(m_client, &LLMQore::Acp::AcpClient::agentStderr, this, [this](const QString &line) {
         if (m_stderr.size() < maxStderrLines)
             m_stderr.append(line);
+    });
+
+    connect(m_client, &LLMQore::Acp::AcpClient::disconnected, this, [this] {
+        if (!m_ledger.hasActiveTurn())
+            releaseClient();
     });
 
     connect(m_client, &LLMQore::Acp::AcpClient::errorOccurred, this, [this](const QString &error) {
@@ -842,7 +929,7 @@ void AcpChatBackend::requestPermission(
         Session::PermissionRequested{
             .turnId = turnId,
             .requestId = requestId,
-            .toolCallId = toolCall.toolCallId,
+            .toolCallId = singleLineAgentText(toolCall.toolCallId, maxPermissionTitleLength),
             .title = title,
             .toolKind = clampAgentText(toolCall.kind, maxPermissionKindLength),
             .options = offered});
@@ -951,6 +1038,15 @@ void AcpChatBackend::releaseClient()
     m_agentInfo = {};
     m_authenticated = false;
     stopKnowledgeServer();
+
+    m_earlyCommands.clear();
+    m_earlyCommandsSessionId.clear();
+    m_earlyTitle.clear();
+    m_earlyTitleSessionId.clear();
+    if (!m_availableCommands.isEmpty()) {
+        m_availableCommands.clear();
+        emit availableCommandsChanged();
+    }
 
     cancelPendingPermissions(m_ledger.activeTurnId());
 

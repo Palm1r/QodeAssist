@@ -7,6 +7,8 @@
 #include <QObject>
 #include <QString>
 
+#include <LLMQore/AcpTypes.hpp>
+
 #include "ChatModel.hpp"
 #include "ConversationPorts.hpp"
 #include "acp/AgentBinding.hpp"
@@ -41,11 +43,7 @@ public:
 
     void setSkillsManager(Skills::SkillsManager *skillsManager);
 
-    void sendMessage(
-        const QString &message,
-        const QList<QString> &attachments = {},
-        bool useTools = false,
-        bool useThinking = false);
+    void sendMessage(const QString &message, const QList<QString> &attachments = {});
     void cancelRequest();
     void resetToRow(int rowIndex);
     void respondToPermission(const QString &requestId, const QString &optionId);
@@ -57,6 +55,8 @@ public:
     QString chatFilePath() const;
 
     QString boundAgentId() const override;
+    QString boundAgentName() const;
+    QList<LLMQore::Acp::AvailableCommand> agentCommands() const;
     bool conversationStarted() const override;
     bool transcriptEmpty() const override;
     Acp::AgentBinding agentBinding() const override;
@@ -71,7 +71,8 @@ public:
     void releaseAgentSession() override;
 
 signals:
-    void agentTitleSuggested(const QString &title);
+    void sessionInfoReceived(const QString &title);
+    void agentCommandsChanged();
     void agentSessionUnavailable(const QString &reason);
     void errorOccurred(const QString &error);
     void messageReceivedCompletely();

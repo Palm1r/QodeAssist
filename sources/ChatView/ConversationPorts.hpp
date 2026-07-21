@@ -64,9 +64,7 @@ public:
     virtual bool prepareChatFileForCompression(
         const QString &message, const QStringList &attachments)
         = 0;
-    virtual void dispatch(
-        const QString &message, const QStringList &attachments, bool useTools, bool useThinking)
-        = 0;
+    virtual void dispatch(const QString &message, const QStringList &attachments) = 0;
 };
 
 } // namespace QodeAssist::Chat

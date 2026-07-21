@@ -4,6 +4,7 @@
 
 #include "session/Session.hpp"
 
+#include <QJsonArray>
 #include <QUuid>
 
 #include <algorithm>
@@ -68,8 +69,10 @@ void Session::setBackend(ChatBackend *backend)
     if (m_backend == backend)
         return;
 
-    if (m_backend)
+    if (m_backend) {
+        cancel();
         disconnect(m_backend, nullptr, this, nullptr);
+    }
 
     m_backend = backend;
 
@@ -134,9 +137,7 @@ void Session::truncateRows(int rowIndex)
 }
 
 void Session::sendTurn(
-    const QList<ContentBlock> &userBlocks,
-    const std::optional<TurnContext> &context,
-    const TurnOptions &options)
+    const QList<ContentBlock> &userBlocks, const std::optional<TurnContext> &context)
 {
     if (!m_backend)
         return;
@@ -152,7 +153,6 @@ void Session::sendTurn(
     request.userBlocks = userBlocks;
     request.history = &m_history;
     request.context = context;
-    request.options = options;
 
     m_backend->sendTurn(request);
 }
@@ -270,13 +270,67 @@ bool Session::refreshAssistantBlockRow(
     return false;
 }
 
-void Session::applyAgentToolCall(const ToolCallUpdated &update)
+void Session::applyToolCall(const ToolCallUpdated &update)
 {
     ensureAssistantMessage();
 
     Message *assistant = activeAssistantMessage();
     if (!assistant)
         return;
+
+    const auto hasFileEdit = [assistant](const QString &editId) {
+        for (const ContentBlock &block : assistant->blocks) {
+            const auto *existing = std::get_if<FileEditBlock>(&block);
+            if (existing && existing->id == editId)
+                return true;
+        }
+        return false;
+    };
+
+    struct RecordedAgentEdit
+    {
+        QString editId;
+        QString filePath;
+        QString oldContent;
+        QString newContent;
+    };
+
+    const auto appendAgentEdits =
+        [assistant, &hasFileEdit](const ToolCallBlock &tool) -> QList<RecordedAgentEdit> {
+        QList<RecordedAgentEdit> recorded;
+        if (tool.status != QLatin1String("completed"))
+            return recorded;
+
+        const QJsonArray diffs = tool.details.value("diffs").toArray();
+        for (qsizetype i = 0; i < diffs.size(); ++i) {
+            const QJsonObject diff = diffs.at(i).toObject();
+            const QString path = diff.value("path").toString();
+            const QString oldText = diff.value("oldText").toString();
+            const QString newText = diff.value("newText").toString();
+            if (path.isEmpty() || (oldText.isEmpty() && newText.isEmpty()))
+                continue;
+
+            const QString editId = QString("agent-%1-%2").arg(tool.id).arg(i);
+            if (hasFileEdit(editId))
+                continue;
+
+            const QJsonObject payload{
+                {"edit_id", editId},
+                {"file", path},
+                {"old_content", oldText},
+                {"new_content", newText},
+                {"status", "applied"},
+                {"status_message", "Applied by agent"}};
+            assistant->blocks.append(
+                FileEditBlock{.id = editId, .payload = encodeFileEditPayload(payload)});
+
+            const bool revertable = !newText.isEmpty()
+                                    && !diff.value("truncated").toBool(false);
+            if (revertable)
+                recorded.append({editId, path, oldText, newText});
+        }
+        return recorded;
+    };
 
     for (auto it = assistant->blocks.rbegin(); it != assistant->blocks.rend(); ++it) {
         auto *tool = std::get_if<ToolCallBlock>(&*it);
@@ -289,28 +343,79 @@ void Session::applyAgentToolCall(const ToolCallUpdated &update)
             tool->kind = update.kind;
         if (!update.status.isEmpty())
             tool->status = update.status;
+        if (!update.arguments.isEmpty())
+            tool->arguments = update.arguments;
         if (!update.details.isEmpty())
             tool->details = update.details;
         if (!update.result.isEmpty())
             tool->result = update.result;
 
-        if (!refreshAssistantBlockRow(*it, RowKind::AgentTool, tool->id))
+        const bool agentTool = tool->fromAgent;
+        if (!agentTool) {
+            if (const auto edit = fileEditFromToolResult(update.result);
+                edit && !hasFileEdit(edit->id)) {
+                m_textSegment.clear();
+                assistant->blocks.append(*edit);
+                syncAssistantRows();
+                return;
+            }
+        } else {
+            const ToolCallBlock snapshot = *tool;
+            const qsizetype blocksBefore = assistant->blocks.size();
+            const QList<RecordedAgentEdit> recorded = appendAgentEdits(snapshot);
+            if (assistant->blocks.size() != blocksBefore) {
+                m_textSegment.clear();
+                syncAssistantRows();
+                for (const RecordedAgentEdit &edit : recorded) {
+                    emit agentFileEditRecorded(
+                        m_activeTurnId,
+                        edit.editId,
+                        edit.filePath,
+                        edit.oldContent,
+                        edit.newContent);
+                }
+                return;
+            }
+        }
+
+        const RowKind rowKind = agentTool ? RowKind::AgentTool : RowKind::Tool;
+        const QString rowId = update.toolId;
+        if (!refreshAssistantBlockRow(*it, rowKind, rowId))
             syncAssistantRows();
         return;
     }
 
     m_textSegment.clear();
-    assistant->blocks.append(
-        ToolCallBlock{
-            .id = update.toolId,
-            .name = update.name,
-            .arguments = {},
-            .result = update.result,
-            .kind = update.kind,
-            .status = update.status,
-            .details = update.details,
-            .fromAgent = true});
+
+    if (update.dropPrecedingText && !assistant->blocks.isEmpty()
+        && std::get_if<TextBlock>(&assistant->blocks.last())) {
+        assistant->blocks.removeLast();
+    }
+
+    const ToolCallBlock appended{
+        .id = update.toolId,
+        .name = update.name,
+        .arguments = update.arguments,
+        .result = update.result,
+        .kind = update.kind,
+        .status = update.status,
+        .details = update.details,
+        .fromAgent = update.fromAgent};
+    assistant->blocks.append(appended);
+
+    QList<RecordedAgentEdit> recorded;
+    if (update.fromAgent) {
+        recorded = appendAgentEdits(appended);
+    } else if (const auto edit = fileEditFromToolResult(update.result)) {
+        assistant->blocks.append(*edit);
+    }
+
     syncAssistantRows();
+
+    for (const RecordedAgentEdit &edit : recorded) {
+        emit agentFileEditRecorded(
+            m_activeTurnId, edit.editId, edit.filePath, edit.oldContent, edit.newContent);
+    }
 }
 
 void Session::applyAgentPlan(const PlanUpdated &plan)
@@ -472,7 +577,7 @@ bool Session::updateFileEditStatus(
 void Session::handleEvent(const SessionEvent &event)
 {
     static_assert(
-        std::variant_size_v<SessionEvent> == 12,
+        std::variant_size_v<SessionEvent> == 11,
         "SessionEvent gained an alternative; extend the dispatch below or it is silently dropped");
 
     if (const auto *started = std::get_if<TurnStarted>(&event)) {
@@ -484,6 +589,14 @@ void Session::handleEvent(const SessionEvent &event)
 
     if (const auto *resolution = std::get_if<PermissionResolved>(&event)) {
         applyPermissionResolution(*resolution);
+        return;
+    }
+
+    if (const auto *info = std::get_if<SessionInfo>(&event)) {
+        constexpr qsizetype maxSessionTitleLength = 60;
+        const QString title = info->title.simplified().left(maxSessionTitleLength);
+        if (!title.isEmpty())
+            emit sessionInfoReceived(title);
         return;
     }
 
@@ -540,36 +653,8 @@ void Session::handleEvent(const SessionEvent &event)
                     .signature = thinking->signature,
                     .redacted = thinking->redacted});
         });
-    } else if (const auto *toolStart = std::get_if<ToolCallStarted>(&event)) {
-        m_textSegment.clear();
-        mutateAssistant([toolStart](Message &message) {
-            if (toolStart->dropPrecedingText && !message.blocks.isEmpty()
-                && std::holds_alternative<TextBlock>(message.blocks.last())) {
-                message.blocks.removeLast();
-            }
-            message.blocks.append(
-                ToolCallBlock{
-                    .id = toolStart->toolId,
-                    .name = toolStart->name,
-                    .arguments = toolStart->arguments,
-                    .result = {}});
-        });
-    } else if (const auto *toolEnd = std::get_if<ToolCallCompleted>(&event)) {
-        m_textSegment.clear();
-        mutateAssistant([toolEnd](Message &message) {
-            for (auto it = message.blocks.rbegin(); it != message.blocks.rend(); ++it) {
-                auto *tool = std::get_if<ToolCallBlock>(&*it);
-                if (!tool || tool->id != toolEnd->toolId)
-                    continue;
-                tool->name = toolEnd->name;
-                tool->result = toolEnd->result;
-                break;
-            }
-            if (const auto edit = fileEditFromToolResult(toolEnd->result))
-                message.blocks.append(*edit);
-        });
     } else if (const auto *toolUpdate = std::get_if<ToolCallUpdated>(&event)) {
-        applyAgentToolCall(*toolUpdate);
+        applyToolCall(*toolUpdate);
     } else if (const auto *plan = std::get_if<PlanUpdated>(&event)) {
         applyAgentPlan(*plan);
     } else if (const auto *permission = std::get_if<PermissionRequested>(&event)) {
@@ -706,6 +791,19 @@ void Session::endTurn()
                  qUtf8Printable(requestId));
         applyPermissionResolution(
             PermissionResolved{.turnId = m_activeTurnId, .requestId = requestId, .cancelled = true});
+    }
+
+    if (Message *assistant = activeAssistantMessage()) {
+        bool interrupted = false;
+        for (ContentBlock &block : assistant->blocks) {
+            auto *tool = std::get_if<ToolCallBlock>(&block);
+            if (!tool || isTerminalToolStatus(tool->status))
+                continue;
+            tool->status = QStringLiteral("interrupted");
+            interrupted = true;
+        }
+        if (interrupted)
+            syncAssistantRows();
     }
 
     m_activeTurnId.clear();
