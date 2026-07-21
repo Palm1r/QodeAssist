@@ -4745,9 +4745,11 @@ void QodeAssistTest::testLlmBackendPermissionRoundTrip()
     QTRY_COMPARE(fixture.eventsOfType<Session::PermissionResolved>().size(), 2);
     QCOMPARE(tool->executions, 1);
 
-    const auto toolEvents = fixture.eventsOfType<Session::ToolCallUpdated>();
-    QVERIFY(!toolEvents.isEmpty());
-    const Session::ToolCallUpdated &declined = toolEvents.constLast();
+    QTRY_VERIFY(
+        !fixture.eventsOfType<Session::ToolCallUpdated>().isEmpty()
+        && fixture.eventsOfType<Session::ToolCallUpdated>().constLast().toolId == QString("t2"));
+    const Session::ToolCallUpdated declined
+        = fixture.eventsOfType<Session::ToolCallUpdated>().constLast();
     QCOMPARE(declined.toolId, QString("t2"));
     QCOMPARE(declined.status, QString("failed"));
     QVERIFY(declined.result.startsWith("Error: "));
