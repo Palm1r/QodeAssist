@@ -2,6 +2,7 @@ add_library(Context STATIC
     DocumentContextReader.hpp DocumentContextReader.cpp
     FileEditManager.hpp FileEditManager.cpp
     ContextManager.hpp ContextManager.cpp
+    CompletionContextEnricher.hpp CompletionContextEnricher.cpp
     ContentFile.hpp
     DocumentReaderQtCreator.hpp
     IDocumentReader.hpp
@@ -21,6 +22,9 @@ target_link_libraries(Context
     QtCreator::Utils
     QtCreator::ProjectExplorer
     PRIVATE
+    QtCreator::CPlusPlus
+    QtCreator::CppEditor
+    QtCreator::QmlJS
     QodeAssistLogger
     QodeAssistSettings
 )

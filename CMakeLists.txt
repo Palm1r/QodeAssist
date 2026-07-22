@@ -47,7 +47,6 @@ add_subdirectory(sources)
 add_qtc_plugin(QodeAssist
   PLUGIN_DEPENDS
     QtCreator::Core
-    QtCreator::LanguageClient
     QtCreator::TextEditor
     QtCreator::ProjectExplorer
     QtCreator::CppEditor
@@ -78,10 +77,12 @@ add_qtc_plugin(QodeAssist
     sources/plugin/UpdateStatusWidget.hpp sources/plugin/UpdateStatusWidget.cpp
     sources/llmcore/ContextData.hpp
     sources/llmcore/RequestType.hpp
-    sources/completion/LLMClientInterface.hpp sources/completion/LLMClientInterface.cpp
-    sources/completion/LSPCompletion.hpp
+    sources/completion/CompletionEngine.hpp
+    sources/completion/FimCompletionEngine.hpp sources/completion/FimCompletionEngine.cpp
+    sources/completion/AgenticCompletionEngine.hpp sources/completion/AgenticCompletionEngine.cpp
+    sources/completion/AcpCompletionEngine.hpp sources/completion/AcpCompletionEngine.cpp
+    sources/completion/CodeCompletionController.hpp sources/completion/CodeCompletionController.cpp
     sources/completion/LLMSuggestion.hpp sources/completion/LLMSuggestion.cpp
-    sources/completion/QodeAssistClient.hpp sources/completion/QodeAssistClient.cpp
     sources/completion/CodeHandler.hpp sources/completion/CodeHandler.cpp
     sources/refactor/QuickRefactorHandler.hpp sources/refactor/QuickRefactorHandler.cpp
     sources/refactor/RefactorContextHelper.hpp
@@ -141,12 +142,8 @@ add_qtc_plugin(QodeAssist
     sources/chat/ChatEditorFactory.hpp sources/chat/ChatEditorFactory.cpp
     sources/widgets/CompletionProgressHandler.hpp sources/widgets/CompletionProgressHandler.cpp
     sources/widgets/CompletionErrorHandler.hpp sources/widgets/CompletionErrorHandler.cpp
-    sources/widgets/CompletionHintWidget.hpp sources/widgets/CompletionHintWidget.cpp
-    sources/widgets/CompletionHintHandler.hpp sources/widgets/CompletionHintHandler.cpp
     sources/widgets/ProgressWidget.hpp sources/widgets/ProgressWidget.cpp
     sources/widgets/ErrorWidget.hpp sources/widgets/ErrorWidget.cpp
-    sources/widgets/EditorChatButton.hpp sources/widgets/EditorChatButton.cpp
-    sources/widgets/EditorChatButtonHandler.hpp sources/widgets/EditorChatButtonHandler.cpp
     sources/widgets/QuickRefactorDialog.hpp sources/widgets/QuickRefactorDialog.cpp
     sources/widgets/CustomInstructionsManager.hpp sources/widgets/CustomInstructionsManager.cpp
     sources/widgets/AddCustomInstructionDialog.hpp sources/widgets/AddCustomInstructionDialog.cpp
@@ -166,10 +163,12 @@ add_qtc_plugin(QodeAssist
     sources/tools/ReadFileTool.hpp sources/tools/ReadFileTool.cpp
     sources/tools/FileSearchUtils.hpp sources/tools/FileSearchUtils.cpp
     sources/tools/TodoTool.hpp sources/tools/TodoTool.cpp
+    sources/tools/ProposeCompletionTool.hpp sources/tools/ProposeCompletionTool.cpp
     sources/tools/ReadOriginalHistoryTool.hpp sources/tools/ReadOriginalHistoryTool.cpp
     sources/tools/SkillTool.hpp sources/tools/SkillTool.cpp
     sources/tools/EditorStateTools.hpp sources/tools/EditorStateTools.cpp
     sources/mcp/AgentKnowledgeServer.hpp sources/mcp/AgentKnowledgeServer.cpp
+    sources/mcp/CompletionMcpServer.hpp sources/mcp/CompletionMcpServer.cpp
     sources/mcp/McpServerManager.hpp sources/mcp/McpServerManager.cpp
     sources/mcp/McpServerConnection.hpp sources/mcp/McpServerConnection.cpp
     sources/mcp/McpClientsManager.hpp sources/mcp/McpClientsManager.cpp

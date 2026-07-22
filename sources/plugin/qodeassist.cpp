@@ -23,7 +23,6 @@
 #include <coreplugin/navigationwidget.h>
 #include <coreplugin/statusbarmanager.h>
 #include <extensionsystem/iplugin.h>
-#include <languageclient/languageclientmanager.h>
 
 #include <texteditor/texteditor.h>
 #include <utils/icon.h>
@@ -35,7 +34,13 @@
 
 #include <QInputDialog>
 #include "ConfigurationManager.hpp"
-#include "completion/QodeAssistClient.hpp"
+#include "completion/AcpCompletionEngine.hpp"
+#include "completion/AgenticCompletionEngine.hpp"
+#include "completion/CodeCompletionController.hpp"
+#include "completion/FimCompletionEngine.hpp"
+#include "context/CompletionContextEnricher.hpp"
+#include "context/ContextManager.hpp"
+#include "tools/ProposeCompletionTool.hpp"
 #include "UpdateStatusWidget.hpp"
 #include "plugin/Version.hpp"
 #include "chat/ChatEditor.hpp"
@@ -63,6 +68,7 @@
 #include <QQmlContext>
 
 #include <ChatView/ChatView.hpp>
+#include <acp/AgentCatalog.hpp>
 #include <acp/AgentCatalogStore.hpp>
 #include <settings/AgentsWidget.hpp>
 #include <ChatView/AttachmentStaging.hpp>
@@ -78,7 +84,28 @@
 #include <texteditor/texteditorconstants.h>
 
 #ifdef WITH_TESTS
-#include "QodeAssistTest.hpp"
+#include "AcpChatBackendTest.hpp"
+#include "AcpCompletionEngineTest.hpp"
+#include "AgentBindingTest.hpp"
+#include "AgentCatalogTest.hpp"
+#include "AgentKnowledgeServerTest.hpp"
+#include "AgenticCompletionEngineTest.hpp"
+#include "BlockCodecTest.hpp"
+#include "ChatFileStoreTest.hpp"
+#include "ChatHistorySerializerTest.hpp"
+#include "ChatViewTest.hpp"
+#include "ClaudeCacheControlTest.hpp"
+#include "CodeHandlerTest.hpp"
+#include "ConversationCoordinatorTest.hpp"
+#include "DocumentContextReaderTest.hpp"
+#include "FimCompletionEngineTest.hpp"
+#include "LlmChatBackendTest.hpp"
+#include "LlmSuggestionTest.hpp"
+#include "RowAudienceTest.hpp"
+#include "SessionPermissionsTest.hpp"
+#include "SessionTest.hpp"
+#include "ToolsManagerGateTest.hpp"
+#include "TurnContextTest.hpp"
 #endif
 
 using namespace Utils;
@@ -101,8 +128,12 @@ public:
     ~QodeAssistPlugin() final
     {
         Chat::AttachmentStaging::cleanupGlobalIntermediateStorage();
-        
-        delete m_qodeAssistClient;
+
+        delete m_completionController;
+        delete m_fimEngine;
+        delete m_agenticEngine;
+        delete m_acpEngine;
+        delete m_completionContextManager;
         if (m_chatOutputPane) {
             delete m_chatOutputPane;
         }
@@ -161,8 +192,8 @@ public:
         requestAction.setDefaultKeySequence(defaultShortcut);
         requestAction.addOnTriggered(this, [this] {
             if (auto editor = TextEditor::TextEditorWidget::currentTextEditorWidget()) {
-                if (m_qodeAssistClient && m_qodeAssistClient->reachable()) {
-                    m_qodeAssistClient->requestCompletions(editor);
+                if (m_completionController) {
+                    m_completionController->requestCompletions(editor);
                 } else
                     qWarning() << "The QodeAssist is not ready. Please check your connection and "
                                   "settings.";
@@ -209,6 +240,8 @@ public:
         Settings::setupProjectPanel();
         ConfigurationManager::instance().init();
 
+        m_proposeCompletionTool = new Tools::ProposeCompletionTool(this);
+
         m_mcpServerManager = new Mcp::McpServerManager(this);
         m_mcpServerManager->init();
 
@@ -226,7 +259,7 @@ public:
         quickRefactorAction.setIcon(QCODEASSIST_ICON.icon());
         quickRefactorAction.addOnTriggered(this, [this] {
             if (auto editor = TextEditor::TextEditorWidget::currentTextEditorWidget()) {
-                if (m_qodeAssistClient && m_qodeAssistClient->reachable()) {
+                if (m_completionController) {
                     QuickRefactorDialog
                         dialog(Core::ICore::dialogParent(), m_lastRefactorInstructions);
 
@@ -234,7 +267,7 @@ public:
                         QString instructions = dialog.instructions();
                         if (!instructions.isEmpty()) {
                             m_lastRefactorInstructions = instructions;
-                            m_qodeAssistClient->requestQuickRefactor(editor, instructions);
+                            m_completionController->requestQuickRefactor(editor, instructions);
                         }
                     }
                 } else {
@@ -319,36 +352,84 @@ public:
         Chat::AttachmentStaging::cleanupGlobalIntermediateStorage();
 
 #ifdef WITH_TESTS
-        addTest<QodeAssistTest>();
+        addTest<CodeHandlerTest>();
+        addTest<LlmSuggestionTest>();
+        addTest<ClaudeCacheControlTest>();
+        addTest<DocumentContextReaderTest>();
+        addTest<ChatHistorySerializerTest>();
+        addTest<SessionTest>();
+        addTest<RowAudienceTest>();
+        addTest<SessionPermissionsTest>();
+        addTest<TurnContextTest>();
+        addTest<AgentCatalogTest>();
+        addTest<AcpChatBackendTest>();
+        addTest<ToolsManagerGateTest>();
+        addTest<AgentKnowledgeServerTest>();
+        addTest<AgentBindingTest>();
+        addTest<LlmChatBackendTest>();
+        addTest<ConversationCoordinatorTest>();
+        addTest<BlockCodecTest>();
+        addTest<ChatFileStoreTest>();
+        addTest<ChatViewTest>();
+        addTest<FimCompletionEngineTest>();
+        addTest<AgenticCompletionEngineTest>();
+        addTest<AcpCompletionEngineTest>();
 #endif
     }
 
     void extensionsInitialized() final {}
 
-    void restartClient()
+    void restartCompletion()
     {
-        LanguageClient::LanguageClientManager::shutdownClient(m_qodeAssistClient);
-        m_qodeAssistClient = new QodeAssistClient(new LLMClientInterface(
+        delete m_completionController;
+        delete m_fimEngine;
+        delete m_agenticEngine;
+        delete m_acpEngine;
+        delete m_completionContextManager;
+
+        m_completionContextManager = new Context::ContextManager(this);
+        m_fimEngine = new FimCompletionEngine(
             Settings::generalSettings(),
             Settings::codeCompletionSettings(),
             Providers::ProvidersManager::instance(),
             &m_promptProvider,
             m_documentReader,
-            m_performanceLogger));
+            *m_completionContextManager,
+            m_performanceLogger,
+            &m_completionEnricher,
+            this);
+        m_agenticEngine = new AgenticCompletionEngine(
+            Settings::generalSettings(),
+            Settings::codeCompletionSettings(),
+            Providers::ProvidersManager::instance(),
+            &m_promptProvider,
+            m_documentReader,
+            m_performanceLogger,
+            this);
+        m_acpEngine = new AcpCompletionEngine(
+            Settings::codeCompletionSettings(),
+            Settings::generalSettings(),
+            [this](const QString &id) -> std::optional<Acp::AgentDefinition> {
+                if (!m_agentCatalog)
+                    return std::nullopt;
+                return m_agentCatalog->catalog().agent(id);
+            },
+            m_documentReader,
+            m_proposeCompletionTool,
+            this);
+        m_completionController = new CodeCompletionController(
+            m_fimEngine, m_agenticEngine, m_acpEngine, *m_completionContextManager, this);
     }
 
     bool delayedInitialize() final
     {
-        restartClient();
+        restartCompletion();
         return true;
     }
 
     ShutdownFlag aboutToShutdown() final
     {
-        if (!m_qodeAssistClient)
-            return SynchronousShutdown;
-        connect(m_qodeAssistClient, &QObject::destroyed, this, &IPlugin::asynchronousShutdownFinished);
-        return AsynchronousShutdown;
+        return SynchronousShutdown;
     }
 
 private:
@@ -491,7 +572,13 @@ private:
             m_statusWidget->showUpdateAvailable(info.version);
     }
 
-    QPointer<QodeAssistClient> m_qodeAssistClient;
+    QPointer<CodeCompletionController> m_completionController;
+    QPointer<FimCompletionEngine> m_fimEngine;
+    QPointer<AgenticCompletionEngine> m_agenticEngine;
+    QPointer<AcpCompletionEngine> m_acpEngine;
+    QPointer<Tools::ProposeCompletionTool> m_proposeCompletionTool;
+    QPointer<Context::ContextManager> m_completionContextManager;
+    Context::SemanticContextEnricher m_completionEnricher;
     Templates::PromptProviderFim m_promptProvider;
     Context::DocumentReaderQtCreator m_documentReader;
     RequestPerformanceLogger m_performanceLogger;

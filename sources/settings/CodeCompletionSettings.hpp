@@ -22,7 +22,9 @@ public:
     Utils::BoolAspect multiLineCompletion{this};
     Utils::SelectionAspect modelOutputHandler{this};
     Utils::SelectionAspect completionTriggerMode{this};
+    Utils::SelectionAspect triggerMode{this};
     Utils::SelectionAspect completionMode{this};
+    Utils::StringAspect completionAgentId{this};
     Utils::BoolAspect smartContextTrigger{this};
     Utils::BoolAspect respectQtcPopup{this};
     Utils::BoolAspect cancelOnInput{this};
@@ -30,9 +32,6 @@ public:
     Utils::IntegerAspect startSuggestionTimer{this};
     Utils::IntegerAspect autoCompletionCharThreshold{this};
     Utils::IntegerAspect autoCompletionTypingInterval{this};
-    Utils::IntegerAspect hintCharThreshold{this};
-    Utils::IntegerAspect hintHideTimeout{this};
-    Utils::SelectionAspect hintTriggerKey{this};
     Utils::BoolAspect ignoreWhitespaceInCharCount{this};
 
     Utils::StringListAspect customLanguages{this};

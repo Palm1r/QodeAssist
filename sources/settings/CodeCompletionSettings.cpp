@@ -60,16 +60,46 @@ CodeCompletionSettings::CodeCompletionSettings()
         Tr::tr("Hint-based: Shows a hint when typing, press Tab to request completion\n"
                "Automatic: Automatically requests completion after typing threshold"));
 
-    completionMode.setLabelText(Tr::tr("Completion mode:"));
-    completionMode.setSettingsKey(Constants::CC_COMPLETION_MODE);
-    completionMode.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
-    completionMode.addOption("Automatic");
-    completionMode.addOption("Manual");
-    completionMode.setDefaultValue("Automatic");
-    completionMode.setToolTip(
+    triggerMode.setLabelText(Tr::tr("Trigger mode:"));
+    triggerMode.setSettingsKey(Constants::CC_TRIGGER_MODE);
+    triggerMode.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+    triggerMode.addOption("Automatic");
+    triggerMode.addOption("Manual");
+    triggerMode.setDefaultValue("Automatic");
+    triggerMode.setToolTip(
         Tr::tr("Automatic: requests completion while typing (with smart context gates).\n"
                "Manual: no auto-triggering; invoke via the 'Request QodeAssist Suggestion' "
                "shortcut (default Ctrl+Alt+Q, reconfigurable in Preferences > Keyboard)."));
+
+    completionMode.setLabelText(Tr::tr("Completion mode:"));
+    completionMode.setSettingsKey(Constants::CC_COMPLETION_MODE);
+    completionMode.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
+    completionMode.addOption(Constants::CC_MODE_CLASSIC_FIM);
+    completionMode.addOption(Constants::CC_MODE_FIM_WITH_CONTEXT);
+    completionMode.addOption(Constants::CC_MODE_AGENTIC_LOCAL);
+    completionMode.addOption(Constants::CC_MODE_AGENTIC_ACP);
+    completionMode.setDefaultValue(Constants::CC_MODE_CLASSIC_FIM);
+    completionMode.setToolTip(
+        Tr::tr("How a completion is produced.\n"
+               "Classic FIM: one fill-in-the-middle request to the configured provider.\n"
+               "FIM + context: the same request enriched with semantic context from the IDE "
+               "code model (C++/QML, chat-type templates only; the built-in model may lag "
+               "unsaved edits).\n"
+               "Agentic (local tools): a tool-capable model runs the in-process tool loop, "
+               "gathers its own context and proposes the completion via the "
+               "propose_completion tool (needs a tool-capable provider and a chat-type "
+               "template; multi-round and slow, so it is invoked only by the manual "
+               "'Request QodeAssist Suggestion' shortcut, never auto-triggered while typing).\n"
+               "Agentic (ACP agent): an external ACP agent (chosen below) calls "
+               "propose_completion over the QodeAssist MCP server; manual trigger only. "
+               "With no agent chosen the feature is disabled."));
+
+    completionAgentId.setSettingsKey(Constants::CC_ACP_AGENT_ID);
+    completionAgentId.setLabelText(Tr::tr("ACP completion agent id:"));
+    completionAgentId.setDisplayStyle(Utils::StringAspect::LineEditDisplay);
+    completionAgentId.setToolTip(
+        Tr::tr("The id of the ACP agent (from the Agents catalogue) used for the "
+               "'Agentic (ACP agent)' completion mode. Leave empty to keep that mode disabled."));
 
     smartContextTrigger.setSettingsKey(Constants::CC_SMART_CONTEXT_TRIGGER);
     smartContextTrigger.setLabelText(Tr::tr("Smart context-aware triggering"));
@@ -124,37 +154,6 @@ CodeCompletionSettings::CodeCompletionSettings()
                "(Only for Automatic trigger mode)"));
     autoCompletionTypingInterval.setRange(500, 5000);
     autoCompletionTypingInterval.setDefaultValue(1200);
-
-    hintCharThreshold.setSettingsKey(Constants::CC_HINT_CHAR_THRESHOLD);
-    hintCharThreshold.setLabelText(Tr::tr("Hint shows after typing"));
-    hintCharThreshold.setToolTip(
-        Tr::tr("The number of characters that need to be typed before the hint widget appears "
-               "(only for Hint-based trigger mode)."));
-    hintCharThreshold.setRange(1, 10);
-    hintCharThreshold.setDefaultValue(3);
-
-    hintHideTimeout.setSettingsKey(Constants::CC_HINT_HIDE_TIMEOUT);
-    hintHideTimeout.setLabelText(Tr::tr("Hint auto-hide timeout (ms)"));
-    hintHideTimeout.setToolTip(
-        Tr::tr("Time in milliseconds after which the hint widget will automatically hide "
-               "(only for Hint-based trigger mode)."));
-    hintHideTimeout.setRange(500, 10000);
-    hintHideTimeout.setDefaultValue(4000);
-
-    hintTriggerKey.setLabelText(Tr::tr("Trigger key:"));
-    hintTriggerKey.setSettingsKey(Constants::CC_HINT_TRIGGER_KEY);
-    hintTriggerKey.setDisplayStyle(Utils::SelectionAspect::DisplayStyle::ComboBox);
-    hintTriggerKey.addOption("Space");
-    hintTriggerKey.addOption("Ctrl+Space");
-    hintTriggerKey.addOption("Alt+Space");
-    hintTriggerKey.addOption("Ctrl+Enter");
-    hintTriggerKey.addOption("Tab");
-    hintTriggerKey.addOption("Enter");
-    hintTriggerKey.setDefaultValue("Tab");
-    hintTriggerKey.setToolTip(
-        Tr::tr("Key to press for requesting completion when hint is visible.\n"
-               "Space is recommended as least conflicting with context menu.\n"
-               "(Only for Hint-based trigger mode)"));
 
     ignoreWhitespaceInCharCount.setSettingsKey(Constants::CC_IGNORE_WHITESPACE_IN_CHAR_COUNT);
     ignoreWhitespaceInCharCount.setLabelText(
@@ -387,7 +386,9 @@ CodeCompletionSettings::CodeCompletionSettings()
             autoCompletion,
             multiLineCompletion,
             Row{modelOutputHandler, Stretch{1}},
+            Row{triggerMode, Stretch{1}},
             Row{completionMode, Stretch{1}},
+            Row{completionAgentId, Stretch{1}},
             showProgressWidget,
             useOpenFilesContext,
             respectQtcPopup,
@@ -488,13 +489,12 @@ void CodeCompletionSettings::resetSettingsToDefaults()
         resetAspect(useOpenFilesContext);
         resetAspect(modelOutputHandler);
         resetAspect(completionTriggerMode);
+        resetAspect(triggerMode);
         resetAspect(completionMode);
+        resetAspect(completionAgentId);
         resetAspect(smartContextTrigger);
         resetAspect(respectQtcPopup);
         resetAspect(cancelOnInput);
-        resetAspect(hintCharThreshold);
-        resetAspect(hintHideTimeout);
-        resetAspect(hintTriggerKey);
         resetAspect(ignoreWhitespaceInCharCount);
         resetAspect(abortAssistOnRequest);
         writeSettings();
@@ -504,16 +504,19 @@ void CodeCompletionSettings::resetSettingsToDefaults()
 void CodeCompletionSettings::migrateCompletionMode()
 {
     auto *qtcSettings = Core::ICore::settings();
-    if (!qtcSettings || qtcSettings->contains(Constants::CC_COMPLETION_MODE))
+    if (!qtcSettings || !qtcSettings->contains(Constants::CC_COMPLETION_TRIGGER_MODE))
         return;
 
-    const QString oldMode = completionTriggerMode.stringValue();
-    if (oldMode.startsWith("Hint"))
-        completionMode.setStringValue("Manual");
-    else
-        completionMode.setStringValue("Automatic");
+    if (!qtcSettings->contains(Constants::CC_TRIGGER_MODE)) {
+        const QString oldMode = completionTriggerMode.stringValue();
+        if (oldMode.startsWith("Hint"))
+            triggerMode.setStringValue("Manual");
+        else
+            triggerMode.setStringValue("Automatic");
+    }
 
     writeSettings();
+    qtcSettings->remove(Constants::CC_COMPLETION_TRIGGER_MODE);
 }
 
 QString CodeCompletionSettings::processMessageToFIM(const QString &prefix, const QString &suffix) const

@@ -24,30 +24,26 @@
  * Additional attribution terms under GPLv3 §7(b) apply — see LICENSE
  */
 
-#include "completion/QodeAssistClient.hpp"
+#include "completion/CodeCompletionController.hpp"
 
 #include <QApplication>
-#include <QInputDialog>
 #include <QKeyEvent>
 #include <QTimer>
 
-#include <coreplugin/icore.h>
-#include <languageclient/languageclientsettings.h>
+#include <coreplugin/editormanager/documentmodel.h>
+#include <coreplugin/editormanager/editormanager.h>
 #include <projectexplorer/projectmanager.h>
 
-#include "completion/LLMClientInterface.hpp"
 #include "completion/LLMSuggestion.hpp"
+#include "refactor/RefactorContextHelper.hpp"
 #include "refactor/RefactorSuggestion.hpp"
-#include "refactor/RefactorSuggestionHoverHandler.hpp"
 #include "settings/CodeCompletionSettings.hpp"
 #include "settings/GeneralSettings.hpp"
 #include "settings/ProjectSettings.hpp"
 #include "settings/QuickRefactorSettings.hpp"
-#include "widgets/RefactorWidgetHandler.hpp"
-#include "refactor/RefactorContextHelper.hpp"
+#include "settings/SettingsConstants.hpp"
 #include <logger/Logger.hpp>
 
-using namespace LanguageServerProtocol;
 using namespace TextEditor;
 using namespace Utils;
 using namespace ProjectExplorer;
@@ -56,11 +52,6 @@ using namespace Core;
 namespace QodeAssist {
 
 namespace {
-Utils::Text::Position toTextPos(const Utils::Text::Position &pos)
-{
-    return Utils::Text::Position{pos.line, pos.column};
-}
-
 bool isIdentifierChar(QChar c)
 {
     return c.isLetterOrNumber() || c == QLatin1Char('_');
@@ -133,23 +124,32 @@ bool isAfterEagerTrigger(const QTextCursor &cursor)
            || c == QLatin1Char(':') || c == QLatin1Char('>');
 }
 
-bool isManualMode()
+bool isManualTriggerMode()
 {
-    return Settings::codeCompletionSettings().completionMode.stringValue() == "Manual";
+    return Settings::codeCompletionSettings().triggerMode.stringValue() == "Manual";
+}
+
+bool isAgenticMode()
+{
+    const QString mode = Settings::codeCompletionSettings().completionMode.stringValue();
+    return mode == QLatin1StringView(Constants::CC_MODE_AGENTIC_LOCAL)
+           || mode == QLatin1StringView(Constants::CC_MODE_AGENTIC_ACP);
 }
 } // anonymous namespace
 
-QodeAssistClient::QodeAssistClient(LLMClientInterface *clientInterface)
-    : LanguageClient::Client(clientInterface)
-    , m_llmClient(clientInterface)
+CodeCompletionController::CodeCompletionController(
+    CompletionEngine *fimEngine,
+    CompletionEngine *agenticEngine,
+    CompletionEngine *acpEngine,
+    Context::ContextManager &contextManager,
+    QObject *parent)
+    : QObject(parent)
+    , m_fimEngine(fimEngine)
+    , m_agenticEngine(agenticEngine)
+    , m_acpEngine(acpEngine)
+    , m_contextManager(contextManager)
     , m_recentCharCount(0)
 {
-    setName("QodeAssist");
-    LanguageClient::LanguageFilter filter;
-    filter.mimeTypes = QStringList() << "*";
-    setSupportedLanguage(filter);
-
-    start();
     setupConnections();
 
     m_typingTimer.start();
@@ -158,30 +158,33 @@ QodeAssistClient::QodeAssistClient(LLMClientInterface *clientInterface)
     m_refactorWidgetHandler = new RefactorWidgetHandler(this);
 }
 
-QodeAssistClient::~QodeAssistClient()
+CodeCompletionController::~CodeCompletionController()
 {
     cleanupConnections();
     delete m_refactorHoverHandler;
     delete m_refactorWidgetHandler;
 }
 
-void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
+void CodeCompletionController::openDocument(TextEditor::TextDocument *document)
 {
+    if (m_documentConnections.contains(document))
+        return;
+
     auto project = ProjectManager::projectForFile(document->filePath());
     if (!isEnabled(project))
         return;
-
-    Client::openDocument(document);
 
     auto editors = TextEditor::BaseTextEditor::textEditorsForDocument(document);
     for (auto *editor : editors) {
         if (auto *widget = editor->editorWidget()) {
             widget->addHoverHandler(m_refactorHoverHandler);
             widget->installEventFilter(this);
+            if (!m_hoverHandlerWidgets.contains(widget))
+                m_hoverHandlerWidgets.append(widget);
         }
     }
 
-    connect(
+    auto connection = connect(
         document,
         &TextDocument::contentsChangedWithPosition,
         this,
@@ -189,7 +192,7 @@ void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
             if (!Settings::codeCompletionSettings().autoCompletion())
                 return;
 
-            if (isManualMode())
+            if (isManualTriggerMode() || isAgenticMode())
                 return;
 
             auto project = ProjectManager::projectForFile(document->filePath());
@@ -243,42 +246,47 @@ void QodeAssistClient::openDocument(TextEditor::TextDocument *document)
 
             handleAutoRequestTrigger(widget);
         });
+
+    m_documentConnections.insert(document, connection);
 }
 
-bool QodeAssistClient::canOpenProject(ProjectExplorer::Project *project)
+void CodeCompletionController::closeDocument(TextEditor::TextDocument *document)
 {
-    return isEnabled(project);
+    auto it = m_documentConnections.find(document);
+    if (it == m_documentConnections.end())
+        return;
+    disconnect(it.value());
+    m_documentConnections.erase(it);
 }
 
-void QodeAssistClient::requestCompletions(TextEditor::TextEditorWidget *editor)
+void CodeCompletionController::requestCompletions(TextEditor::TextEditorWidget *editor)
 {
     auto project = ProjectManager::projectForFile(editor->textDocument()->filePath());
 
     if (!isEnabled(project))
         return;
 
-
-    if (m_llmClient->contextManager()
-            ->ignoreManager()
-            ->shouldIgnore(editor->textDocument()->filePath().toUrlishString(), project)) {
+    if (m_contextManager.ignoreManager()->shouldIgnore(
+            editor->textDocument()->filePath().toUrlishString(), project)) {
         LOG_MESSAGE(QString("Ignoring file due to .qodeassistignore: %1")
                         .arg(editor->textDocument()->filePath().toUrlishString()));
         return;
     }
 
+    auto *engine = activeEngine();
+    if (!engine)
+        return;
+
     MultiTextCursor cursor = editor->multiTextCursor();
     if (cursor.hasMultipleCursors() || cursor.hasSelection() || editor->suggestionVisible())
         return;
+
+    cancelRunningRequest(editor);
 
     const auto &settings = Settings::codeCompletionSettings();
     if (settings.abortAssistOnRequest() && !settings.respectQtcPopup())
         editor->abortAssist();
 
-    const FilePath filePath = editor->textDocument()->filePath();
-    GetCompletionRequest request{
-        {TextDocumentIdentifier(hostPathToServerUri(filePath)),
-         documentVersion(filePath),
-         Position(cursor.mainCursor())}};
     if (Settings::codeCompletionSettings().showProgressWidget()) {
         m_progressHandler.setCancelCallback([this, editor = QPointer<TextEditorWidget>(editor)]() {
             if (editor) {
@@ -287,16 +295,22 @@ void QodeAssistClient::requestCompletions(TextEditor::TextEditorWidget *editor)
         });
         m_progressHandler.showProgress(editor);
     }
-    request.setResponseCallback([this, editor = QPointer<TextEditorWidget>(editor)](
-                                    const GetCompletionRequest::Response &response) {
-        QTC_ASSERT(editor, return);
-        handleCompletions(response, editor);
-    });
-    m_runningRequests[editor] = request;
-    sendMessage(request);
+
+    const int position = cursor.mainCursor().position();
+    const quint64 requestId = ++m_lastRequestId;
+    m_runningRequests[editor] = {requestId, position, engine};
+    m_requestEditors[requestId] = editor;
+
+    const QTextBlock block = editor->document()->findBlock(position);
+    CompletionContext context;
+    context.filePath = editor->textDocument()->filePath().toUrlishString();
+    context.line = block.blockNumber();
+    context.column = position - block.position();
+
+    engine->request(requestId, context);
 }
 
-void QodeAssistClient::requestQuickRefactor(
+void CodeCompletionController::requestQuickRefactor(
     TextEditor::TextEditorWidget *editor, const QString &instructions)
 {
     auto project = ProjectManager::projectForFile(editor->textDocument()->filePath());
@@ -304,9 +318,8 @@ void QodeAssistClient::requestQuickRefactor(
     if (!isEnabled(project))
         return;
 
-    if (m_llmClient->contextManager()
-            ->ignoreManager()
-            ->shouldIgnore(editor->textDocument()->filePath().toUrlishString(), project)) {
+    if (m_contextManager.ignoreManager()->shouldIgnore(
+            editor->textDocument()->filePath().toUrlishString(), project)) {
         LOG_MESSAGE(QString("Ignoring file due to .qodeassistignore: %1")
                         .arg(editor->textDocument()->filePath().toUrlishString()));
         return;
@@ -318,7 +331,7 @@ void QodeAssistClient::requestQuickRefactor(
             m_refactorHandler,
             &QuickRefactorHandler::refactoringCompleted,
             this,
-            &QodeAssistClient::handleRefactoringResult);
+            &CodeCompletionController::handleRefactoringResult);
     }
 
     m_progressHandler.setCancelCallback([this, editor = QPointer<TextEditorWidget>(editor)]() {
@@ -331,7 +344,7 @@ void QodeAssistClient::requestQuickRefactor(
     m_refactorHandler->sendRefactorRequest(editor, instructions);
 }
 
-void QodeAssistClient::scheduleRequest(TextEditor::TextEditorWidget *editor)
+void CodeCompletionController::scheduleRequest(TextEditor::TextEditorWidget *editor)
 {
     if (m_runningRequests.contains(editor)) {
         if (Settings::codeCompletionSettings().cancelOnInput())
@@ -362,25 +375,74 @@ void QodeAssistClient::scheduleRequest(TextEditor::TextEditorWidget *editor)
     it.value()->setProperty("cursorPosition", editor->textCursor().position());
     it.value()->start(Settings::codeCompletionSettings().startSuggestionTimer());
 }
-void QodeAssistClient::handleCompletions(
-    const GetCompletionRequest::Response &response, TextEditor::TextEditorWidget *editor)
+
+void CodeCompletionController::handleCompletionReady(quint64 requestId, const QString &text)
 {
+    auto editorIt = m_requestEditors.find(requestId);
+    if (editorIt == m_requestEditors.end())
+        return;
+
+    const QPointer<TextEditorWidget> editor = editorIt.value();
+    m_requestEditors.erase(editorIt);
+
+    if (!editor) {
+        dropRunningRequestById(requestId);
+        return;
+    }
+
+    auto runningIt = m_runningRequests.find(editor);
+    if (runningIt == m_runningRequests.end() || runningIt.value().id != requestId)
+        return;
+
+    const int requestPosition = runningIt.value().position;
+    m_runningRequests.erase(runningIt);
+
     m_progressHandler.hideProgress();
     const auto &settings = Settings::codeCompletionSettings();
     if (settings.abortAssistOnRequest() && !settings.respectQtcPopup())
         editor->abortAssist();
 
-    if (response.error()) {
-        log(*response.error());
-        m_errorHandler
-            .showError(editor, tr("Code completion failed: %1").arg(response.error()->message()));
+    applyCompletion(editor, text, requestPosition);
+}
+
+void CodeCompletionController::handleCompletionFailed(quint64 requestId, const QString &error)
+{
+    auto editorIt = m_requestEditors.find(requestId);
+    if (editorIt == m_requestEditors.end())
+        return;
+
+    const QPointer<TextEditorWidget> editor = editorIt.value();
+    m_requestEditors.erase(editorIt);
+
+    LOG_MESSAGE(QString("Code completion failed: %1").arg(error));
+
+    if (!editor) {
+        dropRunningRequestById(requestId);
         return;
     }
 
-    int requestPosition = -1;
-    if (const auto requestParams = m_runningRequests.take(editor).params())
-        requestPosition = requestParams->position().toPositionInDocument(editor->document());
+    auto runningIt = m_runningRequests.find(editor);
+    if (runningIt == m_runningRequests.end() || runningIt.value().id != requestId)
+        return;
+    m_runningRequests.erase(runningIt);
 
+    m_progressHandler.hideProgress();
+    m_errorHandler.showError(editor, tr("Code completion failed: %1").arg(error));
+}
+
+void CodeCompletionController::dropRunningRequestById(quint64 requestId)
+{
+    for (auto it = m_runningRequests.begin(); it != m_runningRequests.end(); ++it) {
+        if (it.value().id == requestId) {
+            m_runningRequests.erase(it);
+            return;
+        }
+    }
+}
+
+void CodeCompletionController::applyCompletion(
+    TextEditor::TextEditorWidget *editor, const QString &text, int requestPosition)
+{
     const MultiTextCursor cursors = editor->multiTextCursor();
     if (cursors.hasMultipleCursors() || cursors.hasSelection())
         return;
@@ -401,80 +463,51 @@ void QodeAssistClient::handleCompletions(
         }
     }
 
-    if (const std::optional<GetCompletionResponse> result = response.result()) {
-        auto isValidCompletion = [](const Completion &completion) {
-            return completion.isValid() && !completion.text().trimmed().isEmpty();
-        };
-        QList<Completion> completions
-            = Utils::filtered(result->completions().toListOrEmpty(), isValidCompletion);
+    QString completionText = text;
+    const int end = int(completionText.size()) - 1;
+    int delta = 0;
+    while (delta <= end && completionText[end - delta].isSpace())
+        ++delta;
+    if (delta > 0)
+        completionText.chop(delta);
 
-        QList<Completion> matchedCompletions;
-        matchedCompletions.reserve(completions.size());
-        for (Completion &completion : completions) {
-            const LanguageServerProtocol::Range range = completion.range();
-            if (range.start().line() != range.end().line())
-                continue;
-
-            QString completionText = completion.text();
-            const int end = int(completionText.size()) - 1;
-            int delta = 0;
-            while (delta <= end && completionText[end - delta].isSpace())
-                ++delta;
-            if (delta > 0)
-                completionText.chop(delta);
-
-            if (!typedSinceRequest.isEmpty()) {
-                if (!completionText.startsWith(typedSinceRequest))
-                    continue;
-                completionText = completionText.mid(typedSinceRequest.size());
-                if (completionText.isEmpty())
-                    continue;
-            }
-
-            completion.setText(completionText);
-            matchedCompletions.append(completion);
-        }
-
-        if (matchedCompletions.isEmpty()) {
-            LOG_MESSAGE("No valid completions received");
+    if (!typedSinceRequest.isEmpty()) {
+        if (!completionText.startsWith(typedSinceRequest)) {
+            LOG_MESSAGE("Completion no longer matches the typed text");
             return;
         }
-
-        const Text::Position anchor = typedSinceRequest.isEmpty()
-            ? Text::Position{}
-            : Text::Position::fromPositionInDocument(editor->document(), currentPosition);
-        const bool useAnchor = !typedSinceRequest.isEmpty();
-
-        auto suggestions = Utils::transform(matchedCompletions,
-                                            [useAnchor, &anchor](const Completion &c) {
-            auto toTextPos = [](const LanguageServerProtocol::Position pos) {
-                return Text::Position{pos.line() + 1, pos.character()};
-            };
-
-            if (useAnchor) {
-                return TextSuggestion::Data{Text::Range{anchor, anchor}, anchor, c.text()};
-            }
-
-            Text::Range range{toTextPos(c.range().start()), toTextPos(c.range().end())};
-            Text::Position pos{toTextPos(c.position())};
-            return TextSuggestion::Data{range, pos, c.text()};
-        });
-
-        editor->insertSuggestion(std::make_unique<LLMSuggestion>(suggestions, editor->document()));
+        completionText = completionText.mid(typedSinceRequest.size());
     }
+
+    if (completionText.trimmed().isEmpty()) {
+        LOG_MESSAGE("No valid completions received");
+        return;
+    }
+
+    const int anchorPosition = typedSinceRequest.isEmpty() ? requestPosition : currentPosition;
+    const Text::Position anchor
+        = Text::Position::fromPositionInDocument(editor->document(), anchorPosition);
+
+    const TextSuggestion::Data suggestion{Text::Range{anchor, anchor}, anchor, completionText};
+    editor->insertSuggestion(
+        std::make_unique<LLMSuggestion>(QList<TextSuggestion::Data>{suggestion}, editor->document()));
 }
 
-void QodeAssistClient::cancelRunningRequest(TextEditor::TextEditorWidget *editor)
+void CodeCompletionController::cancelRunningRequest(TextEditor::TextEditorWidget *editor)
 {
     const auto it = m_runningRequests.constFind(editor);
     if (it == m_runningRequests.constEnd())
         return;
-    m_progressHandler.hideProgress();
-    cancelRequest(it->id());
+    const quint64 requestId = it->id;
+    CompletionEngine *engine = it->engine;
     m_runningRequests.erase(it);
+    m_requestEditors.remove(requestId);
+    m_progressHandler.hideProgress();
+    if (engine)
+        engine->cancel(requestId);
 }
 
-bool QodeAssistClient::isEnabled(ProjectExplorer::Project *project) const
+bool CodeCompletionController::isEnabled(ProjectExplorer::Project *project) const
 {
     if (!project)
         return Settings::generalSettings().enableQodeAssist();
@@ -483,8 +516,33 @@ bool QodeAssistClient::isEnabled(ProjectExplorer::Project *project) const
     return settings.isEnabled();
 }
 
-void QodeAssistClient::setupConnections()
+CompletionEngine *CodeCompletionController::activeEngine() const
 {
+    const QString mode = Settings::codeCompletionSettings().completionMode.stringValue();
+    if (mode == QLatin1StringView(Constants::CC_MODE_AGENTIC_LOCAL))
+        return m_agenticEngine;
+    if (mode == QLatin1StringView(Constants::CC_MODE_AGENTIC_ACP))
+        return m_acpEngine;
+    return m_fimEngine;
+}
+
+void CodeCompletionController::setupConnections()
+{
+    for (CompletionEngine *engine : {m_fimEngine, m_agenticEngine, m_acpEngine}) {
+        if (!engine)
+            continue;
+        connect(
+            engine,
+            &CompletionEngine::completionReady,
+            this,
+            &CodeCompletionController::handleCompletionReady);
+        connect(
+            engine,
+            &CompletionEngine::completionFailed,
+            this,
+            &CodeCompletionController::handleCompletionFailed);
+    }
+
     auto openDoc = [this](IDocument *document) {
         if (auto *textDocument = qobject_cast<TextDocument *>(document))
             openDocument(textDocument);
@@ -502,16 +560,26 @@ void QodeAssistClient::setupConnections()
         openDoc(doc);
 }
 
-void QodeAssistClient::cleanupConnections()
+void CodeCompletionController::cleanupConnections()
 {
     disconnect(m_documentOpenedConnection);
     disconnect(m_documentClosedConnection);
+
+    for (auto it = m_documentConnections.begin(); it != m_documentConnections.end(); ++it)
+        disconnect(it.value());
+    m_documentConnections.clear();
+
+    for (const auto &widget : std::as_const(m_hoverHandlerWidgets)) {
+        if (widget)
+            widget->removeHoverHandler(m_refactorHoverHandler);
+    }
+    m_hoverHandlerWidgets.clear();
 
     qDeleteAll(m_scheduledRequests);
     m_scheduledRequests.clear();
 }
 
-void QodeAssistClient::handleRefactoringResult(const RefactorResult &result)
+void CodeCompletionController::handleRefactoringResult(const RefactorResult &result)
 {
     m_progressHandler.hideProgress();
 
@@ -534,7 +602,7 @@ void QodeAssistClient::handleRefactoringResult(const RefactorResult &result)
     }
 
     int displayMode = Settings::quickRefactorSettings().displayMode();
-    
+
     if (displayMode == 0) {
         displayRefactoringWidget(result);
     } else {
@@ -542,12 +610,12 @@ void QodeAssistClient::handleRefactoringResult(const RefactorResult &result)
     }
 }
 
-void QodeAssistClient::displayRefactoringSuggestion(const RefactorResult &result)
+void CodeCompletionController::displayRefactoringSuggestion(const RefactorResult &result)
 {
     TextEditorWidget *editorWidget = result.editor;
 
-    Utils::Text::Range range{toTextPos(result.insertRange.begin), toTextPos(result.insertRange.end)};
-    Utils::Text::Position pos = toTextPos(result.insertRange.begin);
+    Utils::Text::Range range{result.insertRange.begin, result.insertRange.end};
+    Utils::Text::Position pos = result.insertRange.begin;
 
     int startPos = range.begin.toPositionInDocument(editorWidget->document());
     int endPos = range.end.toPositionInDocument(editorWidget->document());
@@ -577,9 +645,7 @@ void QodeAssistClient::displayRefactoringSuggestion(const RefactorResult &result
     }
 
     TextEditor::TextSuggestion::Data suggestionData{
-        Utils::Text::Range{toTextPos(result.insertRange.begin), toTextPos(result.insertRange.end)},
-        pos,
-        result.newText};
+        Utils::Text::Range{result.insertRange.begin, result.insertRange.end}, pos, result.newText};
     editorWidget->insertSuggestion(
         std::make_unique<RefactorSuggestion>(suggestionData, editorWidget->document()));
 
@@ -599,20 +665,20 @@ void QodeAssistClient::displayRefactoringSuggestion(const RefactorResult &result
     LOG_MESSAGE("Displaying refactoring suggestion with hover handler");
 }
 
-void QodeAssistClient::displayRefactoringWidget(const RefactorResult &result)
+void CodeCompletionController::displayRefactoringWidget(const RefactorResult &result)
 {
     TextEditorWidget *editorWidget = result.editor;
-    Utils::Text::Range range{toTextPos(result.insertRange.begin), toTextPos(result.insertRange.end)};
-    
+    Utils::Text::Range range{result.insertRange.begin, result.insertRange.end};
+
     RefactorContext ctx = RefactorContextHelper::extractContext(editorWidget, range);
-    
+
     QString displayOriginal;
     QString displayRefactored;
     QString textToApply = result.newText;
-    
+
     if (ctx.isInsertion) {
         bool isMultiline = result.newText.contains('\n');
-        
+
         if (isMultiline) {
             displayOriginal = ctx.textBeforeCursor;
             displayRefactored = ctx.textBeforeCursor + result.newText;
@@ -620,7 +686,7 @@ void QodeAssistClient::displayRefactoringWidget(const RefactorResult &result)
             displayOriginal = ctx.textBeforeCursor + ctx.textAfterCursor;
             displayRefactored = ctx.textBeforeCursor + result.newText + ctx.textAfterCursor;
         }
-        
+
         if (!ctx.textBeforeCursor.isEmpty() || !ctx.textAfterCursor.isEmpty()) {
             textToApply = result.newText;
         }
@@ -638,31 +704,30 @@ void QodeAssistClient::displayRefactoringWidget(const RefactorResult &result)
     m_refactorWidgetHandler->showRefactorWidget(
         editorWidget, displayOriginal, displayRefactored, range,
         ctx.contextBefore, ctx.contextAfter);
-    
+
     m_refactorWidgetHandler->setTextToApply(textToApply);
 }
 
-void QodeAssistClient::applyRefactoringEdit(TextEditor::TextEditorWidget *editor,
-                                             const Utils::Text::Range &range,
-                                             const QString &text)
+void CodeCompletionController::applyRefactoringEdit(
+    TextEditor::TextEditorWidget *editor, const Utils::Text::Range &range, const QString &text)
 {
     const QTextCursor startCursor = range.begin.toTextCursor(editor->document());
     const QTextCursor endCursor = range.end.toTextCursor(editor->document());
     const int startPos = startCursor.position();
     const int endPos = endCursor.position();
-    
+
     QTextCursor editCursor(editor->document());
     editCursor.beginEditBlock();
 
     if (startPos == endPos) {
         bool isMultiline = text.contains('\n');
         editCursor.setPosition(startPos);
-        
+
         if (isMultiline) {
             editCursor.movePosition(QTextCursor::EndOfBlock, QTextCursor::KeepAnchor);
             editCursor.removeSelectedText();
         }
-        
+
         editCursor.insertText(text);
     } else {
         editCursor.setPosition(startPos);
@@ -674,7 +739,7 @@ void QodeAssistClient::applyRefactoringEdit(TextEditor::TextEditorWidget *editor
     editCursor.endEditBlock();
 }
 
-void QodeAssistClient::handleAutoRequestTrigger(TextEditor::TextEditorWidget *widget)
+void CodeCompletionController::handleAutoRequestTrigger(TextEditor::TextEditorWidget *widget)
 {
     const QTextCursor cursor = widget->textCursor();
     const auto &settings = Settings::codeCompletionSettings();
@@ -690,11 +755,11 @@ void QodeAssistClient::handleAutoRequestTrigger(TextEditor::TextEditorWidget *wi
         scheduleRequest(widget);
 }
 
-bool QodeAssistClient::eventFilter(QObject *watched, QEvent *event)
+bool CodeCompletionController::eventFilter(QObject *watched, QEvent *event)
 {
     auto *editor = qobject_cast<TextEditor::TextEditorWidget *>(watched);
     if (!editor)
-        return LanguageClient::Client::eventFilter(watched, event);
+        return QObject::eventFilter(watched, event);
 
     if (event->type() == QEvent::KeyPress) {
         auto *keyEvent = static_cast<QKeyEvent *>(event);
@@ -719,7 +784,7 @@ bool QodeAssistClient::eventFilter(QObject *watched, QEvent *event)
         }
     }
 
-    return LanguageClient::Client::eventFilter(watched, event);
+    return QObject::eventFilter(watched, event);
 }
 
 } // namespace QodeAssist

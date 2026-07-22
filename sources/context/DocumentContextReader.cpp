@@ -4,11 +4,11 @@
 
 #include "DocumentContextReader.hpp"
 
-#include <languageserverprotocol/lsptypes.h>
 #include <QFileInfo>
 #include <QTextBlock>
 
 #include "CodeCompletionSettings.hpp"
+#include "ProgrammingLanguage.hpp"
 
 const QRegularExpression &getYearRegex()
 {
@@ -108,7 +108,8 @@ QString DocumentContextReader::readWholeFileAfter(int lineNumber, int cursorPosi
 
 QString DocumentContextReader::getLanguageAndFileInfo() const
 {
-    QString language = LanguageServerProtocol::TextDocumentItem::mimeTypeToLanguageId(m_mimeType);
+    QString language
+        = ProgrammingLanguageUtils::toString(ProgrammingLanguageUtils::fromMimeType(m_mimeType));
     QString fileExtension = QFileInfo(m_filePath).suffix();
 
     return QString("Language: %1 (MIME: %2) filepath: %3(%4)\n\n")
