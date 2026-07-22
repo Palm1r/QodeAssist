@@ -183,9 +183,32 @@ extend_qtc_plugin(QodeAssist
   CONDITION WITH_TESTS
   DEPENDS Qt::Test
   SOURCES
-    tests/QodeAssistTest.hpp tests/QodeAssistTest.cpp
+    tests/SessionTestSupport.hpp
+    tests/CompletionTestSupport.hpp
     tests/FakeAcpAgent.hpp
     tests/FakeLlmProvider.hpp
+    tests/CodeHandlerTest.hpp tests/CodeHandlerTest.cpp
+    tests/LlmSuggestionTest.hpp tests/LlmSuggestionTest.cpp
+    tests/ClaudeCacheControlTest.hpp tests/ClaudeCacheControlTest.cpp
+    tests/DocumentContextReaderTest.hpp tests/DocumentContextReaderTest.cpp
+    tests/ChatHistorySerializerTest.hpp tests/ChatHistorySerializerTest.cpp
+    tests/SessionTest.hpp tests/SessionTest.cpp
+    tests/RowAudienceTest.hpp tests/RowAudienceTest.cpp
+    tests/SessionPermissionsTest.hpp tests/SessionPermissionsTest.cpp
+    tests/TurnContextTest.hpp tests/TurnContextTest.cpp
+    tests/AgentCatalogTest.hpp tests/AgentCatalogTest.cpp
+    tests/AcpChatBackendTest.hpp tests/AcpChatBackendTest.cpp
+    tests/ToolsManagerGateTest.hpp tests/ToolsManagerGateTest.cpp
+    tests/AgentKnowledgeServerTest.hpp tests/AgentKnowledgeServerTest.cpp
+    tests/AgentBindingTest.hpp tests/AgentBindingTest.cpp
+    tests/LlmChatBackendTest.hpp tests/LlmChatBackendTest.cpp
+    tests/ConversationCoordinatorTest.hpp tests/ConversationCoordinatorTest.cpp
+    tests/BlockCodecTest.hpp tests/BlockCodecTest.cpp
+    tests/ChatFileStoreTest.hpp tests/ChatFileStoreTest.cpp
+    tests/ChatViewTest.hpp tests/ChatViewTest.cpp
+    tests/FimCompletionEngineTest.hpp tests/FimCompletionEngineTest.cpp
+    tests/AgenticCompletionEngineTest.hpp tests/AgenticCompletionEngineTest.cpp
+    tests/AcpCompletionEngineTest.hpp tests/AcpCompletionEngineTest.cpp
 )
 
 if(WITH_TESTS)

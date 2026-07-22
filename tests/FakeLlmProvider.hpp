@@ -32,7 +32,18 @@ public:
         Q_UNUSED(endpoint)
         Q_UNUSED(mode)
         lastPayload = payload;
-        return QStringLiteral("fake-req-%1").arg(++requestCounter);
+        lastRequestId = QStringLiteral("fake-req-%1").arg(++requestCounter);
+        return lastRequestId;
+    }
+
+    void completeRequest(const ::LLMQore::RequestID &requestId, const QString &fullText)
+    {
+        emit requestCompleted(requestId, fullText);
+    }
+
+    void failActiveRequest(const ::LLMQore::RequestID &requestId, const QString &error)
+    {
+        emit requestFailed(requestId, error);
     }
 
     ::LLMQore::RequestID ask(const QString &prompt, ::LLMQore::RequestMode mode) override
@@ -49,6 +60,7 @@ public:
     }
 
     QJsonObject lastPayload;
+    ::LLMQore::RequestID lastRequestId;
     int requestCounter = 0;
 
 protected:
@@ -115,11 +127,24 @@ public:
     bool supportsToolHistory() const override { return true; }
 };
 
+class FakeFimTemplate : public Templates::PromptTemplate
+{
+public:
+    Templates::TemplateType type() const override { return Templates::TemplateType::FIM; }
+    QString name() const override { return QStringLiteral("FakeFimTemplate"); }
+    QStringList stopWords() const override { return {}; }
+    void prepareRequest(QJsonObject &, const LLMCore::ContextData &) const override {}
+    QString description() const override { return {}; }
+    bool isSupportProvider(Providers::ProviderID) const override { return true; }
+};
+
 class FakeChatPromptProvider : public Templates::IPromptProvider
 {
 public:
     Templates::PromptTemplate *getTemplateByName(const QString &) const override
     {
+        if (useFimTemplate)
+            return &m_fimTemplate;
         return &m_template;
     }
 
@@ -130,8 +155,11 @@ public:
         return {m_template.name()};
     }
 
+    bool useFimTemplate = false;
+
 private:
     mutable FakeChatTemplate m_template;
+    mutable FakeFimTemplate m_fimTemplate;
 };
 
 class FakeLlmProvider : public Providers::Provider
@@ -152,13 +180,15 @@ public:
         Templates::PromptTemplate *,
         LLMCore::ContextData context,
         LLMCore::RequestType,
-        bool,
+        bool isToolsEnabled,
         bool) override
     {
         lastContext = context;
+        lastToolsEnabled = isToolsEnabled;
     }
 
     LLMCore::ContextData lastContext;
+    bool lastToolsEnabled = false;
 
     QFuture<QList<QString>> getInstalledModels(const QString &) override
     {
@@ -167,10 +197,9 @@ public:
 
     Providers::ProviderID providerID() const override { return Providers::ProviderID::Any; }
 
-    Providers::ProviderCapabilities capabilities() const override
-    {
-        return Providers::ProviderCapability::Tools;
-    }
+    Providers::ProviderCapabilities capabilities() const override { return fakeCapabilities; }
+
+    Providers::ProviderCapabilities fakeCapabilities = Providers::ProviderCapability::Tools;
 
     ::LLMQore::BaseClient *client() const override { return m_client; }
     QString apiKey() const override { return {}; }
