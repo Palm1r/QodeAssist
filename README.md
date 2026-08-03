@@ -7,11 +7,17 @@
 
 ![qodeassist-icon](https://github.com/user-attachments/assets/dc336712-83cb-440d-8761-8d0a31de898d) **QodeAssist** brings a full AI coding workflow to Qt Creator for C++ and QML — smart code completion, multi-panel chat, inline quick refactoring, and project-aware tool calling. It works with local runtimes (Ollama, llama.cpp, LM Studio) and cloud providers (Claude, OpenAI, Google AI, Mistral, Qwen, DeepSeek), can run as an **MCP server** so other clients reuse its project context, and can also act as an **MCP client** to consume tools from external MCP servers (authenticated MCP servers are not supported yet).
 
-⚠️ **Important Notice About Paid Providers**
-> When using paid providers like Claude, OpenRouter or OpenAI-compatible services:
-> - These services will consume API tokens which may result in charges to your account
-> - The QodeAssist developer bears no responsibility for any charges incurred
-> - Please carefully review the provider's pricing and your account settings before use
+⚠️ **Status**: winding down
+>
+> QodeAssist is moving to maintenance-only. No new features, no requests,
+> and at some point I'll likely stop entirely.
+>
+> Issues and pull requests are closed, and the Discord server is gone.
+> There's no support of any kind, by email or otherwise.
+>
+> If you need to reach me for something, I'm at palm1r-github-dev@pm.me — no promise of a reply.
+>
+> The code stays available under its GPL license — fork it freely.
 
 ## Table of Contents
 1. [Overview](#overview)
