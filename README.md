@@ -110,35 +110,7 @@ You can install and update QodeAssist directly from within Qt Creator by adding 
 
 > **Note:** This is an external repository not maintained by The Qt Company. By adding it you accept responsibility for managing the associated risks, as stated in the Extensions page.
 
-### Method 2: Using QodeAssistUpdater (Beta)
-
-QodeAssistUpdater is a command-line utility that automates plugin installation and updates with automatic Qt Creator version detection and checksum verification.
-
-**Features:**
-- Automatic Qt Creator version detection
-- Install, update, or remove plugin with single command
-- List all available plugin versions
-- Install specific plugin version
-- Checksum verification
-- Non-interactive mode for CI/CD
-
-**Installation:**
-
-Download pre-built binary from [QodeAssistUpdater releases](https://github.com/Palm1r/QodeAssistUpdater/releases) or build from source
-
-**Usage:**
-
-```bash
-# Check current status and available updates
-./qodeassist-updater --status
-
-# Install latest version
-./qodeassist-updater --install
-```
-
-For more information, visit the [QodeAssistUpdater repository](https://github.com/Palm1r/QodeAssistUpdater).
-
-### Method 3: Manual Installation
+### Method 2: Manual Installation
 
 1. Install Latest Qt Creator
 2. Download the QodeAssist plugin for your Qt Creator
@@ -505,28 +477,11 @@ Having issues with QodeAssist? Check our [detailed troubleshooting guide](docs/t
 - [ ] Full project source sharing
 - [ ] Additional provider support
 
-## Support the development of QodeAssist
-If you find QodeAssist helpful, there are several ways you can support the project:
-
-1. **Report Issues**: If you encounter any bugs or have suggestions for improvements, please [open an issue](https://github.com/Palm1r/qodeassist/issues) on our GitHub repository.
-
-2. **Contribute**: Feel free to submit pull requests with bug fixes or new features.
-
-3. **Spread the Word**: Star our GitHub repository and share QodeAssist with your fellow developers.
-
-4. **Financial Support**: If you'd like to support the development financially, you can make a donation using one of the following:
-   - Paypal: [my paypalme page](https://www.paypal.com/paypalme/palm1r)
-   - Bitcoin (BTC): `bc1qndq7f0mpnlya48vk7kugvyqj5w89xrg4wzg68t`
-   - Ethereum (ETH): `0xA5e8c37c94b24e25F9f1f292a01AF55F03099D8D`
-   - Litecoin (LTC): `ltc1qlrxnk30s2pcjchzx4qrxvdjt5gzuervy5mv0vy`
-   - USDT (TRC20): `THdZrE7d6epW6ry98GA3MLXRjha1DjKtUx`
-
 Every contribution, no matter how small, is greatly appreciated and helps keep the project alive!
 
 ## Related Projects
 
 - **[LLMQore](https://github.com/Palm1r/llmqore)** — the standalone LLM-core library extracted from QodeAssist, reusable in other Qt/C++ projects
-- **[QodeAssistUpdater](https://github.com/Palm1r/QodeAssistUpdater)** — CLI installer/updater for the plugin
 
 ## How to Build
 
