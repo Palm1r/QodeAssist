@@ -4,7 +4,6 @@
 [![GitHub Tag](https://img.shields.io/github/v/tag/Palm1r/QodeAssist?label=release)](https://github.com/Palm1r/QodeAssist/releases)
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Palm1r/QodeAssist/total?color=41%2C173%2C71&label=downloads)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
-[![Discord](https://dcbadge.limes.pink/api/server/BGMkUsXUgf?style=flat)](https://discord.gg/BGMkUsXUgf)
 
 ![qodeassist-icon](https://github.com/user-attachments/assets/dc336712-83cb-440d-8761-8d0a31de898d) **QodeAssist** brings a full AI coding workflow to Qt Creator for C++ and QML — smart code completion, multi-panel chat, inline quick refactoring, and project-aware tool calling. It works with local runtimes (Ollama, llama.cpp, LM Studio) and cloud providers (Claude, OpenAI, Google AI, Mistral, Qwen, DeepSeek), can run as an **MCP server** so other clients reuse its project context, and can also act as an **MCP client** to consume tools from external MCP servers (authenticated MCP servers are not supported yet).
 
@@ -42,8 +41,6 @@ QodeAssist enhances Qt Creator with AI-powered coding assistance:
 - **Many Providers** — Ollama, llama.cpp, LM Studio (Chat + Responses), Claude, OpenAI (Chat + Responses), Google AI, Mistral, Codestral, OpenRouter, Qwen (OpenAI + Responses), DeepSeek, any OpenAI-compatible endpoint
 - **Reasoning / Thinking** — streamed chain-of-thought is shown for reasoning models across Claude, Google, OpenAI Responses, and any OpenAI-compatible endpoint that returns `reasoning_content` (DeepSeek, Qwen QwQ/Qwen3-Thinking, LM Studio, OpenRouter, …)
 - **Customizable** — per-project and global agent skills, reusable refactor templates, full prompt-template control
-
-**Join our [Discord Community](https://discord.gg/BGMkUsXUgf)** to get support and connect with other users!
 
 <details>
   <summary>Code completion: (click to expand)</summary>
@@ -494,8 +491,6 @@ Having issues with QodeAssist? Check our [detailed troubleshooting guide](docs/t
 - Platform-specific issues (Linux, macOS, Windows)
 - Resetting settings to defaults
 - Common problems and solutions
-
-For additional support, join our [Discord Community](https://discord.gg/BGMkUsXUgf) or check [GitHub Issues](https://github.com/Palm1r/QodeAssist/issues).
 
 ## Development Progress
 
