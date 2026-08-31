@@ -5,17 +5,15 @@
 ![GitHub Downloads (all assets, all releases)](https://img.shields.io/github/downloads/Palm1r/QodeAssist/total?color=41%2C173%2C71&label=downloads)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 
-⚠️ **Status**: winding down
+
+
+⚠️ **Status**: archived
 >
-> QodeAssist is moving to maintenance-only. No new features, no requests,
-> and at some point I'll likely stop entirely.
+> I am shutting down the QodeAssist project completely and archiving it, because my copyright notices were removed without my knowledge or permission. All relevant evidence has been preserved.
 >
-> Issues and pull requests are closed, and the Discord server is gone.
-> There's no support of any kind, by email or otherwise.
->
-> If you need to reach me for something, I'm at palm1r-github-dev@pm.me — no promise of a reply.
->
-> The code stays available under its GPL license — fork it freely.
+> After investing years of work into QodeAssist, I no longer feel able to continue developing a project when its code has already been used elsewhere without preserving proper attribution to its original author.
+<img width="1369" height="530" alt="evidence" src="https://github.com/user-attachments/assets/b368edd0-8664-47de-9979-dcbae8362eda" />
+
 
 ![qodeassist-icon](https://github.com/user-attachments/assets/dc336712-83cb-440d-8761-8d0a31de898d) **QodeAssist** brings a full AI coding workflow to Qt Creator for C++ and QML — smart code completion, multi-panel chat, inline quick refactoring, and project-aware tool calling. It works with local runtimes (Ollama, llama.cpp, LM Studio) and cloud providers (Claude, OpenAI, Google AI, Mistral, Qwen, DeepSeek), can run as an **MCP server** so other clients reuse its project context, and can also act as an **MCP client** to consume tools from external MCP servers.
 
